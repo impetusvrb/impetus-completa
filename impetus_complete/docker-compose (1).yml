@@ -1,0 +1,33 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: impetus
+      POSTGRES_PASSWORD: impetus
+      POSTGRES_DB: impetusdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - '5432:5432'
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://impetus:impetus@db:5432/impetusdb
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 4000
+    ports:
+      - '4000:4000'
+    depends_on:
+      - db
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_BACKEND_URL: http://localhost:4000
+    ports:
+      - '3000:5173'
+    depends_on:
+      - backend
+volumes:
+  db-data:

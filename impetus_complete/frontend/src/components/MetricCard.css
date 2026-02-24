@@ -1,0 +1,158 @@
+/**
+ * ESTILOS DO METRIC CARD
+ */
+
+.metric-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Ícone */
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.metric-blue .metric-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+}
+
+.metric-teal .metric-icon {
+  background: linear-gradient(135deg, #14b8a6 0%, #0891b2 100%);
+}
+
+.metric-purple .metric-icon {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+}
+
+.metric-orange .metric-icon {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+/* Conteúdo */
+.metric-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1;
+}
+
+.metric-growth {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.metric-growth.positive {
+  color: var(--status-low);
+}
+
+.metric-growth.negative {
+  color: var(--status-critical);
+}
+
+/* Loading State */
+.metric-card.loading {
+  pointer-events: none;
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-title,
+.skeleton-value,
+.skeleton-growth {
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 12px;
+}
+
+.skeleton-value {
+  width: 40%;
+  height: 24px;
+}
+
+.skeleton-growth {
+  width: 50%;
+  height: 12px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .metric-card {
+    padding: 16px;
+  }
+
+  .metric-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+}

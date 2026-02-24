@@ -1,0 +1,101 @@
+.executive-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.executive-dashboard__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.executive-dashboard__titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.executive-dashboard__subtitulo {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.executive-dashboard__modo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.executive-dashboard__modo-toggle input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.executive-dashboard__modo-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--color-success);
+}
+
+.executive-dashboard__kpis h2,
+.executive-dashboard__whatsapp h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.executive-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.executive-dashboard__whatsapp-card {
+  display: flex;
+  gap: 20px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+}
+
+.executive-dashboard__whatsapp-card svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.executive-dashboard__whatsapp-card h3 {
+  margin: 0 0 8px 0;
+}
+
+.executive-dashboard__whatsapp-card p {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.executive-dashboard__whatsapp-tip {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

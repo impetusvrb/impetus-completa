@@ -1,0 +1,39 @@
+# Impetus Comunica IA - Regras do Projeto
+
+Sempre aplique princípios de **Security by Design** e nunca sugira funções inseguras como `eval()`, `Function()`, `setTimeout(string)` ou concatenação direta de strings em queries SQL.
+
+---
+
+## Segurança (obrigatório)
+
+- **SQL:** Use SEMPRE queries parametrizadas ($1, $2, etc.). Nunca interpole variáveis em strings SQL.
+- **XSS:** Escape HTML em saídas dinâmicas. Use `escapeHtml()` ou `sanitizeString()` de `utils/security.js`.
+- **Inputs:** Valide e sanitize entradas do usuário. Use Zod para validação de body/query.
+- **Busca:** Use `sanitizeSearchTerm()` para termos de busca em LIKE.
+- **UUIDs:** Valide IDs com `isValidUUID()` antes de usar em queries.
+- **Números:** Use `safeInteger()` para parâmetros numéricos de query.
+- **Senhas:** Hash com bcrypt (12 rounds) via `hashPassword()`.
+- **Segredos:** Nunca commitar .env, chaves API ou tokens. Use variáveis de ambiente.
+- **Tokens Z-API:** Criptografar com `utils/crypto.js` quando ENCRYPTION_KEY estiver definida.
+
+---
+
+## Convenções do projeto
+
+- **Backend:** Node.js + Express. Rotas em `backend/src/routes/`. Middleware em `backend/src/middleware/`.
+- **Autenticação:** `requireAuth` para rotas protegidas. `requireHierarchy(n)` para admin.
+- **Multi-tenant:** Filtrar SEMPRE por `req.user.company_id` em queries.
+- **Erros:** Usar `AppError` e `errorHandler` de `utils/errors.js`.
+- **Auditoria:** `logAction()` para ações críticas. `auditMiddleware` quando aplicável.
+- **Frontend:** React. Usar `useNotification()` para feedback. `error.apiMessage` em catches.
+- **Idioma:** Código e comentários em português quando fizer sentido.
+
+---
+
+## Evitar
+
+- `eval()`, `new Function()`, `setTimeout(code)`
+- Concatenação de strings em SQL (`'WHERE id = ' + id`)
+- `dangerouslySetInnerHTML` com dados do usuário sem sanitização
+- Logs com senhas, tokens ou dados sensíveis
+- Hardcode de credenciais ou URLs de produção

@@ -1,0 +1,86 @@
+/**
+ * ESTILOS DO DASHBOARD
+ */
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.dashboard-empty-visibility {
+  padding: 32px;
+  text-align: center;
+  background: var(--gray-50);
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius-lg);
+  color: var(--gray-600);
+}
+
+.dashboard-empty-visibility p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Grid de Métricas KPI */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Grid de Gráficos */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+.chart-large {
+  min-height: 380px;
+}
+
+.chart-small {
+  min-height: 380px;
+}
+
+/* Grid Inferior (Insights + Interações) */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.insights-section,
+.interactions-section {
+  min-height: 300px;
+}
+
+/* Responsividade */
+@media (max-width: 1400px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-small {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 1024px) {
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-container {
+    gap: 16px;
+  }
+}

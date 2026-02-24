@@ -1,0 +1,227 @@
+/**
+ * ADMIN SETTINGS PAGE
+ */
+
+.admin-settings-page {
+  padding: 24px;
+}
+
+.zapi-connected {
+  text-align: center;
+  padding: 24px;
+}
+.zapi-connected .text-success { color: var(--color-success, #22c55e); }
+.zapi-qr-flow { text-align: center; padding: 16px; }
+.zapi-qr-flow .qr-container {
+  display: inline-block;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+.zapi-qr-flow .qr-container img { max-width: 240px; height: auto; }
+.zapi-qr-flow .qr-hint { font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; }
+.btn-link { background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 0.875rem; text-decoration: underline; padding: 0; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-lg);
+  color: white;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.stab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stab:hover {
+  background: var(--bg-hover);
+}
+
+.stab.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.settings-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.settings-panel h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text-primary);
+}
+
+.settings-panel h4 {
+  font-size: 0.95rem;
+  margin: 24px 0 12px 0;
+  color: var(--text-primary);
+}
+
+.form-hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.test-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.test-result.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.test-result.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.pop-form,
+.manual-form {
+  max-width: 500px;
+}
+
+.pop-form .form-label,
+.manual-form .form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.pop-form .form-input,
+.manual-form .form-input,
+.pop-form .form-textarea,
+.manual-form .form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  background: var(--bg-primary);
+}
+
+.pop-form .form-file,
+.manual-form .form-file {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 10px;
+}
+
+.list-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.simple-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simple-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.visibility-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.visibility-level-card {
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.visibility-level-card h4 {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.visibility-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.visibility-checkboxes .form-checkbox {
+  font-size: 0.85rem;
+}
