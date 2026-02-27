@@ -30,6 +30,9 @@ class ErrorBoundary extends React.Component {
 
   handleRetry = () => {
     this.setState({ hasError: false, error: null, errorInfo: null });
+  };
+
+  handleReload = () => {
     window.location.reload();
   };
 
@@ -41,7 +44,8 @@ class ErrorBoundary extends React.Component {
         return fallback({
           error: this.state.error,
           errorInfo: this.state.errorInfo,
-          retry: this.handleRetry
+          retry: this.handleRetry,
+          reload: this.handleReload
         });
       }
 
@@ -62,6 +66,14 @@ class ErrorBoundary extends React.Component {
               >
                 <RefreshCw size={18} />
                 Tentar novamente
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={this.handleReload}
+                aria-label="Recarregar página"
+              >
+                Recarregar página
               </button>
               <Link to="/app" className="btn btn-secondary" aria-label="Ir para o início">
                 <Home size={18} />

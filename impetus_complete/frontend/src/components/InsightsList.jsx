@@ -6,7 +6,7 @@ import React from 'react';
 import { AlertCircle, Info, TrendingUp } from 'lucide-react';
 import './InsightsList.css';
 
-export default function InsightsList({ insights = [], loading = false }) {
+export default function InsightsList({ insights = [], loading = false, onInsightClick }) {
   const defaultInsights = [
     {
       id: 1,
@@ -76,7 +76,14 @@ export default function InsightsList({ insights = [], loading = false }) {
           const severityClass = getSeverityClass(insight.severity);
 
           return (
-            <div key={insight.id} className={`insight-item ${severityClass}`}>
+            <div
+              key={insight.id}
+              className={`insight-item ${severityClass} ${onInsightClick ? 'insight-item--clickable' : ''}`}
+              role={onInsightClick ? 'button' : undefined}
+              tabIndex={onInsightClick ? 0 : undefined}
+              onClick={onInsightClick ? () => onInsightClick(insight) : undefined}
+              onKeyDown={onInsightClick ? (e) => e.key === 'Enter' && onInsightClick(insight) : undefined}
+            >
               <div className="insight-icon">
                 <Icon size={20} />
               </div>

@@ -19,6 +19,19 @@
   box-shadow: var(--shadow-lg);
 }
 
+.metric-card--clickable {
+  cursor: pointer;
+  border: none;
+  background: var(--bg-primary);
+  text-align: left;
+  font: inherit;
+  width: 100%;
+}
+
+.metric-card--clickable:hover {
+  border-color: var(--color-primary);
+}
+
 /* Ícone */
 .metric-icon {
   width: 48px;

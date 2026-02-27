@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
 import { dashboard } from '../../services/api';
@@ -15,6 +16,7 @@ import { MessageSquare, Brain, TrendingUp, BarChart3, Shield, Send } from 'lucid
 import './ExecutiveDashboard.css';
 
 export default function ExecutiveDashboard() {
+  const navigate = useNavigate();
   const notify = useNotification();
   const [modoApresentacao, setModoApresentacao] = useState(false);
   const [query, setQuery] = useState('');
@@ -80,6 +82,7 @@ export default function ExecutiveDashboard() {
               value={summary?.operational_interactions?.total ?? 0}
               growth={!modoApresentacao ? (summary?.operational_interactions?.growth_percentage ?? 0) : undefined}
               color="blue"
+              onClick={() => navigate('/app/operacional')}
             />
             <MetricCard
               icon={Brain}
@@ -87,18 +90,21 @@ export default function ExecutiveDashboard() {
               value={summary?.ai_insights?.total ?? 0}
               growth={!modoApresentacao ? (summary?.ai_insights?.growth_percentage ?? 0) : undefined}
               color="teal"
+              onClick={() => navigate('/app/chatbot')}
             />
             <MetricCard
               icon={TrendingUp}
               title="Propostas Pró-Ação"
               value={summary?.proposals?.total ?? 0}
               color="purple"
+              onClick={() => navigate('/app/proacao')}
             />
             <MetricCard
               icon={BarChart3}
               title="Pontos Monitorados"
               value={summary?.monitored_points?.total ?? 0}
               color="blue"
+              onClick={() => navigate('/app/monitored-points')}
             />
           </div>
         </section>

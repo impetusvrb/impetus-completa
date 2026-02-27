@@ -33,6 +33,10 @@
   transform: translateX(4px);
 }
 
+.insight-item--clickable {
+  cursor: pointer;
+}
+
 .insight-item.critical {
   border-left-color: var(--status-critical);
 }

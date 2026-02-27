@@ -30,6 +30,15 @@
   padding-bottom: 0;
 }
 
+.interaction-item--clickable {
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.interaction-item--clickable:hover {
+  background: var(--gray-100);
+}
+
 .interaction-avatar {
   position: relative;
   flex-shrink: 0;

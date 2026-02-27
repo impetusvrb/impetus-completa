@@ -2,31 +2,38 @@
  * IMPETUS COMUNICA IA - FRONTEND APPLICATION
  * Sistema Integrado de Comunicação Inteligente, Gestão Operacional e IA Industrial
  * Criadores: Wellington Machado de Freitas & Gustavo Júnior da Silva
+ *
+ * Rotas com lazy loading para desempenho e Indústria 4.0
  */
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
-import Login from './pages/Login';
-import SetupEmpresa from './pages/SetupEmpresa';
-import Dashboard from './pages/Dashboard';
-import Proposals from './pages/Proposals';
-import ProposalDetail from './pages/ProposalDetail';
-import Diagnostic from './pages/Diagnostic';
-import AdminUsers from './pages/AdminUsers';
-import AdminDepartments from './pages/AdminDepartments';
-import AdminAuditLogs from './pages/AdminAuditLogs';
-import AdminSettings from './pages/AdminSettings';
-import Operacional from './pages/Operacional';
-import { BibliotecaPage } from './features/biblioteca';
-import AIChatPage from './features/aiChat/AIChatPage';
-import LicenseExpired from './pages/LicenseExpired';
-import SubscriptionExpired from './pages/SubscriptionExpired';
 import ErrorBoundary from './components/ErrorBoundary';
-import Error404 from './pages/Error404';
-import Error500 from './pages/Error500';
+import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
+
+// Tela inicial — carregamento imediato
+import Login from './pages/Login';
+
+// Rotas carregadas sob demanda (lazy loading)
+const SetupEmpresa = lazy(() => import('./pages/SetupEmpresa'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Proposals = lazy(() => import('./pages/Proposals'));
+const ProposalDetail = lazy(() => import('./pages/ProposalDetail'));
+const Diagnostic = lazy(() => import('./pages/Diagnostic'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminDepartments = lazy(() => import('./pages/AdminDepartments'));
+const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const Operacional = lazy(() => import('./pages/Operacional'));
+const BibliotecaPage = lazy(() => import('./features/biblioteca').then((m) => ({ default: m.BibliotecaPage })));
+const AIChatPage = lazy(() => import('./features/aiChat/AIChatPage'));
+const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
+const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
+const Error404 = lazy(() => import('./pages/Error404'));
+const Error500 = lazy(() => import('./pages/Error500'));
 
 function needSetup() {
   try {
@@ -78,12 +85,27 @@ function CEORouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+// Administrador (hierarchy 0 ou 1): CEO ou Diretor — única função que pode cadastrar documentos
+function isAdministrador() {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    return (user.hierarchy_level ?? 5) <= 1;
+  } catch {
+    return false;
+  }
+}
+function AdminRouteGuard({ children }) {
+  if (isAdministrador()) return children;
+  return <Navigate to="/app" replace />;
+}
+
 export default function App() {
   return (
     <NotificationProvider>
       <ErrorOffline />
       <ErrorBoundary>
         <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
         {/* Rotas públicas */}
         <Route path="/" element={<Login />} />
@@ -133,7 +155,7 @@ export default function App() {
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><Dashboard /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         
-        <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminSettings /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         
         <Route path="/proposals" element={
           <PrivateRoute><SetupGuard><Navigate to="/app/proacao" replace /></SetupGuard></PrivateRoute>
@@ -143,10 +165,10 @@ export default function App() {
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><Diagnostic /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
 
-        <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminUsers /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminDepartments /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminAuditLogs /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminSettings /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminUsers /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
 
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
@@ -154,6 +176,7 @@ export default function App() {
         <Route path="/500" element={<Error500 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </ErrorBoundary>
     </NotificationProvider>

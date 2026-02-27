@@ -4,6 +4,7 @@
  * Conteúdo personalizado por área, cargo e setor
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
 import TrendChart from '../../components/TrendChart';
@@ -22,6 +23,7 @@ import CommunicationPanel from './components/CommunicationPanel';
 import './DashboardInteligente.css';
 
 export default function DashboardInteligente() {
+  const navigate = useNavigate();
   const { sections, userContext } = useDashboardVisibility();
   const [kpiWidgets, setKpiWidgets] = useState([]);
   const [kpiLoading, setKpiLoading] = useState(false);
@@ -103,6 +105,7 @@ export default function DashboardInteligente() {
                 value={summary?.operational_interactions?.total ?? 0}
                 growth={summary?.operational_interactions?.growth_percentage}
                 color="blue"
+                onClick={() => navigate('/app/operacional')}
               />
             )}
             {sections.ai_insights && (
@@ -112,6 +115,7 @@ export default function DashboardInteligente() {
                 value={summary?.ai_insights?.total ?? 0}
                 growth={summary?.ai_insights?.growth_percentage}
                 color="teal"
+                onClick={() => navigate('/app/chatbot')}
               />
             )}
             {sections.monitored_points && (
@@ -120,6 +124,7 @@ export default function DashboardInteligente() {
                 title="Pontos Monitorados"
                 value={summary?.monitored_points?.total ?? 0}
                 color="purple"
+                onClick={() => navigate('/app/monitored-points')}
               />
             )}
             {sections.proposals && (
@@ -128,6 +133,7 @@ export default function DashboardInteligente() {
                 title="Propostas Pró-Ação"
                 value={summary?.proposals?.total ?? 0}
                 color="blue"
+                onClick={() => navigate('/app/proacao')}
               />
             )}
           </div>
@@ -164,7 +170,7 @@ export default function DashboardInteligente() {
               <CommunicationPanel />
             )}
             {sections.recent_interactions && (
-              <RecentInteractions interactions={interactions} />
+              <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app/operacional')} />
             )}
           </section>
         )}
@@ -173,7 +179,7 @@ export default function DashboardInteligente() {
         {sections.insights_list && (
           <section className="dashboard-inteligente__block block-insights">
             <h2><Brain size={20} /> Insights IA</h2>
-            <InsightsList insights={insights} />
+            <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
           </section>
         )}
 

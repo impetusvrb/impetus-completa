@@ -13,9 +13,12 @@ export default function MetricCard({
   value, 
   growth, 
   color = 'blue',
-  loading = false 
+  loading = false,
+  onClick
 }) {
   const isPositive = growth >= 0;
+  const hasValue = value != null && !Number.isNaN(Number(value));
+  const displayValue = hasValue ? Number(value) : null;
 
   if (loading) {
     return (
@@ -30,15 +33,18 @@ export default function MetricCard({
     );
   }
 
+  const Wrapper = onClick ? 'button' : 'div';
+  const wrapperProps = onClick ? { type: 'button', onClick, className: `metric-card metric-${color} metric-card--clickable` } : { className: `metric-card metric-${color}` };
+
   return (
-    <div className={`metric-card metric-${color}`}>
+    <Wrapper {...wrapperProps}>
       <div className="metric-icon">
         <Icon size={24} strokeWidth={2} />
       </div>
       
       <div className="metric-content">
         <h3 className="metric-title">{title}</h3>
-        <div className="metric-value">{value.toLocaleString('pt-BR')}</div>
+        <div className="metric-value">{displayValue != null ? displayValue.toLocaleString('pt-BR') : '-'}</div>
         
         {growth !== undefined && (
           <div className={`metric-growth ${isPositive ? 'positive' : 'negative'}`}>
@@ -47,6 +53,6 @@ export default function MetricCard({
           </div>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 }

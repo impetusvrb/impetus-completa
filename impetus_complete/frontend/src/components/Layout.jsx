@@ -3,7 +3,7 @@
  * Sidebar + Header + Conteúdo
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -23,7 +23,9 @@ import {
   Menu,
   X,
   Target,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  ExternalLink
 } from 'lucide-react';
 import { companies } from '../services/api';
 import './Layout.css';
@@ -34,6 +36,22 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationCount, setNotificationCount] = useState(2);
   const [subscriptionOverdue, setSubscriptionOverdue] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const headerDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (headerDropdownRef.current && !headerDropdownRef.current.contains(e.target)) {
+        setShowNotifications(false);
+        setShowProfile(false);
+        setShowHelp(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     companies.getMe().then((r) => {
@@ -49,23 +67,30 @@ export default function Layout({ children }) {
 
   const isColaborador = user.role === 'colaborador';
   const isCEO = user.role === 'ceo';
-  const allMenuItems = isCEO
-    ? [
-        { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' }
-      ]
-    : [
+  const isAdministrador = (user.hierarchy_level ?? 5) <= 1; // CEO (0) ou Diretor (1)
+  const baseMenuItems = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
     { path: '/app/operacional', icon: Zap, label: 'Operacional' },
     { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
     { path: '/app/chatbot', icon: MessageSquare, label: 'Chatbot Interacionais' },
     { path: '/app/insights', icon: Brain, label: 'IA Insights' },
-    { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados' },
+    { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados' }
+  ];
+  const adminMenuItems = [
     { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
     { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
     { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
     { path: '/app/settings', icon: Settings, label: 'Configurações' }
   ];
+  const allMenuItems = isCEO
+    ? [
+        { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' }
+      ]
+    : [
+        ...baseMenuItems,
+        ...(isAdministrador ? adminMenuItems : [])
+      ];
   const menuItems = isCEO
     ? allMenuItems
     : isColaborador
@@ -151,21 +176,100 @@ export default function Layout({ children }) {
             </p>
           </div>
 
-          <div className="header-right">
-            <button className="header-icon-btn" title="Notificações">
-              <Bell size={20} />
-              {notificationCount > 0 && (
-                <span className="notification-badge">{notificationCount}</span>
+          <div className="header-right" ref={headerDropdownRef}>
+            <div className="header-dropdown-wrapper">
+              <button
+                className={`header-icon-btn ${showNotifications ? 'active' : ''}`}
+                title="Notificações"
+                onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); setShowHelp(false); }}
+                aria-expanded={showNotifications}
+              >
+                <Bell size={20} />
+                {notificationCount > 0 && (
+                  <span className="notification-badge">{notificationCount}</span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="header-dropdown">
+                  <h4 className="header-dropdown__title">Notificações</h4>
+                  <div className="header-dropdown__empty">
+                    <Mail size={32} />
+                    <p>Nenhuma notificação nova</p>
+                    <span className="header-dropdown__hint">Alertas e comunicados aparecerão aqui</span>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
-            <button className="header-icon-btn" title="Perfil">
-              <User size={20} />
-            </button>
+            <div className="header-dropdown-wrapper">
+              <button
+                className={`header-icon-btn ${showProfile ? 'active' : ''}`}
+                title="Perfil"
+                onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); setShowHelp(false); }}
+                aria-expanded={showProfile}
+              >
+                <User size={20} />
+              </button>
+              {showProfile && (
+                <div className="header-dropdown">
+                  <h4 className="header-dropdown__title">Meu perfil</h4>
+                  <div className="header-dropdown__profile">
+                    <div className="header-dropdown__profile-avatar">
+                      <User size={24} />
+                    </div>
+                    <div className="header-dropdown__profile-info">
+                      <strong>{user.name}</strong>
+                      <span>{user.email || '—'}</span>
+                      <span className="header-dropdown__role">{user.role || user.area || 'Usuário'}</span>
+                    </div>
+                  </div>
+                  <Link
+                    to="/app/settings"
+                    className="header-dropdown__link"
+                    onClick={() => setShowProfile(false)}
+                  >
+                    <Settings size={16} /> Configurações
+                  </Link>
+                </div>
+              )}
+            </div>
 
-            <button className="header-icon-btn" title="Ajuda">
-              <HelpCircle size={20} />
-            </button>
+            <div className="header-dropdown-wrapper">
+              <button
+                className={`header-icon-btn ${showHelp ? 'active' : ''}`}
+                title="Ajuda"
+                onClick={() => { setShowHelp(!showHelp); setShowNotifications(false); setShowProfile(false); }}
+                aria-expanded={showHelp}
+              >
+                <HelpCircle size={20} />
+              </button>
+              {showHelp && (
+                <div className="header-dropdown">
+                  <h4 className="header-dropdown__title">Ajuda e suporte</h4>
+                  <Link
+                    to="/app/chatbot"
+                    className="header-dropdown__link"
+                    onClick={() => setShowHelp(false)}
+                  >
+                    <MessageSquare size={16} /> Chat com Impetus
+                  </Link>
+                  <a
+                    href="mailto:suporte@impetus.com.br"
+                    className="header-dropdown__link"
+                    onClick={() => setShowHelp(false)}
+                  >
+                    <Mail size={16} /> Contato por e-mail
+                  </a>
+                  <a
+                    href="#"
+                    className="header-dropdown__link"
+                    onClick={(e) => { e.preventDefault(); setShowHelp(false); }}
+                  >
+                    <ExternalLink size={16} /> Documentação
+                  </a>
+                </div>
+              )}
+            </div>
 
             <button 
               className="header-icon-btn" 

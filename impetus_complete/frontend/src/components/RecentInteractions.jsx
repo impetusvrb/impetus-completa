@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import './RecentInteractions.css';
 
-export default function RecentInteractions({ interactions = [], loading = false }) {
+export default function RecentInteractions({ interactions = [], loading = false, onInteractionClick }) {
   const defaultInteractions = [
     {
       id: 1,
@@ -75,7 +75,14 @@ export default function RecentInteractions({ interactions = [], loading = false 
       
       <div className="interactions-list">
         {displayInteractions.map((interaction) => (
-          <div key={interaction.id} className="interaction-item">
+          <div
+            key={interaction.id}
+            className={`interaction-item ${onInteractionClick ? 'interaction-item--clickable' : ''}`}
+            role={onInteractionClick ? 'button' : undefined}
+            tabIndex={onInteractionClick ? 0 : undefined}
+            onClick={onInteractionClick ? () => onInteractionClick(interaction) : undefined}
+            onKeyDown={onInteractionClick ? (e) => e.key === 'Enter' && onInteractionClick(interaction) : undefined}
+          >
             <div className="interaction-avatar">
               {interaction.avatar_url ? (
                 <img src={interaction.avatar_url} alt={interaction.sender_name} />

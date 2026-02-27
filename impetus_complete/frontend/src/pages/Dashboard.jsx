@@ -1,10 +1,10 @@
 /**
  * DASHBOARD PRINCIPAL
- * CEO → ExecutiveDashboard | Demais → DashboardInteligente (layout fixo 6 blocos)
+ * CEO → ExecutiveDashboard | Admin (Diretor) → AdminDashboard | Demais → DashboardInteligente
  */
 
 import React from 'react';
-import { DashboardInteligente, ExecutiveDashboard } from '../features/dashboard';
+import { AdminDashboard, DashboardInteligente, ExecutiveDashboard } from '../features/dashboard';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -13,6 +13,9 @@ export default function Dashboard() {
 
   if (user?.role === 'ceo') {
     return <ExecutiveDashboard />;
+  }
+  if ((user?.hierarchy_level ?? 5) <= 1) {
+    return <AdminDashboard />;
   }
   return <DashboardInteligente />;
 }

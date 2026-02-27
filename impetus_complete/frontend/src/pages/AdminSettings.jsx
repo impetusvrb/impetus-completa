@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode } from 'lucide-react';
 import Layout from '../components/Layout';
 import { InputField, CheckboxField } from '../components/FormField';
@@ -34,9 +35,20 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
+const VALID_TABS = ['zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+
 export default function AdminSettings() {
   const notify = useNotification();
-  const [activeTab, setActiveTab] = useState('zapi');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'zapi';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && activeTab !== tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
   const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
   const [zapiConfig, setZapiConfig] = useState({ instance_id: '', instance_token: '', client_token: '', api_url: 'https://api.z-api.io', business_phone: '' });

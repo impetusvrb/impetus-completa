@@ -79,10 +79,11 @@ export default function AIChatPage() {
         content: reply
       }]);
     } catch (e) {
+      const errMsg = e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
       setMessages((m) => [...m, {
         id: Date.now() + 1,
         role: 'assistant',
-        content: e.apiMessage || e.response?.data?.fallback || 'Erro ao processar. Tente novamente.'
+        content: errMsg || 'Parece que houve um problema de conexão. Verifique sua rede e tente novamente. O Impetus oferece comunicação inteligente, manutenção assistida e melhoria contínua para a sua indústria.'
       }]);
     } finally {
       setSending(false);
@@ -112,7 +113,7 @@ export default function AIChatPage() {
                   {msg.role === 'assistant' ? <Bot size={20} /> : <User size={20} />}
                 </div>
                 <div className="ai-chat-msg__content">
-                  {msg.content.split('\n').map((line, i) => (
+                  {(msg.content || '').split('\n').map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
                 </div>

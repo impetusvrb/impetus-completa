@@ -1,7 +1,14 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    globals: true
+  },
   plugins: [react()],
   build: {
     minify: 'terser',
@@ -12,7 +19,12 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-utils': ['axios', 'date-fns', 'clsx']
+        }
       }
     }
   },
