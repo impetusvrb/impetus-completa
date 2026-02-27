@@ -106,7 +106,7 @@ export default function RecentInteractions({ interactions = [], loading = false,
                   {getTimeAgo(interaction.created_at)}
                 </span>
               </div>
-              <p className="interaction-text">{interaction.text}</p>
+              <p className="interaction-text">{interaction.text ?? interaction.text_content}</p>
             </div>
           </div>
         ))}

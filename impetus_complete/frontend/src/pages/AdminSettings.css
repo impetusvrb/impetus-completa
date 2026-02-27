@@ -225,3 +225,16 @@
 .visibility-checkboxes .form-checkbox {
   font-size: 0.85rem;
 }
+
+.visibility-checkboxes--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 20px;
+}
+
+.settings-panel-desc {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}

@@ -20,6 +20,7 @@ import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
 import KPIRequest from './components/KPIRequest';
 import CommunicationPanel from './components/CommunicationPanel';
+import DashboardChatWidget from '../../components/DashboardChatWidget';
 import './DashboardInteligente.css';
 
 export default function DashboardInteligente() {
@@ -36,7 +37,7 @@ export default function DashboardInteligente() {
   const { data: summaryRes } = useCachedFetch('dashboard:summary', () => dashboard.getSummary(), { ttlMs: 2 * 60 * 1000 });
   const { data: trendRes } = useCachedFetch('dashboard:trend:6', () => dashboard.getTrend(6), { ttlMs: 5 * 60 * 1000 });
   const { data: insightsRes } = useCachedFetch('dashboard:insights', () => dashboard.getInsights(), { ttlMs: 60 * 1000 });
-  const { data: interactionsRes } = useCachedFetch('dashboard:interactions:5', () => dashboard.getRecentInteractions(5), { ttlMs: 60 * 1000 });
+  const { data: interactionsRes } = useCachedFetch('dashboard:interactions:10', () => dashboard.getRecentInteractions(10), { ttlMs: 60 * 1000 });
 
   useEffect(() => { if (summaryRes?.summary) setSummary(summaryRes.summary); }, [summaryRes]);
   useEffect(() => { if (trendRes?.trend) setTrendData(trendRes.trend); }, [trendRes]);
@@ -182,6 +183,11 @@ export default function DashboardInteligente() {
             <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
           </section>
         )}
+
+        {/* Bloco 7: Chat com Impetus - disponível em todos os dashboards */}
+        <section className="dashboard-inteligente__block block-chat">
+          <DashboardChatWidget compact={true} greetingSummary={false} />
+        </section>
 
         {!(sections.operational_interactions || sections.ai_insights || sections.plc_alerts || sections.trend_chart || sections.recent_interactions || sections.insights_list) && (
           <div className="dashboard-inteligente__empty">

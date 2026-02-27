@@ -548,12 +548,15 @@ export default function AdminSettings() {
           {activeTab === 'dashboard-visibility' && canConfigDashboard && (
             <div className="settings-panel">
               <h3>Visibilidade do Dashboard por Nível</h3>
+              <p className="settings-panel-desc">Configure quais seções cada nível hierárquico visualiza no Dashboard Inteligente (Gerente a Colaborador).</p>
               {[2, 3, 4, 5].map(level => (
-                <div key={level}>
+                <div key={level} className="visibility-level-card">
                   <h4>{HIERARCHY_LABELS[level]}</h4>
-                  {Object.entries(SECTION_LABELS).slice(0, 6).map(([key, label]) => (
-                    <CheckboxField key={key} name={key} label={label} checked={getVisibilityForLevel(level)[key] !== false} onChange={e => handleVisibilityChange(level, key, e.target.checked)} />
-                  ))}
+                  <div className="visibility-checkboxes visibility-checkboxes--grid">
+                    {Object.entries(SECTION_LABELS).map(([key, label]) => (
+                      <CheckboxField key={key} name={key} label={label} checked={getVisibilityForLevel(level)[key] !== false} onChange={e => handleVisibilityChange(level, key, e.target.checked)} />
+                    ))}
+                  </div>
                   <button className="btn btn-secondary" onClick={() => handleSaveVisibility(level)} disabled={saving}>Salvar {HIERARCHY_LABELS[level]}</button>
                 </div>
               ))}

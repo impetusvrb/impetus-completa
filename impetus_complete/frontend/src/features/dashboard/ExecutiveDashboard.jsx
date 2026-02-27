@@ -13,6 +13,7 @@ import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import { useNotification } from '../../context/NotificationContext';
 import { MessageSquare, Brain, TrendingUp, BarChart3, Shield, Send } from 'lucide-react';
+import DashboardChatWidget from '../../components/DashboardChatWidget';
 import './ExecutiveDashboard.css';
 
 export default function ExecutiveDashboard() {
@@ -134,6 +135,10 @@ export default function ExecutiveDashboard() {
               {queryResponse}
             </div>
           )}
+        </section>
+
+        <section className="executive-dashboard__chat-section">
+          <DashboardChatWidget greetingSummary={true} />
         </section>
 
         <section className="executive-dashboard__whatsapp">

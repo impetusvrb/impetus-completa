@@ -102,6 +102,13 @@ app.get('/', (req, res) => res.json({
   timestamp: new Date().toISOString()
 }));
 
+function formatUptime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h}h ${m}m ${s}s`;
+}
+
 app.get('/health', async (req, res) => {
   const mem = process.memoryUsage();
   let dbOk = false;
@@ -116,13 +123,18 @@ app.get('/health', async (req, res) => {
   res.status(healthy ? 200 : 503).json({
     ok: healthy,
     status: healthy ? 'healthy' : 'degraded',
-    uptime: process.uptime(),
+    app: 'Impetus Comunica IA',
+    version: '1.0.0',
+    node: process.version,
+    uptime: Math.round(process.uptime()),
+    uptimeFormatted: formatUptime(process.uptime()),
     timestamp: new Date().toISOString(),
     db: dbOk ? 'connected' : 'error',
     memory: {
       heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
       heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
-      rss: Math.round(mem.rss / 1024 / 1024)
+      rss: Math.round(mem.rss / 1024 / 1024),
+      unit: 'MB'
     },
     cache: cacheStats
   });

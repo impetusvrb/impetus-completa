@@ -151,14 +151,14 @@ export const dashboard = {
   getTrend: (months = 6) => 
     api.get(`/dashboard/trend?months=${months}`),
   
-  getInsights: () => 
-    api.get('/dashboard/insights'),
+  getInsights: (limit = 10, offset = 0) =>
+    api.get(`/dashboard/insights?limit=${limit}&offset=${offset}`),
   
   getMonitoredPointsDistribution: () => 
     api.get('/dashboard/monitored-points-distribution'),
   
-  getRecentInteractions: (limit = 5) => 
-    api.get(`/dashboard/recent-interactions?limit=${limit}`),
+  getRecentInteractions: (limit = 10, offset = 0) =>
+    api.get(`/dashboard/recent-interactions?limit=${limit}&offset=${offset}`),
 
   getPlcAlerts: (acknowledged = false) => 
     api.get(`/plc-alerts?acknowledged=${acknowledged}`),

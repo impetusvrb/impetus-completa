@@ -70,11 +70,11 @@ const updateUserSchema = z.object({
 
 /**
  * GET /api/admin/users
- * Listar usuários (com paginação e filtros)
+ * Listar usuários (apenas administrador)
  */
 router.get('/', 
   requireAuth, 
-  requireHierarchy(2), // Apenas gerentes e diretores
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const { 
@@ -178,7 +178,7 @@ router.get('/',
  */
 router.get('/:id', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
@@ -223,7 +223,7 @@ router.get('/:id',
  */
 router.post('/', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   auditMiddleware({ 
     action: 'user_created', 
     entityType: 'user',
@@ -331,7 +331,7 @@ router.post('/',
  */
 router.put('/:id', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   auditMiddleware({ 
     action: 'user_updated', 
     entityType: 'user',
@@ -519,7 +519,7 @@ router.delete('/:id',
  */
 router.post('/:id/reset-password', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   validate(resetPasswordSchema),
   auditMiddleware({ 
     action: 'user_password_reset', 
@@ -581,7 +581,7 @@ router.post('/:id/reset-password',
  */
 router.delete('/:userId/sessions/:sessionId', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   auditMiddleware({ 
     action: 'user_session_terminated', 
     entityType: 'session',
@@ -638,7 +638,7 @@ router.delete('/:userId/sessions/:sessionId',
  */
 router.get('/stats/summary', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const stats = await db.query(`

@@ -33,7 +33,8 @@ const MIGRATIONS = [
   { name: 'Asaas (assinaturas recorrentes)', file: 'asaas_subscriptions_migration.sql' },
   { name: 'Z-API Connect (integração automática)', file: 'zapi_connect_migration.sql' },
   { name: 'Planos e limite WhatsApp (plans, whatsapp_instances)', file: 'whatsapp_plans_instances_migration.sql' },
-  { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' }
+  { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
+  { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' }
 ];
 
 async function run() {

@@ -34,47 +34,33 @@ function getImpetusPolicy() {
 }
 
 /**
- * Busca trechos relevantes de manuais da empresa (via embeddings)
+ * Busca trechos relevantes de manuais da empresa (via embeddings quando pgvector disponível)
+ * Sem pgvector ou em caso de erro: retorna [] silenciosamente para não quebrar o chat
  */
 async function searchCompanyManuals(companyId, queryText, limit = 8) {
-  const emb = await ai.embedText(queryText);
-  if (!emb) return [];
+  try {
+    const emb = await ai.embedText(queryText);
+    if (!emb) return [];
 
-  const sql = `
-    SELECT mc.id, mc.chunk_text, m.title, m.equipment_type, m.model,
-           (mc.embedding <=> $1) as distance
+    const sql = `
+      SELECT mc.id, mc.chunk_text, m.title, m.equipment_type, m.model,
+             (mc.embedding <=> $1) as distance
     FROM manual_chunks mc
     JOIN manuals m ON mc.manual_id = m.id
     WHERE (m.company_id = $2 OR m.company_id IS NULL)
       AND mc.embedding IS NOT NULL
     ORDER BY mc.embedding <=> $1
     LIMIT $3
-  `;
-  try {
+    `;
     const r = await db.query(sql, [emb, companyId || null, limit]);
     return (r.rows || []).map(row => ({
       id: row.id,
-      title: row.title || `${row.equipment_type || ''} ${row.model || ''}`.trim() || 'Manual',
+      title: row.title || `${(row.equipment_type || '')} ${(row.model || '')}`.trim() || 'Manual',
       chunk_text: row.chunk_text,
-      distance: parseFloat(row.distance)
+      distance: parseFloat(row.distance || 0)
     }));
   } catch (err) {
-    // Se a tabela não tiver company_id, buscar sem filtro
-    if (err.message && err.message.includes('company_id')) {
-      const fallback = await db.query(`
-        SELECT mc.id, mc.chunk_text, m.title, (mc.embedding <=> $1) as distance
-        FROM manual_chunks mc JOIN manuals m ON mc.manual_id = m.id
-        WHERE mc.embedding IS NOT NULL
-        ORDER BY mc.embedding <=> $1 LIMIT $2
-      `, [emb, limit]);
-      return (fallback.rows || []).map(row => ({
-      id: row.id,
-      title: row.title || 'Manual',
-      chunk_text: row.chunk_text,
-      distance: parseFloat(row.distance)
-    }));
-    }
-    console.warn('[DOCUMENT_CONTEXT] searchCompanyManuals:', err.message);
+    console.warn('[DOCUMENT_CONTEXT] searchCompanyManuals (sem pgvector?):', err.message);
     return [];
   }
 }

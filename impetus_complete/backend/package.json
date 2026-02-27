@@ -17,7 +17,11 @@
     "tpm-migrate": "node scripts/run-tpm-migration.js",
     "migrate": "node scripts/run-all-migrations.js",
     "seed": "node scripts/seed-initial.js",
-    "setup:ativacao": "node scripts/setup-ativacao.js"
+    "setup:ativacao": "node scripts/setup-ativacao.js",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\""
   },
   "dependencies": {
     "axios": "^1.4.0",
@@ -43,7 +47,10 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
     "javascript-obfuscator": "^4.1.1",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "prettier": "^3.2.0"
   }
 }

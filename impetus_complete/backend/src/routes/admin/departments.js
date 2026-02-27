@@ -33,10 +33,11 @@ const updateDepartmentSchema = z.object({
 
 /**
  * GET /api/admin/departments
- * Listar departamentos (com hierarquia)
+ * Listar departamentos (apenas administrador)
  */
 router.get('/', 
   requireAuth, 
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const { include_inactive } = req.query;
@@ -81,10 +82,11 @@ router.get('/',
 
 /**
  * GET /api/admin/departments/tree
- * Listar departamentos em estrutura de árvore
+ * Listar departamentos em estrutura de árvore (apenas administrador)
  */
 router.get('/tree', 
   requireAuth,
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const result = await db.query(`
@@ -136,10 +138,11 @@ router.get('/tree',
 
 /**
  * GET /api/admin/departments/:id
- * Buscar departamento específico
+ * Buscar departamento específico (apenas administrador)
  */
 router.get('/:id', 
   requireAuth,
+  requireHierarchy(1),
   async (req, res) => {
     try {
       if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
@@ -185,7 +188,7 @@ router.get('/:id',
  */
 router.post('/', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   auditMiddleware({ 
     action: 'department_created', 
     entityType: 'department',
@@ -287,7 +290,7 @@ router.post('/',
  */
 router.put('/:id', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   auditMiddleware({ 
     action: 'department_updated', 
     entityType: 'department',

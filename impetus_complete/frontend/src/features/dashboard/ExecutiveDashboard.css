@@ -53,6 +53,10 @@
   color: var(--color-success);
 }
 
+.executive-dashboard__chat-section {
+  margin-top: 8px;
+}
+
 .executive-dashboard__kpis h2,
 .executive-dashboard__whatsapp h3 {
   font-size: 1rem;

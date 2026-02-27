@@ -8,6 +8,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { requireCompanyActive } = require('../middleware/multiTenant');
+const { promptFirewall } = require('../middleware/promptFirewall');
+const { userRateLimit } = require('../middleware/userRateLimit');
+const { authorize } = require('../middleware/authorize');
+const secureContextBuilder = require('../services/secureContextBuilder');
+const aiAudit = require('../services/aiAudit');
 const { cached, TTL } = require('../utils/cache');
 const smartSummary = require('../services/smartSummary');
 const ai = require('../services/ai');
@@ -15,6 +21,7 @@ const documentContext = require('../services/documentContext');
 const dashboardVisibility = require('../services/dashboardVisibility');
 const executiveMode = require('../services/executiveMode');
 const userContext = require('../services/userContext');
+const dashboardFilter = require('../services/dashboardFilter');
 
 /**
  * GET /api/dashboard/user-context
@@ -161,6 +168,7 @@ router.post('/executive-query', requireAuth, async (req, res) => {
 router.get('/summary', requireAuth, async (req, res) => {
   try {
     const companyId = req.user.company_id;
+    const filterCtx = dashboardFilter.getFilterContext(req.user);
 
     if (!companyId) {
       return res.json({
@@ -173,6 +181,9 @@ router.get('/summary', requireAuth, async (req, res) => {
         }
       });
     }
+
+    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+      : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const summary = await cached(
       'dashboard:summary',
@@ -189,42 +200,89 @@ router.get('/summary', requireAuth, async (req, res) => {
         let pointsTotal = 0;
         let proposalsTotal = 0;
 
+        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const commWhere = commFilter.whereClause || `c.company_id = $1`;
+        const commParams = commFilter.params.length ? commFilter.params : [companyId];
+
         try {
           const communicationsResult = await db.query(`
-            SELECT COUNT(*) FILTER (WHERE created_at >= now() - INTERVAL '1 week') as current_week,
-                   COUNT(*) FILTER (WHERE created_at >= now() - INTERVAL '2 weeks' AND created_at < now() - INTERVAL '1 week') as previous_week
-            FROM communications WHERE company_id = $1
-          `, [companyId]);
-          comms = communicationsResult.rows[0] || comms;
-        } catch {
-          // Tabela communications pode não existir
+            SELECT COUNT(*) FILTER (WHERE c.created_at >= now() - INTERVAL '1 week') as current_week,
+                   COUNT(*) FILTER (WHERE c.created_at >= now() - INTERVAL '2 weeks' AND c.created_at < now() - INTERVAL '1 week') as previous_week
+            FROM communications c
+            WHERE ${commWhere}
+          `, commParams);
+          if (communicationsResult.rows[0]) {
+            comms = communicationsResult.rows[0];
+          }
+        } catch (err) {
+          try {
+            const fallback = await db.query(`
+              SELECT COUNT(*) FILTER (WHERE created_at >= now() - INTERVAL '1 week') as current_week,
+                     COUNT(*) FILTER (WHERE created_at >= now() - INTERVAL '2 weeks' AND created_at < now() - INTERVAL '1 week') as previous_week
+              FROM communications WHERE company_id = $1
+            `, [companyId]);
+            comms = fallback.rows[0] || comms;
+          } catch {}
         }
 
         try {
           const insightsResult = await db.query(`
-            SELECT COUNT(*) FILTER (WHERE ai_priority <= 2 AND created_at >= now() - INTERVAL '1 week') as current_week,
-                   COUNT(*) FILTER (WHERE ai_priority <= 2 AND created_at >= now() - INTERVAL '2 weeks' AND created_at < now() - INTERVAL '1 week') as previous_week
-            FROM communications WHERE company_id = $1
-          `, [companyId]);
+            SELECT COUNT(*) FILTER (WHERE c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '1 week') as current_week,
+                   COUNT(*) FILTER (WHERE c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '2 weeks' AND c.created_at < now() - INTERVAL '1 week') as previous_week
+            FROM communications c
+            WHERE ${commWhere}
+          `, commParams);
           insights = insightsResult.rows[0] || insights;
-        } catch {
-          // Tabela pode não existir
+        } catch (err) {
+          try {
+            const fallback = await db.query(`
+              SELECT COUNT(*) FILTER (WHERE ai_priority <= 2 AND created_at >= now() - INTERVAL '1 week') as current_week,
+                     COUNT(*) FILTER (WHERE ai_priority <= 2 AND created_at >= now() - INTERVAL '2 weeks' AND created_at < now() - INTERVAL '1 week') as previous_week
+              FROM communications WHERE company_id = $1
+            `, [companyId]);
+            insights = fallback.rows[0] || insights;
+          } catch {}
         }
 
         try {
-          const pointsResult = await db.query(`
-            SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true
-          `, [companyId]);
+          let pointsFilter = 'company_id = $1 AND active = true';
+          const pointsParams = [companyId];
+          if (filterCtx.hierarchyLevel >= 4 && filterCtx.departmentId) {
+            pointsFilter += ' AND (department_id = $2 OR department_id IS NULL)';
+            pointsParams.push(filterCtx.departmentId);
+          } else if (filterCtx.hierarchyLevel >= 2 && filterCtx.hierarchyLevel <= 3 && filterCtx.departmentId) {
+            pointsFilter += ' AND (department_id = $2 OR department_id IS NULL)';
+            pointsParams.push(filterCtx.departmentId);
+          }
+          const pointsResult = await db.query(
+            `SELECT COUNT(*) as total FROM monitored_points WHERE ${pointsFilter}`,
+            pointsParams
+          );
           pointsTotal = parseInt(pointsResult.rows[0]?.total || 0);
         } catch {
-          // Tabela pode não existir
+          try {
+            const fallback = await db.query(`SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true`, [companyId]);
+            pointsTotal = parseInt(fallback.rows[0]?.total || 0);
+          } catch {}
         }
 
         try {
-          const propResult = await db.query(`SELECT COUNT(*) as total FROM proposals WHERE company_id = $1`, [companyId]);
+          let propFilter = 'company_id = $1';
+          const propParams = [companyId];
+          if (filterCtx.hierarchyLevel >= 4) {
+            propFilter += ' AND created_by = $2';
+            propParams.push(filterCtx.userId);
+          } else if (filterCtx.hierarchyLevel >= 2 && filterCtx.hierarchyLevel <= 3 && filterCtx.departmentId) {
+            propFilter += ' AND (department_id = $2 OR department_id IS NULL)';
+            propParams.push(filterCtx.departmentId);
+          }
+          const propResult = await db.query(`SELECT COUNT(*) as total FROM proposals WHERE ${propFilter}`, propParams);
           proposalsTotal = parseInt(propResult.rows[0]?.total || 0);
         } catch {
-          // Tabela pode não existir
+          try {
+            const fallback = await db.query(`SELECT COUNT(*) as total FROM proposals WHERE company_id = $1`, [companyId]);
+            proposalsTotal = parseInt(fallback.rows[0]?.total || 0);
+          } catch {}
         }
 
         const commGrowth = comms.previous_week > 0
@@ -238,10 +296,11 @@ router.get('/summary', requireAuth, async (req, res) => {
           operational_interactions: { total: parseInt(comms.current_week || 0), growth_percentage: parseFloat(commGrowth) },
           ai_insights: { total: parseInt(insights.current_week || 0), growth_percentage: parseFloat(insightsGrowth) },
           monitored_points: { total: pointsTotal },
-          proposals: { total: proposalsTotal }
+          proposals: { total: proposalsTotal },
+          viewType: dashboardFilter.getViewType(filterCtx.hierarchyLevel)
         };
       },
-      () => companyId || 'no-company',
+      () => `${companyId}:${scopeKey}`,
       TTL.DASHBOARD_SUMMARY
     );
 
@@ -305,26 +364,36 @@ router.get('/trend', requireAuth, async (req, res) => {
 router.get('/insights', requireAuth, async (req, res) => {
   try {
     const companyId = req.user.company_id;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const filterCtx = dashboardFilter.getFilterContext(req.user);
+    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+      : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const insights = await cached(
       'dashboard:insights',
       async () => {
+        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const commWhere = commFilter.whereClause || 'c.company_id = $1';
+        const pLimit = commFilter.paramOffset;
+        const pOffset = pLimit + 1;
+        const params = [...commFilter.params, limit, offset];
         const result = await db.query(`
           SELECT 
-            id,
-            text_content,
-            ai_classification,
-            ai_priority,
-            ai_sentiment,
-            created_at,
-            related_equipment_id
-          FROM communications
-          WHERE company_id = $1
-            AND ai_priority <= 2
-            AND status != 'resolved'
-          ORDER BY ai_priority ASC, created_at DESC
-          LIMIT 10
-        `, [companyId]);
+            c.id,
+            c.text_content,
+            c.ai_classification,
+            c.ai_priority,
+            c.ai_sentiment,
+            c.created_at,
+            c.related_equipment_id
+          FROM communications c
+          WHERE ${commWhere}
+            AND c.ai_priority <= 2
+            AND (c.status IS NULL OR c.status != 'resolved')
+          ORDER BY c.ai_priority ASC, c.created_at DESC
+          LIMIT $${pLimit} OFFSET $${pOffset}
+        `, params);
 
         return result.rows.map(row => ({
       id: row.id,
@@ -336,7 +405,7 @@ router.get('/insights', requireAuth, async (req, res) => {
           created_at: row.created_at
         }));
       },
-      () => companyId,
+      () => `${companyId}:${scopeKey}:${limit}:${offset}`,
       TTL.DASHBOARD_INSIGHTS
     );
 
@@ -400,12 +469,21 @@ router.get('/monitored-points-distribution', requireAuth, async (req, res) => {
  */
 router.get('/recent-interactions', requireAuth, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 5;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
     const companyId = req.user.company_id;
+    const filterCtx = dashboardFilter.getFilterContext(req.user);
+    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+      : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const interactions = await cached(
       'dashboard:interactions',
       async () => {
+        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const commWhere = commFilter.whereClause || 'c.company_id = $1';
+        const pLimit = commFilter.paramOffset;
+        const pOffset = pLimit + 1;
+        const params = [...commFilter.params, limit, offset];
         const result = await db.query(`
           SELECT 
             c.id,
@@ -416,13 +494,13 @@ router.get('/recent-interactions', requireAuth, async (req, res) => {
             u.avatar_url
           FROM communications c
           LEFT JOIN users u ON c.sender_id = u.id
-          WHERE c.company_id = $1
+          WHERE ${commWhere}
           ORDER BY c.created_at DESC
-          LIMIT $2
-        `, [companyId, limit]);
-        return result.rows;
+          LIMIT $${pLimit} OFFSET $${pOffset}
+        `, params);
+        return result.rows.map(r => ({ ...r, text: r.text_content }));
       },
-      () => `${companyId}:${limit}`,
+      () => `${companyId}:${scopeKey}:${limit}:${offset}`,
       TTL.DASHBOARD_INTERACTIONS
     );
 
@@ -498,34 +576,104 @@ router.get('/smart-summary', requireAuth, async (req, res) => {
   }
 });
 
+/** Resposta de fallback quando IA indisponível - conquista o usuário de teste */
+const CHAT_FALLBACK_IMPETUS = `Olá! Sou o **Impetus**, assistente de inteligência operacional industrial.
+
+**O que o Impetus faz pela sua indústria:**
+
+• **Comunicação inteligente** – Integração com WhatsApp para receber falhas, tarefas e dúvidas da equipe  
+• **Manutenção assistida** – Análise de falhas técnicas com base em manuais e diagnósticos orientados  
+• **Pró-Ação** – Gestão de propostas de melhoria contínua com avaliação por IA  
+• **Documentação em contexto** – Consulta automática a POPs, políticas e manuais da empresa  
+• **Insights operacionais** – Resumos diários e KPIs personalizados por área  
+
+No momento, o serviço de IA está temporariamente indisponível. Em produção, responderei com base na documentação da sua empresa. Entre em contato com o suporte para configurar a API.`;
+
 /**
  * POST /api/dashboard/chat
- * Chat com IA Operacional - contexto completo (Política Impetus + docs da empresa)
+ * Fluxo: Auth → Company → Prompt Firewall → Rate Limit → Authorize → Secure Context → OpenAI → Audit
+ * A IA nunca decide permissões. Toda decisão no backend.
  */
-router.post('/chat', requireAuth, async (req, res) => {
-  try {
-    const { message, history = [] } = req.body;
-    if (!message || typeof message !== 'string' || !message.trim()) {
-      return res.status(400).json({ ok: false, error: 'Mensagem obrigatória' });
+router.post('/chat',
+  requireAuth,
+  requireCompanyActive,
+  promptFirewall,
+  userRateLimit('ai_chat'),
+  async (req, res) => {
+    if (req.promptFirewall?.blocked) {
+      await aiAudit.logAIInteraction({
+        userId: req.user?.id,
+        companyId: req.user?.company_id,
+        action: 'chat',
+        question: req.body?.message,
+        blocked: true,
+        blockReason: req.promptFirewall.reason,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.status(403).json({
+        ok: false,
+        error: req.promptFirewall.message || 'Você não possui permissão para acessar informações estratégicas.',
+        code: 'PROMPT_BLOCKED'
+      });
     }
-    const companyId = req.user.company_id;
-    const userName = req.user.name || 'Usuário';
 
-    const ctx = userContext.buildUserContext(req.user);
-    const langInstruction = userContext.getLanguageInstructions(ctx);
+    let reply = '';
+    try {
+      const { message, history = [] } = req.body;
+      if (!message || typeof message !== 'string' || !message.trim()) {
+        return res.status(400).json({ ok: false, error: 'Mensagem obrigatória' });
+      }
+      const companyId = req.user.company_id;
+      const userName = req.user.name || 'Usuário';
 
-    const docContext = await documentContext.buildAIContext({ companyId, queryText: message });
-    const manuals = await documentContext.searchCompanyManuals(companyId, message, 6);
-    const manualsBlock = manuals.length > 0
-      ? manuals.map((m, i) => `[${i + 1}] ${m.title}: ${(m.chunk_text || '').slice(0, 400)}`).join('\n---\n')
-      : '(Nenhum trecho relevante)';
+      let docContext = '';
+      let manualsBlock = '(Nenhum trecho relevante)';
+      let langInstruction = '';
 
-    const historyBlock = history.slice(-6).map((m) => {
-      const role = m.role === 'user' ? 'Usuário' : 'IA';
-      return `${role}: ${(m.content || '').slice(0, 300)}`;
-    }).join('\n');
+      try {
+        const ctx = userContext.buildUserContext(req.user);
+        langInstruction = userContext.getLanguageInstructions(ctx) || '';
+      } catch (_) {}
 
-    const systemPrompt = `Você é o Impetus, assistente de inteligência operacional industrial. Ao se identificar nas respostas, use apenas o nome "Impetus". Assista ${userName} com perguntas sobre operação, manutenção, procedimentos e melhoria contínua.
+      try {
+        const secureCtx = await secureContextBuilder.buildContext(req.user, { companyId, queryText: message });
+        docContext = secureCtx.context || '';
+      } catch (err) {
+        try {
+          docContext = await documentContext.buildAIContext({ companyId, queryText: message }) || '';
+        } catch (e) {
+          console.warn('[CHAT] buildAIContext:', e.message);
+        }
+      }
+
+      try {
+        const manuals = await documentContext.searchCompanyManuals(companyId, message, 6);
+        if (manuals.length > 0) {
+          manualsBlock = manuals.map((m, i) => `[${i + 1}] ${m.title}: ${(m.chunk_text || '').slice(0, 400)}`).join('\n---\n');
+        }
+      } catch (err) {
+        console.warn('[CHAT] searchCompanyManuals:', err.message);
+      }
+
+      const historyBlock = (Array.isArray(history) ? history.slice(-6) : []).map((m) => {
+        const role = m.role === 'user' ? 'Usuário' : 'IA';
+        return `${role}: ${(m.content || '').slice(0, 300)}`;
+      }).join('\n');
+
+      const IMPETUS_CAPABILITIES = `
+## O que o Impetus oferece (apresente quando perguntarem "o que é" ou "o que faz"):
+- **Comunicação Rastreada Inteligente** – Integração WhatsApp, mensagens operacionais, tarefas e diagnósticos
+- **Pró-Ação (Melhoria Contínua)** – Propostas de melhoria avaliadas por IA, acompanhamento de projetos
+- **Manutenção Assistida** – Análise de falhas com base em manuais, POPs e políticas da empresa
+- **Insights e KPIs** – Resumos diários, tendências e indicadores por área
+- **Documentação em contexto** – A IA sempre consulta POPs, políticas e manuais internos
+Seja proativo: ao dar as boas-vindas ou em respostas curtas, mencione brevemente que o Impetus auxilia em operação, manutenção e melhoria contínua industrial.`;
+
+    const systemPrompt = `Você é o **Impetus**, assistente de inteligência operacional industrial. Use apenas o nome "Impetus" ao se identificar.
+
+**IMPORTANTE:** Seja acolhedor e comunicativo. Em primeiros contatos ou quando o usuário perguntar o que você faz, apresente de forma clara e objetiva as capacidades do Impetus. Conquiste o usuário na primeira interação.
+${IMPETUS_CAPABILITIES}
 ${langInstruction ? `\n${langInstruction}` : ''}
 ${docContext ? `\n${docContext}\n` : ''}
 ## Trechos de manuais/POPs (se relevantes):
@@ -535,22 +683,43 @@ ${manualsBlock}`;
       ? `Histórico recente:\n${historyBlock}\n\nUsuário: ${message.trim()}`
       : message.trim();
 
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma clara e em conformidade com a Política Impetus e documentação da empresa.`;
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma clara, em português, e em conformidade com a Política Impetus quando aplicável.`;
 
-    const reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
+    reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
 
-    res.json({
-      ok: true,
-      reply: reply || 'Desculpe, não consegui processar. Tente novamente.'
-    });
-  } catch (err) {
-    console.error('[CHAT_ERROR]', err);
-    res.status(500).json({
-      ok: false,
-      error: 'Erro ao processar mensagem',
-      fallback: 'Resposta temporariamente indisponível. Tente novamente.'
-    });
-  }
-});
+    const isFallback = (reply || '').startsWith('FALLBACK:');
+    if (isFallback) {
+      reply = CHAT_FALLBACK_IMPETUS;
+    }
+
+    const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
+      await aiAudit.logAIInteraction({
+        userId: req.user?.id,
+        companyId: req.user?.company_id,
+        action: 'chat',
+        question: message,
+        response: finalReply,
+        blocked: false,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.json({ ok: true, reply: finalReply });
+    } catch (err) {
+      console.error('[CHAT_ERROR]', err);
+      await aiAudit.logAIInteraction({
+        userId: req.user?.id,
+        companyId: req.user?.company_id,
+        action: 'chat',
+        question: req.body?.message,
+        blocked: false,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      }).catch(() => {});
+      return res.json({
+        ok: true,
+        reply: CHAT_FALLBACK_IMPETUS
+      });
+    }
+  });
 
 module.exports = router;

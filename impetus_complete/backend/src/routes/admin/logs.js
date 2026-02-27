@@ -15,7 +15,7 @@ const { sanitizeSearchTerm, safeInteger, isValidUUID } = require('../../utils/se
  */
 router.get('/audit', 
   requireAuth, 
-  requireHierarchy(2), // Gerentes e diretores
+  requireHierarchy(1), // Gerentes e diretores
   async (req, res) => {
     try {
       const limit = safeInteger(req.query.limit, 100, 1, 500);
@@ -121,7 +121,7 @@ router.get('/audit',
  */
 router.get('/data-access', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const limit = safeInteger(req.query.limit, 100, 1, 500);
@@ -214,7 +214,7 @@ router.get('/data-access',
  */
 router.get('/audit/:id', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
@@ -252,7 +252,7 @@ router.get('/audit/:id',
  */
 router.get('/stats/summary', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const days = safeInteger(req.query.days, 7, 1, 365);
@@ -407,7 +407,7 @@ router.get('/stats/security',
  */
 router.post('/export', 
   requireAuth, 
-  requireHierarchy(2),
+  requireHierarchy(1),
   async (req, res) => {
     try {
       const { 
