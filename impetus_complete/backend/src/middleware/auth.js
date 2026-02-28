@@ -5,7 +5,10 @@
 
 const db = require('../db');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { logAction } = require('./audit');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'impetus_super_secret_key';
 
 /**
  * Gera token de sessão
@@ -114,11 +117,51 @@ async function destroySession(token) {
 }
 
 /**
+ * Valida JWT e carrega usuário do banco (fallback quando login retorna JWT)
+ */
+async function validateJWTAndLoadUser(token) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded?.id) return null;
+
+    const r = await db.query(`
+      SELECT id, name, email, role, company_id, department_id, hierarchy_level,
+             supervisor_id, area, job_title, department, permissions, active,
+             is_first_access, must_change_password, temporary_password_expires_at
+      FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
+    `, [decoded.id]);
+
+    if (r.rows.length === 0) return null;
+    const u = r.rows[0];
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      company_id: u.company_id,
+      department_id: u.department_id,
+      hierarchy_level: u.hierarchy_level,
+      supervisor_id: u.supervisor_id,
+      area: u.area,
+      job_title: u.job_title,
+      department: u.department,
+      permissions: u.permissions || [],
+      sessionId: null,
+      is_first_access: u.is_first_access || false,
+      must_change_password: u.must_change_password || false,
+      temporary_password_expires_at: u.temporary_password_expires_at
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Middleware de autenticação
- * Verifica se usuário está autenticado
+ * Aceita: token de sessão (tabela sessions) OU JWT (login retorna JWT)
  */
 function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '') || 
+  const token = req.headers.authorization?.replace('Bearer ', '') ||
                 req.headers['x-access-token'] ||
                 req.query.token;
 
@@ -130,7 +173,10 @@ function requireAuth(req, res, next) {
     });
   }
 
-  validateSession(token).then(user => {
+  validateSession(token).then(async (user) => {
+    if (!user) {
+      user = await validateJWTAndLoadUser(token);
+    }
     if (!user) {
       return res.status(401).json({
         ok: false,

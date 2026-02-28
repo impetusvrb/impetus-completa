@@ -36,7 +36,8 @@ const MIGRATIONS = [
   { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
   { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' },
   { name: 'Controle Hierárquico (supervisor_id, user_hierarchy_scope)', file: 'hierarchical_control_migration.sql' },
-  { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' }
+  { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' },
+  { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' }
 ];
 
 async function run() {

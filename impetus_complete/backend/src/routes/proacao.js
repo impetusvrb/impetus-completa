@@ -3,8 +3,18 @@ const router = express.Router();
 const proacao = require('../services/proacao');
 const { isValidUUID } = require('../utils/security');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
+const { requireAuth } = require('../middleware/auth');
 
-router.post('/', async (req,res)=>{ try{ const payload = { ...req.body, company_id: req.user.company_id }; const p = await proacao.createProposal(payload); res.json({ ok:true, proposal: p }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const payload = { ...req.body, company_id: req.user.company_id };
+    const p = await proacao.createProposal(payload);
+    res.json({ ok: true, proposal: p });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 router.get('/', requireHierarchyScope, async (req,res)=>{ try{ const list = await proacao.listProposals(200, req.user.company_id, req.hierarchyScope); res.json({ ok:true, proposals: list }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.get('/:id', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); const p = await proacao.getProposal(req.params.id, req.user.company_id, req.hierarchyScope); if(!p) return res.status(404).json({ ok:false, error:'not found' }); res.json({ ok:true, proposal: p }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.post('/:id/evaluate', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); const ev = await proacao.aiEvaluateProposal(req.params.id, req.user.company_id, req.hierarchyScope); res.json({ ok:true, evaluation: ev }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});

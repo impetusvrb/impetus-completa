@@ -23,6 +23,8 @@ const executiveMode = require('../services/executiveMode');
 const userContext = require('../services/userContext');
 const dashboardFilter = require('../services/dashboardFilter');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
+const userIdentification = require('../services/userIdentificationService');
+const chatUserContext = require('../services/chatUserContext');
 
 /**
  * GET /api/dashboard/user-context
@@ -591,18 +593,8 @@ router.get('/smart-summary', requireAuth, async (req, res) => {
   }
 });
 
-/** Resposta de fallback quando IA indisponível - conquista o usuário de teste */
-const CHAT_FALLBACK_IMPETUS = `Olá! Sou o **Impetus**, assistente de inteligência operacional industrial.
-
-**O que o Impetus faz pela sua indústria:**
-
-• **Comunicação inteligente** – Integração com WhatsApp para receber falhas, tarefas e dúvidas da equipe  
-• **Manutenção assistida** – Análise de falhas técnicas com base em manuais e diagnósticos orientados  
-• **Pró-Ação** – Gestão de propostas de melhoria contínua com avaliação por IA  
-• **Documentação em contexto** – Consulta automática a POPs, políticas e manuais da empresa  
-• **Insights operacionais** – Resumos diários e KPIs personalizados por área  
-
-No momento, o serviço de IA está temporariamente indisponível. Em produção, responderei com base na documentação da sua empresa. Entre em contato com o suporte para configurar a API.`;
+/** Resposta de fallback quando IA indisponível */
+const CHAT_FALLBACK_IMPETUS = `No momento o serviço está temporariamente indisponível. O Impetus auxilia em comunicação inteligente, manutenção assistida, Pró-Ação e documentação em contexto. Entre em contato com o suporte para configurar a API.`;
 
 /**
  * POST /api/dashboard/chat
@@ -633,6 +625,17 @@ router.post('/chat',
       });
     }
 
+    // Verificação de identificação: bloqueia chat até ativação/verificação diária
+    const identificationStatus = await userIdentification.getIdentificationStatus(req.user);
+    if (identificationStatus.status !== 'verified') {
+      return res.status(403).json({
+        ok: false,
+        error: 'Identificação pendente. Complete a ativação ou verificação diária para acessar o chat.',
+        code: 'USER_IDENTIFICATION_REQUIRED',
+        identificationStatus
+      });
+    }
+
     let reply = '';
     try {
       const { message, history = [] } = req.body;
@@ -640,7 +643,8 @@ router.post('/chat',
         return res.status(400).json({ ok: false, error: 'Mensagem obrigatória' });
       }
       const companyId = req.user.company_id;
-      const userName = req.user.name || 'Usuário';
+      const chatCtx = await chatUserContext.buildChatUserContext(req.user);
+      const { userName, identityBlock, memoriaBlock } = chatCtx;
 
       let docContext = '';
       let manualsBlock = '(Nenhum trecho relevante)';
@@ -672,22 +676,34 @@ router.post('/chat',
       }
 
       const historyBlock = (Array.isArray(history) ? history.slice(-6) : []).map((m) => {
-        const role = m.role === 'user' ? 'Usuário' : 'IA';
+        const role = m.role === 'user' ? userName : 'IA';
         return `${role}: ${(m.content || '').slice(0, 300)}`;
       }).join('\n');
 
       const IMPETUS_CAPABILITIES = `
-## O que o Impetus oferece (apresente quando perguntarem "o que é" ou "o que faz"):
+## O que o Impetus oferece (apresente APENAS quando perguntarem "o que é" ou "o que faz"):
 - **Comunicação Rastreada Inteligente** – Integração WhatsApp, mensagens operacionais, tarefas e diagnósticos
 - **Pró-Ação (Melhoria Contínua)** – Propostas de melhoria avaliadas por IA, acompanhamento de projetos
 - **Manutenção Assistida** – Análise de falhas com base em manuais, POPs e políticas da empresa
 - **Insights e KPIs** – Resumos diários, tendências e indicadores por área
-- **Documentação em contexto** – A IA sempre consulta POPs, políticas e manuais internos
-Seja proativo: ao dar as boas-vindas ou em respostas curtas, mencione brevemente que o Impetus auxilia em operação, manutenção e melhoria contínua industrial.`;
+- **Documentação em contexto** – A IA sempre consulta POPs, políticas e manuais internos`;
 
-    const systemPrompt = `Você é o **Impetus**, assistente de inteligência operacional industrial. Use apenas o nome "Impetus" ao se identificar.
+    const COMMUNICATION_GUIDELINES = `
+## Estilo de comunicação – OBRIGATÓRIO:
+- **Seja natural e direto.** O usuário já sabe quem você é – NÃO repita "Olá! Aqui é o Impetus" ou "Sou o Impetus" em toda mensagem.
+- **Identifique-se apenas** na primeira interação da sessão ou quando o usuário perguntar diretamente quem você é.
+- **Responda de forma conversacional**, como um assistente experiente que já conhece o contexto.
+- **Seja conciso** quando a pergunta for objetiva. Evite rodeios e frases de preenchimento.
+- **Nunca exponha** dados sensíveis, salários, contratos, informações restritas de pessoas ou da organização. Seja cauteloso com dados financeiros e estratégicos.
+- **Evite encerrar** todas as mensagens com "Como posso ajudar?" ou "Estou à disposição" – use apenas quando fizer sentido.`;
 
-**IMPORTANTE:** Seja acolhedor e comunicativo. Em primeiros contatos ou quando o usuário perguntar o que você faz, apresente de forma clara e objetiva as capacidades do Impetus. Conquiste o usuário na primeira interação.
+    const systemPrompt = `Você é o **Impetus**, assistente de inteligência operacional industrial. Quando precisar se identificar, use apenas o nome "Impetus".
+
+${identityBlock}
+${memoriaBlock}
+
+**IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
+${COMMUNICATION_GUIDELINES}
 ${IMPETUS_CAPABILITIES}
 ${langInstruction ? `\n${langInstruction}` : ''}
 ${docContext ? `\n${docContext}\n` : ''}
@@ -695,10 +711,10 @@ ${docContext ? `\n${docContext}\n` : ''}
 ${manualsBlock}`;
 
     const userPrompt = historyBlock
-      ? `Histórico recente:\n${historyBlock}\n\nUsuário: ${message.trim()}`
-      : message.trim();
+      ? `Histórico recente:\n${historyBlock}\n\n${userName}: ${message.trim()}`
+      : `${userName}: ${message.trim()}`;
 
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma clara, em português, e em conformidade com a Política Impetus quando aplicável.`;
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.`;
 
     reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
 
@@ -708,33 +724,33 @@ ${manualsBlock}`;
     }
 
     const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
-      await aiAudit.logAIInteraction({
-        userId: req.user?.id,
-        companyId: req.user?.company_id,
-        action: 'chat',
-        question: message,
-        response: finalReply,
-        blocked: false,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent')
-      });
-      return res.json({ ok: true, reply: finalReply });
-    } catch (err) {
-      console.error('[CHAT_ERROR]', err);
-      await aiAudit.logAIInteraction({
-        userId: req.user?.id,
-        companyId: req.user?.company_id,
-        action: 'chat',
-        question: req.body?.message,
-        blocked: false,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent')
-      }).catch(() => {});
-      return res.json({
-        ok: true,
-        reply: CHAT_FALLBACK_IMPETUS
-      });
-    }
+    await aiAudit.logAIInteraction({
+      userId: req.user?.id,
+      companyId: req.user?.company_id,
+      action: 'chat',
+      question: message,
+      response: finalReply,
+      blocked: false,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+    return res.json({ ok: true, reply: finalReply });
+  } catch (err) {
+    console.error('[CHAT_ERROR]', err);
+    await aiAudit.logAIInteraction({
+      userId: req.user?.id,
+      companyId: req.user?.company_id,
+      action: 'chat',
+      question: req.body?.message,
+      blocked: false,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    }).catch(() => {});
+    return res.json({
+      ok: true,
+      reply: CHAT_FALLBACK_IMPETUS
+    });
+  }
   });
 
 module.exports = router;

@@ -36,6 +36,7 @@ const adminSettings = require('./routes/admin/settings');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
 const onboarding = require('./routes/onboarding');
+const userIdentification = require('./routes/userIdentification');
 const internalSales = require('./routes/internal/sales');
 const subscription = require('./routes/subscription');
 
@@ -168,7 +169,30 @@ const zapiRoutes = require('./routes/zapi');
 const protected = [requireAuth, requireCompanyActive];
 
 app.use('/api/setup-company', requireAuth, setupCompany);
+// Status do onboarding: apenas requireAuth (funciona sem company_id)
+app.get('/api/onboarding/status', requireAuth, async (req, res) => {
+  try {
+    const onboardingService = require('./services/onboardingService');
+    const status = await onboardingService.getOnboardingStatus(req.user);
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    console.error('[ONBOARDING_STATUS]', err);
+    res.json({ ok: true, needsOnboarding: false, activeType: null });
+  }
+});
 app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
+// Status de identificação: apenas requireAuth (funciona sem company_id / primeiro acesso)
+app.get('/api/user-identification/status', requireAuth, async (req, res) => {
+  try {
+    const userIdentificationService = require('./services/userIdentificationService');
+    const status = await userIdentificationService.getIdentificationStatus(req.user);
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    console.error('[IDENTIFICATION_STATUS]', err);
+    res.json({ ok: true, status: 'needs_activation', reason: 'Erro ao verificar' });
+  }
+});
+app.use('/api/user-identification', userIdentification);
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
 app.use('/api/zapi', requireAuth, requireCompanyActive, zapiRoutes);
