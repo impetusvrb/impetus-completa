@@ -60,7 +60,8 @@ export default function OnboardingModal({ tipo, onComplete }) {
         }
       }
     } catch (err) {
-      setMessages((m) => [...m, { role: 'assistant', content: 'Desculpe, ocorreu um erro. Pode repetir sua resposta?' }]);
+      const msg = err.apiMessage || err.response?.data?.error || 'Desculpe, ocorreu um erro. Pode repetir sua resposta?';
+      setMessages((m) => [...m, { role: 'assistant', content: msg }]);
     } finally {
       setSending(false);
     }
