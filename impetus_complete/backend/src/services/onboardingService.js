@@ -119,7 +119,11 @@ INSTRUÇÕES:
 Retorne somente o texto da sua próxima fala:`;
 
   const response = await ai.chatCompletion(prompt, { max_tokens: 400 });
-  return (response || '').trim();
+  const trimmed = (response || '').trim();
+  if (trimmed.startsWith('FALLBACK:')) {
+    throw new Error('A assistente de IA está temporariamente indisponível. Verifique se OPENAI_API_KEY está configurado e tente novamente em instantes.');
+  }
+  return trimmed;
 }
 
 /**
@@ -148,7 +152,11 @@ Uma pergunta por vez. Quando tiver cobertura: "Obrigado! Seu perfil foi registra
 Retorne APENAS sua próxima fala:`;
 
   const response = await ai.chatCompletion(prompt, { max_tokens: 350 });
-  return (response || '').trim();
+  const trimmed = (response || '').trim();
+  if (trimmed.startsWith('FALLBACK:')) {
+    throw new Error('A assistente de IA está temporariamente indisponível. Verifique se OPENAI_API_KEY está configurado e tente novamente em instantes.');
+  }
+  return trimmed;
 }
 
 /**

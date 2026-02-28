@@ -54,7 +54,11 @@ router.post('/start', async (req, res) => {
     res.json({ ok: true, message, completed });
   } catch (err) {
     console.error('[ONBOARDING_START_ERROR]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao iniciar onboarding' });
+    const msg = err.message || 'Erro ao iniciar onboarding';
+    const userMsg = /relation.*does not exist|no existe/i.test(msg)
+      ? 'Banco de dados não configurado. Execute as migrações: node -r dotenv/config scripts/run-all-migrations.js'
+      : msg;
+    res.status(500).json({ ok: false, error: userMsg });
   }
 });
 
@@ -85,7 +89,11 @@ router.post('/respond', async (req, res) => {
     res.json({ ok: true, message, completed });
   } catch (err) {
     console.error('[ONBOARDING_RESPOND_ERROR]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao processar resposta' });
+    const msg = err.message || 'Erro ao processar resposta';
+    const userMsg = /relation.*does not exist|no existe/i.test(msg)
+      ? 'Banco de dados não configurado. Execute as migrações: node -r dotenv/config scripts/run-all-migrations.js'
+      : msg;
+    res.status(500).json({ ok: false, error: userMsg });
   }
 });
 
