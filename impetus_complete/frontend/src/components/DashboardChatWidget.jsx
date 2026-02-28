@@ -35,20 +35,20 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
           setMessages([{
             id: 'ai-greet',
             role: 'assistant',
-            content: `Olá, ${userName}! Aqui é o Impetus.\n\n${r.data.summary}\n\nComo posso ajudar?`
+            content: `${userName},\n\n${r.data.summary}`
           }]);
         } else {
           setMessages([{
             id: 'ai-greet',
             role: 'assistant',
-            content: `Olá, ${userName}! Aqui é o Impetus. Como posso ajudar com operação, manutenção ou melhoria contínua?`
+            content: `Olá, ${userName}! Em que posso ajudar?`
           }]);
         }
       } catch {
         setMessages([{
           id: 'ai-greet',
           role: 'assistant',
-          content: 'Olá! Aqui é o Impetus. Como posso ajudar?'
+          content: 'Em que posso ajudar?'
         }]);
       } finally {
         setLoading(false);

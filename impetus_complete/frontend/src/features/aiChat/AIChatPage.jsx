@@ -1,6 +1,6 @@
 /**
  * Chat com o Impetus
- * Ao abrir: Impetus saúda e apresenta resumo diário/semanal
+ * A identificação/ativação é feita no Layout ao abrir o dashboard
  */
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout';
@@ -28,7 +28,7 @@ export default function AIChatPage() {
         const r = await dashboard.getSmartSummary();
         const userName = JSON.parse(localStorage.getItem('impetus_user') || '{}').name || 'Usuário';
         if (r.data?.ok && r.data?.summary) {
-          const greeting = `Olá, ${userName}! Aqui é o Impetus. Preparei seu resumo:\n\n`;
+          const greeting = `${userName}, segue seu resumo:\n\n`;
           setMessages([{
             id: 'ai-summary',
             role: 'assistant',
@@ -38,7 +38,7 @@ export default function AIChatPage() {
           setMessages([{
             id: 'ai-greeting',
             role: 'assistant',
-            content: `Olá, ${userName}! Aqui é o Impetus. No momento não há resumo disponível. Como posso ajudar?`
+            content: `Olá, ${userName}! Não há resumo disponível no momento. Em que posso ajudar?`
           }]);
         }
         log('view', 'ai_chat', null, { loaded_summary: true });
@@ -46,7 +46,7 @@ export default function AIChatPage() {
         setMessages([{
           id: 'ai-error',
           role: 'assistant',
-          content: 'Olá! Aqui é o Impetus. Resumo temporariamente indisponível. Como posso ajudar?'
+          content: 'Resumo temporariamente indisponível. Em que posso ajudar?'
         }]);
       } finally {
         setLoading(false);

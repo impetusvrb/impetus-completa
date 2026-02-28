@@ -27,21 +27,37 @@ import {
   Mail,
   ExternalLink
 } from 'lucide-react';
-import { companies, onboarding } from '../services/api';
+import { companies, onboarding, userIdentification } from '../services/api';
 import OnboardingModal from './OnboardingModal';
+import IdentificationModal from './IdentificationModal';
 import './Layout.css';
 
 export default function Layout({ children }) {
   const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
+  const [identificationStatus, setIdentificationStatus] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [notificationCount, setNotificationCount] = useState(2);
+  const [notificationCount] = useState(0);
   const [subscriptionOverdue, setSubscriptionOverdue] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
   const headerDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setCurrentTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -67,6 +83,15 @@ export default function Layout({ children }) {
     onboarding.getStatus().then((r) => {
       if (r?.data?.needsOnboarding && r?.data?.activeType) {
         setOnboardingState({ show: true, tipo: r.data.activeType });
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    userIdentification.getStatus().then((r) => {
+      const s = r?.data;
+      if (s?.status === 'needs_activation' || s?.status === 'needs_daily_verify') {
+        setIdentificationStatus(s);
       }
     }).catch(() => {});
   }, []);
@@ -111,13 +136,6 @@ export default function Layout({ children }) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     navigate('/');
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Manhã';
-    if (hour < 18) return 'Tarde';
-    return 'Noite';
   };
 
   const getFormattedDate = () => {
@@ -181,8 +199,8 @@ export default function Layout({ children }) {
             <h2 className="greeting">
               Bem-vindo, <strong>{user.name}</strong>
             </h2>
-            <p className="date-time">
-              {getFormattedDate()} | {getGreeting()}
+            <p className="date-time" title="Data e hora atual">
+              {getFormattedDate()} | {currentTime}
             </p>
           </div>
 
@@ -305,12 +323,17 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {onboardingState.show && onboardingState.tipo && (
+      {identificationStatus ? (
+        <IdentificationModal
+          status={identificationStatus}
+          onComplete={() => setIdentificationStatus(null)}
+        />
+      ) : onboardingState.show && onboardingState.tipo ? (
         <OnboardingModal
           tipo={onboardingState.tipo}
           onComplete={() => setOnboardingState({ show: false, tipo: null })}
         />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -108,6 +108,16 @@ export const onboarding = {
   getContext: () => api.get('/onboarding/context')
 };
 
+// Identificação e ativação de usuário (segurança IA)
+export const userIdentification = {
+  getStatus: () => api.get('/user-identification/status'),
+  activationStart: () => api.post('/user-identification/activation/start'),
+  activationRespond: (answer) => api.post('/user-identification/activation/respond', { answer }),
+  firstAccess: (data) => api.post('/user-identification/first-access', data),
+  dailyVerify: (fullName, pin) => api.post('/user-identification/daily-verify', { fullName, pin }),
+  seedRegistry: () => api.post('/user-identification/seed-registry')
+};
+
 export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };

@@ -60,20 +60,20 @@ export default function AdminDashboard() {
           setMessages([{
             id: 'ai-greet',
             role: 'assistant',
-            content: `Olá, ${userName}! Aqui é o Impetus.\n\nPreparei seu resumo:\n\n${r.data.summary}\n\nComo administrador, você pode carregar documentos internos pelos atalhos ao lado. Como posso ajudar?`
+            content: `${userName},\n\nResumo:\n\n${r.data.summary}\n\nComo administrador, você pode carregar documentos pelos atalhos ao lado.`
           }]);
         } else {
           setMessages([{
             id: 'ai-greet',
             role: 'assistant',
-            content: `Olá, ${userName}! Aqui é o Impetus.\n\nSou seu assistente de documentos e configurações. Carregue políticas, POPs e manuais pelos atalhos ao lado. Como posso ajudar?`
+            content: `${userName}, carregue políticas, POPs e manuais pelos atalhos ao lado. Em que posso ajudar?`
           }]);
         }
       } catch (_) {
         setMessages([{
           id: 'ai-greet',
           role: 'assistant',
-          content: 'Olá! Aqui é o Impetus. Como posso ajudar com documentos e configurações?'
+          content: 'Em que posso ajudar com documentos e configurações?'
         }]);
       } finally {
         setChatLoading(false);
