@@ -35,6 +35,7 @@ const adminLogs = require('./routes/admin/logs');
 const adminSettings = require('./routes/admin/settings');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
+const onboarding = require('./routes/onboarding');
 const internalSales = require('./routes/internal/sales');
 const subscription = require('./routes/subscription');
 
@@ -167,6 +168,7 @@ const zapiRoutes = require('./routes/zapi');
 const protected = [requireAuth, requireCompanyActive];
 
 app.use('/api/setup-company', requireAuth, setupCompany);
+app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
 app.use('/api/zapi', requireAuth, requireCompanyActive, zapiRoutes);

@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { requireHierarchyScope } = require('../middleware/hierarchyScope');
+const { buildCommunicationsFilter } = require('../services/hierarchicalFilter');
 const { safeInteger, isValidUUID } = require('../utils/security');
 const { sensitiveContentMiddleware } = require('../middleware/lgpd');
 const { auditMiddleware } = require('../middleware/audit');
@@ -127,9 +129,9 @@ Retorne JSON:
 
 /**
  * GET /api/communications
- * Listar comunicações
+ * Listar comunicações (filtro hierárquico aplicado)
  */
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const limit = safeInteger(req.query.limit, 50, 1, 200);
     const offset = safeInteger(req.query.offset, 0, 0, 100000);
@@ -141,9 +143,10 @@ router.get('/', requireAuth, async (req, res) => {
       end_date 
     } = req.query;
 
-    let conditions = ['c.company_id = $1'];
-    const params = [req.user.company_id];
-    let paramCount = 1;
+    const commFilter = buildCommunicationsFilter(req.hierarchyScope, req.user.company_id);
+    const conditions = [commFilter.whereClause];
+    const params = [...commFilter.params];
+    let paramCount = commFilter.paramOffset;
 
     if (status) {
       paramCount++;
@@ -214,11 +217,12 @@ router.get('/', requireAuth, async (req, res) => {
 
 /**
  * GET /api/communications/recent
- * Interações recentes (para dashboard)
+ * Interações recentes (para dashboard, filtro hierárquico)
  */
-router.get('/recent', requireAuth, async (req, res) => {
+router.get('/recent', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const limit = safeInteger(req.query.limit, 10, 1, 50);
+    const commFilter = buildCommunicationsFilter(req.hierarchyScope, req.user.company_id);
 
     const result = await db.query(`
       SELECT 
@@ -232,10 +236,10 @@ router.get('/recent', requireAuth, async (req, res) => {
         u.avatar_url
       FROM communications c
       LEFT JOIN users u ON c.sender_id = u.id
-      WHERE c.company_id = $1
+      WHERE ${commFilter.whereClause}
       ORDER BY c.created_at DESC
-      LIMIT $2
-    `, [req.user.company_id, limit]);
+      LIMIT $${commFilter.paramOffset}
+    `, [...commFilter.params, limit]);
 
     res.json({
       ok: true,
@@ -253,11 +257,12 @@ router.get('/recent', requireAuth, async (req, res) => {
 
 /**
  * GET /api/communications/:id
- * Buscar comunicação específica
+ * Buscar comunicação específica (verifica escopo hierárquico)
  */
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    const commFilter = buildCommunicationsFilter(req.hierarchyScope, req.user.company_id, { paramOffset: 2 });
     const result = await db.query(`
       SELECT c.*,
              u.name as sender_user_name, u.email as sender_email, u.avatar_url as sender_avatar,
@@ -267,8 +272,8 @@ router.get('/:id', requireAuth, async (req, res) => {
       LEFT JOIN users u ON c.sender_id = u.id
       LEFT JOIN users r ON c.recipient_id = r.id
       LEFT JOIN departments d ON c.recipient_department_id = d.id
-      WHERE c.id = $1 AND c.company_id = $2
-    `, [req.params.id, req.user.company_id]);
+      WHERE c.id = $1 AND ${commFilter.whereClause}
+    `, [req.params.id, ...commFilter.params]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({

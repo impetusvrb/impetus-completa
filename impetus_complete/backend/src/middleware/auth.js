@@ -47,7 +47,7 @@ async function validateSession(token) {
     const result = await db.query(`
       SELECT s.id as session_id, s.user_id, s.expires_at,
              u.id, u.name, u.email, u.role, u.company_id, 
-             u.department_id, u.hierarchy_level, u.area, u.job_title, u.department,
+             u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at
       FROM sessions s
@@ -82,6 +82,7 @@ async function validateSession(token) {
       company_id: session.company_id,
       department_id: session.department_id,
       hierarchy_level: session.hierarchy_level,
+      supervisor_id: session.supervisor_id,
       area: session.area,
       job_title: session.job_title,
       department: session.department,

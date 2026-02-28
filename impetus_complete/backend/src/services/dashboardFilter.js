@@ -1,10 +1,9 @@
 /**
  * Filtros de dados do dashboard por hierarquia
- * Estratégico (0,1): KPIs agregados - totais da empresa
- * Tático (2,3): Comparativos por área/departamento
- * Operacional (4,5): Apenas registros do próprio usuário
+ * Integrado com hierarchicalFilter (supervisor_id, manager_id) para controle real
  */
 const userContext = require('./userContext');
+const hierarchicalFilter = require('./hierarchicalFilter');
 
 /**
  * @param {Object} user - req.user
@@ -26,46 +25,34 @@ function getFilterContext(user) {
 }
 
 /**
- * Retorna condições SQL e params para filtrar communications por hierarquia
- * @param {Object} ctx - getFilterContext(user)
- * @param {string} tableAlias - ex: 'c' para communications c
- * @returns {Object} - { whereClause: string, params: any[], paramOffset: number }
+ * Retorna filtro de communications.
+ * Aceita: getFilterContext(user) OU { ...req.hierarchyScope, companyId }
  */
-function getCommunicationsFilter(ctx, tableAlias = 'c', paramOffset = 1) {
-  if (!ctx || !ctx.companyId) {
-    return { whereClause: '', params: [], paramOffset };
+function getCommunicationsFilter(ctxOrScope, tableAlias = 'c', paramOffset = 1) {
+  if (!ctxOrScope) return { whereClause: '', params: [], paramOffset };
+  const companyId = ctxOrScope.companyId ?? ctxOrScope.company_id;
+  if (ctxOrScope.scopeLevel !== undefined && ctxOrScope.isFullAccess !== undefined && companyId) {
+    return hierarchicalFilter.buildCommunicationsFilter(ctxOrScope, companyId, { tableAlias, paramOffset });
   }
-
+  const ctx = ctxOrScope;
+  if (!ctx.companyId) return { whereClause: '', params: [], paramOffset };
   const base = `${tableAlias}.company_id = $${paramOffset}`;
   let conditions = [base];
   const params = [ctx.companyId];
   let offset = paramOffset + 1;
-
-  if (ctx.hierarchyLevel <= 1) {
-    return { whereClause: base, params, paramOffset: offset };
-  }
-
+  if (ctx.hierarchyLevel <= 1) return { whereClause: base, params, paramOffset: offset };
   if (ctx.hierarchyLevel >= 4) {
-    conditions.push(`${tableAlias}.sender_id = $${offset}`);
+    conditions.push(`(${tableAlias}.sender_id = $${offset} OR ${tableAlias}.recipient_id = $${offset})`);
     params.push(ctx.userId);
     offset++;
     return { whereClause: conditions.join(' AND '), params, paramOffset: offset };
   }
-
-  if (ctx.hierarchyLevel === 2 || ctx.hierarchyLevel === 3) {
-    if (ctx.departmentId) {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM users u_sender
-        WHERE u_sender.id = ${tableAlias}.sender_id
-          AND u_sender.department_id = $${offset}
-      )`);
-      params.push(ctx.departmentId);
-      offset++;
-    }
-    return { whereClause: conditions.join(' AND '), params, paramOffset: offset };
+  if ((ctx.hierarchyLevel === 2 || ctx.hierarchyLevel === 3) && ctx.departmentId) {
+    conditions.push(`EXISTS (SELECT 1 FROM users u_s WHERE u_s.id = ${tableAlias}.sender_id AND u_s.department_id = $${offset})`);
+    params.push(ctx.departmentId);
+    offset++;
   }
-
-  return { whereClause: base, params, paramOffset: offset };
+  return { whereClause: conditions.join(' AND '), params, paramOffset: offset };
 }
 
 /**
@@ -80,6 +67,11 @@ function getViewType(hierarchyLevel) {
 }
 
 module.exports = {
+  getFilterContext,
+  getCommunicationsFilter,
+  getViewType
+};
+ports = {
   getFilterContext,
   getCommunicationsFilter,
   getViewType

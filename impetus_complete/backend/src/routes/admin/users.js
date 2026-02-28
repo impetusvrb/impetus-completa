@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../db');
 const { requireAuth, requireHierarchy, hashPassword, generateToken, createSession } = require('../../middleware/auth');
+const { invalidateScopeCache } = require('../../middleware/hierarchyScope');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
 const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
@@ -26,6 +27,7 @@ const createUserSchema = z.object({
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().optional()),
+  supervisor_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().nullable().optional()),
   phone: z.preprocess(v => v === '' ? undefined : v, z.string().optional()),
   whatsapp_number: z.preprocess(v => v === '' ? undefined : v, z.string().optional()),
   hierarchy_level: z.preprocess(
@@ -53,6 +55,7 @@ const updateUserSchema = z.object({
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).nullable().optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).nullable().optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().nullable().optional()),
+  supervisor_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().nullable().optional()),
   phone: z.preprocess(v => v === '' ? undefined : v, z.string().nullable().optional()),
   whatsapp_number: z.preprocess(v => v === '' ? undefined : v, z.string().nullable().optional()),
   executive_verified: z.boolean().optional(),
@@ -134,7 +137,7 @@ router.get('/',
         SELECT 
           u.id, u.name, u.email, u.role, u.phone, u.whatsapp_number,
           u.avatar_url, u.hierarchy_level, u.area, u.job_title, u.department,
-          u.permissions, u.active, u.executive_verified,
+          u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
@@ -266,9 +269,9 @@ router.post('/',
       const result = await db.query(`
         INSERT INTO users (
           company_id, name, email, password_hash, role,
-          area, job_title, department, department_id, phone, whatsapp_number,
+          area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
           hierarchy_level, permissions, active, executive_verified
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, $14)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15)
         RETURNING id, name, email, role, hierarchy_level, area, job_title, department, created_at
       `, [
         req.user.company_id,
@@ -280,6 +283,7 @@ router.post('/',
         validatedData.job_title || null,
         validatedData.department || null,
         validatedData.department_id || null,
+        validatedData.supervisor_id || null,
         validatedData.phone || null,
         validatedData.whatsapp_number || null,
         validatedData.role === 'ceo' ? 0 : hierarchyLevel,
@@ -410,6 +414,8 @@ router.put('/:id',
         WHERE id = $${paramCount + 1} AND company_id = $${paramCount + 2} AND deleted_at IS NULL
         RETURNING id, name, email, role, hierarchy_level, active, updated_at
       `, params);
+
+      invalidateScopeCache(req.params.id);
 
       // Log de auditoria
       await logAction({

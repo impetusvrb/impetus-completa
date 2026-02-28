@@ -34,7 +34,9 @@ const MIGRATIONS = [
   { name: 'Z-API Connect (integração automática)', file: 'zapi_connect_migration.sql' },
   { name: 'Planos e limite WhatsApp (plans, whatsapp_instances)', file: 'whatsapp_plans_instances_migration.sql' },
   { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
-  { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' }
+  { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' },
+  { name: 'Controle Hierárquico (supervisor_id, user_hierarchy_scope)', file: 'hierarchical_control_migration.sql' },
+  { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' }
 ];
 
 async function run() {

@@ -1,6 +1,7 @@
 const db = require('../db');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
+const hierarchicalFilter = require('./hierarchicalFilter');
 
 async function createProposal(payload){
   if (!payload.company_id) throw new Error('company_id é obrigatório');
@@ -12,25 +13,38 @@ async function createProposal(payload){
   return proposal;
 }
 
-async function listProposals(limit=200, companyId=null){
+async function listProposals(limit = 200, companyId = null, scope = null) {
   if (!companyId) return [];
-  const r = await db.query('SELECT * FROM proposals WHERE company_id=$1 ORDER BY created_at DESC LIMIT $2', [companyId, limit]);
+  if (!scope || scope.isFullAccess) {
+    const r = await db.query('SELECT * FROM proposals WHERE company_id=$1 ORDER BY created_at DESC LIMIT $2', [companyId, limit]);
+    return r.rows;
+  }
+  const propFilter = hierarchicalFilter.buildProposalsFilter(scope, companyId);
+  const r = await db.query(
+    `SELECT * FROM proposals WHERE ${propFilter.whereClause} ORDER BY created_at DESC LIMIT $${propFilter.paramOffset}`,
+    [...propFilter.params, limit]
+  );
   return r.rows;
 }
 
-async function getProposal(id, companyId=null){
+async function getProposal(id, companyId = null, scope = null) {
   const params = companyId ? [id, companyId] : [id];
   const whereClause = companyId ? 'id=$1 AND company_id=$2' : 'id=$1';
   const r = await db.query(`SELECT * FROM proposals WHERE ${whereClause}`, params);
-  if(r.rowCount===0) return null;
+  if (r.rowCount === 0) return null;
   const p = r.rows[0];
+  if (scope && !scope.isFullAccess) {
+    const inScope = (scope.allowedUserIds?.includes(p.reporter_id)) ||
+      (scope.managedDepartmentIds?.length && p.department_id && scope.managedDepartmentIds.includes(p.department_id));
+    if (!inScope) return null;
+  }
   const actions = await db.query('SELECT * FROM proposal_actions WHERE proposal_id=$1 ORDER BY created_at', [id]);
   p.actions = actions.rows;
   return p;
 }
 
-async function aiEvaluateProposal(id, companyId){
-  const p = await getProposal(id, companyId);
+async function aiEvaluateProposal(id, companyId, scope = null){
+  const p = await getProposal(id, companyId, scope);
   if(!p) throw new Error('Proposta não encontrada');
   const coId = p.company_id || null;
   const docContext = await documentContext.buildAIContext({ companyId: coId, queryText: p.proposed_solution || '' });
@@ -55,8 +69,8 @@ async function aiEvaluateProposal(id, companyId){
   return evaluation;
 }
 
-async function escalateToProjects(id, comment, escalated_by, companyId){
-  const p = await getProposal(id, companyId);
+async function escalateToProjects(id, comment, escalated_by, companyId, scope = null){
+  const p = await getProposal(id, companyId, scope);
   if (!p) throw new Error('Proposta não encontrada');
   await db.query('UPDATE proposals SET status=$1 WHERE id=$2 AND company_id=$3', ['escalated', id, companyId]);
   await db.query('INSERT INTO proposal_actions(proposal_id, user_id, action, comment) VALUES($1,$2,$3,$4)', [id, escalated_by||null, 'escalated', comment||null]);
@@ -72,16 +86,16 @@ async function assignToAdministrative(id, admin_sector, assigned_by, team, compa
   return true;
 }
 
-async function recordPhaseData(id, phaseNumber, collectedData, userId, companyId){
-  const p = await getProposal(id, companyId);
+async function recordPhaseData(id, phaseNumber, collectedData, userId, companyId, scope = null){
+  const p = await getProposal(id, companyId, scope);
   if (!p) throw new Error('Proposta não encontrada');
   const comment = `phase_${phaseNumber}_data`;
   await db.query('INSERT INTO proposal_actions(proposal_id, user_id, action, comment, metadata) VALUES($1,$2,$3,$4,$5)', [id, userId||null, comment, null, collectedData]);
   return true;
 }
 
-async function finalizeProposal(id, finalReport, closedBy, companyId){
-  const p = await getProposal(id, companyId);
+async function finalizeProposal(id, finalReport, closedBy, companyId, scope = null){
+  const p = await getProposal(id, companyId, scope);
   if (!p) throw new Error('Proposta não encontrada');
   await db.query('UPDATE proposals SET status=$1 WHERE id=$2 AND company_id=$3', ['done', id, companyId]);
   await db.query('INSERT INTO proposal_actions(proposal_id, user_id, action, comment, metadata) VALUES($1,$2,$3,$4,$5)', [id, closedBy||null, 'done', null, finalReport||null]);

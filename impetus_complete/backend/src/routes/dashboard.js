@@ -22,6 +22,7 @@ const dashboardVisibility = require('../services/dashboardVisibility');
 const executiveMode = require('../services/executiveMode');
 const userContext = require('../services/userContext');
 const dashboardFilter = require('../services/dashboardFilter');
+const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 
 /**
  * GET /api/dashboard/user-context
@@ -61,6 +62,21 @@ router.get('/visibility', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_VISIBILITY_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar visibilidade' });
+  }
+});
+
+/**
+ * GET /api/dashboard/kpis
+ * Indicadores dinâmicos personalizados por role + department + hierarchy
+ */
+router.get('/kpis', requireAuth, requireHierarchyScope, async (req, res) => {
+  try {
+    const dashboardKPIs = require('../services/dashboardKPIs');
+    const kpis = await dashboardKPIs.getDashboardKPIs(req.user, req.hierarchyScope);
+    res.json({ ok: true, kpis });
+  } catch (err) {
+    console.error('[DASHBOARD_KPIS_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar indicadores' });
   }
 });
 
@@ -163,12 +179,13 @@ router.post('/executive-query', requireAuth, async (req, res) => {
 
 /**
  * GET /api/dashboard/summary
- * Resumo geral do dashboard (cache 2 min)
+ * Resumo geral do dashboard (cache 2 min, filtro hierárquico)
  */
-router.get('/summary', requireAuth, async (req, res) => {
+router.get('/summary', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const filterCtx = dashboardFilter.getFilterContext(req.user);
+    const scope = req.hierarchyScope;
 
     if (!companyId) {
       return res.json({
@@ -182,25 +199,19 @@ router.get('/summary', requireAuth, async (req, res) => {
       });
     }
 
-    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+    const scopeKey = scope?.isFullAccess ? 'full'
       : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const summary = await cached(
       'dashboard:summary',
       async () => {
-        const emptyResult = {
-          operational_interactions: { total: 0, growth_percentage: 0 },
-          ai_insights: { total: 0, growth_percentage: 0 },
-          monitored_points: { total: 0 },
-          proposals: { total: 0 }
-        };
-
         let comms = { current_week: 0, previous_week: 0 };
         let insights = { current_week: 0, previous_week: 0 };
         let pointsTotal = 0;
         let proposalsTotal = 0;
 
-        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const scopeForFilter = scope ? { ...scope, companyId } : filterCtx;
+        const commFilter = dashboardFilter.getCommunicationsFilter(scopeForFilter, 'c', 1);
         const commWhere = commFilter.whereClause || `c.company_id = $1`;
         const commParams = commFilter.params.length ? commFilter.params : [companyId];
 
@@ -361,19 +372,21 @@ router.get('/trend', requireAuth, async (req, res) => {
  * GET /api/dashboard/insights
  * Insights prioritários da IA - cache 1 min
  */
-router.get('/insights', requireAuth, async (req, res) => {
+router.get('/insights', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = Math.max(0, parseInt(req.query.offset) || 0);
     const filterCtx = dashboardFilter.getFilterContext(req.user);
-    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+    const scope = req.hierarchyScope;
+    const scopeKey = scope?.isFullAccess ? 'full'
       : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const insights = await cached(
       'dashboard:insights',
       async () => {
-        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const scopeForFilter = scope ? { ...scope, companyId } : filterCtx;
+        const commFilter = dashboardFilter.getCommunicationsFilter(scopeForFilter, 'c', 1);
         const commWhere = commFilter.whereClause || 'c.company_id = $1';
         const pLimit = commFilter.paramOffset;
         const pOffset = pLimit + 1;
@@ -465,21 +478,23 @@ router.get('/monitored-points-distribution', requireAuth, async (req, res) => {
 
 /**
  * GET /api/dashboard/recent-interactions
- * Interações recentes (feed) - cache 1 min
+ * Interações recentes (feed) - cache 1 min (filtro hierárquico)
  */
-router.get('/recent-interactions', requireAuth, async (req, res) => {
+router.get('/recent-interactions', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = Math.max(0, parseInt(req.query.offset) || 0);
     const companyId = req.user.company_id;
     const filterCtx = dashboardFilter.getFilterContext(req.user);
-    const scopeKey = filterCtx.hierarchyLevel <= 1 ? 'full'
+    const scope = req.hierarchyScope;
+    const scopeKey = scope?.isFullAccess ? 'full'
       : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
 
     const interactions = await cached(
       'dashboard:interactions',
       async () => {
-        const commFilter = dashboardFilter.getCommunicationsFilter(filterCtx, 'c', 1);
+        const scopeForFilter = scope ? { ...scope, companyId } : filterCtx;
+        const commFilter = dashboardFilter.getCommunicationsFilter(scopeForFilter, 'c', 1);
         const commWhere = commFilter.whereClause || 'c.company_id = $1';
         const pLimit = commFilter.paramOffset;
         const pOffset = pLimit + 1;
