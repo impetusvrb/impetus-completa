@@ -47,6 +47,7 @@ export default function AdminUsers() {
     job_title: '',
     department: '',
     department_id: '',
+    supervisor_id: '',
     phone: '',
     whatsapp_number: '',
     hierarchy_level: 5,
@@ -119,6 +120,7 @@ export default function AdminUsers() {
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
         department_id: formData.department_id || undefined,
+        supervisor_id: formData.supervisor_id || null,
         phone: formData.phone || undefined,
         whatsapp_number: formData.whatsapp_number || undefined,
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
@@ -156,6 +158,7 @@ export default function AdminUsers() {
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
         department_id: formData.department_id || undefined,
+        supervisor_id: formData.supervisor_id || null,
         phone: formData.phone || undefined,
         whatsapp_number: formData.whatsapp_number || undefined,
         hierarchy_level: formData.hierarchy_level !== undefined && formData.hierarchy_level !== ''
@@ -240,6 +243,7 @@ export default function AdminUsers() {
       job_title: user.job_title || '',
       department: user.department || '',
       department_id: user.department_id || '',
+      supervisor_id: user.supervisor_id || '',
       phone: user.phone || '',
       whatsapp_number: user.whatsapp_number || '',
       hierarchy_level: user.hierarchy_level,
@@ -471,6 +475,7 @@ export default function AdminUsers() {
             formData={formData}
             formErrors={formErrors}
             departments={departments}
+            users={users}
             onChange={handleFormChange}
             isCreate={true}
           />
@@ -494,6 +499,8 @@ export default function AdminUsers() {
             formData={formData}
             formErrors={formErrors}
             departments={departments}
+            users={users}
+            selectedUserId={selectedUser?.id}
             onChange={handleFormChange}
             isCreate={false}
           />
@@ -567,7 +574,10 @@ export default function AdminUsers() {
 /**
  * USER FORM COMPONENT
  */
-function UserForm({ formData, formErrors, departments, onChange, isCreate }) {
+function UserForm({ formData, formErrors, departments, users = [], selectedUserId, onChange, isCreate }) {
+  const supervisorOptions = (users || [])
+    .filter(u => u.active !== false && (u.hierarchy_level ?? 5) <= 4 && u.id !== selectedUserId)
+    .map(u => ({ value: u.id, label: `${u.name} (${getHierarchyLabel(u.hierarchy_level)})` }));
   return (
     <div className="user-form">
       <div className="form-grid-2">
@@ -681,14 +691,26 @@ function UserForm({ formData, formErrors, departments, onChange, isCreate }) {
         />
       </div>
 
-      <SelectField
-        label="Departamento (cadastro)"
-        name="department_id"
-        value={formData.department_id}
-        onChange={onChange}
-        placeholder="Selecione um departamento"
-        options={departments.map(d => ({ value: d.id, label: d.name }))}
-      />
+      <div className="form-grid-2">
+        <SelectField
+          label="Departamento (cadastro)"
+          name="department_id"
+          value={formData.department_id}
+          onChange={onChange}
+          placeholder="Selecione um departamento"
+          options={departments.map(d => ({ value: d.id, label: d.name }))}
+        />
+
+        <SelectField
+          label="Supervisor Imediato"
+          name="supervisor_id"
+          value={formData.supervisor_id}
+          onChange={onChange}
+          placeholder="Nenhum"
+          options={[{ value: '', label: 'Nenhum' }, ...supervisorOptions]}
+          helperText="Define vínculo hierárquico para filtro de dados"
+        />
+      </div>
 
       <div className="form-grid-2">
         <InputField

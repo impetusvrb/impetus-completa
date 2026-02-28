@@ -17,8 +17,9 @@ export default function MetricCard({
   onClick
 }) {
   const isPositive = growth >= 0;
-  const hasValue = value != null && !Number.isNaN(Number(value));
-  const displayValue = hasValue ? Number(value) : null;
+  const isNumeric = value != null && !Number.isNaN(Number(value));
+  const displayValue = isNumeric ? Number(value) : null;
+  const displayRaw = typeof value === 'string' ? value : null;
 
   if (loading) {
     return (
@@ -44,7 +45,7 @@ export default function MetricCard({
       
       <div className="metric-content">
         <h3 className="metric-title">{title}</h3>
-        <div className="metric-value">{displayValue != null ? displayValue.toLocaleString('pt-BR') : '-'}</div>
+        <div className="metric-value">{displayRaw ?? (displayValue != null ? displayValue.toLocaleString('pt-BR') : '-')}</div>
         
         {growth !== undefined && (
           <div className={`metric-growth ${isPositive ? 'positive' : 'negative'}`}>

@@ -100,6 +100,14 @@ export const setupCompany = {
     api.post('/setup-company/change-password', { new_password: newPassword })
 };
 
+export const onboarding = {
+  getStatus: () => api.get('/onboarding/status'),
+  start: (tipo) => api.post('/onboarding/start', { tipo }),
+  respond: (tipo, answer) => api.post('/onboarding/respond', { tipo, answer }),
+  getHistory: (tipo) => api.get(`/onboarding/history?tipo=${tipo || 'usuario'}`),
+  getContext: () => api.get('/onboarding/context')
+};
+
 export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
@@ -159,6 +167,9 @@ export const dashboard = {
   
   getRecentInteractions: (limit = 10, offset = 0) =>
     api.get(`/dashboard/recent-interactions?limit=${limit}&offset=${offset}`),
+
+  getKPIs: () =>
+    api.get('/dashboard/kpis'),
 
   getPlcAlerts: (acknowledged = false) => 
     api.get(`/plc-alerts?acknowledged=${acknowledged}`),

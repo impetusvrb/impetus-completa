@@ -12,7 +12,7 @@ import MetricCard from '../../components/MetricCard';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import { useNotification } from '../../context/NotificationContext';
-import { MessageSquare, Brain, TrendingUp, BarChart3, Shield, Send } from 'lucide-react';
+import { MessageSquare, Brain, TrendingUp, BarChart3, Shield, Send, MapPin, AlertTriangle, Target } from 'lucide-react';
 import DashboardChatWidget from '../../components/DashboardChatWidget';
 import './ExecutiveDashboard.css';
 
@@ -27,7 +27,11 @@ export default function ExecutiveDashboard() {
   const { data: summaryRes } = useCachedFetch('dashboard:summary', () => dashboard.getSummary(), {
     ttlMs: 2 * 60 * 1000
   });
+  const userId = (() => { try { return JSON.parse(localStorage.getItem('impetus_user') || '{}')?.id || 'anon'; } catch { return 'anon'; } })();
+  const { data: kpisRes } = useCachedFetch(`dashboard:kpis:${userId}`, () => dashboard.getKPIs(), { ttlMs: 2 * 60 * 1000 });
   const summary = summaryRes?.summary;
+  const kpis = kpisRes?.kpis || [];
+  const KPI_ICONS = { message: MessageSquare, brain: Brain, map: MapPin, trending: TrendingUp, alert: AlertTriangle, target: Target };
 
   const handleQuery = async () => {
     if (!query.trim() || queryLoading) return;
@@ -77,36 +81,29 @@ export default function ExecutiveDashboard() {
         <section className="executive-dashboard__kpis">
           <h2>Indicadores Consolidados</h2>
           <div className="executive-dashboard__grid">
-            <MetricCard
-              icon={MessageSquare}
-              title="Interações (semana)"
-              value={summary?.operational_interactions?.total ?? 0}
-              growth={!modoApresentacao ? (summary?.operational_interactions?.growth_percentage ?? 0) : undefined}
-              color="blue"
-              onClick={() => navigate('/app/operacional')}
-            />
-            <MetricCard
-              icon={Brain}
-              title="Insights IA"
-              value={summary?.ai_insights?.total ?? 0}
-              growth={!modoApresentacao ? (summary?.ai_insights?.growth_percentage ?? 0) : undefined}
-              color="teal"
-              onClick={() => navigate('/app/chatbot')}
-            />
-            <MetricCard
-              icon={TrendingUp}
-              title="Propostas Pró-Ação"
-              value={summary?.proposals?.total ?? 0}
-              color="purple"
-              onClick={() => navigate('/app/proacao')}
-            />
-            <MetricCard
-              icon={BarChart3}
-              title="Pontos Monitorados"
-              value={summary?.monitored_points?.total ?? 0}
-              color="blue"
-              onClick={() => navigate('/app/monitored-points')}
-            />
+            {kpis.length > 0 ? (
+              kpis.map((k) => {
+                const Icon = KPI_ICONS[k.icon_key || k.icon] || BarChart3;
+                return (
+                  <MetricCard
+                    key={k.id}
+                    icon={Icon}
+                    title={k.title}
+                    value={k.value}
+                    growth={!modoApresentacao ? k.growth : undefined}
+                    color={k.color || 'blue'}
+                    onClick={k.route ? () => navigate(k.route) : undefined}
+                  />
+                );
+              })
+            ) : (
+              <>
+                <MetricCard icon={MessageSquare} title="Interações (semana)" value={summary?.operational_interactions?.total ?? 0} growth={!modoApresentacao ? (summary?.operational_interactions?.growth_percentage ?? 0) : undefined} color="blue" onClick={() => navigate('/app/operacional')} />
+                <MetricCard icon={Brain} title="Insights IA" value={summary?.ai_insights?.total ?? 0} growth={!modoApresentacao ? (summary?.ai_insights?.growth_percentage ?? 0) : undefined} color="teal" onClick={() => navigate('/app/chatbot')} />
+                <MetricCard icon={TrendingUp} title="Propostas Pró-Ação" value={summary?.proposals?.total ?? 0} color="purple" onClick={() => navigate('/app/proacao')} />
+                <MetricCard icon={BarChart3} title="Pontos Monitorados" value={summary?.monitored_points?.total ?? 0} color="blue" onClick={() => navigate('/app/monitored-points')} />
+              </>
+            )}
           </div>
         </section>
 

@@ -14,7 +14,7 @@ import RecentInteractions from '../../components/RecentInteractions';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { useDashboardVisibility } from '../../hooks/useDashboardVisibility';
-import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
+import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3, Target, Users, Activity, Zap } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
@@ -38,12 +38,17 @@ export default function DashboardInteligente() {
   const { data: trendRes } = useCachedFetch('dashboard:trend:6', () => dashboard.getTrend(6), { ttlMs: 5 * 60 * 1000 });
   const { data: insightsRes } = useCachedFetch('dashboard:insights', () => dashboard.getInsights(), { ttlMs: 60 * 1000 });
   const { data: interactionsRes } = useCachedFetch('dashboard:interactions:10', () => dashboard.getRecentInteractions(10), { ttlMs: 60 * 1000 });
+  const userId = (() => { try { return JSON.parse(localStorage.getItem('impetus_user') || '{}')?.id || 'anon'; } catch { return 'anon'; } })();
+  const { data: kpisRes } = useCachedFetch(`dashboard:kpis:${userId}`, () => dashboard.getKPIs(), { ttlMs: 2 * 60 * 1000 });
 
   useEffect(() => { if (summaryRes?.summary) setSummary(summaryRes.summary); }, [summaryRes]);
   useEffect(() => { if (trendRes?.trend) setTrendData(trendRes.trend); }, [trendRes]);
   useEffect(() => { if (insightsRes?.insights) setInsights(insightsRes.insights); }, [insightsRes]);
   useEffect(() => { if (interactionsRes?.interactions) setInteractions(interactionsRes.interactions); }, [interactionsRes]);
   useEffect(() => { log('view', 'dashboard_inteligente', null, { area: userContext?.area }); }, []);
+
+  const kpis = kpisRes?.kpis || [];
+  const KPI_ICONS = { message: MessageSquare, brain: Brain, map: MapPin, trending: TrendingUp, alert: AlertTriangle, target: Target, users: Users, activity: Activity, zap: Zap };
 
   const smartSummary = useSmartSummary(true);
   useEffect(() => { smartSummary.fetchAndShow(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -80,7 +85,7 @@ export default function DashboardInteligente() {
           </section>
         )}
 
-        {/* Bloco 2: Indicadores */}
+        {/* Bloco 2: Indicadores dinâmicos personalizados */}
         <section className="dashboard-inteligente__block block-indicadores">
           <h2><TrendingUp size={20} /> Indicadores</h2>
           {sections.kpi_request && (userContext?.hierarchy_level ?? 5) <= 2 && (
@@ -99,43 +104,25 @@ export default function DashboardInteligente() {
             </div>
           )}
           <div className="dashboard-inteligente__metrics">
-            {sections.operational_interactions && (
-              <MetricCard
-                icon={MessageSquare}
-                title="Interações Operacionais"
-                value={summary?.operational_interactions?.total ?? 0}
-                growth={summary?.operational_interactions?.growth_percentage}
-                color="blue"
-                onClick={() => navigate('/app/operacional')}
-              />
-            )}
-            {sections.ai_insights && (
-              <MetricCard
-                icon={Brain}
-                title="Insights IA"
-                value={summary?.ai_insights?.total ?? 0}
-                growth={summary?.ai_insights?.growth_percentage}
-                color="teal"
-                onClick={() => navigate('/app/chatbot')}
-              />
-            )}
-            {sections.monitored_points && (
-              <MetricCard
-                icon={MapPin}
-                title="Pontos Monitorados"
-                value={summary?.monitored_points?.total ?? 0}
-                color="purple"
-                onClick={() => navigate('/app/monitored-points')}
-              />
-            )}
-            {sections.proposals && (
-              <MetricCard
-                icon={TrendingUp}
-                title="Propostas Pró-Ação"
-                value={summary?.proposals?.total ?? 0}
-                color="blue"
-                onClick={() => navigate('/app/proacao')}
-              />
+            {kpis.length > 0 ? (
+              kpis.map((k) => {
+                const Icon = KPI_ICONS[k.icon_key || k.icon] || TrendingUp;
+                return (
+                  <MetricCard
+                    key={k.id}
+                    icon={Icon}
+                    title={k.title}
+                    value={typeof k.value === 'number' ? k.value : k.value}
+                    growth={k.growth}
+                    color={k.color || 'blue'}
+                    onClick={k.route ? () => navigate(k.route) : undefined}
+                  />
+                );
+              })
+            ) : kpisRes && kpis.length === 0 ? (
+              <p className="block-desc">Nenhum indicador disponível para seu perfil.</p>
+            ) : (
+              <p className="block-desc">Carregando indicadores personalizados...</p>
             )}
           </div>
         </section>

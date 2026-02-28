@@ -27,10 +27,12 @@ import {
   Mail,
   ExternalLink
 } from 'lucide-react';
-import { companies } from '../services/api';
+import { companies, onboarding } from '../services/api';
+import OnboardingModal from './OnboardingModal';
 import './Layout.css';
 
 export default function Layout({ children }) {
+  const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -57,6 +59,14 @@ export default function Layout({ children }) {
     companies.getMe().then((r) => {
       if (r?.data?.company?.subscription_status === 'overdue') {
         setSubscriptionOverdue(true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    onboarding.getStatus().then((r) => {
+      if (r?.data?.needsOnboarding && r?.data?.activeType) {
+        setOnboardingState({ show: true, tipo: r.data.activeType });
       }
     }).catch(() => {});
   }, []);
@@ -294,6 +304,13 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
+
+      {onboardingState.show && onboardingState.tipo && (
+        <OnboardingModal
+          tipo={onboardingState.tipo}
+          onComplete={() => setOnboardingState({ show: false, tipo: null })}
+        />
+      )}
     </div>
   );
 }
