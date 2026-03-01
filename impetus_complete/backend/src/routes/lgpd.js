@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const aiProactive = require('../services/aiProactiveMessagingService');
 const {
   registerConsent,
   revokeConsent,
@@ -219,6 +220,51 @@ router.get('/data-requests', requireAuth, async (req, res) => {
       ok: false,
       error: 'Erro ao buscar solicitações'
     });
+  }
+});
+
+/**
+ * GET /api/lgpd/proactive-consent
+ * Consultar status do consentimento para mensagens proativas (WhatsApp)
+ */
+router.get('/proactive-consent', requireAuth, async (req, res) => {
+  try {
+    const granted = await aiProactive.hasProactiveConsent(req.user.id, req.user.company_id);
+    res.json({ ok: true, granted });
+  } catch (err) {
+    console.error('[PROACTIVE_CONSENT_GET]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao consultar consentimento' });
+  }
+});
+
+/**
+ * POST /api/lgpd/proactive-consent
+ * Conceder ou revogar consentimento para mensagens proativas (avisos, lembretes, sugestões)
+ */
+router.post('/proactive-consent', requireAuth, async (req, res) => {
+  try {
+    const { granted } = req.body;
+    await aiProactive.setProactiveConsent(req.user.id, req.user.company_id, !!granted);
+
+    await logAction({
+      companyId: req.user.company_id,
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'proactive_consent_updated',
+      description: `Consentimento para mensagens proativas: ${granted ? 'concedido' : 'revogado'}`,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      severity: granted ? 'info' : 'warning'
+    });
+
+    res.json({
+      ok: true,
+      granted: !!granted,
+      message: granted ? 'Você receberá lembretes e avisos via WhatsApp.' : 'Mensagens proativas desativadas.'
+    });
+  } catch (err) {
+    console.error('[PROACTIVE_CONSENT_POST]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao atualizar consentimento' });
   }
 });
 

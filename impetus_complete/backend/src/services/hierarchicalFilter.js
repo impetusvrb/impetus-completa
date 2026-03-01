@@ -195,7 +195,8 @@ function buildWhereFromScope(scope, opts = {}) {
 
 /**
  * Para communications: filtro por sender_id, recipient_id ou recipient_department_id
- * Lógica: usuário vê comunicação se for enviador/recipiente OU se for para depto sob seu escopo
+ * Lógica: usuário vê comunicação se for enviador/recipiente OU se for para depto sob seu escopo.
+ * WhatsApp (source='whatsapp'): comunicacoes com sender_id nulo sao visiveis para Gerente/Diretor (nivel <= 2).
  */
 function buildCommunicationsFilter(scope, companyId, opts = {}) {
   const { tableAlias = 'c', paramOffset = 1 } = opts;
@@ -225,6 +226,11 @@ function buildCommunicationsFilter(scope, companyId, opts = {}) {
     scopeConditions.push(`(${tableAlias}.recipient_department_id = ANY($${offset}))`);
     params.push(scope.managedDepartmentIds);
     offset++;
+  }
+
+  // WhatsApp: comunicações da empresa (sender_id nulo) visíveis para Gerente/Coordenador/Supervisor
+  if (['manager', 'coordinator', 'supervisor'].includes(scope.scopeLevel)) {
+    scopeConditions.push(`(${tableAlias}.source = 'whatsapp')`);
   }
 
   if (scopeConditions.length === 0) {

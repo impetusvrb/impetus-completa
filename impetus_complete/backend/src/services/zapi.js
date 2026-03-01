@@ -27,6 +27,13 @@ function maybeDecrypt(val) {
 const zapiClient = createResilientClient();
 const ZAPI_TIMEOUT = 20000; // 20s para WhatsApp
 const { checkRateLimit, getRandomDelayMs } = require('./zapiRateLimit');
+const resolver = require('./zapiCommunicationResolver');
+
+const WHITELIST_STRICT = process.env.WHITELIST_STRICT === 'true';
+const LGPD_NOTICE_ENABLED = process.env.WHATSAPP_LGPD_NOTICE_ENABLED !== 'false';
+
+const LGPD_FIRST_CONTACT_MSG = process.env.WHATSAPP_LGPD_FIRST_CONTACT_MSG ||
+  'Olá! Este canal é monitorado pelo Impetus. Suas mensagens são processadas e armazenadas para atendimento e melhoria dos serviços. Política de privacidade e direitos LGPD: solicite via contato oficial.';
 
 /**
  * Busca configuração Z-API da empresa
@@ -58,8 +65,12 @@ async function getZApiConfig(companyId) {
 /**
  * Envia mensagem de texto via Z-API
  * Para respostas automáticas use sendAutoReply (rate limit + delay)
+ * @param {string} companyId - UUID da empresa
+ * @param {string} phone - Número do destinatário
+ * @param {string} message - Texto da mensagem
+ * @param {Object} opts - { relatedCommunicationId?, conversationThreadId?, recipientUserId? } para registrar em communications
  */
-async function sendTextMessage(companyId, phone, message) {
+async function sendTextMessage(companyId, phone, message, opts = {}) {
   try {
     const config = await getZApiConfig(companyId);
 
@@ -79,21 +90,24 @@ async function sendTextMessage(companyId, phone, message) {
     });
 
     // Registrar mensagem enviada
+    const zapiMsgId = response.data?.messageId || response.data?.id;
     await db.query(`
       INSERT INTO zapi_sent_messages (
         company_id, recipient_phone, text_content, zapi_message_id, zapi_response, sent, sent_at
       ) VALUES ($1, $2, $3, $4, $5, true, now())
-    `, [
-      companyId,
-      phone,
-      message,
-      response.data?.messageId || response.data?.id,
-      JSON.stringify(response.data)
-    ]);
+    `, [companyId, phone, message, zapiMsgId, JSON.stringify(response.data)]);
+
+    // Registrar em communications para rastreabilidade bidirecional (se solicitado)
+    if (opts.relatedCommunicationId || opts.conversationThreadId) {
+      await logOutboundCommunication(companyId, phone, message, {
+        relatedCommunicationId: opts.relatedCommunicationId,
+        conversationThreadId: opts.conversationThreadId
+      });
+    }
 
     return {
       ok: true,
-      messageId: response.data?.messageId || response.data?.id,
+      messageId: zapiMsgId,
       response: response.data
     };
 
@@ -112,17 +126,38 @@ async function sendTextMessage(companyId, phone, message) {
 }
 
 /**
- * Envia resposta automática com rate limit (20/min) e delay 2-5s
- * Usado por processWebhook para CEO, TPM, OrgAI, tarefas
+ * Registra mensagem outbound em communications (histórico bidirecional)
  */
-async function sendAutoReply(companyId, phone, message) {
+async function logOutboundCommunication(companyId, recipientPhone, textContent, opts = {}) {
+  try {
+    const { relatedCommunicationId, conversationThreadId } = opts;
+    await db.query(`
+      INSERT INTO communications (
+        company_id, source, sender_phone, sender_whatsapp, text_content,
+        direction, conversation_thread_id, related_communication_id, status
+      ) VALUES ($1, 'whatsapp', $2, $2, $3, 'outbound', $4, $5, 'sent')
+    `, [companyId, recipientPhone, textContent || '', conversationThreadId || null, relatedCommunicationId || null]);
+  } catch (err) {
+    console.warn('[ZAPI] logOutbound:', err.message);
+  }
+}
+
+/**
+ * Envia resposta automática com rate limit (20/min) e delay 2-5s
+ * @param {Object} opts - { relatedCommunicationId, conversationThreadId } para registrar em communications
+ */
+async function sendAutoReply(companyId, phone, message, opts = {}) {
   const config = await getZApiConfig(companyId);
   if (!checkRateLimit(config.instance_id)) {
     console.warn('[ZAPI] Rate limit excedido, resposta automática não enviada');
     return;
   }
   await new Promise(r => setTimeout(r, getRandomDelayMs()));
-  return sendTextMessage(companyId, phone, message);
+  const result = await sendTextMessage(companyId, phone, message);
+  if (result?.ok && opts.relatedCommunicationId) {
+    await logOutboundCommunication(companyId, phone, message, opts);
+  }
+  return result;
 }
 
 /**
@@ -186,6 +221,7 @@ async function processWebhook(companyId, webhookData) {
     if (eventType === 'message') {
       const text = body.text?.message || body.message?.body || body.body || body.caption || '';
       const sender = body.phone || body.from || body.sender || 'Desconhecido';
+      const senderPhone = resolver.normalizePhone(sender);
       const msgType = body.type || body.message?.type || 'text';
       const documentUrl = body.document || body.image || body.audio || null;
       let documentBase64 = body.base64 || body.message?.base64 || null;
@@ -196,6 +232,61 @@ async function processWebhook(companyId, webhookData) {
       if (!documentBase64 && body.message?.document?.base64) documentBase64 = body.message.document.base64;
       if (!documentBase64 && body.message?.image?.base64) documentBase64 = body.message.image.base64;
 
+      // Resolver remetente (sender_id, sender_name) e validações LGPD
+      let resolved = null;
+      try {
+        resolved = await resolver.resolveSender(companyId, sender, body);
+      } catch (resErr) {
+        console.warn('[ZAPI] resolveSender:', resErr.message);
+      }
+      const senderId = resolved?.sender_id ?? null;
+      const senderName = resolved?.sender_name ?? senderPhone || sender || 'Contato WhatsApp';
+
+      if (WHITELIST_STRICT && senderPhone.length >= 10) {
+        const authorized = await resolver.isAuthorizedSender(companyId, senderPhone);
+        if (!authorized) {
+          console.info('[ZAPI] Whitelist: remetente não autorizado ignorado', senderPhone);
+          return { ok: true, skipped: true, reason: 'whitelist' };
+        }
+      }
+
+      let firstContact = { isFirst: false };
+      if (senderPhone.length >= 10) {
+        firstContact = await resolver.recordFirstContactIfNeeded(companyId, senderPhone);
+        if (firstContact.isFirst && LGPD_NOTICE_ENABLED) {
+          sendAutoReply(companyId, senderPhone, LGPD_FIRST_CONTACT_MSG).catch(e =>
+            console.warn('[ZAPI] LGPD notice:', e.message)
+          );
+        }
+      }
+
+      const result = await db.query(`
+        INSERT INTO communications (
+          company_id, source, source_message_id, sender_id, sender_name,
+          sender_phone, sender_whatsapp, text_content, message_type, media_url,
+          direction, status
+        ) VALUES ($1, 'whatsapp', $2, $3, $4, $5, $6, $7, $8, $9, 'inbound', 'received')
+        RETURNING id
+      `, [
+        companyId,
+        body.messageId || body.id,
+        senderId,
+        senderName,
+        senderPhone || sender,
+        senderPhone || sender,
+        text,
+        body.type || body.message?.type || 'text',
+        body.image || body.document || body.audio || null
+      ]);
+
+      const communicationId = result.rows[0].id;
+      await db.query(
+        `UPDATE communications SET conversation_thread_id = $1 WHERE id = $2`,
+        [communicationId, communicationId]
+      );
+      const threadId = communicationId;
+      const logOpts = { relatedCommunicationId: communicationId, conversationThreadId: threadId };
+
       // MODO EXECUTIVO: Verificar se é CEO antes do fluxo normal
       try {
         const executiveMode = require('./executiveMode');
@@ -203,40 +294,21 @@ async function processWebhook(companyId, webhookData) {
           companyId, sender, text, msgType, documentUrl, documentBase64
         );
         if (ceoResult.handled && ceoResult.response) {
-          const senderPhone = String(sender || '').replace(/\D/g, '');
           if (senderPhone.length >= 10) {
             try {
-              await sendAutoReply(companyId, senderPhone, ceoResult.response);
+              await sendAutoReply(companyId, senderPhone, ceoResult.response, logOpts);
             } catch (e) {
               console.warn('[ZAPI] CEO response:', e.message);
             }
           }
-          return { ok: true, executiveProcessed: true };
+          return { ok: true, executiveProcessed: true, communicationId };
         }
       } catch (ceoErr) {
         console.warn('[ZAPI] Executive mode:', ceoErr.message);
       }
 
-      const result = await db.query(`
-        INSERT INTO communications (
-          company_id, source, source_message_id, sender_phone, sender_whatsapp,
-          text_content, message_type, media_url, status
-        ) VALUES ($1, 'whatsapp', $2, $3, $4, $5, $6, $7, 'received')
-        RETURNING id
-      `, [
-        companyId,
-        body.messageId || body.id,
-        sender,
-        sender,
-        text,
-        body.type || body.message?.type || 'text',
-        body.image || body.document || body.audio || null
-      ]);
-
-      const communicationId = result.rows[0].id;
       let taskId = null;
       let aiClassification = null;
-      const senderPhone = String(sender || '').replace(/\D/g, '');
 
       if (text && text.trim().length >= 3) {
         try {
@@ -249,7 +321,7 @@ async function processWebhook(companyId, webhookData) {
           }
           if (tpmResult && tpmResult.handled && tpmResult.nextPrompt) {
             if (senderPhone.length >= 10) {
-              try { await sendAutoReply(companyId, senderPhone, tpmResult.nextPrompt); } catch (e) { console.warn('[ZAPI] TPM reply:', e.message); }
+              try { await sendAutoReply(companyId, senderPhone, tpmResult.nextPrompt, logOpts); } catch (e) { console.warn('[ZAPI] TPM reply:', e.message); }
             }
             if (tpmResult.completed && tpmResult.incident) {
               try { await require('./tpmNotifications').notifyTpmIncident(companyId, tpmResult.incident); } catch (e) { console.warn('[ZAPI] TPM notify:', e.message); }
@@ -262,7 +334,7 @@ async function processWebhook(companyId, webhookData) {
             const organizationalAI = require('./organizationalAI');
             const orgResult = await organizationalAI.processIncompleteFollowUp(companyId, senderPhone, text, communicationId);
             if (orgResult.handled && orgResult.reply && senderPhone.length >= 10) {
-              try { await sendAutoReply(companyId, senderPhone, orgResult.reply); } catch (e) { console.warn('[ZAPI] OrgAI follow-up:', e.message); }
+              try { await sendAutoReply(companyId, senderPhone, orgResult.reply, logOpts); } catch (e) { console.warn('[ZAPI] OrgAI follow-up:', e.message); }
               return { ok: true, communicationId, orgAIProcessed: true };
             }
 
@@ -275,7 +347,7 @@ async function processWebhook(companyId, webhookData) {
             });
             if (orgProcess.handled && orgProcess.reply) {
               if (senderPhone.length >= 10) {
-                try { await sendAutoReply(companyId, senderPhone, orgProcess.reply); } catch (e) { console.warn('[ZAPI] OrgAI reply:', e.message); }
+                try { await sendAutoReply(companyId, senderPhone, orgProcess.reply, logOpts); } catch (e) { console.warn('[ZAPI] OrgAI reply:', e.message); }
               }
               await db.query(`UPDATE communications SET ai_classification = $1, processed_at = now() WHERE id = $2`, [JSON.stringify({ type: orgProcess.eventType, orgAI: true }), communicationId]);
               return { ok: true, communicationId, orgAIProcessed: true };
@@ -307,7 +379,7 @@ async function processWebhook(companyId, webhookData) {
               msgText += '\n\n' + tpmConversation.getOfferPrompt();
             }
             if (senderPhone.length >= 10) {
-              try { await sendAutoReply(companyId, senderPhone, msgText); } catch (sendErr) { console.warn('[ZAPI] Resposta automática:', sendErr.message); }
+              try { await sendAutoReply(companyId, senderPhone, msgText, logOpts); } catch (sendErr) { console.warn('[ZAPI] Resposta automática:', sendErr.message); }
             }
           }
         } catch (aiErr) {
@@ -401,6 +473,7 @@ module.exports = {
   sendTextMessage,
   sendAutoReply,
   sendMediaMessage,
+  logOutboundCommunication,
   processWebhook,
   testConnection
 };

@@ -1,10 +1,11 @@
 /**
  * CONTEXTO UNIFICADO DO USUÁRIO PARA O CHAT
- * Agrega: user_activation_profiles, memoria_usuario, memoria_empresa, req.user
+ * Agrega: user_activation_profiles, memoria_usuario, memoria_empresa, comunicações recentes, req.user
  * Garante que a IA sempre receba nome, cargo e perfil quando disponíveis
  */
 const userIdentification = require('./userIdentificationService');
 const onboardingService = require('./onboardingService');
+const communicationContextService = require('./communicationContextService');
 
 /**
  * Monta contexto completo para o chat da IA
@@ -23,6 +24,7 @@ async function buildChatUserContext(user) {
   let userName = baseName;
   let identityBlock = '';
   let memoriaBlock = '';
+  let communicationsBlock = '';
 
   // 1. user_activation_profiles (ativação/identificação)
   const activationCtx = await userIdentification.getContextForAI(user);
@@ -71,12 +73,20 @@ Trate o usuário pelo nome e respeite seu nível hierárquico.`;
     console.warn('[CHAT_CONTEXT] getMemoryContext:', err.message);
   }
 
+  // 3. comunicações recentes (WhatsApp) - escopo hierárquico
+  try {
+    communicationsBlock = await communicationContextService.buildCommunicationsBlockForAI(user, { limit: 12 });
+  } catch (err) {
+    console.warn('[CHAT_CONTEXT] buildCommunicationsBlockForAI:', err.message);
+  }
+
   return {
     userName,
     role,
     hierarchyLevel,
     identityBlock,
-    memoriaBlock
+    memoriaBlock,
+    communicationsBlock
   };
 }
 

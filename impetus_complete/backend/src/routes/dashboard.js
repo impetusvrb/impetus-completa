@@ -507,7 +507,7 @@ router.get('/recent-interactions', requireAuth, requireHierarchyScope, async (re
             c.source,
             c.text_content,
             c.created_at,
-            u.name as sender_name,
+            COALESCE(u.name, c.sender_name, c.sender_phone) as sender_name,
             u.avatar_url
           FROM communications c
           LEFT JOIN users u ON c.sender_id = u.id
@@ -644,7 +644,7 @@ router.post('/chat',
       }
       const companyId = req.user.company_id;
       const chatCtx = await chatUserContext.buildChatUserContext(req.user);
-      const { userName, identityBlock, memoriaBlock } = chatCtx;
+      const { userName, identityBlock, memoriaBlock, communicationsBlock } = chatCtx;
 
       let docContext = '';
       let manualsBlock = '(Nenhum trecho relevante)';
@@ -701,6 +701,7 @@ router.post('/chat',
 
 ${identityBlock}
 ${memoriaBlock}
+${communicationsBlock || ''}
 
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
 ${COMMUNICATION_GUIDELINES}
