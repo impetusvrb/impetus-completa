@@ -26,6 +26,7 @@ const tpm = require('./routes/tpm');
 const auth = require('./routes/auth');
 const lgpd = require('./routes/lgpd');
 const communications = require('./routes/communications');
+const internalChat = require('./routes/internalChat');
 const dashboard = require('./routes/dashboard');
 
 // Rotas de administração
@@ -211,6 +212,7 @@ app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res)
 
 app.use('/api/lgpd', ...protected, lgpd);
 app.use('/api/communications', ...protected, communications);
+app.use('/api/internal-chat', ...protected, internalChat);
 app.use('/api/dashboard', ...protected, dashboard);
 app.use('/api/manuals', ...protected, manuals);
 app.use('/api/tasks', ...protected, tasks);

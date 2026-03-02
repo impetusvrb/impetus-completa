@@ -105,6 +105,7 @@ export default function Layout({ children }) {
   const isAdministrador = (user.hierarchy_level ?? 5) <= 1; // CEO (0) ou Diretor (1)
   const baseMenuItems = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/chat', icon: Mail, label: 'Chat' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
     { path: '/app/operacional', icon: Zap, label: 'Operacional' },
     { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
@@ -129,7 +130,7 @@ export default function Layout({ children }) {
   const menuItems = isCEO
     ? allMenuItems
     : isColaborador
-    ? [{ path: '/app/proacao', icon: Target, label: 'Pró-Ação' }]
+    ? [{ path: '/chat', icon: Mail, label: 'Chat' }, { path: '/app/proacao', icon: Target, label: 'Pró-Ação' }]
     : allMenuItems;
 
   const handleLogout = () => {
