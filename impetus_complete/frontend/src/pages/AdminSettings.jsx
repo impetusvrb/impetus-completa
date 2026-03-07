@@ -8,9 +8,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode } from 'lucide-react';
 import Layout from '../components/Layout';
 import { InputField, CheckboxField } from '../components/FormField';
-import { adminSettings, zapi } from '../services/api';
+import { adminSettings, appImpetus } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
-import WhatsAppConnectionWarning from '../components/WhatsAppConnectionWarning';
 import './AdminSettings.css';
 
 const SECTION_LABELS = {
@@ -35,13 +34,13 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-const VALID_TABS = ['zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'zapi';
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
@@ -76,10 +75,8 @@ export default function AdminSettings() {
   const loadData = async () => {
     try {
       setLoading(true);
-      if (activeTab === 'zapi') {
-        const r = await adminSettings.getZApiConfig();
-        if (r.data.config) setZapiConfig(prev => ({ ...prev, ...r.data.config }));
-        zapi.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
+      if (activeTab === 'comunicacao') {
+        appImpetus.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
       } else if (activeTab === 'pops') {
         const r = await adminSettings.listPops();
         setPops(r.data.pops || []);
@@ -340,13 +337,13 @@ export default function AdminSettings() {
             <div className="page-icon"><Settings size={24} /></div>
             <div>
               <h1 className="page-title">Configurações</h1>
-              <p className="page-subtitle">Z-API, Documentos, POPs, Manuais e Notificações</p>
+              <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
             </div>
           </div>
         </div>
 
         <div className="settings-tabs">
-          <button className={`stab ${activeTab === 'zapi' ? 'active' : ''}`} onClick={() => setActiveTab('zapi')}><MessageSquare size={18} /> Z-API</button>
+          <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
@@ -358,75 +355,20 @@ export default function AdminSettings() {
         </div>
 
         <div className="settings-content">
-          {activeTab === 'zapi' && (
+          {activeTab === 'comunicacao' && (
             <div className="settings-panel">
-              <h3>Configuração Z-API (WhatsApp)</h3>
+              <h3>Comunicação (App Impetus)</h3>
               {loading ? <p>Carregando...</p> : (
-                <>
-                  {connectionStatus?.connected ? (
-                    <div className="zapi-connected">
-                      <Check size={48} className="text-success" />
-                      <p><strong>WhatsApp conectado</strong></p>
-                      {connectionStatus.phone && <p>{connectionStatus.phone}</p>}
-                      <button className="btn btn-secondary" onClick={handleTestZapi}>Testar Conexão</button>
-                    </div>
-                  ) : connectState === 'pending' || connectState === 'loading' ? (
-                    <div className="zapi-qr-flow">
-                      {connectState === 'loading' && <p>Aguarde, criando instância...</p>}
-                      {qrBase64 && (
-                        <>
-                          <p>Escaneie o QR Code com seu WhatsApp:</p>
-                          <div className="qr-container">
-                            <img src={qrBase64?.startsWith('data:') ? qrBase64 : `data:image/png;base64,${qrBase64}`} alt="QR Code WhatsApp" />
-                          </div>
-                          <p className="qr-hint">O QR expira em ~20s. Será renovado automaticamente.</p>
-                          <button className="btn btn-secondary" onClick={stopConnectFlow}>Cancelar</button>
-                        </>
-                      )}
-                    </div>
-                  ) : connectState === 'connected' ? (
-                    <div className="zapi-connected">
-                      <Check size={48} className="text-success" />
-                      <p><strong>Conectado com sucesso!</strong></p>
-                      <button className="btn btn-secondary" onClick={() => loadData()}>Atualizar</button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="form-hint">Conecte seu WhatsApp Business para receber mensagens e ativar a IA.</p>
-                      <div className="panel-actions">
-                        <button className="btn btn-primary" onClick={() => handleConnectWhatsApp(false)}>
-                          <QrCode size={18} />
-                          Conectar WhatsApp
-                        </button>
-                        <button className="btn-link" onClick={() => setShowManualConfig(!showManualConfig)} style={{ marginLeft: 8 }}>
-                          {showManualConfig ? 'Ocultar' : 'Conectar com credenciais manuais'}
-                        </button>
-                      </div>
-                      {showManualConfig && (
-                        <>
-                          <InputField label="Instance ID" name="instance_id" value={zapiConfig.instance_id} onChange={e => setZapiConfig(c => ({ ...c, instance_id: e.target.value }))} />
-                          <InputField label="Instance Token" name="instance_token" type="password" value={zapiConfig.instance_token} onChange={e => setZapiConfig(c => ({ ...c, instance_token: e.target.value }))} />
-                          <InputField label="Client Token" name="client_token" type="password" value={zapiConfig.client_token} onChange={e => setZapiConfig(c => ({ ...c, client_token: e.target.value }))} />
-                          <InputField label="API URL" name="api_url" value={zapiConfig.api_url} onChange={e => setZapiConfig(c => ({ ...c, api_url: e.target.value }))} />
-                          <div className="panel-actions">
-                            <button className="btn btn-primary" onClick={() => handleConnectWhatsApp(true)} disabled={!zapiConfig.instance_id || !zapiConfig.instance_token}>
-                              Conectar com credenciais manuais
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      <div className="panel-actions" style={{ marginTop: 16 }}>
-                        <button className="btn btn-secondary" onClick={handleTestZapi}>Testar Conexão</button>
-                        <button className="btn btn-primary" onClick={handleSaveZapi} disabled={saving}>Salvar</button>
-                      </div>
-                      {zapiTest && (
-                        <div className={`test-result ${zapiTest.connected ? 'success' : 'error'}`}>
-                          {zapiTest.connected ? <><Check size={18} /> Conectado</> : <><X size={18} /> {zapiTest.error || 'Erro'}</>}
-                        </div>
-                      )}
-                    </>
+                <div className="zapi-connected">
+                  <Check size={48} className="text-success" />
+                  <p><strong>Comunicação integrada via App Impetus</strong></p>
+                  <p className="form-hint" style={{ marginTop: 8, maxWidth: 480 }}>
+                    Todas as funcionalidades (Modo Executivo, TPM, IA Organizacional, tarefas, diagnósticos) utilizam o canal unificado do App Impetus. Não é necessária configuração adicional.
+                  </p>
+                  {connectionStatus?.channel === 'app_impetus' && (
+                    <p style={{ marginTop: 8, color: 'var(--color-success)' }}>Canal ativo e conectado.</p>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}

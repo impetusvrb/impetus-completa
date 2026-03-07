@@ -4,7 +4,7 @@
  */
 const db = require('../db');
 const organizationalAI = require('../services/organizationalAI');
-const zapi = require('../services/zapi');
+const appImpetusService = require('../services/appImpetusService');
 
 /**
  * Executa verificação de padrão de falhas e envia alerta proativo
@@ -36,7 +36,7 @@ async function runFailurePatternCheck() {
 
         for (const phone of [...new Set(phones)].slice(0, 5)) {
           try {
-            await zapi.sendTextMessage(row.id, phone, message);
+            await appImpetusService.sendMessage(row.id, phone, message, { originatedFrom: 'proactive' });
           } catch (e) {
             console.warn('[PROACTIVE_AI] send:', e.message);
           }
@@ -79,7 +79,7 @@ async function remindIncompleteEvents() {
 
       if (nextQ) {
         try {
-          await zapi.sendTextMessage(row.company_id, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`);
+          await appImpetusService.sendMessage(row.company_id, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`, { originatedFrom: 'proactive' });
           await db.query(
             'UPDATE ai_incomplete_events SET last_reminder_at = now(), reminder_count = reminder_count + 1 WHERE id = $1',
             [row.id]

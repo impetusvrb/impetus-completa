@@ -145,13 +145,15 @@ async function tryStartFromOffer(companyId, operatorPhone, text, communicationId
   const aceitaForm = /^(sim|s|ok)$/i.test(t) ||
     (t.length <= 40 && /(formul[áa]rio|preencher|quero.*tpm|tpm.*formul[áa]rio)/i.test(t));
   if (!aceitaForm) return null;
+  const phoneNorm = String(operatorPhone || '').replace(/\D/g, '');
+  const phoneMatch = phoneNorm.length >= 10 ? (phoneNorm.startsWith('55') ? phoneNorm : `55${phoneNorm}`) : operatorPhone;
   const r = await db.query(`
-    SELECT id FROM zapi_sent_messages
-    WHERE company_id = $1 AND recipient_phone = $2 AND sent = true
-      AND (text_content LIKE $3 OR text_content LIKE $4)
-      AND sent_at > now() - interval '15 minutes'
-    ORDER BY sent_at DESC LIMIT 1
-  `, [companyId, operatorPhone, '%formulário TPM%', '%perda ou desperdício%']);
+    SELECT id FROM app_impetus_outbox
+    WHERE company_id = $1 AND (recipient_phone = $2 OR recipient_phone = $3 OR recipient_phone LIKE $4)
+      AND (text_content LIKE $5 OR text_content LIKE $6)
+      AND created_at > now() - interval '15 minutes'
+    ORDER BY created_at DESC LIMIT 1
+  `, [companyId, operatorPhone, phoneMatch, `%${phoneNorm.slice(-11)}`, '%formulário TPM%', '%perda ou desperdício%']);
   if (r.rows.length === 0) return null;
   const session = await tpmFormService.createSession(companyId, operatorPhone, communicationId);
   return { handled: true, session, nextPrompt: PROMPTS.date };

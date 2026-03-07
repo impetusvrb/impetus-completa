@@ -13,7 +13,6 @@ const bodyParser = require('body-parser');
 
 // Rotas existentes
 const webhook = require('./routes/webhook');
-const zapiWebhook = require('./routes/zapi_webhook');
 const manuals = require('./routes/manuals');
 const tasks = require('./routes/tasks');
 const proacao = require('./routes/proacao');
@@ -160,11 +159,10 @@ app.post('/api/companies', (req, res) => {
   });
 });
 
-// Webhooks (Z-API, Asaas, Genérico)
-app.use('/api/webhook/zapi', zapiWebhook);
+// Webhooks (Asaas, Genérico) - Z-API removido, substituído por App Impetus
 app.use('/api/webhook', webhook);
 app.use('/api/webhooks/asaas', require('./routes/webhooks/asaas'));
-const zapiRoutes = require('./routes/zapi');
+const appImpetusRoutes = require('./routes/app_impetus');
 
 // Rotas protegidas (autenticação + empresa ativa)
 const protected = [requireAuth, requireCompanyActive];
@@ -187,8 +185,7 @@ app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
 // app.use('/api/user-identification', userIdentification); // DESATIVADO
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
-app.use('/api/zapi', requireAuth, requireCompanyActive, zapiRoutes);
-app.use('/api/whatsapp', requireAuth, requireCompanyActive, require('./routes/whatsapp'));
+app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);
 
 app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res) => {
   try {

@@ -8,7 +8,7 @@ const db = require('../db');
 const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
-const zapi = require('./zapi');
+const appImpetusService = require('./appImpetusService');
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
 const REVALIDATION_DAYS = 90; // Revalidação periódica
@@ -367,7 +367,7 @@ async function sendCEOResponse(companyId, phone, message) {
   const normalized = normalizePhone(phone);
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
-  await zapi.sendTextMessage(companyId, toSend, message);
+  await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
 }
 
 module.exports = {

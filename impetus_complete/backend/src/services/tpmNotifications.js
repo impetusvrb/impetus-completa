@@ -49,7 +49,7 @@ async function notifyTpmIncident(companyId, incident) {
     const phone = String(rec.phone || rec.whatsapp_number || '').replace(/\D/g, '');
     if (phone.length >= 10) {
       try {
-        await zapi.sendTextMessage(companyId, phone, msg);
+        await require('./appImpetusService').sendMessage(companyId, phone, msg, { originatedFrom: 'tpm' });
       } catch (err) {
         console.warn('[TPM_NOTIFY] WhatsApp falhou para', rec.name, err.message);
       }

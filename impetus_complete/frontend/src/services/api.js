@@ -122,19 +122,11 @@ export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
 
-export const zapi = {
-  connect: (manual = false, manualData = null) =>
-    api.post('/zapi/connect', manual && manualData ? { manual: true, ...manualData } : {}),
-  getStatus: () => api.get('/zapi/status'),
-  getQRCode: () => api.get('/zapi/qr-code')
-};
-
-export const whatsapp = {
-  connect: (manual = false, manualData = null) =>
-    api.post('/whatsapp/connect', manual && manualData ? { manual: true, ...manualData } : {}),
-  getStatus: () => api.get('/whatsapp/status'),
-  getQRCode: () => api.get('/whatsapp/qr-code'),
-  getStats: () => api.get('/whatsapp/stats')
+// App Impetus - Canal de comunicação unificado (substitui Z-API/WhatsApp)
+export const appImpetus = {
+  getStatus: () => api.get('/app-impetus/status'),
+  getOutbox: (since) => api.get('/app-impetus/outbox', { params: since ? { since } : {} }),
+  sendMessage: (data) => api.post('/app-impetus/messages', data)
 };
 
 // ============================================================================

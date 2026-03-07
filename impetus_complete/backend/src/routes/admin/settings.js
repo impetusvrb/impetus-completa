@@ -11,7 +11,7 @@ const fs = require('fs').promises;
 const db = require('../../db');
 const { requireAuth, requireHierarchy } = require('../../middleware/auth');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
-const zapiService = require('../../services/zapi');
+// Z-API removido - substituído por App Impetus (canal unificado)
 const manualsService = require('../../services/manuals');
 const dashboardVisibility = require('../../services/dashboardVisibility');
 const { encrypt } = require('../../utils/crypto');
@@ -241,146 +241,29 @@ router.put('/company',
 
 /**
  * GET /api/admin/settings/zapi
- * Buscar configuração Z-API (apenas administrador)
+ * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
  */
-router.get('/zapi', 
-  requireAuth,
-  async (req, res) => {
-    try {
-      const result = await db.query(`
-        SELECT 
-          id, company_id, instance_id, api_url, business_phone,
-          active, connection_status, last_connection_test, created_at, updated_at
-        FROM zapi_configurations
-        WHERE company_id = $1
-      `, [req.user.company_id]);
-
-      // Não retornar tokens sensíveis
-      res.json({
-        ok: true,
-        config: result.rows[0] || null
-      });
-
-    } catch (err) {
-      console.error('[ADMIN_GET_ZAPI_CONFIG_ERROR]', err);
-      res.status(500).json({
-        ok: false,
-        error: 'Erro ao buscar configuração Z-API'
-      });
-    }
+router.get('/zapi', requireAuth, (req, res) => {
+  res.json({ ok: true, config: null, deprecated: true, message: 'Z-API substituído por App Impetus' });
 });
 
 /**
  * POST /api/admin/settings/zapi
- * Criar/atualizar configuração Z-API (apenas administrador)
+ * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
  */
-router.post('/zapi', 
-  requireAuth,
-  auditMiddleware({ 
-    action: 'zapi_config_updated', 
-    entityType: 'zapi_config',
-    severity: 'warning'
-  }),
-  async (req, res) => {
-    try {
-      const {
-        instance_id,
-        instance_token,
-        client_token,
-        api_url,
-        business_phone
-      } = req.body;
-
-      // Validar campos obrigatórios
-      if (!instance_id || !instance_token || !client_token || !api_url) {
-        return res.status(400).json({
-          ok: false,
-          error: 'Campos obrigatórios: instance_id, instance_token, client_token, api_url'
-        });
-      }
-
-      // Verificar se já existe configuração
-      const existing = await db.query(
-        'SELECT id FROM zapi_configurations WHERE company_id = $1',
-        [req.user.company_id]
-      );
-
-      let result;
-      if (existing.rows.length > 0) {
-        // Atualizar
-        result = await db.query(`
-          UPDATE zapi_configurations
-          SET 
-            instance_id = $1,
-            instance_token = $2,
-            client_token = $3,
-            api_url = $4,
-            business_phone = $5,
-            updated_at = now()
-          WHERE company_id = $6
-          RETURNING id, instance_id, api_url, business_phone
-        `, [instance_id, maybeEncryptToken(instance_token), maybeEncryptToken(client_token), api_url, business_phone, req.user.company_id]);
-      } else {
-        // Criar
-        result = await db.query(`
-          INSERT INTO zapi_configurations (
-            company_id, instance_id, instance_token, client_token,
-            api_url, business_phone, active
-          ) VALUES ($1, $2, $3, $4, $5, $6, true)
-          RETURNING id, instance_id, api_url, business_phone
-        `, [req.user.company_id, instance_id, maybeEncryptToken(instance_token), maybeEncryptToken(client_token), api_url, business_phone]);
-      }
-
-      await logAction({
-        companyId: req.user.company_id,
-        userId: req.user.id,
-        action: 'zapi_config_updated',
-        entityType: 'zapi_config',
-        entityId: result.rows[0].id,
-        details: { instance_id },
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-        severity: 'warning'
-      });
-
-      res.json({
-        ok: true,
-        config: result.rows[0],
-        message: 'Configuração Z-API salva com sucesso'
-      });
-
-    } catch (err) {
-      console.error('[ADMIN_SAVE_ZAPI_CONFIG_ERROR]', err);
-      res.status(500).json({
-        ok: false,
-        error: 'Erro ao salvar configuração Z-API'
-      });
-    }
+router.post('/zapi', requireAuth, (req, res) => {
+  res.json({ ok: true, config: null, deprecated: true, message: 'Z-API substituído por App Impetus' });
 });
 
 /**
  * POST /api/admin/settings/zapi/test
- * Testar conexão Z-API (apenas administrador)
+ * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
  */
-router.post('/zapi/test', 
-  requireAuth,
-  async (req, res) => {
-    try {
-      const testResult = await zapiService.testConnection(req.user.company_id);
-
-      res.json({
-        ok: true,
-        test: testResult
-      });
-
-    } catch (err) {
-      console.error('[ADMIN_TEST_ZAPI_ERROR]', err);
-      res.status(500).json({
-        ok: false,
-        error: 'Erro ao testar conexão Z-API',
-        details: err.message
-      });
-    }
+router.post('/zapi/test', requireAuth, (req, res) => {
+  res.json({
+    ok: true,
+    test: { connected: false, deprecated: true, message: 'Z-API substituído por App Impetus' }
+  });
 });
 
 // ============================================================================

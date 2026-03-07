@@ -234,7 +234,7 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
   const sent = [];
   for (const phone of [...new Set(phones)].slice(0, 10)) {
     try {
-      await zapi.sendTextMessage(companyId, phone, message);
+      await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
       sent.push(phone);
     } catch (e) {
       console.warn('[ORG_AI] notify:', phone, e.message);
