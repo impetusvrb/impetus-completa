@@ -1,0 +1,67 @@
+# ============================================================================
+# IMPETUS COMUNICA IA - ARQUIVOS IGNORADOS PELO GIT
+# NUNCA commite credenciais ou dados sensíveis!
+# ============================================================================
+
+# Variáveis de ambiente (CONTÉM SECRETOS - CRÍTICO)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# Dependências
+node_modules/
+**/node_modules/
+
+# Build e distribuição
+dist/
+build/
+**/dist/
+**/build/
+*.min.js
+
+# Backend - código ofuscado (opcional)
+backend/dist/
+
+# Frontend - build de produção
+frontend/dist/
+
+# Logs e arquivos temporários
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+tmp/
+temp/
+*.tmp
+
+# Uploads (dados de usuários)
+uploads/
+**/uploads/
+
+# IDE e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# Testes e cobertura
+coverage/
+.nyc_output/
+*.lcov
+
+# Docker (se usar volumes locais)
+.docker/

@@ -1,0 +1,39 @@
+.biblioteca-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+
+.biblioteca-page__header {
+  flex-shrink: 0;
+}
+
+.biblioteca-page__titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.biblioteca-page__subtitulo {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 20px 0;
+}
+
+.biblioteca-page__search {
+  max-width: 480px;
+}
+
+.biblioteca-page__main {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  min-height: 0;
+}
+
+.biblioteca-page__content {
+  flex: 1;
+  overflow-y: auto;
+}
