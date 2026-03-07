@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { auth } from '../services/api';
 import './Login.css';
@@ -135,7 +135,7 @@ export default function Login() {
             </button>
 
             <div className="login-footer">
-              <a href="#" className="forgot-password">Esqueceu sua senha?</a>
+              <Link to="/forgot-password" className="forgot-password">Esqueceu sua senha?</Link>
             </div>
           </form>
 

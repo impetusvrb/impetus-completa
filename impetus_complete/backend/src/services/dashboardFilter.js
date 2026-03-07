@@ -71,3 +71,8 @@ module.exports = {
   getCommunicationsFilter,
   getViewType
 };
+ports = {
+  getFilterContext,
+  getCommunicationsFilter,
+  getViewType
+};

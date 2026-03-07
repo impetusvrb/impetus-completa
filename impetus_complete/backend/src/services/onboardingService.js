@@ -59,6 +59,11 @@ async function getOnboardingStatus(user, company) {
     userId ? needsUserOnboarding(userId, companyId) : false
   ]);
 
+  // CEO não faz onboarding
+  if (user?.role === 'ceo') {
+    return { needsOnboarding: false, activeType: null, companyCompleted: true, userCompleted: true };
+  }
+
   let activeOnboarding = null;
   if (isAdminOrDiretor && companyNeeds) {
     activeOnboarding = 'empresa';
@@ -80,7 +85,7 @@ async function getOnboardingStatus(user, company) {
 async function getConversationHistory(companyId, userId, tipo, limit = 20) {
   const r = await db.query(`
     SELECT "role", content, created_at
-    FROM onboarding_conversa
+    FROM onboarding_conversations
     WHERE company_id = $1 AND user_id = $2 AND tipo = $3
     ORDER BY created_at DESC
     LIMIT $4
@@ -91,32 +96,49 @@ async function getConversationHistory(companyId, userId, tipo, limit = 20) {
 /**
  * Gera próxima pergunta ou aprofundamento via IA - EMPRESA
  */
+const PERGUNTAS_FIXAS_EMPRESA = [
+  'Olá! Antes de começarmos, preciso entender profundamente sua empresa. Qual é o nome oficial da empresa? (Se houver nome fantasia e razão social, informe ambos.)',
+  'Qual é o segmento de atuação da empresa? (Ex: indústria alimentícia, metalúrgica, tecnologia, logística, serviços, etc.)',
+  'Quantos funcionários a empresa possui atualmente? (Se possível, separe entre administrativo e operacional.)',
+  'Quantas linhas de produção a empresa possui? (Se não for indústria, quantas unidades operacionais ou frentes de serviço.)',
+  'O que a empresa produz ou quais serviços presta? Descreva de forma geral.',
+  'Quais são os principais produtos fabricados ou comercializados? Liste os principais itens ou linhas de produtos.'
+];
+
 async function generateNextQuestionEmpresa(companyId, userId, userAnswer, history) {
+  const userMsgs = history.filter(m => m.role === 'user').length;
+
+  // Perguntas 1-6: fixas
+  if (userMsgs < PERGUNTAS_FIXAS_EMPRESA.length) {
+    return PERGUNTAS_FIXAS_EMPRESA[userMsgs];
+  }
+
+  // Perguntas 7-10: IA livre explorando problemas e dores
   const histStr = history.map(m => `${m.role}: ${m.content}`).join('\n');
-  const prompt = `Você é uma IA corporativa estratégica conduzindo uma entrevista profunda com o ADMIN da empresa.
+  const prompt = `Você é uma IA estratégica entrevistando o diretor de uma empresa.
 
-REGRA: Analise a resposta e decida:
-1. Se foi vaga → peça exemplos concretos
-2. Se mencionou problema → pergunte "Por quê?", impactos financeiros, entre quais setores
-3. Se há contradição → aponte e pergunte para esclarecer
-4. Se foi completa → avance para próximo tópico
-5. NUNCA repita a mesma pergunta
-
-TÓPICOS A COBRIR (em ordem, aprofunde cada um): ${EMPRESA_TOPICOS.join(', ')}
+Já coletou dados básicos (nome, segmento, funcionários, produção, produtos).
+Agora faça perguntas abertas e inteligentes sobre:
+- Principais problemas operacionais
+- Falhas de comunicação interna
+- Gargalos de produção ou execução
+- Onde há mais retrabalho ou desperdício
+- Metas e indicadores que não estão sendo atingidos
+- O que mais dói no dia a dia da gestão
+- O que esperam melhorar com o sistema
 
 HISTÓRICO:
 ${histStr}
 
-ÚLTIMA RESPOSTA DO USUÁRIO: ${userAnswer || '(início - saudar e primeira pergunta)'}
+ÚLTIMA RESPOSTA: ${userAnswer}
 
-INSTRUÇÕES:
-- Se for o início: "Olá. Antes de começarmos, preciso entender profundamente sua empresa para atuar de forma estratégica e personalizada. Qual o nome oficial da empresa?"
-- Seja conversacional, uma pergunta por vez
-- Quando identificar problema (ex: comunicação): pergunte entre quais setores, se gera retrabalho, impacto em prazo, prejuízo, indicadores
-- Retorne APENAS a próxima mensagem (não inclua metadados)
-- Quando tiver cobertura suficiente dos tópicos: "Obrigado. Com essas informações vou criar seu perfil estratégico. Em instantes você terá acesso ao sistema."
+REGRAS:
+- Uma pergunta por vez
+- Seja direto e estratégico
+- Aprofunde se a resposta for vaga (peça exemplos, impactos financeiros)
+- Retorne APENAS o texto da próxima pergunta
 
-Retorne somente o texto da sua próxima fala:`;
+Retorne somente sua próxima pergunta:`;
 
   const response = await ai.chatCompletion(prompt, { max_tokens: 400 });
   const trimmed = (response || '').trim();
@@ -166,29 +188,43 @@ async function processAnswer(companyId, userId, tipo, userAnswer, user) {
   const history = await getConversationHistory(companyId, userId, tipo);
 
   await db.query(`
-    INSERT INTO onboarding_conversa (company_id, user_id, tipo, "role", content)
+    INSERT INTO onboarding_conversations (company_id, user_id, tipo, "role", content)
     VALUES ($1, $2, $3, 'user', $4)
   `, [companyId, userId, tipo, userAnswer || '(continuação)']);
 
+  const userMsgCount = history.filter(m => m.role === 'user').length + 1;
+  const maxExchanges = tipo === 'empresa' ? 10 : 6;
+
   let nextMessage;
-  if (tipo === 'empresa') {
+  if (userMsgCount >= maxExchanges) {
+    nextMessage = tipo === 'empresa'
+      ? 'Obrigado. Com essas informações vou criar o perfil estratégico da empresa. Agora preciso conhecer você melhor.'
+      : 'Obrigado! Seu perfil foi registrado. Boas-vindas ao sistema.';
+  } else if (tipo === 'empresa') {
     nextMessage = await generateNextQuestionEmpresa(companyId, userId, userAnswer, history);
   } else {
     nextMessage = await generateNextQuestionUsuario(companyId, userId, userAnswer, history, user);
   }
 
   await db.query(`
-    INSERT INTO onboarding_conversa (company_id, user_id, tipo, "role", content)
+    INSERT INTO onboarding_conversations (company_id, user_id, tipo, "role", content)
     VALUES ($1, $2, $3, 'assistant', $4)
   `, [companyId, userId, tipo, nextMessage]);
 
-  const isComplete = /perfil.*registrado|acesso ao sistema|obrigado.*informações/i.test(nextMessage);
+  const isComplete = (typeof userMsgCount !== 'undefined' && userMsgCount >= maxExchanges) ||
+    /perfil.*registrado|acesso ao sistema|obrigado.*informa|boas-vindas|terá acesso|conhecer você melhor/i.test(nextMessage);
 
   if (isComplete) {
     await finalizeOnboarding(companyId, userId, tipo, [...history, { role: 'user', content: userAnswer }, { role: 'assistant', content: nextMessage }], user);
   }
 
-  return { message: nextMessage, completed: isComplete };
+  // Se empresa completou e usuário é diretor, sinalizar próxima fase (usuario)
+  let nextPhase = null;
+  if (isComplete && tipo === 'empresa') {
+    nextPhase = 'usuario';
+  }
+
+  return { message: nextMessage, completed: isComplete, nextPhase };
 }
 
 /**
@@ -303,7 +339,7 @@ async function startOrResumeOnboarding(companyId, userId, tipo, user) {
   }
 
   await db.query(`
-    INSERT INTO onboarding_conversa (company_id, user_id, tipo, "role", content)
+    INSERT INTO onboarding_conversations (company_id, user_id, tipo, "role", content)
     VALUES ($1, $2, $3, 'assistant', $4)
   `, [companyId, userId, tipo, message]);
 

@@ -21,7 +21,7 @@ async function listProposals(limit = 200, companyId = null, scope = null) {
   }
   const propFilter = hierarchicalFilter.buildProposalsFilter(scope, companyId);
   const r = await db.query(
-    `SELECT * FROM proposals WHERE ${propFilter.whereClause} ORDER BY created_at DESC LIMIT $${propFilter.paramOffset}`,
+    `SELECT * FROM proposals p WHERE ${propFilter.whereClause} ORDER BY p.created_at DESC LIMIT $${propFilter.paramOffset}`,
     [...propFilter.params, limit]
   );
   return r.rows;

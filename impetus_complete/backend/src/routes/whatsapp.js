@@ -19,7 +19,6 @@ const { logAction } = require('../middleware/audit');
  */
 router.post('/connect',
   requireAuth,
-  requireHierarchy(2),
   async (req, res) => {
     try {
       const companyId = req.user?.company_id;
@@ -75,7 +74,6 @@ router.post('/connect',
  */
 router.get('/status',
   requireAuth,
-  requireHierarchy(2),
   async (req, res) => {
     try {
       const companyId = req.user?.company_id;
@@ -94,7 +92,6 @@ router.get('/status',
  */
 router.get('/qr-code',
   requireAuth,
-  requireHierarchy(2),
   async (req, res) => {
     try {
       const companyId = req.user?.company_id;
@@ -114,7 +111,6 @@ router.get('/qr-code',
  */
 router.get('/stats',
   requireAuth,
-  requireHierarchy(2),
   async (req, res) => {
     try {
       const companyId = req.user?.company_id;

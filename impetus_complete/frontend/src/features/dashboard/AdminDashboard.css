@@ -30,7 +30,8 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--bg-tertiary);
+  background: linear-gradient(145deg, #162A3A, #1B3447);
+  box-shadow: 0 0 0 1px #243848;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
@@ -40,7 +41,7 @@
 }
 
 .admin-dashboard__settings-link:hover {
-  background: var(--bg-secondary);
+  background: #0F1E2E;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -87,7 +88,7 @@
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: var(--bg-secondary);
+  background: #0F1E2E;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   text-decoration: none;
@@ -154,7 +155,7 @@
   min-height: 360px;
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary);
+  background: #0F1E2E;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -200,7 +201,8 @@
 }
 
 .admin-dashboard__chat-msg--user .admin-dashboard__chat-avatar {
-  background: var(--bg-tertiary);
+  background: linear-gradient(145deg, #162A3A, #1B3447);
+  box-shadow: 0 0 0 1px #243848;
   color: var(--text-secondary);
 }
 
@@ -241,7 +243,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 14px;
-  background: var(--bg-primary);
+  background: #162A3A;
 }
 
 .admin-dashboard__chat-input input:focus {

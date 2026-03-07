@@ -142,6 +142,9 @@ export const whatsapp = {
 // ============================================================================
 
 export const auth = {
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  verifyPassword: (password) => api.post('/auth/verify-password', { password }),
+  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
   login: (email, password) => 
     api.post('/auth/login', { email, password }),
   
@@ -192,6 +195,8 @@ export const dashboard = {
 
   chat: (message, history = []) => 
     api.post('/dashboard/chat', { message, history }),
+  chatWithHeader: (message, history = [], headers = {}) =>
+    api.post('/dashboard/chat', { message, history }, { headers }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),

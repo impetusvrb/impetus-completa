@@ -210,7 +210,7 @@ async function buildSmartSummary(userId, userName, companyId, user = null) {
     commSummary,
     openComms,
     openProposals,
-    userContext: ctx,
+    userCtx: ctx,
   });
 
   return {

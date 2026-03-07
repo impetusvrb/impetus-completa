@@ -1,11 +1,10 @@
 /**
  * IA PROATIVA - Trabalho agendado
- * Detecta padrões, alerta grupo, lembra pendências.
- * Utiliza aiProactiveMessagingService para auditoria, LGPD e rastreabilidade.
+ * Detecta padrões, alerta grupo, lembra pendências
  */
 const db = require('../db');
 const organizationalAI = require('../services/organizationalAI');
-const aiProactive = require('../services/aiProactiveMessagingService');
+const zapi = require('../services/zapi');
 
 /**
  * Executa verificação de padrão de falhas e envia alerta proativo
@@ -25,28 +24,19 @@ async function runFailurePatternCheck() {
         const alertId = ins.rows[0]?.id;
 
         const recipients = await db.query(`
-          SELECT id, whatsapp_number, phone FROM users
+          SELECT whatsapp_number FROM users
           WHERE company_id = $1 AND active = true AND (whatsapp_number IS NOT NULL OR phone IS NOT NULL)
           AND hierarchy_level <= 4
           LIMIT 15
         `, [row.id]);
 
-        const seen = new Set();
-        let sent = 0;
-        for (const u of recipients.rows || []) {
-          const phone = (u.whatsapp_number || u.phone || '').replace(/\D/g, '');
-          if (phone.length < 10 || seen.has(phone)) continue;
-          seen.add(phone);
-          if (sent >= 5) break;
+        const phones = recipients.rows
+          .map(u => (u.whatsapp_number || u.phone || '').replace(/\D/g, ''))
+          .filter(p => p.length >= 10);
+
+        for (const phone of [...new Set(phones)].slice(0, 5)) {
           try {
-            const result = await aiProactive.sendProactiveMessage({
-              companyId: row.id,
-              recipientPhone: phone,
-              recipientUserId: u.id,
-              message,
-              triggerType: 'failure_pattern'
-            });
-            if (result?.ok) sent++;
+            await zapi.sendTextMessage(row.id, phone, message);
           } catch (e) {
             console.warn('[PROACTIVE_AI] send:', e.message);
           }
@@ -89,22 +79,7 @@ async function remindIncompleteEvents() {
 
       if (nextQ) {
         try {
-          const phone = (row.sender_phone || '').replace(/\D/g, '');
-          if (phone.length >= 10) {
-            const recipientUser = await db.query(
-              `SELECT id FROM users WHERE company_id = $1
-               AND (regexp_replace(COALESCE(whatsapp_number, phone), '\D', '', 'g') = $2)
-               LIMIT 1`,
-              [row.company_id, phone]
-            );
-            await aiProactive.sendProactiveMessage({
-              companyId: row.company_id,
-              recipientPhone: phone,
-              recipientUserId: recipientUser.rows[0]?.id,
-              message: `[IMPETUS] Lembrete: ${nextQ}`,
-              triggerType: 'incomplete_event'
-            });
-          }
+          await zapi.sendTextMessage(row.company_id, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`);
           await db.query(
             'UPDATE ai_incomplete_events SET last_reminder_at = now(), reminder_count = reminder_count + 1 WHERE id = $1',
             [row.id]

@@ -263,6 +263,7 @@ async function logAudit(userId, companyId, eventType, details, auditContext = {}
  * Retorna contexto do usuário para a IA (nome, cargo, setor, atividades)
  */
 async function getContextForAI(user) {
+  return null; // sistema de identificação desativado
   const r = await db.query(
     'SELECT full_name, department, job_title, daily_activities_description FROM user_activation_profiles WHERE user_id = $1',
     [user?.id]

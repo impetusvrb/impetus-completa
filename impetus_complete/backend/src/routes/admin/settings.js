@@ -67,8 +67,7 @@ const upload = multer({
  * Buscar configurações da empresa (apenas administrador)
  */
 router.get('/company', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       const result = await db.query(`
@@ -113,7 +112,6 @@ router.get('/company',
  */
 router.get('/dashboard-visibility',
   requireAuth,
-  requireHierarchy(1),
   async (req, res) => {
     try {
       const configs = await dashboardVisibility.listConfigs(req.user.company_id);
@@ -131,7 +129,6 @@ router.get('/dashboard-visibility',
  */
 router.put('/dashboard-visibility/:level',
   requireAuth,
-  requireHierarchy(1),
   auditMiddleware({
     action: 'dashboard_visibility_updated',
     entityType: 'settings',
@@ -165,8 +162,7 @@ router.put('/dashboard-visibility/:level',
  * Atualizar configurações da empresa
  */
 router.put('/company', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   auditMiddleware({ 
     action: 'company_settings_updated', 
     entityType: 'company',
@@ -248,8 +244,7 @@ router.put('/company',
  * Buscar configuração Z-API (apenas administrador)
  */
 router.get('/zapi', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       const result = await db.query(`
@@ -280,8 +275,7 @@ router.get('/zapi',
  * Criar/atualizar configuração Z-API (apenas administrador)
  */
 router.post('/zapi', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   auditMiddleware({ 
     action: 'zapi_config_updated', 
     entityType: 'zapi_config',
@@ -369,8 +363,7 @@ router.post('/zapi',
  * Testar conexão Z-API (apenas administrador)
  */
 router.post('/zapi/test', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       const testResult = await zapiService.testConnection(req.user.company_id);
@@ -430,8 +423,7 @@ router.get('/pops',
  * Criar POP (apenas administrador)
  */
 router.post('/pops', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   upload.single('file'),
   auditMiddleware({ 
     action: 'pop_created', 
@@ -485,8 +477,7 @@ router.post('/pops',
  * Desativar POP (apenas administrador)
  */
 router.delete('/pops/:id', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
@@ -553,8 +544,7 @@ router.get('/manuals',
  * Upload de manual técnico (apenas administrador)
  */
 router.post('/manuals', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   upload.single('file'),
   auditMiddleware({ 
     action: 'manual_uploaded', 
@@ -632,8 +622,7 @@ router.post('/manuals',
  * Deletar manual técnico (apenas administrador)
  */
 router.delete('/manuals/:id', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
@@ -678,7 +667,6 @@ router.delete('/manuals/:id',
  */
 router.get('/notifications', 
   requireAuth,
-  requireHierarchy(1),
   async (req, res) => {
     try {
       // Buscar config de notificações no JSONB da empresa
@@ -714,8 +702,7 @@ router.get('/notifications',
  * Atualizar configurações de notificações (apenas administrador)
  */
 router.put('/notifications', 
-  requireAuth, 
-  requireHierarchy(1),
+  requireAuth,
   async (req, res) => {
     try {
       const notificationConfig = req.body;
@@ -751,7 +738,6 @@ router.put('/notifications',
 
 router.get('/whatsapp-contacts',
   requireAuth,
-  requireHierarchy(1),
   async (req, res) => {
     try {
       const r = await db.query(`
@@ -769,7 +755,6 @@ router.get('/whatsapp-contacts',
 
 router.post('/whatsapp-contacts',
   requireAuth,
-  requireHierarchy(1),
   async (req, res) => {
     try {
       const { name, phone, role, sector } = req.body;
@@ -797,7 +782,6 @@ router.post('/whatsapp-contacts',
 
 router.delete('/whatsapp-contacts/:id',
   requireAuth,
-  requireHierarchy(1),
   async (req, res) => {
     try {
       const r = await db.query(`

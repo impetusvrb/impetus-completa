@@ -507,7 +507,7 @@ router.get('/recent-interactions', requireAuth, requireHierarchyScope, async (re
             c.source,
             c.text_content,
             c.created_at,
-            COALESCE(u.name, c.sender_name, c.sender_phone) as sender_name,
+            u.name as sender_name,
             u.avatar_url
           FROM communications c
           LEFT JOIN users u ON c.sender_id = u.id
@@ -625,26 +625,38 @@ router.post('/chat',
       });
     }
 
-    // Verificação de identificação: bloqueia chat até ativação/verificação diária
-    const identificationStatus = await userIdentification.getIdentificationStatus(req.user);
-    if (identificationStatus.status !== 'verified') {
-      return res.status(403).json({
-        ok: false,
-        error: 'Identificação pendente. Complete a ativação ou verificação diária para acessar o chat.',
-        code: 'USER_IDENTIFICATION_REQUIRED',
-        identificationStatus
-      });
-    }
+    // Verificação de identificação desativada (sistema de onboarding próprio ativo)
 
     let reply = '';
     try {
       const { message, history = [] } = req.body;
+    // Verificação de dados sigilosos
+    const sensitivePatterns = [
+      /senha/i, /password/i, /credencial/i,
+      /dados pessoais/i, /cpf/i, /rg/i, /salario/i, /salário/i,
+      /folha de pagamento/i, /financeiro confidencial/i, /contrato confidencial/i,
+      /dados bancários/i, /conta bancária/i, /chave pix/i,
+      /token/i, /api.?key/i, /secret/i
+    ];
+    const isSensitive = sensitivePatterns.some(p => p.test(message));
+    if (isSensitive) {
+      const passwordVerified = req.headers['x-password-verified'] === 'true';
+      if (!passwordVerified) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Conteúdo sigiloso detectado.',
+          code: 'SENSITIVE_CONTENT',
+          requirePasswordVerification: true
+        });
+      }
+    }
+
       if (!message || typeof message !== 'string' || !message.trim()) {
         return res.status(400).json({ ok: false, error: 'Mensagem obrigatória' });
       }
       const companyId = req.user.company_id;
       const chatCtx = await chatUserContext.buildChatUserContext(req.user);
-      const { userName, identityBlock, memoriaBlock, communicationsBlock } = chatCtx;
+      const { userName, identityBlock, memoriaBlock } = chatCtx;
 
       let docContext = '';
       let manualsBlock = '(Nenhum trecho relevante)';
@@ -701,7 +713,6 @@ router.post('/chat',
 
 ${identityBlock}
 ${memoriaBlock}
-${communicationsBlock || ''}
 
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
 ${COMMUNICATION_GUIDELINES}
