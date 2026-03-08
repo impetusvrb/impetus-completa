@@ -3,10 +3,12 @@
  * Garante que a IA sempre consulte:
  * - Política Impetus (regras globais)
  * - Documentos da empresa (política, POPs, manuais)
+ * - Base estrutural da empresa (Admin)
  */
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
+const structuralContextService = require('./structuralContextService');
 
 let impetusPolicyCache = null;
 let impetusPolicyLoadError = null;
@@ -90,6 +92,28 @@ async function getCompanyPops(companyId, limit = 5) {
 }
 
 /**
+ * Busca documentos da biblioteca de conhecimento (knowledge_documents)
+ * Metadados estruturados para a IA localizar e referenciar documentos
+ */
+async function getKnowledgeDocuments(companyId, limit = 15) {
+  try {
+    const r = await db.query(`
+      SELECT kd.title, kd.category, kd.doc_type, kd.summary_description, kd.keywords,
+             kd.document_url, kd.version, d.name as department_name
+      FROM knowledge_documents kd
+      LEFT JOIN departments d ON kd.department_id = d.id
+      WHERE kd.company_id = $1 AND kd.active = true
+      ORDER BY kd.category, kd.title
+      LIMIT $2
+    `, [companyId, limit]);
+    return r.rows || [];
+  } catch (err) {
+    if (err.message?.includes('does not exist')) return [];
+    return [];
+  }
+}
+
+/**
  * Busca política da empresa (company_policy_text)
  */
 async function getCompanyPolicy(companyId) {
@@ -133,16 +157,31 @@ async function buildAIContext(opts = {}) {
       const popsText = pops.map(p => `[${p.title}] (${p.category || '-'}): ${p.content}`).join('\n---\n');
       parts.push(`## POPs da empresa\n${popsText}`);
     }
+
+    // 4. Base estrutural da empresa (Admin - cargos, linhas, ativos, processos, produtos, etc.)
+    const structuralCtx = await structuralContextService.buildStructuralContext(companyId, { maxLength: 6000 });
+    if (structuralCtx) {
+      parts.push(structuralCtx);
+    }
+
+    // 5. Biblioteca de conhecimento (knowledge_documents)
+    const knowledgeDocs = await getKnowledgeDocuments(companyId, 12);
+    if (knowledgeDocs.length > 0) {
+      const docList = knowledgeDocs.map(d =>
+        `- [${d.title}] ${d.doc_type || d.category || 'documento'}${d.summary_description ? `: ${d.summary_description.slice(0, 100)}` : ''}${d.keywords?.length ? ` | Palavras: ${d.keywords.slice(0, 5).join(', ')}` : ''}`
+      ).join('\n');
+      parts.push(`## Biblioteca de documentos disponíveis\n${docList}`);
+    }
   }
 
-  // 4. Manuais: não incluídos aqui - o chamador (ex: diagnostic) passa candidates separadamente
+  // 6. Manuais: não incluídos aqui - o chamador (ex: diagnostic) passa candidates separadamente
   // para evitar duplicação, já que searchManuals é chamado pelo fluxo de diagnóstico
 
   if (parts.length === 0) return '';
 
   return [
     '\n---\n',
-    'CONTEXTO OBRIGATÓRIO: Sua resposta deve estar em conformidade com a política Impetus e, quando disponível, com a documentação interna da empresa (políticas, POPs, manuais).',
+    'CONTEXTO OBRIGATÓRIO: Sua resposta deve estar em conformidade com a política Impetus e, quando disponível, com a documentação e base estrutural da empresa (políticas, POPs, manuais, cargos, linhas, ativos, processos, produtos).',
     '\n---\n',
     parts.join('\n\n')
   ].join('\n');

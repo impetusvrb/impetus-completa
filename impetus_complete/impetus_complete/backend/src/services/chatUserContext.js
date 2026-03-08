@@ -51,11 +51,12 @@ Trate o usuário pelo nome e respeite seu nível hierárquico.`;
     const memoria = await onboardingService.getMemoryContext(user);
     const parts = [];
 
-    if (memoria?.company?.resumo_executivo || memoria?.company?.perfil_estrategico) {
+    if (memoria?.company?.resumo_executivo || memoria?.company?.perfil_estrategico || memoria?.company?.structural_summary) {
       const ceo = memoria.company.resumo_executivo ? `\nResumo: ${String(memoria.company.resumo_executivo).slice(0, 400)}...` : '';
       const perfil = memoria.company.perfil_estrategico
         ? `\nPerfil: ${JSON.stringify(memoria.company.perfil_estrategico)}` : '';
-      parts.push(`### Contexto da empresa${ceo}${perfil}`);
+      const structural = memoria.company.structural_summary ? `\n${memoria.company.structural_summary}` : '';
+      parts.push(`### Contexto da empresa${ceo}${perfil}${structural}`);
     }
 
     if (memoria?.user?.resumo_estrategico || memoria?.user?.perfil_tecnico) {

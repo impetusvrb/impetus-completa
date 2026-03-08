@@ -83,7 +83,7 @@ async function getCommunicationsForContact(companyId, senderPhone, limit = 20) {
       SELECT id, direction, text_content, sender_name, sender_phone, created_at
       FROM communications
       WHERE company_id = $1 AND source = 'whatsapp'
-        AND regexp_replace(sender_phone, '\D', '', 'g') = $2
+        AND regexp_replace(sender_phone, '[^0-9]', '', 'g') = $2
         AND text_content IS NOT NULL AND TRIM(text_content) != ''
       ORDER BY created_at DESC
       LIMIT $3

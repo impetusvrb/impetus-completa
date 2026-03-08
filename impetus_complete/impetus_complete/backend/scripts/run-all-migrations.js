@@ -41,7 +41,8 @@ const MIGRATIONS = [
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
-  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
+  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
+  { name: 'Base Estrutural Admin (empresa, cargos, linhas, ativos, processos, produtos, IA)', file: 'admin_structural_base_migration.sql' }
 ];
 
 async function run() {

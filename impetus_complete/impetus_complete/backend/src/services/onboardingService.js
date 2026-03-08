@@ -5,6 +5,7 @@
 const db = require('../db');
 const ai = require('./ai');
 const userContext = require('./userContext');
+const structuralContextService = require('./structuralContextService');
 
 const EMPRESA_TOPICOS = [
   'nome_empresa', 'segmento', 'num_funcionarios', 'estrutura_organizacional',
@@ -354,13 +355,19 @@ async function getMemoryContext(user) {
   const userId = user?.id;
   if (!companyId || !userId) return { company: null, user: null };
 
-  const [companyMem, userMem] = await Promise.all([
+  const [companyMem, userMem, structuralSummary] = await Promise.all([
     db.query('SELECT * FROM memoria_empresa WHERE company_id = $1', [companyId]),
-    db.query('SELECT * FROM memoria_usuario WHERE user_id = $1', [userId])
+    db.query('SELECT * FROM memoria_usuario WHERE user_id = $1', [userId]),
+    structuralContextService.buildStructuralSummary(companyId).catch(() => '')
   ]);
 
+  const company = companyMem.rows[0] || null;
+  if (company && structuralSummary) {
+    company.structural_summary = structuralSummary;
+  }
+
   return {
-    company: companyMem.rows[0] || null,
+    company,
     user: userMem.rows[0] || null
   };
 }

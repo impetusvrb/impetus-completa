@@ -33,6 +33,7 @@ const adminUsers = require('./routes/admin/users');
 const adminDepartments = require('./routes/admin/departments');
 const adminLogs = require('./routes/admin/logs');
 const adminSettings = require('./routes/admin/settings');
+const adminStructural = require('./routes/admin/structural');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
 const onboarding = require('./routes/onboarding');
@@ -215,6 +216,7 @@ app.use('/api/admin/users', ...protected, adminUsers);
 app.use('/api/admin/departments', ...protected, adminDepartments);
 app.use('/api/admin/logs', ...protected, adminLogs);
 app.use('/api/admin/settings', ...protected, adminSettings);
+app.use('/api/admin/structural', ...protected, adminStructural);
 
 // 404 Handler
 app.use((req, res) => {

@@ -16,6 +16,7 @@ import {
   User,
   Users,
   Building2,
+  LayoutGrid,
   FileText,
   FolderOpen,
   HelpCircle,
@@ -97,6 +98,7 @@ export default function Layout({ children }) {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
+      { path: '/app/admin/structural', icon: LayoutGrid, label: 'Base Estrutural' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
@@ -104,6 +106,7 @@ export default function Layout({ children }) {
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/admin/structural', icon: LayoutGrid, label: 'Base Estrutural' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
@@ -114,6 +117,7 @@ export default function Layout({ children }) {
     ],
     gerente: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/admin/structural', icon: LayoutGrid, label: 'Base Estrutural' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },

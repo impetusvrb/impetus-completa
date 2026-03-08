@@ -378,6 +378,30 @@ export const adminDepartments = {
 };
 
 // ============================================================================
+// ADMINISTRAÇÃO - BASE ESTRUTURAL DA EMPRESA (para Impetus IA)
+// ============================================================================
+
+export const adminStructural = {
+  getCompanyData: () => api.get('/admin/structural/company-data'),
+  updateCompanyData: (data) => api.put('/admin/structural/company-data', data),
+  getReferences: () => api.get('/admin/structural/references'),
+
+  roles: { list: () => api.get('/admin/structural/roles'), create: (d) => api.post('/admin/structural/roles', d), update: (id, d) => api.put(`/admin/structural/roles/${id}`, d), delete: (id) => api.delete(`/admin/structural/roles/${id}`) },
+  productionLines: { list: () => api.get('/admin/structural/production-lines'), getById: (id) => api.get(`/admin/structural/production-lines/${id}`), create: (d) => api.post('/admin/structural/production-lines', d), update: (id, d) => api.put(`/admin/structural/production-lines/${id}`, d), delete: (id) => api.delete(`/admin/structural/production-lines/${id}`), addMachine: (lineId, d) => api.post(`/admin/structural/production-lines/${lineId}/machines`, d), updateMachine: (lineId, machineId, d) => api.put(`/admin/structural/production-lines/${lineId}/machines/${machineId}`, d), deleteMachine: (lineId, machineId) => api.delete(`/admin/structural/production-lines/${lineId}/machines/${machineId}`) },
+  assets: { list: () => api.get('/admin/structural/assets'), create: (d) => api.post('/admin/structural/assets', d), update: (id, d) => api.put(`/admin/structural/assets/${id}`, d), delete: (id) => api.delete(`/admin/structural/assets/${id}`) },
+  processes: { list: () => api.get('/admin/structural/processes'), create: (d) => api.post('/admin/structural/processes', d), update: (id, d) => api.put(`/admin/structural/processes/${id}`, d), delete: (id) => api.delete(`/admin/structural/processes/${id}`) },
+  products: { list: () => api.get('/admin/structural/products'), create: (d) => api.post('/admin/structural/products', d), update: (id, d) => api.put(`/admin/structural/products/${id}`, d), delete: (id) => api.delete(`/admin/structural/products/${id}`) },
+  indicators: { list: () => api.get('/admin/structural/indicators'), create: (d) => api.post('/admin/structural/indicators', d), update: (id, d) => api.put(`/admin/structural/indicators/${id}`, d), delete: (id) => api.delete(`/admin/structural/indicators/${id}`) },
+  failureRisks: { list: () => api.get('/admin/structural/failure-risks'), create: (d) => api.post('/admin/structural/failure-risks', d), update: (id, d) => api.put(`/admin/structural/failure-risks/${id}`, d), delete: (id) => api.delete(`/admin/structural/failure-risks/${id}`) },
+  communicationRules: { list: () => api.get('/admin/structural/communication-rules'), create: (d) => api.post('/admin/structural/communication-rules', d), update: (id, d) => api.put(`/admin/structural/communication-rules/${id}`, d), delete: (id) => api.delete(`/admin/structural/communication-rules/${id}`) },
+  routines: { list: () => api.get('/admin/structural/routines'), create: (d) => api.post('/admin/structural/routines', d), update: (id, d) => api.put(`/admin/structural/routines/${id}`, d), delete: (id) => api.delete(`/admin/structural/routines/${id}`) },
+  checklists: { list: () => api.get('/admin/structural/checklists'), create: (d) => api.post('/admin/structural/checklists', d), update: (id, d) => api.put(`/admin/structural/checklists/${id}`, d), delete: (id) => api.delete(`/admin/structural/checklists/${id}`) },
+  shifts: { list: () => api.get('/admin/structural/shifts'), create: (d) => api.post('/admin/structural/shifts', d), update: (id, d) => api.put(`/admin/structural/shifts/${id}`, d), delete: (id) => api.delete(`/admin/structural/shifts/${id}`) },
+  areaResponsibles: { list: () => api.get('/admin/structural/area-responsibles'), create: (d) => api.post('/admin/structural/area-responsibles', d), update: (id, d) => api.put(`/admin/structural/area-responsibles/${id}`, d), delete: (id) => api.delete(`/admin/structural/area-responsibles/${id}`) },
+  aiConfig: { list: () => api.get('/admin/structural/ai-config'), create: (d) => api.post('/admin/structural/ai-config', d), update: (id, d) => api.put(`/admin/structural/ai-config/${id}`, d), delete: (id) => api.delete(`/admin/structural/ai-config/${id}`) }
+};
+
+// ============================================================================
 // ADMINISTRAÇÃO - LOGS
 // ============================================================================
 
