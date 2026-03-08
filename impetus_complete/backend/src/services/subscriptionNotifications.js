@@ -71,7 +71,7 @@ async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
 
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
-    await zapi.sendTextMessage(companyId, toSend, message);
+    await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
     return true;
   } catch (err) {
     console.error('[SUBSCRIPTION_DAY5_WHATSAPP]', err.message);

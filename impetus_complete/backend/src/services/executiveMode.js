@@ -8,7 +8,7 @@ const db = require('../db');
 const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
-const zapi = require('./zapi');
+const appImpetusService = require('./appImpetusService');
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
 const REVALIDATION_DAYS = 90; // Revalidação periódica
@@ -141,7 +141,7 @@ async function logExecutiveAction(params) {
  */
 const VERIFICATION_REQUEST = `Para liberar acesso executivo completo aos dados estratégicos da sua indústria, preciso validar sua autoridade como CEO.
 
-Por favor, envie o certificado IPC Brasil da empresa ou assinatura digital equivalente.`;
+Por favor, envie o certificado IPC Brasil da empresa ou assinatura digital equivalente pelo Chat Interno do App Impetus.`;
 
 /**
  * Mensagem de bloqueio (não verificado)
@@ -367,7 +367,7 @@ async function sendCEOResponse(companyId, phone, message) {
   const normalized = normalizePhone(phone);
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
-  await zapi.sendTextMessage(companyId, toSend, message);
+  await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
 }
 
 module.exports = {

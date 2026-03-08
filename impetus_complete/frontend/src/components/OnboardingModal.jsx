@@ -12,6 +12,7 @@ export default function OnboardingModal({ tipo, onComplete }) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [currentTipo, setCurrentTipo] = useState(tipo);
   const messagesEndRef = useRef(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -50,13 +51,27 @@ export default function OnboardingModal({ tipo, onComplete }) {
     setSending(true);
 
     try {
-      const res = await onboarding.respond(tipo, answer);
+      const res = await onboarding.respond(currentTipo, answer);
       const nextMsg = res.data?.message;
       if (nextMsg) {
         setMessages((m) => [...m, { role: 'assistant', content: nextMsg }]);
         if (res.data?.completed) {
-          setCompleted(true);
-          setTimeout(() => onComplete?.(), 2000);
+          if (res.data?.nextPhase) {
+            setTimeout(async () => {
+              setMessages([]);
+              setCurrentTipo(res.data.nextPhase);
+              setLoading(true);
+              try {
+                const r2 = await onboarding.start(res.data.nextPhase);
+                const msg2 = r2.data?.message;
+                if (msg2) setMessages([{ role: 'assistant', content: msg2 }]);
+              } catch {}
+              setLoading(false);
+            }, 2000);
+          } else {
+            setCompleted(true);
+            setTimeout(() => onComplete?.(), 2000);
+          }
         }
       }
     } catch (err) {
@@ -76,7 +91,7 @@ export default function OnboardingModal({ tipo, onComplete }) {
     <div className="onboarding-overlay">
       <div className="onboarding-modal">
         <div className="onboarding-header">
-          <div className="onboarding-header-icon"><Bot size={28} /></div>
+          <div className="onboarding-header-icon"><img src="/ai-avatar.png" alt="Impetus IA" style={{width:44,height:44,borderRadius:"50%",objectFit:"cover"}} /></div>
           <div>
             <h2>{title}</h2>
             <p className="onboarding-subtitle">{subtitle}</p>
@@ -94,7 +109,7 @@ export default function OnboardingModal({ tipo, onComplete }) {
               {messages.map((msg, i) => (
                 <div key={i} className={`onboarding-msg onboarding-msg--${msg.role}`}>
                   {msg.role === 'assistant' && (
-                    <div className="onboarding-msg-avatar"><MessageSquare size={18} /></div>
+                    <div className="onboarding-msg-avatar"><img src="/ai-avatar.png" alt="IA" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover"}} /></div>
                   )}
                   <div className="onboarding-msg-content">
                     {(msg.content || '').split('\n').map((line, j) => (

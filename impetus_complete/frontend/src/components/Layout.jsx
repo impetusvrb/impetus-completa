@@ -27,14 +27,12 @@ import {
   Mail,
   ExternalLink
 } from 'lucide-react';
-import { companies, onboarding, userIdentification } from '../services/api';
+import { companies, onboarding } from '../services/api';
 import OnboardingModal from './OnboardingModal';
-import IdentificationModal from './IdentificationModal';
 import './Layout.css';
 
 export default function Layout({ children }) {
   const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
-  const [identificationStatus, setIdentificationStatus] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -87,51 +85,82 @@ export default function Layout({ children }) {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    userIdentification.getStatus().then((r) => {
-      const s = r?.data;
-      if (s?.status === 'needs_activation' || s?.status === 'needs_daily_verify') {
-        setIdentificationStatus(s);
-      }
-    }).catch(() => {});
-  }, []);
+
   
   // Pegar dados do usuário do localStorage
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
-  const isColaborador = user.role === 'colaborador';
-  const isCEO = user.role === 'ceo';
-  const isAdministrador = (user.hierarchy_level ?? 5) <= 1; // CEO (0) ou Diretor (1)
-  const baseMenuItems = [
-    { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/chat', icon: Mail, label: 'Chat' },
-    { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-    { path: '/app/operacional', icon: Zap, label: 'Operacional' },
-    { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
-    { path: '/app/chatbot', icon: MessageSquare, label: 'Chatbot Interacionais' },
-    { path: '/app/insights', icon: Brain, label: 'IA Insights' },
-    { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados' }
-  ];
-  const adminMenuItems = [
-    { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
-    { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
-    { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
-    { path: '/app/settings', icon: Settings, label: 'Configurações' }
-  ];
-  const allMenuItems = isCEO
-    ? [
-        { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' }
-      ]
-    : [
-        ...baseMenuItems,
-        ...(isAdministrador ? adminMenuItems : [])
-      ];
-  const menuItems = isCEO
-    ? allMenuItems
-    : isColaborador
-    ? [{ path: '/chat', icon: Mail, label: 'Chat' }, { path: '/app/proacao', icon: Target, label: 'Pró-Ação' }]
-    : allMenuItems;
+  const role = (user.role || 'colaborador').toLowerCase();
+
+  const MENUS = {
+    admin: [
+      { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
+      { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+    ],
+    diretor: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+    gerente: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+    coordenador: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+    supervisor: [
+      { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+    colaborador: [
+      { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+    ceo: [
+      { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
+  };
+
+  const menuItems = MENUS[role] || MENUS['colaborador'];
 
   const handleLogout = () => {
     localStorage.removeItem('impetus_token');
@@ -158,7 +187,7 @@ export default function Layout({ children }) {
         <div className="sidebar-header">
           <div className={`logo ${sidebarOpen ? 'logo-open' : 'logo-closed'}`}>
             <img
-              src="/logo-impetus.jpg"
+              src="/logo-impetus-new.jpg"
               alt="Impetus"
               className="sidebar-logo-img"
             />
@@ -177,7 +206,11 @@ export default function Layout({ children }) {
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}
               >
-                <Icon size={20} />
+                {item.aiIcon
+                  ? <img src="/ai-avatar.png" alt="IA" style={{width:22,height:22,borderRadius:'50%',objectFit:'cover',border:'1.5px solid #1E90FF'}} />
+                  : item.chatIcon
+                  ? <img src="/icons/chat-icon-192.png" style={{width:20,height:20,borderRadius:'50%',objectFit:'cover'}} />
+                  : <Icon size={20} />}
                 {sidebarOpen && <span>{item.label}</span>}
               </Link>
             );
@@ -324,12 +357,7 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {identificationStatus ? (
-        <IdentificationModal
-          status={identificationStatus}
-          onComplete={() => setIdentificationStatus(null)}
-        />
-      ) : onboardingState.show && onboardingState.tipo ? (
+      {onboardingState.show && onboardingState.tipo ? (
         <OnboardingModal
           tipo={onboardingState.tipo}
           onComplete={() => setOnboardingState({ show: false, tipo: null })}

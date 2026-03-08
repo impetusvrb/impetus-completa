@@ -7,7 +7,6 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
-const ai = require('./ai');
 
 let impetusPolicyCache = null;
 let impetusPolicyLoadError = null;
@@ -38,6 +37,7 @@ function getImpetusPolicy() {
  * Sem pgvector ou em caso de erro: retorna [] silenciosamente para não quebrar o chat
  */
 async function searchCompanyManuals(companyId, queryText, limit = 8) {
+  const ai = require('./ai');
   try {
     const emb = await ai.embedText(queryText);
     if (!emb) return [];

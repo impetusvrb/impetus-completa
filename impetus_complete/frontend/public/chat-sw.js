@@ -1,35 +1,17 @@
-/* IMPETUS Chat - Service Worker para PWA */
-const CACHE_NAME = 'impetus-chat-v1';
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(['/chat', '/']);
-    }).then(() => self.skipWaiting())
-  );
+const CACHE = 'impetus-chat-v1';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { self.clients.claim(); });
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io')) return;
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  let d = {}; try { d = e.data.json(); } catch {}
+  e.waitUntil(self.registration.showNotification(d.title || 'IMPETUS Chat', { body: d.body || 'Nova mensagem', icon: '/icons/chat-icon-192.png', data: { url: '/chat' } }));
 });
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate' && event.request.url.includes('/chat')) {
-    event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match('/chat').then((r) => r || caches.match('/'))
-      )
-    );
-  }
-});
-
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'IMPETUS Chat';
-  const options = { body: data.body || 'Nova mensagem' };
-  event.waitUntil(self.registration.showNotification(title, options));
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/chat'));
 });

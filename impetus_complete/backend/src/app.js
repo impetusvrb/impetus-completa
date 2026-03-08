@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 /**
  * IMPETUS COMUNICA IA - BACKEND APPLICATION
  * Sistema Integrado de Comunicação Inteligente, Gestão Operacional e IA Industrial
@@ -12,7 +13,6 @@ const bodyParser = require('body-parser');
 
 // Rotas existentes
 const webhook = require('./routes/webhook');
-const zapiWebhook = require('./routes/zapi_webhook');
 const manuals = require('./routes/manuals');
 const tasks = require('./routes/tasks');
 const proacao = require('./routes/proacao');
@@ -24,6 +24,7 @@ const tpm = require('./routes/tpm');
 
 // Novas rotas
 const auth = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
 const lgpd = require('./routes/lgpd');
 const communications = require('./routes/communications');
 const internalChat = require('./routes/internalChat');
@@ -37,7 +38,7 @@ const adminSettings = require('./routes/admin/settings');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
 const onboarding = require('./routes/onboarding');
-const userIdentification = require('./routes/userIdentification');
+// const userIdentification = require('./routes/userIdentification'); // DESATIVADO
 const internalSales = require('./routes/internal/sales');
 const subscription = require('./routes/subscription');
 
@@ -91,7 +92,7 @@ const companyLimiter = rateLimit({
 // Rate limiting global da API (proteção DDoS)
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 200, // 200 req/min por IP
+  max: 1000, // 200 req/min por IP
   message: { ok: false, error: 'Muitas requisições. Aguarde um momento.' },
   skip: req => req.path === '/health' || req.path === '/'
 });
@@ -149,6 +150,7 @@ app.use('/api/auth/register', registerLimiter);
 app.use('/api', apiLimiter);
 app.use('/api', requireValidLicense);
 app.use('/api/auth', auth);
+app.use('/api/chat', requireAuth, chatRoutes);
 
 // Empresas: POST bloqueado (cadastro controlado via fluxo de ativação comercial)
 app.use('/api/companies', companyLimiter);
@@ -160,11 +162,10 @@ app.post('/api/companies', (req, res) => {
   });
 });
 
-// Webhooks (Z-API, Asaas, Genérico)
-app.use('/api/webhook/zapi', zapiWebhook);
+// Webhooks (Asaas, Genérico) - Z-API removido, substituído por App Impetus
 app.use('/api/webhook', webhook);
 app.use('/api/webhooks/asaas', require('./routes/webhooks/asaas'));
-const zapiRoutes = require('./routes/zapi');
+const appImpetusRoutes = require('./routes/app_impetus');
 
 // Rotas protegidas (autenticação + empresa ativa)
 const protected = [requireAuth, requireCompanyActive];
@@ -183,21 +184,11 @@ app.get('/api/onboarding/status', requireAuth, async (req, res) => {
 });
 app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
 // Status de identificação: apenas requireAuth (funciona sem company_id / primeiro acesso)
-app.get('/api/user-identification/status', requireAuth, async (req, res) => {
-  try {
-    const userIdentificationService = require('./services/userIdentificationService');
-    const status = await userIdentificationService.getIdentificationStatus(req.user);
-    res.json({ ok: true, ...status });
-  } catch (err) {
-    console.error('[IDENTIFICATION_STATUS]', err);
-    res.json({ ok: true, status: 'needs_activation', reason: 'Erro ao verificar' });
-  }
-});
-app.use('/api/user-identification', userIdentification);
+// rota user-identification/status desativada
+// app.use('/api/user-identification', userIdentification); // DESATIVADO
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
-app.use('/api/zapi', requireAuth, requireCompanyActive, zapiRoutes);
-app.use('/api/whatsapp', requireAuth, requireCompanyActive, require('./routes/whatsapp'));
+app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);
 
 app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res) => {
   try {

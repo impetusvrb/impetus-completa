@@ -8,7 +8,6 @@ import MetricCard from '../../components/MetricCard';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import KPIRequest from './components/KPIRequest';
-import CommunicationPanel from './components/CommunicationPanel';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
 import { MessageSquare, Brain, TrendingUp, Gauge } from 'lucide-react';
 import { dashboard } from '../../services/api';
@@ -139,7 +138,6 @@ export default function DashboardGerencial() {
 
           {sections.communication_panel && (
             <div className="dashboard-gerencial__comm">
-              <CommunicationPanel />
             </div>
           )}
 

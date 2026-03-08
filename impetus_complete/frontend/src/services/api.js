@@ -122,19 +122,11 @@ export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
 
-export const zapi = {
-  connect: (manual = false, manualData = null) =>
-    api.post('/zapi/connect', manual && manualData ? { manual: true, ...manualData } : {}),
-  getStatus: () => api.get('/zapi/status'),
-  getQRCode: () => api.get('/zapi/qr-code')
-};
-
-export const whatsapp = {
-  connect: (manual = false, manualData = null) =>
-    api.post('/whatsapp/connect', manual && manualData ? { manual: true, ...manualData } : {}),
-  getStatus: () => api.get('/whatsapp/status'),
-  getQRCode: () => api.get('/whatsapp/qr-code'),
-  getStats: () => api.get('/whatsapp/stats')
+// App Impetus - Canal de comunicação unificado (substitui Z-API/WhatsApp)
+export const appImpetus = {
+  getStatus: () => api.get('/app-impetus/status'),
+  getOutbox: (since) => api.get('/app-impetus/outbox', { params: since ? { since } : {} }),
+  sendMessage: (data) => api.post('/app-impetus/messages', data)
 };
 
 // ============================================================================
@@ -142,6 +134,9 @@ export const whatsapp = {
 // ============================================================================
 
 export const auth = {
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  verifyPassword: (password) => api.post('/auth/verify-password', { password }),
+  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
   login: (email, password) => 
     api.post('/auth/login', { email, password }),
   
@@ -163,6 +158,15 @@ export const auth = {
 // ============================================================================
 
 export const dashboard = {
+  /** Dashboard inteligente - payload completo personalizado por perfil */
+  getMe: () => api.get('/dashboard/me'),
+  getConfig: () => api.get('/dashboard/config'),
+  savePreferences: (data) => api.post('/dashboard/preferences', data),
+  saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
+  trackInteraction: (event_type, entity_type, entity_id, context) =>
+    api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
+  getWidgets: () => api.get('/dashboard/widgets'),
+
   getSummary: () => 
     api.get('/dashboard/summary'),
   
@@ -192,6 +196,8 @@ export const dashboard = {
 
   chat: (message, history = []) => 
     api.post('/dashboard/chat', { message, history }),
+  chatWithHeader: (message, history = [], headers = {}) =>
+    api.post('/dashboard/chat', { message, history }, { headers }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),

@@ -22,8 +22,9 @@
 }
 
 .dashboard-inteligente__block {
-  background: var(--bg-secondary, #fff);
-  border: 1px solid var(--gray-200);
+  background: linear-gradient(145deg, #162A3A, #1B3447);
+  border: none;
+  box-shadow: 0 0 0 1px #243848;
   border-radius: var(--radius-lg);
   padding: 20px;
 }
@@ -62,8 +63,8 @@
 .dashboard-inteligente__empty {
   padding: 32px;
   text-align: center;
-  background: var(--gray-50);
-  border: 1px dashed var(--gray-300);
+  background: #0F1E2E;
+  border: 1px dashed #243848;
   border-radius: var(--radius-lg);
-  color: var(--gray-600);
+  color: #9FB3C8;
 }

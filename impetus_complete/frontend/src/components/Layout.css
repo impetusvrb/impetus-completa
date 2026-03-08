@@ -15,8 +15,8 @@
 
 .sidebar {
   width: 280px;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--gray-200);
+  background: #0B1722;
+  border-right: 1px solid #243848;
   display: flex;
   flex-direction: column;
   transition: width 300ms ease-in-out;
@@ -29,8 +29,8 @@
 }
 
 .sidebar-header {
-  padding: 24px 20px;
-  border-bottom: 1px solid var(--gray-200);
+  padding: 16px 12px;
+  border-bottom: 1px solid #243848;
 }
 
 .logo {
@@ -42,7 +42,7 @@
 /* Sidebar aberta: logo completa */
 .logo.logo-open .sidebar-logo-img {
   width: 100%;
-  max-width: 210px;
+  max-width: 240px;
   height: auto;
   object-fit: contain;
   border-radius: 8px;
@@ -63,6 +63,9 @@
 /* Navegação */
 .sidebar-nav {
   flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
   padding: 20px 12px;
   display: flex;
   flex-direction: column;
@@ -145,8 +148,8 @@
 
 /* Header */
 .header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--gray-200);
+  background: #0B1722;
+  border-bottom: 1px solid #1E90FF33;
   padding: 16px 32px;
   display: flex;
   align-items: center;
@@ -163,7 +166,7 @@
 .greeting {
   font-size: 20px;
   font-weight: 400;
-  color: var(--gray-700);
+  color: #9FB3C8;
 }
 
 .greeting strong {
@@ -188,8 +191,8 @@
 }
 
 .header-icon-btn.active {
-  background: var(--gray-200);
-  color: var(--primary-blue);
+  background: #1A3A5C;
+  color: #3AA0FF;
 }
 
 .header-dropdown {
@@ -213,7 +216,7 @@
   letter-spacing: 0.05em;
   margin: 0 16px 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid #243848;
 }
 
 .header-dropdown__empty {

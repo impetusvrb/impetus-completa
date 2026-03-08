@@ -23,8 +23,131 @@ const executiveMode = require('../services/executiveMode');
 const userContext = require('../services/userContext');
 const dashboardFilter = require('../services/dashboardFilter');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
-const userIdentification = require('../services/userIdentificationService');
 const chatUserContext = require('../services/chatUserContext');
+const intelligentDashboard = require('../services/intelligentDashboardService');
+const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+
+// ============================================================================
+// DASHBOARD INTELIGENTE - Perfil personalizado por role + área + preferências
+// ============================================================================
+
+/**
+ * GET /api/dashboard/me
+ * Payload completo do dashboard personalizado (perfil + KPIs + insights + preferências)
+ */
+router.get('/me', requireAuth, requireHierarchyScope, async (req, res) => {
+  try {
+    const payload = await intelligentDashboard.buildDashboardPayload(req.user);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_ME_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao montar dashboard' });
+  }
+});
+
+/**
+ * GET /api/dashboard/config
+ * Configuração do perfil (cards, widgets, módulos) sem dados dinâmicos
+ */
+router.get('/config', requireAuth, (req, res) => {
+  try {
+    const config = dashboardProfileResolver.getDashboardConfigForUser(req.user);
+    res.json({
+      ok: true,
+      profile_code: config.profile_code,
+      profile_config: config.profile_config,
+      functional_area: config.functional_area
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_CONFIG_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar configuração' });
+  }
+});
+
+/**
+ * POST /api/dashboard/preferences
+ * Salva preferências do usuário (ordem de cards, período, layout)
+ */
+router.post('/preferences', requireAuth, async (req, res) => {
+  try {
+    const { cards_order, favorite_kpis, default_period, default_sector, compact_mode, pinned_widgets, sections_priority } = req.body;
+    const ok = await intelligentDashboard.savePreferences(req.user.id, {
+      cards_order,
+      favorite_kpis,
+      default_period,
+      default_sector,
+      compact_mode,
+      pinned_widgets,
+      sections_priority
+    });
+    if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar preferências' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_PREFERENCES_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao salvar preferências' });
+  }
+});
+
+/**
+ * POST /api/dashboard/favorite-kpis
+ * Atualiza KPIs favoritos do usuário
+ */
+router.post('/favorite-kpis', requireAuth, async (req, res) => {
+  try {
+    const { favorite_kpis } = req.body;
+    const list = Array.isArray(favorite_kpis) ? favorite_kpis : [];
+    const ok = await intelligentDashboard.savePreferences(req.user.id, { favorite_kpis: list });
+    if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar KPIs favoritos' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_FAVORITE_KPIS_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao salvar KPIs favoritos' });
+  }
+});
+
+/**
+ * POST /api/dashboard/track-interaction
+ * Registra interação para personalização por comportamento
+ */
+router.post('/track-interaction', requireAuth, async (req, res) => {
+  try {
+    const { event_type, entity_type, entity_id, context } = req.body;
+    if (!event_type || typeof event_type !== 'string') {
+      return res.status(400).json({ ok: false, error: 'event_type obrigatório' });
+    }
+    await intelligentDashboard.trackInteraction(
+      req.user.id,
+      req.user.company_id,
+      event_type,
+      entity_type,
+      entity_id,
+      context || {}
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_TRACK_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao registrar interação' });
+  }
+});
+
+/**
+ * GET /api/dashboard/widgets
+ * Lista widgets disponíveis para o perfil do usuário
+ */
+router.get('/widgets', requireAuth, (req, res) => {
+  try {
+    const config = dashboardProfileResolver.getDashboardConfigForUser(req.user);
+    const widgets = config.profile_config?.widgets || [];
+    res.json({ ok: true, widgets });
+  } catch (err) {
+    console.error('[DASHBOARD_WIDGETS_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar widgets' });
+  }
+});
+
+// ============================================================================
+// ROTAS LEGADAS (mantidas para compatibilidade)
+// ============================================================================
 
 /**
  * GET /api/dashboard/user-context
@@ -146,7 +269,7 @@ router.post('/executive-query', requireAuth, async (req, res) => {
     if (!userResult.rows[0]?.executive_verified) {
       return res.status(403).json({
         ok: false,
-        error: 'Verificação executiva pendente. Envie o certificado IPC via WhatsApp para liberar acesso.'
+        error: 'Verificação executiva pendente. Envie o certificado IPC pelo Chat Interno do App Impetus para liberar acesso.'
       });
     }
 
@@ -507,7 +630,7 @@ router.get('/recent-interactions', requireAuth, requireHierarchyScope, async (re
             c.source,
             c.text_content,
             c.created_at,
-            COALESCE(u.name, c.sender_name, c.sender_phone) as sender_name,
+            u.name as sender_name,
             u.avatar_url
           FROM communications c
           LEFT JOIN users u ON c.sender_id = u.id
@@ -625,26 +748,38 @@ router.post('/chat',
       });
     }
 
-    // Verificação de identificação: bloqueia chat até ativação/verificação diária
-    const identificationStatus = await userIdentification.getIdentificationStatus(req.user);
-    if (identificationStatus.status !== 'verified') {
-      return res.status(403).json({
-        ok: false,
-        error: 'Identificação pendente. Complete a ativação ou verificação diária para acessar o chat.',
-        code: 'USER_IDENTIFICATION_REQUIRED',
-        identificationStatus
-      });
-    }
+    // Verificação de identificação desativada (sistema de onboarding próprio ativo)
 
     let reply = '';
     try {
       const { message, history = [] } = req.body;
+    // Verificação de dados sigilosos
+    const sensitivePatterns = [
+      /senha/i, /password/i, /credencial/i,
+      /dados pessoais/i, /cpf/i, /rg/i, /salario/i, /salário/i,
+      /folha de pagamento/i, /financeiro confidencial/i, /contrato confidencial/i,
+      /dados bancários/i, /conta bancária/i, /chave pix/i,
+      /token/i, /api.?key/i, /secret/i
+    ];
+    const isSensitive = sensitivePatterns.some(p => p.test(message));
+    if (isSensitive) {
+      const passwordVerified = req.headers['x-password-verified'] === 'true';
+      if (!passwordVerified) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Conteúdo sigiloso detectado.',
+          code: 'SENSITIVE_CONTENT',
+          requirePasswordVerification: true
+        });
+      }
+    }
+
       if (!message || typeof message !== 'string' || !message.trim()) {
         return res.status(400).json({ ok: false, error: 'Mensagem obrigatória' });
       }
       const companyId = req.user.company_id;
       const chatCtx = await chatUserContext.buildChatUserContext(req.user);
-      const { userName, identityBlock, memoriaBlock, communicationsBlock } = chatCtx;
+      const { userName, identityBlock, memoriaBlock } = chatCtx;
 
       let docContext = '';
       let manualsBlock = '(Nenhum trecho relevante)';
@@ -701,7 +836,6 @@ router.post('/chat',
 
 ${identityBlock}
 ${memoriaBlock}
-${communicationsBlock || ''}
 
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
 ${COMMUNICATION_GUIDELINES}

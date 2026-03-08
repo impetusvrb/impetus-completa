@@ -19,8 +19,6 @@ import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
 import KPIRequest from './components/KPIRequest';
-import CommunicationPanel from './components/CommunicationPanel';
-import DashboardChatWidget from '../../components/DashboardChatWidget';
 import './DashboardInteligente.css';
 
 export default function DashboardInteligente() {
@@ -103,85 +101,75 @@ export default function DashboardInteligente() {
               )}
             </div>
           )}
-          <div className="dashboard-inteligente__metrics">
-            {kpis.length > 0 ? (
-              kpis.map((k) => {
-                const Icon = KPI_ICONS[k.icon_key || k.icon] || TrendingUp;
-                return (
-                  <MetricCard
-                    key={k.id}
-                    icon={Icon}
-                    title={k.title}
-                    value={typeof k.value === 'number' ? k.value : k.value}
-                    growth={k.growth}
-                    color={k.color || 'blue'}
-                    onClick={k.route ? () => navigate(k.route) : undefined}
-                  />
-                );
-              })
-            ) : kpisRes && kpis.length === 0 ? (
-              <p className="block-desc">Nenhum indicador disponível para seu perfil.</p>
-            ) : (
-              <p className="block-desc">Carregando indicadores personalizados...</p>
-            )}
-          </div>
-        </section>
-
-        {/* Bloco 3: Alertas */}
-        {sections.plc_alerts && (
-          <section className="dashboard-inteligente__block block-alertas">
-            <h2><AlertTriangle size={20} /> Alertas</h2>
-            <PLCAlertsPanel />
-          </section>
-        )}
-
-        {/* Bloco 4: Tendências */}
-        {sections.trend_chart && (
-          <section className="dashboard-inteligente__block block-tendencias">
-            <h2><TrendingUp size={20} /> Tendências</h2>
-            <div className="block-chart">
-              <TrendChart data={trendData} />
+            <div className="dashboard-inteligente__metrics">
+              {kpis.length > 0 ? (
+                kpis.map((k) => {
+                  const Icon = KPI_ICONS[k.icon_key || k.icon] || TrendingUp;
+                  return (
+                    <MetricCard
+                      key={k.id}
+                      icon={Icon}
+                      title={k.title}
+                      value={typeof k.value === 'number' ? k.value : k.value}
+                      growth={k.growth}
+                      color={k.color || 'blue'}
+                      onClick={k.route ? () => navigate(k.route) : undefined}
+                    />
+                  );
+                })
+              ) : kpisRes && kpis.length === 0 ? (
+                <p className="block-desc">Nenhum indicador disponível para seu perfil.</p>
+              ) : (
+                <p className="block-desc">Carregando indicadores personalizados...</p>
+              )}
             </div>
-            {sections.points_chart && (
-              <div className="block-chart-sm">
-                <MonitoredPointsChart />
+          </section>
+
+          {/* Bloco 3: Alertas */}
+          {sections.plc_alerts && (
+            <section className="dashboard-inteligente__block block-alertas">
+              <h2><AlertTriangle size={20} /> Alertas</h2>
+              <PLCAlertsPanel />
+            </section>
+          )}
+
+          {/* Bloco 4: Tendências */}
+          {sections.trend_chart && (
+            <section className="dashboard-inteligente__block block-tendencias">
+              <h2><TrendingUp size={20} /> Tendências</h2>
+              <div className="block-chart">
+                <TrendChart data={trendData} />
               </div>
-            )}
-          </section>
-        )}
+              {sections.points_chart && (
+                <div className="block-chart-sm">
+                  <MonitoredPointsChart />
+                </div>
+              )}
+            </section>
+          )}
 
-        {/* Bloco 5: Interações */}
-        {(sections.recent_interactions || sections.communication_panel) && (
-          <section className="dashboard-inteligente__block block-interacoes">
-            <h2><MessageSquare size={20} /> Interações</h2>
-            {sections.communication_panel && (userContext?.hierarchy_level ?? 5) <= 2 && (
-              <CommunicationPanel />
-            )}
-            {sections.recent_interactions && (
+          {/* Bloco 5: Interações */}
+          {sections.recent_interactions && (
+            <section className="dashboard-inteligente__block block-interacoes">
+              <h2><MessageSquare size={20} /> Interações</h2>
               <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app/operacional')} />
-            )}
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* Bloco 6: Insights IA */}
-        {sections.insights_list && (
-          <section className="dashboard-inteligente__block block-insights">
-            <h2><Brain size={20} /> Insights IA</h2>
-            <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
-          </section>
-        )}
+          {/* Bloco 6: Insights IA */}
+          {sections.insights_list && (
+            <section className="dashboard-inteligente__block block-insights">
+              <h2><Brain size={20} /> Insights IA</h2>
+              <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
+            </section>
+          )}
 
-        {/* Bloco 7: Chat com Impetus - disponível em todos os dashboards */}
-        <section className="dashboard-inteligente__block block-chat">
-          <DashboardChatWidget compact={true} greetingSummary={false} />
-        </section>
-
-        {!(sections.operational_interactions || sections.ai_insights || sections.plc_alerts || sections.trend_chart || sections.recent_interactions || sections.insights_list) && (
-          <div className="dashboard-inteligente__empty">
-            <p>Nenhuma informação configurada. Entre em contato com o Diretor.</p>
-          </div>
-        )}
-      </div>
-    </Layout>
-  );
-}
+          {!(sections.operational_interactions || sections.ai_insights || sections.plc_alerts || sections.trend_chart || sections.recent_interactions || sections.insights_list) && (
+            <div className="dashboard-inteligente__empty">
+              <p>Nenhuma informação configurada. Entre em contato com o Diretor.</p>
+            </div>
+          )}
+        </div>
+      </Layout>
+    );
+  }

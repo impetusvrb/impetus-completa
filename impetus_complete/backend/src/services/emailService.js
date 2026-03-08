@@ -135,8 +135,58 @@ async function sendOverdueNotificationEmail(opts) {
   return false;
 }
 
+
+async function sendPasswordResetEmail({ to, name, resetUrl }) {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Redefinir Senha - IMPETUS</title></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2563eb;">Redefinição de Senha</h2>
+    <p>Olá, ${name || 'usuário'}!</p>
+    <p>Recebemos uma solicitação para redefinir sua senha. Clique no botão abaixo:</p>
+    <p style="margin: 30px 0;">
+      <a href="${resetUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px;">Redefinir minha senha</a>
+    </p>
+    <p style="color: #dc2626;">⏱ Este link expira em 1 hora.</p>
+    <p>Se você não solicitou isso, ignore este email — sua senha permanece a mesma.</p>
+    <p style="font-size: 0.85em; color: #64748b; margin-top: 20px;">Ou copie este link: ${resetUrl}</p>
+  </div>
+</body>
+</html>`;
+
+  const text = `Redefinição de senha\n\nAcesse: ${resetUrl}\n\nEste link expira em 1 hora.`;
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject: '[IMPETUS] Redefinição de senha',
+        text,
+        html
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error('[RESET_EMAIL_ERROR]', err.message);
+      return { sent: false };
+    }
+  }
+  console.log('[RESET_EMAIL_NO_SMTP] Link de reset:', resetUrl);
+  return { sent: false, resetUrl };
+}
+
 module.exports = {
   generateSecurePassword,
   sendActivationEmail,
-  sendOverdueNotificationEmail
+  sendOverdueNotificationEmail,
+  sendPasswordResetEmail
 };

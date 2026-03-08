@@ -4,7 +4,7 @@
  * Garante consentimento, rate limit, horário comercial e registro em ai_outbound_audit.
  */
 const db = require('../db');
-const zapi = require('./zapi');
+const appImpetusService = require('./appImpetusService');
 
 const AI_PROACTIVE_CONSENT_REQUIRED = process.env.AI_PROACTIVE_CONSENT_REQUIRED !== 'false';
 const AI_PROACTIVE_BUSINESS_HOURS_ONLY = process.env.AI_PROACTIVE_BUSINESS_HOURS_ONLY !== 'false';
@@ -105,20 +105,20 @@ async function sendProactiveMessage(params) {
   const auditId = ins.rows[0]?.id;
 
   try {
-    // 2. Enviar via Z-API
-    const result = await zapi.sendTextMessage(companyId, recipientPhone, message);
+    // 2. Enviar via App Impetus (outbox)
+    const result = await appImpetusService.sendMessage(companyId, recipientPhone, message, { originatedFrom: 'proactive' });
 
     // 3. Registrar em communications para rastreabilidade bidirecional
-    await zapi.logOutboundCommunication(companyId, recipientPhone, message, {});
+    await appImpetusService.logOutboundCommunication(companyId, recipientPhone, message, {});
 
     // 4. Atualizar auditoria com sucesso
     await db.query(`
       UPDATE ai_outbound_audit
       SET success = true, sent_at = now(), zapi_message_id = $2
       WHERE id = $1
-    `, [auditId, result?.messageId]);
+    `, [auditId, result?.id]);
 
-    return { ok: true, auditId, messageId: result?.messageId };
+    return { ok: true, auditId, messageId: result?.id };
   } catch (err) {
     // 5. Atualizar auditoria com falha
     await db.query(`

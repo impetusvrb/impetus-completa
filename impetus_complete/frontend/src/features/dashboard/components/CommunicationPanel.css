@@ -1,5 +1,5 @@
 .comm-panel {
-  background: var(--bg-primary);
+  background: #0F1E2E;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -27,7 +27,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: var(--bg-tertiary);
+  background: #1B3447;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-size: 13px;
@@ -37,12 +37,12 @@
 }
 
 .comm-panel__destino:hover {
-  background: var(--bg-hover);
+  background: #1E3A50;
   color: var(--color-primary);
 }
 
 .comm-panel__destino--ativo {
-  background: var(--bg-active);
+  background: #1A3A5C;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
