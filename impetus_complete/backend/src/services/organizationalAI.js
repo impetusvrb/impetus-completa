@@ -6,7 +6,7 @@
 
 const db = require('../db');
 const ai = require('./ai');
-const zapi = require('./zapi');
+const messagingAdapter = require('./messagingAdapter');
 const communicationEscalation = require('./communicationEscalation');
 const userContext = require('./userContext');
 
@@ -234,7 +234,11 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
   const sent = [];
   for (const phone of [...new Set(phones)].slice(0, 10)) {
     try {
+<<<<<<< Updated upstream
       await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
+=======
+      await messagingAdapter.sendMessage(companyId, phone, message);
+>>>>>>> Stashed changes
       sent.push(phone);
     } catch (e) {
       console.warn('[ORG_AI] notify:', phone, e.message);

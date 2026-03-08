@@ -366,7 +366,7 @@ Links como `/api/diagnostic/report/:id` funcionam porque o frontend faz requisi�
 | Script | Comando | Descrição |
 |--------|---------|-----------|
 | Backend dev | `npm run dev` | Nodemon + dotenv |
-| Backend prod | `npm start` | node src/index.js |
+| Backend prod | `npm start` | node src/server.js |
 | Health check | `npm run health-check` | Verifica saúde |
 | Manutenção | `npm run maintenance` | Limpeza de sessões, logs, VACUUM |
 | Manutenção dry | `npm run maintenance:dry` | Simulação |

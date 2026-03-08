@@ -63,7 +63,7 @@ OPENAI_API_KEY=sk-...
 cd backend
 npm install
 # Configurar .env com DB_* corretos
-node -r dotenv/config src/index.js
+node -r dotenv/config src/server.js
 ```
 
 Se aparecer `Backend listening on 4000`, o servidor subiu. Teste:

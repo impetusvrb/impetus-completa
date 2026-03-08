@@ -40,8 +40,14 @@ const MIGRATIONS = [
   { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' },
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
+<<<<<<< Updated upstream
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
   { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
+=======
+  { name: 'Chat Interno entre colaboradores (mensagens, conversas)', file: 'internal_chat_migration.sql' },
+  { name: 'Módulo Chat completo (conversations, participants, messages)', file: 'chat_module_schema.sql', dir: 'chat-module' },
+  { name: 'App Communications (media_transcription, app_notifications)', file: 'app_communications_migration.sql' }
+>>>>>>> Stashed changes
 ];
 
 async function run() {

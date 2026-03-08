@@ -37,7 +37,12 @@ const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
 const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
+<<<<<<< Updated upstream
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+=======
+const ChatPage = lazy(() => import('./chat-module/ChatPage'));
+const AppMobile = lazy(() => import('./pages/AppMobile'));
+>>>>>>> Stashed changes
 
 function needSetup() {
   try {
@@ -191,6 +196,11 @@ export default function App() {
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
 
+<<<<<<< Updated upstream
+=======
+        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+        <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
+>>>>>>> Stashed changes
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
         <Route path="/404" element={<Error404 />} />

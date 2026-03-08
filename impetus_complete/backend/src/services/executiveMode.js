@@ -8,7 +8,11 @@ const db = require('../db');
 const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
+<<<<<<< Updated upstream
 const appImpetusService = require('./appImpetusService');
+=======
+const messagingAdapter = require('./messagingAdapter');
+>>>>>>> Stashed changes
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
 const REVALIDATION_DAYS = 90; // Revalidação periódica
@@ -367,7 +371,11 @@ async function sendCEOResponse(companyId, phone, message) {
   const normalized = normalizePhone(phone);
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
+<<<<<<< Updated upstream
   await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+=======
+  await messagingAdapter.sendMessage(companyId, toSend, message);
+>>>>>>> Stashed changes
 }
 
 module.exports = {

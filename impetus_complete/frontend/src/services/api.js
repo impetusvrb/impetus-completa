@@ -28,6 +28,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -218,6 +221,14 @@ export const dashboard = {
 // ============================================================================
 // COMUNICAÇÕES
 // ============================================================================
+
+export const appCommunications = {
+  send: (formData) => api.post('/app-communications', formData),
+  list: (limit = 20, offset = 0) =>
+    api.get(`/app-communications?limit=${limit}&offset=${offset}`),
+  getNotifications: (limit = 15) =>
+    api.get(`/app-communications/notifications?limit=${limit}`)
+};
 
 export const communications = {
   list: (params = {}) => 

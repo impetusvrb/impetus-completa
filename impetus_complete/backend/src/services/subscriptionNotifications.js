@@ -5,7 +5,7 @@
  */
 
 const db = require('../db');
-const zapi = require('./zapi');
+const messagingAdapter = require('./messagingAdapter');
 const { sendOverdueNotificationEmail } = require('./emailService');
 const { logAction } = require('../middleware/audit');
 
@@ -71,7 +71,11 @@ async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
 
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
+<<<<<<< Updated upstream
     await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
+=======
+    await messagingAdapter.sendMessage(companyId, toSend, message);
+>>>>>>> Stashed changes
     return true;
   } catch (err) {
     console.error('[SUBSCRIPTION_DAY5_WHATSAPP]', err.message);

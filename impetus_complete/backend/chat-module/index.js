@@ -20,6 +20,12 @@ let ioInstance = null;
 
 function mountSocket(io) {
   ioInstance = io;
+  try {
+    const unifiedMessaging = require('../src/services/unifiedMessagingService');
+    unifiedMessaging.setSocketIo(io);
+  } catch (e) {
+    console.warn('[CHAT_MODULE] unifiedMessaging.setSocketIo:', e?.message);
+  }
   return chatSocket.setupChatSocket(io);
 }
 

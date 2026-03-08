@@ -9,11 +9,12 @@ Sugestões para evitar travamentos e reduzir necessidade de intervenção manual
 ### 1.1 Graceful Shutdown ✅ Implementado
 **Problema:** Ao reiniciar (deploy, crash), conexões do pool podem ficar abertas e requisições em andamento são interrompidas de forma abrupta.
 
-**Implementado em** `backend/src/index.js`:
+**Implementado em** `backend/src/server.js`:
 
 ```javascript
-// backend/src/index.js
-const server = app.listen(PORT, () => console.log(`Backend listening on ${PORT}`));
+// backend/src/server.js
+const server = http.createServer(app);
+server.listen(PORT, () => console.log(`Backend listening on ${PORT}`));
 
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
@@ -52,7 +53,7 @@ function pruneCache() {
 ### 1.4 Handlers para erros não capturados ✅ Implementado
 **Problema:** `unhandledRejection` e `uncaughtException` podem derrubar ou travar o processo sem log adequado.
 
-**Implementado em** `backend/src/index.js`:
+**Implementado em** `backend/src/server.js`:
 - `unhandledRejection`: loga e mantém o servidor ativo (evita crash)
 - `uncaughtException`: loga e executa graceful shutdown
 
