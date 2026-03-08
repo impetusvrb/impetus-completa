@@ -40,7 +40,8 @@ const MIGRATIONS = [
   { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' },
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
-  { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' }
+  { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
+  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
 ];
 
 async function run() {

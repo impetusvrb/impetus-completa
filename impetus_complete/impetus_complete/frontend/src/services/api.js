@@ -158,6 +158,15 @@ export const auth = {
 // ============================================================================
 
 export const dashboard = {
+  /** Dashboard inteligente - payload completo personalizado por perfil */
+  getMe: () => api.get('/dashboard/me'),
+  getConfig: () => api.get('/dashboard/config'),
+  savePreferences: (data) => api.post('/dashboard/preferences', data),
+  saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
+  trackInteraction: (event_type, entity_type, entity_id, context) =>
+    api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
+  getWidgets: () => api.get('/dashboard/widgets'),
+
   getSummary: () => 
     api.get('/dashboard/summary'),
   

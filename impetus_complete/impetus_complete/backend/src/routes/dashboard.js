@@ -23,8 +23,131 @@ const executiveMode = require('../services/executiveMode');
 const userContext = require('../services/userContext');
 const dashboardFilter = require('../services/dashboardFilter');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
-const userIdentification = require('../services/userIdentificationService');
 const chatUserContext = require('../services/chatUserContext');
+const intelligentDashboard = require('../services/intelligentDashboardService');
+const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+
+// ============================================================================
+// DASHBOARD INTELIGENTE - Perfil personalizado por role + área + preferências
+// ============================================================================
+
+/**
+ * GET /api/dashboard/me
+ * Payload completo do dashboard personalizado (perfil + KPIs + insights + preferências)
+ */
+router.get('/me', requireAuth, requireHierarchyScope, async (req, res) => {
+  try {
+    const payload = await intelligentDashboard.buildDashboardPayload(req.user);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_ME_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao montar dashboard' });
+  }
+});
+
+/**
+ * GET /api/dashboard/config
+ * Configuração do perfil (cards, widgets, módulos) sem dados dinâmicos
+ */
+router.get('/config', requireAuth, (req, res) => {
+  try {
+    const config = dashboardProfileResolver.getDashboardConfigForUser(req.user);
+    res.json({
+      ok: true,
+      profile_code: config.profile_code,
+      profile_config: config.profile_config,
+      functional_area: config.functional_area
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_CONFIG_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar configuração' });
+  }
+});
+
+/**
+ * POST /api/dashboard/preferences
+ * Salva preferências do usuário (ordem de cards, período, layout)
+ */
+router.post('/preferences', requireAuth, async (req, res) => {
+  try {
+    const { cards_order, favorite_kpis, default_period, default_sector, compact_mode, pinned_widgets, sections_priority } = req.body;
+    const ok = await intelligentDashboard.savePreferences(req.user.id, {
+      cards_order,
+      favorite_kpis,
+      default_period,
+      default_sector,
+      compact_mode,
+      pinned_widgets,
+      sections_priority
+    });
+    if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar preferências' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_PREFERENCES_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao salvar preferências' });
+  }
+});
+
+/**
+ * POST /api/dashboard/favorite-kpis
+ * Atualiza KPIs favoritos do usuário
+ */
+router.post('/favorite-kpis', requireAuth, async (req, res) => {
+  try {
+    const { favorite_kpis } = req.body;
+    const list = Array.isArray(favorite_kpis) ? favorite_kpis : [];
+    const ok = await intelligentDashboard.savePreferences(req.user.id, { favorite_kpis: list });
+    if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar KPIs favoritos' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_FAVORITE_KPIS_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao salvar KPIs favoritos' });
+  }
+});
+
+/**
+ * POST /api/dashboard/track-interaction
+ * Registra interação para personalização por comportamento
+ */
+router.post('/track-interaction', requireAuth, async (req, res) => {
+  try {
+    const { event_type, entity_type, entity_id, context } = req.body;
+    if (!event_type || typeof event_type !== 'string') {
+      return res.status(400).json({ ok: false, error: 'event_type obrigatório' });
+    }
+    await intelligentDashboard.trackInteraction(
+      req.user.id,
+      req.user.company_id,
+      event_type,
+      entity_type,
+      entity_id,
+      context || {}
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_TRACK_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao registrar interação' });
+  }
+});
+
+/**
+ * GET /api/dashboard/widgets
+ * Lista widgets disponíveis para o perfil do usuário
+ */
+router.get('/widgets', requireAuth, (req, res) => {
+  try {
+    const config = dashboardProfileResolver.getDashboardConfigForUser(req.user);
+    const widgets = config.profile_config?.widgets || [];
+    res.json({ ok: true, widgets });
+  } catch (err) {
+    console.error('[DASHBOARD_WIDGETS_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar widgets' });
+  }
+});
+
+// ============================================================================
+// ROTAS LEGADAS (mantidas para compatibilidade)
+// ============================================================================
 
 /**
  * GET /api/dashboard/user-context
