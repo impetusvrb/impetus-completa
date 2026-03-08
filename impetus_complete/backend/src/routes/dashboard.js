@@ -269,7 +269,7 @@ router.post('/executive-query', requireAuth, async (req, res) => {
     if (!userResult.rows[0]?.executive_verified) {
       return res.status(403).json({
         ok: false,
-        error: 'Verificação executiva pendente. Envie o certificado IPC via WhatsApp para liberar acesso.'
+        error: 'Verificação executiva pendente. Envie o certificado IPC pelo Chat Interno do App Impetus para liberar acesso.'
       });
     }
 
