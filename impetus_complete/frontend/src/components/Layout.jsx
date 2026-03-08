@@ -100,12 +100,14 @@ export default function Layout({ children }) {
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
@@ -118,6 +120,7 @@ export default function Layout({ children }) {
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
@@ -128,6 +131,7 @@ export default function Layout({ children }) {
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
@@ -138,17 +142,20 @@ export default function Layout({ children }) {
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     colaborador: [
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
   };
@@ -201,6 +208,8 @@ export default function Layout({ children }) {
               >
                 {item.aiIcon
                   ? <img src="/ai-avatar.png" alt="IA" style={{width:22,height:22,borderRadius:'50%',objectFit:'cover',border:'1.5px solid #1E90FF'}} />
+                  : item.chatIcon
+                  ? <img src="/icons/chat-icon-192.png" style={{width:20,height:20,borderRadius:'50%',objectFit:'cover'}} />
                   : <Icon size={20} />}
                 {sidebarOpen && <span>{item.label}</span>}
               </Link>

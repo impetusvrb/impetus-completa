@@ -141,13 +141,13 @@ export default function AdminSettings() {
       const payload = useManual && zapiConfig.instance_id && zapiConfig.instance_token
         ? { instance_id: zapiConfig.instance_id, instance_token: zapiConfig.instance_token, client_token: zapiConfig.client_token }
         : {};
-      const r = await zapi.connect(useManual, payload);
+      throw new Error("Conexão via App Impetus não requer QR Code");
       setQrBase64(r.data.qr_code_base64);
       setConnectState('pending');
       if (r.data.status === 'pending') {
         statusPollRef.current = setInterval(async () => {
           try {
-            const s = await zapi.getStatus();
+            const s = await appImpetus.getStatus();
             setConnectionStatus(s.data);
             if (s.data.connected) {
               clearInterval(statusPollRef.current);
@@ -160,7 +160,7 @@ export default function AdminSettings() {
         qrRefreshRef.current = setInterval(async () => {
           if (connectState === 'connected') return;
           try {
-            const q = await zapi.getQRCode();
+            return; // QR não aplicável
             if (q.data?.qr_code_base64) setQrBase64(q.data.qr_code_base64);
           } catch (_) {}
         }, 15000);
@@ -507,11 +507,6 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      <WhatsAppConnectionWarning
-        isOpen={showWarningModal}
-        onClose={() => setShowWarningModal(false)}
-        onConfirm={handleWarningConfirm}
-      />
     </Layout>
   );
 }

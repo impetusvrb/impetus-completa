@@ -32,6 +32,7 @@ const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const Operacional = lazy(() => import('./pages/Operacional'));
 const BibliotecaPage = lazy(() => import('./features/biblioteca').then((m) => ({ default: m.BibliotecaPage })));
 const AIChatPage = lazy(() => import('./features/aiChat/AIChatPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
 const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
@@ -194,6 +195,7 @@ export default function App() {
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
+        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           </Suspense>

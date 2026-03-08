@@ -16,6 +16,8 @@ const { z } = require('zod');
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
 const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
+/** Área funcional para dashboard inteligente: production, maintenance, quality, etc. */
+const FUNCTIONAL_AREA_OPTIONS = ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'];
 
 const createUserSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
@@ -38,7 +40,8 @@ const createUserSchema = z.object({
     },
     z.number().int().min(0).max(5)
   ),
-  permissions: z.array(z.string()).optional()
+  permissions: z.array(z.string()).optional(),
+  functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional()
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -68,7 +71,9 @@ const updateUserSchema = z.object({
     z.number().int().min(0).max(5).optional()
   ),
   permissions: z.array(z.string()).optional(),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
+  functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
+  dashboard_profile: z.string().max(64).nullable().optional()
 });
 
 /**
@@ -137,6 +142,7 @@ router.get('/',
         SELECT 
           u.id, u.name, u.email, u.role, u.phone, u.whatsapp_number,
           u.avatar_url, u.hierarchy_level, u.area, u.job_title, u.department,
+          u.functional_area, u.dashboard_profile,
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
@@ -270,9 +276,9 @@ router.post('/',
         INSERT INTO users (
           company_id, name, email, password_hash, role,
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
-          hierarchy_level, permissions, active, executive_verified
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, created_at
+          hierarchy_level, permissions, active, executive_verified, functional_area
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -288,7 +294,8 @@ router.post('/',
         validatedData.whatsapp_number || null,
         validatedData.role === 'ceo' ? 0 : hierarchyLevel,
         JSON.stringify(validatedData.permissions || []),
-        false
+        false,
+        validatedData.functional_area || null
       ]);
 
       // Log de auditoria

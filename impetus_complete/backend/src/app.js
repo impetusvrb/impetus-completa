@@ -24,6 +24,7 @@ const tpm = require('./routes/tpm');
 
 // Novas rotas
 const auth = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
 const lgpd = require('./routes/lgpd');
 const communications = require('./routes/communications');
 const dashboard = require('./routes/dashboard');
@@ -90,7 +91,7 @@ const companyLimiter = rateLimit({
 // Rate limiting global da API (proteção DDoS)
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 200, // 200 req/min por IP
+  max: 1000, // 200 req/min por IP
   message: { ok: false, error: 'Muitas requisições. Aguarde um momento.' },
   skip: req => req.path === '/health' || req.path === '/'
 });
@@ -148,6 +149,7 @@ app.use('/api/auth/register', registerLimiter);
 app.use('/api', apiLimiter);
 app.use('/api', requireValidLicense);
 app.use('/api/auth', auth);
+app.use('/api/chat', requireAuth, chatRoutes);
 
 // Empresas: POST bloqueado (cadastro controlado via fluxo de ativação comercial)
 app.use('/api/companies', companyLimiter);
