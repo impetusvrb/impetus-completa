@@ -1,0 +1,12 @@
+LOGO IMPETUS - INSTRUÇÕES
+=========================
+
+Para exibir a logo Impetus no canto superior esquerdo do dashboard:
+
+1. Copie o arquivo IMG-20260210-WA0013.jpg para esta pasta
+2. Renomeie para: logo-impetus.jpg
+
+Ou execute (a partir da pasta frontend):
+  npm run copy-logo
+
+A logo aparece na sidebar do Layout (dashboard) e na página de login.

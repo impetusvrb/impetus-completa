@@ -1,0 +1,26 @@
+# Docker Compose - Produção
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Frontend em modo produção: build otimizado + nginx
+# Porta 80 para o frontend (nginx)
+# Backend na 4000 (interno) - acessível via proxy nginx em /api
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: /api
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
