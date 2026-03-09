@@ -72,7 +72,11 @@ async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
+=======
+    await messagingAdapter.sendMessage(companyId, toSend, message);
+>>>>>>> Stashed changes
 =======
     await messagingAdapter.sendMessage(companyId, toSend, message);
 >>>>>>> Stashed changes

@@ -42,6 +42,9 @@ const InsightsPage = lazy(() => import('./pages/InsightsPage'));
 =======
 const ChatPage = lazy(() => import('./chat-module/ChatPage'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 function needSetup() {
@@ -200,6 +203,9 @@ export default function App() {
 =======
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
