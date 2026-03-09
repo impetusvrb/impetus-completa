@@ -48,6 +48,9 @@ const MIGRATIONS = [
   { name: 'Módulo Chat completo (conversations, participants, messages)', file: 'chat_module_schema.sql', dir: 'chat-module' },
   { name: 'App Communications (media_transcription, app_notifications)', file: 'app_communications_migration.sql' }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
