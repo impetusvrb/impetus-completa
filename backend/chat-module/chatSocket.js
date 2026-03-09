@@ -42,6 +42,7 @@ function setupChatSocket(io) {
   io.on('connection', (socket) => {
     const { id, name, company_id } = socket.user;
     onlineUsers.set(id, { id, name, company_id, socketId: socket.id });
+    socket.join(`user_${id}`);
     socket.broadcast.emit('user_online', { user_id: id, name });
 
     socket.on('join_conversation', async (conversationId) => {

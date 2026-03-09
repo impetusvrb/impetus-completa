@@ -8,7 +8,7 @@
 module.exports = {
   apps: [{
     name: 'impetus-backend',
-    script: 'src/index.js',
+    script: 'src/server.js',
     cwd: __dirname,
     instances: 1,
     autorestart: true,
