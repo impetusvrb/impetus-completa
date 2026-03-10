@@ -39,7 +39,11 @@ const HIERARCHY_LABELS = {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
 =======
 const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
 >>>>>>> Stashed changes
@@ -65,7 +69,11 @@ export default function AdminSettings() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
 =======
   const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
 >>>>>>> Stashed changes
@@ -120,9 +128,12 @@ export default function AdminSettings() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       if (activeTab === 'comunicacao') {
         appImpetus.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -403,7 +414,11 @@ export default function AdminSettings() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
 =======
               <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
 >>>>>>> Stashed changes
@@ -429,8 +444,11 @@ export default function AdminSettings() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -458,6 +476,7 @@ export default function AdminSettings() {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           {activeTab === 'comunicacao' && (
 =======
           {activeTab === 'app' && (
@@ -469,6 +488,22 @@ export default function AdminSettings() {
           {activeTab === 'app' && (
 =======
           {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
             <div className="settings-panel">
               <h3>App Impetus - Comunicação Operacional</h3>
               <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
