@@ -5,7 +5,6 @@
  */
 
 const db = require('../db');
-const zapi = require('./zapi');
 const { sendOverdueNotificationEmail } = require('./emailService');
 const { logAction } = require('../middleware/audit');
 

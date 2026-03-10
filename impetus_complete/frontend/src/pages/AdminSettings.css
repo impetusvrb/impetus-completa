@@ -6,21 +6,11 @@
   padding: 24px;
 }
 
-.zapi-connected {
+.communication-connected {
   text-align: center;
   padding: 24px;
 }
-.zapi-connected .text-success { color: var(--color-success, #22c55e); }
-.zapi-qr-flow { text-align: center; padding: 16px; }
-.zapi-qr-flow .qr-container {
-  display: inline-block;
-  padding: 16px;
-  background: #fff;
-  border-radius: 12px;
-  margin: 16px 0;
-}
-.zapi-qr-flow .qr-container img { max-width: 240px; height: auto; }
-.zapi-qr-flow .qr-hint { font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; }
+.communication-connected .text-success { color: var(--color-success, #22c55e); }
 .btn-link { background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 0.875rem; text-decoration: underline; padding: 0; }
 
 .page-header {

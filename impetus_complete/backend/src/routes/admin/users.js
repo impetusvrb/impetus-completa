@@ -527,6 +527,81 @@ router.delete('/:id',
 });
 
 /**
+ * PATCH /api/admin/users/:id/profile-context
+ * Atualiza contexto de perfil do dashboard (ai_profile_context, preferred_kpis, dashboard_preferences)
+ */
+const profileContextSchema = z.object({
+  ai_profile_context: z.object({
+    focus: z.array(z.string()).optional(),
+    language_style: z.string().optional()
+  }).optional(),
+  preferred_kpis: z.array(z.string()).optional(),
+  dashboard_preferences: z.object({
+    favorite_period: z.string().optional(),
+    favorite_sector: z.string().optional(),
+    compact_mode: z.boolean().optional(),
+    cards_order: z.array(z.string()).optional()
+  }).optional(),
+  seniority_level: z.enum(['estrategico', 'tatico', 'operacional']).optional(),
+  onboarding_completed: z.boolean().optional()
+});
+
+router.patch('/:id/profile-context',
+  requireAuth,
+  requireHierarchy(1),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = profileContextSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ ok: false, error: parsed.error.errors?.[0]?.message || 'Dados inválidos' });
+      }
+      const data = parsed.data;
+      const updates = [];
+      const params = [];
+      let p = 1;
+      if (data.ai_profile_context) {
+        params.push(JSON.stringify(data.ai_profile_context));
+        updates.push(`ai_profile_context = $${p++}`);
+      }
+      if (data.preferred_kpis) {
+        params.push(JSON.stringify(data.preferred_kpis));
+        updates.push(`preferred_kpis = $${p++}`);
+      }
+      if (data.dashboard_preferences) {
+        params.push(JSON.stringify(data.dashboard_preferences));
+        updates.push(`dashboard_preferences = COALESCE(dashboard_preferences, '{}')::jsonb || $${p++}::jsonb`);
+      }
+      if (data.seniority_level) {
+        params.push(data.seniority_level);
+        updates.push(`seniority_level = $${p++}`);
+      }
+      if (typeof data.onboarding_completed === 'boolean') {
+        params.push(data.onboarding_completed);
+        updates.push(`onboarding_completed = $${p++}`);
+      }
+      if (updates.length === 0) {
+        return res.status(400).json({ ok: false, error: 'Nenhum campo para atualizar' });
+      }
+      params.push(id, req.user.company_id);
+      const ph = (i) => `$${i}`;
+      const r = await db.query(`
+        UPDATE users SET ${updates.join(', ')}, updated_at = now()
+        WHERE id = ${ph(p++)} AND company_id = ${ph(p)} AND deleted_at IS NULL
+        RETURNING id, name, ai_profile_context, preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed
+      `, params);
+      if (r.rows.length === 0) {
+        return res.status(404).json({ ok: false, error: 'Usuário não encontrado' });
+      }
+      res.json({ ok: true, data: r.rows[0] });
+    } catch (err) {
+      console.error('[ADMIN_PROFILE_CONTEXT_ERROR]', err);
+      res.status(500).json({ ok: false, error: 'Erro ao atualizar perfil' });
+    }
+  }
+);
+
+/**
  * POST /api/admin/users/:id/reset-password
  * Resetar senha do usuário
  */

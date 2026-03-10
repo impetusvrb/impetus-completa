@@ -20,6 +20,11 @@ export default function ConversationList({ conversations, activeId, onSelect, cu
     <div className="conv-list__header"><span className="conv-list__title">Mensagens</span><button className="conv-list__new-btn" onClick={openNew}><Plus size={18}/></button></div>
     <div className="conv-list__search"><Search size={14}/><input placeholder="Buscar..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
     <div className="conv-list__items">
+      <div className={'conv-item conv-item--ai'+(activeId==='impetus-ia'?' active':'')} onClick={()=>onSelect('impetus-ia')}>
+        <div className="conv-item__avatar conv-item__avatar--ai"><Bot size={18}/></div>
+        <div className="conv-item__info"><div className="conv-item__name">Impetus IA</div><div className="conv-item__preview">Assistente inteligente</div></div>
+        <div className="conv-item__meta"><span className="conv-item__ai-dot"/></div>
+      </div>
       {filtered.length===0&&<div className="conv-list__empty">Nenhuma conversa</div>}
       {filtered.map(c=>{
         const nm=convName(c,currentUserId); const lm=c.last_message; const unread=parseInt(c.unread_count||0);

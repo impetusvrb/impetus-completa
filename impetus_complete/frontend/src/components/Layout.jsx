@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Zap,
@@ -25,10 +25,14 @@ import {
   Target,
   AlertTriangle,
   Mail,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  FileEdit
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
+import { useVisibleModules } from '../hooks/useVisibleModules';
 import OnboardingModal from './OnboardingModal';
+import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
 import './Layout.css';
 
 export default function Layout({ children }) {
@@ -85,6 +89,10 @@ export default function Layout({ children }) {
     }).catch(() => {});
   }, []);
 
+  const handleMainOnboardingComplete = () => {
+    setOnboardingState({ show: false, tipo: null });
+  };
+
 
   
   // Pegar dados do usuário do localStorage
@@ -92,20 +100,28 @@ export default function Layout({ children }) {
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
   const role = (user.role || 'colaborador').toLowerCase();
+  const { filterMenu, canAccessPath, loading: modulesLoading } = useVisibleModules();
+
+  if (!modulesLoading && location.pathname !== '/app' && !canAccessPath(location.pathname)) {
+    return <Navigate to="/app" replace state={{ from: location }} />;
+  }
 
   const MENUS = {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+      { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+      { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
@@ -117,6 +133,8 @@ export default function Layout({ children }) {
     gerente: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+      { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
@@ -128,6 +146,8 @@ export default function Layout({ children }) {
     coordenador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+      { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
@@ -138,6 +158,7 @@ export default function Layout({ children }) {
     ],
     supervisor: [
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
@@ -147,6 +168,7 @@ export default function Layout({ children }) {
     ],
     colaborador: [
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
@@ -154,13 +176,15 @@ export default function Layout({ children }) {
     ],
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
   };
 
-  const menuItems = MENUS[role] || MENUS['colaborador'];
+  const baseMenuItems = MENUS[role] || MENUS['colaborador'];
+  const menuItems = filterMenu(baseMenuItems);
 
   const handleLogout = () => {
     localStorage.removeItem('impetus_token');
@@ -360,9 +384,12 @@ export default function Layout({ children }) {
       {onboardingState.show && onboardingState.tipo ? (
         <OnboardingModal
           tipo={onboardingState.tipo}
-          onComplete={() => setOnboardingState({ show: false, tipo: null })}
+          onComplete={handleMainOnboardingComplete}
         />
       ) : null}
+      {!onboardingState.show && (
+        <DashboardOnboardingModal onComplete={() => {}} />
+      )}
     </div>
   );
 }

@@ -24,6 +24,7 @@
     "format:check": "prettier --check \"src/**/*.js\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "axios": "^1.4.0",
     "axios-retry": "^4.0.0",
     "bcrypt": "^6.0.0",

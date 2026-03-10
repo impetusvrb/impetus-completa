@@ -6,6 +6,24 @@
 
 .dashboard-inteligente__header {
   margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-inteligente__header .btn-ghost.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dashboard-inteligente__header .btn-ghost.btn-icon:hover {
+  color: var(--accent-primary, #1E90FF);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dashboard-inteligente__header h1 {

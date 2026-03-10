@@ -96,7 +96,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(
 ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id) ON DELETE SET NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number TEXT; -- para integração Z-API
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number TEXT; -- App Impetus, Modo Executivo
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 -- Hierarquia do usuário

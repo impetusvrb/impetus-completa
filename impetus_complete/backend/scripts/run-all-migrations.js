@@ -8,9 +8,10 @@
  * 2. complete_schema.sql - Schema completo (companies, communications, LGPD, etc.)
  * 3. tpm_migration.sql   - Formulário TPM
  */
-require('dotenv').config();
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const db = require('../src/db');
 
 const MIGRATIONS = [
@@ -41,7 +42,13 @@ const MIGRATIONS = [
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
-  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
+  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
+  { name: 'Base Estrutural Admin (empresa, cargos, linhas, ativos, processos, produtos, IA)', file: 'admin_structural_base_migration.sql' },
+  { name: 'Registro Inteligente (registros assistidos por IA)', file: 'intelligent_registration_migration.sql' },
+  { name: 'Chat interno entre colaboradores', file: 'internal_chat_migration.sql' },
+  { name: 'Camada operacional de manutenção (OS, preventivas, intervenções)', file: 'maintenance_operational_migration.sql' },
+  { name: 'Dashboard personalização avançada (seniority, ai_profile_context, onboarding)', file: 'intelligent_dashboard_personalization_migration.sql' },
+  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' }
 ];
 
 async function run() {

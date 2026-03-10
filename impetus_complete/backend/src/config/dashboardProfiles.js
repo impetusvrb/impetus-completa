@@ -435,8 +435,26 @@ const ROLE_AREA_TO_PROFILE = {
   financeiro: { _default: 'finance_management' }
 };
 
-/** Inferir functional_area a partir de job_title */
+/** Inferir functional_area a partir de job_title (ordem importa: mais específico primeiro) */
 const JOB_TITLE_TO_AREA = {
+  'supervisor de qualidade': 'quality',
+  'supervisor de manutenção': 'maintenance',
+  'supervisor de manutencao': 'maintenance',
+  'supervisor de produção': 'production',
+  'supervisor de producao': 'production',
+  'coordenador de qualidade': 'quality',
+  'coordenador de manutenção': 'maintenance',
+  'coordenador de manutencao': 'maintenance',
+  'coordenador de produção': 'production',
+  'coordenador de producao': 'production',
+  'gerente de qualidade': 'quality',
+  'gerente de manutenção': 'maintenance',
+  'gerente de manutencao': 'maintenance',
+  'gerente de produção': 'production',
+  'gerente de producao': 'production',
+  'diretor industrial': 'industrial',
+  'diretor de operações': 'operations',
+  'diretor de operacoes': 'operations',
   produção: 'production',
   producao: 'production',
   manutenção: 'maintenance',
@@ -446,6 +464,9 @@ const JOB_TITLE_TO_AREA = {
   operador: 'production',
   mecânico: 'maintenance',
   mecanico: 'maintenance',
+  eletricista: 'maintenance',
+  eletromecânico: 'maintenance',
+  eletromecanico: 'maintenance',
   técnico: 'maintenance',
   tecnico: 'maintenance',
   inspetor: 'quality',
@@ -461,7 +482,8 @@ const JOB_TITLE_TO_AREA = {
 function inferAreaFromJobTitle(jobTitle) {
   if (!jobTitle || typeof jobTitle !== 'string') return null;
   const lower = jobTitle.toLowerCase().trim();
-  for (const [keyword, area] of Object.entries(JOB_TITLE_TO_AREA)) {
+  const entries = Object.entries(JOB_TITLE_TO_AREA).sort((a, b) => b[0].length - a[0].length);
+  for (const [keyword, area] of entries) {
     if (lower.includes(keyword)) return area;
   }
   return null;

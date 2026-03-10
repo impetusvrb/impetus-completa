@@ -29,6 +29,8 @@ const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminDepartments = lazy(() => import('./pages/AdminDepartments'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const AdminStructural = lazy(() => import('./pages/AdminStructural'));
+const RegistroInteligente = lazy(() => import('./pages/RegistroInteligente'));
 const Operacional = lazy(() => import('./pages/Operacional'));
 const BibliotecaPage = lazy(() => import('./features/biblioteca').then((m) => ({ default: m.BibliotecaPage })));
 const AIChatPage = lazy(() => import('./features/aiChat/AIChatPage'));
@@ -38,6 +40,7 @@ const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const AppMobile = lazy(() => import('./pages/AppMobile'));
 
 function needSetup() {
   try {
@@ -99,7 +102,7 @@ function isCEO() {
 }
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot'];
+  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente'];
   if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
@@ -160,6 +163,9 @@ export default function App() {
         <Route path="/app/operacional" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><Operacional /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
+        <Route path="/app/registro-inteligente" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><RegistroInteligente /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
@@ -188,14 +194,15 @@ export default function App() {
 
         <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminUsers /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
-
+        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+        <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
-        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           </Suspense>

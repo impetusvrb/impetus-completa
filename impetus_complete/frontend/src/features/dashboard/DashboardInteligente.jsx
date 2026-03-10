@@ -14,16 +14,20 @@ import RecentInteractions from '../../components/RecentInteractions';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { useDashboardVisibility } from '../../hooks/useDashboardVisibility';
-import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3, Target, Users, Activity, Zap } from 'lucide-react';
+import { useDashboardMe } from '../../hooks/useDashboardMe';
+import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3, Target, Users, Activity, Zap, Settings2 } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
 import KPIRequest from './components/KPIRequest';
+import DashboardCustomizerModal from './components/DashboardCustomizerModal';
 import './DashboardInteligente.css';
 
-export default function DashboardInteligente() {
+export default function DashboardInteligente({ embed = false }) {
   const navigate = useNavigate();
   const { sections, userContext } = useDashboardVisibility();
+  const { payload: dashboardPayload, trackInteraction, refetch } = useDashboardMe({ enabled: !embed });
+  const [customizerOpen, setCustomizerOpen] = useState(false);
   const [kpiWidgets, setKpiWidgets] = useState([]);
   const [kpiLoading, setKpiLoading] = useState(false);
   const [summary, setSummary] = useState(null);
@@ -51,10 +55,15 @@ export default function DashboardInteligente() {
   const smartSummary = useSmartSummary(true);
   useEffect(() => { smartSummary.fetchAndShow(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const areaLabel = userContext?.area || 'Colaborador';
+  const areaLabel = dashboardPayload?.profile_label || userContext?.area || 'Colaborador';
 
-  return (
-    <Layout>
+  const handleKpiClick = (k) => {
+    trackInteraction('click_kpi', 'kpi', k.id || k.key, { title: k.title });
+    if (k.route) navigate(k.route);
+  };
+
+  const content = (
+    <>
       {sections.smart_summary && (
         <SmartSummaryModal
           isOpen={smartSummary.showModal}
@@ -66,11 +75,31 @@ export default function DashboardInteligente() {
       )}
       <div className="dashboard-inteligente">
         <header className="dashboard-inteligente__header">
-          <h1>Dashboard</h1>
-          <p className="dashboard-inteligente__area">
-            Visão para {areaLabel}
-          </p>
+          <div>
+            <h1>Dashboard</h1>
+            <p className="dashboard-inteligente__area">
+              Visão para {areaLabel}
+            </p>
+          </div>
+          {!embed && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              onClick={() => setCustomizerOpen(true)}
+              title="Personalizar painel"
+            >
+              <Settings2 size={20} />
+            </button>
+          )}
         </header>
+        {customizerOpen && (
+          <DashboardCustomizerModal
+            isOpen={customizerOpen}
+            onClose={() => setCustomizerOpen(false)}
+            payload={dashboardPayload}
+            onSaved={refetch}
+          />
+        )}
 
         {/* Bloco 1: Resumo Geral - via Smart Summary modal (abre ao carregar) */}
         {sections.smart_summary && (
@@ -113,7 +142,7 @@ export default function DashboardInteligente() {
                       value={typeof k.value === 'number' ? k.value : k.value}
                       growth={k.growth}
                       color={k.color || 'blue'}
-                      onClick={k.route ? () => navigate(k.route) : undefined}
+                      onClick={k.route ? () => handleKpiClick(k) : undefined}
                     />
                   );
                 })
@@ -170,6 +199,9 @@ export default function DashboardInteligente() {
             </div>
           )}
         </div>
-      </Layout>
-    );
+    </>
+  );
+
+  if (embed) return content;
+  return <Layout>{content}</Layout>;
   }

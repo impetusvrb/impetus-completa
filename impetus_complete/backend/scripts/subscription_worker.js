@@ -2,7 +2,7 @@
 /**
  * Worker Assinaturas - Bloqueio progressivo por inadimplência B2B
  * Dias: 0=vencimento, 3=email, 5=whatsapp, 7=alerta dashboard, 10=bloqueio total
- * Usa subscriptionNotifications (emailService, zapi) e asaasService.checkGracePeriodAndSuspend
+ * Usa subscriptionNotifications (emailService, appImpetusService) e asaasService.checkGracePeriodAndSuspend
  * Uso: node -r dotenv/config scripts/subscription_worker.js
  * Cron: 0 * * * * (a cada hora) ou 0 9 * * * (todo dia às 9h)
  */

@@ -3,6 +3,7 @@
  * A identificação/ativação é feita no Layout ao abrir o dashboard
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { Bot, Send, User } from 'lucide-react';
 import { dashboard } from '../../services/api';
@@ -10,8 +11,10 @@ import { useActivityLog } from '../../hooks/useActivityLog';
 import './AIChatPage.css';
 
 export default function AIChatPage() {
+  const location = useLocation();
+  const initialFromState = location.state?.initialMessage || '';
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialFromState);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sensitiveModal, setSensitiveModal] = useState(false);

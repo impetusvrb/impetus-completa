@@ -9,7 +9,7 @@ const incomingProcessor = require('./incomingMessageProcessor');
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-// Tipos de classificação (arquitetura IMPETUS + Z-API)
+// Tipos de classificação (arquitetura IMPETUS)
 const CLASSIFY_TYPES = ['tarefa', 'lembrete', 'comunicado', 'falha_técnica', 'autorização', 'alerta', 'dúvida', 'outro'];
 
 // Circuit Breaker simples: após 5 falhas consecutivas, pausa 60s
@@ -99,7 +99,7 @@ REGRAS: Cite SEMPRE a fonte ao mencionar informação vinda dos manuais. Evite a
 }
 
 /**
- * Classifica mensagem operacional (arquitetura IMPETUS + Z-API)
+ * Classifica mensagem operacional (arquitetura IMPETUS)
  * Tipos: tarefa, lembrete, comunicado, falha_técnica, autorização, alerta, dúvida, outro
  */
 async function classify(text) {

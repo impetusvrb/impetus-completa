@@ -35,6 +35,8 @@ const adminUsers = require('./routes/admin/users');
 const adminDepartments = require('./routes/admin/departments');
 const adminLogs = require('./routes/admin/logs');
 const adminSettings = require('./routes/admin/settings');
+const adminStructural = require('./routes/admin/structural');
+const intelligentRegistration = require('./routes/intelligentRegistration');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
 const onboarding = require('./routes/onboarding');
@@ -122,6 +124,15 @@ app.get('/health', async (req, res) => {
   } catch (err) {
     console.error('[HEALTH_DB_ERROR]', err.message);
   }
+
+  let claudeStatus = 'not_configured';
+  if (process.env.ANTHROPIC_API_KEY && process.env.OPERATIONAL_MEMORY_ENABLED !== 'false') {
+    try {
+      const claudeService = require('./services/claudeService');
+      claudeStatus = claudeService.isAvailable() ? 'available' : 'circuit_open';
+    } catch (_) {}
+  }
+
   const cacheStats = getStats();
   const healthy = dbOk;
   res.status(healthy ? 200 : 503).json({
@@ -134,6 +145,7 @@ app.get('/health', async (req, res) => {
     uptimeFormatted: formatUptime(process.uptime()),
     timestamp: new Date().toISOString(),
     db: dbOk ? 'connected' : 'error',
+    claude: claudeStatus,
     memory: {
       heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
       heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
@@ -189,6 +201,8 @@ app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
 app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);
+const appCommunications = require('./routes/appCommunications');
+app.use('/api/app-communications', ...protected, appCommunications);
 
 app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res) => {
   try {
@@ -213,12 +227,14 @@ app.use('/api/plc-alerts', ...protected, plcAlerts);
 app.use('/api/diagnostic', ...protected, diagnostic);
 app.use('/api/diagnostic/report', ...protected, diagReport);
 app.use('/api/tpm', ...protected, tpm);
+app.use('/api/intelligent-registration', ...protected, intelligentRegistration);
 
 // Rotas de administração
 app.use('/api/admin/users', ...protected, adminUsers);
 app.use('/api/admin/departments', ...protected, adminDepartments);
 app.use('/api/admin/logs', ...protected, adminLogs);
 app.use('/api/admin/settings', ...protected, adminSettings);
+app.use('/api/admin/structural', ...protected, adminStructural);
 
 // 404 Handler
 app.use((req, res) => {

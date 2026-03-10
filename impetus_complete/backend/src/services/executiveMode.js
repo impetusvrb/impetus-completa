@@ -22,6 +22,21 @@ function normalizePhone(phone) {
 }
 
 /**
+ * Busca CEO da empresa pelo ID do usuário (para fluxo web/chat)
+ */
+async function findCEOById(companyId, userId) {
+  if (!userId) return null;
+  const { rows } = await db.query(`
+    SELECT id, name, email, whatsapp_number, phone, role,
+           executive_verified, ipc_document_hash, executive_session_token,
+           executive_last_verified, executive_session_expires_at, executive_last_activity
+    FROM users
+    WHERE id = $1 AND company_id = $2 AND role = 'ceo' AND active = true AND deleted_at IS NULL
+  `, [userId, companyId]);
+  return rows[0] || null;
+}
+
+/**
  * Busca CEO da empresa pelo número de WhatsApp
  */
 async function findCEOByWhatsApp(companyId, senderPhone) {
@@ -141,7 +156,7 @@ async function logExecutiveAction(params) {
  */
 const VERIFICATION_REQUEST = `Para liberar acesso executivo completo aos dados estratégicos da sua indústria, preciso validar sua autoridade como CEO.
 
-Por favor, envie o certificado IPC Brasil da empresa ou assinatura digital equivalente pelo Chat Interno do App Impetus.`;
+Por favor, envie o certificado IPC Brasil da empresa ou assinatura digital equivalente neste Chat (anexe documento ou imagem) ou pelo App Impetus.`;
 
 /**
  * Mensagem de bloqueio (não verificado)
@@ -361,6 +376,63 @@ async function processCEOMessage(companyId, senderPhone, text, messageType, docu
 }
 
 /**
+ * Processa mensagem do CEO via Chat web (usuário autenticado por userId)
+ * Retorna { handled: true, response } ou { handled: false }
+ */
+async function processCEOMessageFromWeb(companyId, userId, text, messageType, documentUrl, documentBase64) {
+  const ceo = await findCEOById(companyId, userId);
+  if (!ceo) return { handled: false };
+
+  const modoApresentacao = /modo\s+apresenta[çc][ãa]o/i.test(text);
+  const queryText = text?.replace(/modo\s+apresenta[çc][ãa]o/i, '').trim() || text;
+
+  if (!ceo.executive_verified) {
+    const hasDocument = messageType === 'document' || messageType === 'image' || !!documentUrl || !!documentBase64;
+    let documentHash = null;
+    if (documentBase64) {
+      documentHash = computeDocumentHash(documentBase64);
+    }
+    const response = await handleCEOFirstContact(companyId, ceo, ceo.whatsapp_number || ceo.phone || '', hasDocument, documentHash);
+    await logExecutiveAction({
+      companyId,
+      userId: ceo.id,
+      action: hasDocument ? 'verification_document_received' : 'verification_requested',
+      channel: 'chat_web',
+      requestSummary: hasDocument ? 'Documento enviado via Chat' : queryText?.slice(0, 200),
+      responseSummary: response?.slice(0, 200)
+    });
+    return { handled: true, response };
+  }
+
+  if (!await isExecutiveSessionValid(ceo)) {
+    await renewExecutiveSession(ceo.id);
+    const token = generateExecutiveSessionToken();
+    await db.query(`UPDATE users SET executive_session_token = $1 WHERE id = $2`, [token, ceo.id]);
+  } else {
+    await renewExecutiveSession(ceo.id);
+  }
+
+  if (!queryText || queryText.length < 3) {
+    return {
+      handled: true,
+      response: 'Como posso ajudá-lo? Exemplos: "Resumo geral", "Setores com risco", "Produção da semana", "Principais falhas do mês".'
+    };
+  }
+
+  const response = await processExecutiveQuery(companyId, ceo.id, queryText, modoApresentacao);
+  await logExecutiveAction({
+    companyId,
+    userId: ceo.id,
+    action: 'strategic_query',
+    channel: 'chat_web',
+    requestSummary: queryText?.slice(0, 300),
+    responseSummary: response?.slice(0, 300),
+    metadata: { modoApresentacao }
+  });
+  return { handled: true, response };
+}
+
+/**
  * Envia resposta ao CEO via WhatsApp
  */
 async function sendCEOResponse(companyId, phone, message) {
@@ -372,7 +444,9 @@ async function sendCEOResponse(companyId, phone, message) {
 
 module.exports = {
   findCEOByWhatsApp,
+  findCEOById,
   processCEOMessage,
+  processCEOMessageFromWeb,
   sendCEOResponse,
   logExecutiveAction,
   isExecutiveSessionValid,

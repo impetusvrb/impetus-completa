@@ -129,6 +129,14 @@ export const appImpetus = {
   sendMessage: (data) => api.post('/app-impetus/messages', data)
 };
 
+// App Communications - mensagens com mídia (áudio, vídeo) do App Mobile/PWA
+export const appCommunications = {
+  list: (limit = 30, offset = 0) =>
+    api.get('/app-communications', { params: { limit, offset } }),
+  send: (formData) =>
+    api.post('/app-communications', formData)
+};
+
 // ============================================================================
 // AUTENTICAÇÃO
 // ============================================================================
@@ -166,6 +174,9 @@ export const dashboard = {
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
   getWidgets: () => api.get('/dashboard/widgets'),
+
+  getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
+  saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),
 
   getSummary: () => 
     api.get('/dashboard/summary'),
@@ -212,7 +223,18 @@ export const dashboard = {
     api.post('/dashboard/executive-query', { query, modoApresentacao }),
 
   orgAIAssistant: (question) =>
-    api.post('/dashboard/org-ai-assistant', { question })
+    api.post('/dashboard/org-ai-assistant', { question }),
+
+  // Dashboard operacional manutenção (perfil mecânico)
+  maintenance: {
+    getSummary: () => api.get('/dashboard/maintenance/summary'),
+    getCards: () => api.get('/dashboard/maintenance/cards'),
+    getMyTasks: () => api.get('/dashboard/maintenance/my-tasks'),
+    getMachinesAttention: () => api.get('/dashboard/maintenance/machines-attention'),
+    getInterventions: () => api.get('/dashboard/maintenance/interventions'),
+    getPreventives: () => api.get('/dashboard/maintenance/preventives'),
+    getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
+  }
 };
 
 // ============================================================================
@@ -347,7 +369,10 @@ export const adminUsers = {
     api.delete(`/admin/users/${userId}/sessions/${sessionId}`),
   
   getStats: () => 
-    api.get('/admin/users/stats/summary')
+    api.get('/admin/users/stats/summary'),
+  
+  updateProfileContext: (userId, data) =>
+    api.patch(`/admin/users/${userId}/profile-context`, data)
 };
 
 // ============================================================================
@@ -413,16 +438,6 @@ export const adminSettings = {
   updateCompany: (data) => 
     api.put('/admin/settings/company', data),
   
-  // Z-API
-  getZApiConfig: () => 
-    api.get('/admin/settings/zapi'),
-  
-  saveZApiConfig: (config) => 
-    api.post('/admin/settings/zapi', config),
-  
-  testZApiConnection: () => 
-    api.post('/admin/settings/zapi/test'),
-  
   // POPs
   listPops: () => 
     api.get('/admin/settings/pops'),
@@ -467,3 +482,18 @@ export const adminSettings = {
 };
 
 export default api;
+
+export const adminStructural = {
+  getReferences: () => api.get('/admin/structural/references'),
+  getAll: (module) => api.get(`/admin/structural/${module}`),
+  create: (module, data) => api.post(`/admin/structural/${module}`, data),
+  update: (module, id, data) => api.put(`/admin/structural/${module}/${id}`, data),
+  remove: (module, id) => api.delete(`/admin/structural/${module}/${id}`),
+};
+
+export const intelligentRegistration = {
+  getAll: (params) => api.get('/intelligent-registration', { params }),
+  create: (data) => api.post('/intelligent-registration', data),
+  update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
+  remove: (id) => api.delete(`/intelligent-registration/${id}`),
+};

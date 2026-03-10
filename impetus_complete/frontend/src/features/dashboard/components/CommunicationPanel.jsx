@@ -1,6 +1,6 @@
 /**
  * Painel de comunicação direta
- * Gerente ↔ Usuários, Setores, IA Operacional, Z-API WhatsApp
+ * Gerente ↔ Usuários, Setores, IA Operacional, App Impetus
  */
 import React, { useState } from 'react';
 import { MessageSquare, Users, Building2, Bot, Send } from 'lucide-react';
@@ -10,7 +10,7 @@ const DESTINOS = [
   { id: 'usuarios', label: 'Usuários', icon: Users },
   { id: 'setores', label: 'Setores', icon: Building2 },
   { id: 'ia', label: 'IA Operacional', icon: Bot },
-  { id: 'whatsapp', label: 'WhatsApp (Z-API)', icon: MessageSquare },
+  { id: 'whatsapp', label: 'App Impetus', icon: MessageSquare },
 ];
 
 export default function CommunicationPanel() {

@@ -10,7 +10,7 @@ let lastCheck = 0;
 const CACHE_MS = 5 * 60 * 1000; // 5 min entre verificações
 
 async function requireValidLicense(req, res, next) {
-  // Webhooks Z-API e genérico devem funcionar mesmo com licença em validação
+  // Webhooks (Asaas, genérico) devem funcionar mesmo com licença em validação
   if (req.path.includes('webhook')) return next();
 
   if (Date.now() - lastCheck < CACHE_MS && cachedResult) {

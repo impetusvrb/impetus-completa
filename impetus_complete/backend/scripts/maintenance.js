@@ -9,6 +9,7 @@ const db = require('../src/db');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const RETENTION_DAYS = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS, 10) || 90;
+const MEMORY_RETENTION_DAYS = parseInt(process.env.OPERATIONAL_MEMORY_RETENTION_DAYS, 10) || 180;
 
 async function run(sql, params = [], label) {
   if (DRY_RUN) {
@@ -45,9 +46,24 @@ async function main() {
       `data_access_logs (> ${RETENTION_DAYS} dias)`
     );
 
-    // 4. VACUUM ANALYZE em tabelas grandes (não usa run() - execução direta)
+    // 4. Desativar fatos antigos da memória operacional (retenção configurável)
+    try {
+      await run(
+        `UPDATE operational_memory SET is_active = false WHERE created_at < now() - interval '1 day' * $1`,
+        [MEMORY_RETENTION_DAYS],
+        `operational_memory desativados (> ${MEMORY_RETENTION_DAYS} dias)`
+      );
+    } catch (err) {
+      if (err.message?.includes('does not exist')) {
+        console.log('[SKIP] Tabela operational_memory não existe');
+      } else {
+        console.warn('[WARN] operational_memory:', err.message);
+      }
+    }
+
+    // 5. VACUUM ANALYZE em tabelas grandes (não usa run() - execução direta)
     if (!DRY_RUN) {
-      const tables = ['audit_logs', 'data_access_logs', 'communications', 'sessions'];
+      const tables = ['audit_logs', 'data_access_logs', 'communications', 'sessions', 'operational_memory'];
       for (const t of tables) {
         try {
           await db.query(`VACUUM ANALYZE ${t}`);

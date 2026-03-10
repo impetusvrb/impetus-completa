@@ -1,5 +1,5 @@
 /**
- * Verifica se a tabela communications tem as colunas necessárias para Z-API/IA
+ * Verifica se a tabela communications tem as colunas necessárias para IA
  * Uso: node -r dotenv/config scripts/check-communications-schema.js
  */
 require('dotenv').config();

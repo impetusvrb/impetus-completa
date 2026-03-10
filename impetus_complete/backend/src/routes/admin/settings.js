@@ -1,6 +1,6 @@
 /**
  * ROTAS DE CONFIGURAÇÕES DO SISTEMA
- * Configuração de Z-API, OpenAI, POPs, manuais técnicos, notificações, LGPD
+ * POPs, manuais técnicos, notificações, visibilidade dashboard, LGPD
  */
 
 const express = require('express');
@@ -11,19 +11,9 @@ const fs = require('fs').promises;
 const db = require('../../db');
 const { requireAuth, requireHierarchy } = require('../../middleware/auth');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
-// Z-API removido - substituído por App Impetus (canal unificado)
 const manualsService = require('../../services/manuals');
 const dashboardVisibility = require('../../services/dashboardVisibility');
-const { encrypt } = require('../../utils/crypto');
 const { isValidUUID } = require('../../utils/security');
-
-function maybeEncryptToken(val) {
-  try {
-    return process.env.ENCRYPTION_KEY ? encrypt(val) : val;
-  } catch {
-    return val;
-  }
-}
 
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -233,37 +223,6 @@ router.put('/company',
         error: 'Erro ao atualizar configurações'
       });
     }
-});
-
-// ============================================================================
-// CONFIGURAÇÕES Z-API (WHATSAPP)
-// ============================================================================
-
-/**
- * GET /api/admin/settings/zapi
- * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
- */
-router.get('/zapi', requireAuth, (req, res) => {
-  res.json({ ok: true, config: null, deprecated: true, message: 'Z-API substituído por App Impetus' });
-});
-
-/**
- * POST /api/admin/settings/zapi
- * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
- */
-router.post('/zapi', requireAuth, (req, res) => {
-  res.json({ ok: true, config: null, deprecated: true, message: 'Z-API substituído por App Impetus' });
-});
-
-/**
- * POST /api/admin/settings/zapi/test
- * DEPRECADO - Z-API substituído por App Impetus. Retorna stub para compatibilidade.
- */
-router.post('/zapi/test', requireAuth, (req, res) => {
-  res.json({
-    ok: true,
-    test: { connected: false, deprecated: true, message: 'Z-API substituído por App Impetus' }
-  });
 });
 
 // ============================================================================

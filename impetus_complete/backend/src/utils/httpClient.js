@@ -1,6 +1,6 @@
 /**
  * CLIENTE HTTP COM TIMEOUT E RETRY
- * Para chamadas a serviços externos (Z-API, etc)
+ * Para chamadas a serviços externos (APIs, webhooks, etc)
  */
 
 const axios = require('axios');

@@ -1,11 +1,14 @@
 /**
  * Resumo Inteligente Diário/Semanal
  * IA analisa histórico do usuário + dados da fábrica e gera relatório executivo
+ * Adapta tom e foco ao perfil (role + area) via personalizedInsightsService
  */
 const db = require('../db');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
 const userContext = require('./userContext');
+const dashboardProfileResolver = require('./dashboardProfileResolver');
+const personalizedInsights = require('./personalizedInsightsService');
 
 const isFriday = () => new Date().getDay() === 5;
 
@@ -141,9 +144,14 @@ async function generateSummary(opts) {
 
   const langInstruction = userCtx ? userContext.getLanguageInstructions(userCtx) : '';
   const focusHint = userCtx?.area_focus?.length ? ` Priorize para área ${userCtx.area}: ${(userCtx.area_focus || []).slice(0, 3).join(', ')}.` : '';
+  const profileInstructions = opts.user ? personalizedInsights.getInsightsInstructions(
+    dashboardProfileResolver.resolveDashboardProfile(opts.user),
+    opts.user
+  ) : '';
 
   const prompt = `Você é o Impetus, assistente de inteligência operacional industrial. Crie um ${tipoRelatorio} para ${userName}. Ao se identificar nas respostas, use apenas o nome "Impetus".
-${langInstruction ? `${langInstruction}` : ''}${focusHint}
+${langInstruction ? `${langInstruction} ` : ''}${focusHint}
+${profileInstructions ? `\nINSTRUÇÕES DE ESTILO (perfil do usuário): ${profileInstructions}\n` : ''}
 
 ## Dados do período (${periodo}):
 
@@ -211,6 +219,7 @@ async function buildSmartSummary(userId, userName, companyId, user = null) {
     openComms,
     openProposals,
     userCtx: ctx,
+    user,
   });
 
   return {

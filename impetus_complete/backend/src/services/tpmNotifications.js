@@ -2,7 +2,6 @@
  * Notificações TPM - envia incidentes aos gestores (Manutenção, Produção, PCM)
  */
 const db = require('../db');
-const zapi = require('./zapi');
 
 async function getNotifyRecipients(companyId) {
   try {

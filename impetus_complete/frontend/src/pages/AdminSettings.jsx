@@ -1,13 +1,13 @@
 /**
  * CONFIGURAÇÕES DO SISTEMA
- * Z-API, POPs, Manuais, Notificações
+ * Comunicação (App Impetus), POPs, Manuais, Notificações
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode } from 'lucide-react';
+import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
 import Layout from '../components/Layout';
-import { InputField, CheckboxField } from '../components/FormField';
+import { CheckboxField } from '../components/FormField';
 import { adminSettings, appImpetus } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminSettings.css';
@@ -50,27 +50,11 @@ export default function AdminSettings() {
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
   const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
-  const [zapiConfig, setZapiConfig] = useState({ instance_id: '', instance_token: '', client_token: '', api_url: 'https://api.z-api.io', business_phone: '' });
-  const [zapiTest, setZapiTest] = useState(null);
-  const [connectState, setConnectState] = useState(null);
-  const [qrBase64, setQrBase64] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState(null);
-  const [showManualConfig, setShowManualConfig] = useState(false);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [warningModalMode, setWarningModalMode] = useState('auto');
-  const statusPollRef = useRef(null);
-  const qrRefreshRef = useRef(null);
 
   useEffect(() => {
     loadData();
   }, [activeTab]);
-
-  useEffect(() => {
-    return () => {
-      if (statusPollRef.current) clearInterval(statusPollRef.current);
-      if (qrRefreshRef.current) clearInterval(qrRefreshRef.current);
-    };
-  }, []);
 
   const loadData = async () => {
     try {
@@ -111,86 +95,6 @@ export default function AdminSettings() {
   const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
   const [visibilityConfigs, setVisibilityConfigs] = useState([]);
   const [saving, setSaving] = useState(false);
-
-  const handleSaveZapi = async () => {
-    try {
-      setSaving(true);
-      await adminSettings.saveZApiConfig(zapiConfig);
-      notify.success('Configuração Z-API salva!');
-    } catch (e) {
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestZapi = async () => {
-    try {
-      setZapiTest(null);
-      const r = await adminSettings.testZApiConnection();
-      setZapiTest(r.data.test);
-    } catch (e) {
-      setZapiTest({ ok: false, error: e.response?.data?.error || e.message });
-    }
-  };
-
-  const doConnectWhatsApp = async (useManual = false) => {
-    try {
-      setConnectState('loading');
-      setQrBase64(null);
-      const payload = useManual && zapiConfig.instance_id && zapiConfig.instance_token
-        ? { instance_id: zapiConfig.instance_id, instance_token: zapiConfig.instance_token, client_token: zapiConfig.client_token }
-        : {};
-      throw new Error("Conexão via App Impetus não requer QR Code");
-      setQrBase64(r.data.qr_code_base64);
-      setConnectState('pending');
-      if (r.data.status === 'pending') {
-        statusPollRef.current = setInterval(async () => {
-          try {
-            const s = await appImpetus.getStatus();
-            setConnectionStatus(s.data);
-            if (s.data.connected) {
-              clearInterval(statusPollRef.current);
-              setConnectState('connected');
-              setQrBase64(null);
-              loadData();
-            }
-          } catch (_) {}
-        }, 4000);
-        qrRefreshRef.current = setInterval(async () => {
-          if (connectState === 'connected') return;
-          try {
-            return; // QR não aplicável
-            if (q.data?.qr_code_base64) setQrBase64(q.data.qr_code_base64);
-          } catch (_) {}
-        }, 15000);
-      } else if (r.data.status === 'connected') {
-        setConnectState('connected');
-      }
-    } catch (e) {
-      setConnectState('error');
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao conectar');
-    }
-  };
-
-  const handleConnectWhatsApp = (useManual = false) => {
-    setWarningModalMode(useManual ? 'manual' : 'auto');
-    setShowWarningModal(true);
-  };
-
-  const handleWarningConfirm = () => {
-    doConnectWhatsApp(warningModalMode === 'manual');
-  };
-
-  const stopConnectFlow = () => {
-    if (statusPollRef.current) clearInterval(statusPollRef.current);
-    if (qrRefreshRef.current) clearInterval(qrRefreshRef.current);
-    statusPollRef.current = null;
-    qrRefreshRef.current = null;
-    setConnectState(null);
-    setQrBase64(null);
-    loadData();
-  };
 
   const handleSaveNotifications = async () => {
     try {
@@ -359,7 +263,7 @@ export default function AdminSettings() {
             <div className="settings-panel">
               <h3>Comunicação (App Impetus)</h3>
               {loading ? <p>Carregando...</p> : (
-                <div className="zapi-connected">
+                <div className="communication-connected">
                   <Check size={48} className="text-success" />
                   <p><strong>Comunicação integrada via App Impetus</strong></p>
                   <p className="form-hint" style={{ marginTop: 8, maxWidth: 480 }}>

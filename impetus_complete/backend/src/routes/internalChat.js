@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const internalChatService = require('../services/internalChatService');
+const claudeAnalytics = require('../services/claudeAnalyticsService');
 const { requireAuth } = require('../middleware/auth');
 const { requireCompanyActive } = require('../middleware/multiTenant');
 const { isValidUUID } = require('../utils/security');
@@ -160,6 +161,11 @@ router.post('/conversations/:id/messages', requireAuth, requireCompanyActive, as
       clientIp: req.ip || req.connection?.remoteAddress,
       source: 'app'
     });
+
+    if ((message_type === 'text' && text_content?.trim()) || (message_type !== 'text' && text_content?.trim())) {
+      const msgs = [{ sender_name: req.user?.name || 'Usuário', text_content: text_content?.trim() || msg?.text_content || '' }];
+      claudeAnalytics.ingestInternalChat(msgs, req.user.company_id, id);
+    }
 
     res.status(201).json({ ok: true, message: msg });
   } catch (err) {

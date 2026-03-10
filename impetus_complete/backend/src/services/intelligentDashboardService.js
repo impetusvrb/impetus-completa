@@ -11,6 +11,7 @@ const dashboardKPIs = require('./dashboardKPIs');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const userContext = require('./userContext');
 const smartSummary = require('./smartSummary');
+const dashboardAccess = require('./dashboardAccessService');
 
 /**
  * Busca preferências do usuário (tabela user_dashboard_preferences)
@@ -124,21 +125,25 @@ async function buildDashboardPayload(user) {
 
   const ctx = userContext.buildUserContext(user);
 
+  const allowedModules = dashboardAccess.getAllowedModules(user);
+  const allowedKpis = dashboardAccess.getAllowedKpis(user, kpis);
+
   return {
     ok: true,
     profile_code: profileCode,
     profile_label: profile.label,
+    favorite_kpis: userPrefs?.favorite_kpis || [],
     insights_mode: profile.insights_mode,
     default_period: userPrefs?.default_period || profile.default_period || '7d',
     default_sector: userPrefs?.default_sector || profile.default_filters?.sector || null,
     compact_mode: userPrefs?.compact_mode || false,
-    visible_modules: profile.visible_modules || [],
-    cards,
+    visible_modules: allowedModules,
+    cards: dashboardAccess.getAllowedCards(user, cards),
     charts: profile.charts || [],
     alerts: profile.alerts || [],
     widgets: profile.widgets || [],
     default_filters: profile.default_filters || {},
-    kpis,
+    kpis: allowedKpis,
     smart_summary: summaryResult?.summary || null,
     user_context: {
       role: user.role,
@@ -147,7 +152,7 @@ async function buildDashboardPayload(user) {
       department: user.department,
       hierarchy_level: user.hierarchy_level ?? ctx?.hierarchy_level ?? 5
     },
-    permissions: user.permissions || []
+    permissions: dashboardAccess.getEffectivePermissions(user)
   };
 }
 

@@ -6,7 +6,6 @@
 
 const db = require('../db');
 const ai = require('./ai');
-const zapi = require('./zapi');
 const communicationEscalation = require('./communicationEscalation');
 const userContext = require('./userContext');
 

@@ -11,7 +11,7 @@ import {
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
-import { InputField, SelectField, CheckboxField } from '../components/FormField';
+import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
 import { adminUsers, adminDepartments } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminUsers.css';
@@ -650,26 +650,26 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
           helperText="Define escopo de dados e personalização do dashboard"
         />
 
-        <SelectField
-          label="Nível Hierárquico"
-          name="hierarchy_level"
-          value={
-            Number.isInteger(formData.hierarchy_level) && formData.hierarchy_level >= 0 && formData.hierarchy_level <= 5
-              ? formData.hierarchy_level
-              : 5
-          }
-          onChange={onChange}
-          required
-          options={[
-            { value: 0, label: '0 - CEO (acesso total)' },
-            { value: 1, label: '1 - Diretoria' },
-            { value: 2, label: '2 - Gerência' },
-            { value: 3, label: '3 - Coordenação' },
-            { value: 4, label: '4 - Supervisão' },
-            { value: 5, label: '5 - Operacional (Colaborador)' }
-          ]}
-        />
+        {formData.area === 'Direção' && (
+          <CheckboxField
+            label="Definir como CEO"
+            name="is_ceo"
+            checked={formData.role === 'ceo'}
+            onChange={onChange}
+            helperText="Ativa o Modo Executivo com acesso via WhatsApp e dashboard exclusivo"
+          />
+        )}
       </div>
+
+      <TextAreaField
+        label="Descrição da Função"
+        name="role_description"
+        value={formData.role_description || ''}
+        onChange={onChange}
+        placeholder="Descreva resumidamente a função deste usuário, suas responsabilidades e área de atuação. A IA usará essa informação para personalizar análises e respostas."
+        rows={3}
+        helperText="Campo livre — quanto mais detalhado, mais precisa será a IA para este usuário"
+      />
 
       <div className="form-grid-2">
         <InputField

@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
+const executiveMode = require('../services/executiveMode');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
@@ -38,6 +40,26 @@ router.post('/conversations/:id/messages', async (req, res) => {
     const { content, replyTo } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Conteudo obrigatorio' });
     await chatService.verifyParticipant(req.params.id, req.user.id);
+
+    if (req.user.role === 'ceo' && req.user.company_id) {
+      const ceoResult = await executiveMode.processCEOMessageFromWeb(
+        req.user.company_id, req.user.id, content.trim(), 'text', null, null
+      );
+      if (ceoResult.handled && ceoResult.response) {
+        const msg = await chatService.saveMessage({ conversationId: req.params.id, senderId: req.user.id, type: 'text', content: content.trim(), replyTo });
+        const io = getIo(req);
+        if (io) io.to(req.params.id).emit('new_message', msg);
+        const sysMsg = await chatService.saveMessage({
+          conversationId: req.params.id,
+          senderId: chatService.AI_USER_ID,
+          type: 'text',
+          content: `**Impetus (Modo Executivo):**\n\n${ceoResult.response}`
+        });
+        if (io) io.to(req.params.id).emit('new_message', sysMsg);
+        return res.json(msg);
+      }
+    }
+
     const msg = await chatService.saveMessage({ conversationId: req.params.id, senderId: req.user.id, type: 'text', content: content.trim(), replyTo });
     const io = getIo(req);
     if (io) io.to(req.params.id).emit('new_message', msg);
@@ -55,6 +77,31 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const msg = await chatService.saveMessage({ conversationId, senderId: req.user.id, type: fileType, content: req.file.originalname, fileUrl: '/uploads/chat/' + req.file.filename, fileName: req.file.originalname, fileSize: req.file.size, replyTo });
     const io = getIo(req);
     if (io) io.to(conversationId).emit('new_message', msg);
+
+    if (req.user.role === 'ceo' && req.user.company_id && (fileType === 'document' || fileType === 'image')) {
+      let documentBase64 = null;
+      try {
+        const filePath = req.file.path || path.join(__dirname, '../../../../uploads/chat', req.file.filename);
+        const buf = fs.readFileSync(filePath);
+        documentBase64 = buf.toString('base64');
+      } catch (readErr) {
+        console.warn('[CHAT] CEO doc read:', readErr.message);
+      }
+      const ceoResult = await executiveMode.processCEOMessageFromWeb(
+        req.user.company_id, req.user.id, req.file.originalname, fileType,
+        '/uploads/chat/' + req.file.filename, documentBase64
+      );
+      if (ceoResult.handled && ceoResult.response) {
+        const sysMsg = await chatService.saveMessage({
+          conversationId,
+          senderId: chatService.AI_USER_ID,
+          type: 'text',
+          content: `**Impetus (Modo Executivo):**\n\n${ceoResult.response}`
+        });
+        if (io) io.to(conversationId).emit('new_message', sysMsg);
+      }
+    }
+
     res.json(msg);
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });

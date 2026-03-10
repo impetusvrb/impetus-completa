@@ -14,7 +14,6 @@ const { userRateLimit } = require('../middleware/userRateLimit');
 const { authorize } = require('../middleware/authorize');
 const secureContextBuilder = require('../services/secureContextBuilder');
 const aiAudit = require('../services/aiAudit');
-const { cached, TTL } = require('../utils/cache');
 const smartSummary = require('../services/smartSummary');
 const ai = require('../services/ai');
 const documentContext = require('../services/documentContext');
@@ -24,8 +23,25 @@ const userContext = require('../services/userContext');
 const dashboardFilter = require('../services/dashboardFilter');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const chatUserContext = require('../services/chatUserContext');
+const claudeAnalytics = require('../services/claudeAnalyticsService');
 const intelligentDashboard = require('../services/intelligentDashboardService');
+const { cached, del, makeKey, TTL } = require('../utils/cache');
+
+function invalidateDashboardCache(userId) {
+  del(makeKey('dashboard:me', String(userId)));
+}
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+const maintenanceDashboard = require('../services/maintenanceDashboardService');
+
+// Perfis de manutenção (mecânico, eletricista, eletromecânico, supervisor, coordenador, gerente)
+const MAINTENANCE_PROFILES = new Set(['technician_maintenance', 'supervisor_maintenance', 'coordinator_maintenance', 'manager_maintenance']);
+
+function isMaintenanceProfile(user) {
+  const config = dashboardProfileResolver.getDashboardConfigForUser(user);
+  return MAINTENANCE_PROFILES.has(config.profile_code) ||
+    (user.functional_area || '').toLowerCase() === 'maintenance' ||
+    /mecanico|eletricista|eletromecânico|manutenção/i.test(user.job_title || '');
+}
 
 // ============================================================================
 // DASHBOARD INTELIGENTE - Perfil personalizado por role + área + preferências
@@ -34,10 +50,17 @@ const dashboardProfileResolver = require('../services/dashboardProfileResolver')
 /**
  * GET /api/dashboard/me
  * Payload completo do dashboard personalizado (perfil + KPIs + insights + preferências)
+ * Cache 90s por usuário para reduzir carga em sessões intensas
  */
 router.get('/me', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
-    const payload = await intelligentDashboard.buildDashboardPayload(req.user);
+    const user = req.user;
+    const payload = await cached(
+      'dashboard:me',
+      () => intelligentDashboard.buildDashboardPayload(user),
+      () => String(user.id),
+      TTL.DASHBOARD_ME
+    );
     res.json(payload);
   } catch (err) {
     console.error('[DASHBOARD_ME_ERROR]', err);
@@ -81,6 +104,7 @@ router.post('/preferences', requireAuth, async (req, res) => {
       sections_priority
     });
     if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar preferências' });
+    invalidateDashboardCache(req.user.id);
     res.json({ ok: true });
   } catch (err) {
     console.error('[DASHBOARD_PREFERENCES_ERROR]', err);
@@ -98,6 +122,7 @@ router.post('/favorite-kpis', requireAuth, async (req, res) => {
     const list = Array.isArray(favorite_kpis) ? favorite_kpis : [];
     const ok = await intelligentDashboard.savePreferences(req.user.id, { favorite_kpis: list });
     if (!ok) return res.status(500).json({ ok: false, error: 'Erro ao salvar KPIs favoritos' });
+    invalidateDashboardCache(req.user.id);
     res.json({ ok: true });
   } catch (err) {
     console.error('[DASHBOARD_FAVORITE_KPIS_ERROR]', err);
@@ -142,6 +167,172 @@ router.get('/widgets', requireAuth, (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_WIDGETS_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar widgets' });
+  }
+});
+
+// ============================================================================
+// ONBOARDING DO DASHBOARD - Primeiro acesso para personalização
+// ============================================================================
+const dashboardOnboarding = require('../services/dashboardOnboardingService');
+
+/**
+ * GET /api/dashboard/onboarding-status
+ * Verifica se usuário precisa do onboarding de dashboard
+ */
+router.get('/onboarding-status', requireAuth, async (req, res) => {
+  try {
+    const needs = await dashboardOnboarding.needsDashboardOnboarding(req.user);
+    const questions = dashboardOnboarding.getQuestions();
+    res.json({ ok: true, needs, questions });
+  } catch (err) {
+    console.error('[DASHBOARD_ONBOARDING_STATUS]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao verificar status' });
+  }
+});
+
+/**
+ * POST /api/dashboard/onboarding
+ * Salva respostas do onboarding e atualiza preferências
+ */
+router.post('/onboarding', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const { answers } = req.body;
+    if (!answers || typeof answers !== 'object') {
+      return res.status(400).json({ ok: false, error: 'answers obrigatório' });
+    }
+    await dashboardOnboarding.saveDashboardOnboarding(
+      req.user.id,
+      req.user.company_id,
+      answers
+    );
+    invalidateDashboardCache(req.user.id);
+    res.json({ ok: true, message: 'Preferências salvas com sucesso' });
+  } catch (err) {
+    console.error('[DASHBOARD_ONBOARDING]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro ao salvar' });
+  }
+});
+
+// ============================================================================
+// DASHBOARD OPERACIONAL MANUTENÇÃO - Perfil mecânico/eletricista
+// ============================================================================
+
+/**
+ * GET /api/dashboard/maintenance/summary
+ * Resumo técnico do dia (cabeçalho)
+ */
+router.get('/maintenance/summary', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, summary: null });
+    }
+    const summary = await maintenanceDashboard.getTechnicalSummary(req.user.company_id, req.user.id);
+    res.json({ ok: true, is_maintenance: true, summary });
+  } catch (err) {
+    console.error('[MAINTENANCE_SUMMARY]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar resumo técnico' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/cards
+ * Cards técnicos (contagens)
+ */
+router.get('/maintenance/cards', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, cards: null });
+    }
+    const cards = await maintenanceDashboard.getTechnicalCards(req.user.company_id, req.user.id);
+    res.json({ ok: true, is_maintenance: true, cards });
+  } catch (err) {
+    console.error('[MAINTENANCE_CARDS]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar cards' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/my-tasks
+ * Minhas tarefas de hoje (OS atribuídas)
+ */
+router.get('/maintenance/my-tasks', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, tasks: [] });
+    }
+    const tasks = await maintenanceDashboard.getMyTasksToday(req.user.company_id, req.user.id);
+    res.json({ ok: true, is_maintenance: true, tasks });
+  } catch (err) {
+    console.error('[MAINTENANCE_MY_TASKS]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar tarefas' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/machines-attention
+ * Máquinas em atenção
+ */
+router.get('/maintenance/machines-attention', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, machines: [] });
+    }
+    const machines = await maintenanceDashboard.getMachinesInAttention(req.user.company_id);
+    res.json({ ok: true, is_maintenance: true, machines });
+  } catch (err) {
+    console.error('[MAINTENANCE_MACHINES]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar máquinas' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/interventions
+ * Últimas intervenções
+ */
+router.get('/maintenance/interventions', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, interventions: [] });
+    }
+    const interventions = await maintenanceDashboard.getLastInterventions(req.user.company_id);
+    res.json({ ok: true, is_maintenance: true, interventions });
+  } catch (err) {
+    console.error('[MAINTENANCE_INTERVENTIONS]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar intervenções' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/preventives
+ * Preventivas do dia
+ */
+router.get('/maintenance/preventives', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, preventives: [] });
+    }
+    const preventives = await maintenanceDashboard.getPreventivesToday(req.user.company_id, req.user.id);
+    res.json({ ok: true, is_maintenance: true, preventives });
+  } catch (err) {
+    console.error('[MAINTENANCE_PREVENTIVES]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar preventivas' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/recurring-failures
+ * Falhas recorrentes
+ */
+router.get('/maintenance/recurring-failures', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, failures: [] });
+    }
+    const failures = await maintenanceDashboard.getRecurringFailures(req.user.company_id);
+    res.json({ ok: true, is_maintenance: true, failures });
+  } catch (err) {
+    console.error('[MAINTENANCE_RECURRING]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar falhas recorrentes' });
   }
 });
 
@@ -269,7 +460,7 @@ router.post('/executive-query', requireAuth, async (req, res) => {
     if (!userResult.rows[0]?.executive_verified) {
       return res.status(403).json({
         ok: false,
-        error: 'Verificação executiva pendente. Envie o certificado IPC pelo Chat Interno do App Impetus para liberar acesso.'
+        error: 'Verificação executiva pendente. Envie o certificado IPC no Chat (anexe documento ou imagem) ou pelo App Impetus para liberar acesso.'
       });
     }
 
@@ -781,6 +972,22 @@ router.post('/chat',
       const chatCtx = await chatUserContext.buildChatUserContext(req.user);
       const { userName, identityBlock, memoriaBlock } = chatCtx;
 
+      let operationalMemoryBlock = '';
+      try {
+        const ctxPromise = claudeAnalytics.getContextForChat({
+          companyId,
+          userId: req.user?.id,
+          query: message,
+          req
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 6000)
+        );
+        operationalMemoryBlock = (await Promise.race([ctxPromise, timeoutPromise])) || '';
+      } catch (e) {
+        if (e?.message !== 'TIMEOUT') console.warn('[CHAT] getContextForChat:', e?.message);
+      }
+
       let docContext = '';
       let manualsBlock = '(Nenhum trecho relevante)';
       let langInstruction = '';
@@ -832,10 +1039,22 @@ router.post('/chat',
 - **Nunca exponha** dados sensíveis, salários, contratos, informações restritas de pessoas ou da organização. Seja cauteloso com dados financeiros e estratégicos.
 - **Evite encerrar** todas as mensagens com "Como posso ajudar?" ou "Estou à disposição" – use apenas quando fizer sentido.`;
 
+    const MAINTENANCE_CONTEXT = isMaintenanceProfile(req.user) ? `
+## PERFIL TÉCNICO (Mecânico / Manutenção):
+O usuário trabalha em manutenção industrial. Priorize:
+- **Diagnóstico de falhas**: sintomas, possíveis causas, passos de verificação prática
+- **Histórico da máquina**: intervenções anteriores, causas recorrentes, soluções já aplicadas
+- **Manuais técnicos**: procedimentos, verificações, especificações – consulte os trechos abaixo
+- **Ordem de serviço**: apoio em registro técnico, passagem de turno, resumo de intervenção
+- **Estilo**: objetivo, técnico, prático, orientado para ação. Evite teoria excessiva; foque em "o que verificar" e "como executar".
+- Quando perguntas forem sobre falhas, máquinas ou manutenção, busque nos manuais e sugira ações concretas.` : '';
+
     const systemPrompt = `Você é o **Impetus**, assistente de inteligência operacional industrial. Quando precisar se identificar, use apenas o nome "Impetus".
 
 ${identityBlock}
 ${memoriaBlock}
+${operationalMemoryBlock ? `\n${operationalMemoryBlock}\n` : ''}
+${MAINTENANCE_CONTEXT}
 
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
 ${COMMUNICATION_GUIDELINES}
@@ -869,6 +1088,9 @@ ${manualsBlock}`;
       ipAddress: req.ip,
       userAgent: req.get('user-agent')
     });
+
+    claudeAnalytics.ingestChatImpetus(message, history, req.user?.company_id, req.user?.id);
+
     return res.json({ ok: true, reply: finalReply });
   } catch (err) {
     console.error('[CHAT_ERROR]', err);

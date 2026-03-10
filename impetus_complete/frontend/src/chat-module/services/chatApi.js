@@ -15,5 +15,8 @@ const chatApi = {
   removeParticipant: (id, userId) => http.delete('/chat/conversations/'+id+'/participants/'+userId),
   getUsers: () => http.get('/chat/users'),
   subscribePush: (sub) => http.post('/chat/push/subscribe', sub),
+  sendAIMessage: (messages) => http.post('/dashboard/chat', { messages }),
+  submitRegistration: (text) => http.post('/intelligent-registration', { text }),
+  listRegistrations: () => http.get('/intelligent-registration?limit=10'),
 };
 export default chatApi;
