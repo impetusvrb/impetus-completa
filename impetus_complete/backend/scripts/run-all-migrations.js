@@ -8,10 +8,9 @@
  * 2. complete_schema.sql - Schema completo (companies, communications, LGPD, etc.)
  * 3. tpm_migration.sql   - Formulário TPM
  */
-const path = require('path');
+require('dotenv').config();
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const path = require('path');
 const db = require('../src/db');
 
 const MIGRATIONS = [
@@ -41,8 +40,8 @@ const MIGRATIONS = [
   { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' },
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
+<<<<<<< Updated upstream
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
-<<<<<<< HEAD:impetus_complete/backend/scripts/run-all-migrations.js
   { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
 =======
   { name: 'Chat Interno entre colaboradores (mensagens, conversas)', file: 'internal_chat_migration.sql' },
@@ -50,20 +49,20 @@ const MIGRATIONS = [
   { name: 'App Communications (media_transcription, app_notifications)', file: 'app_communications_migration.sql' }
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
-  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
-  { name: 'Base Estrutural Admin (empresa, cargos, linhas, ativos, processos, produtos, IA)', file: 'admin_structural_base_migration.sql' },
-  { name: 'Registro Inteligente (registros assistidos por IA)', file: 'intelligent_registration_migration.sql' },
-  { name: 'Chat interno entre colaboradores', file: 'internal_chat_migration.sql' },
-  { name: 'Camada operacional de manutenção (OS, preventivas, intervenções)', file: 'maintenance_operational_migration.sql' },
-  { name: 'Dashboard personalização avançada (seniority, ai_profile_context, onboarding)', file: 'intelligent_dashboard_personalization_migration.sql' },
-  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' }
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:backend/scripts/run-all-migrations.js
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 ];
 
 async function run() {

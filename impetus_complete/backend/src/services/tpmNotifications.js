@@ -2,6 +2,7 @@
  * Notificações TPM - envia incidentes aos gestores (Manutenção, Produção, PCM)
  */
 const db = require('../db');
+const messagingAdapter = require('./messagingAdapter');
 
 async function getNotifyRecipients(companyId) {
   try {
@@ -48,7 +49,9 @@ async function notifyTpmIncident(companyId, incident) {
     const phone = String(rec.phone || rec.whatsapp_number || '').replace(/\D/g, '');
     if (phone.length >= 10) {
       try {
-<<<<<<< HEAD:impetus_complete/backend/src/services/tpmNotifications.js
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -63,8 +66,14 @@ async function notifyTpmIncident(companyId, incident) {
         await messagingAdapter.sendMessage(companyId, phone, msg);
 >>>>>>> Stashed changes
 =======
-        await require('./appImpetusService').sendMessage(companyId, phone, msg, { originatedFrom: 'tpm' });
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:backend/src/services/tpmNotifications.js
+        await messagingAdapter.sendMessage(companyId, phone, msg);
+>>>>>>> Stashed changes
+=======
+        await messagingAdapter.sendMessage(companyId, phone, msg);
+>>>>>>> Stashed changes
+=======
+        await messagingAdapter.sendMessage(companyId, phone, msg);
+>>>>>>> Stashed changes
       } catch (err) {
         console.warn('[TPM_NOTIFY] WhatsApp falhou para', rec.name, err.message);
       }
