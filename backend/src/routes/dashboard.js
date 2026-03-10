@@ -6,6 +6,9 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireCompanyActive } = require('../middleware/multiTenant');
@@ -32,6 +35,7 @@ function invalidateDashboardCache(userId) {
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const maintenanceDashboard = require('../services/maintenanceDashboardService');
+const multimodalChat = require('../services/multimodalChatService');
 
 // Perfis de manutenção (mecânico, eletricista, eletromecânico, supervisor, coordenador, gerente)
 const MAINTENANCE_PROFILES = new Set(['technician_maintenance', 'supervisor_maintenance', 'coordinator_maintenance', 'manager_maintenance']);
@@ -1109,5 +1113,140 @@ ${manualsBlock}`;
     });
   }
   });
+
+// ============================================================================
+// CHAT MULTIMODAL - Imagem, arquivo, voz
+// ============================================================================
+
+const chatMultimodalStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    multimodalChat.ensureUploadDir();
+    cb(null, multimodalChat.UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '') || '.bin';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  }
+});
+const chatMultimodalUpload = multer({
+  storage: chatMultimodalStorage,
+  limits: { fileSize: multimodalChat.MAX_FILE_MB * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = (path.extname(file.originalname || '') || '').toLowerCase();
+    const allowed = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, XLS ou imagem.'));
+  }
+});
+
+/**
+ * POST /api/dashboard/chat/upload-file
+ * Upload de arquivo para contexto do chat (PDF, DOC, imagem)
+ */
+router.post('/chat/upload-file',
+  requireAuth,
+  requireCompanyActive,
+  userRateLimit('ai_chat'),
+  chatMultimodalUpload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ ok: false, error: 'Arquivo obrigatório' });
+      }
+      const result = await multimodalChat.processUploadedFile(
+        req.file.path,
+        req.file.originalname,
+        req.user.company_id
+      );
+      if (result.type === 'image') {
+        const buf = fs.readFileSync(result.filePath);
+        const base64 = buf.toString('base64');
+        return res.json({
+          ok: true,
+          type: 'image',
+          imageBase64: base64,
+          originalName: result.originalName
+        });
+      }
+      res.json({
+        ok: true,
+        type: 'document',
+        fileContext: {
+          extractedText: result.extractedText,
+          originalName: result.originalName
+        }
+      });
+    } catch (err) {
+      console.error('[CHAT_UPLOAD_FILE]', err);
+      res.status(500).json({ ok: false, error: err.message || 'Erro ao processar arquivo' });
+    }
+  }
+);
+
+/**
+ * POST /api/dashboard/chat-multimodal
+ * Chat com suporte a imagem (base64) e contexto de arquivo
+ */
+router.post('/chat-multimodal',
+  requireAuth,
+  requireCompanyActive,
+  promptFirewall,
+  userRateLimit('ai_chat'),
+  async (req, res) => {
+    if (req.promptFirewall?.blocked) {
+      return res.status(403).json({
+        ok: false,
+        error: req.promptFirewall.message || 'Acesso bloqueado',
+        code: 'PROMPT_BLOCKED'
+      });
+    }
+    try {
+      const { message, history = [], imageBase64, fileContext } = req.body;
+      const companyId = req.user.company_id;
+      const chatCtx = await chatUserContext.buildChatUserContext(req.user);
+      const { userName } = chatCtx;
+
+      let maintenanceExtra = '';
+      if (isMaintenanceProfile(req.user)) {
+        maintenanceExtra = `Perfil técnico/manutenção: priorize diagnóstico de falhas, análise de imagens de máquinas/peças, orientação prática.`;
+      }
+
+      const reply = await multimodalChat.processMultimodalChat({
+        message: message || '',
+        history,
+        imageBase64: imageBase64 || null,
+        fileContext: fileContext || null,
+        companyId,
+        userName,
+        systemPromptExtra: maintenanceExtra
+      });
+
+      const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
+      const isFallback = finalReply.startsWith('FALLBACK:');
+
+      await aiAudit.logAIInteraction({
+        userId: req.user?.id,
+        companyId,
+        action: 'chat_multimodal',
+        question: `${message || ''}${imageBase64 ? ' [imagem]' : ''}${fileContext ? ' [arquivo]' : ''}`,
+        response: finalReply,
+        blocked: false,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      });
+
+      return res.json({
+        ok: true,
+        reply: isFallback ? CHAT_FALLBACK_IMPETUS : finalReply
+      });
+    } catch (err) {
+      console.error('[CHAT_MULTIMODAL_ERROR]', err);
+      return res.json({
+        ok: true,
+        reply: CHAT_FALLBACK_IMPETUS
+      });
+    }
+  }
+);
 
 module.exports = router;

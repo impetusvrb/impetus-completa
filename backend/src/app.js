@@ -69,7 +69,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Arquivos enviados (uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
-app.use('/uploads/app-communications', express.static(path.join(__dirname, '../../uploads/app-communications')));
 
 // Rate limiting para autenticação
 const authLimiter = rateLimit({
@@ -175,14 +174,7 @@ app.post('/api/companies', (req, res) => {
   });
 });
 
-<<<<<<< Updated upstream
 // Webhooks (Asaas, Genérico) - Z-API removido, substituído por App Impetus
-=======
-// Webhooks (Z-API desabilitado - uso App Impetus; Asaas, Genérico)
-if (process.env.ZAPI_ENABLED === 'true') {
-  app.use('/api/webhook/zapi', zapiWebhook);
-}
->>>>>>> Stashed changes
 app.use('/api/webhook', webhook);
 app.use('/api/webhooks/asaas', require('./routes/webhooks/asaas'));
 const appImpetusRoutes = require('./routes/app_impetus');
@@ -208,14 +200,9 @@ app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
 // app.use('/api/user-identification', userIdentification); // DESATIVADO
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
-<<<<<<< Updated upstream
 app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);
-=======
-if (process.env.ZAPI_ENABLED === 'true') {
-  app.use('/api/zapi', requireAuth, requireCompanyActive, zapiRoutes);
-  app.use('/api/whatsapp', requireAuth, requireCompanyActive, require('./routes/whatsapp'));
-}
->>>>>>> Stashed changes
+const appCommunications = require('./routes/appCommunications');
+app.use('/api/app-communications', ...protected, appCommunications);
 
 app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res) => {
   try {
@@ -230,7 +217,6 @@ app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res)
 
 app.use('/api/lgpd', ...protected, lgpd);
 app.use('/api/communications', ...protected, communications);
-app.use('/api/app-communications', ...protected, require('./routes/appCommunications'));
 app.use('/api/internal-chat', ...protected, internalChat);
 app.use('/api/dashboard', ...protected, dashboard);
 app.use('/api/manuals', ...protected, manuals);

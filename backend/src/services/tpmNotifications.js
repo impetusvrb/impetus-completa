@@ -12,21 +12,12 @@ async function getNotifyRecipients(companyId) {
       LIMIT 10
     `, [companyId]);
     if (r.rows.length > 0) return r.rows;
-    try {
-      r = await db.query(`
-        SELECT id, name, phone, role FROM whatsapp_contacts
-        WHERE company_id = $1 AND active = true AND phone IS NOT NULL
-        LIMIT 5
-      `, [companyId]);
-      if (r.rows.length > 0) return r.rows;
-    } catch (_) {}
-    const cfg = await db.query(`SELECT config->'whatsapp_contacts' as contacts FROM companies WHERE id = $1`, [companyId]);
-    const contacts = cfg.rows[0]?.contacts;
-    const arr = Array.isArray(contacts) ? contacts : [];
-    return arr
-      .filter(c => c && (c.phone || '').replace(/\D/g, '').length >= 10)
-      .slice(0, 5)
-      .map(c => ({ id: c.id, name: c.name || '-', phone: c.phone, role: c.role || '' }));
+    r = await db.query(`
+      SELECT id, name, phone, role FROM whatsapp_contacts
+      WHERE company_id = $1 AND active = true AND phone IS NOT NULL
+      LIMIT 5
+    `, [companyId]);
+    return r.rows || [];
   } catch {
     return [];
   }
