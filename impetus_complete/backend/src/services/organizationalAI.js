@@ -236,11 +236,7 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
     try {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
       await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
-=======
-      await messagingAdapter.sendMessage(companyId, phone, message);
->>>>>>> Stashed changes
 =======
       await messagingAdapter.sendMessage(companyId, phone, message);
 >>>>>>> Stashed changes

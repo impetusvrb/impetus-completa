@@ -51,11 +51,7 @@ async function notifyTpmIncident(companyId, incident) {
       try {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
         await require('./appImpetusService').sendMessage(companyId, phone, msg, { originatedFrom: 'tpm' });
-=======
-        await messagingAdapter.sendMessage(companyId, phone, msg);
->>>>>>> Stashed changes
 =======
         await messagingAdapter.sendMessage(companyId, phone, msg);
 >>>>>>> Stashed changes

@@ -165,11 +165,8 @@ app.post('/api/companies', (req, res) => {
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 // Webhooks (Asaas, Genérico) - Z-API removido, substituído por App Impetus
 =======
-=======
->>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 // Webhooks (Z-API desabilitado - uso App Impetus; Asaas, Genérico)
@@ -177,9 +174,6 @@ if (process.env.ZAPI_ENABLED === 'true') {
   app.use('/api/webhook/zapi', zapiWebhook);
 }
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -210,11 +204,8 @@ app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales)
 app.use('/api/subscription', requireAuth, subscription);
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);
 =======
-=======
->>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 if (process.env.ZAPI_ENABLED === 'true') {
@@ -222,9 +213,6 @@ if (process.env.ZAPI_ENABLED === 'true') {
   app.use('/api/whatsapp', requireAuth, requireCompanyActive, require('./routes/whatsapp'));
 }
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
