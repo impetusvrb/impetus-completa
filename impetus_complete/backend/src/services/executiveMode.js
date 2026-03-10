@@ -12,7 +12,11 @@ const ai = require('./ai');
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 const appImpetusService = require('./appImpetusService');
+=======
+const messagingAdapter = require('./messagingAdapter');
+>>>>>>> Stashed changes
 =======
 const messagingAdapter = require('./messagingAdapter');
 >>>>>>> Stashed changes
@@ -387,7 +391,11 @@ async function sendCEOResponse(companyId, phone, message) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+=======
+  await messagingAdapter.sendMessage(companyId, toSend, message);
+>>>>>>> Stashed changes
 =======
   await messagingAdapter.sendMessage(companyId, toSend, message);
 >>>>>>> Stashed changes
