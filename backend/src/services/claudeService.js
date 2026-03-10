@@ -75,48 +75,72 @@ async function analyze(systemPrompt, userContent, opts = {}) {
   }
 }
 
+// Tipos de eventos corporativos (alinhados à knowledge_memory)
+const CORPORATE_EVENT_TYPES = [
+  'tarefa', 'manutencao', 'falha', 'troca_peca', 'parada_maquina', 'parada_linha',
+  'decisao', 'alerta', 'informacao', 'observacao', 'maquina_reiniciada'
+];
+
 /**
- * Extrai fatos estruturados de um texto/conversa para memória operacional
+ * Extrai fatos estruturados e eventos corporativos de um texto/conversa
  * @param {string} rawContent - Texto ou conversa bruta
  * @param {Object} meta - { sourceType, companyId, scopeHints }
- * @returns {Promise<Object|null>} { facts: [...], summary: string } ou null
+ * @returns {Promise<Object|null>} { facts, summary, corporate_events } ou null
  */
 async function extractOperationalFacts(rawContent, meta = {}) {
   const { sourceType = 'generic', scopeHints = {} } = meta;
 
-  const systemPrompt = `Você é um analista de inteligência operacional industrial. Sua tarefa é extrair fatos estruturados de textos e conversas.
+  const systemPrompt = `Você é um analista de inteligência operacional industrial. Extraia fatos E eventos corporativos de textos e conversas.
 
 REGRAS:
-1. Retorne APENAS um JSON válido (sem markdown, sem texto extra).
-2. Extraia fatos objetivos, verificáveis e úteis para operação.
-3. Identifique: tarefas implícitas, pendências, riscos, decisões, solicitações, urgência.
-4. Vincule a setor, máquina, linha, processo ou pessoa quando mencionado.
-5. Classifique prioridade: baixa, normal, alta, critica.
-6. Minimize ruído - não inclua fatos triviais ou irrelevantes.
-7. Respeite sigilo - não exponha dados pessoais sensíveis.
+1. Retorne APENAS um JSON válido (sem markdown, sem \`\`\`).
+2. Extraia fatos objetivos e eventos acionáveis.
+3. Para TAREFAS: extraia responsável, ação, data e hora quando mencionados (ex: "Maria, segunda 8h faz retrabalho linha 3" → responsavel: Maria, descricao: retrabalho peça linha 3, data: próxima segunda, hora: 08:00).
+4. Para TROCA DE PEÇA: equipamento, linha, peça (ex: "Troquei rolamento da bomba linha 2").
+5. Para PARADA: equipamento ou linha, hora se mencionada.
+6. Para MANUTENÇÃO: equipamento, linha, problema, causa, solução, peça trocada.
+7. Use data/hora no formato ISO ou YYYY-MM-DD e HH:MM. Se só "segunda" → calcule próxima segunda como data.
+8. Minimize ruído. Respeite sigilo.
 
 FORMATO DE RESPOSTA (JSON):
 {
-  "summary": "resumo do que aconteceu em 1-2 frases",
+  "summary": "resumo em 1-2 frases",
   "facts": [
     {
       "fact_type": "pendencia|risco|decisao|solicitacao|falha|tarefa|informacao|observacao",
-      "content": "descrição objetiva do fato",
+      "content": "descrição objetiva",
       "scope_type": "user|sector|machine|line|process|org",
-      "scope_id": "identificador se houver",
-      "scope_label": "nome legível (ex: Linha 2, Máquina X)",
+      "scope_id": null,
+      "scope_label": "ex: Linha 2",
       "priority": "baixa|normal|alta|critica",
-      "metadata": { "entities": [], "dates": [] }
+      "metadata": {}
+    }
+  ],
+  "corporate_events": [
+    {
+      "tipo_evento": "tarefa|manutencao|falha|troca_peca|parada_maquina|parada_linha|decisao|alerta",
+      "descricao": "texto descritivo",
+      "equipamento": null,
+      "linha": null,
+      "usuario_responsavel": "nome se tarefa",
+      "data": "YYYY-MM-DD ou null",
+      "hora": "HH:MM ou null",
+      "peca_trocada": "para troca_peca",
+      "problema": "para manutencao/falha",
+      "causa": "para manutencao",
+      "solucao": "para manutencao"
     }
   ]
-}`;
+}
+
+Inclua em corporate_events APENAS quando houver evidência clara no texto. Se não houver eventos corporativos, retorne corporate_events: [].`;
 
   const hints = Object.keys(scopeHints).length
     ? `\nContexto conhecido: ${JSON.stringify(scopeHints)}`
     : '';
   const userContent = `Fonte: ${sourceType}\n${hints}\n\nConteúdo:\n${(rawContent || '').slice(0, 8000)}`;
 
-  const raw = await analyze(systemPrompt, userContent, { max_tokens: 2048, timeout: 30000 });
+  const raw = await analyze(systemPrompt, userContent, { max_tokens: 3072, timeout: 35000 });
   if (!raw) return null;
 
   try {
@@ -124,9 +148,15 @@ FORMATO DE RESPOSTA (JSON):
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[0]);
     if (!parsed.facts || !Array.isArray(parsed.facts)) return null;
+
+    const corporateEvents = Array.isArray(parsed.corporate_events)
+      ? parsed.corporate_events.filter((e) => e?.tipo_evento && CORPORATE_EVENT_TYPES.includes(e.tipo_evento))
+      : [];
+
     return {
       summary: parsed.summary || '',
-      facts: parsed.facts.filter((f) => f?.content && f?.fact_type)
+      facts: parsed.facts.filter((f) => f?.content && f?.fact_type),
+      corporate_events: corporateEvents
     };
   } catch {
     return null;
