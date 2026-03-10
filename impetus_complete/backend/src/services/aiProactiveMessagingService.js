@@ -7,7 +7,11 @@ const db = require('../db');
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 const appImpetusService = require('./appImpetusService');
+=======
+const messagingAdapter = require('./messagingAdapter');
+>>>>>>> Stashed changes
 =======
 const messagingAdapter = require('./messagingAdapter');
 >>>>>>> Stashed changes
@@ -120,6 +124,7 @@ async function sendProactiveMessage(params) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     // 2. Enviar via App Impetus (outbox)
     const result = await appImpetusService.sendMessage(companyId, recipientPhone, message, { originatedFrom: 'proactive' });
 
@@ -130,12 +135,17 @@ async function sendProactiveMessage(params) {
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     // 2. Enviar via App Impetus (unifiedMessaging)
     const result = await messagingAdapter.sendMessage(companyId, recipientPhone, message, {
       recipientUserId: recipientUserId || undefined
     });
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -151,7 +161,11 @@ async function sendProactiveMessage(params) {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     `, [auditId, result?.id]);
+=======
+    `, [auditId, result?.notificationId]);
+>>>>>>> Stashed changes
 =======
     `, [auditId, result?.notificationId]);
 >>>>>>> Stashed changes

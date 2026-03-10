@@ -44,6 +44,9 @@ const ChatPage = lazy(() => import('./chat-module/ChatPage'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -208,6 +211,9 @@ export default function App() {
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes

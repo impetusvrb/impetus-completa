@@ -49,6 +49,9 @@ const MIGRATIONS = [
   { name: 'App Communications (media_transcription, app_notifications)', file: 'app_communications_migration.sql' }
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
