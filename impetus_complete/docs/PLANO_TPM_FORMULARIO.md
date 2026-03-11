@@ -177,7 +177,7 @@ CREATE TABLE tpm_form_sessions (
 
 ### 5.2 Canal
 
-- **WhatsApp** (via Z-API), se o gestor tiver número cadastrado.
+- **App Impetus**, se o gestor tiver número cadastrado.
 - **E-mail** (fallback).
 - **Painel web** (lista de incidentes TPM e alertas).
 
@@ -206,9 +206,9 @@ Resumo do incidente: equipamento, componente, causa raiz, perdas (antes/durante/
 
 - [x] Serviço `tpmConversation.js`: interpreta mensagem e retorna próxima pergunta
 - [x] Mapeamento de respostas (data, hora, COMP/AJUSTE/OPER, números)
-- [x] Integrado em `zapi.processWebhook`
+- [x] Integrado no processamento de mensagens do App
 
-### Fase 3: Z-API e mensagens — ✅ Implementado
+### Fase 3: Mensagens (App Impetus) — ✅ Implementado
 
 - [x] Após falha_técnica: oferece formulário TPM na confirmação
 - [x] Operador responde SIM → sessão inicia, perguntas sequenciais
@@ -217,7 +217,7 @@ Resumo do incidente: equipamento, componente, causa raiz, perdas (antes/durante/
 ### Fase 4: Notificações — ✅ Implementado
 
 - [x] `tpmNotifications.js`: `getNotifyTargets` (config ou users com role gerente/pcm)
-- [x] `notifyTpmIncident`: WhatsApp aos gestores + alerta em `alerts`
+- [x] `notifyTpmIncident`: notificação aos gestores via App Impetus + alerta em `alerts`
 - [x] Chamado após `saveIncident`
 
 ### Fase 5: Painel e perdas por turno — ✅ Implementado
@@ -237,8 +237,8 @@ Resumo do incidente: equipamento, componente, causa raiz, perdas (antes/durante/
 
 ### Já atendidos
 
-- Z-API integrada
-- `processIncomingMessage` para WhatsApp
+- App Impetus integrado
+- `processIncomingMessage` para mensagens do App
 - Classificação de mensagens (falha_técnica, alerta)
 - Tabela `communications` e fluxo de resposta automática
 
@@ -257,7 +257,7 @@ Resumo do incidente: equipamento, componente, causa raiz, perdas (antes/durante/
 |----------------|-------|
 | 1. Banco       | 2     |
 | 2. Conversação| 4     |
-| 3. Z-API       | 2     |
+| 3. Mensagens   | 2     |
 | 4. Notificações| 2     |
 | 5. Painel      | 2     |
 | 6. Regras      | 1     |
@@ -267,4 +267,4 @@ Resumo do incidente: equipamento, componente, causa raiz, perdas (antes/durante/
 
 ## 10. Conclusão
 
-A incorporação do formulário TPM ao Pró-Ação via WhatsApp e IA conversacional é viável e alinhada com o IMPETUS. O plano acima cobre banco, fluxo conversacional, notificações e integração com Pró-Ação. Com as respostas às dúvidas da seção 8, a implementação pode seguir de forma objetiva.
+A incorporação do formulário TPM ao Pró-Ação via App Impetus e IA conversacional é viável e alinhada com o IMPETUS. O plano acima cobre banco, fluxo conversacional, notificações e integração com Pró-Ação. Com as respostas às dúvidas da seção 8, a implementação pode seguir de forma objetiva.

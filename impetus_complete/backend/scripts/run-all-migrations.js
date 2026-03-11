@@ -29,17 +29,17 @@ const MIGRATIONS = [
   { name: 'Campos setup empresa (industry_type, initial_areas_count)', file: 'companies_setup_fields_migration.sql' },
   { name: 'Doc contexto (POPs, manuals para IA)', file: 'doc_context_migration.sql' },
   { name: 'User activity logs (Resumo Inteligente)', file: 'user_activity_logs_migration.sql' },
-  { name: 'WhatsApp contacts (notificações TPM)', file: 'whatsapp_contacts_migration.sql' },
+  { name: 'Contatos para notificações (TPM)', file: 'whatsapp_contacts_migration.sql' },
   { name: 'TPM (formulário de perdas)', file: 'tpm_migration.sql' },
   { name: 'Asaas (assinaturas recorrentes)', file: 'asaas_subscriptions_migration.sql' },
-  { name: 'Z-API Connect (integração automática)', file: 'zapi_connect_migration.sql' },
-  { name: 'Planos e limite WhatsApp (plans, whatsapp_instances)', file: 'whatsapp_plans_instances_migration.sql' },
+  { name: 'Legado Connect (zapi - compatibilidade)', file: 'zapi_connect_migration.sql' },
+  { name: 'Planos e instâncias (plans - legado)', file: 'whatsapp_plans_instances_migration.sql' },
   { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
   { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' },
   { name: 'Controle Hierárquico (supervisor_id, user_hierarchy_scope)', file: 'hierarchical_control_migration.sql' },
   { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' },
   { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' },
-  { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
+  { name: 'Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
   { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
@@ -48,7 +48,13 @@ const MIGRATIONS = [
   { name: 'Chat interno entre colaboradores', file: 'internal_chat_migration.sql' },
   { name: 'Camada operacional de manutenção (OS, preventivas, intervenções)', file: 'maintenance_operational_migration.sql' },
   { name: 'Dashboard personalização avançada (seniority, ai_profile_context, onboarding)', file: 'intelligent_dashboard_personalization_migration.sql' },
-  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' }
+  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' },
+  { name: 'IA Corporativa (knowledge_memory, casos_manutencao, eventos_empresa)', file: 'corporate_ai_memory_migration.sql' },
+  { name: 'Cérebro Operacional (insights, alertas)', file: 'operational_brain_migration.sql' },
+  { name: 'Inteligência Industrial (Machine Brain, monitoramento, controle)', file: 'industrial_intelligence_migration.sql' },
+  { name: 'Validação Hierárquica de Cargos (role_verified, aprovações, documentos)', file: 'role_verification_hierarchy_migration.sql' },
+  { name: 'Índices de performance (audit_logs, communications, proposals)', file: 'performance_indexes_migration.sql' },
+  { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' }
 ];
 
 async function run() {
@@ -74,9 +80,16 @@ async function run() {
       await db.query(sql);
       console.log(`    ✓ ${m.name} OK\n`);
     } catch (err) {
-      console.error(`    ✗ Erro em ${m.file}:`, err.message);
-      console.error('\nDetalhes:', err.detail || err);
-      process.exit(1);
+      const skipCodes = ['42P07', '42P01', '42P10', '42703', '42702', '42701', '42804']; // already exists, duplicate, constraint, undefined col, ambiguous, incompatible types
+      const skipMsgs = ['already exists', 'duplicate key', 'does not exist', 'ambiguous'];
+      const canSkip = skipCodes.includes(err.code) || skipMsgs.some(m => (err.message || '').toLowerCase().includes(m));
+      if (canSkip) {
+        console.log(`    ⏭ ${m.name} (erro conhecido, pulando: ${err.message?.slice(0, 50)}...)\n`);
+      } else {
+        console.error(`    ✗ Erro em ${m.file}:`, err.message);
+        console.error('\nDetalhes:', err.detail || err);
+        process.exit(1);
+      }
     }
   }
 

@@ -75,48 +75,40 @@ async function analyze(systemPrompt, userContent, opts = {}) {
   }
 }
 
+const CORPORATE_EVENT_TYPES = [
+  'tarefa', 'manutencao', 'falha', 'troca_peca', 'parada_maquina', 'parada_linha',
+  'decisao', 'alerta', 'informacao', 'observacao', 'maquina_reiniciada'
+];
+
 /**
- * Extrai fatos estruturados de um texto/conversa para memória operacional
- * @param {string} rawContent - Texto ou conversa bruta
- * @param {Object} meta - { sourceType, companyId, scopeHints }
- * @returns {Promise<Object|null>} { facts: [...], summary: string } ou null
+ * Extrai fatos estruturados e eventos corporativos de um texto/conversa
+ * @returns {Promise<Object|null>} { facts, summary, corporate_events }
  */
 async function extractOperationalFacts(rawContent, meta = {}) {
   const { sourceType = 'generic', scopeHints = {} } = meta;
 
-  const systemPrompt = `Você é um analista de inteligência operacional industrial. Sua tarefa é extrair fatos estruturados de textos e conversas.
+  const systemPrompt = `Você é um analista de inteligência operacional industrial. Extraia fatos E eventos corporativos de textos e conversas.
 
 REGRAS:
-1. Retorne APENAS um JSON válido (sem markdown, sem texto extra).
-2. Extraia fatos objetivos, verificáveis e úteis para operação.
-3. Identifique: tarefas implícitas, pendências, riscos, decisões, solicitações, urgência.
-4. Vincule a setor, máquina, linha, processo ou pessoa quando mencionado.
-5. Classifique prioridade: baixa, normal, alta, critica.
-6. Minimize ruído - não inclua fatos triviais ou irrelevantes.
-7. Respeite sigilo - não exponha dados pessoais sensíveis.
+1. Retorne APENAS um JSON válido (sem markdown, sem \`\`\`).
+2. Para TAREFAS: extraia responsável, ação, data e hora quando mencionados.
+3. Para TROCA DE PEÇA: equipamento, linha, peça.
+4. Para PARADA: equipamento ou linha.
+5. Para MANUTENÇÃO: equipamento, linha, problema, causa, solução, peça trocada.
+6. Use data/hora formato ISO ou YYYY-MM-DD e HH:MM.
 
-FORMATO DE RESPOSTA (JSON):
+FORMATO:
 {
-  "summary": "resumo do que aconteceu em 1-2 frases",
-  "facts": [
-    {
-      "fact_type": "pendencia|risco|decisao|solicitacao|falha|tarefa|informacao|observacao",
-      "content": "descrição objetiva do fato",
-      "scope_type": "user|sector|machine|line|process|org",
-      "scope_id": "identificador se houver",
-      "scope_label": "nome legível (ex: Linha 2, Máquina X)",
-      "priority": "baixa|normal|alta|critica",
-      "metadata": { "entities": [], "dates": [] }
-    }
-  ]
-}`;
+  "summary": "resumo",
+  "facts": [{ "fact_type": "pendencia|risco|decisao|solicitacao|falha|tarefa|informacao|observacao", "content": "...", "scope_type": "...", "scope_label": "...", "priority": "baixa|normal|alta|critica", "metadata": {} }],
+  "corporate_events": [{ "tipo_evento": "tarefa|manutencao|falha|troca_peca|parada_maquina|parada_linha|decisao|alerta", "descricao": "...", "equipamento": null, "linha": null, "usuario_responsavel": null, "data": null, "hora": null, "peca_trocada": null, "problema": null, "causa": null, "solucao": null }]
+}
+Inclua corporate_events APENAS quando houver evidência clara. Se não houver, retorne corporate_events: [].`;
 
-  const hints = Object.keys(scopeHints).length
-    ? `\nContexto conhecido: ${JSON.stringify(scopeHints)}`
-    : '';
+  const hints = Object.keys(scopeHints).length ? `\nContexto: ${JSON.stringify(scopeHints)}` : '';
   const userContent = `Fonte: ${sourceType}\n${hints}\n\nConteúdo:\n${(rawContent || '').slice(0, 8000)}`;
 
-  const raw = await analyze(systemPrompt, userContent, { max_tokens: 2048, timeout: 30000 });
+  const raw = await analyze(systemPrompt, userContent, { max_tokens: 3072, timeout: 35000 });
   if (!raw) return null;
 
   try {
@@ -124,9 +116,15 @@ FORMATO DE RESPOSTA (JSON):
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[0]);
     if (!parsed.facts || !Array.isArray(parsed.facts)) return null;
+
+    const corporateEvents = Array.isArray(parsed.corporate_events)
+      ? parsed.corporate_events.filter((e) => e?.tipo_evento && CORPORATE_EVENT_TYPES.includes(e.tipo_evento))
+      : [];
+
     return {
       summary: parsed.summary || '',
-      facts: parsed.facts.filter((f) => f?.content && f?.fact_type)
+      facts: parsed.facts.filter((f) => f?.content && f?.fact_type),
+      corporate_events: corporateEvents
     };
   } catch {
     return null;

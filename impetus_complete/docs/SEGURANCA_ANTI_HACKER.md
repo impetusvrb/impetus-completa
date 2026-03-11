@@ -41,12 +41,12 @@ Implementações de segurança para reduzir risco de hacking, exposição de dad
 ### Dados Sensíveis em Repouso (AES-256-GCM)
 - **Módulo:** `backend/src/utils/crypto.js`
 - **Algoritmo:** AES-256-GCM (autenticado).
-- **Uso:** Tokens Z-API (`instance_token`, `client_token`).
+- **Uso:** Secrets sensíveis (legado; tokens Z-API removidos).
 - **Variável de ambiente:** `ENCRYPTION_KEY` (mín. 32 caracteres).
 
 **Quando `ENCRYPTION_KEY` está definida:**
 - Salvamento: tokens são criptografados antes de gravar.
-- Leitura: tokens são descriptografados ao buscar (zapi service).
+- Leitura: tokens são descriptografados ao buscar (serviço de mensagens).
 - Dados antigos sem criptografia: continuam legíveis (backward compatible).
 
 **Gerar chave:**
@@ -120,7 +120,7 @@ npm audit fix --force  # Usar com cautela – pode quebrar compatibilidade
 - [x] requireAuth em rotas sensíveis
 - [x] Filtro por company_id (multi-tenant)
 - [x] BCrypt 12 rounds para senhas
-- [x] AES-256-GCM para tokens Z-API (quando ENCRYPTION_KEY definida)
+- [x] AES-256-GCM para secrets (quando ENCRYPTION_KEY definida; Z-API removido)
 - [x] .gitignore para .env
 - [x] Rate limiting (auth, API global)
 - [x] Helmet para headers de segurança
@@ -137,6 +137,6 @@ npm audit fix --force  # Usar com cautela – pode quebrar compatibilidade
 | `backend/src/utils/crypto.js` | Novo – AES-256-GCM |
 | `backend/src/routes/admin/logs.js` | safeInteger para days, SQL parametrizado |
 | `backend/src/routes/diag_report.js` | requireAuth, escapeHtml, isValidUUID |
-| `backend/src/services/zapi.js` | Criptografia opcional de tokens |
-| `backend/src/routes/admin/settings.js` | Criptografia ao salvar Z-API |
+| `backend/src/utils/crypto.js` | Criptografia opcional de secrets |
+| `backend/src/routes/admin/settings.js` | Configurações gerais |
 | `backend/src/app.js` | Rota diag_report com requireAuth |

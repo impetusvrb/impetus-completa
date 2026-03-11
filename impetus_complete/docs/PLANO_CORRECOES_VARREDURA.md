@@ -59,7 +59,7 @@ Adicionada validação `isValidUUID()` antes de queries em:
 
 ### 2.4 Erro em catch (`admin/settings`)
 
-**Problema:** GET `/whatsapp-contacts` retornava `{ ok: true, contacts: [] }` em caso de erro, sem log.
+**Problema:** GET `/admin/settings/notification-contacts` (Contatos para Notificações) retornava `{ ok: true, contacts: [] }` em caso de erro, sem log.
 
 **Correção:** Log do erro e retorno `{ ok: false, error: '...', contacts: [] }`.
 
@@ -113,7 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id);
 
 ## 6. Próximos passos recomendados
 
-1. **Webhooks:** Validar assinatura/token conforme documentação Z-API
+1. **Webhooks:** Validar assinatura/token conforme documentação do canal (App Impetus)
 2. **Admin users:** Validar `hierarchy_level` com `safeInteger` ou Zod
 3. **CORS:** Restringir origens em produção (`FRONTEND_URL`)
 4. **Revisar** `req.file?.path` em uploads antes de uso

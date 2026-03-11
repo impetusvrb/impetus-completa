@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-Este plano cobre o que falta para deixar o fluxo Z-API + IA totalmente funcional e o OCR habilitado para PDFs escaneados.
+Este plano cobre o que falta para deixar o fluxo de mensagens (App Impetus) + IA totalmente funcional e o OCR habilitado para PDFs escaneados.
 
 ---
 
@@ -77,8 +77,7 @@ No `.env` do backend:
 # OCR para PDFs escaneados
 OCR_ENABLED=true
 
-# Z-API (ajuste conforme sua instalação)
-# ZAPI_DEFAULT_URL, ZAPI_INSTANCE_ID, etc.
+# Canal de mensagens: App Impetus (sem config extra)
 ```
 
 ### 3.2 Teste do webhook genérico (`POST /api/webhook`)
@@ -92,9 +91,9 @@ curl -X POST http://localhost:4000/api/webhook -H "Content-Type: application/jso
 - Mensagem salva em `messages`
 - Se houver `companyId` no payload, `processIncomingMessage` é chamado
 
-### 3.3 Teste do webhook Z-API (`POST /api/webhook/zapi`)
+### 3.3 Teste do canal App Impetus (`POST /api/app-impetus/messages`)
 
-Pré-requisito: configurar `instance_id` em `zapi_configurations` para alguma empresa.
+Pré-requisito: App Impetus conectado ao backend.
 
 Exemplo de payload:
 
@@ -124,13 +123,13 @@ Exemplo de payload:
 
 ---
 
-## Fase 4: Opcional – Resposta automática via Z-API
+## Fase 4: Opcional – Resposta automática
 
-Quando uma tarefa ou diagnóstico for criado a partir de uma mensagem WhatsApp, enviar resposta automática ao remetente.
+Quando uma tarefa ou diagnóstico for criado a partir de uma mensagem do App, enviar resposta automática ao remetente.
 
 **Implementação sugerida:**
 - Em `ai.processIncomingMessage`, ao retornar `taskId` ou `diagnosticId`
-- Chamar `zapiService.sendTextMessage(companyId, senderPhone, mensagem)` com mensagem de confirmação
+- Chamar `appImpetusService.sendMessage(companyId, sender, mensagem)` com mensagem de confirmação
 - Garantir que o `companyId` e o telefone de destino estejam corretos
 
 ---
@@ -143,15 +142,15 @@ Quando uma tarefa ou diagnóstico for criado a partir de uma mensagem WhatsApp, 
 - [ ] Banco com schema correto (ou `complete_schema.sql` aplicado)
 - [ ] `.env` com `OCR_ENABLED=true` (se for usar OCR)
 - [ ] Webhook genérico testado com sucesso
-- [ ] Webhook Z-API testado com sucesso
+- [ ] Canal App Impetus testado com sucesso
 - [ ] (Opcional) OCR testado com PDF escaneado
-- [ ] (Opcional) Resposta automática via Z-API implementada
+- [ ] (Opcional) Resposta automática implementada
 
 ---
 
 ## Ordem sugerida de execução
 
 1. **Fase 1** (ambiente) – base para o restante
-2. **Fase 2** (banco) – necessário para os webhooks Z-API
+2. **Fase 2** (banco) – necessário para o canal de mensagens
 3. **Fase 3** (configuração e testes) – validação do fluxo completo
 4. **Fase 4** (opcional) – apenas se for requisito do negócio

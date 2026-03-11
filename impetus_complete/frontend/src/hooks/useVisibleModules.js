@@ -16,6 +16,8 @@ const PATH_TO_MODULE = {
   '/app/monitored-points': 'monitored_points',
   '/app/settings': 'settings',
   '/app/insights': 'operational',
+  '/app/cerebro-operacional': 'operational',
+  '/app/centro-operacoes-industrial': 'operational',
   '/chat': 'chat'
 };
 

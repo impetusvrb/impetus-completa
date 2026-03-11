@@ -36,7 +36,7 @@ OPENAI_API_KEY=sk-...
 ## O que funciona sem configurar
 
 - **Webhook genérico** – salva em `messages`, classifica, cria tarefas
-- **Webhook Z-API** – requer `zapi_configurations` preenchido e `instanceId` no payload
+- **App Impetus** – canal de mensagens via `POST /api/app-impetus/messages`
 - **Licença** – com `LICENSE_VALIDATION_ENABLED=false`, todas as rotas passam
 - **IA** – sem `OPENAI_API_KEY`, usa classificação por palavras-chave e respostas fallback
 - **OCR** – sem `OCR_ENABLED=true` e ImageMagick, só usa pdf-parse
@@ -52,7 +52,7 @@ OPENAI_API_KEY=sk-...
 | Banco não conecta | Erro ao acessar qualquer rota | Verificar DB_HOST, senha, serviço Postgres |
 | Schema não aplicado | `relation "communications" does not exist` | Executar `complete_schema.sql` |
 | TPM sem migration | `relation "tpm_incidents" does not exist` ao preencher form | Rodar `npm run tpm-migrate` |
-| Z-API sem config | Webhook retorna "Instance not configured" | Inserir em `zapi_configurations` |
+| App Impetus offline | Mensagens não chegam | Verificar conectividade do App com o backend |
 | Licença ativa sem chave | 403 em rotas (exceto webhook) | `LICENSE_VALIDATION_ENABLED=false` ou configurar LICENSE_KEY |
 
 ---

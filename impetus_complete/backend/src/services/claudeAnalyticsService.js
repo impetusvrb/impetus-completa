@@ -5,8 +5,10 @@
  */
 const claudeService = require('./claudeService');
 const operationalMemory = require('./operationalMemoryService');
+const corporateMemory = require('./corporateMemoryService');
 
 const OPERATIONAL_MEMORY_ENABLED = process.env.OPERATIONAL_MEMORY_ENABLED !== 'false';
+const CORPORATE_MEMORY_ENABLED = process.env.CORPORATE_MEMORY_ENABLED !== 'false';
 
 /** Throttle por empresa: última ingestão por companyId */
 const lastIngestByCompany = new Map();
@@ -35,7 +37,7 @@ function ingestAsync(rawContent, opts = {}) {
     scopeHints = {}
   } = opts;
 
-  if (!OPERATIONAL_MEMORY_ENABLED || !companyId || !rawContent) return;
+  if ((!OPERATIONAL_MEMORY_ENABLED && !CORPORATE_MEMORY_ENABLED) || !companyId || !rawContent) return;
 
   setImmediate(() => {
     const run = async () => {
@@ -49,17 +51,31 @@ function ingestAsync(rawContent, opts = {}) {
           sourceType,
           scopeHints
         });
-        if (!extracted || !extracted.facts?.length) return;
+        if (!extracted) return;
 
-        const { inserted } = await operationalMemory.storeFacts({
-          companyId,
-          facts: extracted.facts,
-          sourceType,
-          sourceId,
-          sourceMetadata: { summary: extracted.summary, ...sourceMetadata }
-        });
-        if (inserted > 0) {
-          console.info('[CLAUDE_ANALYTICS] Ingested', inserted, 'facts from', sourceType);
+        if (OPERATIONAL_MEMORY_ENABLED && extracted.facts?.length) {
+          const { inserted } = await operationalMemory.storeFacts({
+            companyId,
+            facts: extracted.facts,
+            sourceType,
+            sourceId,
+            sourceMetadata: { summary: extracted.summary, ...sourceMetadata }
+          });
+          if (inserted > 0) console.info('[CLAUDE_ANALYTICS] Ingested', inserted, 'facts from', sourceType);
+        }
+
+        if (CORPORATE_MEMORY_ENABLED && extracted.corporate_events?.length) {
+          const r = await corporateMemory.persistCorporateEvents({
+            companyId,
+            corporateEvents: extracted.corporate_events,
+            sourceType,
+            sourceId,
+            sourceMetadata: { summary: extracted.summary, ...sourceMetadata, conversationId: sourceMetadata.conversationId || sourceId },
+            conversationId: sourceMetadata.conversationId || sourceId
+          });
+          if (r.kmInserted + r.tasksCreated > 0) {
+            console.info('[CLAUDE_ANALYTICS] Corporate memory:', r.kmInserted, 'events,', r.tasksCreated, 'tasks');
+          }
         }
       } catch (err) {
         console.warn('[CLAUDE_ANALYTICS] ingest error:', err.message);
@@ -98,7 +114,8 @@ function ingestInternalChat(messages, companyId, conversationId) {
   ingestAsync(rawContent, {
     companyId,
     sourceType: SOURCE_TYPES.INTERNAL_CHAT,
-    sourceId: conversationId
+    sourceId: conversationId,
+    sourceMetadata: { conversationId }
   });
 }
 
@@ -176,28 +193,55 @@ function ingestOrdemServico(os, companyId) {
  */
 async function getContextForChat(opts) {
   const { companyId, userId, query, req } = opts;
-  if (!OPERATIONAL_MEMORY_ENABLED || !companyId) return null;
+  if (!companyId) return null;
+
+  const blocks = [];
+  const q = (query || '').trim();
 
   try {
-    const facts = await operationalMemory.getRelevantContext({
-      companyId,
-      userId,
-      query: (query || '').trim(),
-      limit: 18
-    });
-    if (!facts.length) return null;
+    if (OPERATIONAL_MEMORY_ENABLED) {
+      const facts = await operationalMemory.getRelevantContext({
+        companyId,
+        userId,
+        query: q,
+        limit: 18
+      });
+      if (facts.length > 0) {
+        await operationalMemory.logAudit({
+          companyId,
+          userId,
+          action: 'query_context',
+          scopeFilter: {},
+          factsCount: facts.length,
+          req
+        });
+        const block = await claudeService.buildMemoryContextForChat(query, facts);
+        if (block) blocks.push(block);
+      }
+    }
 
-    await operationalMemory.logAudit({
-      companyId,
-      userId,
-      action: 'query_context',
-      scopeFilter: {},
-      factsCount: facts.length,
-      req
-    });
+    if (CORPORATE_MEMORY_ENABLED && q) {
+      const [kmRows, casosRows] = await Promise.all([
+        corporateMemory.getRelevantContext({ companyId, query: q, limit: 10 }),
+        corporateMemory.getSimilarMaintenanceCases({ companyId, problema: q, limit: 5 })
+      ]);
+      const corporateLines = [];
+      if (kmRows.length) {
+        corporateLines.push('### Histórico operacional:');
+        kmRows.forEach((r) => {
+          corporateLines.push(`- [${r.tipo_evento}] ${r.descricao}${r.equipamento ? ` (${r.equipamento})` : ''}${r.linha ? ` linha ${r.linha}` : ''} - ${r.data ? new Date(r.data).toLocaleDateString('pt-BR') : ''}`);
+        });
+      }
+      if (casosRows.length) {
+        corporateLines.push('\n### Casos de manutenção similares:');
+        casosRows.forEach((c) => {
+          corporateLines.push(`- ${c.equipamento || ''} linha ${c.linha || '-'}: ${c.problema} → Solução: ${c.solucao || 'N/A'}${c.peca_trocada ? ` (peça: ${c.peca_trocada})` : ''}`);
+        });
+      }
+      if (corporateLines.length) blocks.push(`## Memória corporativa:\n${corporateLines.join('\n')}`);
+    }
 
-    const block = await claudeService.buildMemoryContextForChat(query, facts);
-    return block;
+    return blocks.length ? blocks.join('\n\n') : null;
   } catch (err) {
     console.warn('[CLAUDE_ANALYTICS] getContextForChat:', err.message);
     return null;

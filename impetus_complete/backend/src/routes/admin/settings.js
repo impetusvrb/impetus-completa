@@ -575,10 +575,10 @@ router.put('/notifications',
 });
 
 // ============================================================================
-// CONTATOS WHATSAPP (para IA e comunicação)
+// CONTATOS PARA NOTIFICAÇÕES (TPM, IA, Modo Executivo)
 // ============================================================================
 
-router.get('/whatsapp-contacts',
+router.get('/notification-contacts',
   requireAuth,
   async (req, res) => {
     try {
@@ -589,13 +589,13 @@ router.get('/whatsapp-contacts',
       const contacts = r.rows[0]?.contacts || [];
       res.json({ ok: true, contacts: Array.isArray(contacts) ? contacts : [] });
     } catch (err) {
-      console.error('[ADMIN_GET_WHATSAPP_CONTACTS_ERROR]', err);
+      console.error('[ADMIN_GET_NOTIFICATION_CONTACTS_ERROR]', err);
       res.status(500).json({ ok: false, error: 'Erro ao buscar contatos', contacts: [] });
     }
   }
 );
 
-router.post('/whatsapp-contacts',
+router.post('/notification-contacts',
   requireAuth,
   async (req, res) => {
     try {
@@ -616,13 +616,13 @@ router.post('/whatsapp-contacts',
       `, [JSON.stringify(contacts), req.user.company_id]);
       res.status(201).json({ ok: true, contact: novo, contacts });
     } catch (err) {
-      console.error('[ADMIN_ADD_WHATSAPP_CONTACT]', err);
+      console.error('[ADMIN_ADD_NOTIFICATION_CONTACT]', err);
       res.status(500).json({ ok: false, error: 'Erro ao adicionar contato' });
     }
   }
 );
 
-router.delete('/whatsapp-contacts/:id',
+router.delete('/notification-contacts/:id',
   requireAuth,
   async (req, res) => {
     try {

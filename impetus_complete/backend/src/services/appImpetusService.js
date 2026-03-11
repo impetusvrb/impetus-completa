@@ -1,6 +1,6 @@
 /**
  * SERVIÇO APP IMPETUS - Canal de Comunicação Unificado
- * Substitui Z-API/WhatsApp: envia para outbox, processa mensagens recebidas do App
+ * Canal de mensagens: envia para outbox, processa mensagens recebidas do App
  * Todas as funcionalidades (CEO, TPM, IA Org, tarefas, diagnósticos) usam este canal
  */
 
@@ -52,7 +52,7 @@ async function sendMessage(companyId, phone, message, options = {}) {
 }
 
 /**
- * Envia resposta automática (equivalente a sendAutoReply do Z-API)
+ * Envia resposta automática ao remetente
  * Sem rate limit externo - o App controla a frequência
  */
 async function sendAutoReply(companyId, phone, message) {
@@ -61,7 +61,7 @@ async function sendAutoReply(companyId, phone, message) {
 
 /**
  * Processa mensagem recebida do App Impetus
- * Mesma lógica do processWebhook Z-API, com source='app_impetus'
+ * Processamento equivalente ao webhook legado, com source='app_impetus'
  * @param {string} companyId - UUID da empresa
  * @param {object} payload - { sender_user_id?, sender_phone, text, message_type?, media_url?, metadata? }
  */

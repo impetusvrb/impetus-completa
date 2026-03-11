@@ -6,6 +6,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { AdminDashboard, DashboardMecanico, ExecutiveDashboard } from '../features/dashboard';
+import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -14,11 +15,10 @@ export default function Dashboard() {
 
   if (user?.role === 'admin') return <Navigate to="/app/chatbot" replace />;
   if (user?.role === 'ceo') {
-    return <ExecutiveDashboard />;
+    return <ModuleErrorBoundary moduleName="Visão Executiva"><ExecutiveDashboard /></ModuleErrorBoundary>;
   }
   if ((user?.hierarchy_level ?? 5) <= 1) {
-    return <AdminDashboard />;
+    return <ModuleErrorBoundary moduleName="Dashboard Admin"><AdminDashboard /></ModuleErrorBoundary>;
   }
-  // DashboardMecanico exibe camada de manutenção quando is_maintenance (API) e mantém base DashboardInteligente
-  return <DashboardMecanico />;
+  return <ModuleErrorBoundary moduleName="Dashboard"><DashboardMecanico /></ModuleErrorBoundary>;
 }

@@ -13,6 +13,13 @@ CREATE TABLE IF NOT EXISTS plans (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Garantir coluna updated_at em plans (compatibilidade com versões antigas)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='plans' AND column_name='updated_at') THEN
+    ALTER TABLE plans ADD COLUMN updated_at TIMESTAMPTZ DEFAULT now();
+  END IF;
+END $$;
+
 -- Seed planos padrão (compatíveis com plan_type existente)
 INSERT INTO plans (name, max_whatsapp_instances, price) VALUES
   ('essencial', 1, 199),

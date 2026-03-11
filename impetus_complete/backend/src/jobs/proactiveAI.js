@@ -24,7 +24,7 @@ async function runFailurePatternCheck() {
         const alertId = ins.rows[0]?.id;
 
         const recipients = await db.query(`
-          SELECT whatsapp_number FROM users
+          SELECT whatsapp_number, phone FROM users
           WHERE company_id = $1 AND active = true AND (whatsapp_number IS NOT NULL OR phone IS NOT NULL)
           AND hierarchy_level <= 4
           LIMIT 15

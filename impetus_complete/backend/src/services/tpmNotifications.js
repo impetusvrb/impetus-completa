@@ -12,12 +12,27 @@ async function getNotifyRecipients(companyId) {
       LIMIT 10
     `, [companyId]);
     if (r.rows.length > 0) return r.rows;
+
     r = await db.query(`
       SELECT id, name, phone, role FROM whatsapp_contacts
       WHERE company_id = $1 AND active = true AND phone IS NOT NULL
       LIMIT 5
     `, [companyId]);
-    return r.rows || [];
+    if (r.rows.length > 0) return r.rows;
+
+    // Fallback: contatos em Configurações (config.whatsapp_contacts)
+    const configRow = await db.query(`
+      SELECT config->'whatsapp_contacts' as contacts FROM companies WHERE id = $1
+    `, [companyId]);
+    const contacts = configRow.rows[0]?.contacts;
+    if (Array.isArray(contacts) && contacts.length > 0) {
+      return contacts
+        .filter(c => c && (c.phone || '').replace(/\D/g, '').length >= 10)
+        .map(c => ({ id: c.id, name: c.name || 'Contato', phone: c.phone, whatsapp_number: c.phone }))
+        .slice(0, 10);
+    }
+
+    return [];
   } catch {
     return [];
   }
@@ -50,14 +65,14 @@ async function notifyTpmIncident(companyId, incident) {
       try {
         await require('./appImpetusService').sendMessage(companyId, phone, msg, { originatedFrom: 'tpm' });
       } catch (err) {
-        console.warn('[TPM_NOTIFY] WhatsApp falhou para', rec.name, err.message);
+        console.warn('[TPM_NOTIFY] Envio falhou para', rec.name, err.message);
       }
     }
   }
   try {
-  await db.query(`
-    INSERT INTO alerts (company_id, type, severity, title, description, metadata)
-    VALUES ($1, 'tpm_incident', 'info', $2, $3, $4)
+    await db.query(`
+      INSERT INTO alerts (company_id, type, severity, title, description, metadata)
+      VALUES ($1, 'tpm_incident', 'info', $2, $3, $4)
     `, [
       companyId,
       `TPM: ${incident.equipment_code || 'Equipamento'} - ${incident.incident_date || ''}`,

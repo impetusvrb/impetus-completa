@@ -1,9 +1,14 @@
 const OpenAI = require('openai');
 const chatService = require('./chatService');
 const AI_USER_ID = chatService.AI_USER_ID;
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 async function handleAIMessage(conversationId, triggerMessage, io) {
+  if (!openai) {
+    const fallback = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: 'IA não configurada. Configure OPENAI_API_KEY para habilitar respostas automáticas.' });
+    if (io) io.to(conversationId).emit('new_message', fallback);
+    return fallback;
+  }
   try {
     const history = await chatService.getMessages(conversationId, AI_USER_ID, 30);
     const msgs = [

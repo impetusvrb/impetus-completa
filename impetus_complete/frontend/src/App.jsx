@@ -40,6 +40,10 @@ const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
+const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
+const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
+const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 
 function needSetup() {
@@ -138,6 +142,11 @@ export default function App() {
             <SetupEmpresa />
           </PrivateRoute>
         } />
+        <Route path="/validacao-cargo" element={
+          <PrivateRoute>
+            <RoleVerificationPage />
+          </PrivateRoute>
+        } />
         
         {/* Rotas protegidas */}
         <Route path="/app/proacao" element={
@@ -177,6 +186,12 @@ export default function App() {
         <Route path="/app/insights" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
         } />
+        <Route path="/app/cerebro-operacional" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-operacoes-industrial" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
@@ -196,6 +211,7 @@ export default function App() {
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />

@@ -27,7 +27,9 @@ import {
   Mail,
   ExternalLink,
   Layers,
-  FileEdit
+  FileEdit,
+  Cpu,
+  Shield
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -111,14 +113,18 @@ export default function Layout({ children }) {
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
+      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
+      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
@@ -128,10 +134,13 @@ export default function Layout({ children }) {
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     gerente: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
+      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
@@ -145,6 +154,8 @@ export default function Layout({ children }) {
     ],
     coordenador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
+      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
@@ -157,6 +168,8 @@ export default function Layout({ children }) {
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     supervisor: [
+      { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
+      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/monitored-points', icon: MapPin, label: 'Pontos Monitorados com IA' },

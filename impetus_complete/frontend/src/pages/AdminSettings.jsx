@@ -34,18 +34,21 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
+const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
+  const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+  const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
-    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && activeTab !== tabFromUrl) {
-      setActiveTab(tabFromUrl);
+    const effective = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+    if (effective && VALID_TABS.includes(effective) && activeTab !== effective) {
+      setActiveTab(effective);
     }
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -73,8 +76,8 @@ export default function AdminSettings() {
       } else if (activeTab === 'notifications') {
         const r = await adminSettings.getNotificationConfig();
         setNotifConfig(r.data.config || notifConfig);
-      } else if (activeTab === 'whatsapp-contacts') {
-        const r = await adminSettings.listWhatsappContacts();
+      } else if (activeTab === 'notification-contacts') {
+        const r = await adminSettings.listNotificationContacts();
         setWhatsappContacts(r.data?.contacts || []);
       } else if (activeTab === 'dashboard-visibility') {
         const r = await adminSettings.getDashboardVisibilityConfigs();
@@ -188,9 +191,9 @@ export default function AdminSettings() {
     }
     try {
       setSaving(true);
-      const r = await adminSettings.addWhatsappContact({ name, phone, role, sector });
+      const r = await adminSettings.addNotificationContact({ name, phone, role, sector });
       setWhatsappContacts(r.data?.contacts || []);
-      notify.success('Contato WhatsApp adicionado! A IA poderá usá-lo para contato com colaboradores.');
+      notify.success('Contato adicionado! A IA poderá usá-lo para notificações.');
       form.reset();
     } catch (err) {
       notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao adicionar');
@@ -202,7 +205,7 @@ export default function AdminSettings() {
   const handleRemoveWhatsappContact = async (id) => {
     try {
       setSaving(true);
-      const r = await adminSettings.deleteWhatsappContact(id);
+      const r = await adminSettings.deleteNotificationContact(id);
       setWhatsappContacts(r.data?.contacts || []);
       notify.success('Contato removido');
     } catch (err) {
@@ -251,7 +254,7 @@ export default function AdminSettings() {
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
-          <button className={`stab ${activeTab === 'whatsapp-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('whatsapp-contacts')}><Phone size={18} /> Contatos WhatsApp</button>
+          <button className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
           <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
           {canConfigDashboard && (
             <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
@@ -356,10 +359,10 @@ export default function AdminSettings() {
             </div>
           )}
 
-          {activeTab === 'whatsapp-contacts' && (
+          {activeTab === 'notification-contacts' && (
             <div className="settings-panel">
-              <h3>Contatos WhatsApp</h3>
-              <p className="form-hint">Contatos que a IA pode usar para notificações e comunicações internas.</p>
+              <h3>Contatos para Notificações</h3>
+              <p className="form-hint">Contatos que a IA pode usar para notificações (TPM, Modo Executivo, alertas).</p>
               <form onSubmit={handleAddWhatsappContact}>
                 <input type="text" name="name" placeholder="Nome" className="form-input" required />
                 <input type="text" name="phone" placeholder="Telefone" className="form-input" required />
@@ -381,7 +384,7 @@ export default function AdminSettings() {
               {loading ? <p>Carregando...</p> : (
                 <>
                   <CheckboxField label="Email" name="email_enabled" checked={notifConfig.email_enabled} onChange={handleNotifChange} />
-                  <CheckboxField label="WhatsApp" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
+                  <CheckboxField label="Notificações no app" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
                   <CheckboxField label="Alertas de falha" name="failure_alerts" checked={notifConfig.failure_alerts} onChange={handleNotifChange} />
                   <div className="panel-actions">
                     <button className="btn btn-primary" onClick={handleSaveNotifications} disabled={saving}>Salvar</button>

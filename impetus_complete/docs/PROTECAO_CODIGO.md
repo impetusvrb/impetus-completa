@@ -97,7 +97,7 @@ O `.env.example` contém placeholders para:
 
 - Banco de dados (`DB_*`, `DATABASE_URL`)
 - OpenAI (`OPENAI_API_KEY`)
-- Z-API (`ZAPI_*`)
+- App Impetus (variáveis de canal); ZAPI_* removido
 - Licença (`LICENSE_*`)
 - Salt e JWT
 - SMTP, Sentry, Redis, etc.

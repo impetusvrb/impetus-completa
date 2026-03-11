@@ -17,7 +17,7 @@
 
 ### ✅ Frontend (`frontend/src/chat-module/`)
 
-- **ChatPage** estilo WhatsApp (dark mode industrial)
+- **ChatPage** estilo chat (dark mode industrial)
 - **Rota isolada** `/chat` (sem Layout do sistema)
 - **Socket.io** para mensagens em tempo real
 - **Indicação "digitando..."**

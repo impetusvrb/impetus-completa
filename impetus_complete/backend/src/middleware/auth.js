@@ -8,7 +8,11 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { logAction } = require('./audit');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'impetus_super_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'impetus_super_secret_key');
+if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
+  console.error('[AUTH] JWT_SECRET obrigatório em produção. Configure em .env');
+  process.exit(1);
+}
 
 /**
  * Gera token de sessão
@@ -52,7 +56,7 @@ async function validateSession(token) {
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
-             u.temporary_password_expires_at
+             u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.token = $1 
@@ -93,7 +97,10 @@ async function validateSession(token) {
       sessionId: session.session_id,
       is_first_access: session.is_first_access || false,
       must_change_password: session.must_change_password || false,
-      temporary_password_expires_at: session.temporary_password_expires_at
+      temporary_password_expires_at: session.temporary_password_expires_at,
+      role_verified: session.role_verified === true,
+      role_verification_status: session.role_verification_status || 'pending',
+      is_company_root: session.is_company_root === true
     };
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
@@ -127,7 +134,8 @@ async function validateJWTAndLoadUser(token) {
     const r = await db.query(`
       SELECT id, name, email, role, company_id, department_id, hierarchy_level,
              supervisor_id, area, job_title, department, permissions, active,
-             is_first_access, must_change_password, temporary_password_expires_at
+             is_first_access, must_change_password, temporary_password_expires_at,
+             role_verified, role_verification_status, is_company_root
       FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
     `, [decoded.id]);
 
@@ -149,7 +157,10 @@ async function validateJWTAndLoadUser(token) {
       sessionId: null,
       is_first_access: u.is_first_access || false,
       must_change_password: u.must_change_password || false,
-      temporary_password_expires_at: u.temporary_password_expires_at
+      temporary_password_expires_at: u.temporary_password_expires_at,
+      role_verified: u.role_verified === true,
+      role_verification_status: u.role_verification_status || 'pending',
+      is_company_root: u.is_company_root === true
     };
   } catch {
     return null;
@@ -336,6 +347,7 @@ function verifyPassword(password, hash) {
 }
 
 module.exports = {
+  JWT_SECRET,
   generateToken,
   createSession,
   validateSession,

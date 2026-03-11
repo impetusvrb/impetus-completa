@@ -1,18 +1,16 @@
 /**
- * Alertas PLC - IA 1 (interativa) lê os alertas para exibir no dashboard
+ * Alertas PLC - Integração Industrial
+ * Acesso: visualização (admin, diretor, supervisor, engenharia, manutenção)
  */
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth, requireHierarchy } = require('../middleware/auth');
+const { requireIndustrialView, requireIndustrialAdmin } = require('../middleware/industrialIntegrationAccess');
 const { isValidUUID } = require('../utils/security');
 const { runCollectorCycle } = require('../services/plcCollector');
 
-/**
- * GET /api/plc-alerts
- * Lista alertas não reconhecidos para a empresa (gestores, supervisores)
- */
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireIndustrialView, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const acknowledged = req.query.acknowledged === 'true';
@@ -38,7 +36,7 @@ router.get('/', requireAuth, async (req, res) => {
  * POST /api/plc-alerts/run-collector
  * Dispara ciclo de coleta manualmente (gestores) - deve vir ANTES de /:id
  */
-router.post('/run-collector', requireAuth, requireHierarchy(2), async (req, res) => {
+router.post('/run-collector', requireAuth, requireIndustrialAdmin, async (req, res) => {
   try {
     await runCollectorCycle(req.user.company_id);
     res.json({ ok: true, message: 'Coleta executada' });
@@ -51,7 +49,7 @@ router.post('/run-collector', requireAuth, requireHierarchy(2), async (req, res)
  * POST /api/plc-alerts/:id/acknowledge
  * Reconhecer alerta (gestor)
  */
-router.post('/:id/acknowledge', requireAuth, async (req, res) => {
+router.post('/:id/acknowledge', requireAuth, requireIndustrialView, async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
     await db.query(`

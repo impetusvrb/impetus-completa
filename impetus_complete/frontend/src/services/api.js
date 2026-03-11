@@ -73,6 +73,14 @@ function handleFinalError(error) {
   } else if (error.response?.status === 403 && error.response?.data?.code === 'COMPANY_INACTIVE') {
     error.apiMessage = error.response?.data?.error || 'Assinatura em atraso. Regularize o pagamento para continuar.';
     window.location.href = error.response?.data?.redirect || '/subscription-expired';
+  } else if (error.response?.status === 403 && /^INDUSTRIAL_/.test(error.response?.data?.code || '')) {
+    error.apiMessage = error.response?.data?.error || 'Permissão insuficiente para esta ação no módulo Integração Industrial.';
+  } else if (error.response?.status === 403 && error.response?.data?.code === 'ROLE_VERIFICATION_REQUIRED') {
+    error.apiMessage = error.response?.data?.error || 'Valide seu cargo para acessar dados estratégicos.';
+    error.needsRoleVerification = true;
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/validacao-cargo')) {
+      window.location.href = '/validacao-cargo';
+    }
   } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     error.apiMessage = 'Tempo esgotado. Verifique sua conexão e tente novamente.';
   } else if (error.code === 'ERR_NETWORK') {
@@ -122,7 +130,7 @@ export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
 
-// App Impetus - Canal de comunicação unificado (substitui Z-API/WhatsApp)
+// App Impetus - Canal de comunicação unificado
 export const appImpetus = {
   getStatus: () => api.get('/app-impetus/status'),
   getOutbox: (since) => api.get('/app-impetus/outbox', { params: since ? { since } : {} }),
@@ -159,6 +167,24 @@ export const auth = {
   
   getSessions: () => 
     api.get('/auth/sessions')
+};
+
+// ============================================================================
+// VALIDAÇÃO HIERÁRQUICA DE CARGOS
+// ============================================================================
+
+export const roleVerification = {
+  getStatus: () => api.get('/role-verification/status'),
+  checkEmail: () => api.get('/role-verification/check-email'),
+  verifyByEmail: () => api.post('/role-verification/verify-email'),
+  requestApproval: () => api.post('/role-verification/request-approval'),
+  getPendingApprovals: () => api.get('/role-verification/pending-approvals'),
+  approveRequest: (requestId, approved, rejectionReason) =>
+    api.post(`/role-verification/approve/${requestId}`, { approved, rejection_reason: rejectionReason }),
+  uploadDocument: (formData) => api.post('/role-verification/upload-document', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getPanel: () => api.get('/role-verification/panel')
 };
 
 // ============================================================================
@@ -209,6 +235,10 @@ export const dashboard = {
     api.post('/dashboard/chat', { message, history }),
   chatWithHeader: (message, history = [], headers = {}) =>
     api.post('/dashboard/chat', { message, history }, { headers }),
+  chatMultimodal: (payload) =>
+    api.post('/dashboard/chat-multimodal', payload),
+  uploadChatFile: (formData) =>
+    api.post('/dashboard/chat/upload-file', formData),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),
@@ -234,6 +264,31 @@ export const dashboard = {
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
     getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
+  },
+
+  // Cérebro Operacional - Painel de Inteligência Operacional
+  operationalBrain: {
+    getSummary: (params) => api.get('/dashboard/operational-brain/summary', { params }),
+    getKnowledgeMap: () => api.get('/dashboard/operational-brain/knowledge-map'),
+    getInsights: (params) => api.get('/dashboard/operational-brain/insights', { params }),
+    markInsightRead: (id) => api.post(`/dashboard/operational-brain/insights/${id}/read`),
+    getAlerts: (params) => api.get('/dashboard/operational-brain/alerts', { params }),
+    resolveAlert: (id) => api.post(`/dashboard/operational-brain/alerts/${id}/resolve`),
+    getTimeline: (params) => api.get('/dashboard/operational-brain/timeline', { params }),
+    checkAlerts: () => api.post('/dashboard/operational-brain/check-alerts')
+  },
+
+  industrial: {
+    getStatus: () => api.get('/dashboard/industrial/status'),
+    getEvents: (params) => api.get('/dashboard/industrial/events', { params }),
+    getProfiles: () => api.get('/dashboard/industrial/profiles'),
+    getAutomation: () => api.get('/dashboard/industrial/automation'),
+    setAutomation: (mode) => api.post('/dashboard/industrial/automation', { mode }),
+    sendCommand: (data) => api.post('/dashboard/industrial/command', data),
+    getMachines: () => api.get('/dashboard/industrial/machines'),
+    addMachine: (data) => api.post('/dashboard/industrial/machines', data),
+    updateMachine: (id, data) => api.put(`/dashboard/industrial/machines/${id}`, data),
+    deleteMachine: (id) => api.delete(`/dashboard/industrial/machines/${id}`)
   }
 };
 
@@ -464,14 +519,14 @@ export const adminSettings = {
     api.put('/admin/settings/notifications', config),
 
   // Contatos WhatsApp
-  listWhatsappContacts: () => 
-    api.get('/admin/settings/whatsapp-contacts'),
+  listNotificationContacts: () => 
+    api.get('/admin/settings/notification-contacts'),
   
-  addWhatsappContact: (data) => 
-    api.post('/admin/settings/whatsapp-contacts', data),
+  addNotificationContact: (data) => 
+    api.post('/admin/settings/notification-contacts', data),
   
-  deleteWhatsappContact: (id) => 
-    api.delete(`/admin/settings/whatsapp-contacts/${id}`),
+  deleteNotificationContact: (id) => 
+    api.delete(`/admin/settings/notification-contacts/${id}`),
 
   // Visibilidade do Dashboard (apenas Diretor)
   getDashboardVisibilityConfigs: () => 

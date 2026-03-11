@@ -6,6 +6,9 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireCompanyActive } = require('../middleware/multiTenant');
@@ -32,6 +35,15 @@ function invalidateDashboardCache(userId) {
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const maintenanceDashboard = require('../services/maintenanceDashboardService');
+const multimodalChat = require('../services/multimodalChatService');
+const audioMonitoring = require('../services/audioMonitoringService');
+const operationalBrain = require('../services/operationalBrainEngine');
+const operationalKnowledgeMap = require('../services/operationalKnowledgeMapService');
+const operationalInsights = require('../services/operationalInsightsService');
+const operationalAlerts = require('../services/operationalAlertsService');
+const machineBrain = require('../services/machineBrainService');
+const machineControl = require('../services/machineControlService');
+const { requireIndustrialView, requireIndustrialAdmin, canConfigureIndustrial } = require('../middleware/industrialIntegrationAccess');
 
 // Perfis de manutenção (mecânico, eletricista, eletromecânico, supervisor, coordenador, gerente)
 const MAINTENANCE_PROFILES = new Set(['technician_maintenance', 'supervisor_maintenance', 'coordinator_maintenance', 'manager_maintenance']);
@@ -1109,5 +1121,387 @@ ${manualsBlock}`;
     });
   }
   });
+
+// ============================================================================
+// CHAT MULTIMODAL - Imagem, arquivo, voz
+// ============================================================================
+
+const chatMultimodalStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    multimodalChat.ensureUploadDir();
+    cb(null, multimodalChat.UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '') || '.bin';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  }
+});
+const chatMultimodalUpload = multer({
+  storage: chatMultimodalStorage,
+  limits: { fileSize: multimodalChat.MAX_FILE_MB * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = (path.extname(file.originalname || '') || '').toLowerCase();
+    const allowed = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Tipo de arquivo não suportado. Use PDF, DOC, XLS ou imagem.'));
+  }
+});
+
+/**
+ * POST /api/dashboard/chat/upload-file
+ * Upload de arquivo para contexto do chat (PDF, DOC, imagem)
+ */
+router.post('/chat/upload-file',
+  requireAuth,
+  requireCompanyActive,
+  userRateLimit('ai_chat'),
+  chatMultimodalUpload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ ok: false, error: 'Arquivo obrigatório' });
+      }
+      const result = await multimodalChat.processUploadedFile(
+        req.file.path,
+        req.file.originalname,
+        req.user.company_id
+      );
+      if (result.type === 'image') {
+        const buf = fs.readFileSync(result.filePath);
+        const base64 = buf.toString('base64');
+        return res.json({
+          ok: true,
+          type: 'image',
+          imageBase64: base64,
+          originalName: result.originalName
+        });
+      }
+      res.json({
+        ok: true,
+        type: 'document',
+        fileContext: {
+          extractedText: result.extractedText,
+          originalName: result.originalName
+        }
+      });
+    } catch (err) {
+      console.error('[CHAT_UPLOAD_FILE]', err);
+      res.status(500).json({ ok: false, error: err.message || 'Erro ao processar arquivo' });
+    }
+  }
+);
+
+/**
+ * POST /api/dashboard/chat-multimodal
+ * Chat com suporte a imagem (base64) e contexto de arquivo
+ */
+router.post('/chat-multimodal',
+  requireAuth,
+  requireCompanyActive,
+  promptFirewall,
+  userRateLimit('ai_chat'),
+  async (req, res) => {
+    if (req.promptFirewall?.blocked) {
+      return res.status(403).json({
+        ok: false,
+        error: req.promptFirewall.message || 'Acesso bloqueado',
+        code: 'PROMPT_BLOCKED'
+      });
+    }
+    try {
+      const { message, history = [], imageBase64, fileContext } = req.body;
+      const companyId = req.user.company_id;
+      const chatCtx = await chatUserContext.buildChatUserContext(req.user);
+      const { userName } = chatCtx;
+
+      let maintenanceExtra = '';
+      if (isMaintenanceProfile(req.user)) {
+        maintenanceExtra = `Perfil técnico/manutenção: priorize diagnóstico de falhas, análise de imagens de máquinas/peças, orientação prática.`;
+      }
+
+      const reply = await multimodalChat.processMultimodalChat({
+        message: message || '',
+        history,
+        imageBase64: imageBase64 || null,
+        fileContext: fileContext || null,
+        companyId,
+        userName,
+        systemPromptExtra: maintenanceExtra
+      });
+
+      const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
+      const isFallback = finalReply.startsWith('FALLBACK:');
+
+      await aiAudit.logAIInteraction({
+        userId: req.user?.id,
+        companyId,
+        action: 'chat_multimodal',
+        question: `${message || ''}${imageBase64 ? ' [imagem]' : ''}${fileContext ? ' [arquivo]' : ''}`,
+        response: finalReply,
+        blocked: false,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
+      });
+
+      return res.json({
+        ok: true,
+        reply: isFallback ? CHAT_FALLBACK_IMPETUS : finalReply
+      });
+    } catch (err) {
+      console.error('[CHAT_MULTIMODAL_ERROR]', err);
+      return res.json({
+        ok: true,
+        reply: CHAT_FALLBACK_IMPETUS
+      });
+    }
+  }
+);
+
+router.get('/audio/profiles', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const profiles = await audioMonitoring.listProfiles(req.user.company_id);
+    res.json({ ok: true, profiles });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/audio/profiles', requireAuth, requireCompanyActive, requireIndustrialAdmin, async (req, res) => {
+  try {
+    const { equipamento, linha, profileData } = req.body;
+    const p = await audioMonitoring.registerProfile({ companyId: req.user.company_id, equipamento, linha, profileData: profileData || { baselineVolume: 0 } });
+    res.json({ ok: true, profile: p });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/audio/sample', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const { profileId, equipamento, linha, volume, frequency, metadata } = req.body;
+    const r = await audioMonitoring.processSample({ companyId: req.user.company_id, profileId, equipamento, linha, volume, frequency, metadata });
+    res.json({ ok: true, ...r });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/audio/events', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 50);
+    const events = await audioMonitoring.listRecentEvents(req.user.company_id, limit);
+    res.json({ ok: true, events });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+// ============================================================================
+// CÉREBRO OPERACIONAL - Painel de Inteligência Operacional
+// ============================================================================
+
+router.get('/operational-brain/summary', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const summary = await operationalBrain.getOperationalSummary(req.user.company_id, {
+      since: req.query.since,
+      limit: req.query.limit ? parseInt(req.query.limit, 10) : 50
+    });
+    res.json({ ok: true, ...summary });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/operational-brain/knowledge-map', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const mapa = await operationalKnowledgeMap.getKnowledgeMap(req.user.company_id);
+    res.json({ ok: true, mapa });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/operational-brain/insights', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
+    const categoria = req.query.categoria || null;
+    const insights = await operationalInsights.listRecent(req.user.company_id, { limit, categoria });
+    res.json({ ok: true, insights });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/operational-brain/insights/:id/read', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    await operationalInsights.markAsRead(req.params.id, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/operational-brain/alerts', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
+    const alerts = await operationalAlerts.listPending(req.user.company_id, { limit });
+    res.json({ ok: true, alerts });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/operational-brain/alerts/:id/resolve', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    await operationalAlerts.resolve(req.params.id, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/operational-brain/timeline', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 50);
+    const since = req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const timeline = await operationalAlerts.getTimeline(req.user.company_id, { limit, since });
+    res.json({ ok: true, timeline });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/operational-brain/check-alerts', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    const created = await operationalBrain.checkAlerts(req.user.company_id);
+    res.json({ ok: true, created: created.length });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/status', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const [profiles, events, automation] = await Promise.all([
+      machineBrain.listProfiles(req.user.company_id),
+      db.query(`SELECT event_type, machine_name, line_name, severity, description, created_at, acknowledged FROM machine_detected_events WHERE company_id = $1 ORDER BY created_at DESC LIMIT 30`, [req.user.company_id]),
+      machineControl.getAutomationConfig(req.user.company_id)
+    ]);
+    const recentEvents = events.rows || [];
+    res.json({ ok: true, machines_count: profiles.length, profiles, events: recentEvents, automation_mode: automation.automation_mode });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/events', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
+    const r = await db.query(`SELECT * FROM machine_detected_events WHERE company_id = $1 ORDER BY created_at DESC LIMIT $2`, [req.user.company_id, limit]);
+    res.json({ ok: true, events: r.rows || [] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/profiles', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const profiles = await machineBrain.listProfiles(req.user.company_id);
+    res.json({ ok: true, profiles });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/automation', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const cfg = await machineControl.getAutomationConfig(req.user.company_id);
+    res.json({ ok: true, ...cfg, can_configure: canConfigureIndustrial(req.user) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/automation', requireAuth, requireCompanyActive, requireIndustrialAdmin, async (req, res) => {
+  try {
+    const { mode } = req.body;
+    const r = await machineControl.setAutomationMode(req.user.company_id, req.user.id, mode);
+    res.json(r.ok ? { ok: true } : { ok: false, error: r.error });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/command', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const { machine_id, machine_name, equipment_type, command_type, command_value } = req.body;
+    const r = await machineControl.requestCommand(req.user.company_id, req.user.id, machine_id, machine_name, equipment_type, command_type || 'toggle', command_value);
+    res.json(r);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/machines', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT id, machine_identifier, machine_name, line_name, machine_source, data_source_type,
+             collection_interval_sec, enabled, last_collected_at, created_at
+      FROM machine_monitoring_config WHERE company_id = $1 ORDER BY machine_name
+    `, [req.user.company_id]);
+    res.json({ ok: true, machines: r.rows || [] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/machines', requireAuth, requireCompanyActive, requireIndustrialAdmin, async (req, res) => {
+  try {
+    const { machine_identifier, machine_name, line_name, machine_source, data_source_type, data_source_config, collection_interval_sec } = req.body;
+    const src = machine_source || 'plc_equipment';
+    const interval = Math.min(60, Math.max(1, parseInt(collection_interval_sec, 10) || 3));
+    await db.query(`
+      INSERT INTO machine_monitoring_config (company_id, machine_identifier, machine_name, line_name, machine_source, data_source_type, data_source_config, collection_interval_sec)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (company_id, machine_source, machine_identifier) DO UPDATE SET
+        machine_name = EXCLUDED.machine_name, line_name = EXCLUDED.line_name,
+        data_source_type = EXCLUDED.data_source_type, data_source_config = EXCLUDED.data_source_config,
+        collection_interval_sec = EXCLUDED.collection_interval_sec, updated_at = now()
+    `, [req.user.company_id, machine_identifier || `EQ-${Date.now()}`, machine_name, line_name, src, data_source_type || 'plc', JSON.stringify(data_source_config || {}), interval]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.put('/industrial/machines/:id', requireAuth, requireCompanyActive, requireIndustrialAdmin, async (req, res) => {
+  try {
+    const { machine_name, line_name, data_source_type, data_source_config, collection_interval_sec, enabled } = req.body;
+    const updates = [];
+    const params = [req.params.id, req.user.company_id];
+    let idx = 3;
+    if (machine_name !== undefined) { updates.push(`machine_name = $${idx}`); params.push(machine_name); idx++; }
+    if (line_name !== undefined) { updates.push(`line_name = $${idx}`); params.push(line_name); idx++; }
+    if (data_source_type !== undefined) { updates.push(`data_source_type = $${idx}`); params.push(data_source_type); idx++; }
+    if (data_source_config !== undefined) { updates.push(`data_source_config = $${idx}`); params.push(JSON.stringify(data_source_config)); idx++; }
+    if (collection_interval_sec !== undefined) { updates.push(`collection_interval_sec = $${idx}`); params.push(Math.min(60, Math.max(1, parseInt(collection_interval_sec, 10) || 3))); idx++; }
+    if (enabled !== undefined) { updates.push(`enabled = $${idx}`); params.push(!!enabled); idx++; }
+    if (!updates.length) return res.json({ ok: true });
+    updates.push('updated_at = now()');
+    await db.query(`UPDATE machine_monitoring_config SET ${updates.join(', ')} WHERE id = $1 AND company_id = $2`, params);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.delete('/industrial/machines/:id', requireAuth, requireCompanyActive, requireIndustrialAdmin, async (req, res) => {
+  try {
+    await db.query('DELETE FROM machine_monitoring_config WHERE id = $1 AND company_id = $2', [req.params.id, req.user.company_id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
 
 module.exports = router;

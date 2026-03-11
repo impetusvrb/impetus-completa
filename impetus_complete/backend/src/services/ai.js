@@ -175,8 +175,60 @@ async function processIncomingMessage(msg, opts = {}) {
   return { kind };
 }
 
+/**
+ * Chat multimodal com visão (texto + imagens)
+ * @param {Array} messages - OpenAI format: [{ role, content }] onde content pode ser string ou array com text + image_url
+ * @param {Object} opts - { model, max_tokens, timeout }
+ */
+async function chatWithVision(messages, opts = {}) {
+  if (!client) return `FALLBACK: IA não configurada.`;
+  if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+
+  const modelVision = opts.model || 'gpt-4o';
+  try {
+    const timeoutMs = opts.timeout || 45000;
+    const completionPromise = client.chat.completions.create({
+      model: modelVision,
+      messages,
+      max_tokens: opts.max_tokens || 1024
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const res = await Promise.race([completionPromise, timeoutPromise]);
+    failures = 0;
+    return res.choices?.[0]?.message?.content || '';
+  } catch (err) {
+    failures++;
+    lastFailureTime = Date.now();
+    console.warn('[AI_VISION_ERROR]', err.message);
+    return `FALLBACK: Não foi possível analisar a imagem. Tente novamente.`;
+  }
+}
+
+/**
+ * Analisa imagem com prompt contextual (manutenção, diagnóstico)
+ * @param {string} imageBase64 - imagem em base64 (data:image/xxx;base64,... ou base64 puro)
+ * @param {string} userPrompt - pergunta/contexto do usuário
+ * @param {Object} opts - { systemContext }
+ */
+async function analyzeImage(imageBase64, userPrompt, opts = {}) {
+  let url = imageBase64;
+  if (url && !url.startsWith('data:')) {
+    url = `data:image/jpeg;base64,${url}`;
+  }
+  const systemContext = opts.systemContext || 'Você é o Impetus, assistente técnico industrial. Analise imagens de máquinas, peças, painéis elétricos e manuais. Descreva o que vê, sugira diagnósticos quando aplicável e oriente sobre manutenção. Seja objetivo e técnico.';
+  const content = [
+    { type: 'text', text: `${systemContext}\n\nPergunta/contexto do usuário: ${userPrompt || 'Analise esta imagem e descreva.'}` },
+    { type: 'image_url', image_url: { url } }
+  ];
+  return chatWithVision([{ role: 'user', content }], { max_tokens: 1024, timeout: 60000 });
+}
+
 module.exports = {
   chatCompletion,
+  chatWithVision,
+  analyzeImage,
   embedText,
   generateDiagnosticReport,
   classify,

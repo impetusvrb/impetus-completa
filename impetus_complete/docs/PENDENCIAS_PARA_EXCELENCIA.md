@@ -59,7 +59,7 @@ Incluído em `run-all-migrations.js` (proacao_diag_migration.sql).
 
 ### 3.1 Variáveis sensíveis
 - Garantir que `.env` esteja no `.gitignore`
-- Não expor `OPENAI_API_KEY`, `ENCRYPTION_KEY`, tokens Z-API em logs
+- Não expor `OPENAI_API_KEY`, `ENCRYPTION_KEY`, tokens sensíveis em logs
 
 ### 3.2 HTTPS em produção
 - Documentar configuração de SSL/TLS
@@ -113,7 +113,7 @@ Esses são evoluções futuras; não impedem a excelência da versão atual.
 
 ### 6.2 Testes E2E
 - Fluxo completo: login → dashboard → chat → diagnóstico
-- Fluxo TPM via simulação de webhook Z-API
+- Fluxo TPM via simulação de mensagens do App
 
 ---
 

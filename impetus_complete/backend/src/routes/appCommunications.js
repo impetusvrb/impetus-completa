@@ -1,6 +1,6 @@
 /**
  * ROTAS APP COMMUNICATIONS
- * Recebe mensagens do App Impetus (texto, áudio, vídeo) - substitui webhook Z-API
+ * Recebe mensagens do App Impetus (texto, áudio, vídeo)
  */
 
 const express = require('express');
