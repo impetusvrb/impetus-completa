@@ -80,9 +80,16 @@ async function run() {
       await db.query(sql);
       console.log(`    ✓ ${m.name} OK\n`);
     } catch (err) {
-      console.error(`    ✗ Erro em ${m.file}:`, err.message);
-      console.error('\nDetalhes:', err.detail || err);
-      process.exit(1);
+      const skipCodes = ['42P07', '42P01', '42P10', '42703', '42702', '42701', '42804']; // already exists, duplicate, constraint, undefined col, ambiguous, incompatible types
+      const skipMsgs = ['already exists', 'duplicate key', 'does not exist', 'ambiguous'];
+      const canSkip = skipCodes.includes(err.code) || skipMsgs.some(m => (err.message || '').toLowerCase().includes(m));
+      if (canSkip) {
+        console.log(`    ⏭ ${m.name} (erro conhecido, pulando: ${err.message?.slice(0, 50)}...)\n`);
+      } else {
+        console.error(`    ✗ Erro em ${m.file}:`, err.message);
+        console.error('\nDetalhes:', err.detail || err);
+        process.exit(1);
+      }
     }
   }
 

@@ -65,3 +65,8 @@ coverage/
 
 # Docker (se usar volumes locais)
 .docker/
+
+# Estrutura duplicada (evitar pasta aninhada)
+impetus_complete/
+**/backend (1)/
+**/frontend (1)/

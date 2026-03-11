@@ -39,18 +39,12 @@ const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
 const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
-<<<<<<< Updated upstream
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
-=======
-const ChatPage = lazy(() => import('./chat-module/ChatPage'));
+const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
+const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
+const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
+const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 function needSetup() {
   try {
@@ -148,6 +142,11 @@ export default function App() {
             <SetupEmpresa />
           </PrivateRoute>
         } />
+        <Route path="/validacao-cargo" element={
+          <PrivateRoute>
+            <RoleVerificationPage />
+          </PrivateRoute>
+        } />
         
         {/* Rotas protegidas */}
         <Route path="/app/proacao" element={
@@ -187,6 +186,12 @@ export default function App() {
         <Route path="/app/insights" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
         } />
+        <Route path="/app/cerebro-operacional" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-operacoes-industrial" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
@@ -206,24 +211,14 @@ export default function App() {
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
-
-<<<<<<< Updated upstream
-=======
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
-        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           </Suspense>

@@ -34,50 +34,21 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
-=======
-const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
->>>>>>> Stashed changes
-=======
-const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
->>>>>>> Stashed changes
-=======
-const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
->>>>>>> Stashed changes
-=======
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
+const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
-=======
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
->>>>>>> Stashed changes
-=======
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
->>>>>>> Stashed changes
-=======
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
->>>>>>> Stashed changes
-=======
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
+  const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+  const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
-    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && activeTab !== tabFromUrl) {
-      setActiveTab(tabFromUrl);
+    const effective = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+    if (effective && VALID_TABS.includes(effective) && activeTab !== effective) {
+      setActiveTab(effective);
     }
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -91,28 +62,8 @@ export default function AdminSettings() {
   const loadData = async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
       if (activeTab === 'comunicacao') {
         appImpetus.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-      if (activeTab === 'app') {
-        ; // App tab - sem chamada API
-      } else if (activeTab === 'zapi') {
-        const r = await adminSettings.getZApiConfig();
-        if (r.data.config) setZapiConfig(prev => ({ ...prev, ...r.data.config }));
-        zapi.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
->>>>>>> Stashed changes
-=======
-      if (activeTab === 'comunicacao') {
-        appImpetus.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
       } else if (activeTab === 'pops') {
         const r = await adminSettings.listPops();
         setPops(r.data.pops || []);
@@ -125,8 +76,8 @@ export default function AdminSettings() {
       } else if (activeTab === 'notifications') {
         const r = await adminSettings.getNotificationConfig();
         setNotifConfig(r.data.config || notifConfig);
-      } else if (activeTab === 'whatsapp-contacts') {
-        const r = await adminSettings.listWhatsappContacts();
+      } else if (activeTab === 'notification-contacts') {
+        const r = await adminSettings.listNotificationContacts();
         setWhatsappContacts(r.data?.contacts || []);
       } else if (activeTab === 'dashboard-visibility') {
         const r = await adminSettings.getDashboardVisibilityConfigs();
@@ -240,9 +191,9 @@ export default function AdminSettings() {
     }
     try {
       setSaving(true);
-      const r = await adminSettings.addWhatsappContact({ name, phone, role, sector });
+      const r = await adminSettings.addNotificationContact({ name, phone, role, sector });
       setWhatsappContacts(r.data?.contacts || []);
-      notify.success('Contato WhatsApp adicionado! A IA poderá usá-lo para contato com colaboradores.');
+      notify.success('Contato adicionado! A IA poderá usá-lo para notificações.');
       form.reset();
     } catch (err) {
       notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao adicionar');
@@ -254,7 +205,7 @@ export default function AdminSettings() {
   const handleRemoveWhatsappContact = async (id) => {
     try {
       setSaving(true);
-      const r = await adminSettings.deleteWhatsappContact(id);
+      const r = await adminSettings.deleteNotificationContact(id);
       setWhatsappContacts(r.data?.contacts || []);
       notify.success('Contato removido');
     } catch (err) {
@@ -293,48 +244,17 @@ export default function AdminSettings() {
             <div className="page-icon"><Settings size={24} /></div>
             <div>
               <h1 className="page-title">Configurações</h1>
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
               <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
-=======
-              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
->>>>>>> Stashed changes
-=======
-              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
->>>>>>> Stashed changes
-=======
-              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
->>>>>>> Stashed changes
-=======
-              <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
             </div>
           </div>
         </div>
 
         <div className="settings-tabs">
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
           <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-          <button className={`stab ${activeTab === 'app' ? 'active' : ''}`} onClick={() => setActiveTab('app')}><Smartphone size={18} /> App Impetus</button>
-          <button className={`stab ${activeTab === 'zapi' ? 'active' : ''}`} onClick={() => setActiveTab('zapi')}><MessageSquare size={18} /> Z-API</button>
->>>>>>> Stashed changes
-=======
-          <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
-          <button className={`stab ${activeTab === 'whatsapp-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('whatsapp-contacts')}><Phone size={18} /> Contatos WhatsApp</button>
+          <button className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
           <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
           {canConfigDashboard && (
             <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
@@ -342,62 +262,7 @@ export default function AdminSettings() {
         </div>
 
         <div className="settings-content">
-<<<<<<< HEAD:impetus_complete/frontend/src/pages/AdminSettings.jsx
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
           {activeTab === 'comunicacao' && (
-=======
-          {activeTab === 'app' && (
-=======
-          {activeTab === 'app' && (
-=======
-          {activeTab === 'app' && (
-            <div className="settings-panel">
-              <h3>App Impetus - Comunicação Operacional</h3>
-              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
-              <div className="app-mobile-cta">
-                <Link to="/m" className="btn btn-primary">
-                  <Smartphone size={20} />
-                  Abrir App (versão mobile)
-                </Link>
-              </div>
-              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
-          )}
-          {activeTab === 'zapi' && (
->>>>>>> Stashed changes
-            <div className="settings-panel">
-              <h3>App Impetus - Comunicação Operacional</h3>
-              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
-              <div className="app-mobile-cta">
-                <Link to="/m" className="btn btn-primary">
-                  <Smartphone size={20} />
-                  Abrir App (versão mobile)
-                </Link>
-              </div>
-              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
-          )}
-          {activeTab === 'zapi' && (
->>>>>>> Stashed changes
-            <div className="settings-panel">
-              <h3>App Impetus - Comunicação Operacional</h3>
-              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
-              <div className="app-mobile-cta">
-                <Link to="/m" className="btn btn-primary">
-                  <Smartphone size={20} />
-                  Abrir App (versão mobile)
-                </Link>
-              </div>
-              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
-          )}
-          {activeTab === 'zapi' && (
->>>>>>> Stashed changes
-=======
-          {activeTab === 'comunicacao' && (
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:frontend/src/pages/AdminSettings.jsx
             <div className="settings-panel">
               <h3>Comunicação (App Impetus)</h3>
               {loading ? <p>Carregando...</p> : (
@@ -494,10 +359,10 @@ export default function AdminSettings() {
             </div>
           )}
 
-          {activeTab === 'whatsapp-contacts' && (
+          {activeTab === 'notification-contacts' && (
             <div className="settings-panel">
-              <h3>Contatos WhatsApp</h3>
-              <p className="form-hint">Contatos que a IA pode usar para notificações e comunicações internas.</p>
+              <h3>Contatos para Notificações</h3>
+              <p className="form-hint">Contatos que a IA pode usar para notificações (TPM, Modo Executivo, alertas).</p>
               <form onSubmit={handleAddWhatsappContact}>
                 <input type="text" name="name" placeholder="Nome" className="form-input" required />
                 <input type="text" name="phone" placeholder="Telefone" className="form-input" required />
@@ -519,7 +384,7 @@ export default function AdminSettings() {
               {loading ? <p>Carregando...</p> : (
                 <>
                   <CheckboxField label="Email" name="email_enabled" checked={notifConfig.email_enabled} onChange={handleNotifChange} />
-                  <CheckboxField label="WhatsApp" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
+                  <CheckboxField label="Notificações no app" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
                   <CheckboxField label="Alertas de falha" name="failure_alerts" checked={notifConfig.failure_alerts} onChange={handleNotifChange} />
                   <div className="panel-actions">
                     <button className="btn btn-primary" onClick={handleSaveNotifications} disabled={saving}>Salvar</button>
