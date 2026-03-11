@@ -7,7 +7,7 @@ O IMPETUS utiliza **duas tabelas** para armazenar mensagens, com propósitos dis
 | Tabela | Uso | Contexto |
 |--------|-----|----------|
 | **messages** | Webhook genérico | Twilio, Meta, ou qualquer provedor que envie para `/api/webhook` |
-| **communications** | Comunicação rastreada por empresa | Z-API (WhatsApp), fluxo interno, multi-tenant |
+| **communications** | Comunicação rastreada por empresa | App Impetus, fluxo interno, multi-tenant |
 
 ---
 
@@ -27,9 +27,9 @@ O IMPETUS utiliza **duas tabelas** para armazenar mensagens, com propósitos dis
 
 ## 2. Tabela `communications`
 
-- **Rota:** `POST /api/webhook/zapi` (Z-API) ou `POST /api/communications` (API interna)
+- **Rota:** `POST /api/app-impetus/messages` (App Impetus) ou `POST /api/communications` (API interna)
 - **Campos principais:** `company_id`, `sender_phone`, `text_content`, `ai_classification`, `status`
-- **Uso:** Z-API (WhatsApp Business), mensagens vinculadas a empresa
+- **Uso:** App Impetus, mensagens vinculadas a empresa
 - **IA:** Classificação e ações automáticas (tarefa, diagnóstico) via `processIncomingMessage` após gravação
 - **Diferenças em relação a `messages`:**
   - Multi-tenant (`company_id`)
@@ -39,10 +39,10 @@ O IMPETUS utiliza **duas tabelas** para armazenar mensagens, com propósitos dis
 
 ---
 
-## 3. Fluxo unificado (Z-API)
+## 3. Fluxo unificado (App Impetus)
 
 ```
-WhatsApp → Z-API → POST /api/webhook/zapi
+App Impetus → POST /api/app-impetus/messages
                         ↓
               Salva em communications
                         ↓
@@ -55,12 +55,12 @@ WhatsApp → Z-API → POST /api/webhook/zapi
 
 ## 4. Quando usar cada tabela
 
-- **messages:** Webhook genérico sem `company_id` ou quando o provedor não é Z-API
-- **communications:** Z-API ou qualquer fluxo que exija `company_id` e rastreabilidade por empresa
+- **messages:** Webhook genérico sem `company_id` ou quando o provedor não é App Impetus
+- **communications:** App Impetus ou qualquer fluxo que exija `company_id` e rastreabilidade por empresa
 
 ---
 
 ## 5. Manutenção
 
 - A tabela `messages` pode ser usada para testes e integrações legadas.
-- Para novas integrações com empresa definida, preferir `communications` e o fluxo Z-API.
+- Para novas integrações com empresa definida, preferir `communications` e o fluxo App Impetus.

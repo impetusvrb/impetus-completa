@@ -39,6 +39,10 @@ export default function Login() {
         navigate(redirect);
         return;
       }
+      if (data.user?.needs_role_verification) {
+        navigate('/validacao-cargo');
+        return;
+      }
       const userRole = data.user?.role;
       navigate(userRole === 'colaborador' ? '/app/proacao' : '/app');
     } catch (err) {

@@ -38,6 +38,8 @@ export default function ChatApp(){
   useEffect(()=>{ if(!activeId) return; reset(); setTypingUsers([]); },[activeId]);
   useEffect(()=>{ if(activeId) loadMessages(true); },[activeId]);
 
+  useEffect(()=>()=>{ Object.values(typingTimers.current||{}).forEach(t=>clearTimeout(t)); typingTimers.current={}; },[]);
+
   async function loadConversations(){ try{ const {data}=await chatApi.getConversations(); setConversations(data); }catch(e){ console.error(e); } }
 
   const onMessage=useCallback((msg)=>{

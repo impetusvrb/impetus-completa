@@ -75,7 +75,6 @@ async function analyze(systemPrompt, userContent, opts = {}) {
   }
 }
 
-// Tipos de eventos corporativos (alinhados à knowledge_memory)
 const CORPORATE_EVENT_TYPES = [
   'tarefa', 'manutencao', 'falha', 'troca_peca', 'parada_maquina', 'parada_linha',
   'decisao', 'alerta', 'informacao', 'observacao', 'maquina_reiniciada'
@@ -83,9 +82,7 @@ const CORPORATE_EVENT_TYPES = [
 
 /**
  * Extrai fatos estruturados e eventos corporativos de um texto/conversa
- * @param {string} rawContent - Texto ou conversa bruta
- * @param {Object} meta - { sourceType, companyId, scopeHints }
- * @returns {Promise<Object|null>} { facts, summary, corporate_events } ou null
+ * @returns {Promise<Object|null>} { facts, summary, corporate_events }
  */
 async function extractOperationalFacts(rawContent, meta = {}) {
   const { sourceType = 'generic', scopeHints = {} } = meta;
@@ -94,50 +91,21 @@ async function extractOperationalFacts(rawContent, meta = {}) {
 
 REGRAS:
 1. Retorne APENAS um JSON válido (sem markdown, sem \`\`\`).
-2. Extraia fatos objetivos e eventos acionáveis.
-3. Para TAREFAS: extraia responsável, ação, data e hora quando mencionados (ex: "Maria, segunda 8h faz retrabalho linha 3" → responsavel: Maria, descricao: retrabalho peça linha 3, data: próxima segunda, hora: 08:00).
-4. Para TROCA DE PEÇA: equipamento, linha, peça (ex: "Troquei rolamento da bomba linha 2").
-5. Para PARADA: equipamento ou linha, hora se mencionada.
-6. Para MANUTENÇÃO: equipamento, linha, problema, causa, solução, peça trocada.
-7. Use data/hora no formato ISO ou YYYY-MM-DD e HH:MM. Se só "segunda" → calcule próxima segunda como data.
-8. Minimize ruído. Respeite sigilo.
+2. Para TAREFAS: extraia responsável, ação, data e hora quando mencionados.
+3. Para TROCA DE PEÇA: equipamento, linha, peça.
+4. Para PARADA: equipamento ou linha.
+5. Para MANUTENÇÃO: equipamento, linha, problema, causa, solução, peça trocada.
+6. Use data/hora formato ISO ou YYYY-MM-DD e HH:MM.
 
-FORMATO DE RESPOSTA (JSON):
+FORMATO:
 {
-  "summary": "resumo em 1-2 frases",
-  "facts": [
-    {
-      "fact_type": "pendencia|risco|decisao|solicitacao|falha|tarefa|informacao|observacao",
-      "content": "descrição objetiva",
-      "scope_type": "user|sector|machine|line|process|org",
-      "scope_id": null,
-      "scope_label": "ex: Linha 2",
-      "priority": "baixa|normal|alta|critica",
-      "metadata": {}
-    }
-  ],
-  "corporate_events": [
-    {
-      "tipo_evento": "tarefa|manutencao|falha|troca_peca|parada_maquina|parada_linha|decisao|alerta",
-      "descricao": "texto descritivo",
-      "equipamento": null,
-      "linha": null,
-      "usuario_responsavel": "nome se tarefa",
-      "data": "YYYY-MM-DD ou null",
-      "hora": "HH:MM ou null",
-      "peca_trocada": "para troca_peca",
-      "problema": "para manutencao/falha",
-      "causa": "para manutencao",
-      "solucao": "para manutencao"
-    }
-  ]
+  "summary": "resumo",
+  "facts": [{ "fact_type": "pendencia|risco|decisao|solicitacao|falha|tarefa|informacao|observacao", "content": "...", "scope_type": "...", "scope_label": "...", "priority": "baixa|normal|alta|critica", "metadata": {} }],
+  "corporate_events": [{ "tipo_evento": "tarefa|manutencao|falha|troca_peca|parada_maquina|parada_linha|decisao|alerta", "descricao": "...", "equipamento": null, "linha": null, "usuario_responsavel": null, "data": null, "hora": null, "peca_trocada": null, "problema": null, "causa": null, "solucao": null }]
 }
+Inclua corporate_events APENAS quando houver evidência clara. Se não houver, retorne corporate_events: [].`;
 
-Inclua em corporate_events APENAS quando houver evidência clara no texto. Se não houver eventos corporativos, retorne corporate_events: [].`;
-
-  const hints = Object.keys(scopeHints).length
-    ? `\nContexto conhecido: ${JSON.stringify(scopeHints)}`
-    : '';
+  const hints = Object.keys(scopeHints).length ? `\nContexto: ${JSON.stringify(scopeHints)}` : '';
   const userContent = `Fonte: ${sourceType}\n${hints}\n\nConteúdo:\n${(rawContent || '').slice(0, 8000)}`;
 
   const raw = await analyze(systemPrompt, userContent, { max_tokens: 3072, timeout: 35000 });

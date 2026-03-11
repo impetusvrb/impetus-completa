@@ -1,5 +1,5 @@
 -- APP IMPETUS OUTBOX
--- Mensagens para entrega via App Impetus (substitui Z-API para envio)
+-- Mensagens para entrega via App Impetus
 -- O App Impetus faz polling em GET /api/app-impetus/outbox
 
 CREATE TABLE IF NOT EXISTS app_impetus_outbox (
@@ -33,4 +33,4 @@ CREATE INDEX IF NOT EXISTS idx_app_impetus_outbox_recipient ON app_impetus_outbo
 CREATE INDEX IF NOT EXISTS idx_app_impetus_outbox_status ON app_impetus_outbox(status) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_app_impetus_outbox_created ON app_impetus_outbox(created_at DESC);
 
-COMMENT ON TABLE app_impetus_outbox IS 'Mensagens para entrega via App Impetus - substitui Z-API';
+COMMENT ON TABLE app_impetus_outbox IS 'Mensagens para entrega via App Impetus';

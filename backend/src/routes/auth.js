@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { JWT_SECRET } = require('../middleware/auth');
+const roleVerification = require('../services/roleVerificationService');
 
 const router = express.Router();
 
@@ -43,7 +45,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
         company_id: user.company_id
       },
-      process.env.JWT_SECRET || 'impetus_super_secret_key',
+      JWT_SECRET,
       { expiresIn: '8h' }
     );
 
@@ -56,6 +58,13 @@ router.post('/login', async (req, res) => {
       );
     } catch (e) { console.error('[SESSION_INSERT_ERROR]', e.message); }
 
+    const needsVerification = roleVerification.needsVerification({
+      ...user,
+      role_verified: user.role_verified,
+      role_verification_status: user.role_verification_status,
+      is_company_root: user.is_company_root
+    });
+
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -65,7 +74,11 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         company_id: user.company_id,
-        is_first_access: user.is_first_access
+        is_first_access: user.is_first_access,
+        role_verified: user.role_verified === true,
+        role_verification_status: user.role_verification_status || 'pending',
+        is_company_root: user.is_company_root === true,
+        needs_role_verification: needsVerification
       }
     });
 
@@ -152,7 +165,7 @@ router.post('/verify-password', async (req, res) => {
     const jwt = require('jsonwebtoken');
     const bcrypt = require('bcrypt');
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'impetus_secret_2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const r = await db.query('SELECT password_hash FROM users WHERE id = $1 AND active = true', [decoded.id || decoded.userId]);
     if (!r.rows.length) return res.json({ ok: false });
     const valid = await bcrypt.compare(password, r.rows[0].password_hash);

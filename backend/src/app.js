@@ -10,6 +10,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const compression = require('compression');
 
 // Rotas existentes
 const webhook = require('./routes/webhook');
@@ -36,6 +37,7 @@ const adminDepartments = require('./routes/admin/departments');
 const adminLogs = require('./routes/admin/logs');
 const adminSettings = require('./routes/admin/settings');
 const adminStructural = require('./routes/admin/structural');
+const roleVerificationRoutes = require('./routes/roleVerification');
 const intelligentRegistration = require('./routes/intelligentRegistration');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
@@ -49,6 +51,7 @@ const { requireAuth } = require('./middleware/auth');
 const { requireCompanyActive } = require('./middleware/multiTenant');
 const { requireInternalAdmin } = require('./middleware/internalAdmin');
 const { requireValidLicense } = require('./middleware/license');
+const { requireRoleVerified } = require('./middleware/roleVerification');
 const db = require('./db');
 const { getStats } = require('./utils/cache');
 
@@ -59,6 +62,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 app.use(helmet());
+if (process.env.COMPRESSION !== 'false') {
+  app.use(compression());
+}
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
@@ -118,9 +124,13 @@ function formatUptime(seconds) {
 app.get('/health', async (req, res) => {
   const mem = process.memoryUsage();
   let dbOk = false;
+  let dbPoolSize = null;
   try {
     await db.query('SELECT 1');
     dbOk = true;
+    if (db.pool && typeof db.pool.totalCount === 'number') {
+      dbPoolSize = { total: db.pool.totalCount, idle: db.pool.idleCount };
+    }
   } catch (err) {
     console.error('[HEALTH_DB_ERROR]', err.message);
   }
@@ -131,6 +141,11 @@ app.get('/health', async (req, res) => {
       const claudeService = require('./services/claudeService');
       claudeStatus = claudeService.isAvailable() ? 'available' : 'circuit_open';
     } catch (_) {}
+  }
+
+  let openaiStatus = 'not_configured';
+  if (process.env.OPENAI_API_KEY) {
+    openaiStatus = 'configured';
   }
 
   const cacheStats = getStats();
@@ -145,7 +160,9 @@ app.get('/health', async (req, res) => {
     uptimeFormatted: formatUptime(process.uptime()),
     timestamp: new Date().toISOString(),
     db: dbOk ? 'connected' : 'error',
+    dbPool: dbPoolSize,
     claude: claudeStatus,
+    openai: openaiStatus,
     memory: {
       heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
       heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
@@ -174,7 +191,7 @@ app.post('/api/companies', (req, res) => {
   });
 });
 
-// Webhooks (Asaas, Genérico) - Z-API removido, substituído por App Impetus
+// Webhooks (Asaas, Genérico). Canal mensagens: App Impetus
 app.use('/api/webhook', webhook);
 app.use('/api/webhooks/asaas', require('./routes/webhooks/asaas'));
 const appImpetusRoutes = require('./routes/app_impetus');
@@ -215,24 +232,25 @@ app.get('/api/companies/me', requireAuth, requireCompanyActive, async (req, res)
   }
 });
 
+app.use('/api/role-verification', ...protected, roleVerificationRoutes);
 app.use('/api/lgpd', ...protected, lgpd);
-app.use('/api/communications', ...protected, communications);
+app.use('/api/communications', ...protected, requireRoleVerified, communications);
 app.use('/api/internal-chat', ...protected, internalChat);
-app.use('/api/dashboard', ...protected, dashboard);
+app.use('/api/dashboard', ...protected, requireRoleVerified, dashboard);
 app.use('/api/manuals', ...protected, manuals);
 app.use('/api/tasks', ...protected, tasks);
-app.use('/api/proacao', ...protected, proacao);
+app.use('/api/proacao', ...protected, requireRoleVerified, proacao);
 app.use('/api/alerts', ...protected, proacaoAlerts);
-app.use('/api/plc-alerts', ...protected, plcAlerts);
+app.use('/api/plc-alerts', ...protected, requireRoleVerified, plcAlerts);
 app.use('/api/diagnostic', ...protected, diagnostic);
 app.use('/api/diagnostic/report', ...protected, diagReport);
 app.use('/api/tpm', ...protected, tpm);
 app.use('/api/intelligent-registration', ...protected, intelligentRegistration);
 
 // Rotas de administração
-app.use('/api/admin/users', ...protected, adminUsers);
+app.use('/api/admin/users', ...protected, requireRoleVerified, adminUsers);
 app.use('/api/admin/departments', ...protected, adminDepartments);
-app.use('/api/admin/logs', ...protected, adminLogs);
+app.use('/api/admin/logs', ...protected, requireRoleVerified, adminLogs);
 app.use('/api/admin/settings', ...protected, adminSettings);
 app.use('/api/admin/structural', ...protected, adminStructural);
 

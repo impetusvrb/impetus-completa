@@ -27,10 +27,10 @@ A Fase 2 implementa tratamento robusto de erros em backend e frontend, adequado 
   - Backoff exponencial entre retentativas
   - Condições de retry: rede, timeout, status 5xx
 
-### 3. Z-API com Timeout e Retry (`backend/src/services/zapi.js`)
+### 3. Canal de mensagens com Timeout e Retry
 
 - Usa `createResilientClient()` em todas as chamadas
-- Timeout específico: 20s para WhatsApp
+- Timeout específico: 20s para envio de mensagens
 - Retry automático em falhas de rede/timeout
 
 ### 4. OpenAI com Circuit Breaker e Timeout (`backend/src/services/ai.js`)
@@ -71,7 +71,7 @@ A Fase 2 implementa tratamento robusto de erros em backend e frontend, adequado 
 
 - **AdminUsers**: Toast em sucesso/erro (criar, editar, desativar, resetar senha)
 - **AdminDepartments**: Toast em sucesso/erro (criar, editar, desativar)
-- **AdminSettings**: Toast em sucesso/erro (Z-API, POPs, manuais, notificações)
+- **AdminSettings**: Toast em sucesso/erro (Comunicação, POPs, manuais, notificações)
 - **AdminAuditLogs**: Toast em erro ao carregar logs
 - **Dashboard**: Toast warning quando API falha (dados de exemplo)
 - **Login**: Usa `err.apiMessage` para mensagens de timeout/rede

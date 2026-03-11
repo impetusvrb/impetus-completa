@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../db');
 const { hashPassword } = require('../middleware/auth');
 const { logAction } = require('../middleware/audit');
+const roleVerification = require('../services/roleVerificationService');
 const { z } = require('zod');
 
 const setupSchema = z.object({
@@ -69,6 +70,8 @@ router.post('/', async (req, res) => {
       `, [company.id, user.id]);
 
       await client.query('COMMIT');
+
+      await roleVerification.markCompanyRoot(user.id, company.id);
 
       await logAction({
         companyId: company.id,

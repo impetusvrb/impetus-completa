@@ -1,6 +1,6 @@
 /**
  * ROTAS APP IMPETUS - Canal de Comunicação Unificado
- * Substitui Z-API: entrada e saída de mensagens via App Impetus
+ * Canal de mensagens: entrada e saída via App Impetus
  */
 
 const express = require('express');

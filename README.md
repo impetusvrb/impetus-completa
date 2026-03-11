@@ -23,7 +23,7 @@ Registro INPI: **BR512025007048-9** (30/12/2025)
 O **Impetus Comunica IA** é uma plataforma industrial de última geração que integra **3 pilares fundamentais**:
 
 ### 🎯 **Pilar 1: Comunicação Rastreada Inteligente**
-- Captura automática de comunicações via WhatsApp Business (Z-API)
+- Captura automática de comunicações via App Impetus
 - IA classifica e organiza mensagens em tempo real
 - Agenda inteligente com lembretes proativos
 - Monitoramento de conformidade com POPs
@@ -39,7 +39,7 @@ O **Impetus Comunica IA** é uma plataforma industrial de última geração que 
 ### 🔧 **Pilar 3: Manutenção Assistida por IA**
 - Diagnóstico inteligente de falhas
 - Análise em manuais técnicos pré-carregados
-- Respostas proativas via WhatsApp
+- Respostas proativas via App Impetus
 - Redução de downtime
 - Melhoria de OEE (Overall Equipment Effectiveness)
 
@@ -81,7 +81,7 @@ impetus_complete/
 - **PostgreSQL** 15+ (Banco de dados)
 - **pgvector** (Embeddings para RAG)
 - **OpenAI API** (GPT-4o-mini + Embeddings)
-- **Z-API** (WhatsApp Business)
+- **App Impetus** (canal de mensagens)
 - **Axios** (HTTP client)
 
 ### **Frontend**
@@ -108,7 +108,7 @@ impetus_complete/
 - PostgreSQL >= 15
 - npm ou yarn
 - Conta OpenAI (para IA)
-- Conta Z-API (para WhatsApp)
+- App Impetus (canal integrado)
 
 ### **1. Clone o Repositório**
 
@@ -145,7 +145,6 @@ cp ../.env.example .env
 # Editar .env com suas credenciais:
 # - DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 # - OPENAI_API_KEY
-# - ZAPI_INSTANCE_ID, ZAPI_INSTANCE_TOKEN, ZAPI_CLIENT_TOKEN
 # - SALT (gere uma string aleatória)
 
 # Iniciar servidor
@@ -258,9 +257,9 @@ O sistema possui **30+ tabelas** organizadas por módulos:
 - `lgpd_data_requests` - Solicitações de dados
 - `audit_logs` - Auditoria completa
 
-### **Z-API**
-- `zapi_configurations` - Configurações WhatsApp
-- `zapi_sent_messages` - Mensagens enviadas
+### **Mensagens (App Impetus)**
+- `app_impetus_outbox` - Mensagens pendentes para o App
+- `communications` - Comunicações rastreadas por empresa
 
 ---
 
@@ -278,14 +277,15 @@ O sistema está **100% conforme à LGPD**:
 
 ---
 
-## 📱 Integração WhatsApp (Z-API)
+## 📱 Canal de Comunicação (App Impetus)
 
-### **Configuração**
+O canal de mensagens é o **App Impetus**, integrado ao backend via API.
 
-1. Criar conta na [Z-API](https://z-api.io)
-2. Obter credenciais: `instance_id`, `instance_token`, `client_token`
-3. Configurar webhook para receber mensagens
-4. Adicionar credenciais no `.env` ou no painel administrativo
+### **Rotas**
+
+- **Entrada:** `POST /api/app-impetus/messages` — App envia mensagens dos usuários
+- **Saída:** `GET /api/app-impetus/outbox` — App busca mensagens pendentes
+- **Status:** `GET /api/app-impetus/status` — Estado da conexão
 
 ### **Funcionalidades**
 
@@ -382,7 +382,7 @@ Este software é **propriedade privada** e protegido por direitos autorais e reg
 ## 🎯 Roadmap
 
 - [x] MVP Completo
-- [x] Integração Z-API
+- [x] Canal App Impetus
 - [x] Dashboard Analytics
 - [x] LGPD Compliance
 - [ ] Módulo Mobile (React Native)

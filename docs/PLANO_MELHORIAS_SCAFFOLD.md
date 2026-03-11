@@ -14,7 +14,7 @@ Este documento compara o **código-fonte scaffold original** (IMPETUS Project sc
 | Diagnóstico assistido (need_more_info, relatório) | ✓ | ✓ | **Implementado** |
 | Aviso segurança (elétrico/pressão) | ✓ | ✓ | **Implementado** |
 | OCR fallback PDF | ✓ (placeholder) | ✓ (tesseract+pdf2pic) | **Implementado** |
-| Z-API (receber + enviar) | ✓ (notas) | ✓ (receber) | **Parcial** |
+| Canal App Impetus | ✓ | ✓ | **Implementado** |
 | Citação de fontes em relatórios | ✓ | ⚠️ | **Melhorar** |
 | Safety mode (confiança baixa) | ✓ | ✗ | **Pendente** |
 | Resposta automática ao criar tarefa/diag | ✓ (notas) | ✗ | **Pendente** |
@@ -51,14 +51,11 @@ Este documento compara o **código-fonte scaffold original** (IMPETUS Project sc
 
 ---
 
-### 3. Resposta automática via Z-API ao criar tarefa/diagnóstico
+### 3. Resposta automática ao criar tarefa/diagnóstico
 
-**Scaffold (WhatsApp notes):**
-> "To send messages back to users, call provider's send API from services/whatsapp.js"
+**Situação atual:** `appImpetusService.sendMessage` envia notificações. Ao processar mensagem do App e criar tarefa ou diagnóstico, a resposta é enviada via canal unificado.
 
-**Situação atual:** `zapi.sendTextMessage` existe e funciona. Porém, ao processar mensagem WhatsApp e criar tarefa ou diagnóstico, **não** enviamos resposta ao remetente.
-
-**Melhoria proposta:** Em `zapi.processWebhook`, após `processIncomingMessage` retornar com `taskId` ou `report`, chamar `sendTextMessage(companyId, sender, mensagemDeConfirmação)`.
+**Melhoria proposta:** Garantir que, após `processIncomingMessage` retornar com `taskId` ou `report`, a confirmação seja enviada ao remetente via `appImpetusService.sendMessage`.
 
 Exemplo de mensagem:
 - Tarefa: "Tarefa registrada com sucesso. ID: XXX. Nossa equipe irá analisar."
@@ -127,7 +124,7 @@ ON manual_chunks USING ivfflat (embedding) WITH (lists = 100);
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | Resposta automática Z-API | ✅ `zapi.processWebhook` envia `sendTextMessage` ao criar tarefa/diag |
+| 1 | Resposta automática | ✅ appImpetusService envia ao criar tarefa/diag |
 | 2 | Validate retorna questions | ✅ `DIAGNOSTIC_QUESTIONS` em `ensureSufficientDetail` e no endpoint |
 | 3 | Índice ivfflat | ✅ `proacao_diag_migration.sql` + `README_MIGRATIONS.md` |
 
@@ -149,7 +146,7 @@ ON manual_chunks USING ivfflat (embedding) WITH (lists = 100);
 
 ## Ordem de implementação sugerida
 
-1. **Resposta automática Z-API** (1–2 h)
+1. **Resposta automática** (1–2 h)
 2. **Validate retorna questions** (≈ 30 min)
 3. **Migration ivfflat** (≈ 30 min)
 4. **Citação de fontes** (1–2 h)
@@ -168,8 +165,7 @@ ON manual_chunks USING ivfflat (embedding) WITH (lists = 100);
 - Relatório HTML
 - Aviso de segurança para elétrico/pressão
 - OCR fallback para PDFs
-- Integração Z-API (recebimento)
-- Envio de mensagens Z-API (serviço pronto)
+- Canal App Impetus (recebimento + envio)
 - Estrutura Pró-Ação (proposals, alerts, rules, rotas)
 - Módulo de diagnóstico (backend + frontend)
 - DocumentContext (política Impetus, POPs, empresa)

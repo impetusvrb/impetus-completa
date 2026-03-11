@@ -10,7 +10,7 @@ Antes de começar, certifique-se de ter instalado:
 - ✅ **PostgreSQL** >= 15 ([Baixar](https://www.postgresql.org/download/))
 - ✅ **Git** ([Baixar](https://git-scm.com/))
 - ✅ **Conta OpenAI** com API Key ([OpenAI](https://platform.openai.com/))
-- ✅ **Conta Z-API** (opcional, para WhatsApp) ([Z-API](https://z-api.io))
+- ✅ **App Impetus** (canal de mensagens integrado)
 
 ---
 
@@ -73,10 +73,7 @@ OPENAI_API_KEY=sk-proj-COLE_SUA_CHAVE_AQUI
 # Salt para senhas (GERE UMA STRING ALEATÓRIA)
 SALT=impetus_2025_TROQUE_POR_ALGO_ALEATORIO
 
-# Z-API (OPCIONAL - pode configurar depois)
-ZAPI_INSTANCE_ID=
-ZAPI_INSTANCE_TOKEN=
-ZAPI_CLIENT_TOKEN=
+# Canal de mensagens: App Impetus (sem config extra)
 ```
 
 ### **Iniciar Backend**

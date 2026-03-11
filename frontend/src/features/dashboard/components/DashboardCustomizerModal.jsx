@@ -2,7 +2,7 @@
  * MODAL DE PERSONALIZAÇÃO DO PAINEL
  * Permite ao usuário ajustar: ordem dos cards, KPIs favoritos, período, layout
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Settings2, Check } from 'lucide-react';
 import { dashboard } from '../../../services/api';
 import './DashboardCustomizerModal.css';
@@ -21,6 +21,7 @@ export default function DashboardCustomizerModal({ isOpen, onClose, payload, onS
   const [compactMode, setCompactMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const closeTimerRef = useRef(null);
 
   const cards = payload?.cards || [];
   const kpis = payload?.kpis || [];
@@ -34,6 +35,7 @@ export default function DashboardCustomizerModal({ isOpen, onClose, payload, onS
       setCompactMode(!!payload.compact_mode);
     }
   }, [payload, isOpen]);
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -47,9 +49,11 @@ export default function DashboardCustomizerModal({ isOpen, onClose, payload, onS
       });
       setSaved(true);
       onSaved?.();
-      setTimeout(() => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = setTimeout(() => {
         setSaved(false);
         onClose();
+        closeTimerRef.current = null;
       }, 800);
     } catch (e) {
       console.error('[DashboardCustomizer]', e);

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../middleware/auth');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
 const onlineUsers = new Map();
@@ -8,7 +9,7 @@ function initChatSocket(io) {
     const token = socket.handshake.auth && socket.handshake.auth.token || socket.handshake.query && socket.handshake.query.token;
     if (!token) return next(new Error('Token nao fornecido'));
     try {
-      socket.user = jwt.verify(token, process.env.JWT_SECRET || 'impetus_super_secret_key');
+      socket.user = jwt.verify(token, JWT_SECRET);
       next();
     } catch { next(new Error('Token invalido')); }
   });

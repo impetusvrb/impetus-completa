@@ -28,11 +28,11 @@ CREATE TABLE IF NOT EXISTS knowledge_memory (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_knowledge_memory_company ON knowledge_memory(company_id);
-CREATE INDEX idx_knowledge_memory_tipo ON knowledge_memory(company_id, tipo_evento);
-CREATE INDEX idx_knowledge_memory_data ON knowledge_memory(company_id, data DESC);
-CREATE INDEX idx_knowledge_memory_equipamento ON knowledge_memory(company_id, equipamento) WHERE equipamento IS NOT NULL;
-CREATE INDEX idx_knowledge_memory_linha ON knowledge_memory(company_id, linha) WHERE linha IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_knowledge_memory_company ON knowledge_memory(company_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_memory_tipo ON knowledge_memory(company_id, tipo_evento);
+CREATE INDEX IF NOT EXISTS idx_knowledge_memory_data ON knowledge_memory(company_id, data DESC);
+CREATE INDEX IF NOT EXISTS idx_knowledge_memory_equipamento ON knowledge_memory(company_id, equipamento) WHERE equipamento IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_knowledge_memory_linha ON knowledge_memory(company_id, linha) WHERE linha IS NOT NULL;
 
 -- 2. CASOS_MANUTENCAO - Casos resolvidos para aprendizado da IA
 CREATE TABLE IF NOT EXISTS casos_manutencao (
@@ -57,9 +57,9 @@ CREATE TABLE IF NOT EXISTS casos_manutencao (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_casos_manutencao_company ON casos_manutencao(company_id);
-CREATE INDEX idx_casos_manutencao_equipamento ON casos_manutencao(company_id, equipamento);
-CREATE INDEX idx_casos_manutencao_data ON casos_manutencao(company_id, data DESC);
+CREATE INDEX IF NOT EXISTS idx_casos_manutencao_company ON casos_manutencao(company_id);
+CREATE INDEX IF NOT EXISTS idx_casos_manutencao_equipamento ON casos_manutencao(company_id, equipamento);
+CREATE INDEX IF NOT EXISTS idx_casos_manutencao_data ON casos_manutencao(company_id, data DESC);
 
 -- 3. EVENTOS_EMPRESA - Registro central de eventos (alimenta dashboards)
 CREATE TABLE IF NOT EXISTS eventos_empresa (
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS eventos_empresa (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_eventos_empresa_company ON eventos_empresa(company_id);
-CREATE INDEX idx_eventos_empresa_tipo ON eventos_empresa(company_id, tipo_evento);
-CREATE INDEX idx_eventos_empresa_data ON eventos_empresa(company_id, data DESC);
+CREATE INDEX IF NOT EXISTS idx_eventos_empresa_company ON eventos_empresa(company_id);
+CREATE INDEX IF NOT EXISTS idx_eventos_empresa_tipo ON eventos_empresa(company_id, tipo_evento);
+CREATE INDEX IF NOT EXISTS idx_eventos_empresa_data ON eventos_empresa(company_id, data DESC);
 
 -- 4. TASKS - Adicionar colunas para lembretes automáticos
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id) ON DELETE SET NULL;
@@ -120,5 +120,5 @@ CREATE TABLE IF NOT EXISTS audio_detected_events (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_audio_events_company ON audio_detected_events(company_id);
-CREATE INDEX idx_audio_events_created ON audio_detected_events(company_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audio_events_company ON audio_detected_events(company_id);
+CREATE INDEX IF NOT EXISTS idx_audio_events_created ON audio_detected_events(company_id, created_at DESC);

@@ -1,4 +1,4 @@
--- Migration: App Impetus Communications (substituição Z-API)
+-- Migration: App Impetus Communications
 -- Adiciona suporte a transcrição de mídia e source='app' em communications
 
 -- Colunas para enriquecimento de relatórios (IA interpreta áudio/vídeo)
@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_communications_source_app
   ON communications(company_id, created_at DESC) 
   WHERE source = 'app';
 
--- Tabela de notificações push para usuários do app (substitui zapi_sent_messages para app)
+-- Tabela de notificações push para usuários do app
 CREATE TABLE IF NOT EXISTS app_notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,

@@ -233,23 +233,7 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
   const sent = [];
   for (const phone of [...new Set(phones)].slice(0, 10)) {
     try {
-<<<<<<< HEAD:impetus_complete/backend/src/services/organizationalAI.js
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
       await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
-=======
-      await messagingAdapter.sendMessage(companyId, phone, message);
->>>>>>> Stashed changes
-=======
-      await messagingAdapter.sendMessage(companyId, phone, message);
->>>>>>> Stashed changes
-=======
-      await messagingAdapter.sendMessage(companyId, phone, message);
->>>>>>> Stashed changes
-=======
-      await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:backend/src/services/organizationalAI.js
       sent.push(phone);
     } catch (e) {
       console.warn('[ORG_AI] notify:', phone, e.message);

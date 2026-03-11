@@ -26,8 +26,6 @@ function parseScheduledAt(dataStr, horaStr) {
 
 /**
  * Persiste eventos corporativos extraídos e cria tarefas quando aplicável
- * @param {Object} opts - { companyId, corporateEvents, sourceType, sourceId, sourceMetadata, conversationId }
- * @returns {Promise<{ kmInserted, casosInserted, eventosInserted, tasksCreated }>}
  */
 async function persistCorporateEvents(opts = {}) {
   const {
@@ -50,7 +48,6 @@ async function persistCorporateEvents(opts = {}) {
     const descricao = ev.descricao || JSON.stringify(ev);
 
     try {
-      // 1. knowledge_memory
       const kmRes = await db.query(
         `INSERT INTO knowledge_memory (
           company_id, tipo_evento, descricao, equipamento, linha, usuario,
@@ -73,7 +70,6 @@ async function persistCorporateEvents(opts = {}) {
       const kmId = kmRes.rows?.[0]?.id;
       if (kmId) kmInserted++;
 
-      // 2. casos_manutencao (manutencao, falha, troca_peca)
       const shouldCasos =
         (tipo === 'manutencao' || tipo === 'falha') && (ev.problema || ev.solucao || ev.peca_trocada) ||
         (tipo === 'troca_peca' && (ev.peca_trocada || ev.equipamento));
@@ -98,7 +94,6 @@ async function persistCorporateEvents(opts = {}) {
         casosInserted++;
       }
 
-      // 3. eventos_empresa
       const evTipoMap = {
         tarefa: 'tarefa criada',
         troca_peca: 'troca de peça',
@@ -118,7 +113,6 @@ async function persistCorporateEvents(opts = {}) {
       );
       eventosInserted++;
 
-      // 4. Tarefa automática (quando tipo = tarefa e há responsável ou descrição)
       if (tipo === 'tarefa' && (ev.usuario_responsavel || ev.descricao)) {
         const scheduledAt = parseScheduledAt(ev.data, ev.hora);
         const title = (ev.descricao || '').slice(0, 200) || 'Tarefa detectada em conversa';
@@ -146,11 +140,6 @@ async function persistCorporateEvents(opts = {}) {
   return { kmInserted, casosInserted, eventosInserted, tasksCreated };
 }
 
-/**
- * Busca contexto relevante da memória corporativa para enriquecer respostas da IA
- * @param {Object} opts - { companyId, query, equipamento?, linha?, limit }
- * @returns {Promise<Array>} Registros relevantes
- */
 async function getRelevantContext(opts = {}) {
   const { companyId, query = '', equipamento, linha, limit = 15 } = opts;
   if (!companyId) return [];
@@ -185,9 +174,6 @@ async function getRelevantContext(opts = {}) {
   return r.rows || [];
 }
 
-/**
- * Busca casos de manutenção semelhantes (para sugerir soluções)
- */
 async function getSimilarMaintenanceCases(opts = {}) {
   const { companyId, problema, equipamento, linha, limit = 5 } = opts;
   if (!companyId) return [];

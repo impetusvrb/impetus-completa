@@ -2,7 +2,7 @@
  * DASHBOARD GERENCIAL
  * Para gerentes e diretores: KPIs personalizáveis via IA, comunicação direta
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
@@ -26,6 +26,7 @@ export default function DashboardGerencial() {
 
   const smartSummary = useSmartSummary(true);
   const { log } = useActivityLog();
+  const kpiTimerRef = useRef(null);
   useEffect(() => {
     smartSummary.fetchAndShow();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -33,19 +34,21 @@ export default function DashboardGerencial() {
   useEffect(() => {
     log('view', 'dashboard_gerencial', null, {});
   }, []);
+  useEffect(() => () => { if (kpiTimerRef.current) clearTimeout(kpiTimerRef.current); }, []);
 
   const handleKPIRequest = (solicitacao) => {
     log('request', 'dashboard', null, { kpi_requested: solicitacao });
     setKpiSolicitado(solicitacao);
     setKpiLoading(true);
-    // Simula resposta da IA - em produção, chamar endpoint que gera widgets
-    setTimeout(() => {
+    if (kpiTimerRef.current) clearTimeout(kpiTimerRef.current);
+    kpiTimerRef.current = setTimeout(() => {
       setKpiWidgets([
         { id: 1, titulo: 'OEE Linha 1', valor: '78,5%', tendencia: 2 },
         { id: 2, titulo: 'Paradas (30 dias)', valor: '12', tendencia: -5 },
         { id: 3, titulo: 'Produtividade', valor: '94%', tendencia: 1 },
       ]);
       setKpiLoading(false);
+      kpiTimerRef.current = null;
     }, 800);
   };
 

@@ -70,23 +70,7 @@ async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
 
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
-<<<<<<< HEAD:impetus_complete/backend/src/services/subscriptionNotifications.js
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
-=======
-    await messagingAdapter.sendMessage(companyId, toSend, message);
->>>>>>> Stashed changes
-=======
-    await messagingAdapter.sendMessage(companyId, toSend, message);
->>>>>>> Stashed changes
-=======
-    await messagingAdapter.sendMessage(companyId, toSend, message);
->>>>>>> Stashed changes
-=======
-    await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:backend/src/services/subscriptionNotifications.js
     return true;
   } catch (err) {
     console.error('[SUBSCRIPTION_DAY5_WHATSAPP]', err.message);

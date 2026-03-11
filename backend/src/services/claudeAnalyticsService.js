@@ -1,8 +1,7 @@
 /**
  * CLAUDE ANALYTICS - Pipeline de ingestão e interpretação
  * Recebe dados brutos do sistema, envia a Claude para extrair fatos,
- * persiste na memória operacional E na memória corporativa (knowledge_memory, casos, eventos).
- * Execução assíncrona (não bloqueia).
+ * persiste na memória operacional. Execução assíncrona (não bloqueia).
  */
 const claudeService = require('./claudeService');
 const operationalMemory = require('./operationalMemoryService');
@@ -38,7 +37,7 @@ function ingestAsync(rawContent, opts = {}) {
     scopeHints = {}
   } = opts;
 
-  if (!OPERATIONAL_MEMORY_ENABLED || !companyId || !rawContent) return;
+  if ((!OPERATIONAL_MEMORY_ENABLED && !CORPORATE_MEMORY_ENABLED) || !companyId || !rawContent) return;
 
   setImmediate(() => {
     const run = async () => {
@@ -54,10 +53,7 @@ function ingestAsync(rawContent, opts = {}) {
         });
         if (!extracted) return;
 
-        const hasFacts = extracted.facts?.length > 0;
-        const hasCorporateEvents = extracted.corporate_events?.length > 0;
-
-        if (OPERATIONAL_MEMORY_ENABLED && hasFacts) {
+        if (OPERATIONAL_MEMORY_ENABLED && extracted.facts?.length) {
           const { inserted } = await operationalMemory.storeFacts({
             companyId,
             facts: extracted.facts,
@@ -65,23 +61,20 @@ function ingestAsync(rawContent, opts = {}) {
             sourceId,
             sourceMetadata: { summary: extracted.summary, ...sourceMetadata }
           });
-          if (inserted > 0) {
-            console.info('[CLAUDE_ANALYTICS] Ingested', inserted, 'facts from', sourceType);
-          }
+          if (inserted > 0) console.info('[CLAUDE_ANALYTICS] Ingested', inserted, 'facts from', sourceType);
         }
 
-        if (CORPORATE_MEMORY_ENABLED && hasCorporateEvents) {
+        if (CORPORATE_MEMORY_ENABLED && extracted.corporate_events?.length) {
           const r = await corporateMemory.persistCorporateEvents({
             companyId,
             corporateEvents: extracted.corporate_events,
             sourceType,
             sourceId,
-            sourceMetadata: { summary: extracted.summary, ...sourceMetadata },
+            sourceMetadata: { summary: extracted.summary, ...sourceMetadata, conversationId: sourceMetadata.conversationId || sourceId },
             conversationId: sourceMetadata.conversationId || sourceId
           });
-          const total = r.kmInserted + r.tasksCreated;
-          if (total > 0) {
-            console.info('[CLAUDE_ANALYTICS] Corporate memory:', r.kmInserted, 'events,', r.tasksCreated, 'tasks from', sourceType);
+          if (r.kmInserted + r.tasksCreated > 0) {
+            console.info('[CLAUDE_ANALYTICS] Corporate memory:', r.kmInserted, 'events,', r.tasksCreated, 'tasks');
           }
         }
       } catch (err) {
@@ -194,7 +187,7 @@ function ingestOrdemServico(os, companyId) {
 }
 
 /**
- * Obtém contexto de memória (operacional + corporativa) para enriquecer o ChatGPT
+ * Obtém contexto de memória para enriquecer o ChatGPT
  * @param {Object} opts - { companyId, userId, query, req }
  * @returns {Promise<string|null>} Bloco para o system prompt
  */
@@ -245,13 +238,10 @@ async function getContextForChat(opts) {
           corporateLines.push(`- ${c.equipamento || ''} linha ${c.linha || '-'}: ${c.problema} → Solução: ${c.solucao || 'N/A'}${c.peca_trocada ? ` (peça: ${c.peca_trocada})` : ''}`);
         });
       }
-      if (corporateLines.length) {
-        blocks.push(`## Memória corporativa da empresa:\n${corporateLines.join('\n')}`);
-      }
+      if (corporateLines.length) blocks.push(`## Memória corporativa:\n${corporateLines.join('\n')}`);
     }
 
-    if (!blocks.length) return null;
-    return blocks.join('\n\n');
+    return blocks.length ? blocks.join('\n\n') : null;
   } catch (err) {
     console.warn('[CLAUDE_ANALYTICS] getContextForChat:', err.message);
     return null;

@@ -9,7 +9,7 @@ const { setIO } = require('./chatBroadcast');
 const chatService = require('./chatService');
 const chatAIService = require('./chatAIService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'impetus_super_secret_key';
+const { JWT_SECRET } = require('../src/middleware/auth');
 
 async function validateSocketAuth(token) {
   if (!token) return null;

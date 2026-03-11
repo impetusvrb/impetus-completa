@@ -234,16 +234,16 @@ async function getDashboardKPIs(user, hierarchyScope) {
           { id: 'k_proposals', title: 'Tarefas pendentes (equipe)', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
         );
       } else {
-        const [comms, proposals, insights] = await Promise.all([
-          queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
-          queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
-          queryCommunications(scope, companyId, "c.ai_priority <= 2")
-        ]);
-        kpis.push(
-          { id: 'k1', title: 'Interações da equipe', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
-          { id: 'k2', title: 'Tarefas pendentes (equipe)', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' },
-          { id: 'k3', title: 'Alertas operacionais', value: insights, color: 'orange', route: '/app/chatbot', icon: 'alert' }
-        );
+      const [comms, proposals, insights] = await Promise.all([
+        queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
+        queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
+        queryCommunications(scope, companyId, "c.ai_priority <= 2")
+      ]);
+      kpis.push(
+        { id: 'k1', title: 'Interações da equipe', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
+        { id: 'k2', title: 'Tarefas pendentes (equipe)', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' },
+        { id: 'k3', title: 'Alertas operacionais', value: insights, color: 'orange', route: '/app/chatbot', icon: 'alert' }
+      );
       }
     } else {
       // COLABORADOR (5) - KPIs por área (manutenção vê OS, qualidade vê NC)
@@ -259,14 +259,14 @@ async function getDashboardKPIs(user, hierarchyScope) {
           { id: 'k_proposals', title: 'Minhas propostas', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
         );
       } else {
-        const [comms, proposals] = await Promise.all([
-          queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '30 days'"),
-          queryProposals(scope, companyId, "status NOT IN ('done','rejected')")
-        ]);
-        kpis.push(
-          { id: 'k1', title: 'Minhas interações', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
-          { id: 'k2', title: 'Minhas propostas', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
-        );
+      const [comms, proposals] = await Promise.all([
+        queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '30 days'"),
+        queryProposals(scope, companyId, "status NOT IN ('done','rejected')")
+      ]);
+      kpis.push(
+        { id: 'k1', title: 'Minhas interações', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
+        { id: 'k2', title: 'Minhas propostas', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
+      );
       }
     }
 

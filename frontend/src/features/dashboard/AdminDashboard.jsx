@@ -16,7 +16,7 @@ const DOC_CARDS = [
   { id: 'policy', icon: Shield, title: 'Política da Empresa', desc: 'Normas, POPs gerais e diretrizes para a IA', tab: 'policy', path: '/app/settings' },
   { id: 'pops', icon: FileText, title: 'POPs', desc: 'Procedimentos Operacionais Padrão', tab: 'pops', path: '/app/settings' },
   { id: 'manuals', icon: BookOpen, title: 'Manuais Técnicos', desc: 'Manuais operacionais e de máquinas', tab: 'manuals', path: '/app/settings' },
-  { id: 'whatsapp', icon: Phone, title: 'Contatos WhatsApp', desc: 'Contatos para a IA e notificações', tab: 'whatsapp-contacts', path: '/app/settings' },
+  { id: 'notification-contacts', icon: Phone, title: 'Contatos para Notificações', desc: 'Contatos para a IA e notificações TPM', tab: 'notification-contacts', path: '/app/settings' },
 ];
 
 export default function AdminDashboard() {
