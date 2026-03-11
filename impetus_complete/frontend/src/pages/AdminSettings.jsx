@@ -1,13 +1,19 @@
 /**
  * CONFIGURAÇÕES DO SISTEMA
- * Z-API, POPs, Manuais, Notificações
+ * Comunicação (App Impetus), POPs, Manuais, Notificações
  */
 
+<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode, Smartphone } from 'lucide-react';
+=======
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 import Layout from '../components/Layout';
-import { InputField, CheckboxField } from '../components/FormField';
+import { CheckboxField } from '../components/FormField';
 import { adminSettings, appImpetus } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminSettings.css';
@@ -34,6 +40,7 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -63,11 +70,16 @@ const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contac
 =======
 const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
 >>>>>>> Stashed changes
+=======
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
+const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -97,36 +109,25 @@ export default function AdminSettings() {
 =======
   const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
 >>>>>>> Stashed changes
+=======
+  const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+  const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
-    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && activeTab !== tabFromUrl) {
-      setActiveTab(tabFromUrl);
+    const effective = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+    if (effective && VALID_TABS.includes(effective) && activeTab !== effective) {
+      setActiveTab(effective);
     }
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
   const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
-  const [zapiConfig, setZapiConfig] = useState({ instance_id: '', instance_token: '', client_token: '', api_url: 'https://api.z-api.io', business_phone: '' });
-  const [zapiTest, setZapiTest] = useState(null);
-  const [connectState, setConnectState] = useState(null);
-  const [qrBase64, setQrBase64] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState(null);
-  const [showManualConfig, setShowManualConfig] = useState(false);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [warningModalMode, setWarningModalMode] = useState('auto');
-  const statusPollRef = useRef(null);
-  const qrRefreshRef = useRef(null);
 
   useEffect(() => {
     loadData();
   }, [activeTab]);
-
-  useEffect(() => {
-    return () => {
-      if (statusPollRef.current) clearInterval(statusPollRef.current);
-      if (qrRefreshRef.current) clearInterval(qrRefreshRef.current);
-    };
-  }, []);
 
   const loadData = async () => {
     try {
@@ -172,8 +173,8 @@ export default function AdminSettings() {
       } else if (activeTab === 'notifications') {
         const r = await adminSettings.getNotificationConfig();
         setNotifConfig(r.data.config || notifConfig);
-      } else if (activeTab === 'whatsapp-contacts') {
-        const r = await adminSettings.listWhatsappContacts();
+      } else if (activeTab === 'notification-contacts') {
+        const r = await adminSettings.listNotificationContacts();
         setWhatsappContacts(r.data?.contacts || []);
       } else if (activeTab === 'dashboard-visibility') {
         const r = await adminSettings.getDashboardVisibilityConfigs();
@@ -194,86 +195,6 @@ export default function AdminSettings() {
   const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
   const [visibilityConfigs, setVisibilityConfigs] = useState([]);
   const [saving, setSaving] = useState(false);
-
-  const handleSaveZapi = async () => {
-    try {
-      setSaving(true);
-      await adminSettings.saveZApiConfig(zapiConfig);
-      notify.success('Configuração Z-API salva!');
-    } catch (e) {
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestZapi = async () => {
-    try {
-      setZapiTest(null);
-      const r = await adminSettings.testZApiConnection();
-      setZapiTest(r.data.test);
-    } catch (e) {
-      setZapiTest({ ok: false, error: e.response?.data?.error || e.message });
-    }
-  };
-
-  const doConnectWhatsApp = async (useManual = false) => {
-    try {
-      setConnectState('loading');
-      setQrBase64(null);
-      const payload = useManual && zapiConfig.instance_id && zapiConfig.instance_token
-        ? { instance_id: zapiConfig.instance_id, instance_token: zapiConfig.instance_token, client_token: zapiConfig.client_token }
-        : {};
-      throw new Error("Conexão via App Impetus não requer QR Code");
-      setQrBase64(r.data.qr_code_base64);
-      setConnectState('pending');
-      if (r.data.status === 'pending') {
-        statusPollRef.current = setInterval(async () => {
-          try {
-            const s = await appImpetus.getStatus();
-            setConnectionStatus(s.data);
-            if (s.data.connected) {
-              clearInterval(statusPollRef.current);
-              setConnectState('connected');
-              setQrBase64(null);
-              loadData();
-            }
-          } catch (_) {}
-        }, 4000);
-        qrRefreshRef.current = setInterval(async () => {
-          if (connectState === 'connected') return;
-          try {
-            return; // QR não aplicável
-            if (q.data?.qr_code_base64) setQrBase64(q.data.qr_code_base64);
-          } catch (_) {}
-        }, 15000);
-      } else if (r.data.status === 'connected') {
-        setConnectState('connected');
-      }
-    } catch (e) {
-      setConnectState('error');
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao conectar');
-    }
-  };
-
-  const handleConnectWhatsApp = (useManual = false) => {
-    setWarningModalMode(useManual ? 'manual' : 'auto');
-    setShowWarningModal(true);
-  };
-
-  const handleWarningConfirm = () => {
-    doConnectWhatsApp(warningModalMode === 'manual');
-  };
-
-  const stopConnectFlow = () => {
-    if (statusPollRef.current) clearInterval(statusPollRef.current);
-    if (qrRefreshRef.current) clearInterval(qrRefreshRef.current);
-    statusPollRef.current = null;
-    qrRefreshRef.current = null;
-    setConnectState(null);
-    setQrBase64(null);
-    loadData();
-  };
 
   const handleSaveNotifications = async () => {
     try {
@@ -367,9 +288,9 @@ export default function AdminSettings() {
     }
     try {
       setSaving(true);
-      const r = await adminSettings.addWhatsappContact({ name, phone, role, sector });
+      const r = await adminSettings.addNotificationContact({ name, phone, role, sector });
       setWhatsappContacts(r.data?.contacts || []);
-      notify.success('Contato WhatsApp adicionado! A IA poderá usá-lo para contato com colaboradores.');
+      notify.success('Contato adicionado! A IA poderá usá-lo para notificações.');
       form.reset();
     } catch (err) {
       notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao adicionar');
@@ -381,7 +302,7 @@ export default function AdminSettings() {
   const handleRemoveWhatsappContact = async (id) => {
     try {
       setSaving(true);
-      const r = await adminSettings.deleteWhatsappContact(id);
+      const r = await adminSettings.deleteNotificationContact(id);
       setWhatsappContacts(r.data?.contacts || []);
       notify.success('Contato removido');
     } catch (err) {
@@ -481,7 +402,7 @@ export default function AdminSettings() {
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
-          <button className={`stab ${activeTab === 'whatsapp-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('whatsapp-contacts')}><Phone size={18} /> Contatos WhatsApp</button>
+          <button className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
           <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
           {canConfigDashboard && (
             <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
@@ -612,7 +533,7 @@ export default function AdminSettings() {
             <div className="settings-panel">
               <h3>Comunicação (App Impetus)</h3>
               {loading ? <p>Carregando...</p> : (
-                <div className="zapi-connected">
+                <div className="communication-connected">
                   <Check size={48} className="text-success" />
                   <p><strong>Comunicação integrada via App Impetus</strong></p>
                   <p className="form-hint" style={{ marginTop: 8, maxWidth: 480 }}>
@@ -705,10 +626,10 @@ export default function AdminSettings() {
             </div>
           )}
 
-          {activeTab === 'whatsapp-contacts' && (
+          {activeTab === 'notification-contacts' && (
             <div className="settings-panel">
-              <h3>Contatos WhatsApp</h3>
-              <p className="form-hint">Contatos que a IA pode usar para notificações e comunicações internas.</p>
+              <h3>Contatos para Notificações</h3>
+              <p className="form-hint">Contatos que a IA pode usar para notificações (TPM, Modo Executivo, alertas).</p>
               <form onSubmit={handleAddWhatsappContact}>
                 <input type="text" name="name" placeholder="Nome" className="form-input" required />
                 <input type="text" name="phone" placeholder="Telefone" className="form-input" required />
@@ -730,7 +651,7 @@ export default function AdminSettings() {
               {loading ? <p>Carregando...</p> : (
                 <>
                   <CheckboxField label="Email" name="email_enabled" checked={notifConfig.email_enabled} onChange={handleNotifChange} />
-                  <CheckboxField label="WhatsApp" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
+                  <CheckboxField label="Notificações no app" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
                   <CheckboxField label="Alertas de falha" name="failure_alerts" checked={notifConfig.failure_alerts} onChange={handleNotifChange} />
                   <div className="panel-actions">
                     <button className="btn btn-primary" onClick={handleSaveNotifications} disabled={saving}>Salvar</button>

@@ -1,4 +1,243 @@
+<<<<<<< HEAD
       await messagingAdapter.sendMessage(companyId, phone, message);
+=======
+/**
+ * IA ORGANIZACIONAL ATIVA
+ * Protocolo operacional: escuta, entende, registra, organiza, lembra, escala, auxilia
+ * 100% baseado na comunicação via WhatsApp
+ */
+
+const db = require('../db');
+const ai = require('./ai');
+const communicationEscalation = require('./communicationEscalation');
+const userContext = require('./userContext');
+
+const EVENT_TYPES = [
+  'quebra_peca',
+  'falha_maquina',
+  'falta_insumo',
+  'atraso',
+  'pedido_material',
+  'risco',
+  'parada_producao',
+  'solicitacao_urgente',
+  'info_financeira',
+  'falha_técnica',
+  'tarefa',
+  'alerta',
+  'comunicado',
+  'duvida',
+  'outro'
+];
+
+const INCOMPLETE_QUESTIONS = {
+  quebra_peca: ['Qual máquina?', 'Qual o código da peça?', 'Foi substituída?', 'Houve parada de produção?'],
+  falha_maquina: ['Qual máquina?', 'Qual o problema observado?', 'Houve parada?', 'Já foi acionada manutenção?'],
+  parada_producao: ['Qual linha/máquina?', 'Qual a causa?', 'Tempo estimado de retorno?'],
+  falta_insumo: ['Qual insumo?', 'Quantidade necessária?', 'Urgência?'],
+  pedido_material: ['Qual material?', 'Quantidade?', 'Setor solicitante?']
+};
+
+/**
+ * Classifica evento operacional (IA + keywords)
+ */
+async function classifyOperationalEvent(text) {
+  const low = (text || '').toLowerCase();
+
+  const keywordMap = {
+    quebra_peca: /quebr|engrenagem|peca|peça|substitui|almoxarifado|consumo/i,
+    falha_maquina: /falha|parou|não liga|erro|vaza|queima|ruído|vibra|trava/i,
+    falta_insumo: /falta|acabou|sem |insumo|material/i,
+    atraso: /atraso|atrasad|demora|prazo/i,
+    pedido_material: /pedir|solicitar|material|comprar|reposição/i,
+    risco: /risco|perigo|atenção|alerta/i,
+    parada_producao: /parada|parou.*produção|linha.*parada/i,
+    solicitacao_urgente: /urgente|urgência|asap|imediat/i,
+    info_financeira: /custo|preço|valor|orcamento|financeiro/i
+  };
+
+  for (const [type, regex] of Object.entries(keywordMap)) {
+    if (regex.test(low)) return type;
+  }
+
+  if (!ai || typeof ai.chatCompletion !== 'function') return 'outro';
+
+  const prompt = `Classifique esta mensagem operacional industrial em EXATAMENTE uma categoria:
+quebra_peca, falha_maquina, falta_insumo, atraso, pedido_material, risco, parada_producao, solicitacao_urgente, info_financeira, falha_técnica, tarefa, alerta, comunicado, duvida, outro
+
+Mensagem: "${text.slice(0, 400).replace(/"/g, "'")}"
+
+Responda SOMENTE a palavra em minúsculas.`;
+
+  try {
+    const out = await ai.chatCompletion(prompt, { max_tokens: 30 });
+    const kind = (out || '').trim().toLowerCase().replace(/[^a-z_áéíóú]/g, '').replace('tecnica', 'técnica');
+    return EVENT_TYPES.includes(kind) ? kind : 'outro';
+  } catch (e) {
+    return 'outro';
+  }
+}
+
+/**
+ * Extrai dados estruturados via IA
+ */
+async function extractEventData(text, eventType) {
+  const prompt = `Extraia dados da mensagem operacional. Mensagem: "${(text || '').slice(0, 500).replace(/"/g, "'")}"
+Tipo: ${eventType}
+
+Retorne JSON com chaves (apenas as que encontrar): machine_name, machine_code, part_code, part_name, quantity, production_stop, was_replaced.
+Exemplo: {"machine_name":"Linha 2","part_code":"ENG-001","production_stop":true}`;
+
+  try {
+    const out = await ai.chatCompletion(prompt, { max_tokens: 150 });
+    const match = (out || '').match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+  } catch (e) {
+    console.warn('[ORG_AI] extractEventData:', e.message);
+  }
+  return {};
+}
+
+/**
+ * Detecta se evento está incompleto e retorna perguntas pendentes
+ */
+function detectIncompleteEvent(eventType, extractedData) {
+  const questions = INCOMPLETE_QUESTIONS[eventType];
+  if (!questions) return { incomplete: false, questions: [] };
+
+  const missing = [];
+  if (!extractedData.machine_name && !extractedData.machine_code && questions.some(q => q.includes('máquina'))) {
+    missing.push(questions[0]);
+  }
+  if (!extractedData.part_code && !extractedData.part_name && questions.some(q => q.includes('peça') || q.includes('código'))) {
+    missing.push(questions[1]);
+  }
+  if (extractedData.was_replaced === undefined && questions.some(q => q.includes('substituída'))) {
+    missing.push(questions[2]);
+  }
+  if (extractedData.production_stop === undefined && questions.some(q => q.includes('parada'))) {
+    missing.push(questions[3]);
+  }
+
+  if (missing.length === 0 && (!extractedData.machine_name && !extractedData.machine_code) && eventType !== 'outro') {
+    missing.push(questions[0] || 'Qual máquina/equipamento?');
+  }
+
+  return {
+    incomplete: missing.length > 0,
+    questions: missing.slice(0, 4)
+  };
+}
+
+/**
+ * Registra evento operacional e histórico de máquina
+ */
+async function registerOperationalEvent(companyId, opts) {
+  const {
+    communicationId,
+    eventType,
+    severity,
+    senderPhone,
+    senderName,
+    department,
+    extractedData,
+    metadata
+  } = opts;
+
+  const r = await db.query(`
+    INSERT INTO operational_events (
+      company_id, communication_id, event_type, severity, status,
+      machine_name, machine_code, part_code, part_name,
+      sender_phone, sender_name, department,
+      production_stop, was_replaced, extracted_data, metadata
+    ) VALUES ($1, $2, $3, $4, 'open', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    RETURNING id, event_type, machine_code, part_code
+  `, [
+    companyId,
+    communicationId,
+    eventType,
+    severity || 'medium',
+    extractedData?.machine_name || null,
+    extractedData?.machine_code || null,
+    extractedData?.part_code || null,
+    extractedData?.part_name || null,
+    senderPhone || null,
+    senderName || null,
+    department || null,
+    extractedData?.production_stop ?? null,
+    extractedData?.was_replaced ?? null,
+    JSON.stringify(extractedData || {}),
+    JSON.stringify(metadata || {})
+  ]);
+
+  const ev = r.rows[0];
+  if (ev?.part_code || ev?.machine_code) {
+    await db.query(`
+      INSERT INTO machine_history (company_id, machine_code, machine_name, event_type, part_code, part_name, quantity, operational_event_id, communication_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [
+      companyId,
+      ev.machine_code || extractedData?.machine_code,
+      extractedData?.machine_name || null,
+      eventType,
+      ev.part_code || extractedData?.part_code,
+      extractedData?.part_name || null,
+      extractedData?.quantity || 1,
+      ev.id,
+      communicationId
+    ]);
+  }
+  return ev;
+}
+
+/**
+ * Avalia consumo e sugere reposição
+ */
+async function evaluateConsumptionAndSuggest(companyId, partCode, machineCode) {
+  try {
+    const r = await db.query(`
+      SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE created_at >= now() - INTERVAL '30 days') as last_30d
+      FROM machine_history
+      WHERE company_id = $1 AND (part_code = $2 OR part_name ILIKE $2)
+    `, [companyId, partCode || '-']);
+
+    const total = parseInt(r.rows[0]?.total || 0);
+    const last30 = parseInt(r.rows[0]?.last_30d || 0);
+    const avgMonth = total / 3;
+    if (last30 > 0 && last30 >= avgMonth * 0.8) {
+      return {
+        suggest: true,
+        message: `Consumo da peça ${partCode || 'registrada'} acima da média nos últimos 30 dias. Recomendo verificar estoque e reposição.`,
+        last30,
+        total
+      };
+    }
+  } catch (e) {
+    console.warn('[ORG_AI] evaluateConsumption:', e.message);
+  }
+  return { suggest: false };
+}
+
+/**
+ * Notifica destinatários via escalonamento
+ */
+async function notifyRecipients(companyId, message, escalationTargets, context = {}) {
+  const recipients = await communicationEscalation.getRecipientsByEscalation(
+    companyId,
+    escalationTargets,
+    context.department
+  );
+
+  const phones = recipients
+    .filter(u => (u.whatsapp_number || u.phone || '').replace(/\D/g, '').length >= 10)
+    .map(u => String(u.whatsapp_number || u.phone || '').replace(/\D/g, ''))
+    .filter(p => p.length >= 10);
+
+  const sent = [];
+  for (const phone of [...new Set(phones)].slice(0, 10)) {
+    try {
+      await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
       sent.push(phone);
     } catch (e) {
       console.warn('[ORG_AI] notify:', phone, e.message);

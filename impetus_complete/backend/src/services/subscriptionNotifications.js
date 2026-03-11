@@ -1,4 +1,80 @@
+<<<<<<< HEAD
     await messagingAdapter.sendMessage(companyId, toSend, message);
+=======
+/**
+ * NOTIFICAÇÕES PROGRESSIVAS DE INADIMPLÊNCIA
+ * Bloqueio progressivo B2B: Dia 3 (email), Dia 5 (WhatsApp), Dia 7 (alerta dashboard), Dia 10 (bloqueio)
+ * Nunca exclui dados - apenas notifica e bloqueia
+ */
+
+const db = require('../db');
+const { sendOverdueNotificationEmail } = require('./emailService');
+const { logAction } = require('../middleware/audit');
+
+const NOTIFICATION_DAYS = [3, 5, 7];
+const NOTIFICATION_TYPES = {
+  3: 'email_day3',
+  5: 'whatsapp_day5',
+  7: 'dashboard_day7'
+};
+
+/**
+ * Verifica se notificação do tipo já foi enviada para esta assinatura
+ */
+async function wasNotificationSent(subscriptionId, notificationType) {
+  const r = await db.query(`
+    SELECT 1 FROM subscription_notifications
+    WHERE subscription_id = $1 AND notification_type = $2
+    LIMIT 1
+  `, [subscriptionId, notificationType]);
+  return r.rows.length > 0;
+}
+
+/**
+ * Registra que a notificação foi enviada
+ */
+async function recordNotificationSent(subscriptionId, companyId, notificationType, metadata = {}) {
+  await db.query(`
+    INSERT INTO subscription_notifications (subscription_id, company_id, notification_type, metadata)
+    VALUES ($1, $2, $3, $4)
+  `, [subscriptionId, companyId, notificationType, JSON.stringify(metadata)]);
+}
+
+/**
+ * Envia notificação de inadimplência por email (Dia 3)
+ */
+async function sendDay3Email(company, subscription) {
+  const email = company.data_controller_email || company.config?.billing_email;
+  if (!email) return false;
+
+  try {
+    const sent = await sendOverdueNotificationEmail({
+      to: email,
+      companyName: company.name,
+      daysOverdue: 3,
+      gracePeriodDays: subscription.grace_period_days,
+      dueDate: subscription.overdue_since_date
+    });
+    return !!sent;
+  } catch (err) {
+    console.error('[SUBSCRIPTION_DAY3_EMAIL]', err.message);
+    return false;
+  }
+}
+
+/**
+ * Envia notificação por WhatsApp (Dia 5)
+ */
+async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
+  const phone = (contactPhone || '').replace(/\D/g, '');
+  if (phone.length < 10) return false;
+
+  const message = `⚠️ Impetus Comunica IA\n\nSua assinatura está em atraso há 5 dias. Regularize o pagamento para evitar bloqueio do acesso ao sistema em ${10 - 5} dias.\n\nDados e histórico estão preservados. Após confirmação do pagamento, o acesso será liberado automaticamente.\n\nDúvidas: entre em contato com nosso financeiro.`;
+
+  try {
+    const toSend = phone.startsWith('55') ? phone : `55${phone}`;
+    await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
     return true;
   } catch (err) {
     console.error('[SUBSCRIPTION_DAY5_WHATSAPP]', err.message);

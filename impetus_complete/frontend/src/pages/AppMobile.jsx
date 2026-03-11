@@ -1,7 +1,11 @@
 /**
  * APP IMPETUS - Versão Mobile PWA
  * Chat focado em comunicação operacional: texto, áudio, vídeo
+<<<<<<< HEAD
  * Substitui canal WhatsApp/Z-API
+=======
+ * Canal de mensagens App Impetus
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';

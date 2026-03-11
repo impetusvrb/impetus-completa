@@ -1,0 +1,324 @@
+/**
+ * REGISTRO INTELIGENTE - Interface premium
+ */
+
+.registro-inteligente-page {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.registro-header {
+  margin-bottom: 28px;
+}
+
+.registro-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.registro-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-lg);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+}
+
+.registro-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.registro-subtitle {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.registro-main {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.registro-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.registro-instruction {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.registro-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.registro-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.registro-shortcut:hover {
+  background: var(--bg-hover);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.registro-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.registro-textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.registro-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.2);
+}
+
+.registro-textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.registro-actions {
+  margin-top: 20px;
+}
+
+.btn-registrar-ia {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(30, 144, 255, 0.35);
+}
+
+.btn-registrar-ia:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(30, 144, 255, 0.45);
+}
+
+.btn-registrar-ia:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Histórico */
+.registro-history {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.registro-history-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.registro-loading,
+.registro-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.registro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.registro-card-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.registro-card-item--urgent {
+  border-left: 3px solid var(--color-warning);
+}
+
+.registro-card-item--critical {
+  border-left: 3px solid var(--color-error);
+}
+
+.registro-card-item--warning {
+  border-left: 3px solid var(--color-accent);
+}
+
+.registro-card-header {
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.registro-card-header:hover {
+  background: var(--bg-hover);
+}
+
+.registro-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.registro-card-date {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.registro-card-time {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.registro-card-category {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.registro-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.registro-badge--warning {
+  background: rgba(244, 162, 97, 0.2);
+  color: var(--color-warning);
+}
+
+.registro-badge--urgent {
+  background: rgba(244, 162, 97, 0.25);
+  color: var(--color-accent);
+}
+
+.registro-badge--critical {
+  background: rgba(214, 40, 40, 0.2);
+  color: var(--color-error);
+}
+
+.registro-card-summary {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.registro-card-detail {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.registro-original {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.registro-original p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.registro-extracted {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.registro-extracted div {
+  margin-bottom: 4px;
+}
+
+.registro-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.registro-flag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: rgba(244, 162, 97, 0.15);
+  color: var(--color-warning);
+  border-radius: var(--radius-sm);
+  margin-right: 8px;
+}
+
+.registro-flag--escalation {
+  background: rgba(214, 40, 40, 0.15);
+  color: var(--color-error);
+}
