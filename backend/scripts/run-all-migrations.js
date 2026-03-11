@@ -42,28 +42,14 @@ const MIGRATIONS = [
   { name: 'Z-API Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
   { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
   { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
-<<<<<<< HEAD:impetus_complete/backend/scripts/run-all-migrations.js
-  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' }
-=======
-  { name: 'Chat Interno entre colaboradores (mensagens, conversas)', file: 'internal_chat_migration.sql' },
-  { name: 'Módulo Chat completo (conversations, participants, messages)', file: 'chat_module_schema.sql', dir: 'chat-module' },
-  { name: 'App Communications (media_transcription, app_notifications)', file: 'app_communications_migration.sql' }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
   { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
   { name: 'Base Estrutural Admin (empresa, cargos, linhas, ativos, processos, produtos, IA)', file: 'admin_structural_base_migration.sql' },
   { name: 'Registro Inteligente (registros assistidos por IA)', file: 'intelligent_registration_migration.sql' },
   { name: 'Chat interno entre colaboradores', file: 'internal_chat_migration.sql' },
   { name: 'Camada operacional de manutenção (OS, preventivas, intervenções)', file: 'maintenance_operational_migration.sql' },
   { name: 'Dashboard personalização avançada (seniority, ai_profile_context, onboarding)', file: 'intelligent_dashboard_personalization_migration.sql' },
-  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' }
->>>>>>> b26977f8b25156224b72a9bcc9a6c1af88f2b266:backend/scripts/run-all-migrations.js
+  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' },
+  { name: 'IA Corporativa (knowledge_memory, casos_manutencao, eventos_empresa)', file: 'corporate_ai_memory_migration.sql' }
 ];
 
 async function run() {

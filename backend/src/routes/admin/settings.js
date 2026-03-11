@@ -1,6 +1,6 @@
 /**
  * ROTAS DE CONFIGURAÇÕES DO SISTEMA
- * Empresa, POPs, manuais técnicos, notificações, contatos, LGPD
+ * POPs, manuais técnicos, notificações, visibilidade dashboard, LGPD
  */
 
 const express = require('express');
