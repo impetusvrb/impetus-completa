@@ -37,6 +37,17 @@ const adminDepartments = require('./routes/admin/departments');
 const adminLogs = require('./routes/admin/logs');
 const adminSettings = require('./routes/admin/settings');
 const adminStructural = require('./routes/admin/structural');
+const adminTimeClock = require('./routes/admin/timeClock');
+const hrIntelligence = require('./routes/hrIntelligence');
+const operationalAnomalies = require('./routes/operationalAnomalies');
+const rawMaterialLots = require('./routes/rawMaterialLots');
+const adminRawMaterials = require('./routes/admin/rawMaterials');
+const adminWarehouse = require('./routes/admin/warehouse');
+const adminLogistics = require('./routes/admin/logistics');
+const warehouseIntelligence = require('./routes/warehouseIntelligence');
+const logisticsIntelligence = require('./routes/logisticsIntelligence');
+const centralIndustryAI = require('./routes/centralIndustryAI');
+const qualityIntelligence = require('./routes/qualityIntelligence');
 const roleVerificationRoutes = require('./routes/roleVerification');
 const intelligentRegistration = require('./routes/intelligentRegistration');
 const companies = require('./routes/companies');
@@ -253,6 +264,17 @@ app.use('/api/admin/departments', ...protected, adminDepartments);
 app.use('/api/admin/logs', ...protected, requireRoleVerified, adminLogs);
 app.use('/api/admin/settings', ...protected, adminSettings);
 app.use('/api/admin/structural', ...protected, adminStructural);
+app.use('/api/admin/time-clock', ...protected, adminTimeClock);
+app.use('/api/hr-intelligence', ...protected, hrIntelligence);
+app.use('/api/operational-anomalies', ...protected, operationalAnomalies);
+app.use('/api/raw-material-lots', ...protected, rawMaterialLots);
+app.use('/api/admin/raw-materials', ...protected, adminRawMaterials);
+app.use('/api/admin/warehouse', ...protected, adminWarehouse);
+app.use('/api/admin/logistics', ...protected, adminLogistics);
+app.use('/api/warehouse-intelligence', ...protected, warehouseIntelligence);
+app.use('/api/logistics-intelligence', ...protected, logisticsIntelligence);
+app.use('/api/central-ai', ...protected, centralIndustryAI);
+app.use('/api/quality-intelligence', ...protected, qualityIntelligence);
 
 // 404 Handler
 app.use((req, res) => {

@@ -2,14 +2,39 @@ const db = require('../db');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
 const hierarchicalFilter = require('./hierarchicalFilter');
+let lotService;
+try { lotService = require('./rawMaterialLotDetectionService'); } catch (_) {}
 
 async function createProposal(payload){
   if (!payload.company_id) throw new Error('company_id é obrigatório');
-  const q = `INSERT INTO proposals(company_id, reporter_id, reporter_name, location, equipment_id, problem_category, process_type, frequency, probable_causes, consequences, proposed_solution, expected_benefits, urgency, attachments, notes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`;
-  const params = [payload.company_id,payload.reporter_id||null,payload.reporter_name||null,payload.location||null,payload.equipment_id||null,payload.problem_category||null,payload.process_type||null,payload.frequency||null,payload.probable_causes||null,payload.consequences||null,payload.proposed_solution||null,payload.expected_benefits||null,payload.urgency||null,payload.attachments||null,payload.notes||null];
+  const lotCode = (payload.lot_code || '').trim();
+  if (lotService && lotCode && await lotService.isLotBlocked(payload.company_id, lotCode)) {
+    throw new Error(`O lote ${lotCode} está bloqueado para produção. Entre em contato com a Qualidade.`);
+  }
+  const q = `INSERT INTO proposals(company_id, reporter_id, reporter_name, location, equipment_id, problem_category, process_type, frequency, probable_causes, consequences, proposed_solution, expected_benefits, urgency, attachments, notes, lot_code, supplier_name, material_name, machine_used, operator_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`;
+  const params = [
+    payload.company_id, payload.reporter_id||null, payload.reporter_name||null, payload.location||null,
+    payload.equipment_id||null, payload.problem_category||null, payload.process_type||null, payload.frequency||null,
+    payload.probable_causes||null, payload.consequences||null, payload.proposed_solution||null, payload.expected_benefits||null,
+    payload.urgency||null, payload.attachments||null, payload.notes||null,
+    lotCode||null, payload.supplier_name||null, payload.material_name||null, payload.machine_used||null, payload.operator_id||null
+  ];
   const r = await db.query(q, params);
   const proposal = r.rows[0];
   await db.query('INSERT INTO proposal_actions(proposal_id, action, comment) VALUES($1,$2,$3)', [proposal.id, 'submitted', null]);
+  if (lotService && lotCode) {
+    lotService.recordLotUsage(payload.company_id, {
+      lot_code: lotCode,
+      material_name: payload.material_name,
+      supplier_name: payload.supplier_name,
+      source_type: 'proposal',
+      source_id: proposal.id,
+      machine_used: payload.machine_used || payload.equipment_id,
+      operator_id: payload.operator_id || payload.reporter_id,
+      defect_count: 1,
+      rework_count: 0
+    }).catch(() => {});
+  }
   return proposal;
 }
 

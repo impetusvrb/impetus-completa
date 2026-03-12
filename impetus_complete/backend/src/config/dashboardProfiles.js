@@ -12,10 +12,11 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_executive',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'settings'],
     cards: [
       { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue', route: '/app/operacional' },
       { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red', route: '/app/chatbot' },
+      { key: 'operational_anomalies', title: 'Anomalias operacionais', icon: 'alert', color: 'orange', route: '/app/anomalies' },
       { key: 'weekly_growth', title: 'Crescimento semanal', icon: 'trending', color: 'green' },
       { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple', route: '/app/proacao' },
       { key: 'monitored_points', title: 'Pontos monitorados', icon: 'map', color: 'teal', route: '/app/monitored-points' }
@@ -33,7 +34,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_analytical',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'hr_intelligence', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
     cards: [
       { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue' },
       { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red' },
@@ -53,7 +54,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_analytical',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'hr_intelligence', 'anomaly_detection', 'audit', 'settings'],
     cards: [
       { key: 'production_consolidated', title: 'Produção consolidada', icon: 'trending', color: 'blue' },
       { key: 'global_efficiency', title: 'Eficiência global', icon: 'target', color: 'green' },
@@ -74,7 +75,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
     cards: [
       { key: 'production_shift', title: 'Produção do turno', icon: 'trending', color: 'blue' },
       { key: 'meta_realizado', title: 'Meta x Realizado', icon: 'target', color: 'green' },
@@ -94,7 +95,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'audit', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -114,9 +115,12 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'raw_material_lots', 'quality_intelligence', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
+      { key: 'lot_alerts', title: 'Alertas de lotes', icon: 'alert', color: 'orange', route: '/app/raw-material-lots' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
+      { key: 'warehouse_dashboard', title: 'Almoxarifado Inteligente', icon: 'package', color: 'green', route: '/app/almoxarifado-inteligente' },
       { key: 'corrective_overdue', title: 'Ações corretivas vencidas', icon: 'alert', color: 'orange' },
       { key: 'pending_audits', title: 'Auditorias pendentes', icon: 'target', color: 'blue' },
       { key: 'deviation_recurrence', title: 'Reincidência de desvios', icon: 'alert', color: 'red' },
@@ -135,7 +139,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'settings'],
     cards: [
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'proposals_in_progress', title: 'Propostas em andamento', icon: 'target', color: 'purple' },
@@ -154,7 +158,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' },
@@ -173,9 +177,10 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' },
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'pending_inspections', title: 'Inspeções pendentes', icon: 'target', color: 'blue' }
@@ -193,7 +198,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'production_shift', title: 'Produção do turno', icon: 'trending', color: 'blue' },
       { key: 'meta_realizado', title: 'Meta x Realizado', icon: 'target', color: 'green' },
@@ -215,7 +220,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -238,9 +243,10 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
       { key: 'corrective_overdue', title: 'Ações corretivas vencidas', icon: 'alert', color: 'orange' },
       { key: 'pending_audits', title: 'Auditorias pendentes', icon: 'target', color: 'blue' },
       { key: 'deviation_recurrence', title: 'Reincidência de desvios', icon: 'alert', color: 'red' },
@@ -298,9 +304,10 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'practical_operational',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'pending_inspections', title: 'Inspeções pendentes', icon: 'target', color: 'blue' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
       { key: 'operational_alerts', title: 'Alertas operacionais', icon: 'alert', color: 'orange' },
       { key: 'my_interactions', title: 'Minhas interações', icon: 'message', color: 'blue' }
     ],
@@ -334,9 +341,10 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'hr_intelligence', 'settings'],
     cards: [
-      { key: 'team_indicators', title: 'Indicadores da equipe', icon: 'users', color: 'blue' },
+      { key: 'team_indicators', title: 'Indicadores da equipe', icon: 'users', color: 'blue', route: '/app/hr-intelligence' },
+      { key: 'hr_alerts', title: 'Alertas de RH', icon: 'alert', color: 'orange', route: '/app/hr-intelligence' },
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' }
     ],

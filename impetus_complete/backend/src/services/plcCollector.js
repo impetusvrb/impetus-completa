@@ -1,22 +1,38 @@
 /**
- * Coletor de dados PLC (simulação OPC UA/Modbus)
- * Fluxo: coleta -> busca manuais -> IA analisa -> salva -> emite alerta
+ * IMPETUS - Coletor de dados PLC/Sensores Industriais
+ * Fluxo: coleta -> Machine Brain analisa -> salva -> emite alerta
+ * Suporte: simulação, Modbus, OPC UA, APIs industriais (via data_source_config)
+ *
+ * Variáveis lidas: machine_status, motor_temperature, vibration_level, oil_level,
+ * water_flow, hydraulic_pressure, electrical_current, rpm, alarm_state
  */
 const plcAi = require('./plcAi');
 const plcData = require('./plcDataService');
 
-/** Simula leitura de um equipamento */
+/** Variáveis industriais padrão para simulação */
 function simulatePLCRead(equipmentId, equipmentName) {
-  const base = { temperature: 45 + Math.random() * 30, pressure: 2 + Math.random() * 4, vibration: 0.5 + Math.random() * 2 };
+  const rnd = () => 0.9 + Math.random() * 0.2;
+  const temp = 45 + Math.random() * 30;
+  const pressure = 2 + Math.random() * 4;
+  const vibration = 0.5 + Math.random() * 2;
+  const oil = 40 + Math.random() * 55;
   return {
     equipment_id: equipmentId,
     equipment_name: equipmentName,
-    temperature: Math.round(base.temperature * 10) / 10,
-    pressure: Math.round(base.pressure * 100) / 100,
-    vibration: Math.round(base.vibration * 100) / 100,
+    machine_status: 'running',
     status: 'running',
+    temperature: Math.round(temp * 10) / 10,
+    motor_temperature: Math.round(temp * 10) / 10,
+    pressure: Math.round(pressure * 100) / 100,
+    hydraulic_pressure: Math.round(pressure * 100) / 100,
+    vibration: Math.round(vibration * 100) / 100,
+    vibration_level: Math.round(vibration * 100) / 100,
+    oil_level: Math.round(oil * 10) / 10,
+    water_flow: Math.round((2 + Math.random() * 3) * 100) / 100,
+    electrical_current: Math.round((25 + Math.random() * 15) * 10) / 10,
     rpm: 1200 + Math.floor(Math.random() * 800),
     power_kw: 15 + Math.random() * 25,
+    alarm_state: 'ok',
     raw_data: { timestamp: new Date().toISOString(), source: 'simulated' }
   };
 }

@@ -3,6 +3,8 @@
  * Gerencia sessões conversacionais e persistência de incidentes
  */
 const db = require('../db');
+let lotService;
+try { lotService = require('./rawMaterialLotDetectionService'); } catch (_) {}
 
 const STEPS = [
   'date', 'time', 'equipment', 'maintainer', 'root_cause', 'frequency',
@@ -57,6 +59,11 @@ async function saveIncident(session) {
   const lossesAfter = parseInt(d.losses_after, 10) || 0;
   const total = lossesBefore + lossesDuring + lossesAfter;
 
+  const lotCode = (d.lot_code || '').trim();
+  if (lotService && lotCode && await lotService.isLotBlocked(session.company_id, lotCode)) {
+    throw new Error(`O lote ${lotCode} está bloqueado para produção. Entre em contato com a Qualidade.`);
+  }
+
   let shiftNumber = null;
   if (d.incident_time) {
     const [h, m] = String(d.incident_time).split(/[:\s]/).map(x => parseInt(x, 10) || 0);
@@ -70,8 +77,8 @@ async function saveIncident(session) {
       company_id, communication_id, operator_phone, incident_date, incident_time,
       equipment_code, component_name, maintainer_name, root_cause, frequency_observation,
       failing_part, corrective_action, losses_before, losses_during, losses_after,
-      operator_name, observation, shift_number
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      operator_name, observation, shift_number, lot_code, supplier_name, material_name
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
     RETURNING *
   `, [
     session.company_id, session.communication_id, session.operator_phone,
@@ -80,7 +87,8 @@ async function saveIncident(session) {
     d.maintainer_name || null, d.root_cause || null, d.frequency_observation || null,
     d.failing_part || null, d.corrective_action || null,
     lossesBefore, lossesDuring, lossesAfter,
-    d.operator_name || null, d.observation || null, shiftNumber
+    d.operator_name || null, d.observation || null, shiftNumber,
+    lotCode || null, d.supplier_name || null, d.material_name || null
   ]);
 
   const incident = r.rows[0];
@@ -102,6 +110,21 @@ async function saveIncident(session) {
   await db.query(`
     UPDATE tpm_form_sessions SET status = 'completed', incident_id = $1, updated_at = now() WHERE id = $2
   `, [incident.id, session.id]);
+
+  if (lotService && lotCode) {
+    lotService.recordLotUsage(session.company_id, {
+      lot_code: lotCode,
+      material_name: d.material_name,
+      supplier_name: d.supplier_name,
+      source_type: 'tpm_incident',
+      source_id: incident.id,
+      machine_used: d.equipment_code,
+      operator_name: d.operator_name,
+      defect_count: 1,
+      rework_count: 0,
+      inspection_result: null
+    }).catch(() => {});
+  }
 
   return incident;
 }

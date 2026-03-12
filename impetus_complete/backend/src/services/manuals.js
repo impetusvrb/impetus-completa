@@ -66,8 +66,10 @@ async function chunkAndEmbedManual(manualId, text){
   for(const chunk of chunks){
     let emb = null;
     try{ emb = await ai.embedText(chunk); }catch(e){ emb = null; }
-    if (emb) {
-      await db.query('INSERT INTO manual_chunks(manual_id, chunk_text, embedding) VALUES($1,$2,$3)', [manualId, chunk, emb]);
+    if (emb && Array.isArray(emb)) {
+      // pgvector espera formato '[0.1,0.2,...]'
+      const vectorStr = '[' + emb.join(',') + ']';
+      await db.query('INSERT INTO manual_chunks(manual_id, chunk_text, embedding) VALUES($1,$2,$3::vector)', [manualId, chunk, vectorStr]);
     }
   }
 }

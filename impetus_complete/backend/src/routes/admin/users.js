@@ -73,7 +73,8 @@ const updateUserSchema = z.object({
   permissions: z.array(z.string()).optional(),
   active: z.boolean().optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
-  dashboard_profile: z.string().max(64).nullable().optional()
+  dashboard_profile: z.string().max(64).nullable().optional(),
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(500).nullable().optional())
 });
 
 /**
@@ -396,8 +397,9 @@ router.put('/:id',
       const params = [];
       let paramCount = 0;
 
+      let hrResponsibilitiesParsed = null;
       Object.keys(validatedData).forEach(key => {
-        if (validatedData[key] !== undefined) {
+        if (validatedData[key] !== undefined && key !== 'hr_responsibilities') {
           paramCount++;
           if (key === 'permissions') {
             updateFields.push(`${key} = $${paramCount}::jsonb`);
@@ -409,8 +411,21 @@ router.put('/:id',
             updateFields.push(`${key} = $${paramCount}`);
             params.push(validatedData[key]);
           }
+        } else if (key === 'hr_responsibilities') {
+          paramCount++;
+          updateFields.push('hr_responsibilities = $' + paramCount + '');
+          params.push(validatedData[key]);
+          try {
+            const hrService = require('../../services/hrIntelligenceService');
+            hrResponsibilitiesParsed = hrService.parseResponsibilities(validatedData[key] || '');
+          } catch (_) {}
         }
       });
+      if (hrResponsibilitiesParsed !== null) {
+        paramCount++;
+        updateFields.push('hr_responsibilities_parsed = $' + paramCount + '::jsonb');
+        params.push(JSON.stringify(hrResponsibilitiesParsed));
+      }
 
       updateFields.push('updated_at = now()');
       params.push(req.params.id, req.user.company_id);

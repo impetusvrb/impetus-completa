@@ -43,7 +43,27 @@ const operationalInsights = require('../services/operationalInsightsService');
 const operationalAlerts = require('../services/operationalAlertsService');
 const machineBrain = require('../services/machineBrainService');
 const machineControl = require('../services/machineControlService');
+const machineSafety = require('../services/machineSafetyService');
+const industrialOperationalMap = require('../services/industrialOperationalMapService');
+const operationalForecasting = require('../services/operationalForecastingService');
+const operationalForecastingAI = require('../services/operationalForecastingAI');
+const operationalForecastingAdvanced = require('../services/operationalForecastingAdvancedService');
+const industrialCost = require('../services/industrialCostService');
+const financialLeakage = require('../services/financialLeakageDetectorService');
 const { requireIndustrialView, requireIndustrialAdmin, canConfigureIndustrial } = require('../middleware/industrialIntegrationAccess');
+
+function requireIndustrialCostAdmin(req, res, next) {
+  const role = (req.user?.role || '').toLowerCase();
+  if (role === 'admin' || role === 'internal_admin') return next();
+  return res.status(403).json({ ok: false, error: 'Cadastro de custos restrito ao Admin do software.', code: 'COST_ADMIN_REQUIRED' });
+}
+
+function requireIndustrialCostView(req, res, next) {
+  const role = (req.user?.role || '').toLowerCase();
+  const hierarchy = req.user?.hierarchy_level ?? 5;
+  if (['admin', 'internal_admin', 'ceo', 'diretor'].includes(role) || hierarchy <= 1) return next();
+  return res.status(403).json({ ok: false, error: 'Relatórios financeiros restritos a CEO e Diretores.', code: 'COST_VIEW_DENIED' });
+}
 
 // Perfis de manutenção (mecânico, eletricista, eletromecânico, supervisor, coordenador, gerente)
 const MAINTENANCE_PROFILES = new Set(['technician_maintenance', 'supervisor_maintenance', 'coordinator_maintenance', 'manager_maintenance']);
@@ -459,6 +479,13 @@ router.post('/communication-classify', requireAuth, async (req, res) => {
   }
 });
 
+function requireExecutiveForecasting(req, res, next) {
+  const role = (req.user?.role || '').toLowerCase();
+  const hierarchy = req.user?.hierarchy_level ?? 5;
+  if (['ceo', 'diretor'].includes(role) || hierarchy <= 1) return next();
+  return res.status(403).json({ ok: false, error: 'Centro de Previsão Operacional restrito a CEO e Diretores.', code: 'FORECASTING_ACCESS_DENIED' });
+}
+
 router.post('/executive-query', requireAuth, async (req, res) => {
   try {
     if (req.user.role !== 'ceo') {
@@ -502,6 +529,121 @@ router.post('/executive-query', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[EXECUTIVE_QUERY_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao processar consulta' });
+  }
+});
+
+/* ========== CENTRO DE PREVISÃO OPERACIONAL (CEO/Diretor) ========== */
+router.get('/forecasting/projections', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const metric = req.query.metric || 'eficiencia';
+    const data = await operationalForecasting.getProjections(req.user.company_id, metric);
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/alerts', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const alerts = await operationalForecasting.getIntelligentAlerts(req.user.company_id, parseInt(req.query.limit, 10) || 15);
+    res.json({ ok: true, alerts });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/simulation', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours, 10) || 48;
+    const sim = await operationalForecasting.simulateFuture(req.user.company_id, hours);
+    res.json({ ok: true, simulation: sim });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/health', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const health = await operationalForecasting.getCompanyHealth(req.user.company_id);
+    res.json({ ok: true, health });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/forecasting/ask', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const { question } = req.body;
+    if (!question || typeof question !== 'string' || question.trim().length < 5) {
+      return res.status(400).json({ ok: false, error: 'Pergunta inválida. Mínimo 5 caracteres.' });
+    }
+    const response = await operationalForecastingAI.answerOperationalQuestion(req.user.company_id, question.trim());
+    res.json({ ok: true, response });
+  } catch (err) {
+    console.error('[FORECASTING_ASK]', err);
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+/* ========== PREVISÃO OPERACIONAL E FINANCEIRA AVANÇADA ========== */
+router.get('/forecasting/extended-projections', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const data = await operationalForecastingAdvanced.getExtendedProjections(req.user.company_id);
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/profit-loss', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const days = parseInt(req.query.days, 10) || 14;
+    const data = await operationalForecastingAdvanced.getProfitLossProjection(req.user.company_id, days);
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/critical-factors', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const data = await operationalForecastingAdvanced.getCriticalFactors(req.user.company_id);
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/forecasting/simulate-decision', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const { action, value } = req.body;
+    if (!action) return res.status(400).json({ ok: false, error: 'action obrigatória' });
+    const data = await operationalForecastingAdvanced.simulateDecision(req.user.company_id, { action, value });
+    res.json({ ok: true, simulation: data });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/forecasting/config', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const config = await operationalForecastingAdvanced.getForecastingConfig(req.user.company_id);
+    res.json({ ok: true, config });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.put('/forecasting/config', requireAuth, requireCompanyActive, requireExecutiveForecasting, async (req, res) => {
+  try {
+    const { revenue_per_day, revenue_per_month, efficiency_baseline, production_capacity_utilization } = req.body;
+    await operationalForecastingAdvanced.updateForecastingConfig(req.user.company_id, {
+      revenue_per_day, revenue_per_month, efficiency_baseline, production_capacity_utilization
+    });
+    const config = await operationalForecastingAdvanced.getForecastingConfig(req.user.company_id);
+    res.json({ ok: true, config });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
   }
 });
 
@@ -1382,13 +1524,20 @@ router.post('/operational-brain/check-alerts', requireAuth, requireCompanyActive
 
 router.get('/industrial/status', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
   try {
-    const [profiles, events, automation] = await Promise.all([
+    const [profiles, events, automation, interventions, offline, predictions] = await Promise.all([
       machineBrain.listProfiles(req.user.company_id),
       db.query(`SELECT event_type, machine_name, line_name, severity, description, created_at, acknowledged FROM machine_detected_events WHERE company_id = $1 ORDER BY created_at DESC LIMIT 30`, [req.user.company_id]),
-      machineControl.getAutomationConfig(req.user.company_id)
+      machineControl.getAutomationConfig(req.user.company_id),
+      machineSafety.listActiveInterventions(req.user.company_id),
+      industrialOperationalMap.getOfflineEquipment(req.user.company_id).catch(() => []),
+      industrialOperationalMap.getFailurePredictions(req.user.company_id, 10).catch(() => [])
     ]);
     const recentEvents = events.rows || [];
-    res.json({ ok: true, machines_count: profiles.length, profiles, events: recentEvents, automation_mode: automation.automation_mode });
+    res.json({
+      ok: true, machines_count: profiles.length, profiles, events: recentEvents,
+      automation_mode: automation.automation_mode, interventions_active: interventions,
+      offline_equipment: offline, failure_predictions: predictions
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err?.message });
   }
@@ -1435,8 +1584,223 @@ router.post('/industrial/automation', requireAuth, requireCompanyActive, require
 router.post('/industrial/command', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
   try {
     const { machine_id, machine_name, equipment_type, command_type, command_value } = req.body;
-    const r = await machineControl.requestCommand(req.user.company_id, req.user.id, machine_id, machine_name, equipment_type, command_type || 'toggle', command_value);
+    const r = await machineControl.requestCommand(req.user.company_id, req.user.id, machine_id, machine_name, equipment_type, command_type || 'toggle', command_value, 'user');
     res.json(r);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/intervention', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const { machine_identifier, machine_name, intervention_type } = req.body;
+    if (!machine_identifier) return res.status(400).json({ ok: false, error: 'machine_identifier obrigatório' });
+    const r = await machineSafety.registerIntervention(
+      req.user.company_id, machine_identifier, machine_name,
+      req.user.id, req.user.name, intervention_type
+    );
+    res.json({ ok: true, intervention: r });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/intervention/:id/confirm-safety', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    await machineSafety.confirmSafetySteps(req.user.company_id, req.params.id, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/industrial/release', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const { machine_identifier } = req.body;
+    if (!machine_identifier) return res.status(400).json({ ok: false, error: 'machine_identifier obrigatório' });
+    const r = await machineSafety.releaseEquipment(req.user.company_id, machine_identifier, req.user.id, req.user.name);
+    if (!r) return res.status(404).json({ ok: false, error: 'Nenhuma intervenção ativa para este equipamento' });
+    res.json({ ok: true, released: r });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/interventions', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const active = await machineSafety.listActiveInterventions(req.user.company_id);
+    const history = await machineSafety.listInterventionHistory(req.user.company_id, req.query.machine_id, parseInt(req.query.limit, 10) || 30);
+    res.json({ ok: true, active, history });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/safety-instructions', requireAuth, requireCompanyActive, requireIndustrialView, (req, res) => {
+  res.json({ ok: true, instructions: machineSafety.getSafetyInstructions() });
+});
+
+router.get('/industrial/factory-map', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const map = await industrialOperationalMap.getFactoryMap(req.user.company_id);
+    res.json({ ok: true, ...map });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/offline-equipment', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const offline = await industrialOperationalMap.getOfflineEquipment(req.user.company_id);
+    res.json({ ok: true, offline });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/industrial/predictions', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
+  try {
+    const predictions = await industrialOperationalMap.getFailurePredictions(req.user.company_id, 20);
+    res.json({ ok: true, predictions });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+/* ========== CENTRO DE CUSTOS INDUSTRIAIS ========== */
+router.get('/costs/categories', requireAuth, requireCompanyActive, requireIndustrialCostAdmin, (req, res) => {
+  res.json({ ok: true, categories: industrialCost.getCategories() });
+});
+
+router.get('/costs/items', requireAuth, requireCompanyActive, requireIndustrialCostAdmin, async (req, res) => {
+  try {
+    const items = await industrialCost.listCostItems(req.user.company_id);
+    res.json({ ok: true, items });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.post('/costs/items', requireAuth, requireCompanyActive, requireIndustrialCostAdmin, async (req, res) => {
+  try {
+    const r = await industrialCost.upsertCostItem(req.user.company_id, req.body);
+    res.json({ ok: true, ...r });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.put('/costs/items/:id', requireAuth, requireCompanyActive, requireIndustrialCostAdmin, async (req, res) => {
+  try {
+    const r = await industrialCost.upsertCostItem(req.user.company_id, { ...req.body, id: req.params.id });
+    res.json({ ok: true, ...r });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.delete('/costs/items/:id', requireAuth, requireCompanyActive, requireIndustrialCostAdmin, async (req, res) => {
+  try {
+    await industrialCost.deleteCostItem(req.user.company_id, req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/costs/executive-summary', requireAuth, requireCompanyActive, requireIndustrialCostView, async (req, res) => {
+  try {
+    const summary = await industrialCost.getExecutiveCostSummary(req.user.company_id, req.query.period || 'day');
+    res.json({ ok: true, ...summary });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/costs/by-origin', requireAuth, requireCompanyActive, requireIndustrialCostView, async (req, res) => {
+  try {
+    const byOrigin = await industrialCost.getCostByOrigin(req.user.company_id);
+    res.json({ ok: true, by_origin: byOrigin });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/costs/top-loss', requireAuth, requireCompanyActive, requireIndustrialCostView, async (req, res) => {
+  try {
+    const report = await industrialCost.getTopLossReport(req.user.company_id);
+    res.json({ ok: true, ...report });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/costs/projected-loss', requireAuth, requireCompanyActive, requireIndustrialCostView, async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours, 10) || 48;
+    const proj = await industrialCost.getProjectedLoss(req.user.company_id, hours);
+    res.json({ ok: true, ...proj });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+/* ========== MAPA DE VAZAMENTO FINANCEIRO ========== */
+/* CEO/Diretor: valores | Supervisor/outros: alertas operacionais sem valores */
+function requireLeakAccess(req, res, next) {
+  const role = (req.user?.role || '').toLowerCase();
+  const allowed = ['ceo', 'diretor', 'admin', 'internal_admin', 'gerente', 'coordenador', 'supervisor'];
+  if (allowed.includes(role)) return next();
+  return res.status(403).json({ ok: false, error: 'Acesso ao Mapa de Vazamento restrito.', code: 'LEAK_ACCESS_DENIED' });
+}
+
+router.get('/financial-leakage/map', requireAuth, requireCompanyActive, requireLeakAccess, async (req, res) => {
+  try {
+    const includeFinancial = financialLeakage.canViewFinancial(req.user?.role, req.user?.hierarchy_level);
+    const map = await financialLeakage.getLeakMap(req.user.company_id, includeFinancial);
+    res.json({ ok: true, map, include_financial: includeFinancial });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/financial-leakage/ranking', requireAuth, requireCompanyActive, requireLeakAccess, async (req, res) => {
+  try {
+    const includeFinancial = financialLeakage.canViewFinancial(req.user?.role, req.user?.hierarchy_level);
+    const ranking = await financialLeakage.getLeakRanking(req.user.company_id, includeFinancial);
+    res.json({ ok: true, ranking, include_financial: includeFinancial });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/financial-leakage/alerts', requireAuth, requireCompanyActive, requireLeakAccess, async (req, res) => {
+  try {
+    const includeFinancial = financialLeakage.canViewFinancial(req.user?.role, req.user?.hierarchy_level);
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const alerts = await financialLeakage.getAlerts(req.user.company_id, limit, includeFinancial);
+    res.json({ ok: true, alerts, include_financial: includeFinancial });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/financial-leakage/report', requireAuth, requireCompanyActive, requireLeakAccess, async (req, res) => {
+  try {
+    const includeFinancial = financialLeakage.canViewFinancial(req.user?.role, req.user?.hierarchy_level);
+    const report = await financialLeakage.generateAIReport(req.user.company_id, includeFinancial);
+    res.json({ ok: true, report, include_financial: includeFinancial });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message });
+  }
+});
+
+router.get('/financial-leakage/projected-impact', requireAuth, requireCompanyActive, requireLeakAccess, async (req, res) => {
+  try {
+    const includeFinancial = financialLeakage.canViewFinancial(req.user?.role, req.user?.hierarchy_level);
+    const days = parseInt(req.query.days, 10) || 30;
+    const proj = await financialLeakage.getProjectedImpact(req.user.company_id, days, includeFinancial);
+    res.json({ ok: true, ...proj, include_financial: includeFinancial });
   } catch (err) {
     res.status(500).json({ ok: false, error: err?.message });
   }

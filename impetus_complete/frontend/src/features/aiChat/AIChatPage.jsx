@@ -42,7 +42,7 @@ export default function AIChatPage() {
     onResult: handleVoiceResult,
     onError: (e) => console.warn('[VoiceInput]', e)
   });
-  const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput();
+  const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

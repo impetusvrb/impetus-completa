@@ -132,34 +132,34 @@ ON CONFLICT (code) DO NOTHING;
 -- Atribuir permissões às roles (CEO e Diretor têm todas)
 DO $$
 DECLARE
-  r RECORD;
-  p RECORD;
+  role_rec RECORD;
+  perm_rec RECORD;
 BEGIN
-  FOR r IN SELECT id FROM roles WHERE code IN ('ceo', 'diretor') LOOP
-    FOR p IN SELECT id FROM permissions LOOP
-      INSERT INTO role_permissions (role_id, permission_id) VALUES (r.id, p.id)
+  FOR role_rec IN SELECT id FROM roles WHERE code IN ('ceo', 'diretor') LOOP
+    FOR perm_rec IN SELECT id FROM permissions LOOP
+      INSERT INTO role_permissions (role_id, permission_id) VALUES (role_rec.id, perm_rec.id)
       ON CONFLICT (role_id, permission_id) DO NOTHING;
     END LOOP;
   END LOOP;
   
   -- Gerente: tudo exceto MANAGE_USERS
-  FOR p IN SELECT id FROM permissions WHERE code != 'MANAGE_USERS' LOOP
+  FOR perm_rec IN SELECT id FROM permissions WHERE code != 'MANAGE_USERS' LOOP
     INSERT INTO role_permissions (role_id, permission_id)
-    SELECT r.id, p.id FROM roles r WHERE r.code = 'gerente'
-    ON CONFLICT DO NOTHING;
+    SELECT rol.id, perm_rec.id FROM roles rol WHERE rol.code = 'gerente'
+    ON CONFLICT (role_id, permission_id) DO NOTHING;
   END LOOP;
   
   -- Coordenador e Supervisor: produção, relatórios, IA
-  FOR p IN SELECT id FROM permissions WHERE code IN ('VIEW_PRODUCTION', 'VIEW_REPORTS', 'ACCESS_AI_ANALYTICS') LOOP
+  FOR perm_rec IN SELECT id FROM permissions WHERE code IN ('VIEW_PRODUCTION', 'VIEW_REPORTS', 'ACCESS_AI_ANALYTICS') LOOP
     INSERT INTO role_permissions (role_id, permission_id)
-    SELECT r.id, p.id FROM roles r WHERE r.code IN ('coordenador', 'supervisor')
+    SELECT rol.id, perm_rec.id FROM roles rol WHERE rol.code IN ('coordenador', 'supervisor')
     ON CONFLICT (role_id, permission_id) DO NOTHING;
   END LOOP;
   
   -- Colaborador: apenas produção e IA básica
-  FOR p IN SELECT id FROM permissions WHERE code IN ('VIEW_PRODUCTION', 'ACCESS_AI_ANALYTICS') LOOP
+  FOR perm_rec IN SELECT id FROM permissions WHERE code IN ('VIEW_PRODUCTION', 'ACCESS_AI_ANALYTICS') LOOP
     INSERT INTO role_permissions (role_id, permission_id)
-    SELECT r.id, p.id FROM roles r WHERE r.code = 'colaborador'
+    SELECT rol.id, perm_rec.id FROM roles rol WHERE rol.code = 'colaborador'
     ON CONFLICT (role_id, permission_id) DO NOTHING;
   END LOOP;
 END $$;

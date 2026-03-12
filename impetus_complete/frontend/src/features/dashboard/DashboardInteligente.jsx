@@ -19,6 +19,7 @@ import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3, Tar
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
+import CentralAIPanel from './components/CentralAIPanel';
 import KPIRequest from './components/KPIRequest';
 import DashboardCustomizerModal from './components/DashboardCustomizerModal';
 import './DashboardInteligente.css';
@@ -26,7 +27,7 @@ import './DashboardInteligente.css';
 export default function DashboardInteligente({ embed = false }) {
   const navigate = useNavigate();
   const { sections, userContext } = useDashboardVisibility();
-  const { payload: dashboardPayload, trackInteraction, refetch } = useDashboardMe({ enabled: !embed });
+  const { payload: dashboardPayload, trackInteraction, refetch } = useDashboardMe({ enabled: true });
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [kpiWidgets, setKpiWidgets] = useState([]);
   const [kpiLoading, setKpiLoading] = useState(false);
@@ -153,6 +154,14 @@ export default function DashboardInteligente({ embed = false }) {
               )}
             </div>
           </section>
+
+          {/* Bloco IA Central - Dados agregados de todos os setores */}
+          {dashboardPayload?.central_ai && (
+            <section className="dashboard-inteligente__block block-central-ai">
+              <h2><Brain size={20} /> IA Central</h2>
+              <CentralAIPanel data={dashboardPayload.central_ai} />
+            </section>
+          )}
 
           {/* Bloco 3: Alertas */}
           {sections.plc_alerts && (

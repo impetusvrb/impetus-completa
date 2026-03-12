@@ -63,15 +63,20 @@ CREATE INDEX IF NOT EXISTS idx_daily_verification_date ON user_daily_verificatio
 -- Histórico da conversa de ativação (IA pergunta, usuário responde)
 CREATE TABLE IF NOT EXISTS activation_conversa (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  "role" TEXT NOT NULL CHECK ("role" IN ('user', 'assistant')),
-  content TEXT NOT NULL,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  "role" TEXT CHECK ("role" IN ('user', 'assistant')),
+  content TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Garantir colunas em tabelas criadas por versões antigas
+ALTER TABLE activation_conversa ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES companies(id) ON DELETE CASCADE;
+ALTER TABLE activation_conversa ADD COLUMN IF NOT EXISTS "role" TEXT;
+ALTER TABLE activation_conversa ADD COLUMN IF NOT EXISTS content TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_activation_conversa_user ON activation_conversa(user_id);
-CREATE INDEX IF NOT EXISTS idx_activation_conversa_company ON activation_conversa(company_id);
+CREATE INDEX IF NOT EXISTS idx_activation_conversa_company ON activation_conversa(company_id) WHERE company_id IS NOT NULL;
 
 -- Auditoria de tentativas falhas (segurança)
 CREATE TABLE IF NOT EXISTS user_identification_audit (

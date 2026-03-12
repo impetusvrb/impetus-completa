@@ -26,7 +26,7 @@ pg_dump -U <user> -d impetusdb -F c -f impetus_backup_$(date +%Y%m%d_%H%M).dump
 
 **Opção A – Script isolado (recomendado se run-all-migrations falhar):**
 ```bash
-cd /caminho/para/impetus_complete/impetus_complete/backend
+cd /caminho/para/impetus_complete/backend
 node -r dotenv/config scripts/run-app-impetus-migration.js
 ```
 
@@ -43,7 +43,7 @@ node -r dotenv/config scripts/run-all-migrations.js
 
 ### 3. Deploy do Backend
 ```bash
-cd /caminho/para/impetus_complete/impetus_complete
+cd /caminho/para/impetus_complete
 git pull origin main   # ou o branch correto
 cd backend
 npm install           # se houver novas dependências

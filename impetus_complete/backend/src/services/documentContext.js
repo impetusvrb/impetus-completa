@@ -42,17 +42,18 @@ async function searchCompanyManuals(companyId, queryText, limit = 8) {
     const emb = await ai.embedText(queryText);
     if (!emb) return [];
 
+    const vectorStr = Array.isArray(emb) ? '[' + emb.join(',') + ']' : emb;
     const sql = `
       SELECT mc.id, mc.chunk_text, m.title, m.equipment_type, m.model,
-             (mc.embedding <=> $1) as distance
+             (mc.embedding <=> $1::vector) as distance
     FROM manual_chunks mc
     JOIN manuals m ON mc.manual_id = m.id
     WHERE (m.company_id = $2 OR m.company_id IS NULL)
       AND mc.embedding IS NOT NULL
-    ORDER BY mc.embedding <=> $1
+    ORDER BY mc.embedding <=> $1::vector
     LIMIT $3
     `;
-    const r = await db.query(sql, [emb, companyId || null, limit]);
+    const r = await db.query(sql, [vectorStr, companyId || null, limit]);
     return (r.rows || []).map(row => ({
       id: row.id,
       title: row.title || `${(row.equipment_type || '')} ${(row.model || '')}`.trim() || 'Manual',

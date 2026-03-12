@@ -14,15 +14,16 @@ async function getManualsForEquipment(companyId, equipmentId, equipmentName) {
   if (!emb) return [];
 
   try {
+    const vectorStr = Array.isArray(emb) ? '[' + emb.join(',') + ']' : emb;
     const r = await db.query(`
       SELECT mc.chunk_text, m.title, m.equipment_type, m.model
       FROM manual_chunks mc
       JOIN manuals m ON mc.manual_id = m.id
       WHERE (m.company_id = $1 OR m.company_id IS NULL)
         AND mc.embedding IS NOT NULL
-      ORDER BY mc.embedding <=> $2
+      ORDER BY mc.embedding <=> $2::vector
       LIMIT 6
-    `, [companyId, emb]);
+    `, [companyId, vectorStr]);
     return (r.rows || []).map(row => ({
       title: row.title || `${row.equipment_type || ''} ${row.model || ''}`.trim(),
       chunk_text: row.chunk_text
@@ -33,23 +34,41 @@ async function getManualsForEquipment(companyId, equipmentId, equipmentName) {
 }
 
 /**
- * Salva dados coletados do PLC
+ * Salva dados coletados do PLC/ sensores
+ * Variáveis: machine_status, motor_temperature, vibration_level, oil_level,
+ * water_flow, hydraulic_pressure, electrical_current, rpm, alarm_state
  */
 async function saveCollectedData(companyId, data) {
+  const statusVal = data.status ?? data.machine_status;
+  const tempVal = data.temperature ?? data.motor_temperature;
+  const vibVal = data.vibration ?? data.vibration_level;
+  const pressVal = data.pressure ?? data.hydraulic_pressure;
+
   const r = await db.query(`
-    INSERT INTO plc_collected_data (company_id, equipment_id, equipment_name, temperature, pressure, vibration, status, rpm, power_kw, raw_data)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    INSERT INTO plc_collected_data (
+      company_id, equipment_id, equipment_name, temperature, pressure, vibration,
+      status, rpm, power_kw, oil_level, water_flow, hydraulic_pressure,
+      electrical_current, motor_temperature, vibration_level, alarm_state, raw_data
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     RETURNING *
   `, [
     companyId,
     data.equipment_id,
     data.equipment_name || null,
-    data.temperature ?? null,
-    data.pressure ?? null,
-    data.vibration ?? null,
-    data.status || null,
+    tempVal ?? null,
+    pressVal ?? null,
+    vibVal ?? null,
+    statusVal || null,
     data.rpm ?? null,
     data.power_kw ?? null,
+    data.oil_level ?? null,
+    data.water_flow ?? null,
+    data.hydraulic_pressure ?? pressVal ?? null,
+    data.electrical_current ?? null,
+    data.motor_temperature ?? tempVal ?? null,
+    data.vibration_level ?? vibVal ?? null,
+    data.alarm_state || null,
     data.raw_data ? JSON.stringify(data.raw_data) : null
   ]);
   return r.rows[0];
