@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+      await messagingAdapter.sendMessage(companyId, phone, message);
+=======
 /**
  * IA ORGANIZACIONAL ATIVA
  * Protocolo operacional: escuta, entende, registra, organiza, lembra, escala, auxilia
@@ -234,6 +237,7 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
   for (const phone of [...new Set(phones)].slice(0, 10)) {
     try {
       await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
       sent.push(phone);
     } catch (e) {
       console.warn('[ORG_AI] notify:', phone, e.message);

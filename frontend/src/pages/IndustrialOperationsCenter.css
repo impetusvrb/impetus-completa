@@ -1,0 +1,173 @@
+.industrial-ops-center {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.ioc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ioc-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ioc-title h1 { font-size: 1.4rem; margin: 0; }
+.ioc-subtitle { font-size: 0.85rem; color: #6b7280; }
+.ioc-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.ioc-refresh .spin { animation: ioc-spin 1s linear infinite; }
+@keyframes ioc-spin { to { transform: rotate(360deg); } }
+
+.ioc-automation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.ioc-automation span { font-weight: 500; }
+.ioc-mode-btns { display: flex; gap: 8px; }
+.ioc-mode-btn {
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.ioc-mode-btn.active {
+  background: #1e40af;
+  color: #fff;
+  border-color: #1e40af;
+}
+.ioc-automation small { width: 100%; color: #6b7280; margin-top: 4px; }
+
+.ioc-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.ioc-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.ioc-tab.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+.ioc-badge {
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.ioc-loading, .ioc-empty { text-align: center; padding: 48px; color: #6b7280; }
+.ioc-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 0 auto; max-width: 600px; }
+
+.ioc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ioc-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.ioc-card.alert { border-left: 4px solid #f59e0b; }
+.ioc-card h3 { margin: 0 0 8px; font-size: 0.95rem; }
+.ioc-val { font-size: 1.8rem; font-weight: 700; margin: 0; }
+
+.ioc-events { display: flex; flex-direction: column; gap: 12px; }
+.ioc-event {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.ioc-event.severity-critical { border-left: 4px solid #dc2626; }
+.ioc-event.severity-high { border-left: 4px solid #f59e0b; }
+.ioc-event-type { font-size: 0.8rem; text-transform: uppercase; color: #6b7280; }
+.ioc-event-machine { font-weight: 500; }
+.ioc-event-desc { color: #374151; }
+.ioc-event-time { font-size: 0.85rem; color: #9ca3af; }
+
+.ioc-profiles { display: flex; flex-direction: column; gap: 16px; }
+.ioc-profile {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+}
+.ioc-profile-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ioc-profile-header strong { flex: 1; }
+.ioc-profile-header span { font-size: 0.85rem; color: #6b7280; }
+.ioc-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+.ioc-profile-grid div { display: flex; flex-direction: column; gap: 2px; }
+.ioc-profile-grid small { font-size: 0.75rem; color: #6b7280; }
+.ioc-profile-grid span { font-weight: 600; }
+
+/* Controle de acesso - apenas administrador */
+.ioc-config-hint { display: block; margin-top: 8px; color: #9ca3af; font-size: 0.8rem; }
+.ioc-mode-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Bloqueio 403 - Permissão insuficiente */
+.ioc-forbidden { display: flex; align-items: center; justify-content: center; min-height: 50vh; }
+.ioc-forbidden-card {
+  text-align: center;
+  max-width: 420px;
+  padding: 32px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+.ioc-forbidden-icon { color: #f59e0b; margin-bottom: 16px; }
+.ioc-forbidden-card h2 { margin: 0 0 12px; font-size: 1.25rem; }
+.ioc-forbidden-card p { margin: 0 0 24px; color: #6b7280; line-height: 1.5; }
+.ioc-forbidden-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.ioc-forbidden-btn:hover { background: #1d4ed8; }

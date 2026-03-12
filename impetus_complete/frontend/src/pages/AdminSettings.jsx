@@ -3,9 +3,15 @@
  * Comunicação (App Impetus), POPs, Manuais, Notificações
  */
 
+<<<<<<< HEAD
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode, Smartphone } from 'lucide-react';
+=======
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
 import { adminSettings, appImpetus } from '../services/api';
@@ -34,15 +40,79 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
+const VALID_TABS = ['app', 'zapi', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+>>>>>>> Stashed changes
+=======
 const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
 const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
+<<<<<<< HEAD
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
+  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'app';
+>>>>>>> Stashed changes
+=======
   const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
   const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
@@ -62,8 +132,35 @@ export default function AdminSettings() {
   const loadData = async () => {
     try {
       setLoading(true);
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
       if (activeTab === 'comunicacao') {
         appImpetus.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+      if (activeTab === 'app') {
+        ; // App tab - sem chamada API
+      } else if (activeTab === 'zapi') {
+        const r = await adminSettings.getZApiConfig();
+        if (r.data.config) setZapiConfig(prev => ({ ...prev, ...r.data.config }));
+        zapi.getStatus().then(s => setConnectionStatus(s.data)).catch(() => {});
+>>>>>>> Stashed changes
       } else if (activeTab === 'pops') {
         const r = await adminSettings.listPops();
         setPops(r.data.pops || []);
@@ -244,13 +341,64 @@ export default function AdminSettings() {
             <div className="page-icon"><Settings size={24} /></div>
             <div>
               <h1 className="page-title">Configurações</h1>
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
               <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
+=======
+              <p className="page-subtitle">App Impetus, Documentos, POPs, Manuais e Notificações</p>
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>
 
         <div className="settings-tabs">
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
           <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+          <button className={`stab ${activeTab === 'app' ? 'active' : ''}`} onClick={() => setActiveTab('app')}><Smartphone size={18} /> App Impetus</button>
+          <button className={`stab ${activeTab === 'zapi' ? 'active' : ''}`} onClick={() => setActiveTab('zapi')}><MessageSquare size={18} /> Z-API</button>
+>>>>>>> Stashed changes
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
@@ -262,7 +410,126 @@ export default function AdminSettings() {
         </div>
 
         <div className="settings-content">
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
           {activeTab === 'comunicacao' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+=======
+          {activeTab === 'app' && (
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
+            <div className="settings-panel">
+              <h3>App Impetus - Comunicação Operacional</h3>
+              <p className="form-hint">Todas as comunicações passam pelo App Impetus. Envie e receba texto, áudio e vídeo. A IA analisa automaticamente e gera relatórios.</p>
+              <div className="app-mobile-cta">
+                <Link to="/m" className="btn btn-primary">
+                  <Smartphone size={20} />
+                  Abrir App (versão mobile)
+                </Link>
+              </div>
+              <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
+            </div>
+          )}
+          {activeTab === 'zapi' && (
+>>>>>>> Stashed changes
             <div className="settings-panel">
               <h3>Comunicação (App Impetus)</h3>
               {loading ? <p>Carregando...</p> : (
