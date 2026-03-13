@@ -5,7 +5,7 @@
 const db = require('../db');
 
 const SEVERITY_CREATE_OS = ['high', 'critical'];
-const EVENT_TYPES_CREATE_OS = ['overheating', 'low_oil', 'vibration_alert', 'compressor_offline', 'predicted_failure'];
+const EVENT_TYPES_CREATE_OS = ['overheating', 'low_oil', 'vibration_alert', 'compressor_offline', 'predicted_failure', 'pressure_low'];
 
 async function maybeCreateWorkOrderFromEvent(event) {
   if (!event?.id || !event?.company_id) return null;

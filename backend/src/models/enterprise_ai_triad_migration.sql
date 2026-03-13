@@ -1,82 +1,91 @@
--- =============================================================================
--- IMPETUS - Arquitetura Tríade de IAs - Memória Empresarial e Conhecimento
--- enterprise_ai_memory: insights, eventos, alertas gerados pelas IAs
--- industry_intelligence_memory: padrões operacionais, histórico, soluções
--- company_operation_memory: dados cadastrados via "Cadastrar com IA"
--- =============================================================================
+-- ============================================================================
+-- IMPETUS - TRÍADE DE IAs - enterprise_ai_memory, industry_intelligence, company_operation
+-- Claude (análise) + Gemini (multimodal) + ChatGPT (conversação)
+-- ============================================================================
 
--- 1. Memória da IA Empresarial (insights, eventos, alertas)
+-- 1. ENTERPRISE_AI_MEMORY - Insights, eventos e alertas das 3 IAs
 CREATE TABLE IF NOT EXISTS enterprise_ai_memory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  source_ai VARCHAR(32) NOT NULL, -- 'claude'|'gemini'|'chatgpt'
-  memory_type VARCHAR(32) NOT NULL, -- 'insight'|'evento'|'alerta'|'padrao'|'recomendacao'
-  content TEXT,
-  structured_data JSONB DEFAULT '{}',
-  confidence DECIMAL(5,2) DEFAULT 1.0, -- 0-1
-  validated BOOLEAN DEFAULT FALSE,
-  cross_validated_by VARCHAR(32)[], -- IAs que confirmaram
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+
+  source_ai TEXT NOT NULL CHECK (source_ai IN ('claude', 'gemini', 'chatgpt')),
+  tipo TEXT NOT NULL CHECK (tipo IN ('insight', 'evento', 'alerta', 'padrao', 'analise')),
+  conteudo TEXT NOT NULL,
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  expires_at TIMESTAMPTZ
+
+  equipamento TEXT,
+  linha TEXT,
+  nivel_risco TEXT CHECK (nivel_risco IN ('baixo', 'medio', 'alto', 'critico')),
+  confiabilidade NUMERIC(5,2),
+
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_company ON enterprise_ai_memory(company_id);
-CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_source ON enterprise_ai_memory(source_ai);
-CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_type ON enterprise_ai_memory(memory_type);
-CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_created ON enterprise_ai_memory(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_source ON enterprise_ai_memory(company_id, source_ai);
+CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_tipo ON enterprise_ai_memory(company_id, tipo);
+CREATE INDEX IF NOT EXISTS idx_enterprise_ai_memory_created ON enterprise_ai_memory(company_id, created_at DESC);
 
--- 2. Memória de Inteligência Industrial (padrões, histórico, soluções)
+-- 2. INDUSTRY_INTELLIGENCE_MEMORY - Padrões operacionais e aprendizado
 CREATE TABLE IF NOT EXISTS industry_intelligence_memory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  event_type VARCHAR(64),
-  cause_identified TEXT,
-  solution_applied TEXT,
-  result_summary TEXT,
-  source_ai VARCHAR(32),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+
+  tipo_registro TEXT NOT NULL CHECK (tipo_registro IN (
+    'padrao_operacional', 'padrao_falha', 'comportamento_normal', 'comportamento_anormal',
+    'evento_historico', 'solucao_aplicada', 'melhoria_sugerida'
+  )),
+  descricao TEXT NOT NULL,
+  equipamento TEXT,
+  linha TEXT,
+  causa_identificada TEXT,
+  solucao_aplicada TEXT,
+  resultado TEXT,
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_industry_intel_company ON industry_intelligence_memory(company_id);
-CREATE INDEX IF NOT EXISTS idx_industry_intel_event ON industry_intelligence_memory(event_type);
+CREATE INDEX IF NOT EXISTS idx_industry_intel_tipo ON industry_intelligence_memory(company_id, tipo_registro);
 
--- 3. Memória de Operação da Empresa (cadastrado via IA)
+-- 3. COMPANY_OPERATION_MEMORY - Cadastrar com IA (módulo de cadastro multimodal)
 CREATE TABLE IF NOT EXISTS company_operation_memory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  category VARCHAR(64) NOT NULL, -- 'equipamento'|'processo'|'custo'|'material'|'fornecedor'|'documento'|'rotina'
-  content JSONB NOT NULL DEFAULT '{}',
-  source_input VARCHAR(32), -- 'texto'|'imagem'|'documento'|'audio'|'video'
-  sector VARCHAR(64),
-  related_equipment VARCHAR(128),
-  related_process VARCHAR(128),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+
+  categoria TEXT NOT NULL CHECK (categoria IN (
+    'equipamento', 'custo', 'processo', 'material', 'fornecedor', 'documentacao', 'rotina', 'outro'
+  )),
+  conteudo_original TEXT,
+  dados_extraidos JSONB NOT NULL DEFAULT '{}',
+  resumo TEXT,
+
+  source_type TEXT CHECK (source_type IN ('texto', 'imagem', 'documento', 'audio', 'video')),
+  file_path TEXT,
+  sector TEXT,
+  equipamento TEXT,
+  processo_relacionado TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_company_op_mem_company ON company_operation_memory(company_id);
-CREATE INDEX IF NOT EXISTS idx_company_op_mem_category ON company_operation_memory(category);
-CREATE INDEX IF NOT EXISTS idx_company_op_mem_sector ON company_operation_memory(sector);
+CREATE INDEX IF NOT EXISTS idx_company_op_memory_company ON company_operation_memory(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_op_memory_categoria ON company_operation_memory(company_id, categoria);
+CREATE INDEX IF NOT EXISTS idx_company_op_memory_created ON company_operation_memory(company_id, created_at DESC);
 
--- 4. Troca de conhecimento entre IAs (AI Knowledge Exchange)
+-- 4. AI_KNOWLEDGE_EXCHANGE - Troca de descobertas entre IAs
 CREATE TABLE IF NOT EXISTS ai_knowledge_exchange (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-  from_ai VARCHAR(32) NOT NULL,
-  to_ai VARCHAR(32) NOT NULL,
-  exchange_type VARCHAR(32), -- 'insight'|'padrao'|'evento'|'recomendacao'
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  from_ai TEXT NOT NULL CHECK (from_ai IN ('claude', 'gemini', 'chatgpt')),
+  to_ai TEXT NOT NULL CHECK (to_ai IN ('claude', 'gemini', 'chatgpt')),
+  exchange_type TEXT CHECK (exchange_type IN ('insight', 'padrao', 'evento', 'recomendacao')),
   payload JSONB NOT NULL DEFAULT '{}',
   consumed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_ai_knowledge_company ON ai_knowledge_exchange(company_id);
-CREATE INDEX IF NOT EXISTS idx_ai_knowledge_to_ai ON ai_knowledge_exchange(to_ai, consumed);
-
-COMMENT ON TABLE enterprise_ai_memory IS 'Memória da tríade de IAs - insights, eventos, alertas';
-COMMENT ON TABLE industry_intelligence_memory IS 'Padrões operacionais e soluções históricas';
-COMMENT ON TABLE company_operation_memory IS 'Conhecimento cadastrado via módulo Cadastrar com IA';
-COMMENT ON TABLE ai_knowledge_exchange IS 'Troca de descobertas entre Claude, Gemini e ChatGPT';
+CREATE INDEX IF NOT EXISTS idx_ai_knowledge_to_consumed ON ai_knowledge_exchange(to_ai, consumed);

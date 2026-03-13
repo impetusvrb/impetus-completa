@@ -12,6 +12,8 @@ const hierarchicalFilter = require('./hierarchicalFilter');
 const userContext = require('./userContext');
 const smartSummary = require('./smartSummary');
 const dashboardAccess = require('./dashboardAccessService');
+let centralIndustryAI;
+try { centralIndustryAI = require('./centralIndustryAIService'); } catch (_) {}
 
 /**
  * Busca preferências do usuário (tabela user_dashboard_preferences)
@@ -106,12 +108,13 @@ async function buildDashboardPayload(user) {
   const profile = config.profile_config;
   const profileCode = config.profile_code;
 
-  const [prefsTable, legacyPrefs, usageHistory, kpis, summaryResult] = await Promise.all([
+  const [prefsTable, legacyPrefs, usageHistory, kpis, summaryResult, centralAIResult] = await Promise.all([
     getUserPreferences(user.id),
     Promise.resolve(getLegacyPreferences(user)),
     getUsageHistory(user.id, user.company_id),
     dashboardKPIs.getDashboardKPIs(user, scope),
-    smartSummary.buildSmartSummary(user.id, user.name, user.company_id, user).catch(() => null)
+    smartSummary.buildSmartSummary(user.id, user.name, user.company_id, user).catch(() => null),
+    centralIndustryAI?.getCentralIntelligence(user.company_id, user).catch(() => null)
   ]);
 
   const userPrefs = prefsTable || legacyPrefs;
@@ -152,7 +155,8 @@ async function buildDashboardPayload(user) {
       department: user.department,
       hierarchy_level: user.hierarchy_level ?? ctx?.hierarchy_level ?? 5
     },
-    permissions: dashboardAccess.getEffectivePermissions(user)
+    permissions: dashboardAccess.getEffectivePermissions(user),
+    central_ai: centralAIResult || undefined
   };
 }
 

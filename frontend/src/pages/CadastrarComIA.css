@@ -1,0 +1,129 @@
+.cadastrar-ia {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.cadastrar-ia__title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cadastrar-ia__subtitle {
+  color: var(--text-muted, #666);
+  margin-bottom: 1.5rem;
+}
+
+.cadastrar-ia__form {
+  background: var(--card-bg, #fff);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.cadastrar-ia__field {
+  margin-bottom: 1rem;
+}
+
+.cadastrar-ia__field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.cadastrar-ia__field textarea,
+.cadastrar-ia__field input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.cadastrar-ia__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.cadastrar-ia__upload input[type="file"] {
+  margin-bottom: 0.25rem;
+}
+
+.cadastrar-ia__hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+}
+
+.cadastrar-ia__file-name {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.cadastrar-ia__message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.cadastrar-ia__message--success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.cadastrar-ia__message--error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.cadastrar-ia__list h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.cadastrar-ia__filtro {
+  margin-bottom: 1rem;
+}
+
+.cadastrar-ia__filtro label { margin-right: 0.5rem; }
+.cadastrar-ia__filtro select { padding: 0.35rem 0.5rem; }
+
+.cadastrar-ia__items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cadastrar-ia__item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  display: grid;
+  grid-template-columns: 100px 1fr 140px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.cadastrar-ia__item-cat {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.cadastrar-ia__item-resumo {
+  color: var(--text-muted, #555);
+  font-size: 0.9rem;
+}
+
+.cadastrar-ia__item-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+}
+
+.cadastrar-ia__empty {
+  color: var(--text-muted, #888);
+  font-style: italic;
+}
