@@ -1,0 +1,21 @@
+.dashboard-inteligente {
+  padding: 24px;
+}
+
+.dashboard-inteligente__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.dashboard-inteligente__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.dashboard-inteligente__area {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}

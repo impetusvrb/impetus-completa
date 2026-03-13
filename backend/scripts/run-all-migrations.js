@@ -70,8 +70,8 @@ async function run() {
     const sqlPath = path.join(modelsDir, m.file);
 
     if (!fs.existsSync(sqlPath)) {
-      console.error(`❌ Arquivo não encontrado: ${m.file}`);
-      process.exit(1);
+      console.warn(`⏭ Pulando (arquivo não encontrado): ${m.file}`);
+      continue;
     }
 
     console.log(`[${i + 1}/${MIGRATIONS.length}] Executando: ${m.name}...`);
