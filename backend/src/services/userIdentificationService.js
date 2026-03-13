@@ -212,7 +212,7 @@ async function verifyDailyAccess(user, fullName, pin, auditContext = {}) {
 
     if (lockUntil) {
       await logAudit(userId, companyId, 'pin_lockout', { lockedUntil: lockUntil.toISOString() }, auditContext);
-      throw new Error(`PIN incorreto. Você excedeu ${MAX_PIN_ATTEMPTS} tentativas. Acesso bloqueado por ${LOCK_MINUTES} minutos. Uma alerta de segurança foi registrado.`);
+      throw new Error(`PIN incorreto. Você excedeu ${MAX_PIN_ATTEMPTS} tentativas. Acesso bloqueado por ${LOCK_MINUTES} minutos. Um alerta de segurança foi registrado.`);
     }
     throw new Error('PIN incorreto. Tente novamente.');
   }

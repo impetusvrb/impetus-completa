@@ -4,6 +4,7 @@
  */
 
 const db = require('../db');
+const { AUTH } = require('../constants/messages');
 
 /**
  * Verifica se usuário deu consentimento LGPD
@@ -39,7 +40,7 @@ function requireConsent(consentType = 'data_processing') {
     if (!user) {
       return res.status(401).json({
         ok: false,
-        error: 'Usuário não autenticado'
+        error: AUTH.NOT_AUTHENTICATED
       });
     }
 

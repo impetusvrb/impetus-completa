@@ -5,6 +5,7 @@
  * Sempre aplicar filtro no backend — nunca confiar em parâmetros do cliente.
  */
 const hierarchicalFilter = require('../services/hierarchicalFilter');
+const { AUTH } = require('../constants/messages');
 
 const CACHE_TTL_MS = 60000; // 1 min
 const scopeCache = new Map();
@@ -20,7 +21,7 @@ function getCacheKey(userId) {
 function requireHierarchyScope(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
   }
 
   const cacheKey = getCacheKey(user.id);

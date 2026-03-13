@@ -4,6 +4,7 @@
  */
 
 const { validateLicense } = require('../services/license');
+const { ERRORS } = require('../constants/messages');
 
 let cachedResult = null;
 let lastCheck = 0;
@@ -17,7 +18,7 @@ async function requireValidLicense(req, res, next) {
     if (!cachedResult.valid) {
       return res.status(403).json({
         ok: false,
-        error: 'Licença inválida ou expirada. Entre em contato com o suporte.',
+        error: ERRORS.LICENSE_INVALID,
         code: 'LICENSE_INVALID'
       });
     }
@@ -29,7 +30,7 @@ async function requireValidLicense(req, res, next) {
   if (!result.valid) {
     return res.status(403).json({
       ok: false,
-      error: 'Licença inválida ou expirada. Entre em contato com o suporte.',
+      error: ERRORS.LICENSE_INVALID,
       code: 'LICENSE_INVALID'
     });
   }

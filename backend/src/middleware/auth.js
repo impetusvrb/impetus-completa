@@ -7,6 +7,7 @@ const db = require('../db');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { logAction } = require('./audit');
+const { AUTH, ERRORS } = require('../constants/messages');
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'impetus_super_secret_key');
 if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
@@ -179,7 +180,7 @@ function requireAuth(req, res, next) {
   if (!token) {
     return res.status(401).json({
       ok: false,
-      error: 'Token não fornecido',
+      error: AUTH.TOKEN_MISSING,
       code: 'AUTH_TOKEN_MISSING'
     });
   }
@@ -191,7 +192,7 @@ function requireAuth(req, res, next) {
     if (!user) {
       return res.status(401).json({
         ok: false,
-        error: 'Sessão inválida ou expirada',
+        error: AUTH.SESSION_INVALID,
         code: 'AUTH_SESSION_INVALID'
       });
     }
@@ -203,7 +204,7 @@ function requireAuth(req, res, next) {
     console.error('[AUTH_MIDDLEWARE_ERROR]', err.message);
     res.status(500).json({
       ok: false,
-      error: 'Erro ao validar autenticação'
+      error: ERRORS.AUTH_VALIDATION
     });
   });
 }
@@ -219,7 +220,7 @@ function requireHierarchy(minLevel) {
     if (!user) {
       return res.status(401).json({
         ok: false,
-        error: 'Usuário não autenticado'
+        error: AUTH.NOT_AUTHENTICATED
       });
     }
 
@@ -246,7 +247,7 @@ function requireHierarchy(minLevel) {
       }).catch(() => {});
       return res.status(403).json({
         ok: false,
-        error: 'Acesso negado - hierarquia insuficiente',
+        error: AUTH.ACCESS_DENIED_HIERARCHY,
         code: 'AUTH_HIERARCHY_DENIED',
         required: minLevel,
         current: user.hierarchy_level
@@ -267,7 +268,7 @@ function requirePermission(permission) {
     if (!user) {
       return res.status(401).json({
         ok: false,
-        error: 'Usuário não autenticado'
+        error: AUTH.NOT_AUTHENTICATED
       });
     }
 
@@ -289,7 +290,7 @@ function requirePermission(permission) {
       }).catch(() => {});
       return res.status(403).json({
         ok: false,
-        error: 'Acesso negado - permissão insuficiente',
+        error: AUTH.ACCESS_DENIED_PERMISSION,
         code: 'AUTH_PERMISSION_DENIED',
         required: permission
       });
@@ -322,7 +323,7 @@ function sameCompanyOnly(req, res, next) {
     }).catch(() => {});
     return res.status(403).json({
       ok: false,
-      error: 'Acesso negado - empresa diferente',
+      error: AUTH.ACCESS_DENIED_COMPANY,
       code: 'AUTH_COMPANY_MISMATCH'
     });
   }

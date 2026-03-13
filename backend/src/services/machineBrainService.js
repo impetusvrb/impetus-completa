@@ -160,7 +160,9 @@ async function checkFailureTrend(companyId, machineId, machineName, lineName, re
     if (trendV >= 0.3) {
       return { event_type: 'predicted_failure', severity: 'high', sensor_values: { vibration_trend: trendV, reason: 'Tendência de aumento de vibração' } };
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn('[MACHINE_BRAIN] checkFailureTrend:', err?.message);
+  }
   return null;
 }
 

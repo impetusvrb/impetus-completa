@@ -5,6 +5,7 @@
  * CONFIGURAÇÃO: Apenas role = admin (alterações estruturais)
  */
 const { logAction } = require('./audit');
+const { AUTH } = require('../constants/messages');
 
 const VIEW_ROLES = ['admin', 'diretor', 'gerente', 'coordenador', 'supervisor'];
 const VIEW_HIERARCHY_MAX = 4;
@@ -44,7 +45,7 @@ function canConfigureIndustrial(user) {
 function requireIndustrialView(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
   }
 
   if (!canViewIndustrial(user)) {
@@ -78,7 +79,7 @@ function requireIndustrialView(req, res, next) {
 function requireIndustrialAdmin(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
   }
 
   if (!canConfigureIndustrial(user)) {

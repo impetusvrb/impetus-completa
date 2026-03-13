@@ -5,6 +5,7 @@
 
 const db = require('../db');
 const { logAction } = require('./audit');
+const { AUTH, ERRORS } = require('../constants/messages');
 
 /**
  * Bloqueia acesso se empresa estiver inativa
@@ -12,7 +13,7 @@ const { logAction } = require('./audit');
 async function requireCompanyActive(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
   }
 
   if (!user.company_id && !user.is_first_access) {
@@ -36,7 +37,7 @@ async function requireCompanyActive(req, res, next) {
     if (r.rows.length === 0) {
       return res.status(403).json({
         ok: false,
-        error: 'Empresa não encontrada.',
+        error: ERRORS.COMPANY_NOT_FOUND,
         code: 'COMPANY_NOT_FOUND'
       });
     }
@@ -69,7 +70,7 @@ async function requireCompanyActive(req, res, next) {
     console.error('[REQUIRE_COMPANY_ACTIVE]', err);
     res.status(500).json({
       ok: false,
-      error: 'Erro ao validar empresa'
+      error: ERRORS.VALIDATE_COMPANY
     });
   }
 }
@@ -116,7 +117,7 @@ function validateCompanyResource(getCompanyIdFromReq) {
 
       return res.status(403).json({
         ok: false,
-        error: 'Acesso negado - recurso de outra empresa',
+        error: AUTH.ACCESS_DENIED_TENANT,
         code: 'CROSS_TENANT_DENIED'
       });
     }

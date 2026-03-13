@@ -4,6 +4,7 @@
  * Bloqueio automático em comportamento suspeito.
  */
 const db = require('../db');
+const { ERRORS } = require('../constants/messages');
 
 const WINDOW_MINUTES = 60;
 const MAX_REQUESTS_PER_WINDOW = {
@@ -72,7 +73,7 @@ function userRateLimit(action = 'ai_chat') {
     if (!result.allowed) {
       return res.status(429).json({
         ok: false,
-        error: 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.',
+        error: ERRORS.TOO_MANY_REQUESTS,
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfter: 300
       });

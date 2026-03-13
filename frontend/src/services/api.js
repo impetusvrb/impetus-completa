@@ -263,7 +263,10 @@ export const dashboard = {
     getMachinesAttention: () => api.get('/dashboard/maintenance/machines-attention'),
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
-    getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
+    getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures'),
+    saveShiftLog: (data) => api.post('/dashboard/maintenance/shift-log', data),
+    saveShiftLogWithAI: (data) => api.post('/dashboard/maintenance/shift-log-with-ai', data),
+    getShiftHandovers: () => api.get('/dashboard/maintenance/shift-handovers')
   },
 
   // Cadastrar com IA - upload multimodal (texto, imagem, documento, áudio)

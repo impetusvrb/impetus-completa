@@ -19,3 +19,154 @@
   color: #64748b;
   font-size: 0.9rem;
 }
+
+/* ===== Camada operacional de manutenção ===== */
+.maintenance-dashboard-layer {
+  margin-bottom: 28px;
+}
+
+.maintenance-header-tech {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.maintenance-header-tech svg {
+  flex-shrink: 0;
+  color: #38bdf8;
+}
+
+.maintenance-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.maintenance-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.maintenance-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.maintenance-card__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.maintenance-card--blue { border-color: #3b82f6; color: #1e40af; }
+.maintenance-card--blue .maintenance-card__value { color: #2563eb; }
+.maintenance-card--teal { border-color: #14b8a6; color: #0f766e; }
+.maintenance-card--teal .maintenance-card__value { color: #0d9488; }
+.maintenance-card--orange { border-color: #f97316; color: #c2410c; }
+.maintenance-card--orange .maintenance-card__value { color: #ea580c; }
+.maintenance-card--red { border-color: #ef4444; color: #b91c1c; }
+.maintenance-card--red .maintenance-card__value { color: #dc2626; }
+.maintenance-card--green { border-color: #22c55e; color: #15803d; }
+.maintenance-card--green .maintenance-card__value { color: #16a34a; }
+.maintenance-card--purple { border-color: #a855f7; color: #7e22ce; }
+.maintenance-card--purple .maintenance-card__value { color: #9333ea; }
+.maintenance-card--gray { border-color: #94a3b8; color: #475569; }
+.maintenance-card--gray .maintenance-card__value { color: #64748b; }
+
+.maintenance-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .maintenance-grid-2 { grid-template-columns: 1fr; }
+  .maintenance-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.maintenance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.maintenance-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.maintenance-list li:last-child { border-bottom: none; }
+
+.maintenance-task-item,
+.maintenance-machine-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.maintenance-task-meta,
+.maintenance-meta {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.block-maintenance-cards { margin-bottom: 24px; }
+.block-maintenance-tasks,
+.block-machines-attention,
+.block-ia-tecnica,
+.block-registro-turno,
+.block-interventions,
+.block-preventives,
+.block-passagem-turno,
+.block-falhas-recorrentes { margin-bottom: 20px; }
+
+.block-ia-tecnica .ia-tecnica-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.block-ia-tecnica .ia-tecnica-input .form-input {
+  flex: 1;
+}
+
+.ia-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.block-registro-turno .form-textarea {
+  width: 100%;
+  margin-bottom: 12px;
+  resize: vertical;
+}
+
+.block-registro-turno .block-actions {
+  display: flex;
+  gap: 10px;
+}

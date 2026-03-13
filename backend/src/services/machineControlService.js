@@ -11,11 +11,16 @@ const FORBIDDEN_TYPES = ['prensa', 'torno', 'fresadora', 'mandriladora', 'guilho
 const AUXILIARY_KEYS = ['compressor', 'bomba', 'ventilacao', 'refrigeracao'];
 
 async function getAutomationConfig(companyId) {
-  const r = await db.query(`
-    SELECT automation_mode, allowed_roles FROM industrial_automation_config
-    WHERE company_id = $1
-  `, [companyId]);
-  return r.rows?.[0] || { automation_mode: 'monitor', allowed_roles: ['diretor', 'gerente', 'coordenador'] };
+  try {
+    const r = await db.query(`
+      SELECT automation_mode, allowed_roles FROM industrial_automation_config
+      WHERE company_id = $1
+    `, [companyId]);
+    return r.rows?.[0] || { automation_mode: 'monitor', allowed_roles: ['diretor', 'gerente', 'coordenador'] };
+  } catch (err) {
+    console.warn('[MACHINE_CONTROL] getAutomationConfig:', err?.message);
+    return { automation_mode: 'monitor', allowed_roles: ['diretor', 'gerente', 'coordenador'] };
+  }
 }
 
 function isEquipmentAllowedForControl(equipmentType) {
@@ -39,14 +44,19 @@ async function canUserEnableAutomation(companyId, userId) {
  * requestCommand - source: 'user' | 'automation' para auditoria
  */
 async function requestCommand(companyId, userId, machineId, machineName, equipmentType, commandType, commandValue, source = 'user') {
+  const mid = String(machineId || '').trim();
+  if (!companyId || !mid) {
+    return { ok: false, error: 'machine_id obrigatório e deve ser uma string não vazia', code: 'INVALID_PARAMS' };
+  }
+
   const cfg = await getAutomationConfig(companyId);
 
   /* PROTOCOLO: Bloqueio por intervenção humana tem prioridade absoluta */
-  const underIntervention = await machineSafety.isEquipmentUnderIntervention(companyId, machineId);
+  const underIntervention = await machineSafety.isEquipmentUnderIntervention(companyId, mid);
   if (underIntervention) {
     const interventions = await machineSafety.listActiveInterventions(companyId);
-    const iv = interventions.find((i) => i.machine_identifier === machineId);
-    await machineSafety.logAutomationBlocked(companyId, machineId, machineName, iv?.id, iv?.technician_name || iv?.registered_by_name, {
+    const iv = interventions.find((i) => i.machine_identifier === mid);
+    await machineSafety.logAutomationBlocked(companyId, mid, machineName, iv?.id, iv?.technician_name || iv?.registered_by_name, {
       command_type: commandType,
       command_value: commandValue,
       triggered_by: source,
@@ -89,7 +99,22 @@ async function requestCommand(companyId, userId, machineId, machineName, equipme
 
   if (cfg.automation_mode === 'automatic') {
     try {
-      executionResponse = await executeCommand(companyId, machineId, commandType, commandValue);
+      /* Re-check intervenção antes de executar (evita race condition TOCTOU) */
+      const stillUnderIntervention = await machineSafety.isEquipmentUnderIntervention(companyId, mid);
+      if (stillUnderIntervention) {
+        const interventions = await machineSafety.listActiveInterventions(companyId);
+        const iv = interventions.find((i) => i.machine_identifier === mid);
+        await machineSafety.logAutomationBlocked(companyId, mid, machineName, iv?.id, iv?.technician_name || iv?.registered_by_name, {
+          command_type: commandType, command_value: commandValue, triggered_by: source, reason: 'intervencao_humana'
+        });
+        return {
+          ok: false,
+          error: 'Automação bloqueada por intervenção humana. O equipamento está em manutenção. Aguarde a liberação pelo técnico.',
+          code: 'AUTOMATION_BLOCKED_INTERVENTION',
+          intervention: true
+        };
+      }
+      executionResponse = await executeCommand(companyId, mid, commandType, commandValue);
       executed = !!executionResponse?.ok;
     } catch (e) {
       executionResponse = { ok: false, error: e?.message };
@@ -100,7 +125,7 @@ async function requestCommand(companyId, userId, machineId, machineName, equipme
     INSERT INTO machine_control_commands (company_id, machine_identifier, machine_name, command_type, command_value, executed, execution_response, requested_by, requested_mode, executed_at)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   `, [
-    companyId, machineId, machineName, commandType, commandValue,
+    companyId, mid, machineName, commandType, commandValue,
     executed, JSON.stringify(executionResponse), userId, cfg.automation_mode,
     executed ? new Date().toISOString() : null
   ]);

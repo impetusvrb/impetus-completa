@@ -98,7 +98,7 @@ async function collectAndAnalyze(config) {
     for (const ev of events) {
       const evRow = await machineBrain.registerEvent(company_id, machine_identifier, machine_name, line_name, ev);
       if (evRow?.id && ['high', 'critical'].includes(ev.severity)) {
-        industrialMaintenance.maybeCreateWorkOrderFromEvent(evRow).catch(() => {});
+        industrialMaintenance.maybeCreateWorkOrderFromEvent(evRow).catch((err) => console.warn('[MACHINE_MONITOR] WorkOrder:', err?.message));
       }
       if (evRow?.id && ['pressure_low', 'compressor_offline', 'pressure_high'].includes(ev.event_type)) {
         automationTrigger.maybeAutoActivate(company_id, {
@@ -115,14 +115,14 @@ async function collectAndAnalyze(config) {
           duration_hours: 1,
           production_loss: true,
           description: ev.description
-        }).catch(() => {});
+        }).catch((err) => console.warn('[MACHINE_MONITOR] CostImpact:', err?.message));
       }
     }
 
     await db.query(`
       UPDATE machine_monitoring_config SET last_collected_at = now(), updated_at = now()
       WHERE company_id = $1 AND machine_identifier = $2
-    `, [company_id, machine_identifier]).catch(() => {});
+    `, [company_id, machine_identifier]).catch((err) => console.warn('[MACHINE_MONITOR] Update last_collected:', err?.message));
   } catch (err) {
     console.warn('[MACHINE_MONITOR]', machine_identifier, err?.message);
   }
@@ -141,7 +141,7 @@ async function runCycle() {
 
     if (now - last >= intervalSec * 1000) {
       lastCollectedAt.set(key, now);
-      setImmediate(() => collectAndAnalyze(m).catch(() => {}));
+      setImmediate(() => collectAndAnalyze(m).catch((err) => console.warn('[MACHINE_MONITOR] collectAndAnalyze:', err?.message)));
     }
   }
 }

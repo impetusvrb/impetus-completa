@@ -5,6 +5,7 @@
  */
 
 const { logAction } = require('./audit');
+const { AUTH } = require('../constants/messages');
 
 /**
  * Middleware que injeta company_id e valida isolamento.
@@ -13,7 +14,7 @@ const { logAction } = require('./audit');
 function requireTenantIsolation(req, res, next) {
   const user = req.user;
   if (!user) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
   }
 
   const companyId = user.company_id;
@@ -41,7 +42,7 @@ function sameCompany(source) {
   return (req, res, next) => {
     const user = req.user;
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Não autenticado' });
+      return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
     }
 
     const parts = source.split('.');
@@ -63,7 +64,7 @@ function sameCompany(source) {
       }).catch(() => {});
       return res.status(403).json({
         ok: false,
-        error: 'Acesso negado - recurso de outra empresa',
+        error: AUTH.ACCESS_DENIED_TENANT,
         code: 'TENANT_ACCESS_DENIED'
       });
     }
