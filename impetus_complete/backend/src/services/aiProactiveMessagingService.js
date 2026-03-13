@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-const messagingAdapter = require('./messagingAdapter');
-    `, [auditId, result?.notificationId]);
-=======
 /**
  * AI PROACTIVE MESSAGING SERVICE
  * Envio de mensagens proativas pela IA com rastreabilidade, LGPD e auditoria.
@@ -121,7 +117,6 @@ async function sendProactiveMessage(params) {
       SET success = true, sent_at = now(), zapi_message_id = $2
       WHERE id = $1
     `, [auditId, result?.id]);
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 
     return { ok: true, auditId, messageId: result?.id };
   } catch (err) {
