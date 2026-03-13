@@ -1,27 +1,19 @@
 /**
- * IMPETUS - Machine Monitoring Service (24/7)
- * Coleta dados de sensores, PLC, sistemas industriais
- * Intervalo: 1-5 segundos por máquina (collection_interval_sec)
- * Arquitetura: IA → IMPETUS → Gateway/PLC → Máquina (nunca direto)
+ * IMPETUS - Machine Monitoring Service
+ * Monitoramento contínuo 24/7: coleta dados de sensores, PLC, sistemas industriais
+ * Intervalo: 1-5 segundos (configurável)
  */
 const db = require('../db');
 const plcData = require('./plcDataService');
 const plcCollector = require('./plcCollector');
 const machineBrain = require('./machineBrainService');
 const industrialMaintenance = require('./industrialMaintenanceIntegration');
-const automationTrigger = require('./automationTriggerService');
-const industrialCost = require('./industrialCostService');
 
 const ENABLED = process.env.MACHINE_MONITORING_ENABLED !== 'false';
-const CYCLE_INTERVAL_MS = Math.min(5000, Math.max(1000, parseInt(process.env.MACHINE_MONITOR_INTERVAL_MS, 10) || 1000)); // 1-5 seg
+const DEFAULT_INTERVAL_MS = 3000; // 3 segundos
 let intervalId = null;
-const lastCollectedAt = new Map(); // machine_key -> timestamp
 
 const AUXILIARY_TYPES = ['compressor', 'bomba', 'ventilacao', 'refrigeracao'];
-
-function machineKey(companyId, machineIdentifier) {
-  return `${companyId}:${machineIdentifier}`;
-}
 
 async function getMachinesToMonitor() {
   try {
@@ -100,23 +92,6 @@ async function collectAndAnalyze(config) {
       if (evRow?.id && ['high', 'critical'].includes(ev.severity)) {
         industrialMaintenance.maybeCreateWorkOrderFromEvent(evRow).catch(() => {});
       }
-      if (evRow?.id && ['pressure_low', 'compressor_offline', 'pressure_high'].includes(ev.event_type)) {
-        automationTrigger.maybeAutoActivate(company_id, {
-          event_type: ev.event_type,
-          machine_identifier: machine_identifier,
-          machine_name: machine_name
-        }).catch((err) => console.warn('[MACHINE_MONITOR] Auto-activate:', err?.message));
-      }
-      if (evRow?.id && ['machine_stopped', 'compressor_offline'].includes(ev.event_type)) {
-        industrialCost.calculateEventImpact(company_id, {
-          event_type: ev.event_type,
-          machine_identifier: machine_identifier,
-          line_identifier: line_name,
-          duration_hours: 1,
-          production_loss: true,
-          description: ev.description
-        }).catch(() => {});
-      }
     }
 
     await db.query(`
@@ -132,25 +107,16 @@ async function runCycle() {
   if (!ENABLED) return;
 
   const machines = await getMachinesToMonitor();
-  const now = Date.now();
-
   for (const m of machines) {
-    const key = machineKey(m.company_id, m.machine_identifier);
-    const intervalSec = Math.min(5, Math.max(1, m.collection_interval_sec || 3));
-    const last = lastCollectedAt.get(key) || 0;
-
-    if (now - last >= intervalSec * 1000) {
-      lastCollectedAt.set(key, now);
-      setImmediate(() => collectAndAnalyze(m).catch(() => {}));
-    }
+    setImmediate(() => collectAndAnalyze(m).catch(() => {}));
   }
 }
 
 function start() {
   if (!ENABLED || intervalId) return;
   runCycle();
-  intervalId = setInterval(runCycle, CYCLE_INTERVAL_MS);
-  console.info('[MACHINE_MONITOR] Serviço 24/7 iniciado (ciclo', CYCLE_INTERVAL_MS / 1000, 's, intervalo máquina 1-5s)');
+  intervalId = setInterval(runCycle, DEFAULT_INTERVAL_MS);
+  console.info('[MACHINE_MONITOR] Serviço iniciado (intervalo', DEFAULT_INTERVAL_MS / 1000, 's)');
 }
 
 function stop() {

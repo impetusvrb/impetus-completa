@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const onboardingService = require('../services/onboardingService');
+const { AUTH } = require('../constants/messages');
 
 /**
  * GET /api/onboarding/status
@@ -13,7 +14,7 @@ const onboardingService = require('../services/onboardingService');
 router.get('/status', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
 
     const status = await onboardingService.getOnboardingStatus(user);
     res.json({ ok: true, ...status });
@@ -30,7 +31,7 @@ router.get('/status', async (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
     const companyId = user.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'Usuário sem empresa vinculada' });
 
@@ -69,7 +70,7 @@ router.post('/start', async (req, res) => {
 router.post('/respond', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
     const companyId = user.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'Sem empresa vinculada' });
 
@@ -104,7 +105,7 @@ router.post('/respond', async (req, res) => {
 router.get('/history', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
 
     const tipo = req.query.tipo || 'usuario';
     const history = await onboardingService.getConversationHistory(
@@ -127,7 +128,7 @@ router.get('/history', async (req, res) => {
 router.get('/context', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
 
     const context = await onboardingService.getMemoryContext(user);
     res.json({ ok: true, context });

@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../db');
 const { hashPassword } = require('../middleware/auth');
 const { logAction } = require('../middleware/audit');
+const { AUTH } = require('../constants/messages');
 const roleVerification = require('../services/roleVerificationService');
 const { z } = require('zod');
 
@@ -27,7 +28,7 @@ router.post('/', async (req, res) => {
   try {
     const user = req.user;
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Não autenticado' });
+      return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
     }
 
     if (user.company_id && !user.is_first_access) {
@@ -119,7 +120,7 @@ router.post('/', async (req, res) => {
 router.post('/change-password', async (req, res) => {
   try {
     const user = req.user;
-    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado' });
+    if (!user) return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED });
 
     const { new_password } = req.body;
     if (!new_password || new_password.length < 8) {

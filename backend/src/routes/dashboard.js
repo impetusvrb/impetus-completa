@@ -368,6 +368,83 @@ router.get('/maintenance/recurring-failures', requireAuth, requireCompanyActive,
   }
 });
 
+/**
+ * POST /api/dashboard/maintenance/shift-log
+ * Registro técnico do turno (ou passagem de turno)
+ * body: { content, log_type?: 'turn_record'|'shift_handover', structured_data?: {} }
+ */
+router.post('/maintenance/shift-log', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.status(403).json({ ok: false, error: 'Perfil de manutenção necessário' });
+    }
+    const { content, log_type = 'turn_record', structured_data } = req.body;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ ok: false, error: 'Conteúdo obrigatório' });
+    }
+    const log = await maintenanceDashboard.saveShiftTechnicalLog(
+      req.user.company_id, req.user.id, content.trim(), structured_data || {}, log_type
+    );
+    res.json({ ok: true, log });
+  } catch (err) {
+    console.error('[MAINTENANCE_SHIFT_LOG]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao salvar registro' });
+  }
+});
+
+/**
+ * POST /api/dashboard/maintenance/shift-log-with-ai
+ * Registro técnico do turno com IA para estruturar o texto
+ * body: { content }
+ */
+router.post('/maintenance/shift-log-with-ai', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.status(403).json({ ok: false, error: 'Perfil de manutenção necessário' });
+    }
+    const { content } = req.body;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ ok: false, error: 'Conteúdo obrigatório' });
+    }
+    let structuredData = {};
+    try {
+      const ai = require('../services/ai');
+      const prompt = `Organize o seguinte registro técnico de turno em campos estruturados (JSON). Extraia: o_que_fez (lista), o_que_encontrou (lista), o_que_trocou (lista), pendente (lista), acompanhar (lista), maquina_risco (texto), peca_falta (texto), observacoes (texto). Mantenha a informação original. Retorne APENAS um objeto JSON válido, sem markdown.`;
+      const reply = await ai.chatCompletion(`${prompt}\n\nRegistro:\n${content.slice(0, 2000)}`, { max_tokens: 600 });
+      if (reply && !reply.startsWith('FALLBACK:')) {
+        const jsonMatch = (reply || '').match(/\{[\s\S]*\}/);
+        if (jsonMatch) structuredData = JSON.parse(jsonMatch[0]);
+      }
+    } catch (aiErr) {
+      console.warn('[MAINTENANCE_AI_STRUCTURE]', aiErr?.message);
+    }
+    const log = await maintenanceDashboard.saveShiftTechnicalLog(
+      req.user.company_id, req.user.id, content.trim(), structuredData, 'turn_record'
+    );
+    res.json({ ok: true, log, structured: Object.keys(structuredData).length > 0 });
+  } catch (err) {
+    console.error('[MAINTENANCE_SHIFT_LOG_AI]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao salvar registro' });
+  }
+});
+
+/**
+ * GET /api/dashboard/maintenance/shift-handovers
+ * Lista registros de turno e passagens
+ */
+router.get('/maintenance/shift-handovers', requireAuth, requireCompanyActive, async (req, res) => {
+  try {
+    if (!isMaintenanceProfile(req.user)) {
+      return res.json({ ok: true, is_maintenance: false, logs: [] });
+    }
+    const logs = await maintenanceDashboard.getShiftHandovers(req.user.company_id, req.user.id, 10);
+    res.json({ ok: true, is_maintenance: true, logs });
+  } catch (err) {
+    console.error('[MAINTENANCE_SHIFT_HANDOVERS]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar registros' });
+  }
+});
+
 // ============================================================================
 // ROTAS LEGADAS (mantidas para compatibilidade)
 // ============================================================================
@@ -1632,7 +1709,9 @@ router.post('/industrial/automation', requireAuth, requireCompanyActive, require
 router.post('/industrial/command', requireAuth, requireCompanyActive, requireIndustrialView, async (req, res) => {
   try {
     const { machine_id, machine_name, equipment_type, command_type, command_value } = req.body;
-    const r = await machineControl.requestCommand(req.user.company_id, req.user.id, machine_id, machine_name, equipment_type, command_type || 'toggle', command_value, 'user');
+    const mid = (machine_id ?? '').toString().trim();
+    if (!mid) return res.status(400).json({ ok: false, error: 'machine_id obrigatório', code: 'INVALID_PARAMS' });
+    const r = await machineControl.requestCommand(req.user.company_id, req.user.id, mid, machine_name, equipment_type, command_type || 'toggle', command_value, 'user');
     res.json(r);
   } catch (err) {
     res.status(500).json({ ok: false, error: err?.message });

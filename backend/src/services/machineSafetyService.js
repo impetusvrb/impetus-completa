@@ -31,7 +31,8 @@ async function isEquipmentUnderIntervention(companyId, machineIdentifier) {
     return (r.rows?.length || 0) > 0;
   } catch (err) {
     if (!err.message?.includes('does not exist')) console.warn('[MACHINE_SAFETY] isEquipmentUnderIntervention:', err?.message);
-    return false;
+    /* FAIL-SAFE: em dúvida, considerar equipamento em intervenção → bloqueia automação */
+    return true;
   }
 }
 

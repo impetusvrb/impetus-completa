@@ -5,6 +5,7 @@
  */
 const db = require('../db');
 const { logAction } = require('./audit');
+const { AUTH, ERRORS } = require('../constants/messages');
 
 const ROLE_CODE_MAP = {
   ceo: 'ceo',
@@ -88,7 +89,7 @@ function authorize(permission) {
   return async (req, res, next) => {
     const user = req.user;
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+      return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
     }
 
     try {
@@ -111,7 +112,7 @@ function authorize(permission) {
         });
         return res.status(403).json({
           ok: false,
-          error: 'Você não possui permissão para acessar este recurso.',
+          error: AUTH.NO_PERMISSION,
           code: 'AUTH_PERMISSION_DENIED',
           required: permission
         });
@@ -121,7 +122,7 @@ function authorize(permission) {
       next();
     } catch (err) {
       console.error('[AUTHORIZE_ERROR]', err);
-      return res.status(500).json({ ok: false, error: 'Erro ao verificar permissões' });
+      return res.status(500).json({ ok: false, error: ERRORS.PERMISSION_CHECK });
     }
   };
 }
@@ -133,7 +134,7 @@ function authorizeAny(...requiredPerms) {
   return async (req, res, next) => {
     const user = req.user;
     if (!user) {
-      return res.status(401).json({ ok: false, error: 'Não autenticado', code: 'AUTH_REQUIRED' });
+      return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
     }
     try {
       const { permissions: userPerms, hasWildcard } = await getUserPermissions(user);
@@ -149,13 +150,13 @@ function authorizeAny(...requiredPerms) {
           severity: 'warning',
           success: false
         });
-        return res.status(403).json({ ok: false, error: 'Permissão insuficiente', code: 'AUTH_PERMISSION_DENIED' });
+        return res.status(403).json({ ok: false, error: AUTH.PERMISSION_INSUFFICIENT, code: 'AUTH_PERMISSION_DENIED' });
       }
       req.userPermissions = userPerms;
       next();
     } catch (err) {
       console.error('[AUTHORIZE_ANY_ERROR]', err);
-      return res.status(500).json({ ok: false, error: 'Erro ao verificar permissões' });
+      return res.status(500).json({ ok: false, error: ERRORS.PERMISSION_CHECK });
     }
   };
 }

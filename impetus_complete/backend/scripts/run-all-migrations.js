@@ -34,7 +34,7 @@ const MIGRATIONS = [
   { name: 'Asaas (assinaturas recorrentes)', file: 'asaas_subscriptions_migration.sql' },
   { name: 'Legado Connect (zapi - compatibilidade)', file: 'zapi_connect_migration.sql' },
   { name: 'Planos e instâncias (plans - legado)', file: 'whatsapp_plans_instances_migration.sql' },
-  { name: 'Busca semântica (pgvector + vector 1536 + ivfflat)', file: 'pgvector_semantic_search_migration.sql' },
+  { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
   { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' },
   { name: 'Controle Hierárquico (supervisor_id, user_hierarchy_scope)', file: 'hierarchical_control_migration.sql' },
   { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' },
@@ -51,24 +51,11 @@ const MIGRATIONS = [
   { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' },
   { name: 'IA Corporativa (knowledge_memory, casos_manutencao, eventos_empresa)', file: 'corporate_ai_memory_migration.sql' },
   { name: 'Cérebro Operacional (insights, alertas)', file: 'operational_brain_migration.sql' },
-  { name: 'Integração PLC (plc_collected_data, plc_analysis, plc_alerts)', file: 'plc_integration_migration.sql' },
   { name: 'Inteligência Industrial (Machine Brain, monitoramento, controle)', file: 'industrial_intelligence_migration.sql' },
-  { name: 'Protocolo IA Segurança Máquinas (intervenção humana, bloqueio automação)', file: 'machine_safety_intervention_migration.sql' },
-  { name: 'Inteligência Industrial Estendida (variáveis industriais completas)', file: 'industrial_intelligence_extended_migration.sql' },
-  { name: 'Centro de Custos Industriais', file: 'industrial_cost_center_migration.sql' },
-  { name: 'Mapa de Vazamento Financeiro (detecções, alertas, relatórios)', file: 'financial_leakage_migration.sql' },
-  { name: 'Config Previsão Operacional/Financeira (receita baseline)', file: 'company_forecasting_config_migration.sql' },
-  { name: 'Inteligência de RH (ponto, integração, indicadores, alertas)', file: 'hr_intelligence_migration.sql' },
-  { name: 'Detecção de Anomalias Operacionais (baseline, anomalias, alertas)', file: 'operational_anomaly_detection_migration.sql' },
-  { name: 'Detecção e Bloqueio de Lotes de Matéria-Prima (qualidade)', file: 'raw_material_lot_detection_migration.sql' },
-  { name: 'Almoxarifado Inteligente (categorias, materiais, fornecedores, localizações, movimentações)', file: 'warehouse_intelligence_migration.sql' },
-  { name: 'Almoxarifado IA (alertas, previsões, snapshots, materiais parados)', file: 'warehouse_intelligence_advanced_migration.sql' },
-  { name: 'Inteligência de Qualidade (matérias-primas, inspeções, rastreabilidade)', file: 'quality_intelligence_migration.sql' },
   { name: 'Validação Hierárquica de Cargos (role_verified, aprovações, documentos)', file: 'role_verification_hierarchy_migration.sql' },
   { name: 'Índices de performance (audit_logs, communications, proposals)', file: 'performance_indexes_migration.sql' },
   { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' },
-  { name: 'Logística Inteligente (veículos, rotas, pontos, motoristas, expedições, alertas, telemetria)', file: 'logistics_intelligence_migration.sql' },
-  { name: 'Tríade de IAs (enterprise_ai_memory, industry_intelligence, company_operation, ai_knowledge_exchange)', file: 'enterprise_ai_triad_migration.sql' }
+  { name: 'Tríade de IAs (enterprise_ai_memory, industry_intelligence, company_operation)', file: 'enterprise_ai_triad_migration.sql' }
 ];
 
 async function run() {

@@ -266,6 +266,12 @@ export const dashboard = {
     getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
   },
 
+  // Cadastrar com IA - upload multimodal (texto, imagem, documento, áudio)
+  cadastrarComIA: {
+    cadastrar: (formData) => api.post('/cadastrar-com-ia', formData),
+    listar: (categoria, limit) => api.get('/cadastrar-com-ia', { params: { categoria, limit } })
+  },
+
   // Cérebro Operacional - Painel de Inteligência Operacional
   operationalBrain: {
     getSummary: (params) => api.get('/dashboard/operational-brain/summary', { params }),

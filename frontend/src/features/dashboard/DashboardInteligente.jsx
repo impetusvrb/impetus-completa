@@ -20,6 +20,7 @@ import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
 import CentralAIPanel from './components/CentralAIPanel';
+import MaintenanceDashboardLayer from './components/MaintenanceDashboardLayer';
 import KPIRequest from './components/KPIRequest';
 import DashboardCustomizerModal from './components/DashboardCustomizerModal';
 import './DashboardInteligente.css';
@@ -101,6 +102,9 @@ export default function DashboardInteligente({ embed = false }) {
             onSaved={refetch}
           />
         )}
+
+        {/* Camada operacional de manutenção - perfil mecânico/eletricista */}
+        {dashboardPayload?.is_maintenance && <MaintenanceDashboardLayer />}
 
         {/* Bloco 1: Resumo Geral - via Smart Summary modal (abre ao carregar) */}
         {sections.smart_summary && (

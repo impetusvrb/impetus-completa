@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+#root { min-height: 100vh; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; }
+.btn:hover { background: #f9fafb; }
+.btn-secondary { background: #f3f4f6; }
+.btn-ghost { background: transparent; border: none; }
+.btn-icon { padding: 8px; }
+.metric-card { display: flex; align-items: center; gap: 12px; padding: 16px; background: #f9fafb; border-radius: 8px; }
+.metric-card__value { font-weight: 600; font-size: 1.25rem; display: block; }
+.metric-card__title { color: #64748b; font-size: 0.875rem; }
+.dashboard-inteligente__block { margin-bottom: 24px; padding: 16px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; }
+.dashboard-inteligente__block h2 { margin: 0 0 12px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.block-desc { color: #64748b; font-size: 0.875rem; margin: 0 0 12px; }
+.dashboard-inteligente__metrics { display: flex; flex-wrap: wrap; gap: 12px; }

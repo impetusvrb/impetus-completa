@@ -5,6 +5,16 @@
  */
 const db = require('../db');
 
+/** Executa query com fallback em tabela/coluna inexistente */
+async function safeQuery(sql, params, defaultValue = { rows: [{ total: 0, c: 0 }] }) {
+  try {
+    return await db.query(sql, params);
+  } catch (err) {
+    if (/does not exist|relation.*does not exist|column.*does not exist/i.test(err.message || '')) return defaultValue;
+    throw err;
+  }
+}
+
 /**
  * Resumo técnico do dia (cabeçalho)
  */
@@ -12,26 +22,26 @@ async function getTechnicalSummary(companyId, userId) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [osOpen, preventivesToday, machinesAttention, interventionsToday, callsWaiting] = await Promise.all([
-    db.query(`
+    safeQuery(`
       SELECT COUNT(*) as total FROM work_orders
       WHERE company_id = $1 AND status IN ('open', 'in_progress', 'waiting_parts', 'waiting_support')
         AND (assigned_to = $2 OR assigned_to IS NULL)
     `, [companyId, userId]),
-    db.query(`
+    safeQuery(`
       SELECT COUNT(*) as total FROM maintenance_preventives
       WHERE company_id = $1 AND scheduled_date = $2::date AND status IN ('pending', 'overdue', 'in_progress')
         AND (assigned_to = $3 OR assigned_to IS NULL)
     `, [companyId, today, userId]),
-    db.query(`
+    safeQuery(`
       SELECT COUNT(*) as total FROM monitored_points
       WHERE company_id = $1 AND active = true
         AND (operational_status IN ('maintenance', 'failure') OR criticality = 'critical')
     `, [companyId]),
-    db.query(`
+    safeQuery(`
       SELECT COUNT(*) as total FROM technical_interventions
       WHERE company_id = $1 AND intervention_date::date = $2::date AND technician_id = $3
     `, [companyId, today, userId]),
-    db.query(`
+    safeQuery(`
       SELECT COUNT(*) as total FROM work_orders
       WHERE company_id = $1 AND status = 'waiting_support' AND assigned_to = $2
     `, [companyId, userId])
@@ -66,15 +76,16 @@ async function getTechnicalSummary(companyId, userId) {
  */
 async function getTechnicalCards(companyId, userId) {
   const today = new Date().toISOString().slice(0, 10);
+  const def = { rows: [{ c: 0 }] };
 
   const [osOpen, preventives, pendencies, machines, interventions, calls, parts] = await Promise.all([
-    db.query(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status IN ('open','in_progress','waiting_parts','waiting_support') AND (assigned_to = $2 OR assigned_to IS NULL)`, [companyId, userId]),
-    db.query(`SELECT COUNT(*) as c FROM maintenance_preventives WHERE company_id = $1 AND scheduled_date = $2::date AND status IN ('pending','overdue','in_progress')`, [companyId, today]),
-    db.query(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status IN ('open','in_progress') AND assigned_to = $2`, [companyId, userId]),
-    db.query(`SELECT COUNT(*) as c FROM monitored_points WHERE company_id = $1 AND active = true AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`, [companyId]),
-    db.query(`SELECT COUNT(*) as c FROM technical_interventions WHERE company_id = $1 AND intervention_date::date = $2::date AND technician_id = $3`, [companyId, today, userId]),
-    db.query(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status = 'waiting_support' AND assigned_to = $2`, [companyId, userId]),
-    db.query(`SELECT COUNT(*) as c FROM technical_interventions ti WHERE company_id = $1 AND intervention_date::date = $2::date AND technician_id = $3 AND jsonb_array_length(COALESCE(parts_replaced,'[]'::jsonb)) > 0`, [companyId, today, userId])
+    safeQuery(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status IN ('open','in_progress','waiting_parts','waiting_support') AND (assigned_to = $2 OR assigned_to IS NULL)`, [companyId, userId], def),
+    safeQuery(`SELECT COUNT(*) as c FROM maintenance_preventives WHERE company_id = $1 AND scheduled_date = $2::date AND status IN ('pending','overdue','in_progress')`, [companyId, today], def),
+    safeQuery(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status IN ('open','in_progress') AND assigned_to = $2`, [companyId, userId], def),
+    safeQuery(`SELECT COUNT(*) as c FROM monitored_points WHERE company_id = $1 AND active = true AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`, [companyId], def),
+    safeQuery(`SELECT COUNT(*) as c FROM technical_interventions WHERE company_id = $1 AND intervention_date::date = $2::date AND technician_id = $3`, [companyId, today, userId], def),
+    safeQuery(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status = 'waiting_support' AND assigned_to = $2`, [companyId, userId], def),
+    safeQuery(`SELECT COUNT(*) as c FROM technical_interventions ti WHERE company_id = $1 AND intervention_date::date = $2::date AND technician_id = $3 AND jsonb_array_length(COALESCE(parts_replaced,'[]'::jsonb)) > 0`, [companyId, today, userId], def)
   ]);
 
   return {
@@ -92,6 +103,7 @@ async function getTechnicalCards(companyId, userId) {
  * Minhas tarefas de hoje (OS atribuídas)
  */
 async function getMyTasksToday(companyId, userId, limit = 20) {
+  try {
   const today = new Date().toISOString().slice(0, 10);
   const r = await db.query(`
     SELECT wo.id, wo.title, wo.description, wo.type, wo.priority, wo.status,
@@ -106,31 +118,63 @@ async function getMyTasksToday(companyId, userId, limit = 20) {
     ORDER BY CASE wo.priority WHEN 'critical' THEN 1 WHEN 'urgent' THEN 2 WHEN 'high' THEN 3 ELSE 4 END, wo.scheduled_at NULLS LAST
     LIMIT $4
   `, [companyId, userId, today, limit]);
-  return r.rows;
+  return r.rows || [];
+  } catch (err) {
+    if (/does not exist/i.test(err.message || '')) return [];
+    throw err;
+  }
 }
 
 /**
  * Máquinas em atenção
+ * Usa monitored_points quando existe; fallback para machine_monitoring_config + machine_detected_events
  */
 async function getMachinesInAttention(companyId, limit = 15) {
-  const r = await db.query(`
-    SELECT mp.id, mp.code, mp.name, mp.operational_status, mp.criticality,
-           mp.last_maintenance, mp.next_maintenance, mp.sector,
-           (SELECT COUNT(*) FROM equipment_failures ef WHERE ef.equipment_id = mp.id AND ef.status NOT IN ('resolved','verified')) as open_failures
-    FROM monitored_points mp
-    WHERE mp.company_id = $1 AND mp.active = true
-      AND (mp.operational_status IN ('maintenance', 'failure') OR mp.criticality = 'critical'
-           OR mp.next_maintenance < now() OR exists (SELECT 1 FROM equipment_failures ef WHERE ef.equipment_id = mp.id AND ef.status NOT IN ('resolved','verified')))
-    ORDER BY mp.criticality = 'critical' DESC, mp.operational_status DESC
-    LIMIT $2
-  `, [companyId, limit]);
-  return r.rows;
+  try {
+    const r = await db.query(`
+      SELECT mp.id, mp.code, mp.name, mp.operational_status, mp.criticality,
+             mp.last_maintenance, mp.next_maintenance, mp.sector,
+             (SELECT COUNT(*) FROM equipment_failures ef WHERE ef.equipment_id = mp.id AND ef.status NOT IN ('resolved','verified')) as open_failures
+      FROM monitored_points mp
+      WHERE mp.company_id = $1 AND mp.active = true
+        AND (mp.operational_status IN ('maintenance', 'failure') OR mp.criticality = 'critical'
+             OR mp.next_maintenance < now() OR exists (SELECT 1 FROM equipment_failures ef WHERE ef.equipment_id = mp.id AND ef.status NOT IN ('resolved','verified')))
+      ORDER BY mp.criticality = 'critical' DESC, mp.operational_status DESC
+      LIMIT $2
+    `, [companyId, limit]);
+    if (r.rows?.length > 0) return r.rows;
+  } catch (_) { /* monitored_points pode não existir */ }
+
+  /* Fallback: machine_monitoring_config + eventos recentes críticos */
+  try {
+    const fallback = await db.query(`
+      SELECT m.id, m.machine_identifier as code, m.machine_name as name,
+             CASE WHEN ev.id IS NOT NULL THEN 'failure' ELSE 'normal' END as operational_status,
+             CASE WHEN ev.severity = 'critical' THEN 'critical' ELSE 'high' END as criticality,
+             NULL::date as last_maintenance, NULL::date as next_maintenance, m.line_name as sector,
+             1 as open_failures
+      FROM machine_monitoring_config m
+      LEFT JOIN LATERAL (
+        SELECT id, severity FROM machine_detected_events
+        WHERE company_id = $1 AND machine_identifier = m.machine_identifier
+          AND created_at > now() - INTERVAL '7 days'
+          AND severity IN ('high', 'critical')
+        ORDER BY created_at DESC LIMIT 1
+      ) ev ON true
+      WHERE m.company_id = $1 AND (m.enabled IS NULL OR m.enabled = true)
+        AND ev.id IS NOT NULL
+      LIMIT $2
+    `, [companyId, limit]);
+    return (fallback.rows || []).map((row) => ({ ...row, id: row.id, equipment_id: row.id }));
+  } catch (_) {}
+  return [];
 }
 
 /**
  * Últimas intervenções
  */
 async function getLastInterventions(companyId, limit = 10) {
+  try {
   const r = await db.query(`
     SELECT ti.id, ti.machine_name, ti.sector, ti.action_taken, ti.result_obtained,
            ti.intervention_date, ti.final_status, ti.remaining_pendency,
@@ -141,13 +185,18 @@ async function getLastInterventions(companyId, limit = 10) {
     ORDER BY ti.intervention_date DESC
     LIMIT $2
   `, [companyId, limit]);
-  return r.rows;
+  return r.rows || [];
+  } catch (err) {
+    if (/does not exist/i.test(err.message || '')) return [];
+    throw err;
+  }
 }
 
 /**
  * Preventivas do dia
  */
 async function getPreventivesToday(companyId, userId, limit = 15) {
+  try {
   const today = new Date().toISOString().slice(0, 10);
   const r = await db.query(`
     SELECT mprev.id, mprev.title, mprev.machine_name, mprev.sector, mprev.preventive_type,
@@ -161,13 +210,18 @@ async function getPreventivesToday(companyId, userId, limit = 15) {
     ORDER BY mprev.scheduled_time NULLS LAST, mprev.status
     LIMIT $4
   `, [companyId, today, userId, limit]);
-  return r.rows;
+  return r.rows || [];
+  } catch (err) {
+    if (/does not exist/i.test(err.message || '')) return [];
+    throw err;
+  }
 }
 
 /**
  * Falhas recorrentes (por equipamento)
  */
 async function getRecurringFailures(companyId, limit = 10) {
+  try {
   const r = await db.query(`
     SELECT ef.equipment_id, mp.name as machine_name, mp.code,
            COUNT(*) as failure_count,
@@ -181,7 +235,42 @@ async function getRecurringFailures(companyId, limit = 10) {
     ORDER BY failure_count DESC
     LIMIT $2
   `, [companyId, limit]);
-  return r.rows;
+  return r.rows || [];
+  } catch (err) {
+    if (/does not exist/i.test(err.message || '')) return [];
+    throw err;
+  }
+}
+
+/**
+ * Registro técnico do turno (com ou sem IA para estruturar)
+ */
+async function saveShiftTechnicalLog(companyId, userId, content, structuredData = {}, logType = 'turn_record') {
+  const r = await db.query(`
+    INSERT INTO shift_technical_logs (company_id, user_id, log_type, content, structured_data)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, shift_date, created_at
+  `, [companyId, userId, logType, content || '', JSON.stringify(structuredData || {})]);
+  return r.rows?.[0];
+}
+
+/**
+ * Lista registros de passagem de turno
+ */
+async function getShiftHandovers(companyId, userId, limit = 5) {
+  try {
+    const r = await db.query(`
+      SELECT id, content, structured_data, shift_date, created_at
+      FROM shift_technical_logs
+      WHERE company_id = $1 AND user_id = $2 AND log_type IN ('turn_record', 'shift_handover')
+      ORDER BY created_at DESC
+      LIMIT $3
+    `, [companyId, userId, limit]);
+    return r.rows || [];
+  } catch (err) {
+    if (/does not exist/i.test(err.message || '')) return [];
+    throw err;
+  }
 }
 
 module.exports = {
@@ -191,5 +280,7 @@ module.exports = {
   getMachinesInAttention,
   getLastInterventions,
   getPreventivesToday,
-  getRecurringFailures
+  getRecurringFailures,
+  saveShiftTechnicalLog,
+  getShiftHandovers
 };

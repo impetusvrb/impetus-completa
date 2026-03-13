@@ -1,14 +1,13 @@
 /**
- * IMPETUS - Machine Brain (Cérebro Industrial)
- * Armazena histórico, aprende padrões normais, identifica anomalias, prevê falhas
- * Aprendizado contínuo por média móvel exponencial
+ * IMPETUS - Machine Brain
+ * Armazena histórico, aprende padrões normais, identifica anomalias, prevíe falhas
  */
 const db = require('../db');
+const plcData = require('./plcDataService');
 
 const ANOMALY_DEVIATION = 0.25; // 25% fora do padrão = anomalia
 const MIN_SAMPLES_FOR_PROFILE = 20;
-const TREND_SAMPLES = 10; // amostras para detectar tendência de falha
-const TEMP_TREND_THRESHOLD = 0.15; // 15% de aumento médio = tendência de superaquecimento
+const PROFILE_TYPES = ['plc', 'asset', 'production_line_machine'];
 
 function isAnomaly(value, avg, minVal, maxVal) {
   if (value == null || avg == null) return false;
@@ -93,7 +92,6 @@ async function analyzeReading(companyId, machineId, machineName, lineName, readi
     const vib = reading.vibration ?? reading.vibration_level;
     const press = reading.pressure ?? reading.hydraulic_pressure;
     const oilLevel = reading.oil_level;
-    const nameLow = (machineName || machineId || '').toLowerCase();
 
     if (temp != null && isAnomaly(temp, profile.temperature_avg, profile.temperature_min, profile.temperature_max)) {
       if (temp > (profile.temperature_max || profile.temperature_avg * 1.2)) {
@@ -108,60 +106,9 @@ async function analyzeReading(companyId, machineId, machineName, lineName, readi
     if (oilLevel != null && oilLevel < 20) {
       events.push({ event_type: 'low_oil', severity: 'high', sensor_values: { oil_level: oilLevel } });
     }
-    if (press != null && profile.pressure_avg != null && press < profile.pressure_avg * 0.5) {
-      events.push({ event_type: 'pressure_low', severity: 'high', sensor_values: { pressure: press } });
-    }
-    if (nameLow.includes('compressor') && (status === 'stopped' || status === 'off')) {
-      events.push({ event_type: 'compressor_offline', severity: 'high', sensor_values: {} });
-    }
-    if (reading.alarm_state && reading.alarm_state !== 'ok' && reading.alarm_state !== 'normal') {
-      events.push({ event_type: 'abnormal_noise', severity: 'medium', sensor_values: { alarm_state: reading.alarm_state } });
-    }
   }
 
-  const trendEvent = await checkFailureTrend(companyId, machineId, machineName, lineName, reading);
-  if (trendEvent) events.push(trendEvent);
-
   return events;
-}
-
-/** Detecta tendência de falha (temperatura subindo, vibração aumentando) */
-async function checkFailureTrend(companyId, machineId, machineName, lineName, reading) {
-  try {
-    const r = await db.query(`
-      SELECT temperature, vibration, pressure
-      FROM plc_collected_data
-      WHERE company_id = $1 AND equipment_id = $2
-      ORDER BY collected_at DESC
-      LIMIT $3
-    `, [companyId, machineId, TREND_SAMPLES]);
-
-    const rows = r.rows || [];
-    if (rows.length < TREND_SAMPLES) return null;
-
-    const temps = rows.map((x) => parseFloat(x.temperature)).filter((n) => !isNaN(n));
-    const vibs = rows.map((x) => parseFloat(x.vibration)).filter((n) => !isNaN(n));
-    const recentT = temps.slice(0, Math.floor(temps.length / 2));
-    const olderT = temps.slice(-Math.floor(temps.length / 2));
-    const avgRecentT = recentT.reduce((a, b) => a + b, 0) / recentT.length;
-    const avgOlderT = olderT.reduce((a, b) => a + b, 0) / olderT.length;
-    const trendT = avgOlderT > 0 ? (avgRecentT - avgOlderT) / avgOlderT : 0;
-
-    if (trendT >= TEMP_TREND_THRESHOLD) {
-      return { event_type: 'predicted_failure', severity: 'high', sensor_values: { temperature_trend: trendT, reason: 'Tendência de superaquecimento' } };
-    }
-
-    const recentV = vibs.slice(0, Math.floor(vibs.length / 2));
-    const olderV = vibs.slice(-Math.floor(vibs.length / 2));
-    const avgRecentV = recentV.reduce((a, b) => a + b, 0) / recentV.length;
-    const avgOlderV = olderV.reduce((a, b) => a + b, 0) / olderV.length;
-    const trendV = avgOlderV > 0 ? (avgRecentV - avgOlderV) / avgOlderV : 0;
-
-    if (trendV >= 0.3) {
-      return { event_type: 'predicted_failure', severity: 'high', sensor_values: { vibration_trend: trendV, reason: 'Tendência de aumento de vibração' } };
-    }
-  } catch (_) {}
-  return null;
 }
 
 async function getLastStatus(companyId, machineId) {
