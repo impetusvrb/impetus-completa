@@ -1,0 +1,111 @@
+/**
+ * Centro de Custos Industriais - Admin
+ */
+
+.centro-custos-admin {
+  padding: 24px;
+}
+
+.centro-custos-admin .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.centro-custos-admin .header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.centro-custos-admin .page-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-lg);
+  color: white;
+}
+
+.centro-custos-admin .page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.centro-custos-admin .page-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.cost-name {
+  font-weight: 500;
+}
+
+.cost-item-form .form-section {
+  margin-bottom: 24px;
+}
+
+.cost-item-form .form-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cost-item-form .form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cost-item-form .form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .cost-item-form .form-grid-2,
+  .cost-item-form .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cca-forbidden {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.cca-forbidden-card {
+  text-align: center;
+  padding: 48px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  max-width: 400px;
+}
+
+.cca-forbidden-card svg {
+  color: var(--color-warning);
+  margin-bottom: 16px;
+}
+
+.cca-forbidden-card h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+}
+
+.cca-forbidden-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}

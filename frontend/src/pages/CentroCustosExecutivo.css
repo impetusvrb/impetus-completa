@@ -1,0 +1,247 @@
+/**
+ * Centro de Custos Industriais - Painel Executivo
+ */
+
+.centro-custos-executivo {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.cce-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.cce-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cce-title h1 { font-size: 1.4rem; margin: 0; }
+.cce-subtitle { font-size: 0.85rem; color: #6b7280; }
+
+.cce-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.cce-refresh .spin { animation: cce-spin 1s linear infinite; }
+@keyframes cce-spin { to { transform: rotate(360deg); } }
+
+.cce-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .cce-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .cce-cards { grid-template-columns: 1fr; }
+}
+
+.cce-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cce-card svg {
+  color: #1e40af;
+}
+
+.cce-card-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.cce-card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cce-impact {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.cce-impact h3 {
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cce-impact-grid {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.cce-impact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cce-impact-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.cce-impact-item small {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.cce-period {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.cce-period span {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.cce-period-btn {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.cce-period-btn.active {
+  background: #1e40af;
+  color: #fff;
+  border-color: #1e40af;
+}
+
+.cce-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .cce-charts { grid-template-columns: 1fr; }
+}
+
+.cce-chart-box {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.cce-chart-box h3 {
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cce-loading, .cce-empty {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+}
+
+.cce-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .cce-grid-2 { grid-template-columns: 1fr; }
+}
+
+.cce-loss, .cce-projection {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.cce-loss h3, .cce-projection h3 {
+  margin: 0 0 16px 0;
+}
+
+.cce-loss-detail, .cce-proj-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cce-proj-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.cce-forbidden {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.cce-forbidden-card {
+  text-align: center;
+  padding: 48px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  max-width: 400px;
+}
+
+.cce-forbidden-card svg {
+  color: var(--color-warning);
+  margin-bottom: 16px;
+}
+
+.cce-forbidden-card h2 { margin: 0 0 8px 0; font-size: 1.25rem; }
+.cce-forbidden-card p { margin: 0 0 20px 0; color: var(--text-secondary); }
+
+.cce-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}

@@ -1,10 +1,11 @@
 /**
  * IMPETUS - Controle de Equipamentos com Segurança
  * Modos: monitor | assisted | automatic
- * SEGURANÇA: apenas equipamentos auxiliares (compressor, bomba, ventilação, refrigeração)
- * NUNCA: prensa, torno, máquinas perigosas
+ * PROTOCOLO IA: automação bloqueada quando há intervenção humana
+ * Prioridade: 1) Segurança humana 2) Integridade do equipamento 3) Continuidade 4) Automação
  */
 const db = require('../db');
+const machineSafety = require('./machineSafetyService');
 
 const FORBIDDEN_TYPES = ['prensa', 'torno', 'fresadora', 'mandriladora', 'guilhotina', 'dobradeira'];
 const AUXILIARY_KEYS = ['compressor', 'bomba', 'ventilacao', 'refrigeracao'];
@@ -34,8 +35,30 @@ async function canUserEnableAutomation(companyId, userId) {
   return (cfg.allowed_roles || []).some((r) => r.toLowerCase() === role);
 }
 
-async function requestCommand(companyId, userId, machineId, machineName, equipmentType, commandType, commandValue) {
+/**
+ * requestCommand - source: 'user' | 'automation' para auditoria
+ */
+async function requestCommand(companyId, userId, machineId, machineName, equipmentType, commandType, commandValue, source = 'user') {
   const cfg = await getAutomationConfig(companyId);
+
+  /* PROTOCOLO: Bloqueio por intervenção humana tem prioridade absoluta */
+  const underIntervention = await machineSafety.isEquipmentUnderIntervention(companyId, machineId);
+  if (underIntervention) {
+    const interventions = await machineSafety.listActiveInterventions(companyId);
+    const iv = interventions.find((i) => i.machine_identifier === machineId);
+    await machineSafety.logAutomationBlocked(companyId, machineId, machineName, iv?.id, iv?.technician_name || iv?.registered_by_name, {
+      command_type: commandType,
+      command_value: commandValue,
+      triggered_by: source,
+      reason: 'intervencao_humana'
+    });
+    return {
+      ok: false,
+      error: 'Automação bloqueada por intervenção humana. O equipamento está em manutenção. Aguarde a liberação pelo técnico.',
+      code: 'AUTOMATION_BLOCKED_INTERVENTION',
+      intervention: true
+    };
+  }
 
   if (cfg.automation_mode === 'monitor') {
     return { ok: false, error: 'Sistema em modo monitoramento. Apenas observação.', suggestion: true };
@@ -45,9 +68,11 @@ async function requestCommand(companyId, userId, machineId, machineName, equipme
     return { ok: false, error: 'Equipamento não permitido para controle automático. Apenas auxiliares: compressor, bomba, ventilação, refrigeração.' };
   }
 
-  const canEnable = await canUserEnableAutomation(companyId, userId);
-  if (!canEnable && cfg.automation_mode === 'automatic') {
-    return { ok: false, error: 'Sem permissão para controle automático.' };
+  if (source === 'user') {
+    const canEnable = await canUserEnableAutomation(companyId, userId);
+    if (!canEnable && cfg.automation_mode === 'automatic') {
+      return { ok: false, error: 'Sem permissão para controle automático.' };
+    }
   }
 
   let executed = false;

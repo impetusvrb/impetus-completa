@@ -233,16 +233,27 @@ async function getCriticalFactors(companyId) {
     factors.push({ tipo: 'aumento_falhas', descricao: 'Eventos de alta criticidade recorrentes', impacto: 'alto', setor: 'Manutenção' });
   }
   if (twin.offline_count > 0) {
+<<<<<<< HEAD
     factors.push({ tipo: 'equipamentos_offline', descricao: `${twin.offline_count} equipamento(s) sem monitoramento`, impacto: 'médio', setor: 'Operacional' });
+=======
+    factors.push({ tipo: 'equipamentos_offline', descricao: `${twin.offline_count} equipamento(s) sem monitoramento`, impacto: 'médio`, setor: 'Operacional' });
+>>>>>>> e9f2e470830af0c0df79efe99f5135a437e95465
   }
   if ((leakMap || []).some(l => (l.impact_30d || 0) > 5000)) {
     factors.push({ tipo: 'desperdicio_materia', descricao: 'Perdas detectadas no mapa de vazamento', impacto: 'alto', setor: 'Produção' });
   }
   if (twin.work_orders_open > 3) {
+<<<<<<< HEAD
     factors.push({ tipo: 'atrasos_manutencao', descricao: `${twin.work_orders_open} ordem(ns) de serviço em aberto`, impacto: 'médio', setor: 'Manutenção' });
   }
   if (twin.predictions_count > 2) {
     factors.push({ tipo: 'gargalos_producao', descricao: `${twin.predictions_count} previsões de falha`, impacto: 'médio', setor: 'Produção' });
+=======
+    factors.push({ tipo: 'atrasos_manutencao', descricao: `${twin.work_orders_open} ordem(ns) de serviço em aberto`, impacto: 'médio`, setor: 'Manutenção' });
+  }
+  if (twin.predictions_count > 2) {
+    factors.push({ tipo: 'gargalos_producao', descricao: `${twin.predictions_count} previsões de falha`, impacto: 'médio`, setor: 'Produção' });
+>>>>>>> e9f2e470830af0c0df79efe99f5135a437e95465
   }
 
   const machines = (machineByLine.rows || []).map(r => ({
