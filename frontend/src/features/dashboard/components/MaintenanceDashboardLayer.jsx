@@ -8,7 +8,7 @@ import {
   Wrench, AlertTriangle, Target, Clock, Bot, FileText, History, Calendar,
   ChevronRight, Play, CheckCircle, HelpCircle, BookOpen, Sparkles
 } from 'lucide-react';
-import { dashboard } from '../../../services/api';
+import { dashboard, adminSettings } from '../../../services/api';
 import { useNotification } from '../../../context/NotificationContext';
 
 const CARD_LABELS = {
@@ -42,6 +42,7 @@ export default function MaintenanceDashboardLayer() {
   const [preventives, setPreventives] = useState([]);
   const [recurringFailures, setRecurringFailures] = useState([]);
   const [shiftLogs, setShiftLogs] = useState([]);
+  const [manuals, setManuals] = useState([]);
   const [iaQuestion, setIaQuestion] = useState('');
   const [shiftRecord, setShiftRecord] = useState('');
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function MaintenanceDashboardLayer() {
 
   const fetchMaintenance = useCallback(async () => {
     try {
-      const [s, c, t, m, i, p, r, sh] = await Promise.all([
+      const [s, c, t, m, i, p, r, sh, manualsRes] = await Promise.all([
         dashboard.maintenance.getSummary(),
         dashboard.maintenance.getCards(),
         dashboard.maintenance.getMyTasks(),
@@ -57,9 +58,11 @@ export default function MaintenanceDashboardLayer() {
         dashboard.maintenance.getInterventions(),
         dashboard.maintenance.getPreventives(),
         dashboard.maintenance.getRecurringFailures(),
-        dashboard.maintenance.getShiftHandovers()
+        dashboard.maintenance.getShiftHandovers(),
+        adminSettings.listManuals().catch(() => ({ data: { manuals: [] } }))
       ]);
       if (s?.data?.is_maintenance && s.data?.summary) setSummary(s.data.summary);
+      if (manualsRes?.data?.manuals) setManuals(manualsRes.data.manuals);
       if (c?.data?.is_maintenance && c.data?.cards) setCards(c.data.cards);
       if (t?.data?.is_maintenance) setTasks(t.data?.tasks || []);
       if (m?.data?.is_maintenance) setMachines(m.data?.machines || []);
@@ -219,10 +222,36 @@ export default function MaintenanceDashboardLayer() {
               {s.label}
             </button>
           ))}
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/app/settings')} title="Manuais">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/app/manuais-tecnicos')} title="Manuais Técnicos">
             <BookOpen size={14} /> Manuais
           </button>
         </div>
+      </section>
+
+      {/* 5b. Bloco Manuais Técnicos */}
+      <section className="dashboard-inteligente__block block-manuais-tecnicos">
+        <h2><BookOpen size={20} /> Manuais Técnicos</h2>
+        <p className="block-desc">Consulte manuais de máquinas e procedimentos. Use a IA para buscar informações.</p>
+        {manuals.length === 0 ? (
+          <p className="block-desc">Nenhum manual cadastrado. O administrador pode adicionar em Configurações.</p>
+        ) : (
+          <ul className="maintenance-list">
+            {manuals.slice(0, 4).map((man) => (
+              <li key={man.id} className="maintenance-task-item">
+                <div>
+                  <strong>{[man.equipment_type, man.model].filter(Boolean).join(' • ') || 'Manual'}</strong>
+                  <span className="maintenance-task-meta">{man.manufacturer || ''} • {(man.manual_type || 'maquina') === 'operacional' ? 'Operacional' : 'Máquina'}</span>
+                </div>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/app/manuais-tecnicos')}>
+                  Ver
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/app/manuais-tecnicos')}>
+          Ver todos os manuais <ChevronRight size={14} />
+        </button>
       </section>
 
       {/* 6. Registro Técnico do Turno */}

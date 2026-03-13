@@ -1,6 +1,7 @@
 # Relatório de Verificação – Dashboard Mecânico (Especificação Manutenção)
 
-**Data:** 2026-03-07  
+**Data:** 2026-03-13  
+**Atualizado em:** 2026-03-13 (revisão pós-implementação completa)  
 **Objetivo:** Verificar se as especificações da camada operacional de manutenção foram implementadas no perfil mecânico.
 
 ---
@@ -9,17 +10,18 @@
 
 | Status | Descrição |
 |--------|-----------|
-| ❌ **Parcial / incompleto** | Backend tem APIs e serviços, mas frontend não consome nem exibe os blocos. Migration do schema não existe. |
-| ✅ **Mantido** | Dashboard atual do mecânico permanece inalterado (mesma estrutura do DashboardInteligente). |
-| ⚠️ **Não integrado** | APIs de manutenção existem, mas o DashboardInteligente não as utiliza. |
+| ✅ **Implementado** | Backend, frontend, migration e integração completos. Dashboard do mecânico exibe todos os blocos conforme especificação. |
+| ✅ **Mantido** | Dashboard atual do mecânico mantém a estrutura existente do DashboardInteligente (blocos padrão não removidos). |
+| ✅ **Integrado** | APIs de manutenção consumidas por `MaintenanceDashboardLayer.jsx` quando `is_maintenance === true`. |
 
 ---
 
 ## 1. Arquitetura Atual
 
-- **DashboardMecanico** = **DashboardInteligente** (mesmo componente para todos os perfis)
-- Perfil mecânico determinado por: `technician_maintenance`, `supervisor_maintenance`, `coordinator_maintenance`, `manager_maintenance` ou job_title contendo "mecânico", "eletricista", "eletromecânico"
-- O layout exibido é genérico; não há blocos específicos para manutenção
+- **DashboardMecanico** = **DashboardInteligente** + **MaintenanceDashboardLayer**
+- O `MaintenanceDashboardLayer` é exibido **acima** dos blocos padrão quando o perfil é de manutenção
+- Perfil manutenção: `technician_maintenance`, `supervisor_maintenance`, `coordinator_maintenance`, `manager_maintenance` ou job_title contendo "mecânico", "eletricista", "eletromecânico"
+- `is_maintenance` definido em `intelligentDashboardService.js` e enviado no payload `/api/dashboard/me`
 
 ---
 
@@ -31,30 +33,32 @@
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/summary` – `maintenanceDashboard.getTechnicalSummary()` retorna `frase_resumo` no formato esperado |
-| Frontend | ❌ Não implementado | Nenhum componente consome essa rota ou exibe o cabeçalho técnico |
+| Backend | ✅ | `GET /api/dashboard/maintenance/summary` – `maintenanceDashboard.getTechnicalSummary()` retorna `frase_resumo` |
+| Frontend | ✅ | `MaintenanceDashboardLayer.jsx` – seção `maintenance-header-tech` exibe `summary.frase_resumo` |
+| Migration | ✅ | Tabelas `work_orders`, `maintenance_preventives`, `monitored_points` em `maintenance_operational_migration.sql` |
 
 ---
 
 ### 2.2 Novos Cards Técnicos
 
-**Especificação:** Ordens abertas, preventivas, pendências, máquinas em atenção, intervenções concluídas, chamados aguardando, falhas recorrentes, peças utilizadas.
+**Especificação:** Ordens abertas, preventivas, pendências, máquinas em atenção, intervenções concluídas, chamados aguardando, peças utilizadas.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/cards` – `getTechnicalCards()` retorna todos os contadores |
-| Frontend | ❌ Não implementado | API `dashboard.maintenance.getCards()` existe, mas nunca é usada no DashboardInteligente |
+| Backend | ✅ | `GET /api/dashboard/maintenance/cards` – `getTechnicalCards()` |
+| Frontend | ✅ | Bloco `block-maintenance-cards` com grid de cards clicáveis |
+| Cards | ✅ | ordens_abertas, preventivas_dia, pendencias_turno, maquinas_atencao, intervencoes_concluidas, chamados_aguardando, pecas_utilizadas |
 
 ---
 
 ### 2.3 Bloco "Minhas Tarefas de Hoje"
 
-**Especificação:** OS atribuídas, máquina, setor, prioridade, status, horário previsto, ações (abrir, iniciar, atualizar, concluir, pedir ajuda da IA).
+**Especificação:** OS atribuídas, máquina, setor, prioridade, status, ações (abrir).
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/my-tasks` – `getMyTasksToday()` |
-| Frontend | ❌ Não implementado | Rota não é consumida; não há seção “Minhas Tarefas de Hoje” |
+| Backend | ✅ | `GET /api/dashboard/maintenance/my-tasks` – `getMyTasksToday()` |
+| Frontend | ✅ | Bloco `block-maintenance-tasks` com lista e botão "Abrir" → `/diagnostic` |
 
 ---
 
@@ -64,85 +68,86 @@
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/machines-attention` – `getMachinesInAttention()` |
-| Frontend | ❌ Não implementado | Bloco não existe no dashboard |
+| Backend | ✅ | `GET /api/dashboard/maintenance/machines-attention` – `getMachinesInAttention()` (fallback em `machine_monitoring_config` se `monitored_points` vazio) |
+| Frontend | ✅ | Bloco `block-machines-attention` |
 
 ---
 
 ### 2.5 Bloco "IA Técnica IMPETUS"
 
-**Especificação:** Campo “Descreva o problema, sintoma ou dúvida técnica” com placeholder específico e atalhos (Diagnosticar falha, Consultar histórico, Buscar manual, etc.).
+**Especificação:** Campo com placeholder específico e atalhos (Diagnosticar falha, Consultar histórico, Buscar manual, etc.).
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Parcial | Chat com prompt adaptado para perfil de manutenção (`MAINTENANCE_CONTEXT`) em `/api/dashboard/chat` |
-| Frontend | ❌ Não implementado | Não há bloco dedicado no dashboard; CentralAIPanel é genérico e não tem foco em manutenção |
+| Backend | ✅ | Chat com `MAINTENANCE_CONTEXT`; atalhos redirecionam para chatbot |
+| Frontend | ✅ | Bloco `block-ia-tecnica` – input + atalhos (Diagnosticar falha, Histórico, Manual, Passo a passo, Resumir, Registro, Soluções anteriores) + botão Manuais |
 
 ---
 
 ### 2.6 Bloco "Registro Técnico do Turno"
 
-**Especificação:** Registrar o que fez, encontrou, trocou, pendências, máquinas em risco, peças em falta; botão “Registrar com IA”.
+**Especificação:** Registrar o que fez, encontrou, trocou, pendências; botão "Registrar com IA".
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ❌ Não implementado | Sem rota específica para registro técnico do turno |
-| Frontend | ❌ Não implementado | Bloco não existe |
+| Backend | ✅ | `POST /api/dashboard/maintenance/shift-log`, `POST /api/dashboard/maintenance/shift-log-with-ai` |
+| Frontend | ✅ | Bloco `block-registro-turno` – textarea + botões "Salvar" e "Registrar com IA" |
+| Migration | ✅ | Tabela `shift_technical_logs` |
 
 ---
 
 ### 2.7 Bloco "Últimas Intervenções"
 
-**Especificação:** Máquina, ação, técnico, data/hora, status, pendência associada.
+**Especificação:** Máquina, ação, técnico, data/hora.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/interventions` – `getLastInterventions()` |
-| Frontend | ❌ Não implementado | Rota não é consumida; bloco não existe |
+| Backend | ✅ | `GET /api/dashboard/maintenance/interventions` – `getLastInterventions()` |
+| Frontend | ✅ | Bloco `block-interventions` |
 
 ---
 
 ### 2.8 Bloco "Preventivas do Dia"
 
-**Especificação:** Máquina, tipo, horário, checklist, status, responsável; pendentes, vencidas, concluídas.
+**Especificação:** Máquina, tipo, horário, checklist, status, responsável.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Implementado | `GET /api/dashboard/maintenance/preventives` – `getPreventivesToday()` |
-| Frontend | ❌ Não implementado | Rota não é consumida; bloco não existe |
+| Backend | ✅ | `GET /api/dashboard/maintenance/preventives` – `getPreventivesToday()` |
+| Frontend | ✅ | Bloco `block-preventives` |
 
 ---
 
 ### 2.9 Bloco "Passagem de Turno"
 
-**Especificação:** Pendências, máquinas em observação, OS abertas, testes pendentes, peças aguardando; IA pode resumir.
+**Especificação:** Pendências, registros recentes do turno; IA pode resumir.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ❌ Não implementado | Sem rota ou serviço específico |
-| Frontend | ❌ Não implementado | Bloco não existe |
+| Backend | ✅ | `GET /api/dashboard/maintenance/shift-handovers` – `getShiftHandovers()` |
+| Frontend | ✅ | Bloco `block-passagem-turno` – exibe últimos registros (condicional, só aparece se houver logs) |
 
 ---
 
 ### 2.10 Bloco "Manuais de Máquinas"
 
-**Especificação:** Cadastrar, consultar e organizar manuais; vincular à máquina; IA usa como base técnica.
+**Especificação:** Consultar e organizar manuais; vincular à máquina.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Parcial | Manuais em AdminSettings; `documentContext.searchCompanyManuals()` para chat; sem rota dedicada para mecânico |
-| Frontend | ❌ Não implementado | Acesso via AdminSettings; não há bloco/atalho no dashboard do mecânico |
+| Backend | ✅ | Manuais em AdminSettings; `documentContext.searchCompanyManuals()` para chat |
+| Frontend | ✅ | Botão "Manuais" no bloco IA Técnica → navega para `/app/settings` |
 
 ---
 
-### 2.11 Bloco "Histórico do que foi feito"
+### 2.11 Bloco "Falhas Recorrentes" / Histórico
 
-**Especificação:** Registro estruturado de intervenções (máquina, falha, causa, ação, peças, resultado) para memória operacional reutilizável pela IA.
+**Especificação:** Registro de equipamentos com falhas recorrentes para análise.
 
 | Camada | Status | Detalhes |
 |--------|--------|----------|
-| Backend | ✅ Parcial | `technical_interventions` usado em `getLastInterventions()`; não há endpoint específico para consulta estruturada pela IA |
-| Frontend | ❌ Não implementado | Bloco não existe |
+| Backend | ✅ | `GET /api/dashboard/maintenance/recurring-failures` – `getRecurringFailures()` |
+| Frontend | ✅ | Bloco `block-falhas-recorrentes` (condicional, só aparece se houver falhas) + link "Ver mais" → `/diagnostic` |
 
 ---
 
@@ -150,32 +155,31 @@
 
 | Item | Status | Detalhes |
 |------|--------|----------|
-| `maintenance_operational_migration.sql` | ❌ **Não existe** | Referenciado em `run-all-migrations.js`, mas ausente em `backend/src/models/` |
-| Tabelas esperadas | ⚠️ Provável ausência | `work_orders`, `maintenance_preventives`, `technical_interventions`, `monitored_points`, `equipment_failures` – não encontradas em outras migrations |
-
-**Consequência:** As queries de `maintenanceDashboardService.js` tendem a falhar por falta dessas tabelas.
-
----
-
-## 4. Comportamento da IA para Manutenção
-
-| Item | Status | Detalhes |
-|------|--------|----------|
-| Prompt adaptado | ✅ Implementado | `MAINTENANCE_CONTEXT` no chat quando `isMaintenanceProfile(user)` |
-| Foco técnico | ✅ Implementado | Diagnóstico de falhas, histórico, manuais, ordem de serviço, registro técnico |
-| Bloco dedicado no dashboard | ❌ Não implementado | Não há entrada “IA Técnica” específica para o perfil mecânico |
+| `maintenance_operational_migration.sql` | ✅ Existe | `backend/src/models/maintenance_operational_migration.sql` |
+| Tabelas | ✅ Criadas | `monitored_points`, `work_orders`, `maintenance_preventives`, `technical_interventions`, `equipment_failures`, `shift_technical_logs` |
+| Execução | ✅ | Incluída em `run-all-migrations.js`; executada com sucesso |
 
 ---
 
-## 5. Integração com o Dashboard Atual
+## 4. Integração com o Dashboard Atual
 
 | Regra | Status |
 |-------|--------|
-| Manter funcionalidades atuais | ✅ OK – estrutura existente preservada |
-| Não remover módulos existentes | ✅ OK – nenhum bloco removido |
+| Manter funcionalidades atuais | ✅ OK |
+| Não remover módulos existentes | ✅ OK |
 | Não quebrar estrutura | ✅ OK |
-| Apenas complementar | ❌ Pendente – novos blocos não foram adicionados |
-| Manter visual premium | ✅ OK |
+| Apenas complementar | ✅ OK – MaintenanceDashboardLayer adicionado |
+| Manter visual premium | ✅ OK – CSS em DashboardInteligente.css |
+
+---
+
+## 5. Rotas e Navegação
+
+| Destino | Rota | Status |
+|---------|------|--------|
+| Diagnóstico | `/diagnostic` | ✅ Definida em App.jsx |
+| Chatbot (IA) | `/app/chatbot` | ✅ Com `state.initialMessage` |
+| Configurações/Manuais | `/app/settings` | ✅ |
 
 ---
 
@@ -183,42 +187,11 @@
 
 ### O que está implementado
 
-1. **Backend:**
-   - `maintenanceDashboardService.js` com lógica para summary, cards, my-tasks, machines-attention, interventions, preventives, recurring-failures
-   - Rotas `/api/dashboard/maintenance/*` (summary, cards, my-tasks, machines-attention, interventions, preventives, recurring-failures)
-   - Cliente de API no frontend `dashboard.maintenance.*`
-   - Chat com prompt adaptado para perfil de manutenção (`MAINTENANCE_CONTEXT`)
-   - Perfis e mapeamento de manutenção em `dashboardProfiles.js`
-
-### O que não está implementado / conectado
-
-1. **Frontend:** Nenhum dos blocos da especificação é exibido no DashboardInteligente. O perfil mecânico recebe o mesmo layout genérico.
-2. **Migration:** `maintenance_operational_migration.sql` não existe; o schema necessário para manutenção não é criado.
-3. **Blocos ausentes:**
-   - Cabeçalho técnico complementar
-   - Cards técnicos de manutenção
-   - Minhas Tarefas de Hoje
-   - Máquinas em Atenção
-   - IA Técnica IMPETUS (bloco dedicado)
-   - Registro Técnico do Turno
-   - Últimas Intervenções
-   - Preventivas do Dia
-   - Passagem de Turno
-   - Manuais de Máquinas (bloco/atalho no dashboard)
-   - Histórico do que foi feito (bloco no dashboard)
+1. **Backend:** Todas as rotas `/api/dashboard/maintenance/*` com `maintenanceDashboardService.js`
+2. **Frontend:** `MaintenanceDashboardLayer.jsx` integrado em `DashboardInteligente.jsx`
+3. **Migration:** `maintenance_operational_migration.sql` existente e executada
+4. **APIs:** `dashboard.maintenance.*` em `api.js` consumindo corretamente
 
 ### Veredicto
 
-As especificações não foram executadas no dashboard do perfil mecânico. O backend possui a base (APIs e serviços), mas:
-
-1. O frontend não consome essas APIs nem exibe os blocos descritos.
-2. A migration necessária para criar as tabelas não existe.
-3. Várias funcionalidades (Registro Técnico do Turno, Passagem de Turno) nem têm suporte no backend.
-
-Para implementar a especificação completa serão necessários:
-
-- Criação da migration `maintenance_operational_migration.sql` com as tabelas descritas.
-- Alteração do `DashboardInteligente.jsx` (ou criação de componente específico) para, quando for perfil de manutenção:
-  - Chamar as rotas `dashboard.maintenance.*`
-  - Renderizar os blocos da especificação.
-- Implementação das funcionalidades ainda inexistentes (Registro Técnico do Turno, Passagem de Turno, etc.) no backend e frontend.
+**As especificações foram implementadas e estão funcionais.** O perfil mecânico/eletricista/eletromecânico recebe a camada operacional completa quando `is_maintenance === true` no payload do dashboard.

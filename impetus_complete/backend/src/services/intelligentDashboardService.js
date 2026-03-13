@@ -128,9 +128,14 @@ async function buildDashboardPayload(user) {
   const allowedModules = dashboardAccess.getAllowedModules(user);
   const allowedKpis = dashboardAccess.getAllowedKpis(user, kpis);
 
+  const MAINTENANCE_PROFILES = new Set(['technician_maintenance', 'supervisor_maintenance', 'coordinator_maintenance', 'manager_maintenance']);
+  const isMaintenance = MAINTENANCE_PROFILES.has(profileCode) ||
+    /mecanico|eletricista|eletromecanico|manutencao/i.test(user.job_title || '');
+
   return {
     ok: true,
     profile_code: profileCode,
+    is_maintenance: isMaintenance,
     profile_label: profile.label,
     favorite_kpis: userPrefs?.favorite_kpis || [],
     insights_mode: profile.insights_mode,

@@ -7,6 +7,7 @@
 const db = require('../db');
 const { sendOverdueNotificationEmail } = require('./emailService');
 const { logAction } = require('../middleware/audit');
+const { SUBSCRIPTION } = require('../constants/messages');
 
 const NOTIFICATION_DAYS = [3, 5, 7];
 const NOTIFICATION_TYPES = {
@@ -61,12 +62,17 @@ async function sendDay3Email(company, subscription) {
 
 /**
  * Envia notificação por WhatsApp (Dia 5)
+ * @param {number} companyId
+ * @param {string} companyName
+ * @param {string} contactPhone
+ * @param {number} [gracePeriodDays=10] - período de carência da assinatura
  */
-async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
+async function sendDay5WhatsApp(companyId, companyName, contactPhone, gracePeriodDays = 10) {
   const phone = (contactPhone || '').replace(/\D/g, '');
   if (phone.length < 10) return false;
 
-  const message = `⚠️ Impetus Comunica IA\n\nSua assinatura está em atraso há 5 dias. Regularize o pagamento para evitar bloqueio do acesso ao sistema em ${10 - 5} dias.\n\nDados e histórico estão preservados. Após confirmação do pagamento, o acesso será liberado automaticamente.\n\nDúvidas: entre em contato com nosso financeiro.`;
+  const diasRestantes = Math.max(0, (gracePeriodDays || 10) - 5);
+  const message = SUBSCRIPTION.OVERDUE_WHATSAPP_DAY5(diasRestantes);
 
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
@@ -143,7 +149,7 @@ async function processProgressiveNotifications() {
       if (day === 3) {
         sent = await sendDay3Email(company, subscription);
       } else if (day === 5) {
-        sent = await sendDay5WhatsApp(row.company_id, row.company_name, row.data_controller_phone);
+        sent = await sendDay5WhatsApp(row.company_id, row.company_name, row.data_controller_phone, row.grace_period_days);
       } else if (day === 7) {
         sent = await setDay7DashboardAlert(row.company_id);
       }

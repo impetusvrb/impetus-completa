@@ -53,7 +53,7 @@ const intelligentRegistration = require('./routes/intelligentRegistration');
 const companies = require('./routes/companies');
 const setupCompany = require('./routes/setupCompany');
 const onboarding = require('./routes/onboarding');
-// const userIdentification = require('./routes/userIdentification'); // DESATIVADO
+const userIdentification = require('./routes/userIdentification');
 const internalSales = require('./routes/internal/sales');
 const subscription = require('./routes/subscription');
 
@@ -232,9 +232,8 @@ app.get('/api/onboarding/status', requireAuth, async (req, res) => {
   }
 });
 app.use('/api/onboarding', requireAuth, requireCompanyActive, onboarding);
-// Status de identificação: apenas requireAuth (funciona sem company_id / primeiro acesso)
-// rota user-identification/status desativada
-// app.use('/api/user-identification', userIdentification); // DESATIVADO
+// Identificação e ativação de usuário (status funciona sem company; demais rotas exigem company ativa)
+app.use('/api/user-identification', requireAuth, userIdentification);
 app.use('/api/internal/sales', requireAuth, requireInternalAdmin, internalSales);
 app.use('/api/subscription', requireAuth, subscription);
 app.use('/api/app-impetus', requireAuth, requireCompanyActive, appImpetusRoutes);

@@ -27,16 +27,15 @@ sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'sua_senha';"
 ### 3. Migrations
 
 ```bash
-cd impetus_complete/backend
+cd backend
 npm install
-npm run migrate
+node -r dotenv/config scripts/run-all-migrations.js
 ```
 
 ### 4. Subir a aplicação
 
 **Opção A – Script único:**
 ```bash
-cd impetus_complete
 chmod +x start.sh
 ./start.sh
 ```
@@ -45,13 +44,13 @@ chmod +x start.sh
 
 Terminal 1 – Backend:
 ```bash
-cd impetus_complete/backend
+cd backend
 npm run dev
 ```
 
 Terminal 2 – Frontend:
 ```bash
-cd impetus_complete/frontend
+cd frontend
 npm install
 npm run dev
 ```

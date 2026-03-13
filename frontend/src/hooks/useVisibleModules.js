@@ -12,6 +12,7 @@ const PATH_TO_MODULE = {
   '/app/operacional': 'operational',
   '/app/registro-inteligente': 'operational',
   '/app/biblioteca': 'biblioteca',
+  '/app/manuais-tecnicos': 'biblioteca',
   '/app/chatbot': 'ai',
   '/app/monitored-points': 'monitored_points',
   '/app/settings': 'settings',

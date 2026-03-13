@@ -207,6 +207,12 @@ export default function App() {
         <Route path="/app/centro-previsao-operacional" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','admin']}><CentroPrevisaoOperacional /></RoleGuard></SetupGuard></PrivateRoute>
         } />
+        <Route path="/app/centro-previsao" element={
+          <Navigate to="/app/centro-previsao-operacional" replace />
+        } />
+        <Route path="/app/centro-previsao-operacional/" element={
+          <Navigate to="/app/centro-previsao-operacional" replace />
+        } />
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>

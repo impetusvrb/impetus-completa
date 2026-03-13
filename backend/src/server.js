@@ -18,7 +18,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT_EXCEPTION]', err);
-  process.exit(1);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
 const server = http.createServer(app);
@@ -37,7 +37,6 @@ let brainIntervalId = null;
 if (operationalBrain.BRAIN_ENABLED) {
   brainIntervalId = setInterval(async () => {
     try {
-      const db = require('./db');
       const r = await db.query('SELECT id FROM companies WHERE active = true LIMIT 50');
       for (const c of r.rows || []) {
         operationalBrain.checkAlerts(c.id).catch(() => {});
@@ -71,10 +70,19 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server.listen(PORT, async () => {
   console.log(`🚀 Backend listening on ${PORT}`);
 
+  // Status Claude (opcional - fallback para OpenAI quando não configurado)
+  try {
+    const claudeService = require('./services/claudeService');
+    if (claudeService.isAvailable()) {
+      console.info('[CLAUDE] API configurada - memória operacional e análise avançada ativas');
+    } else {
+      console.info('[CLAUDE] ANTHROPIC_API_KEY não configurada - sistema opera com fallback (OpenAI). Memória operacional limitada.');
+    }
+  } catch (_) {}
+
   // Verificação da tabela operational_memory no startup (ambiente não-dev)
   if (process.env.NODE_ENV !== 'development') {
     try {
-      const db = require('./db');
       await db.query('SELECT 1 FROM operational_memory LIMIT 1');
     } catch (err) {
       if (err.message?.includes('does not exist')) {
@@ -82,165 +90,4 @@ server.listen(PORT, async () => {
       }
     }
   }
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
-});
-
-// Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
-async function gracefulShutdown(signal) {
-  console.log(`[${signal}] Encerrando graciosamente...`);
-  server.close(() => {
-    db.pool.end(() => {
-      console.log('Pool de conexões encerrado.');
-      process.exit(0);
-    });
-  });
-  setTimeout(() => process.exit(1), 10000);
-}
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (err) => {
-  console.error('[UNHANDLED_REJECTION]', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('[UNCAUGHT_EXCEPTION]', err);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });

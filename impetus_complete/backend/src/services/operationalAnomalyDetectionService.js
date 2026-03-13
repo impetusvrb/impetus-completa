@@ -113,9 +113,10 @@ async function calibrateBaseline(companyId, entityType, entityId, entityName, me
  * Aprende baselines a partir dos dados históricos
  */
 async function learnBaselines(companyId, days = DEFAULT_LEARNING_DAYS) {
+  const safeDays = Math.min(90, Math.max(1, parseInt(days, 10) || DEFAULT_LEARNING_DAYS));
   const results = { plc: 0, tpm: 0 };
 
-  const plcData = await getPlcAggregates(companyId, days);
+  const plcData = await getPlcAggregates(companyId, safeDays);
   for (const row of plcData) {
     if (row.sample_count >= MIN_SAMPLES) {
       const eqId = row.equipment_id || 'unknown';
@@ -125,7 +126,7 @@ async function learnBaselines(companyId, days = DEFAULT_LEARNING_DAYS) {
           SELECT temperature as v FROM plc_collected_data
           WHERE company_id = $1 AND equipment_id = $2 AND collected_at >= now() - $3::int * interval '1 day'
           AND temperature IS NOT NULL
-        `, [companyId, eqId, days]).then((r) => (r.rows || []).map((x) => x.v));
+        `, [companyId, eqId, safeDays]).then((r) => (r.rows || []).map((x) => x.v));
         await calibrateBaseline(companyId, 'equipment', eqId, eqName, 'temperature', tempVals);
         results.plc++;
       }
@@ -134,7 +135,7 @@ async function learnBaselines(companyId, days = DEFAULT_LEARNING_DAYS) {
           SELECT pressure as v FROM plc_collected_data
           WHERE company_id = $1 AND equipment_id = $2 AND collected_at >= now() - $3::int * interval '1 day'
           AND pressure IS NOT NULL
-        `, [companyId, eqId, days]).then((r) => (r.rows || []).map((x) => x.v));
+        `, [companyId, eqId, safeDays]).then((r) => (r.rows || []).map((x) => x.v));
         await calibrateBaseline(companyId, 'equipment', eqId, eqName, 'pressure', pressVals);
       }
       if (row.vib_avg != null) {
@@ -142,13 +143,13 @@ async function learnBaselines(companyId, days = DEFAULT_LEARNING_DAYS) {
           SELECT vibration as v FROM plc_collected_data
           WHERE company_id = $1 AND equipment_id = $2 AND collected_at >= now() - $3::int * interval '1 day'
           AND vibration IS NOT NULL
-        `, [companyId, eqId, days]).then((r) => (r.rows || []).map((x) => x.v));
+        `, [companyId, eqId, safeDays]).then((r) => (r.rows || []).map((x) => x.v));
         await calibrateBaseline(companyId, 'equipment', eqId, eqName, 'vibration', vibVals);
       }
     }
   }
 
-  const tpmData = await getTpmAggregates(companyId, days);
+  const tpmData = await getTpmAggregates(companyId, safeDays);
   for (const row of tpmData) {
     const incidentCount = parseInt(row.incident_count || 0, 10);
     if (incidentCount >= 1) {
@@ -156,7 +157,7 @@ async function learnBaselines(companyId, days = DEFAULT_LEARNING_DAYS) {
         SELECT incident_date, COUNT(*) as cnt FROM tpm_incidents
         WHERE company_id = $1 AND equipment_code = $2 AND incident_date >= CURRENT_DATE - $3
         GROUP BY incident_date
-      `, [companyId, row.entity_id, days]).then((r) => (r.rows || []).map((x) => x.cnt));
+      `, [companyId, row.entity_id, safeDays]).then((r) => (r.rows || []).map((x) => x.cnt));
       await calibrateBaseline(companyId, 'machine', row.entity_id, row.entity_name || row.entity_id, 'incident_count_per_day', dailyCounts.length ? dailyCounts : [incidentCount]);
       results.tpm++;
     }
