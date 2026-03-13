@@ -37,7 +37,6 @@ let brainIntervalId = null;
 if (operationalBrain.BRAIN_ENABLED) {
   brainIntervalId = setInterval(async () => {
     try {
-      const db = require('./db');
       const r = await db.query('SELECT id FROM companies WHERE active = true LIMIT 50');
       for (const c of r.rows || []) {
         operationalBrain.checkAlerts(c.id).catch(() => {});
@@ -74,7 +73,6 @@ server.listen(PORT, async () => {
   // Verificação da tabela operational_memory no startup (ambiente não-dev)
   if (process.env.NODE_ENV !== 'development') {
     try {
-      const db = require('./db');
       await db.query('SELECT 1 FROM operational_memory LIMIT 1');
     } catch (err) {
       if (err.message?.includes('does not exist')) {
@@ -85,7 +83,6 @@ server.listen(PORT, async () => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -108,7 +105,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -131,7 +127,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -154,7 +149,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -177,7 +171,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -200,7 +193,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {
@@ -223,7 +215,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
-const db = require('./db');
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   server.close(() => {

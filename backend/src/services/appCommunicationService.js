@@ -1,10 +1,6 @@
 /**
  * APP COMMUNICATION SERVICE
-<<<<<<< HEAD
- * Processa mensagens recebidas do App Impetus (substitui fluxo Z-API processWebhook)
-=======
  * Processa mensagens recebidas do App Impetus
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  * Pipeline: salva em communications → IA organizacional → TPM → processIncomingMessage
  */
 

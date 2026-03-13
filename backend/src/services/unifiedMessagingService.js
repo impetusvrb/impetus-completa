@@ -1,10 +1,6 @@
 /**
  * UNIFIED MESSAGING SERVICE
-<<<<<<< HEAD
- * Substitui zapi.sendTextMessage - envia notificações para usuários do App Impetus
-=======
  * Envia notificações para usuários do App Impetus
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  * Usa Socket.IO para push real-time + grava em app_notifications e communications
  */
 
@@ -17,11 +13,7 @@ function setSocketIo(io) {
 }
 
 /**
-<<<<<<< HEAD
- * Envia mensagem para usuário do app (substitui envio via WhatsApp/Z-API)
-=======
  * Envia mensagem para usuário do app
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  * @param {string} companyId - UUID da empresa
  * @param {string} recipientUserId - UUID do usuário destinatário
  * @param {string} message - Texto da mensagem
@@ -77,11 +69,7 @@ async function sendToUser(companyId, recipientUserId, message, opts = {}) {
 }
 
 /**
-<<<<<<< HEAD
- * Envia para usuário identificado por telefone (compatibilidade com fluxo Z-API)
-=======
  * Envia para usuário identificado por telefone
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  * Busca user por whatsapp_number ou phone e chama sendToUser
  */
 async function sendToUserByPhone(companyId, phone, message, opts = {}) {

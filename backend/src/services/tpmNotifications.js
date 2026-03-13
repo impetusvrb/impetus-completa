@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-        await messagingAdapter.sendMessage(companyId, phone, msg);
-=======
 /**
  * Notificações TPM - envia incidentes aos gestores (Manutenção, Produção, PCM)
  */
@@ -67,7 +64,6 @@ async function notifyTpmIncident(companyId, incident) {
     if (phone.length >= 10) {
       try {
         await require('./appImpetusService').sendMessage(companyId, phone, msg, { originatedFrom: 'tpm' });
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
       } catch (err) {
         console.warn('[TPM_NOTIFY] Envio falhou para', rec.name, err.message);
       }

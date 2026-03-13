@@ -1,11 +1,7 @@
 /**
  * MESSAGING ADAPTER
  * Ponto único de envio de mensagens - usa App Impetus (unifiedMessaging)
-<<<<<<< HEAD
- * Substitui zapi.sendTextMessage em todos os fluxos
-=======
  * Envio via unifiedMessaging/appImpetus em todos os fluxos
->>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
  */
 
 const unifiedMessaging = require('./unifiedMessagingService');

@@ -482,9 +482,9 @@ export default function AdminSettings() {
                   <Smartphone size={20} />
                   Abrir App (versão mobile)
                 </Link>
-              </div>
+                    </div>
               <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
+                          </div>
           )}
           {activeTab === 'zapi' && (
 >>>>>>> Stashed changes
@@ -496,9 +496,9 @@ export default function AdminSettings() {
                   <Smartphone size={20} />
                   Abrir App (versão mobile)
                 </Link>
-              </div>
+                    </div>
               <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
+                    </div>
           )}
           {activeTab === 'zapi' && (
 >>>>>>> Stashed changes
@@ -510,9 +510,9 @@ export default function AdminSettings() {
                   <Smartphone size={20} />
                   Abrir App (versão mobile)
                 </Link>
-              </div>
+                      </div>
               <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
+                          </div>
           )}
           {activeTab === 'zapi' && (
 >>>>>>> Stashed changes
@@ -524,10 +524,10 @@ export default function AdminSettings() {
                   <Smartphone size={20} />
                   Abrir App (versão mobile)
                 </Link>
-              </div>
+                      </div>
               <p className="form-hint" style={{ marginTop: 12 }}>Acesse <strong>/m</strong> no celular para uma interface simplificada focada em chat.</p>
-            </div>
-          )}
+                        </div>
+                      )}
           {activeTab === 'zapi' && (
 >>>>>>> Stashed changes
             <div className="settings-panel">
