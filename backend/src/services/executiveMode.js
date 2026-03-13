@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+const messagingAdapter = require('./messagingAdapter');
+  await messagingAdapter.sendMessage(companyId, toSend, message);
+=======
 /**
  * MODO EXECUTIVO (CEO Mode)
  * Integração WhatsApp + IA para acesso estratégico ao sistema
@@ -440,6 +444,7 @@ async function sendCEOResponse(companyId, phone, message) {
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
   await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
 }
 
 module.exports = {

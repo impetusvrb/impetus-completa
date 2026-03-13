@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+    await messagingAdapter.sendMessage(companyId, toSend, message);
+=======
 /**
  * NOTIFICAÇÕES PROGRESSIVAS DE INADIMPLÊNCIA
  * Bloqueio progressivo B2B: Dia 3 (email), Dia 5 (WhatsApp), Dia 7 (alerta dashboard), Dia 10 (bloqueio)
@@ -71,6 +74,7 @@ async function sendDay5WhatsApp(companyId, companyName, contactPhone) {
   try {
     const toSend = phone.startsWith('55') ? phone : `55${phone}`;
     await require('./appImpetusService').sendMessage(companyId, toSend, message, { originatedFrom: 'subscription' });
+>>>>>>> bf61ff5e943abb5f09916447f9bfbb52acf338de
     return true;
   } catch (err) {
     console.error('[SUBSCRIPTION_DAY5_WHATSAPP]', err.message);

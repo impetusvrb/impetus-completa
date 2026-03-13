@@ -1,18 +1,17 @@
 /**
- * Serviço de IA com circuit breaker e timeout
- * Fallback em caso de falha do OpenAI
- * Inclui: classify, processIncomingMessage (scaffold original)
+ * IMPETUS - Serviço de IA Unificado
+ * ChatGPT (OpenAI): conversação, interface com usuários
+ * Circuit breaker, timeout e fallback em caso de falha
  */
 const OpenAI = require('openai');
 const documentContext = require('./documentContext');
-const incomingProcessor = require('./incomingMessageProcessor');
+let incomingProcessor;
+try { incomingProcessor = require('./incomingMessageProcessor'); } catch (_) {}
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-// Tipos de classificação (arquitetura IMPETUS)
 const CLASSIFY_TYPES = ['tarefa', 'lembrete', 'comunicado', 'falha_técnica', 'autorização', 'alerta', 'dúvida', 'outro'];
 
-// Circuit Breaker simples: após 5 falhas consecutivas, pausa 60s
 let failures = 0;
 let lastFailureTime = 0;
 const CIRCUIT_THRESHOLD = 5;
@@ -28,14 +27,14 @@ function isCircuitOpen() {
 }
 
 async function chatCompletion(prompt, opts = {}) {
-  if (!client) return `FALLBACK: IA não configurada. Prompt: ${prompt.slice(0, 300)}`;
+  if (!client) return `FALLBACK: IA não configurada. Prompt: ${(prompt || '').slice(0, 300)}`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
   try {
-    const timeoutMs = opts.timeout || 30000; // 30s
+    const timeoutMs = opts.timeout || 30000;
     const completionPromise = client.chat.completions.create({
-      model: opts.model || 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+      model: opts.model || process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: Array.isArray(opts.messages) ? opts.messages : [{ role: 'user', content: String(prompt) }],
       max_tokens: opts.max_tokens || 800
     });
     const timeoutPromise = new Promise((_, reject) =>
@@ -48,10 +47,8 @@ async function chatCompletion(prompt, opts = {}) {
     failures++;
     lastFailureTime = Date.now();
     console.warn('[AI_ERROR]', err.message, 'failures:', failures);
-    if (err.message === 'TIMEOUT') {
-      return `FALLBACK: Tempo esgotado na análise. Tente novamente.`;
-    }
-    return `FALLBACK: IA indisponível. Erro: ${err.message?.slice(0, 100)}`;
+    if (err.message === 'TIMEOUT') return `FALLBACK: Tempo esgotado na análise. Tente novamente.`;
+    return `FALLBACK: IA indisponível. Erro: ${(err.message || '').slice(0, 100)}`;
   }
 }
 
@@ -61,7 +58,7 @@ async function embedText(text) {
   try {
     const r = await client.embeddings.create({ model: 'text-embedding-3-small', input: text });
     failures = 0;
-    return r.data[0].embedding;
+    return r.data?.[0]?.embedding || null;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -71,13 +68,12 @@ async function embedText(text) {
 }
 
 const SAFETY_DISCLAIMER = `
-
 ---
 ⚠️ **AVISO DE SEGURANÇA** – Procedimentos elétricos, com pressão ou fluidos perigosos exigem: bloqueio/etiquetagem (LOTO), EPI adequado, desenergia confirmada e supervisão de técnico qualificado. NUNCA execute sem confirmação humana de que as condições de segurança foram atendidas.
 ---`;
 
-async function generateDiagnosticReport(text, candidates, docContext = ''){
-  const context = (candidates||[]).slice(0,6).map((c,i)=>`[${i+1}] Manual: ${(c.title||'manual')}\n${(c.chunk_text||'').slice(0,600)}`).join('\n---\n');
+async function generateDiagnosticReport(text, candidates, docContext = '') {
+  const context = (candidates || []).slice(0, 6).map((c, i) => `[${i + 1}] Manual: ${(c.title || 'manual')}\n${(c.chunk_text || '').slice(0, 600)}`).join('\n---\n');
   const basePrompt = `Você é um assistente técnico industrial.${docContext ? '\n' + docContext : ''}
 
 Mensagem do usuário: "${text}"
@@ -98,23 +94,17 @@ REGRAS: Cite SEMPRE a fonte ao mencionar informação vinda dos manuais. Evite a
   return needsDisclaimer ? report + SAFETY_DISCLAIMER : report;
 }
 
-/**
- * Classifica mensagem operacional (arquitetura IMPETUS)
- * Tipos: tarefa, lembrete, comunicado, falha_técnica, autorização, alerta, dúvida, outro
- */
 async function classify(text) {
   if (!text || typeof text !== 'string' || text.trim().length < 3) return 'outro';
   if (!client || isCircuitOpen()) return classifyByKeywords(text);
-
   const prompt = `Classifique a mensagem operacional industrial em EXATAMENTE uma palavra: tarefa, lembrete, comunicado, falha_técnica, autorização, alerta, dúvida, outro.
 Mensagem: "${(text || '').slice(0, 500).replace(/"/g, "'")}"
-Retorne SOMENTE a palavra (minúscula, sem acento em falha_tecnica se preferir).`;
-
+Retorne SOMENTE a palavra (minúscula).`;
   try {
     const out = await chatCompletion(prompt, { max_tokens: 16 });
     const kind = (out || '').trim().toLowerCase().replace(/[^a-z_]/g, '');
     return CLASSIFY_TYPES.includes(kind) ? kind : classifyByKeywords(text);
-  } catch (err) {
+  } catch {
     return classifyByKeywords(text);
   }
 }
@@ -131,59 +121,33 @@ function classifyByKeywords(text) {
   return 'outro';
 }
 
-/**
- * Busca trechos de manuais relevantes para o texto (scaffold)
- */
 async function searchManualsForText(query, companyId = null) {
-  return documentContext.searchCompanyManuals(companyId, query, 6);
+  return documentContext?.searchCompanyManuals?.(companyId, query, 6) || [];
 }
 
-/**
- * Processa mensagem recebida (webhook) - scaffold original + arquitetura IMPETUS
- * Classifica, cria diagnóstico (falha) ou tarefa conforme tipo
- */
 async function processIncomingMessage(msg, opts = {}) {
+  if (!incomingProcessor) return { kind: await classify(msg.text || msg.body || '') };
   const { companyId = null } = opts;
   const text = msg.text || msg.body || '';
   const sender = msg.sender || msg.phone || 'Desconhecido';
-
   const kind = await classify(text);
-
   if (kind === 'falha_técnica') {
     const candidates = await searchManualsForText(text, companyId);
-    const docContext = await documentContext.buildAIContext({ companyId, queryText: text });
+    const docContext = await documentContext?.buildAIContext?.({ companyId, queryText: text }) || '';
     let report = await generateDiagnosticReport(text, candidates, docContext);
-    const taskId = await incomingProcessor.createTaskFromMessage({
-      companyId,
-      title: `Diagnóstico: ${sender}`,
-      description: report,
-      assignee: null
-    });
+    const taskId = await incomingProcessor.createTaskFromMessage({ companyId, title: `Diagnóstico: ${sender}`, description: report, assignee: null });
     return { kind, report, taskId };
   }
-
   if (kind === 'tarefa') {
-    const taskId = await incomingProcessor.createTaskFromMessage({
-      companyId,
-      title: `Tarefa de ${sender}`,
-      description: text,
-      assignee: null
-    });
+    const taskId = await incomingProcessor.createTaskFromMessage({ companyId, title: `Tarefa de ${sender}`, description: text, assignee: null });
     return { kind, taskId };
   }
-
   return { kind };
 }
 
-/**
- * Chat multimodal com visão (texto + imagens)
- * @param {Array} messages - OpenAI format: [{ role, content }] onde content pode ser string ou array com text + image_url
- * @param {Object} opts - { model, max_tokens, timeout }
- */
 async function chatWithVision(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
-
   const modelVision = opts.model || 'gpt-4o';
   try {
     const timeoutMs = opts.timeout || 45000;
@@ -192,9 +156,7 @@ async function chatWithVision(messages, opts = {}) {
       messages,
       max_tokens: opts.max_tokens || 1024
     });
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
-    );
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs));
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
     return res.choices?.[0]?.message?.content || '';
@@ -206,17 +168,9 @@ async function chatWithVision(messages, opts = {}) {
   }
 }
 
-/**
- * Analisa imagem com prompt contextual (manutenção, diagnóstico)
- * @param {string} imageBase64 - imagem em base64 (data:image/xxx;base64,... ou base64 puro)
- * @param {string} userPrompt - pergunta/contexto do usuário
- * @param {Object} opts - { systemContext }
- */
 async function analyzeImage(imageBase64, userPrompt, opts = {}) {
   let url = imageBase64;
-  if (url && !url.startsWith('data:')) {
-    url = `data:image/jpeg;base64,${url}`;
-  }
+  if (url && !url.startsWith('data:')) url = `data:image/jpeg;base64,${url}`;
   const systemContext = opts.systemContext || 'Você é o Impetus, assistente técnico industrial. Analise imagens de máquinas, peças, painéis elétricos e manuais. Descreva o que vê, sugira diagnósticos quando aplicável e oriente sobre manutenção. Seja objetivo e técnico.';
   const content = [
     { type: 'text', text: `${systemContext}\n\nPergunta/contexto do usuário: ${userPrompt || 'Analise esta imagem e descreva.'}` },
@@ -233,5 +187,7 @@ module.exports = {
   generateDiagnosticReport,
   classify,
   searchManualsForText,
-  processIncomingMessage
+  processIncomingMessage,
+  isCircuitOpen,
+  isAvailable: () => !!client && !isCircuitOpen()
 };
