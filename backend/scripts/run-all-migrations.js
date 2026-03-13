@@ -54,7 +54,8 @@ const MIGRATIONS = [
   { name: 'Inteligência Industrial (Machine Brain, monitoramento, controle)', file: 'industrial_intelligence_migration.sql' },
   { name: 'Validação Hierárquica de Cargos (role_verified, aprovações, documentos)', file: 'role_verification_hierarchy_migration.sql' },
   { name: 'Índices de performance (audit_logs, communications, proposals)', file: 'performance_indexes_migration.sql' },
-  { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' }
+  { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' },
+  { name: 'Tríade de IAs (enterprise_ai_memory, industry_intelligence, company_operation)', file: 'enterprise_ai_triad_migration.sql' }
 ];
 
 async function run() {

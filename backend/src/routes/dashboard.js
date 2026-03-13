@@ -1224,7 +1224,33 @@ ${manualsBlock}`;
 
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.`;
 
-    reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
+    if (process.env.AI_ORCHESTRATOR_ENABLED === 'true') {
+      try {
+        const aiOrchestrator = require('../services/aiOrchestratorService');
+        const extraContext = [
+          identityBlock,
+          memoriaBlock,
+          operationalMemoryBlock,
+          docContext ? `Documentação em contexto:\n${docContext}` : '',
+          `Manuais/POPs:\n${manualsBlock}`,
+          MAINTENANCE_CONTEXT || ''
+        ].filter(Boolean).join('\n\n');
+        reply = await aiOrchestrator.processWithOrchestrator({
+          message: message.trim(),
+          history: Array.isArray(history) ? history : [],
+          imageBase64: null,
+          companyId,
+          userName: chatCtx.userName || 'Usuário',
+          extraContext
+        });
+      } catch (orchErr) {
+        console.warn('[CHAT] Orchestrator fallback:', orchErr.message);
+      }
+    }
+
+    if (!reply) {
+      reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
+    }
 
     const isFallback = (reply || '').startsWith('FALLBACK:');
     if (isFallback) {
@@ -1361,7 +1387,28 @@ router.post('/chat-multimodal',
         maintenanceExtra = `Perfil técnico/manutenção: priorize diagnóstico de falhas, análise de imagens de máquinas/peças, orientação prática.`;
       }
 
-      const reply = await multimodalChat.processMultimodalChat({
+      let reply = null;
+      if (process.env.AI_ORCHESTRATOR_ENABLED === 'true' && (imageBase64 || message)) {
+        try {
+          const aiOrchestrator = require('../services/aiOrchestratorService');
+          let extraContext = maintenanceExtra;
+          if (fileContext?.extractedText) {
+            extraContext += `\n\nDocumento anexado (${fileContext.originalName || 'arquivo'}):\n${(fileContext.extractedText || '').slice(0, 8000)}`;
+          }
+          reply = await aiOrchestrator.processWithOrchestrator({
+            message: message || 'Analise o conteúdo anexado.',
+            history: Array.isArray(history) ? history : [],
+            imageBase64: imageBase64 || null,
+            companyId,
+            userName,
+            extraContext
+          });
+        } catch (orchErr) {
+          console.warn('[CHAT_MULTIMODAL] Orchestrator fallback:', orchErr.message);
+        }
+      }
+      if (!reply) {
+        reply = await multimodalChat.processMultimodalChat({
         message: message || '',
         history,
         imageBase64: imageBase64 || null,
@@ -1370,6 +1417,7 @@ router.post('/chat-multimodal',
         userName,
         systemPromptExtra: maintenanceExtra
       });
+      }
 
       const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
       const isFallback = finalReply.startsWith('FALLBACK:');

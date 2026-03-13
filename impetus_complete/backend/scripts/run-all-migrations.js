@@ -67,7 +67,8 @@ const MIGRATIONS = [
   { name: 'Validação Hierárquica de Cargos (role_verified, aprovações, documentos)', file: 'role_verification_hierarchy_migration.sql' },
   { name: 'Índices de performance (audit_logs, communications, proposals)', file: 'performance_indexes_migration.sql' },
   { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' },
-  { name: 'Logística Inteligente (veículos, rotas, pontos, motoristas, expedições, alertas, telemetria)', file: 'logistics_intelligence_migration.sql' }
+  { name: 'Logística Inteligente (veículos, rotas, pontos, motoristas, expedições, alertas, telemetria)', file: 'logistics_intelligence_migration.sql' },
+  { name: 'Tríade de IAs (enterprise_ai_memory, industry_intelligence, company_operation, ai_knowledge_exchange)', file: 'enterprise_ai_triad_migration.sql' }
 ];
 
 async function run() {

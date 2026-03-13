@@ -34,7 +34,8 @@ import {
   TrendingDown,
   DollarSign,
   Package,
-  Truck
+  Truck,
+  Upload
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -116,6 +117,7 @@ export default function Layout({ children }) {
   const MENUS = {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/admin/centro-custos', icon: DollarSign, label: 'Centro de Custos (Config)' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
@@ -135,6 +137,7 @@ export default function Layout({ children }) {
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
       { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
@@ -158,6 +161,7 @@ export default function Layout({ children }) {
     ],
     gerente: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
       { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro Operacional' },
       { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },

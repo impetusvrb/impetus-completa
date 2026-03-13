@@ -45,6 +45,7 @@ const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperatio
 const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
+const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
 
 function needSetup() {
   try {
@@ -174,6 +175,9 @@ export default function App() {
         } />
         <Route path="/app/registro-inteligente" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><RegistroInteligente /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/cadastrar-com-ia" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><CadastrarComIA /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>

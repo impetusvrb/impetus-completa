@@ -159,6 +159,14 @@ app.get('/health', async (req, res) => {
     openaiStatus = 'configured';
   }
 
+  let geminiStatus = 'not_configured';
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const geminiService = require('./services/geminiService');
+      geminiStatus = geminiService.isAvailable() ? 'available' : 'circuit_open';
+    } catch (_) {}
+  }
+
   const cacheStats = getStats();
   const healthy = dbOk;
   res.status(healthy ? 200 : 503).json({
@@ -174,6 +182,7 @@ app.get('/health', async (req, res) => {
     dbPool: dbPoolSize,
     claude: claudeStatus,
     openai: openaiStatus,
+    gemini: geminiStatus,
     memory: {
       heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
       heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
@@ -257,6 +266,8 @@ app.use('/api/diagnostic', ...protected, diagnostic);
 app.use('/api/diagnostic/report', ...protected, diagReport);
 app.use('/api/tpm', ...protected, tpm);
 app.use('/api/intelligent-registration', ...protected, intelligentRegistration);
+app.use('/api/ai', ...protected, require('./routes/aiOrchestrator'));
+app.use('/api/cadastrar-com-ia', ...protected, require('./routes/cadastrarComIA'));
 
 // Rotas de administração
 app.use('/api/admin/users', ...protected, requireRoleVerified, adminUsers);
