@@ -1,35 +1,67 @@
+/**
+ * CONTEXTO DE NOTIFICAÇÕES
+ * Exibe Toasts para sucesso, erro, aviso
+ */
+
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import Toast from '../components/Toast';
 
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
 
-  const show = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setNotifications((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setNotifications((p) => p.filter((n) => n.id !== id)), 4000);
+  const addNotification = useCallback((message, type = 'info', duration = 5000) => {
+    const id = Date.now() + Math.random();
+    setNotifications(prev => [...prev, { id, message, type, duration }]);
+    return id;
   }, []);
 
-  const value = { show, success: (m) => show(m, 'success'), error: (m) => show(m, 'error'), info: (m) => show(m, 'info') };
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const success = useCallback((msg, duration) => addNotification(msg, 'success', duration), [addNotification]);
+  const error = useCallback((msg, duration) => addNotification(msg, 'error', duration), [addNotification]);
+  const warning = useCallback((msg, duration) => addNotification(msg, 'warning', duration), [addNotification]);
+  const info = useCallback((msg, duration) => addNotification(msg, 'info', duration), [addNotification]);
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={{ addNotification, removeNotification, success, error, warning, info }}>
       {children}
-      {notifications.length > 0 && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {notifications.map((n) => (
-            <div key={n.id} style={{ padding: '12px 20px', background: n.type === 'error' ? '#fef2f2' : '#f0fdf4', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              {n.message}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="toast-container" aria-live="polite">
+        {notifications.map(n => (
+          <Toast
+            key={n.id}
+            id={n.id}
+            message={n.message}
+            type={n.type}
+            duration={n.duration}
+            onClose={removeNotification}
+          />
+        ))}
+      </div>
     </NotificationContext.Provider>
   );
 }
 
+const NOOP = () => {};
+const NOOP_NOTIFY = {
+  addNotification: NOOP,
+  removeNotification: NOOP,
+  success: NOOP,
+  error: NOOP,
+  warning: NOOP,
+  info: NOOP
+};
+
 export function useNotification() {
   const ctx = useContext(NotificationContext);
-  return ctx || { show: () => {}, success: () => {}, error: () => {}, info: () => {} };
+  if (!ctx) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[useNotification] Usado fora de NotificationProvider. Notificações serão ignoradas.');
+    }
+    return NOOP_NOTIFY;
+  }
+  return ctx;
 }

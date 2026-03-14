@@ -1,21 +1,44 @@
+/**
+ * IMPETUS - ErrorBoundary Granular por Módulo
+ * Falha em um módulo não derruba toda a aplicação
+ */
 import React from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import './ModuleErrorBoundary.css';
 
-export default class ModuleErrorBoundary extends React.Component {
-  state = { hasError: false };
+export default function ModuleErrorBoundary({ children, moduleName = 'Módulo' }) {
+  return (
+    <ErrorBoundaryInner moduleName={moduleName}>
+      {children}
+    </ErrorBoundaryInner>
+  );
+}
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+class ErrorBoundaryInner extends React.Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error, info) {
-    console.error(`[${this.props.moduleName}]`, error, info);
+  componentDidCatch(error, errorInfo) {
+    console.error(`[ModuleErrorBoundary:${this.props.moduleName}]`, error, errorInfo?.componentStack);
   }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 24, background: '#fef2f2', borderRadius: 8, margin: 16 }}>
-          <p style={{ color: '#b91c1c' }}>Erro ao carregar {this.props.moduleName}. Tente recarregar a página.</p>
+        <div className="module-error-boundary">
+          <AlertTriangle size={32} />
+          <h3>Erro em {this.props.moduleName}</h3>
+          <p>Não foi possível carregar este conteúdo.</p>
+          <button type="button" className="module-error-boundary__btn" onClick={this.handleRetry}>
+            <RefreshCw size={16} /> Tentar novamente
+          </button>
         </div>
       );
     }

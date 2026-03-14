@@ -263,10 +263,7 @@ export const dashboard = {
     getMachinesAttention: () => api.get('/dashboard/maintenance/machines-attention'),
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
-    getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures'),
-    saveShiftLog: (data) => api.post('/dashboard/maintenance/shift-log', data),
-    saveShiftLogWithAI: (data) => api.post('/dashboard/maintenance/shift-log-with-ai', data),
-    getShiftHandovers: () => api.get('/dashboard/maintenance/shift-handovers')
+    getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
   },
 
   // Cadastrar com IA - upload multimodal (texto, imagem, documento, áudio)
@@ -297,49 +294,7 @@ export const dashboard = {
     getMachines: () => api.get('/dashboard/industrial/machines'),
     addMachine: (data) => api.post('/dashboard/industrial/machines', data),
     updateMachine: (id, data) => api.put(`/dashboard/industrial/machines/${id}`, data),
-    deleteMachine: (id) => api.delete(`/dashboard/industrial/machines/${id}`),
-    registerIntervention: (data) => api.post('/dashboard/industrial/intervention', data),
-    confirmSafetySteps: (id) => api.post(`/dashboard/industrial/intervention/${id}/confirm-safety`),
-    releaseEquipment: (data) => api.post('/dashboard/industrial/release', data),
-    getInterventions: (params) => api.get('/dashboard/industrial/interventions', { params }),
-    getSafetyInstructions: () => api.get('/dashboard/industrial/safety-instructions'),
-    getFactoryMap: () => api.get('/dashboard/industrial/factory-map'),
-    getOfflineEquipment: () => api.get('/dashboard/industrial/offline-equipment'),
-    getPredictions: () => api.get('/dashboard/industrial/predictions')
-  },
-
-  forecasting: {
-    getProjections: (metric) => api.get('/dashboard/forecasting/projections', { params: { metric } }),
-    getAlerts: (limit) => api.get('/dashboard/forecasting/alerts', { params: { limit } }),
-    getSimulation: (hours) => api.get('/dashboard/forecasting/simulation', { params: { hours } }),
-    getHealth: () => api.get('/dashboard/forecasting/health'),
-    ask: (question) => api.post('/dashboard/forecasting/ask', { question }),
-    getExtendedProjections: () => api.get('/dashboard/forecasting/extended-projections'),
-    getProfitLoss: (days) => api.get('/dashboard/forecasting/profit-loss', { params: { days } }),
-    getCriticalFactors: () => api.get('/dashboard/forecasting/critical-factors'),
-    simulateDecision: (action, value) => api.post('/dashboard/forecasting/simulate-decision', { action, value }),
-    getConfig: () => api.get('/dashboard/forecasting/config'),
-    updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
-  },
-
-  costs: {
-    getCategories: () => api.get('/dashboard/costs/categories'),
-    listItems: () => api.get('/dashboard/costs/items'),
-    createItem: (data) => api.post('/dashboard/costs/items', data),
-    updateItem: (id, data) => api.put(`/dashboard/costs/items/${id}`, data),
-    deleteItem: (id) => api.delete(`/dashboard/costs/items/${id}`),
-    getExecutiveSummary: (period) => api.get('/dashboard/costs/executive-summary', { params: { period } }),
-    getByOrigin: () => api.get('/dashboard/costs/by-origin'),
-    getTopLoss: () => api.get('/dashboard/costs/top-loss'),
-    getProjectedLoss: (hours) => api.get('/dashboard/costs/projected-loss', { params: { hours } })
-  },
-
-  financialLeakage: {
-    getMap: () => api.get('/dashboard/financial-leakage/map'),
-    getRanking: () => api.get('/dashboard/financial-leakage/ranking'),
-    getAlerts: (limit) => api.get('/dashboard/financial-leakage/alerts', { params: { limit } }),
-    getReport: () => api.get('/dashboard/financial-leakage/report'),
-    getProjectedImpact: (days) => api.get('/dashboard/financial-leakage/projected-impact', { params: { days } })
+    deleteMachine: (id) => api.delete(`/dashboard/industrial/machines/${id}`)
   }
 };
 
@@ -602,121 +557,4 @@ export const intelligentRegistration = {
   create: (data) => api.post('/intelligent-registration', data),
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
   remove: (id) => api.delete(`/intelligent-registration/${id}`),
-};
-
-// ============================================================================
-// ADMIN WAREHOUSE (Almoxarifado Inteligente)
-// ============================================================================
-export const adminWarehouse = {
-  getReferences: () => api.get('/admin/warehouse/references'),
-  categories: {
-    list: () => api.get('/admin/warehouse/categories'),
-    create: (data) => api.post('/admin/warehouse/categories', data),
-    update: (id, data) => api.put(`/admin/warehouse/categories/${id}`, data),
-    delete: (id) => api.delete(`/admin/warehouse/categories/${id}`)
-  },
-  suppliers: {
-    list: () => api.get('/admin/warehouse/suppliers'),
-    create: (data) => api.post('/admin/warehouse/suppliers', data),
-    update: (id, data) => api.put(`/admin/warehouse/suppliers/${id}`, data),
-    delete: (id) => api.delete(`/admin/warehouse/suppliers/${id}`)
-  },
-  locations: {
-    list: () => api.get('/admin/warehouse/locations'),
-    create: (data) => api.post('/admin/warehouse/locations', data),
-    update: (id, data) => api.put(`/admin/warehouse/locations/${id}`, data),
-    delete: (id) => api.delete(`/admin/warehouse/locations/${id}`)
-  },
-  materials: {
-    list: () => api.get('/admin/warehouse/materials'),
-    get: (id) => api.get(`/admin/warehouse/materials/${id}`),
-    create: (data) => api.post('/admin/warehouse/materials', data),
-    update: (id, data) => api.put(`/admin/warehouse/materials/${id}`, data),
-    delete: (id) => api.delete(`/admin/warehouse/materials/${id}`)
-  },
-  params: {
-    get: () => api.get('/admin/warehouse/params'),
-    update: (data) => api.put('/admin/warehouse/params', data)
-  },
-  movements: {
-    list: (params) => api.get('/admin/warehouse/movements', { params }),
-    create: (data) => api.post('/admin/warehouse/movements', data)
-  },
-  balances: {
-    list: () => api.get('/admin/warehouse/balances')
-  },
-  links: {
-    list: (params) => api.get('/admin/warehouse/links', { params }),
-    create: (data) => api.post('/admin/warehouse/links', data),
-    delete: (id) => api.delete(`/admin/warehouse/links/${id}`)
-  }
-};
-
-// ============================================================================
-// ADMIN LOGISTICS (Logística Inteligente - Cadastros)
-// ============================================================================
-export const adminLogistics = {
-  vehicles: {
-    list: () => api.get('/admin/logistics/vehicles'),
-    create: (data) => api.post('/admin/logistics/vehicles', data),
-    update: (id, data) => api.put(`/admin/logistics/vehicles/${id}`, data),
-    delete: (id) => api.delete(`/admin/logistics/vehicles/${id}`)
-  },
-  points: {
-    list: () => api.get('/admin/logistics/points'),
-    create: (data) => api.post('/admin/logistics/points', data),
-    update: (id, data) => api.put(`/admin/logistics/points/${id}`, data),
-    delete: (id) => api.delete(`/admin/logistics/points/${id}`)
-  },
-  routes: {
-    list: () => api.get('/admin/logistics/routes'),
-    create: (data) => api.post('/admin/logistics/routes', data),
-    update: (id, data) => api.put(`/admin/logistics/routes/${id}`, data),
-    delete: (id) => api.delete(`/admin/logistics/routes/${id}`)
-  },
-  drivers: {
-    list: () => api.get('/admin/logistics/drivers'),
-    create: (data) => api.post('/admin/logistics/drivers', data),
-    update: (id, data) => api.put(`/admin/logistics/drivers/${id}`, data),
-    delete: (id) => api.delete(`/admin/logistics/drivers/${id}`)
-  }
-};
-
-// ============================================================================
-// WAREHOUSE INTELLIGENCE (Almoxarifado Inteligente - IA)
-// ============================================================================
-export const warehouseIntelligence = {
-  getDashboard: () => api.get('/warehouse-intelligence/dashboard'),
-  getAlerts: () => api.get('/warehouse-intelligence/alerts'),
-  acknowledgeAlert: (id) => api.post(`/warehouse-intelligence/alerts/${id}/acknowledge`),
-  getPredictions: () => api.get('/warehouse-intelligence/predictions'),
-  getIdleMaterials: (days) => api.get('/warehouse-intelligence/idle-materials', { params: days ? { days } : {} }),
-  getIndicators: (days) => api.get('/warehouse-intelligence/indicators', { params: days ? { days } : {} }),
-  runAlerts: () => api.post('/warehouse-intelligence/run-alerts')
-};
-
-// ============================================================================
-// LOGISTICS INTELLIGENCE (Logística Inteligente - IA)
-// ============================================================================
-export const logisticsIntelligence = {
-  getDashboard: () => api.get('/logistics-intelligence/dashboard'),
-  getAlerts: () => api.get('/logistics-intelligence/alerts'),
-  acknowledgeAlert: (id) => api.post(`/logistics-intelligence/alerts/${id}/acknowledge`),
-  getExpeditions: (params) => api.get('/logistics-intelligence/expeditions', { params }),
-  createExpedition: (data) => api.post('/logistics-intelligence/expeditions', data),
-  updateExpedition: (id, data) => api.put(`/logistics-intelligence/expeditions/${id}`, data),
-  getIndicators: (days) => api.get('/logistics-intelligence/indicators', { params: days ? { days } : {} }),
-  getPredictions: () => api.get('/logistics-intelligence/predictions'),
-  runAlerts: () => api.post('/logistics-intelligence/run-alerts')
-};
-
-// ============================================================================
-// CENTRAL INDUSTRY AI (IA Central da Indústria)
-// ============================================================================
-export const centralAI = {
-  getIntelligence: () => api.get('/central-ai/intelligence'),
-  getAlerts: () => api.get('/central-ai/alerts'),
-  getSectors: () => api.get('/central-ai/sectors'),
-  getPredictions: () => api.get('/central-ai/predictions'),
-  getInsights: () => api.get('/central-ai/insights')
 };

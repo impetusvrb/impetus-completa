@@ -1,27 +1,48 @@
+/**
+ * Hook para payload completo do dashboard personalizado
+ * GET /api/dashboard/me - perfil + KPIs + insights + preferências
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { dashboard } from '../services/api';
 
-export function useDashboardMe({ enabled = true } = {}) {
+export function useDashboardMe(options = {}) {
+  const { ttlMs = 2 * 60 * 1000, enabled = true } = options;
   const [payload, setPayload] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const refetch = useCallback(async () => {
+  const fetchMe = useCallback(async () => {
+    if (!enabled) return;
+    setLoading(true);
+    setError(null);
     try {
       const r = await dashboard.getMe();
       if (r?.data) setPayload(r.data);
-    } catch {
+    } catch (e) {
+      setError(e);
       setPayload(null);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
-    if (enabled) refetch();
-  }, [enabled, refetch]);
+    fetchMe();
+  }, [fetchMe]);
+
+  const trackInteraction = useCallback((eventType, entityType, entityId, context = {}) => {
+    const uid = payload?.user_context ? JSON.parse(localStorage.getItem('impetus_user') || '{}')?.id : null;
+    const cid = payload?.user_context ? JSON.parse(localStorage.getItem('impetus_user') || '{}')?.company_id : null;
+    if (uid && cid) {
+      dashboard.trackInteraction(eventType, entityType, entityId, context).catch(() => {});
+    }
+  }, [payload]);
 
   return {
     payload,
-    trackInteraction: (event_type, entity_type, entity_id, context) => {
-      dashboard.trackInteraction(event_type, entity_type, entity_id, context).catch(() => {});
-    },
-    refetch,
+    loading,
+    error,
+    refetch: fetchMe,
+    trackInteraction
   };
 }

@@ -1,14 +1,59 @@
-import React from 'react';
+/**
+ * CARD DE MÉTRICA KPI
+ * Componente reutilizável para exibir métricas
+ */
 
-export default function MetricCard({ icon: Icon, title, value, growth, color = 'blue', onClick }) {
-  return (
-    <div className={`metric-card metric-card--${color}`} onClick={onClick} role={onClick ? 'button' : undefined} style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      {Icon && <Icon size={20} />}
-      <div>
-        <span className="metric-card__value">{value ?? '-'}</span>
-        <span className="metric-card__title">{title}</span>
-        {growth != null && <span className="metric-card__growth">{growth > 0 ? '+' : ''}{growth}%</span>}
+import React from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import './MetricCard.css';
+
+export default function MetricCard({ 
+  icon: Icon, 
+  title, 
+  value, 
+  growth, 
+  color = 'blue',
+  loading = false,
+  onClick
+}) {
+  const isPositive = growth >= 0;
+  const isNumeric = value != null && !Number.isNaN(Number(value));
+  const displayValue = isNumeric ? Number(value) : null;
+  const displayRaw = typeof value === 'string' ? value : null;
+
+  if (loading) {
+    return (
+      <div className="metric-card loading">
+        <div className="skeleton-icon"></div>
+        <div className="skeleton-content">
+          <div className="skeleton-title"></div>
+          <div className="skeleton-value"></div>
+          <div className="skeleton-growth"></div>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  const Wrapper = onClick ? 'button' : 'div';
+  const wrapperProps = onClick ? { type: 'button', onClick, className: `metric-card metric-${color} metric-card--clickable` } : { className: `metric-card metric-${color}` };
+
+  return (
+    <Wrapper {...wrapperProps}>
+      <div className="metric-icon">
+        <Icon size={24} strokeWidth={2} />
+      </div>
+      
+      <div className="metric-content">
+        <h3 className="metric-title">{title}</h3>
+        <div className="metric-value">{displayRaw ?? (displayValue != null ? displayValue.toLocaleString('pt-BR') : '-')}</div>
+        
+        {growth !== undefined && (
+          <div className={`metric-growth ${isPositive ? 'positive' : 'negative'}`}>
+            {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+            <span>{isPositive ? '+' : ''}{growth}% na semana</span>
+          </div>
+        )}
+      </div>
+    </Wrapper>
   );
 }

@@ -1,24 +1,37 @@
+/**
+ * PÁGINA OFFLINE - SEM CONEXÃO
+ */
 import React, { useState, useEffect } from 'react';
+import { WifiOff, RefreshCw } from 'lucide-react';
+import './ErrorPage.css';
 
 export default function ErrorOffline() {
-  const [offline, setOffline] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => setOffline(false);
-    const handleOffline = () => setOffline(true);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    setOffline(!navigator.onLine);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
-  if (!offline) return null;
+  if (isOnline) return null;
+
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: 12, background: '#fef2f2', color: '#b91c1c', textAlign: 'center', zIndex: 10000 }}>
-      Você está offline. Verifique sua conexão.
+    <div className="error-page error-offline">
+      <div className="error-content">
+        <WifiOff size={64} className="error-icon-offline" />
+        <h2 className="error-title">Sem conexão</h2>
+        <p className="error-desc">Verifique sua conexão com a internet e tente novamente.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>
+          <RefreshCw size={18} />
+          Reconectar
+        </button>
+      </div>
     </div>
   );
 }

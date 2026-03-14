@@ -30,14 +30,9 @@ const AdminDepartments = lazy(() => import('./pages/AdminDepartments'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminStructural = lazy(() => import('./pages/AdminStructural'));
-const AdminWarehouse = lazy(() => import('./pages/AdminWarehouse'));
-const AdminLogistics = lazy(() => import('./pages/AdminLogistics'));
-const AlmoxarifadoInteligente = lazy(() => import('./pages/AlmoxarifadoInteligente'));
-const LogisticaInteligente = lazy(() => import('./pages/LogisticaInteligente'));
 const RegistroInteligente = lazy(() => import('./pages/RegistroInteligente'));
 const Operacional = lazy(() => import('./pages/Operacional'));
 const BibliotecaPage = lazy(() => import('./features/biblioteca').then((m) => ({ default: m.BibliotecaPage })));
-const ManuaisTecnicosPage = lazy(() => import('./pages/ManuaisTecnicosPage'));
 const AIChatPage = lazy(() => import('./features/aiChat/AIChatPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
@@ -47,10 +42,6 @@ const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
 const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
 const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
-const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
-const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
-const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
-const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
 const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
@@ -116,7 +107,7 @@ function isCEO() {
 }
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente', '/app/centro-previsao-operacional'];
+  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente'];
   if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
@@ -139,8 +130,8 @@ export default function App() {
   return (
     <NotificationProvider>
       <ErrorOffline />
-      <BrowserRouter>
-        <ErrorBoundary>
+      <ErrorBoundary>
+        <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
           <Routes>
         {/* Rotas públicas */}
@@ -191,9 +182,6 @@ export default function App() {
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
-        <Route path="/app/manuais-tecnicos" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><ManuaisTecnicosPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
-        } />
         
         <Route path="/app/chatbot" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AIChatPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
@@ -207,15 +195,6 @@ export default function App() {
         } />
         <Route path="/app/centro-operacoes-industrial" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
-        } />
-        <Route path="/app/centro-previsao-operacional" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','admin']}><CentroPrevisaoOperacional /></RoleGuard></SetupGuard></PrivateRoute>
-        } />
-        <Route path="/app/centro-previsao" element={
-          <Navigate to="/app/centro-previsao-operacional" replace />
-        } />
-        <Route path="/app/centro-previsao-operacional/" element={
-          <Navigate to="/app/centro-previsao-operacional" replace />
         } />
         
         <Route path="/app/monitored-points" element={
@@ -235,14 +214,7 @@ export default function App() {
         <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminUsers /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/warehouse" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminWarehouse /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/logistics" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminLogistics /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><SetupGuard><AlmoxarifadoInteligente /></SetupGuard></PrivateRoute>} />
-        <Route path="/app/logistica-inteligente" element={<PrivateRoute><SetupGuard><LogisticaInteligente /></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/centro-custos-industriais" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','admin']}><CentroCustosExecutivo /></RoleGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/mapa-vazamento-financeiro" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','admin','gerente','coordenador','supervisor']}><MapaVazamentoFinanceiro /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
@@ -254,8 +226,8 @@ export default function App() {
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           </Suspense>
-        </ErrorBoundary>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ErrorBoundary>
     </NotificationProvider>
   );
 }

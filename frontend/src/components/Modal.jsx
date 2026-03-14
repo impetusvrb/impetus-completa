@@ -1,17 +1,108 @@
-import React from 'react';
+/**
+ * MODAL COMPONENT
+ * Modal reutilizável para formulários e confirmações
+ */
 
-export default function Modal({ children, isOpen, onClose, title }) {
+import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
+import './Modal.css';
+
+export default function Modal({ 
+  isOpen, 
+  onClose, 
+  title, 
+  children, 
+  size = 'medium', // small, medium, large, full
+  showCloseButton = true,
+  closeOnOverlayClick = true
+}) {
+  // Fechar modal com ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  // Prevenir scroll do body quando modal está aberto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleOverlayClick = (e) => {
+    if (closeOnOverlayClick && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 24, maxWidth: 520, maxHeight: '90vh', overflow: 'auto' }}>
-        {title && <h3 style={{ margin: '0 0 16px' }}>{title}</h3>}
-        {children}
+    <div className="modal-overlay" onClick={handleOverlayClick}>
+      <div className={`modal-container modal-${size}`}>
+        <div className="modal-header">
+          <h2 className="modal-title">{title}</h2>
+          {showCloseButton && (
+            <button 
+              className="modal-close-btn" 
+              onClick={onClose}
+              aria-label="Fechar modal"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+        <div className="modal-content">
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-export function ModalFooter({ children }) {
-  return <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>{children}</div>;
+/**
+ * MODAL FOOTER COMPONENT
+ * Footer padrão para modais com botões de ação
+ */
+export function ModalFooter({ 
+  onCancel, 
+  onConfirm, 
+  cancelText = 'Cancelar', 
+  confirmText = 'Confirmar',
+  confirmDisabled = false,
+  confirmLoading = false,
+  confirmVariant = 'primary' // primary, danger, success
+}) {
+  return (
+    <div className="modal-footer">
+      <button 
+        type="button"
+        className="btn btn-secondary" 
+        onClick={onCancel}
+        disabled={confirmLoading}
+      >
+        {cancelText}
+      </button>
+      <button 
+        type="button"
+        className={`btn btn-${confirmVariant}`} 
+        onClick={onConfirm}
+        disabled={confirmDisabled || confirmLoading}
+      >
+        {confirmLoading ? 'Carregando...' : confirmText}
+      </button>
+    </div>
+  );
 }
