@@ -1,0 +1,323 @@
+.identification-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.identification-modal {
+  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.identification-modal--conversation {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+}
+
+.identification-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  min-height: 200px;
+  max-height: 400px;
+}
+
+.identification-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  padding: 32px;
+}
+
+.identification-msg {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.identification-msg--assistant {
+  flex-direction: row;
+}
+
+.identification-msg--user {
+  flex-direction: row-reverse;
+}
+
+.identification-msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--gray-100, #f3f4f6);
+  color: var(--color-primary, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.identification-msg--user .identification-msg-avatar {
+  background: var(--color-primary, #3b82f6);
+  color: white;
+}
+
+.identification-msg-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.identification-msg-content p {
+  margin: 0 0 6px 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.identification-msg-content p:last-child {
+  margin-bottom: 0;
+}
+
+.identification-msg--user .identification-msg-content {
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px 12px 4px 12px;
+}
+
+.identification-msg--user .identification-msg-content p {
+  color: white;
+}
+
+.identification-input {
+  display: flex;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.identification-input input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--gray-300, #d1d5db);
+  border-radius: 10px;
+  font-size: 0.9375rem;
+}
+
+.identification-input input:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+}
+
+.identification-input button {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.identification-input button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.identification-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary, #3b82f6) 0%, #6366f1 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.identification-modal--conversation .identification-header svg {
+  color: inherit;
+}
+
+.identification-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.identification-header svg {
+  color: var(--color-primary, #3b82f6);
+  flex-shrink: 0;
+}
+
+.identification-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-primary);
+}
+
+.identification-header p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.identification-form {
+  padding: 20px 24px;
+}
+
+.identification-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.identification-field {
+  margin-bottom: 16px;
+}
+
+.identification-field label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.identification-field input,
+.identification-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-300, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  box-sizing: border-box;
+}
+
+.identification-field input:focus,
+.identification-field textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.identification-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.identification-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.identification-submit {
+  width: 100%;
+  padding: 14px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary, #3b82f6);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.identification-submit:hover:not(:disabled) {
+  opacity: 0.95;
+}
+
+.identification-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.identification-modal--success {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.identification-success-icon {
+  color: var(--color-success, #10b981);
+  margin-bottom: 16px;
+}
+
+.identification-modal--success h2 {
+  font-size: 1.25rem;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.identification-modal--success p {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.identification-modal--locked {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.identification-modal--locked svg {
+  color: #f59e0b;
+  margin-bottom: 16px;
+}
+
+.identification-modal--locked h2 {
+  font-size: 1.25rem;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.identification-modal--locked p {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+}
+
+.identification-audit-hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 16px !important;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

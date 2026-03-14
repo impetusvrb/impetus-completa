@@ -1,7 +1,0 @@
-.layout { display: flex; min-height: 100vh; }
-.sidebar { width: 260px; background: #1e293b; color: #f8fafc; }
-.main-content { flex: 1; display: flex; flex-direction: column; }
-.content { flex: 1; padding: 24px; }
-.sidebar-nav .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; color: #94a3b8; text-decoration: none; }
-.sidebar-nav .nav-item:hover, .nav-item.active { color: #fff; background: rgba(255,255,255,0.1); }
-.header { padding: 16px 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }

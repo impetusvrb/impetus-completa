@@ -1,0 +1,28 @@
+/**
+ * DESIGN TOKENS - Impetus Comunica IA - Industrial Dark Theme
+ */
+:root {
+  --color-primary: #1E90FF;
+  --color-primary-light: #3AA0FF;
+  --color-primary-dark: #1470CC;
+  --color-secondary: #2A9D8F;
+  --color-accent: #F4A261;
+  --color-success: #2A9D8F;
+  --color-warning: #F4A261;
+  --color-error: #D62828;
+  --text-primary: #E6EDF3;
+  --text-secondary: #9FB3C8;
+  --bg-primary: #162A3A;
+  --bg-secondary: #0F1E2E;
+  --bg-tertiary: #1B3447;
+  --bg-hover: #1E3A50;
+  --bg-active: #1A3A5C;
+  --border-color: #243848;
+  --shadow-sm: 0 0 0 1px #243848;
+  --shadow-md: 0 0 0 1px #243848, 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 0 0 1px #243848, 0 8px 24px rgba(0,0,0,0.5);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --transition-fast: 150ms ease-in-out;
+}

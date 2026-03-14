@@ -3,10 +3,11 @@
  * Comunicação (App Impetus), POPs, Manuais, Notificações
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { Settings, MessageSquare, FileText, BookOpen, Bell, Save, Check, X, Shield, Phone, LayoutDashboard, QrCode, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
 import Layout from '../components/Layout';
+import { CheckboxField } from '../components/FormField';
 import { adminSettings, appImpetus } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminSettings.css';
@@ -33,32 +34,26 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'whatsapp-contacts', 'notifications', 'dashboard-visibility'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
+const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function AdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const initialTab = VALID_TABS.includes(tabFromUrl || '') ? tabFromUrl : 'comunicacao';
+  const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+  const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
-    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && activeTab !== tabFromUrl) {
-      setActiveTab(tabFromUrl);
+    const effective = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
+    if (effective && VALID_TABS.includes(effective) && activeTab !== effective) {
+      setActiveTab(effective);
     }
   }, [tabFromUrl]);
-
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
   const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
   const [connectionStatus, setConnectionStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [pops, setPops] = useState([]);
-  const [manuals, setManuals] = useState([]);
-  const [companyPolicy, setCompanyPolicy] = useState('');
-  const [whatsappContacts, setWhatsappContacts] = useState([]);
-  const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
-  const [visibilityConfigs, setVisibilityConfigs] = useState([]);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -81,7 +76,7 @@ export default function AdminSettings() {
       } else if (activeTab === 'notifications') {
         const r = await adminSettings.getNotificationConfig();
         setNotifConfig(r.data.config || notifConfig);
-      } else if (activeTab === 'whatsapp-contacts') {
+      } else if (activeTab === 'notification-contacts') {
         const r = await adminSettings.listNotificationContacts();
         setWhatsappContacts(r.data?.contacts || []);
       } else if (activeTab === 'dashboard-visibility') {
@@ -94,6 +89,15 @@ export default function AdminSettings() {
       setLoading(false);
     }
   };
+
+  const [loading, setLoading] = useState(true);
+  const [pops, setPops] = useState([]);
+  const [manuals, setManuals] = useState([]);
+  const [companyPolicy, setCompanyPolicy] = useState('');
+  const [whatsappContacts, setWhatsappContacts] = useState([]);
+  const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
+  const [visibilityConfigs, setVisibilityConfigs] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   const handleSaveNotifications = async () => {
     try {
@@ -250,7 +254,7 @@ export default function AdminSettings() {
           <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
           <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
           <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
-          <button className={`stab ${activeTab === 'whatsapp-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('whatsapp-contacts')}><Phone size={18} /> Contatos para Notificações</button>
+          <button className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
           <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
           {canConfigDashboard && (
             <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
@@ -355,7 +359,7 @@ export default function AdminSettings() {
             </div>
           )}
 
-          {activeTab === 'whatsapp-contacts' && (
+          {activeTab === 'notification-contacts' && (
             <div className="settings-panel">
               <h3>Contatos para Notificações</h3>
               <p className="form-hint">Contatos que a IA pode usar para notificações (TPM, Modo Executivo, alertas).</p>
@@ -379,18 +383,9 @@ export default function AdminSettings() {
               <h3>Notificações</h3>
               {loading ? <p>Carregando...</p> : (
                 <>
-                  <label className="checkbox-label">
-                    <input type="checkbox" name="email_enabled" checked={notifConfig.email_enabled} onChange={handleNotifChange} />
-                    Email
-                  </label>
-                  <label className="checkbox-label">
-                    <input type="checkbox" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
-                    Notificações no app
-                  </label>
-                  <label className="checkbox-label">
-                    <input type="checkbox" name="failure_alerts" checked={notifConfig.failure_alerts} onChange={handleNotifChange} />
-                    Alertas de falha
-                  </label>
+                  <CheckboxField label="Email" name="email_enabled" checked={notifConfig.email_enabled} onChange={handleNotifChange} />
+                  <CheckboxField label="Notificações no app" name="whatsapp_enabled" checked={notifConfig.whatsapp_enabled} onChange={handleNotifChange} />
+                  <CheckboxField label="Alertas de falha" name="failure_alerts" checked={notifConfig.failure_alerts} onChange={handleNotifChange} />
                   <div className="panel-actions">
                     <button className="btn btn-primary" onClick={handleSaveNotifications} disabled={saving}>Salvar</button>
                   </div>
@@ -408,14 +403,7 @@ export default function AdminSettings() {
                   <h4>{HIERARCHY_LABELS[level]}</h4>
                   <div className="visibility-checkboxes visibility-checkboxes--grid">
                     {Object.entries(SECTION_LABELS).map(([key, label]) => (
-                      <label key={key} className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={getVisibilityForLevel(level)[key] !== false}
-                          onChange={e => handleVisibilityChange(level, key, e.target.checked)}
-                        />
-                        {label}
-                      </label>
+                      <CheckboxField key={key} name={key} label={label} checked={getVisibilityForLevel(level)[key] !== false} onChange={e => handleVisibilityChange(level, key, e.target.checked)} />
                     ))}
                   </div>
                   <button className="btn btn-secondary" onClick={() => handleSaveVisibility(level)} disabled={saving}>Salvar {HIERARCHY_LABELS[level]}</button>
@@ -425,6 +413,7 @@ export default function AdminSettings() {
           )}
         </div>
       </div>
+
     </Layout>
   );
 }

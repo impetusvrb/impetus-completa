@@ -7,6 +7,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { AdminDashboard, DashboardMecanico, ExecutiveDashboard } from '../features/dashboard';
 import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
+import './Dashboard.css';
 
 export default function Dashboard() {
   const userStr = localStorage.getItem('impetus_user');

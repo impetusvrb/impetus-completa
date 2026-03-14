@@ -1,13 +1,15 @@
 /**
  * IMPETUS - Coletor de dados PLC/Sensores Industriais
  * Fluxo: coleta -> Machine Brain analisa -> salva -> emite alerta
- * Suporte: simulação, Modbus, OPC UA, APIs industriais (via data_source_config)
+ * Suporte: simulação, Modbus, OPC UA, REST (via data_source_config em machine_monitoring_config)
  *
  * Variáveis lidas: machine_status, motor_temperature, vibration_level, oil_level,
  * water_flow, hydraulic_pressure, electrical_current, rpm, alarm_state
  */
+const db = require('../db');
 const plcAi = require('./plcAi');
 const plcData = require('./plcDataService');
+const adapterFactory = require('./plcAdapters/adapterFactory');
 
 /** Variáveis industriais padrão para simulação */
 function simulatePLCRead(equipmentId, equipmentName) {
@@ -43,21 +45,71 @@ function hasSignificantVariation(data) {
   return false;
 }
 
+/** Lista padrão quando não há config em machine_monitoring_config */
+const DEFAULT_EQUIPMENT_LIST = [
+  { id: 'EQ-001', name: 'Compressor Principal' },
+  { id: 'EQ-002', name: 'Bomba Hidráulica' },
+  { id: 'EQ-003', name: 'Prensa 500T' }
+];
+
+/**
+ * Obtém lista de equipamentos a coletar (machine_monitoring_config ou fallback padrão)
+ */
+async function getEquipmentToCollect(companyId) {
+  try {
+    const r = await db.query(`
+      SELECT machine_identifier, machine_name, line_name, data_source_type, data_source_config
+      FROM machine_monitoring_config
+      WHERE company_id = $1 AND enabled = true
+      ORDER BY line_name NULLS LAST, machine_identifier
+    `, [companyId]);
+    if (r.rows?.length) {
+      return r.rows.map((row) => ({
+        id: row.machine_identifier,
+        name: row.machine_name || row.machine_identifier,
+        line_name: row.line_name,
+        data_source_type: row.data_source_type || 'simulated',
+        data_source_config: row.data_source_config || {}
+      }));
+    }
+  } catch (err) {
+    if (err.message?.includes('does not exist')) return null;
+    console.warn('[PLC_COLLECTOR] Erro ao buscar machine_monitoring_config:', err.message);
+  }
+  return null;
+}
+
 /**
  * Executa ciclo de coleta para uma empresa
+ * Usa adapterFactory (Modbus/OPC UA/REST) quando configurado; senão simulação
  */
 async function runCollectorCycle(companyId) {
-  const equipmentList = [
-    { id: 'EQ-001', name: 'Compressor Principal' },
-    { id: 'EQ-002', name: 'Bomba Hidráulica' },
-    { id: 'EQ-003', name: 'Prensa 500T' }
-  ];
+  const configured = await getEquipmentToCollect(companyId);
+  const equipmentList =
+    configured ||
+    DEFAULT_EQUIPMENT_LIST.map((e) => ({
+      id: e.id,
+      machine_identifier: e.id,
+      name: e.name,
+      machine_name: e.name,
+      data_source_type: 'simulated',
+      data_source_config: {}
+    }));
 
   for (const eq of equipmentList) {
     try {
-      const eqId = eq.id;
-      const eqName = eq.name;
-      const data = simulatePLCRead(eqId, eqName);
+      const eqId = eq.id || eq.machine_identifier;
+      const eqName = eq.name || eq.machine_name || eqId;
+      const config = {
+        machine_identifier: eqId,
+        machine_name: eqName,
+        data_source_type: eq.data_source_type,
+        data_source_config: eq.data_source_config || {}
+      };
+      let data = await adapterFactory.read(config);
+      if (!data || (data.temperature == null && data.status == null && !data.equipment_id)) {
+        data = simulatePLCRead(eqId, eqName);
+      }
       const saved = await plcData.saveCollectedData(companyId, data);
 
       if (!hasSignificantVariation(data)) continue;
@@ -85,7 +137,7 @@ async function runCollectorCycle(companyId) {
         });
       }
     } catch (err) {
-      console.warn('[PLC_COLLECTOR]', eq.id, err.message);
+      console.warn('[PLC_COLLECTOR]', eq.id || eq.machine_identifier, err.message);
     }
   }
 }

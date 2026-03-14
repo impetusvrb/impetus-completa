@@ -18,7 +18,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT_EXCEPTION]', err);
-  process.exit(1);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
 const server = http.createServer(app);
@@ -70,6 +70,16 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server.listen(PORT, async () => {
   console.log(`🚀 Backend listening on ${PORT}`);
 
+  // Status Claude (opcional - fallback para OpenAI quando não configurado)
+  try {
+    const claudeService = require('./services/claudeService');
+    if (claudeService.isAvailable()) {
+      console.info('[CLAUDE] API configurada - memória operacional e análise avançada ativas');
+    } else {
+      console.info('[CLAUDE] ANTHROPIC_API_KEY não configurada - sistema opera com fallback (OpenAI). Memória operacional limitada.');
+    }
+  } catch (_) {}
+
   // Verificação da tabela operational_memory no startup (ambiente não-dev)
   if (process.env.NODE_ENV !== 'development') {
     try {
@@ -81,6 +91,8 @@ server.listen(PORT, async () => {
     }
   }
 });
+<<<<<<< HEAD
+=======
 
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
 async function gracefulShutdown(signal) {
@@ -235,3 +247,4 @@ process.on('uncaughtException', (err) => {
   console.error('[UNCAUGHT_EXCEPTION]', err);
   gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
+>>>>>>> 9754784f6131f54576b436c0e7ab01f34d70062e
