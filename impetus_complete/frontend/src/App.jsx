@@ -37,6 +37,7 @@ const LogisticaInteligente = lazy(() => import('./pages/LogisticaInteligente'));
 const RegistroInteligente = lazy(() => import('./pages/RegistroInteligente'));
 const Operacional = lazy(() => import('./pages/Operacional'));
 const BibliotecaPage = lazy(() => import('./features/biblioteca').then((m) => ({ default: m.BibliotecaPage })));
+const ManuaisTecnicosPage = lazy(() => import('./pages/ManuaisTecnicosPage'));
 const AIChatPage = lazy(() => import('./features/aiChat/AIChatPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const LicenseExpired = lazy(() => import('./pages/LicenseExpired'));
@@ -189,6 +190,9 @@ export default function App() {
         } />
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/manuais-tecnicos" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><ManuaisTecnicosPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         
         <Route path="/app/chatbot" element={
