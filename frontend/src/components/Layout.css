@@ -30,7 +30,7 @@ body { background: var(--bg-primary) !important; color: var(--text-primary) !imp
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: var(--sidebar-w);
-  min-height: 100vh;
+  height: 100vh;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
   display: flex;
@@ -39,8 +39,7 @@ body { background: var(--bg-primary) !important; color: var(--text-primary) !imp
   top: 0; left: 0;
   z-index: 100;
   transition: width var(--transition);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .sidebar.closed { width: var(--sidebar-w-sm); }
 
