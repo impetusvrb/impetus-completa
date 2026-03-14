@@ -39,7 +39,8 @@ body { background: var(--bg-primary) !important; color: var(--text-primary) !imp
   top: 0; left: 0;
   z-index: 100;
   transition: width var(--transition);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .sidebar.closed { width: var(--sidebar-w-sm); }
 
