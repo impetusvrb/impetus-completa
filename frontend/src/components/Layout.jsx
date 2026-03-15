@@ -35,7 +35,8 @@ import {
   DollarSign,
   Package,
   Truck,
-  Upload
+  Upload,
+  Mic
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -117,22 +118,16 @@ export default function Layout({ children }) {
   const MENUS = {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
-      { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/admin/centro-custos', icon: DollarSign, label: 'Centro de Custos (Config)' },
-      { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
-      { path: '/app/admin/warehouse', icon: Package, label: 'Almoxarifado (Admin)' },
-      { path: '/app/admin/logistics', icon: Truck, label: 'Logística (Admin)' },
-      { path: '/app/almoxarifado-inteligente', icon: Package, label: 'Almoxarifado Inteligente' },
-      { path: '/app/logistica-inteligente', icon: Truck, label: 'Logística Inteligente' },
-      { path: '/app/centro-operacoes-industrial', icon: Cpu, label: 'Centro Operações Industrial' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
-      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
-      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/app/admin/audio-logs', icon: Mic, label: 'Logs de Áudio' },
+      { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     diretor: [
