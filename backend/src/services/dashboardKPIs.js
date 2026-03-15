@@ -7,6 +7,7 @@ const db = require('../db');
 const userContext = require('./userContext');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
+const productionRealtime = require('./productionRealtimeService');
 
 const ICON_MAP = {
   trending: 'TrendingUp',
@@ -125,6 +126,29 @@ async function getMaintenanceKpis(scope, companyId, userId) {
 }
 
 /**
+ * KPIs de produção em tempo real (turno, meta, eficiência)
+ */
+async function getProductionKpis(companyId) {
+  try {
+    const kpis = await productionRealtime.getShiftKPIs(companyId);
+    const result = [];
+    if (kpis.total_produced != null) {
+      result.push({ id: 'production_shift', key: 'production_shift', title: 'Produção do turno', value: Math.round(kpis.total_produced), color: 'blue', route: '/app/industrial', icon: 'trending' });
+    }
+    if (kpis.total_target != null && kpis.total_target > 0) {
+      result.push({ id: 'meta_realizado', key: 'meta_realizado', title: 'Meta realizado', value: `${kpis.efficiency ?? 0}%`, color: 'green', route: '/app/industrial', icon: 'target' });
+    }
+    if (kpis.lines?.length) {
+      result.push({ id: 'line_efficiency', key: 'line_efficiency', title: 'Eficiência (linhas)', value: kpis.lines.length, color: 'teal', route: '/app/industrial', icon: 'activity' });
+    }
+    return result;
+  } catch (e) {
+    if (!e.message?.includes('does not exist')) console.warn('[DASHBOARD_KPIS] production:', e.message);
+    return [];
+  }
+}
+
+/**
  * KPIs específicos de qualidade (propostas/NC, auditorias)
  */
 async function getQualityKpis(scope, companyId) {
@@ -158,6 +182,10 @@ async function getDashboardKPIs(user, hierarchyScope) {
   try {
     if (level <= 1) {
       // DIRETOR / CEO: Indicadores estratégicos
+      if (['director_industrial', 'director_operations'].includes(profileCode) || functionalArea === 'production') {
+        const prodKpis = await getProductionKpis(companyId);
+        if (prodKpis.length) kpis.push(...prodKpis);
+      }
       const [comms, alerts, growth, proposals, points] = await Promise.all([
         queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
         queryCommunications(scope, companyId, "c.ai_priority = 1"),
@@ -174,6 +202,10 @@ async function getDashboardKPIs(user, hierarchyScope) {
       );
     } else if (level === 2) {
       // GERENTE
+      if (['manager_production', 'director_industrial'].includes(profileCode) || functionalArea === 'production') {
+        const prodKpis = await getProductionKpis(companyId);
+        if (prodKpis.length) kpis.push(...prodKpis);
+      }
       const [insights, proposalsAbertas, comms, points] = await Promise.all([
         queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '7 days'"),
         queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
@@ -191,6 +223,10 @@ async function getDashboardKPIs(user, hierarchyScope) {
       kpis.push({ id: 'k5', title: 'Pontos monitorados', value: points, color: 'blue', route: '/app/monitored-points', icon: 'map' });
     } else if (level === 3) {
       // COORDENADOR - KPIs base + área quando aplicável
+      if (['coordinator_production'].includes(profileCode) || functionalArea === 'production') {
+        const prodKpis = await getProductionKpis(companyId);
+        if (prodKpis.length) kpis.push(...prodKpis);
+      }
       const [comms, proposals, insights] = await Promise.all([
         queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
         queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
@@ -225,6 +261,17 @@ async function getDashboardKPIs(user, hierarchyScope) {
       } else if (['quality', 'qualidade'].includes(functionalArea) || /quality|qualidade/.test(profileCode)) {
         const qualityKpis = await getQualityKpis(scope, companyId);
         kpis.push(...qualityKpis);
+        const [comms, proposals] = await Promise.all([
+          queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
+          queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')")
+        ]);
+        kpis.push(
+          { id: 'k_comms', title: 'Interações da equipe', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
+          { id: 'k_proposals', title: 'Tarefas pendentes (equipe)', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
+        );
+      } else if (['production', 'producao', 'pcp'].includes(functionalArea) || /production|producao/.test(profileCode)) {
+        const prodKpis = await getProductionKpis(companyId);
+        kpis.push(...prodKpis);
         const [comms, proposals] = await Promise.all([
           queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
           queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')")

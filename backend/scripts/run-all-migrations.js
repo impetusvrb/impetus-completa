@@ -1,103 +1,72 @@
 #!/usr/bin/env node
 /**
- * Executa todas as migrations na ordem correta
- * Uso: node -r dotenv/config scripts/run-all-migrations.js
- * 
- * Ordem obrigatória:
- * 1. migrations.sql    - Tabelas base (users, proposals, tasks, manuals, etc.)
- * 2. complete_schema.sql - Schema completo (companies, communications, LGPD, etc.)
- * 3. tpm_migration.sql   - Formulário TPM
+ * IMPETUS - Executor de migrations
+ * Executa arquivos .sql em src/models/ (CREATE TABLE IF NOT EXISTS)
+ * Uso: node scripts/run-all-migrations.js
+ * Ou: npm run migrate
  */
-const path = require('path');
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const path = require('path');
 const db = require('../src/db');
 
-const MIGRATIONS = [
-  { name: 'Base (users, proposals, tasks, manuals)', file: 'migrations.sql' },
-  { name: 'Schema completo (companies, communications, LGPD)', file: 'complete_schema.sql' },
-  { name: 'Tasks multi-tenant (company_id)', file: 'tasks_company_migration.sql' },
-  { name: 'Correções de schema (active, title, policies)', file: 'schema_fixes_migration.sql' },
-  { name: 'Hierarquia Coordenador (1-5)', file: 'hierarchy_coordenador_migration.sql' },
-  { name: 'Visibilidade do Dashboard', file: 'dashboard_visibility_migration.sql' },
-  { name: 'Modo Executivo (CEO)', file: 'executive_mode_migration.sql' },
-  { name: 'Estrutura Organizacional (área, cargo, setor)', file: 'organizational_structure_migration.sql' },
-  { name: 'IA Organizacional Ativa (eventos, memória)', file: 'organizational_ai_migration.sql' },
-  { name: 'Multi-Tenant (plan_type, company_id em tabelas)', file: 'multi_tenant_migration.sql' },
-  { name: 'Ativação Comercial (is_first_access, senha temporária)', file: 'commercial_activation_migration.sql' },
-  { name: 'Campos setup empresa (industry_type, initial_areas_count)', file: 'companies_setup_fields_migration.sql' },
-  { name: 'Doc contexto (POPs, manuals para IA)', file: 'doc_context_migration.sql' },
-  { name: 'User activity logs (Resumo Inteligente)', file: 'user_activity_logs_migration.sql' },
-  { name: 'Contatos para notificações (TPM)', file: 'whatsapp_contacts_migration.sql' },
-  { name: 'TPM (formulário de perdas)', file: 'tpm_migration.sql' },
-  { name: 'Asaas (assinaturas recorrentes)', file: 'asaas_subscriptions_migration.sql' },
-  { name: 'Legado Connect (zapi - compatibilidade)', file: 'zapi_connect_migration.sql' },
-  { name: 'Planos e instâncias (plans - legado)', file: 'whatsapp_plans_instances_migration.sql' },
-  { name: 'Índice pgvector (manual_chunks)', file: 'proacao_diag_migration.sql' },
-  { name: 'Segurança Enterprise (RBAC, audit IA, refresh tokens)', file: 'security_enterprise_migration.sql' },
-  { name: 'Controle Hierárquico (supervisor_id, user_hierarchy_scope)', file: 'hierarchical_control_migration.sql' },
-  { name: 'Onboarding e memória (memoria_empresa, memoria_usuario)', file: 'onboarding_memoria_migration.sql' },
-  { name: 'Identificação e ativação (registered_names, user_activation_*)', file: 'user_identification_activation_migration.sql' },
-  { name: 'Communications (direction, thread, LGPD first contact)', file: 'zapi_communications_enhancement_migration.sql' },
-  { name: 'AI Outbound Audit e Consentimento proativo (LGPD)', file: 'ai_outbound_audit_migration.sql' },
-  { name: 'App Impetus Outbox (canal unificado)', file: 'app_impetus_outbox_migration.sql' },
-  { name: 'Dashboard Inteligente (perfil, preferências, histórico)', file: 'intelligent_dashboard_migration.sql' },
-  { name: 'Base Estrutural Admin (empresa, cargos, linhas, ativos, processos, produtos, IA)', file: 'admin_structural_base_migration.sql' },
-  { name: 'Registro Inteligente (registros assistidos por IA)', file: 'intelligent_registration_migration.sql' },
-  { name: 'Chat interno entre colaboradores', file: 'internal_chat_migration.sql' },
-  { name: 'Camada operacional de manutenção (OS, preventivas, intervenções)', file: 'maintenance_operational_migration.sql' },
-  { name: 'Dashboard personalização avançada (seniority, ai_profile_context, onboarding)', file: 'intelligent_dashboard_personalization_migration.sql' },
-  { name: 'Memória operacional e cérebro de dados (Claude analítico)', file: 'operational_memory_migration.sql' },
-  { name: 'IA Corporativa (knowledge_memory, casos_manutencao, eventos_empresa)', file: 'corporate_ai_memory_migration.sql' },
-  { name: 'Cérebro Operacional (insights, alertas)', file: 'operational_brain_migration.sql' },
-  { name: 'Inteligência Industrial (Machine Brain, monitoramento, controle)', file: 'industrial_intelligence_migration.sql' },
-  { name: 'Validação Hierárquica de Cargos (role_verified, aprovações, documentos)', file: 'role_verification_hierarchy_migration.sql' },
-  { name: 'Índices de performance (audit_logs, communications, proposals)', file: 'performance_indexes_migration.sql' },
-  { name: 'Feature Flags (opcional)', file: 'feature_flags_migration.sql' },
-  { name: 'Tríade de IAs (enterprise_ai_memory, industry_intelligence, company_operation)', file: 'enterprise_ai_triad_migration.sql' }
+const MODELS_DIR = path.join(__dirname, '../src/models');
+const MIGRATIONS_ORDER = [
+  'lacunas_ind4_migration.sql',
+  'industrial_intelligence_extended_migration.sql',
+  'machine_safety_intervention_migration.sql'
 ];
 
-async function run() {
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('  IMPETUS COMUNICA IA - Migrations');
-  console.log('═══════════════════════════════════════════════════════\n');
+async function runMigration(fileName) {
+  const filePath = path.join(MODELS_DIR, fileName);
+  if (!fs.existsSync(filePath)) {
+    console.log(`[SKIP] ${fileName} não encontrado`);
+    return;
+  }
+  const sql = fs.readFileSync(filePath, 'utf8')
+    .replace(/--[^\n]*/g, '')
+    .trim();
+  const statements = sql.split(';').map((s) => s.trim()).filter((s) => s.length > 5);
 
-  const modelsDir = path.join(__dirname, '../src/models');
-
-  for (let i = 0; i < MIGRATIONS.length; i++) {
-    const m = MIGRATIONS[i];
-    const sqlPath = path.join(modelsDir, m.file);
-
-    if (!fs.existsSync(sqlPath)) {
-      console.warn(`⏭ Pulando (arquivo não encontrado): ${m.file}`);
-      continue;
-    }
-
-    console.log(`[${i + 1}/${MIGRATIONS.length}] Executando: ${m.name}...`);
-
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i] + ';';
     try {
-      const sql = fs.readFileSync(sqlPath, 'utf8');
-      await db.query(sql);
-      console.log(`    ✓ ${m.name} OK\n`);
+      await db.query(stmt);
+      const preview = stmt.substring(0, 60).replace(/\s+/g, ' ');
+      console.log(`[OK] ${fileName}: ${preview}...`);
     } catch (err) {
-      const skipCodes = ['42P07', '42P01', '42P10', '42703', '42702', '42701', '42804']; // already exists, duplicate, constraint, undefined col, ambiguous, incompatible types
-      const skipMsgs = ['already exists', 'duplicate key', 'does not exist', 'ambiguous'];
-      const canSkip = skipCodes.includes(err.code) || skipMsgs.some(m => (err.message || '').toLowerCase().includes(m));
-      if (canSkip) {
-        console.log(`    ⏭ ${m.name} (erro conhecido, pulando: ${err.message?.slice(0, 50)}...)\n`);
+      if (err.message?.includes('already exists') || err.message?.includes('duplicate key')) {
+        console.log(`[SKIP] ${fileName}: objeto já existe`);
       } else {
-        console.error(`    ✗ Erro em ${m.file}:`, err.message);
-        console.error('\nDetalhes:', err.detail || err);
-        process.exit(1);
+        console.warn(`[WARN] ${fileName}:`, err.message);
       }
     }
   }
+}
 
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('  ✓ Todas as migrations executadas com sucesso!');
-  console.log('═══════════════════════════════════════════════════════\n');
+async function main() {
+  console.log('[MIGRATE] Iniciando em', new Date().toISOString());
+
+  try {
+    await db.query('SELECT 1');
+  } catch (err) {
+    console.error('[MIGRATE] Erro de conexão:', err.message);
+    process.exit(1);
+  }
+
+  const allFiles = fs.readdirSync(MODELS_DIR).filter((f) => f.endsWith('.sql'));
+  const toRun = MIGRATIONS_ORDER.filter((f) => allFiles.includes(f));
+  const rest = allFiles.filter((f) => !MIGRATIONS_ORDER.includes(f)).sort();
+
+  for (const f of [...toRun, ...rest]) {
+    await runMigration(f);
+  }
+
+  console.log('[MIGRATE] Concluído');
   process.exit(0);
 }
 
-run();
+main().catch((err) => {
+  console.error('[MIGRATE]', err);
+  process.exit(1);
+});
