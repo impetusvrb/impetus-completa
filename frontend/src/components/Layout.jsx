@@ -137,6 +137,7 @@ export default function Layout({ children }) {
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro com IA' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     gerente: [
@@ -146,6 +147,7 @@ export default function Layout({ children }) {
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro com IA' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     coordenador: [
