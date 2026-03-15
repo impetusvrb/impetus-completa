@@ -33,6 +33,8 @@ app.use('/api/diagnostics',              safe('./routes/diagnostic'));
 app.use('/api/cadastrar-com-ia',         safe('./routes/cadastrarComIA'));
 app.use('/api/intelligent-registration', safe('./routes/intelligentRegistration'));
 app.use('/api/decision-engine',          safe('./routes/decisionEngine'));
+app.use('/api/dashboard',                safe('./routes/dashboard'));
+app.use('/api/central-ai',               safe('./routes/centralIndustryAI'));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use((err, req, res, next) => { console.error('[ERR]', err.message); res.status(500).json({ error: 'Erro interno no servidor' }); });
 module.exports = app;

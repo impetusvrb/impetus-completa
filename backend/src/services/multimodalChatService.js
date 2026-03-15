@@ -9,6 +9,7 @@ const path = require('path');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
 const mediaProcessor = require('./mediaProcessorService');
+const intelligentDecisionEngine = require('./intelligentDecisionEngine');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/chat-multimodal');
 const MAX_FILE_MB = 15;
@@ -94,9 +95,13 @@ async function processMultimodalChat(opts) {
   } = opts;
 
   const messages = [];
+  const decisionBlock = intelligentDecisionEngine.getDecisionFrameworkBlock();
   const systemContent = `Você é o **Impetus**, assistente de inteligência operacional industrial.
+${decisionBlock}
+
 ${systemPromptExtra}
-Responda de forma natural, direta e técnica quando apropriado. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português.`;
+
+Responda de forma natural, direta e técnica quando apropriado. Ao sugerir ações ou diagnósticos, siga o Motor de Decisão: priorize segurança das pessoas, ética e proteção. Explique problema, opções consideradas e por que aquela recomendação. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português.`;
 
   messages.push({ role: 'system', content: systemContent });
 

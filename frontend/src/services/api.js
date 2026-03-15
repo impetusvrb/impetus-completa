@@ -200,6 +200,8 @@ export const dashboard = {
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
   getWidgets: () => api.get('/dashboard/widgets'),
+  /** Layout dinâmico de widgets por perfil (Dashboard Inteligente) */
+  getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
 
   getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
   saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),
@@ -251,6 +253,9 @@ export const dashboard = {
 
   executiveQuery: (query, modoApresentacao = false) =>
     api.post('/dashboard/executive-query', { query, modoApresentacao }),
+
+  /** Mapa Inteligente da Indústria - CEO e Diretor */
+  getIndustryMap: () => api.get('/central-ai/industry-map'),
 
   orgAIAssistant: (question) =>
     api.post('/dashboard/org-ai-assistant', { question }),
@@ -557,4 +562,96 @@ export const intelligentRegistration = {
   create: (data) => api.post('/intelligent-registration', data),
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
   remove: (id) => api.delete(`/intelligent-registration/${id}`),
+};
+
+// ============================================================================
+// ADMIN - ALMOXARIFADO (Warehouse)
+// ============================================================================
+export const adminWarehouse = {
+  getReferences: () => api.get('/admin/warehouse/references'),
+  categories: {
+    list: () => api.get('/admin/warehouse/categories'),
+    create: (data) => api.post('/admin/warehouse/categories', data),
+    update: (id, data) => api.put(`/admin/warehouse/categories/${id}`, data),
+    delete: (id) => api.delete(`/admin/warehouse/categories/${id}`)
+  },
+  materials: {
+    list: () => api.get('/admin/warehouse/materials'),
+    create: (data) => api.post('/admin/warehouse/materials', data),
+    update: (id, data) => api.put(`/admin/warehouse/materials/${id}`, data),
+    delete: (id) => api.delete(`/admin/warehouse/materials/${id}`)
+  },
+  suppliers: {
+    list: () => api.get('/admin/warehouse/suppliers'),
+    create: (data) => api.post('/admin/warehouse/suppliers', data),
+    update: (id, data) => api.put(`/admin/warehouse/suppliers/${id}`, data),
+    delete: (id) => api.delete(`/admin/warehouse/suppliers/${id}`)
+  },
+  locations: {
+    list: () => api.get('/admin/warehouse/locations'),
+    create: (data) => api.post('/admin/warehouse/locations', data),
+    update: (id, data) => api.put(`/admin/warehouse/locations/${id}`, data),
+    delete: (id) => api.delete(`/admin/warehouse/locations/${id}`)
+  },
+  params: {
+    get: () => api.get('/admin/warehouse/params'),
+    update: (data) => api.put('/admin/warehouse/params', data)
+  },
+  movements: {
+    list: (params = {}) => api.get('/admin/warehouse/movements', { params }),
+    create: (data) => api.post('/admin/warehouse/movements', data)
+  },
+  balances: {
+    list: () => api.get('/admin/warehouse/balances')
+  },
+  links: {
+    list: (params = {}) => api.get('/admin/warehouse/links', { params }),
+    create: (data) => api.post('/admin/warehouse/links', data),
+    delete: (id) => api.delete(`/admin/warehouse/links/${id}`)
+  }
+};
+
+// ============================================================================
+// ADMIN - LOGÍSTICA
+// ============================================================================
+export const adminLogistics = {
+  vehicles: {
+    list: () => api.get('/admin/logistics/vehicles'),
+    create: (data) => api.post('/admin/logistics/vehicles', data),
+    update: (id, data) => api.put(`/admin/logistics/vehicles/${id}`, data),
+    delete: (id) => api.delete(`/admin/logistics/vehicles/${id}`)
+  },
+  points: {
+    list: () => api.get('/admin/logistics/points'),
+    create: (data) => api.post('/admin/logistics/points', data),
+    update: (id, data) => api.put(`/admin/logistics/points/${id}`, data),
+    delete: (id) => api.delete(`/admin/logistics/points/${id}`)
+  },
+  routes: {
+    list: () => api.get('/admin/logistics/routes'),
+    create: (data) => api.post('/admin/logistics/routes', data),
+    update: (id, data) => api.put(`/admin/logistics/routes/${id}`, data),
+    delete: (id) => api.delete(`/admin/logistics/routes/${id}`)
+  },
+  drivers: {
+    list: () => api.get('/admin/logistics/drivers'),
+    create: (data) => api.post('/admin/logistics/drivers', data),
+    update: (id, data) => api.put(`/admin/logistics/drivers/${id}`, data),
+    delete: (id) => api.delete(`/admin/logistics/drivers/${id}`)
+  }
+};
+
+// ============================================================================
+// ALMOXARIFADO E LOGÍSTICA INTELIGENTE (Dashboards por perfil)
+// ============================================================================
+export const warehouseIntelligence = {
+  getDashboard: () => api.get('/warehouse-intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/warehouse-intelligence/alerts/${id}/acknowledge`),
+  runAlerts: () => api.post('/warehouse-intelligence/run-alerts')
+};
+
+export const logisticsIntelligence = {
+  getDashboard: () => api.get('/logistics-intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/logistics-intelligence/alerts/${id}/acknowledge`),
+  runAlerts: () => api.post('/logistics-intelligence/run-alerts')
 };

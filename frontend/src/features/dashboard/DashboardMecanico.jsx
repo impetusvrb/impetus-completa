@@ -12,7 +12,7 @@ import {
   Wrench, ClipboardList, AlertTriangle, Clock, CheckCircle2, Package, Phone, Repeat,
   ChevronRight, Sparkles, FileEdit, History, Calendar, Users, BookOpen, Zap
 } from 'lucide-react';
-import { DashboardInteligente } from './index';
+import IntelligentDynamicDashboard from './IntelligentDynamicDashboard';
 import './DashboardMecanico.css';
 
 const MAINTENANCE_SHORTCUTS = [
@@ -324,9 +324,9 @@ export default function DashboardMecanico() {
           </>
         )}
 
-        {/* Dashboard existente - SEMPRE exibido (base atual mantida) */}
+        {/* Dashboard Inteligente Dinâmico - layout por perfil */}
         <div className="dashboard-mecanico__base">
-          <DashboardInteligente embed />
+          <IntelligentDynamicDashboard embed />
         </div>
       </div>
     </Layout>

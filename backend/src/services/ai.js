@@ -33,9 +33,12 @@ async function chatCompletion(prompt, opts = {}) {
 
   try {
     const timeoutMs = opts.timeout || 30000; // 30s
+    const messages = Array.isArray(opts.messages) && opts.messages.length
+      ? opts.messages
+      : [{ role: 'user', content: prompt || '' }];
     const completionPromise = client.chat.completions.create({
       model: opts.model || 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       max_tokens: opts.max_tokens || 800
     });
     const timeoutPromise = new Promise((_, reject) =>
@@ -77,8 +80,12 @@ const SAFETY_DISCLAIMER = `
 ---`;
 
 async function generateDiagnosticReport(text, candidates, docContext = ''){
+  const decisionEngine = require('./intelligentDecisionEngine');
+  const decisionBlock = decisionEngine.getDecisionFrameworkBlock();
   const context = (candidates||[]).slice(0,6).map((c,i)=>`[${i+1}] Manual: ${(c.title||'manual')}\n${(c.chunk_text||'').slice(0,600)}`).join('\n---\n');
-  const basePrompt = `Você é um assistente técnico industrial.${docContext ? '\n' + docContext : ''}
+  const basePrompt = `Você é um assistente técnico industrial.
+${decisionBlock}
+${docContext ? docContext + '\n' : ''}
 
 Mensagem do usuário: "${text}"
 

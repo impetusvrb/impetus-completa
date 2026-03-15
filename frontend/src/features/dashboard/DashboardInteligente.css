@@ -78,6 +78,16 @@
   min-height: 150px;
 }
 
+.dashboard-inteligente__widgets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-inteligente__widget-wrap {
+  min-width: 0;
+}
+
 .dashboard-inteligente__empty {
   padding: 32px;
   text-align: center;

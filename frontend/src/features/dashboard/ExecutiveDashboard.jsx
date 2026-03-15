@@ -15,6 +15,7 @@ import {
   AlertTriangle, Target, Activity, Zap, Clock, Bot, CheckCircle2,
   Sparkles, ArrowUpRight, ArrowDownRight, Building2, Eye, EyeOff
 } from 'lucide-react';
+import IndustryMap from './components/IndustryMap';
 import './ExecutiveDashboard.css';
 
 function getGreeting() {
@@ -171,6 +172,9 @@ export default function ExecutiveDashboard() {
             Modo Apresentacao ativo &mdash; dados sensiveis ocultados
           </div>
         )}
+
+        {/* Mapa Inteligente da Indústria - elemento central */}
+        <IndustryMap />
 
         {/* KPI CARDS */}
         <section className="exec-kpis">

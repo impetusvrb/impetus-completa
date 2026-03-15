@@ -72,9 +72,11 @@ async function aiEvaluateProposal(id, companyId, scope = null){
   const p = await getProposal(id, companyId, scope);
   if(!p) throw new Error('Proposta não encontrada');
   const coId = p.company_id || null;
+  const intelligentDecisionEngine = require('./intelligentDecisionEngine');
+  const decisionBlock = intelligentDecisionEngine.getDecisionFrameworkBlock();
   const docContext = await documentContext.buildAIContext({ companyId: coId, queryText: p.proposed_solution || '' });
   const promptBase = `Avalie a proposta de melhoria (Pró-Ação): Setor:${p.location} Categoria:${p.problem_category} Descrição:${p.proposed_solution}`;
-  const fullPrompt = docContext ? `${promptBase}\n\n${docContext}\n\nGere avaliação priorizada (viabilidade, impacto, esforço) em conformidade com a política Impetus e documentação da empresa.` : promptBase;
+  const fullPrompt = `${decisionBlock}\n\n${promptBase}\n\n${docContext || ''}\n\nGere avaliação priorizada (viabilidade, impacto, esforço). Siga o Motor de Decisão: não escolha a opção mais rápida ou fácil - escolha a mais equilibrada para pessoas, ética e resultado sustentável.`;
   let evaluation = { note: 'IA não configurada' };
   try{
     if(typeof ai.chatCompletion === 'function'){

@@ -47,7 +47,14 @@ const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalV
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
 const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
+const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
+const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
+const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
 const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
+const AdminWarehouse = lazy(() => import('./pages/AdminWarehouse'));
+const AdminLogistics = lazy(() => import('./pages/AdminLogistics'));
+const AlmoxarifadoInteligente = lazy(() => import('./pages/AlmoxarifadoInteligente'));
+const LogisticaInteligente = lazy(() => import('./pages/LogisticaInteligente'));
 const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
 
 function needSetup() {
@@ -110,7 +117,7 @@ function isCEO() {
 }
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente'];
+  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente', '/app/centro-previsao-operacional', '/app/centro-custos-industriais', '/app/mapa-vazamento-financeiro', '/app/settings'];
   if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
@@ -199,6 +206,15 @@ export default function App() {
         <Route path="/app/centro-operacoes-industrial" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
         } />
+        <Route path="/app/centro-previsao-operacional" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><CentroPrevisaoOperacional /></RoleGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-custos-industriais" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><CentroCustosExecutivo /></RoleGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/mapa-vazamento-financeiro" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><MapaVazamentoFinanceiro /></RoleGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
@@ -220,6 +236,10 @@ export default function App() {
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAudioLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/warehouse" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminWarehouse /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/logistics" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminLogistics /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><AlmoxarifadoInteligente /></RoleGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/logistica-inteligente" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><LogisticaInteligente /></RoleGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />

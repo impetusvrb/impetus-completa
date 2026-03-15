@@ -6,6 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const centralAI = require('../services/centralIndustryAIService');
+const intelligentDecisionEngine = require('../services/intelligentDecisionEngine');
+const industryMapService = require('../services/industryMapService');
 const { requireAuth } = require('../middleware/auth');
 
 function getCompanyId(req) {
@@ -93,6 +95,48 @@ router.get('/insights', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[CENTRAL_AI_INSIGHTS]', err);
     res.status(500).json({ ok: false, error: err.message || 'Erro ao carregar insights' });
+  }
+});
+
+/**
+ * GET /api/central-ai/industry-map
+ * Mapa Inteligente da Indústria - exclusivo CEO e Diretor
+ * Retorna estrutura operacional, setores, status, alertas, perdas estimadas
+ */
+router.get('/industry-map', requireAuth, async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
+    if (!industryMapService.isExecutive(req.user)) {
+      return res.status(403).json({ ok: false, error: 'Acesso restrito a CEO e Diretores', code: 'EXECUTIVE_MAP_REQUIRED' });
+    }
+    const map = await industryMapService.getIndustryMap(companyId, req.user);
+    if (!map) return res.status(403).json({ ok: false, error: 'Acesso não autorizado' });
+    res.json({ ok: true, map });
+  } catch (err) {
+    console.error('[INDUSTRY_MAP]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro ao carregar mapa' });
+  }
+});
+
+/**
+ * POST /api/central-ai/evaluate-decision
+ * Motor de Decisão Inteligente - análise explícita de múltiplos caminhos
+ * Body: { situation, candidatePaths?: string[], context?: {} }
+ */
+router.post('/evaluate-decision', requireAuth, async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { situation, candidatePaths, context = {} } = req.body || {};
+    const result = await intelligentDecisionEngine.evaluateDecision({
+      situation: situation || 'Situação operacional requer decisão',
+      candidatePaths: candidatePaths || [],
+      context: { ...context, companyId }
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[EVALUATE_DECISION]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro ao avaliar decisão' });
   }
 });
 

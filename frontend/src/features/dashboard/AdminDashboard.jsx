@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { Shield, FileText, BookOpen, Phone, Settings, Bot, Send, User, ArrowRight } from 'lucide-react';
+import IndustryMap from './components/IndustryMap';
 import { dashboard, adminSettings } from '../../services/api';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import './AdminDashboard.css';
@@ -131,6 +132,9 @@ export default function AdminDashboard() {
             Configurações completas
           </Link>
         </header>
+
+        {/* Mapa Inteligente da Indústria - CEO e Diretor */}
+        <IndustryMap />
 
         <div className="admin-dashboard__grid">
           <section className="admin-dashboard__docs">

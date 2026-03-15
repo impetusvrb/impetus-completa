@@ -1,13 +1,6 @@
 /**
  * Resumo Inteligente Diário/Semanal
  * Exibido no primeiro login do dia
-<<<<<<< HEAD
- *
- * NOTA: Esta rota NÃO está montada em app.js. O endpoint ativo é:
- * GET /api/dashboard/smart-summary (em routes/dashboard.js)
- * Este arquivo é legado; pode ser removido ou montado em /api/smart-summary se necessário.
-=======
->>>>>>> 9754784f6131f54576b436c0e7ab01f34d70062e
  */
 const express = require('express');
 const router = express.Router();

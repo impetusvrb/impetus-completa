@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
 const appImpetusService = require('./appImpetusService');
+const { getDecisionFrameworkBlock } = require('./intelligentDecisionEngine');
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
 const REVALIDATION_DAYS = 90; // Revalidação periódica
@@ -279,7 +280,13 @@ async function processExecutiveQuery(companyId, userId, query, modoApresentacao 
     ? '\nMODO APRESENTAÇÃO ATIVO: Oculte valores financeiros detalhados. Mostre apenas KPIs consolidados. Nunca exponha dados sensíveis.'
     : '';
 
-  const prompt = `Você é o assistente estratégico do CEO de uma indústria. Analise os dados e responda com insights executivos.
+  const decisionBlock = getDecisionFrameworkBlock();
+  const prompt = `Você é o assistente estratégico do CEO de uma indústria.
+${decisionBlock}
+
+Ao sugerir ações ou decisões, siga o Motor de Decisão: priorize segurança das pessoas, ética e proteção. Não escolha a opção mais rápida ou fácil.
+
+Analise os dados e responda com insights executivos.
 
 DADOS DO SISTEMA (JSON):
 ${dataContext}
