@@ -32,8 +32,10 @@ Painel inteligente para CEO e Diretores que analisa o estado atual da empresa e 
 - Exemplos: "Quanto a empresa pode perder em 7 dias?", "Qual máquina tem maior risco de quebrar?", "Existe risco de prejuízo nos próximos dias?"
 
 ### 6. Integração com Dados Industriais
-- Dados de sensores, equipamentos, machine_detected_events, plc_collected_data
-- Compatível com protocolos Modbus, OPC UA (via gateways configurados)
+- Dados de sensores, equipamentos, `machine_detected_events`, `plc_collected_data`
+- **PLC real:** Modbus TCP/RTU, OPC UA, REST (configuração em `machine_monitoring_config`)
+- **Edge:** ingest via `POST /api/integrations/edge/ingest`
+- **Produção turno:** `production_shift_data` (manual, MES/ERP ou PLC)
 
 ### 7. Segurança Industrial
 - Reutiliza o protocolo de intervenção humana já implementado
@@ -60,3 +62,5 @@ Painel inteligente para CEO e Diretores que analisa o estado atual da empresa e 
 | GET | `/dashboard/forecasting/simulation?hours=` | Simulação de futuro |
 | GET | `/dashboard/forecasting/health` | Saúde da empresa |
 | POST | `/dashboard/forecasting/ask` | Perguntar à IA |
+| GET | `/api/integrations/digital-twin/state` | Estado Digital Twin (mapa + layout) |
+| GET | `/api/integrations/production/shift` | KPIs produção do turno |

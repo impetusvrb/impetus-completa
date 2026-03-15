@@ -22,7 +22,7 @@
 pg_dump -U <user> -d impetusdb -F c -f impetus_backup_$(date +%Y%m%d_%H%M).dump
 ```
 
-### 2. Migration (criar tabela app_impetus_outbox)
+### 2. Migration (tabelas app_impetus, Indústria 4.0, etc.)
 
 **Opção A – Script isolado (recomendado se run-all-migrations falhar):**
 ```bash
@@ -35,11 +35,13 @@ node -r dotenv/config scripts/run-app-impetus-migration.js
 psql -U <user> -d impetusdb -f backend/src/models/app_impetus_outbox_migration.sql
 ```
 
-**Opção C – Run-all-migrations (se tiver permissões):**
+**Opção C – Run-all-migrations (recomendado):**
 ```bash
 cd backend
-node -r dotenv/config scripts/run-all-migrations.js
+npm run migrate
+# ou: node -r dotenv/config scripts/run-all-migrations.js
 ```
+Inclui: `lacunas_ind4_migration.sql` (machine_monitoring_config, integration_connectors, production_shift_data, plant_layout_config, digital_twin_machine_states, edge_agents, etc.)
 
 ### 3. Deploy do Backend
 ```bash
@@ -64,6 +66,7 @@ npm run build
 - [ ] Login funciona
 - [ ] Configurações → aba "Comunicação" aparece (não mais Z-API)
 - [ ] `GET /api/app-impetus/status` retorna `{ channel: 'app_impetus', status: 'connected' }`
+- [ ] Rotas Indústria 4.0 montadas: `app.use('/api/integrations', ...)` (ver `docs/ROTAS_REGISTRO.md`)
 
 ---
 

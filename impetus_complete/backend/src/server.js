@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({path:require('path').join(__dirname,'../.env'),override:true});
 const http = require('http');
 const { Server } = require('socket.io');
 const { initChatSocket } = require('./socket/chatSocket');
