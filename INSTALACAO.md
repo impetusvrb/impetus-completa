@@ -76,6 +76,13 @@ SALT=impetus_2025_TROQUE_POR_ALGO_ALEATORIO
 # Canal de mensagens: App Impetus (sem config extra)
 ```
 
+### **Executar migrations (Indústria 4.0, etc.)**
+
+```bash
+cd backend
+npm run migrate
+```
+
 ### **Iniciar Backend**
 
 ```bash
@@ -86,7 +93,7 @@ npm run dev
 npm start
 ```
 
-✅ **Backend rodando em**: `http://localhost:3000`
+✅ **Backend rodando em**: `http://localhost:4000` (ou porta definida em `PORT` no .env)
 
 ---
 
@@ -151,7 +158,7 @@ INSERT INTO users (
 ### **Opção B: Via API (Registro)**
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST http://localhost:4000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Admin Impetus",
@@ -231,7 +238,7 @@ docker-compose exec postgres psql -U postgres impetus_db < init-user.sql
 ### **Backend**
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:4000/health
 ```
 
 Resposta esperada:
@@ -289,11 +296,11 @@ curl https://api.openai.com/v1/models \
   -H "Authorization: Bearer SEU_TOKEN"
 ```
 
-### **Erro: "Port 3000 already in use"**
+### **Erro: "Port 4000 already in use"**
 
 ```bash
 # Mudar porta no .env
-PORT=3001
+PORT=4001
 ```
 
 ---
@@ -306,8 +313,9 @@ Após instalação bem-sucedida:
 2. ✅ **Criar departamentos** (Produção, Manutenção, etc)
 3. ✅ **Adicionar usuários** com diferentes hierarquias
 4. ✅ **Carregar POPs** da empresa
-5. ✅ **Adicionar equipamentos monitorados**
+5. ✅ **Adicionar equipamentos monitorados** (tabela `machine_monitoring_config` para PLC real)
 6. ✅ **Configurar Z-API** para WhatsApp
+7. ✅ **Integrações Indústria 4.0** — ver `docs/IND4_ARQUITETURA.md`
 
 ---
 

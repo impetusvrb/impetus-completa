@@ -34,6 +34,7 @@
 | `machineSafetyService.js` | Registro, liberação, verificação de bloqueio, instruções de segurança |
 | `machineControlService.js` | Verifica intervenção antes de executar qualquer comando |
 | `automationTriggerService.js` | IA aciona compressor/equipamento em eventos (pressão baixa, etc.) |
+| `machine_monitoring_config` | Cadastro de equipamentos (identificação para automação e coleta) |
 | `IndustrialOperationsCenter.jsx` | Aba Intervenção, aviso de segurança, formulário de registro e liberação |
 
 ---

@@ -69,3 +69,4 @@ npm run dev
 - **Impetus IA** – Assistente de IA no dashboard
 - **App Communications** – API para app mobile
 - **Dashboard executivo** – Visão CEO
+- **Indústria 4.0** – PLC, MES/ERP, Digital Twin, Edge, produção em tempo real (ver `docs/IND4_ARQUITETURA.md`)

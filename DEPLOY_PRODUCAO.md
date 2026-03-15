@@ -42,9 +42,12 @@ location /api {
 ## Migrations
 
 ```bash
-cd impetus_complete/backend
-node -r dotenv/config scripts/run-all-migrations.js
+cd backend
+npm run migrate
+# ou: node -r dotenv/config scripts/run-all-migrations.js
 ```
+
+Inclui tabelas Indústria 4.0: `machine_monitoring_config`, `integration_connectors`, `production_shift_data`, `edge_agents`, etc.
 
 ## Variáveis críticas para produção
 

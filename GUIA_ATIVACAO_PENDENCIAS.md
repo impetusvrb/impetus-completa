@@ -65,11 +65,24 @@ WHERE table_name = 'plans' AND constraint_type = 'UNIQUE';
 
 ---
 
+---
+
+## 5. Indústria 4.0 (PLC, Edge, Digital Twin)
+
+### Migrations
+Execute `npm run migrate` no backend para criar tabelas: `machine_monitoring_config`, `integration_connectors`, `production_shift_data`, `plant_layout_config`, `digital_twin_machine_states`, `edge_agents`.
+
+### Rotas
+Verifique se `app.use('/api/integrations', ...)` está montado. Ver `docs/ROTAS_REGISTRO.md`.
+
+---
+
 ## Resumo de Ações
 
 | Item | Ação | Prioridade |
 |------|------|------------|
 | Claude | Adicionar ANTHROPIC_API_KEY no .env | Opcional |
 | Licença | Manter false em dev | OK |
-| Migrations | Corrigidas | Concluído |
+| Migrations | `npm run migrate` (inclui Indústria 4.0) | Obrigatório |
 | Z-API | Removido | N/A |
+| Indústria 4.0 | Rotas em /api/integrations | Verificar montagem |
