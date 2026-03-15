@@ -127,6 +127,8 @@ export default function Layout({ children }) {
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/admin/audio-logs', icon: Mic, label: 'Logs de Áudio' },
+      { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     diretor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
