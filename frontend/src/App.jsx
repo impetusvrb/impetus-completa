@@ -46,6 +46,9 @@ const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
+const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
+const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
+const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
 
 function needSetup() {
   try {
@@ -215,6 +218,9 @@ export default function App() {
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAudioLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
         <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
