@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { auth } from '../services/api';
+import loginBg from '../assets/login-bg.png';
+import logoImpetus from '../assets/logo-impetus-login.png';
 import './Login.css';
 
 export default function Login() {
@@ -43,8 +45,17 @@ export default function Login() {
         navigate('/validacao-cargo');
         return;
       }
-      const userRole = data.user?.role;
-      navigate(userRole === 'colaborador' ? '/app/proacao' : '/app');
+      const userRole = (data.user?.role || '').toLowerCase();
+      // Admin só cadastra, não visualiza dashboard → entra direto no Impetus IA.
+      if (userRole === 'admin') {
+        navigate('/app/chatbot');
+        return;
+      }
+      if (userRole === 'colaborador') {
+        navigate('/app/proacao');
+        return;
+      }
+      navigate('/app');
     } catch (err) {
       console.error('Erro no login:', err);
       setError(err.apiMessage || err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
@@ -54,7 +65,15 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page">
+    <div
+      className="login-page"
+      style={{
+        backgroundImage: `url(${loginBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       <div className="login-background">
         <div className="bg-orb bg-orb-1"></div>
         <div className="bg-orb bg-orb-2"></div>
@@ -67,8 +86,8 @@ export default function Login() {
           <div className="login-header">
             <div className="login-logo-wrapper">
               <img
-                src="/logo-impetus.jpg"
-                alt="Impetus - Plataforma de Inteligência Operacional Industrial"
+                src={logoImpetus}
+                alt="IMPETUS - Plataforma de Inteligência Operacional Industrial"
                 className="login-logo-img"
               />
             </div>

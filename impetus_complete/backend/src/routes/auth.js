@@ -65,6 +65,7 @@ router.post('/login', async (req, res) => {
       is_company_root: user.is_company_root
     });
 
+    const roleNormalized = (user.role || 'colaborador').toString().toLowerCase();
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -72,7 +73,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: roleNormalized,
         company_id: user.company_id,
         is_first_access: user.is_first_access,
         role_verified: user.role_verified === true,

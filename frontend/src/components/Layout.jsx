@@ -42,6 +42,8 @@ import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
+import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
+import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './Layout.css';
 
 export default function Layout({ children }) {
@@ -112,8 +114,10 @@ export default function Layout({ children }) {
   const { filterMenu, canAccessPath, loading: modulesLoading } = useVisibleModules();
 
   if (!modulesLoading && location.pathname !== '/app' && !canAccessPath(location.pathname)) {
+    if (role === 'admin') return <Navigate to="/app/chatbot" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
+  if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/chatbot" replace />;
 
   const MENUS = {
     admin: [
@@ -126,7 +130,7 @@ export default function Layout({ children }) {
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/admin/audio-logs', icon: Mic, label: 'Logs de Áudio' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
@@ -211,23 +215,24 @@ export default function Layout({ children }) {
 
   return (
     <div className="layout">
-      {/* Sidebar */}
+      {/* Sidebar - Redesign IMPETUS */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          <div className={`logo ${sidebarOpen ? 'logo-open' : 'logo-closed'}`}>
-            <img
-              src="/logo-impetus-new.jpg"
-              alt="Impetus"
-              className="sidebar-logo-img"
-            />
-          </div>
+        <div className="logo-area">
+          {sidebarOpen ? (
+            <>
+              <div className="logo-impetus">IMPETUS</div>
+              <div className="logo-line" />
+              <div className="logo-sub">Plataforma de Inteligência<br />Operacional Industrial</div>
+            </>
+          ) : (
+            <div className="logo-impetus" style={{ fontSize: 16, letterSpacing: 1 }}>I</div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
             return (
               <Link
                 key={item.path}
@@ -235,11 +240,12 @@ export default function Layout({ children }) {
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}
               >
+                <span className="nav-dot" />
                 {item.aiIcon
-                  ? <img src="/ai-avatar.png" alt="IA" style={{width:22,height:22,borderRadius:'50%',objectFit:'cover',border:'1.5px solid #1E90FF'}} />
+                  ? <img src={impetusIaAvatar} alt="IA" className="nav-item-ia-icon" />
                   : item.chatIcon
-                  ? <img src="/icons/chat-icon-192.png" style={{width:20,height:20,borderRadius:'50%',objectFit:'cover'}} />
-                  : <Icon size={20} />}
+                  ? <img src={chatSidebarIcon} alt="Chat" className="nav-item-chat-icon" />
+                  : <Icon size={18} />}
                 {sidebarOpen && <span>{item.label}</span>}
               </Link>
             );
@@ -256,21 +262,25 @@ export default function Layout({ children }) {
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Header */}
-        <header className="header">
+        {/* Topbar - Redesign IMPETUS */}
+        <header className="topbar header">
           <div className="header-left">
-            <h2 className="greeting">
-              Bem-vindo, <strong>{user.name}</strong>
-            </h2>
-            <p className="date-time" title="Data e hora atual">
-              {getFormattedDate()} | {currentTime}
+            <div className="welcome greeting">
+              Bem-vindo, <span>{user.name}</span>
+            </div>
+            <p className="datetime date-time" title="Data e hora atual">
+              {getFormattedDate()} {currentTime}
             </p>
           </div>
 
           <div className="header-right" ref={headerDropdownRef}>
+            <div className="sys-status" title="Status do sistema">
+              <span className="pulse" />
+              OPERACIONAL
+            </div>
             <div className="header-dropdown-wrapper">
               <button
-                className={`header-icon-btn ${showNotifications ? 'active' : ''}`}
+                className={`icon-btn header-icon-btn ${showNotifications ? 'active' : ''} ${notificationCount > 0 ? 'has-alert' : ''}`}
                 title="Notificações"
                 onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); setShowHelp(false); }}
                 aria-expanded={showNotifications}
@@ -294,7 +304,7 @@ export default function Layout({ children }) {
 
             <div className="header-dropdown-wrapper">
               <button
-                className={`header-icon-btn ${showProfile ? 'active' : ''}`}
+                className={`icon-btn header-icon-btn ${showProfile ? 'active' : ''}`}
                 title="Perfil"
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); setShowHelp(false); }}
                 aria-expanded={showProfile}
@@ -327,7 +337,7 @@ export default function Layout({ children }) {
 
             <div className="header-dropdown-wrapper">
               <button
-                className={`header-icon-btn ${showHelp ? 'active' : ''}`}
+                className={`icon-btn header-icon-btn ${showHelp ? 'active' : ''}`}
                 title="Ajuda"
                 onClick={() => { setShowHelp(!showHelp); setShowNotifications(false); setShowProfile(false); }}
                 aria-expanded={showHelp}
@@ -362,12 +372,12 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            <button 
-              className="header-icon-btn" 
+            <button
+              className="icon-btn header-icon-btn"
               title="Sair"
               onClick={handleLogout}
             >
-              <LogOut size={20} />
+              <LogOut size={18} />
             </button>
           </div>
         </header>

@@ -39,6 +39,8 @@ export function filterMenuByModules(menuItems, visibleModules) {
   if (!visibleModules || visibleModules.length === 0) return menuItems;
   const set = new Set(visibleModules);
   return menuItems.filter((item) => {
+    // Dashboard (/app) sempre visível quando está no menu do cargo
+    if (item.path === '/app') return true;
     const mod = getModuleForPath(item.path);
     if (!mod) return true;
     return set.has(mod);
