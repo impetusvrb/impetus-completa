@@ -22,24 +22,8 @@ function auditContext(req) {
 }
 
 /**
-<<<<<<< HEAD
- * GET /api/user-identification/status
- * Status atual: needs_activation | needs_daily_verify | verified
- * Funciona sem company_id (primeiro acesso / usuário sem empresa)
- */
-router.get('/status', requireAuth, async (req, res) => {
-  try {
-    const status = await userIdentification.getIdentificationStatus(req.user);
-    res.json({ ok: true, ...status });
-  } catch (err) {
-    console.error('[IDENTIFICATION_STATUS_ERROR]', err);
-    res.status(500).json({ ok: false, error: err.message, status: 'needs_activation' });
-  }
-});
-=======
  * GET /status - Tratado em app.js (apenas requireAuth, sem requireCompanyActive)
  */
->>>>>>> 9754784f6131f54576b436c0e7ab01f34d70062e
 
 /**
  * POST /api/user-identification/activation/start
