@@ -200,6 +200,7 @@ export const dashboard = {
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
   getWidgets: () => api.get('/dashboard/widgets'),
+  getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
 
   getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
   saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),
@@ -295,6 +296,33 @@ export const dashboard = {
     addMachine: (data) => api.post('/dashboard/industrial/machines', data),
     updateMachine: (id, data) => api.put(`/dashboard/industrial/machines/${id}`, data),
     deleteMachine: (id) => api.delete(`/dashboard/industrial/machines/${id}`)
+  },
+
+  forecasting: {
+    getProjections: (metric) => api.get('/dashboard/forecasting/projections', { params: { metric: metric || 'eficiencia' } }),
+    getAlerts: (limit) => api.get('/dashboard/forecasting/alerts', { params: { limit: limit || 15 } }),
+    getSimulation: (hours) => api.get('/dashboard/forecasting/simulation', { params: { hours: hours || 48 } }),
+    getHealth: () => api.get('/dashboard/forecasting/health'),
+    ask: (question) => api.post('/dashboard/forecasting/ask', { question }),
+    getExtendedProjections: () => api.get('/dashboard/forecasting/extended-projections'),
+    getProfitLoss: (days) => api.get('/dashboard/forecasting/profit-loss', { params: { days: days || 14 } }),
+    getCriticalFactors: () => api.get('/dashboard/forecasting/critical-factors'),
+    simulateDecision: (action, value) => api.post('/dashboard/forecasting/simulate-decision', { action, value }),
+    getConfig: () => api.get('/dashboard/forecasting/config'),
+    updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
+  },
+  costs: {
+    getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
+    getByOrigin: () => api.get('/dashboard/costs/by-origin'),
+    getTopLoss: () => api.get('/dashboard/costs/top-loss'),
+    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss')
+  },
+  financialLeakage: {
+    getMap: () => api.get('/dashboard/financial-leakage/map'),
+    getRanking: () => api.get('/dashboard/financial-leakage/ranking'),
+    getAlerts: () => api.get('/dashboard/financial-leakage/alerts'),
+    getReport: () => api.get('/dashboard/financial-leakage/report'),
+    getProjectedImpact: () => api.get('/dashboard/financial-leakage/projected-impact')
   }
 };
 
@@ -377,6 +405,18 @@ export const tasks = {
   
   delete: (id) => 
     api.delete(`/tasks/${id}`)
+};
+
+// ============================================================================
+// INTEGRAÇÕES (MES/ERP, Edge, Digital Twin)
+// ============================================================================
+
+export const integrations = {
+  listConnectors: () => api.get('/integrations/mes-erp/connectors'),
+  createConnector: (data) => api.post('/integrations/mes-erp/connectors', data),
+  registerEdge: (data) => api.post('/integrations/edge/register', data),
+  getDigitalTwinState: () => api.get('/integrations/digital-twin/state'),
+  saveDigitalTwinLayout: (data) => api.put('/integrations/digital-twin/layout', data)
 };
 
 // ============================================================================
