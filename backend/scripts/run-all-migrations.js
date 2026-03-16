@@ -14,7 +14,8 @@ const MODELS_DIR = path.join(__dirname, '../src/models');
 const MIGRATIONS_ORDER = [
   'lacunas_ind4_migration.sql',
   'industrial_intelligence_extended_migration.sql',
-  'machine_safety_intervention_migration.sql'
+  'machine_safety_intervention_migration.sql',
+  'audio_logs_migration.sql'
 ];
 
 async function runMigration(fileName) {

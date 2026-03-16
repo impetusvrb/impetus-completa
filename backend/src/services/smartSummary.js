@@ -182,8 +182,9 @@ Seja conciso e acionável. Máximo 600 palavras.`;
 
   const docContext = await documentContext.buildAIContext({
     companyId: opts.companyId,
-    queryText: '',
-    forDiagnostic: false
+    queryText: opts.queryText || '',
+    forDiagnostic: false,
+    user: opts.user || null
   });
   const fullPrompt = docContext
     ? `${prompt}\n\n${docContext}`

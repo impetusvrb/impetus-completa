@@ -126,7 +126,7 @@ export default function Layout({ children }) {
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/admin/audio-logs', icon: Mic, label: 'Logs de Áudio' },
+      { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],

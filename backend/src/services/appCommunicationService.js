@@ -87,6 +87,24 @@ async function processAppMessage(opts) {
       [communicationId, communicationId]
     );
 
+    if (mediaTranscription && (mediaUrl || mediaPath)) {
+      try {
+        const audioLogs = require('./audioLogsService');
+        await audioLogs.persist({
+          companyId,
+          source: 'app_communication',
+          sourceId: communicationId,
+          userId: senderId,
+          senderName: senderName || 'Usuario App',
+          mediaUrl: mediaUrl || mediaPath,
+          transcription: mediaTranscription,
+          messageType
+        });
+      } catch (e) {
+        console.warn('[APP_COMM] audioLogs.persist:', e?.message);
+      }
+    }
+
     const logOpts = {
       relatedCommunicationId: communicationId,
       conversationThreadId: communicationId

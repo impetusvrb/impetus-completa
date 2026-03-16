@@ -29,6 +29,7 @@ app.use('/api/plc-alerts',              safe('./routes/plcAlerts'));
 app.use('/api/integrations',             safe('./routes/integrations'));
 app.use('/api/webhook',                  safe('./routes/webhook'));
 app.use('/api/admin',                    safe('./routes/admin'));
+app.use('/api/dashboard',                safe('./routes/dashboard'));
 app.use('/api/diagnostics',              safe('./routes/diagnostic'));
 app.use('/api/cadastrar-com-ia',         safe('./routes/cadastrarComIA'));
 app.use('/api/intelligent-registration', safe('./routes/intelligentRegistration'));

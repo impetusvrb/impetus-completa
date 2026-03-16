@@ -5,7 +5,10 @@ const { isValidUUID } = require('../utils/security');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const { requireAuth } = require('../middleware/auth');
 
-router.post('/', requireAuth, async (req, res) => {
+// Autenticação obrigatória para todas as rotas (evita 401 quando app não aplica auth globalmente)
+router.use(requireAuth);
+
+router.post('/', async (req, res) => {
   try {
     const payload = { ...req.body, company_id: req.user.company_id };
     const p = await proacao.createProposal(payload);

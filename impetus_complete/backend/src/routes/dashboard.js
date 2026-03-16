@@ -34,6 +34,7 @@ function invalidateDashboardCache(userId) {
   del(makeKey('dashboard:me', String(userId)));
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+const dynamicDashboardService = require('../services/dynamicDashboardService');
 const maintenanceDashboard = require('../services/maintenanceDashboardService');
 const multimodalChat = require('../services/multimodalChatService');
 const audioMonitoring = require('../services/audioMonitoringService');
@@ -116,6 +117,27 @@ router.get('/config', requireAuth, (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_CONFIG_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar configuração' });
+  }
+});
+
+/**
+ * GET /api/dashboard/dynamic-layout
+ * Layout dinâmico de widgets conforme perfil do usuário (cargo, departamento, hierarquia).
+ * Usado pelo Dashboard Dinâmico no frontend.
+ */
+router.get('/dynamic-layout', requireAuth, (req, res) => {
+  try {
+    const result = dynamicDashboardService.getDynamicLayout(req.user);
+    res.json({
+      ok: true,
+      widgets: result.widgets,
+      layout: result.layout,
+      userProfile: result.userProfile,
+      alerts: result.alerts || []
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_DYNAMIC_LAYOUT_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao montar layout dinâmico' });
   }
 });
 

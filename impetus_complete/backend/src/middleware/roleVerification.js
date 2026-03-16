@@ -19,7 +19,7 @@ const STRATEGIC_PATHS = [
   '/dashboard/maintenance',
   '/dashboard/industrial',
   '/dashboard/audio',
-  '/proacao',
+  // '/proacao' removido: módulo operacional para colaboradores, não exige verificação
   '/admin/audit-logs',
   '/admin/users',
   '/plc-alerts',

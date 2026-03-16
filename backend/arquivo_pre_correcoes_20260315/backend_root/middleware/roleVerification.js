@@ -22,7 +22,7 @@ const STRATEGIC_PATHS = [
   // '/proacao' removido: módulo operacional para colaboradores, não exige verificação de cargo
   '/admin/audit-logs',
   '/admin/users',
-  // '/plc-alerts' removido: alertas operacionais de manutenção, não exige verificação de cargo
+  '/plc-alerts',
   '/communications'
 ];
 

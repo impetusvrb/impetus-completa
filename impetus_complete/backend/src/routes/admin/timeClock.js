@@ -6,7 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireHierarchy } = require('../../middleware/auth');
-const timeClock = require('../../services/timeClockIntegrationService');
+let timeClock;
+try { timeClock = require('../../services/timeClockIntegrationService'); } catch (_) { timeClock = null; }
 const { z } = require('zod');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
@@ -26,6 +27,7 @@ const upsertSchema = z.object({
  * Lista sistemas de ponto disponíveis (catálogo)
  */
 router.get('/systems', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const systems = await timeClock.listSystems();
     res.json({ ok: true, systems });
@@ -40,6 +42,7 @@ router.get('/systems', ...adminMw, async (req, res) => {
  * Obtém integração da empresa (sem credenciais)
  */
 router.get('/integration', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
@@ -56,6 +59,7 @@ router.get('/integration', ...adminMw, async (req, res) => {
  * Cria/atualiza integração (api_url, api_key, sync, etc.)
  */
 router.put('/integration', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const parsed = upsertSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -76,6 +80,7 @@ router.put('/integration', ...adminMw, async (req, res) => {
  * Valida conexão com sistema externo
  */
 router.post('/validate', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
@@ -93,6 +98,7 @@ router.post('/validate', ...adminMw, async (req, res) => {
  * Body: { records: [{ user_id?, external_employee_id?, employee_name, record_date, clock_in, clock_out, ... }] }
  */
 router.post('/import', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const { records } = req.body;
     if (!Array.isArray(records) || records.length === 0) {
@@ -113,6 +119,7 @@ router.post('/import', ...adminMw, async (req, res) => {
  * Executa sincronização manual (últimos 7 dias)
  */
 router.post('/sync', ...adminMw, async (req, res) => {
+  if (!timeClock) return res.status(503).json({ ok: false, error: 'Módulo de ponto desativado' });
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
