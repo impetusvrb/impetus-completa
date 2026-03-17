@@ -106,6 +106,7 @@ async function generateSummary(opts) {
     commSummary,
     openComms,
     openProposals,
+    userCtx,
   } = opts;
 
   const periodo = isWeekly ? 'últimos 7 dias' : 'ontem';

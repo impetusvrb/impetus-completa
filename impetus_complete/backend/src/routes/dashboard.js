@@ -152,8 +152,6 @@ router.post('/invalidar-cache', requireAuth, async (req, res) => {
 });
 
 /**
-=======
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
  * GET /api/dashboard/dynamic-layout
  * Layout dinâmico de widgets conforme perfil do usuário (cargo, departamento, hierarquia).
  * Usado pelo Dashboard Dinâmico no frontend.
@@ -166,14 +164,10 @@ router.get('/dynamic-layout', requireAuth, (req, res) => {
       widgets: result.widgets,
       layout: result.layout,
       userProfile: result.userProfile,
-<<<<<<< HEAD
       alerts: result.alerts || [],
       version: result.version || '3.0',
       generatedAt: result.generatedAt,
       ttl: result.ttl ?? 300
-=======
-      alerts: result.alerts || []
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
     });
   } catch (err) {
     console.error('[DASHBOARD_DYNAMIC_LAYOUT_ERROR]', err);
@@ -1180,12 +1174,16 @@ router.post('/log-activity', requireAuth, async (req, res) => {
  */
 router.get('/smart-summary', requireAuth, async (req, res) => {
   try {
-    const result = await smartSummary.buildSmartSummary(
-      req.user.id,
-      req.user.name,
-      req.user.company_id,
-      req.user
-    );
+    const timeoutMs = 8000;
+    const result = await Promise.race([
+      smartSummary.buildSmartSummary(
+        req.user.id,
+        req.user.name,
+        req.user.company_id,
+        req.user
+      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('SMART_SUMMARY_TIMEOUT')), timeoutMs)),
+    ]);
     res.json({
       ok: true,
       ...result
@@ -1240,7 +1238,7 @@ router.post('/chat',
     // Verificação de dados sigilosos
     const sensitivePatterns = [
       /senha/i, /password/i, /credencial/i,
-      /dados pessoais/i, /cpf/i, /rg/i, /salario/i, /salário/i,
+      /dados pessoais/i, /cpf/i, /rg/i, /salario/i, /salário/i,
       /folha de pagamento/i, /financeiro confidencial/i, /contrato confidencial/i,
       /dados bancários/i, /conta bancária/i, /chave pix/i,
       /token/i, /api.?key/i, /secret/i
