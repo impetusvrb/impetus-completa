@@ -71,20 +71,26 @@ async function queryTasks(companyId, extraWhere = '') {
  */
 async function queryMonitoredPoints(scope, companyId) {
   if (!companyId) return 0;
-  if (scope?.isFullAccess) {
-    const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
+  try {
+    if (scope?.isFullAccess) {
+      const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
+      return parseInt(r.rows[0]?.total || 0, 10);
+    }
+    const deptIds = scope?.managedDepartmentIds;
+    if (!deptIds?.length) {
+      const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
+      return parseInt(r.rows[0]?.total || 0, 10);
+    }
+    const r = await db.query(
+      'SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true AND (department_id = ANY($2) OR department_id IS NULL)',
+      [companyId, deptIds]
+    );
     return parseInt(r.rows[0]?.total || 0, 10);
+  } catch (e) {
+    // Evita travar o dashboard quando a tabela não existe no ambiente
+    if (e?.code === '42P01' || e?.message?.includes('does not exist')) return 0;
+    throw e;
   }
-  const deptIds = scope?.managedDepartmentIds;
-  if (!deptIds?.length) {
-    const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
-    return parseInt(r.rows[0]?.total || 0, 10);
-  }
-  const r = await db.query(
-    'SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true AND (department_id = ANY($2) OR department_id IS NULL)',
-    [companyId, deptIds]
-  );
-  return parseInt(r.rows[0]?.total || 0, 10);
 }
 
 /**

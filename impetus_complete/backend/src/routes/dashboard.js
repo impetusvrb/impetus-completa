@@ -1190,9 +1190,14 @@ router.get('/smart-summary', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('[SMART_SUMMARY_ERROR]', err);
-    res.status(500).json({
-      ok: false,
-      error: 'Erro ao gerar resumo',
+    // Nunca travar o frontend: responda rápido com fallback (200)
+    res.json({
+      ok: true,
+      summary: null,
+      isWeekly: false,
+      periodo: 'diário',
+      openCommsCount: 0,
+      openProposalsCount: 0,
       fallback: 'Resumo temporariamente indisponível.'
     });
   }
