@@ -122,6 +122,7 @@ router.get('/config', requireAuth, (req, res) => {
 });
 
 /**
+<<<<<<< HEAD
  * GET /api/dashboard/personalizado
  * Config personalizado por perfil (cargo, departamento) para Centro de Comando
  */
@@ -151,6 +152,8 @@ router.post('/invalidar-cache', requireAuth, async (req, res) => {
 });
 
 /**
+=======
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
  * GET /api/dashboard/dynamic-layout
  * Layout dinâmico de widgets conforme perfil do usuário (cargo, departamento, hierarquia).
  * Usado pelo Dashboard Dinâmico no frontend.
@@ -163,10 +166,14 @@ router.get('/dynamic-layout', requireAuth, (req, res) => {
       widgets: result.widgets,
       layout: result.layout,
       userProfile: result.userProfile,
+<<<<<<< HEAD
       alerts: result.alerts || [],
       version: result.version || '3.0',
       generatedAt: result.generatedAt,
       ttl: result.ttl ?? 300
+=======
+      alerts: result.alerts || []
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
     });
   } catch (err) {
     console.error('[DASHBOARD_DYNAMIC_LAYOUT_ERROR]', err);

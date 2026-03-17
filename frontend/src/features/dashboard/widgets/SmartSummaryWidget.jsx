@@ -1,16 +1,24 @@
 /**
+<<<<<<< HEAD
  * Widget Resumo Inteligente - resumo diário/semanal gerado pela IA (spec v3: skeleton + error + empty)
+=======
+ * Widget Resumo Inteligente - resumo diário/semanal gerado pela IA
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight } from 'lucide-react';
 import { dashboard } from '../../../services/api';
+<<<<<<< HEAD
 import WidgetSkeleton from '../components/WidgetSkeleton';
+=======
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 
 export default function SmartSummaryWidget() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [error, setError] = useState(false);
 
   const load = () => {
@@ -39,6 +47,21 @@ export default function SmartSummaryWidget() {
       </div>
     );
   }
+=======
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboard.getSmartSummary()
+      .then((r) => {
+        if (cancelled) return;
+        const s = r?.data?.summary ?? r?.data?.fallback;
+        if (s) setSummary(typeof s === 'string' ? s : (s.text || s.content || ''));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 
   return (
     <div className="dashboard-widget dashboard-widget--summary">
@@ -48,7 +71,13 @@ export default function SmartSummaryWidget() {
           Perguntar à IA <ChevronRight size={18} />
         </button>
       </div>
+<<<<<<< HEAD
       {summary ? (
+=======
+      {loading ? (
+        <p className="dashboard-widget__loading">Gerando resumo...</p>
+      ) : summary ? (
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
         <p className="dashboard-widget__summary-text">{(typeof summary === 'string' ? summary : '').slice(0, 280)}{(typeof summary === 'string' && summary.length > 280) ? '...' : ''}</p>
       ) : (
         <p className="dashboard-widget__empty">Use o Chat IA para obter um resumo personalizado.</p>

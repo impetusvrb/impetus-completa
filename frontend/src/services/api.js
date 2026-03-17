@@ -324,6 +324,7 @@ export const dashboard = {
     updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
   },
   costs: {
+<<<<<<< HEAD
     // Painel executivo (visão geral de custos)
     getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
     getByOrigin: () => api.get('/dashboard/costs/by-origin'),
@@ -335,6 +336,12 @@ export const dashboard = {
     createItem: (data) => api.post('/dashboard/costs/items', data),
     updateItem: (id, data) => api.put(`/dashboard/costs/items/${id}`, data),
     deleteItem: (id) => api.delete(`/dashboard/costs/items/${id}`)
+=======
+    getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
+    getByOrigin: () => api.get('/dashboard/costs/by-origin'),
+    getTopLoss: () => api.get('/dashboard/costs/top-loss'),
+    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss')
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
   },
   financialLeakage: {
     getMap: () => api.get('/dashboard/financial-leakage/map'),

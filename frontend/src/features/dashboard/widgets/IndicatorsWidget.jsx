@@ -1,9 +1,14 @@
 /**
+<<<<<<< HEAD
  * Widget de Indicadores - KPIs rápidos do dashboard (spec v3: 6 estados)
+=======
+ * Widget de Indicadores - KPIs rápidos do dashboard
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
  */
 import React, { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { dashboard } from '../../../services/api';
+<<<<<<< HEAD
 import WidgetSkeleton from '../components/WidgetSkeleton';
 import { WIDGET_STATES } from '../components/WidgetState';
 
@@ -47,6 +52,23 @@ export default function IndicatorsWidget() {
       </div>
     );
   }
+=======
+
+export default function IndicatorsWidget() {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboard.getSummary()
+      .then((r) => { if (!cancelled && r?.data?.summary) setSummary(r.data.summary); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return <div className="dashboard-widget dashboard-widget--indicators"><p className="dashboard-widget__loading">Carregando...</p></div>;
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 
   const inter = summary?.operational_interactions || {};
   const insights = summary?.ai_insights || {};

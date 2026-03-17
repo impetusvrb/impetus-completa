@@ -15,6 +15,7 @@ export default function DashboardDinamico() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+<<<<<<< HEAD
   const enableDynamicDashboard = import.meta.env.VITE_ENABLE_DYNAMIC_DASHBOARD !== 'false';
 
   /** Layout padrão quando a API falha (rota inexistente, sem dados ou erro no servidor) */
@@ -32,6 +33,8 @@ export default function DashboardDinamico() {
     fromFallback: true
   });
 
+=======
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
   const loadLayout = () => {
     setLoading(true);
     setError(null);
@@ -41,6 +44,7 @@ export default function DashboardDinamico() {
         if (data && data.ok !== false && Array.isArray(data.widgets)) {
           setLayout({
             widgets: data.widgets,
+<<<<<<< HEAD
             layout: data.layout || { grid: 'responsive', columns: 4 },
             userProfile: data.userProfile || {},
             alerts: data.alerts || [],
@@ -57,10 +61,22 @@ export default function DashboardDinamico() {
         setError(e);
         setLayout(getFallbackLayout());
       })
+=======
+            layout: data.layout || { grid: 'responsive', columns: 12 },
+            userProfile: data.userProfile || {},
+            alerts: data.alerts || []
+          });
+        } else {
+          setLayout({ widgets: [], layout: { grid: 'responsive', columns: 12 }, userProfile: data?.userProfile || {}, alerts: data?.alerts || [] });
+        }
+      })
+      .catch((e) => setError(e))
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
+<<<<<<< HEAD
     if (!enableDynamicDashboard) {
       setLayout({ widgets: [], layout: { columns: 4 }, userProfile: {}, alerts: [] });
       setLoading(false);
@@ -68,6 +84,10 @@ export default function DashboardDinamico() {
     }
     loadLayout();
   }, [enableDynamicDashboard]);
+=======
+    loadLayout();
+  }, []);
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 
   if (loading) {
     return (
@@ -80,14 +100,19 @@ export default function DashboardDinamico() {
     );
   }
 
+<<<<<<< HEAD
   const { widgets = [], userProfile = {}, alerts: globalAlerts = [], fromFallback } = layout || {};
 
   if (error && (!layout || (layout.widgets && layout.widgets.length === 0))) {
+=======
+  if (error) {
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
     return (
       <Layout>
         <div className="dashboard-dinamico dashboard-dinamico--error">
           <AlertTriangle size={48} />
           <p>Não foi possível carregar o dashboard.</p>
+<<<<<<< HEAD
           <p className="dashboard-dinamico__error-hint">
             {error?.response?.status === 404
               ? 'A rota do dashboard dinâmico não está disponível no servidor.'
@@ -95,6 +120,8 @@ export default function DashboardDinamico() {
                 ? 'Faça login novamente.'
                 : 'Pode ser falha de rede, servidor ou falta de dados do perfil.'}
           </p>
+=======
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
           <button type="button" className="btn btn-primary" onClick={loadLayout}>
             <RefreshCw size={18} /> Tentar novamente
           </button>
@@ -103,6 +130,7 @@ export default function DashboardDinamico() {
     );
   }
 
+<<<<<<< HEAD
   return (
     <Layout>
       <div className="dashboard-dinamico">
@@ -115,6 +143,13 @@ export default function DashboardDinamico() {
             </button>
           </div>
         )}
+=======
+  const { widgets = [], userProfile = {}, alerts: globalAlerts = [] } = layout || {};
+
+  return (
+    <Layout>
+      <div className="dashboard-dinamico">
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
         <header className="dashboard-dinamico__header">
           <h1 className="dashboard-dinamico__title">Centro de Inteligência Industrial</h1>
           <div className="dashboard-dinamico__profile">
@@ -155,18 +190,23 @@ export default function DashboardDinamico() {
           </section>
         )}
 
+<<<<<<< HEAD
         {!enableDynamicDashboard ? (
           <div className="dashboard-dinamico__empty">
             <p>Dashboard dinâmico desativado (feature flag).</p>
             <p className="dashboard-dinamico__empty-hint">Ative VITE_ENABLE_DYNAMIC_DASHBOARD para usar o Centro de Inteligência Industrial.</p>
           </div>
         ) : widgets.length === 0 ? (
+=======
+        {widgets.length === 0 ? (
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
           <div className="dashboard-dinamico__empty">
             <p>Nenhum widget disponível para seu perfil no momento.</p>
             <p className="dashboard-dinamico__empty-hint">Entre em contato com o administrador para ajustar permissões.</p>
           </div>
         ) : (
           <div className="dashboard-dinamico__grid">
+<<<<<<< HEAD
             {widgets.map((w, index) => {
               const Component = getWidgetComponent(w.id);
               const position = w.position || {};
@@ -180,6 +220,18 @@ export default function DashboardDinamico() {
                   style={{
                     gridColumn: span === 2 ? 'span 2' : undefined,
                     gridRow: position.height ? `span ${position.height}` : undefined
+=======
+            {widgets.map((w) => {
+              const Component = getWidgetComponent(w.id);
+              const size = w.size || { w: 6, h: 3 };
+              return (
+                <div
+                  key={w.id}
+                  className="dashboard-dinamico__cell"
+                  style={{
+                    gridColumn: `span ${Math.min(size.w || 6, 12)}`,
+                    gridRow: `span ${size.h || 3}`
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
                   }}
                 >
                   <Component id={w.id} type={w.type} label={w.label} defaultSettings={w.defaultSettings || {}} />

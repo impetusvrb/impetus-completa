@@ -130,11 +130,19 @@ function AdminRouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+<<<<<<< HEAD
 // Admin do sistema: só cadastra, NUNCA vê dashboard (dados de diretor/CEO).
 function isStrictAdmin() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
     return (user.role || '').toString().toLowerCase() === 'admin';
+=======
+// Logs de Auditoria: acesso exclusivo para role admin
+function isStrictAdmin() {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    return user.role === 'admin';
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
   } catch {
     return false;
   }

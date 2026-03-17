@@ -92,6 +92,7 @@ server.listen(PORT, async () => {
   }
 });
 
+<<<<<<< HEAD
 // Graceful shutdown - encerra conexões corretamente em deploy/crash
 async function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
@@ -114,3 +115,5 @@ process.on('uncaughtException', (err) => {
   gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
+=======
+>>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
