@@ -10,6 +10,8 @@ const db = require('../db');
 
 let impetusPolicyCache = null;
 let impetusPolicyLoadError = null;
+let lgpdComplianceCache = null;
+let lgpdComplianceLoadError = null;
 
 /**
  * Carrega a política Impetus do arquivo embutido no software
@@ -28,6 +30,29 @@ function getImpetusPolicy() {
   } catch (err) {
     impetusPolicyLoadError = err;
     console.warn('[DOCUMENT_CONTEXT] Erro ao carregar política Impetus:', err.message);
+  }
+  return '';
+}
+
+/**
+ * Carrega o protocolo LGPD/Ética da IA — sempre injetado em prompts conversacionais
+ * NÃO truncado — regras de conformidade devem estar completas para evitar falhas como
+ * a IA afirmar que faria ação irregular "se tivesse capacidade"
+ * @returns {string} Conteúdo completo do protocolo ou string vazia se falhar
+ */
+function getImpetusLGPDComplianceProtocol() {
+  if (lgpdComplianceCache !== null) return lgpdComplianceCache;
+  if (lgpdComplianceLoadError) return '';
+
+  const lgpdPath = path.join(__dirname, '../data/impetus-lgpd-compliance.md');
+  try {
+    if (fs.existsSync(lgpdPath)) {
+      lgpdComplianceCache = fs.readFileSync(lgpdPath, 'utf8');
+      return lgpdComplianceCache;
+    }
+  } catch (err) {
+    lgpdComplianceLoadError = err;
+    console.warn('[DOCUMENT_CONTEXT] Erro ao carregar protocolo LGPD:', err.message);
   }
   return '';
 }
@@ -107,11 +132,12 @@ async function getCompanyPolicy(companyId) {
 
 /**
  * Monta o contexto completo para a IA, incluindo política Impetus e docs da empresa
- * @param {object} opts - { companyId, queryText, forDiagnostic }
+ * @param {object} opts - { companyId, queryText, forDiagnostic, user? }
+ * Quando user é CEO/diretoria e queryText menciona áudio, injeta logs de áudio (auditoria)
  * @returns {string} Bloco de texto para incluir no prompt
  */
 async function buildAIContext(opts = {}) {
-  const { companyId, queryText = '', forDiagnostic = true } = opts;
+  const { companyId, queryText = '', forDiagnostic = true, user = null } = opts;
 
   const parts = [];
 
@@ -134,9 +160,20 @@ async function buildAIContext(opts = {}) {
       const popsText = pops.map(p => `[${p.title}] (${p.category || '-'}): ${p.content}`).join('\n---\n');
       parts.push(`## POPs da empresa\n${popsText}`);
     }
+
+    // 4. Logs de áudio (apenas CEO/diretoria, quando solicitado - auditoria)
+    if (user) {
+      try {
+        const audioLogs = require('./audioLogsService');
+        const audioCtx = await audioLogs.getContextForAI(companyId, user, queryText, 30);
+        if (audioCtx) parts.push(audioCtx);
+      } catch (e) {
+        if (e.code !== 'MODULE_NOT_FOUND') console.warn('[DOCUMENT_CONTEXT] audioLogs:', e?.message);
+      }
+    }
   }
 
-  // 4. Manuais: não incluídos aqui - o chamador (ex: diagnostic) passa candidates separadamente
+  // 5. Manuais: não incluídos aqui - o chamador (ex: diagnostic) passa candidates separadamente
   // para evitar duplicação, já que searchManuals é chamado pelo fluxo de diagnóstico
 
   if (parts.length === 0) return '';
@@ -151,6 +188,7 @@ async function buildAIContext(opts = {}) {
 
 module.exports = {
   getImpetusPolicy,
+  getImpetusLGPDComplianceProtocol,
   getCompanyPolicy,
   getCompanyPops,
   searchCompanyManuals,

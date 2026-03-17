@@ -5,8 +5,10 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
+const { requireAuth } = require('../middleware/auth');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
 const executiveMode = require('../services/executiveMode');
+const db = require('../db');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
@@ -14,6 +16,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 52428800 } });
 const getIo = req => req.app.get('io');
+
+// Todas as rotas de chat exigem usuário autenticado
+router.use(requireAuth);
 
 router.get('/conversations', async (req, res) => {
   try { res.json(await chatService.getConversations(req.user.id, req.user.company_id)); }
@@ -132,4 +137,18 @@ router.post('/push/subscribe', async (req, res) => {
     res.json({ ok: true });
   } catch { res.status(500).json({ error: 'Erro' }); }
 });
+
+// Atualizar avatar do usuário a partir do chat
+router.post('/me/avatar', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+    const url = '/uploads/chat/' + req.file.filename;
+    await db.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [url, req.user.id]);
+    res.json({ ok: true, avatar_url: url });
+  } catch (e) {
+    console.error('[CHAT_AVATAR_UPDATE]', e.message);
+    res.status(500).json({ error: 'Erro ao atualizar avatar' });
+  }
+});
+
 module.exports = router;

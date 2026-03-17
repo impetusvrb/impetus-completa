@@ -1,138 +1,206 @@
 /**
- * ESTILOS DO LAYOUT
+ * ESTILOS DO LAYOUT - Redesign IMPETUS Industrial
  */
 
 .layout {
   display: flex;
   height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--bg0);
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================================================
-   SIDEBAR
+   SIDEBAR - Redesign
    ============================================================================ */
 
 .sidebar {
-  width: 280px;
-  background: #0B1722;
-  border-right: 1px solid #243848;
+  width: 230px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #060f1d 0%, var(--bg0) 100%);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  transition: width 300ms ease-in-out;
+  flex-shrink: 0;
   position: relative;
   z-index: 100;
+  transition: width 300ms ease-in-out;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, var(--blue), var(--amber), transparent);
+  opacity: 0.35;
 }
 
 .sidebar.closed {
-  width: 80px;
+  width: 72px;
 }
 
-.sidebar-header {
-  padding: 16px 12px;
-  border-bottom: 1px solid #243848;
-}
-
-.logo {
+.logo-area {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--line);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(180deg, rgba(26, 111, 255, 0.07), transparent);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Sidebar aberta: logo completa */
-.logo.logo-open .sidebar-logo-img {
-  width: 100%;
-  max-width: 240px;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  display: block;
+.logo-area::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(26, 111, 255, 0.12), transparent 70%);
 }
 
-/* Sidebar fechada: recorte do emblema circular (lado esquerdo da imagem) */
-.logo.logo-closed .sidebar-logo-img {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  object-position: left center;
-  border-radius: 50%;
-  display: block;
-  box-shadow: 0 2px 8px rgba(30, 80, 200, 0.25);
+.logo-impetus {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, #6ab4ff 0%, #1a6fff 40%, #4dc8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(26, 111, 255, 0.6));
+  line-height: 1;
+  position: relative;
+  z-index: 1;
 }
 
-/* Navegação */
+.logo-line {
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), var(--amber), var(--blue), transparent);
+  margin: 5px auto 0;
+  opacity: 0.5;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  color: var(--cyan);
+  letter-spacing: 0.6px;
+  margin-top: 4px;
+  line-height: 1.5;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--gray-300) transparent;
-  padding: 20px 12px;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  color: var(--sidebar-text);
-  text-decoration: none;
+  gap: 10px;
+  padding: 9px 18px;
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 500;
-  transition: all var(--transition-fast);
+  color: var(--text2);
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
   position: relative;
 }
 
 .nav-item:hover {
-  background: var(--sidebar-hover);
-  color: var(--primary-blue);
+  color: var(--text1);
+  background: rgba(26, 111, 255, 0.06);
+  border-left-color: var(--blue2);
 }
 
 .nav-item.active {
-  background: var(--sidebar-active);
-  color: var(--primary-blue);
-  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(26, 111, 255, 0.1);
+  border-left-color: var(--blue);
 }
 
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
+.nav-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-item.active .nav-dot {
+  opacity: 1;
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+.nav-item-chat-icon {
+  width: 24px;
   height: 24px;
-  background: var(--primary-blue);
-  border-radius: 0 4px 4px 0;
+  min-width: 24px;
+  min-height: 24px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+.nav-item-ia-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+  border: 1.5px solid var(--blue);
 }
 
 .sidebar.closed .nav-item {
   justify-content: center;
-  padding: 12px;
+  padding: 9px 12px;
 }
 
-.sidebar.closed .nav-item span {
+.sidebar.closed .nav-item span:not(.nav-dot) {
   display: none;
+}
+
+.sidebar.closed .nav-dot {
+  margin: 0;
 }
 
 /* Toggle Button */
 .sidebar-toggle {
-  margin: 16px;
-  padding: 12px;
-  background: var(--gray-100);
-  border: none;
-  border-radius: 8px;
-  color: var(--gray-600);
+  margin: 12px 16px 16px;
+  padding: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s;
 }
 
 .sidebar-toggle:hover {
-  background: var(--gray-200);
-  color: var(--gray-900);
+  border-color: var(--blue);
+  color: var(--cyan);
 }
 
 /* ============================================================================
@@ -146,38 +214,112 @@
   overflow: hidden;
 }
 
-/* Header */
-.header {
-  background: #0B1722;
-  border-bottom: 1px solid #1E90FF33;
-  padding: 16px 32px;
+/* Topbar */
+.topbar.header {
+  height: 54px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 80px;
+  padding: 0 22px;
+  flex-shrink: 0;
+  position: relative;
+  min-height: 54px;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--blue), var(--amber), var(--blue));
+  opacity: 0.2;
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.greeting {
-  font-size: 20px;
-  font-weight: 400;
-  color: #9FB3C8;
+.welcome.greeting {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text1);
+  letter-spacing: 0.5px;
 }
 
-.greeting strong {
-  font-weight: 700;
-  color: var(--gray-900);
+.welcome.greeting span {
+  background: linear-gradient(90deg, var(--cyan), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.date-time {
+.datetime.date-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 1px;
+  letter-spacing: 0.5px;
+}
+
+.sys-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--green);
+  padding: 3px 9px;
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  background: rgba(0, 255, 136, 0.04);
+}
+
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(0, 255, 136, 0); }
+}
+
+.icon-btn.header-icon-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
   font-size: 13px;
-  color: var(--gray-500);
+  transition: all 0.15s;
+  border-radius: 4px;
 }
+
+.icon-btn.header-icon-btn:hover {
+  border-color: var(--blue);
+  color: var(--cyan);
+}
+
+.icon-btn.header-icon-btn.has-alert {
+  border-color: rgba(255, 170, 0, 0.4);
+  color: var(--amber);
+}
+
+.greeting { font-size: 20px; font-weight: 400; color: var(--text2); }
+.greeting strong { font-weight: 700; color: var(--text1); }
+.date-time { font-size: 13px; color: var(--text3); }
 
 .header-right {
   display: flex;

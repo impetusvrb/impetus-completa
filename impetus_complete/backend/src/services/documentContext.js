@@ -10,6 +10,8 @@ const db = require('../db');
 
 let impetusPolicyCache = null;
 let impetusPolicyLoadError = null;
+let lgpdComplianceCache = null;
+let lgpdComplianceLoadError = null;
 
 /**
  * Carrega a política Impetus do arquivo embutido no software
@@ -28,6 +30,27 @@ function getImpetusPolicy() {
   } catch (err) {
     impetusPolicyLoadError = err;
     console.warn('[DOCUMENT_CONTEXT] Erro ao carregar política Impetus:', err.message);
+  }
+  return '';
+}
+
+/**
+ * Carrega o protocolo LGPD/Ética da IA — sempre injetado em prompts conversacionais
+ * NÃO truncado — regras de conformidade completas para evitar falhas de integridade
+ */
+function getImpetusLGPDComplianceProtocol() {
+  if (lgpdComplianceCache !== null) return lgpdComplianceCache;
+  if (lgpdComplianceLoadError) return '';
+
+  const lgpdPath = path.join(__dirname, '../data/impetus-lgpd-compliance.md');
+  try {
+    if (fs.existsSync(lgpdPath)) {
+      lgpdComplianceCache = fs.readFileSync(lgpdPath, 'utf8');
+      return lgpdComplianceCache;
+    }
+  } catch (err) {
+    lgpdComplianceLoadError = err;
+    console.warn('[DOCUMENT_CONTEXT] Erro ao carregar protocolo LGPD:', err.message);
   }
   return '';
 }
@@ -151,6 +174,7 @@ async function buildAIContext(opts = {}) {
 
 module.exports = {
   getImpetusPolicy,
+  getImpetusLGPDComplianceProtocol,
   getCompanyPolicy,
   getCompanyPops,
   searchCompanyManuals,

@@ -1,7 +1,8 @@
 /**
  * IMPETUS COMUNICA IA - ESTILOS GLOBAIS
- * Tema Industrial Dark - Centro de Comando Operacional
+ * Redesign Visual Completo - Dashboard Industrial High-Tech
  */
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap');
 @import './styles/tokens.css';
 
 * {
@@ -11,56 +12,77 @@
 }
 
 :root {
-  /* Cores Principais */
-  --primary-blue: #1E90FF;
-  --primary-blue-light: #3AA0FF;
-  --primary-blue-dark: #1470CC;
-  --secondary-teal: #2A9D8F;
-  --accent-orange: #F4A261;
-  --accent-green: #2A9D8F;
+  /* Design tokens redesign (IMPETUS Prompt) */
+  --bg0: #03080f;
+  --bg1: #050d1a;
+  --bg2: #081525;
+  --bg3: #0b1c30;
+  --line: #0e2440;
+  --line2: #071830;
+  --blue: #1a6fff;
+  --blue2: #0d4fcc;
+  --blue3: #051a44;
+  --cyan: #4dc8ff;
+  --amber: #ffaa00;
+  --green: #00ff88;
+  --red: #ff4455;
+  --text1: #e4f0ff;
+  --text2: #7aabcc;
+  --text3: #2d5570;
+  --font-display: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+
+  /* Cores Principais (legado) */
+  --primary-blue: #1a6fff;
+  --primary-blue-light: #4dc8ff;
+  --primary-blue-dark: #0d4fcc;
+  --secondary-teal: #00ff88;
+  --accent-orange: #ffaa00;
+  --accent-green: #00ff88;
 
   /* Status */
-  --status-critical: #D62828;
-  --status-high: #F4A261;
-  --status-medium: #E9C46A;
-  --status-low: #2A9D8F;
-  --status-info: #1E90FF;
+  --status-critical: #ff4455;
+  --status-high: #ffaa00;
+  --status-medium: #ffaa00;
+  --status-low: #00ff88;
+  --status-info: #4dc8ff;
 
   /* Escala de cinzas industriais */
-  --gray-50: #0F1E2E;
-  --gray-100: #162A3A;
-  --gray-200: #1B3447;
-  --gray-300: #243848;
-  --gray-400: #3A5068;
-  --gray-500: #9FB3C8;
-  --gray-600: #B8CCDC;
-  --gray-700: #C8D8E8;
-  --gray-800: #D8E8F3;
-  --gray-900: #E6EDF3;
+  --gray-50: #050d1a;
+  --gray-100: #081525;
+  --gray-200: #0b1c30;
+  --gray-300: #0e2440;
+  --gray-400: #2d5570;
+  --gray-500: #7aabcc;
+  --gray-600: #7aabcc;
+  --gray-700: #e4f0ff;
+  --gray-800: #e4f0ff;
+  --gray-900: #e4f0ff;
 
   /* Backgrounds */
-  --bg-primary: #162A3A;
-  --bg-secondary: #0F1E2E;
-  --bg-tertiary: #1B3447;
-  --bg-hover: #1E3A50;
-  --bg-active: #1A3A5C;
-  --bg-dark: #0B1722;
+  --bg-primary: var(--bg2);
+  --bg-secondary: var(--bg1);
+  --bg-tertiary: var(--bg3);
+  --bg-hover: #0b1c30;
+  --bg-active: #0e2440;
+  --bg-dark: var(--bg0);
 
   /* Sidebar */
-  --sidebar-bg: #0B1722;
-  --sidebar-hover: #162A3A;
-  --sidebar-active: #1A3A5C;
-  --sidebar-text: #E6EDF3;
-  --sidebar-icon: #9FB3C8;
+  --sidebar-bg: var(--bg0);
+  --sidebar-hover: rgba(26, 111, 255, 0.06);
+  --sidebar-active: rgba(26, 111, 255, 0.1);
+  --sidebar-text: var(--text2);
+  --sidebar-icon: var(--text2);
 
   /* Tipografia */
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-family: var(--font-body);
 
   /* Sombras técnicas */
-  --shadow-sm: 0 0 0 1px #243848;
-  --shadow-md: 0 0 0 1px #243848, 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 0 0 1px #243848, 0 8px 24px rgba(0,0,0,0.5);
-  --shadow-xl: 0 0 0 1px #243848, 0 16px 32px rgba(0,0,0,0.6);
+  --shadow-sm: 0 0 0 1px var(--line);
+  --shadow-md: 0 0 0 1px var(--line), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-xl: 0 0 0 1px var(--line), 0 16px 32px rgba(0,0,0,0.6);
 
   /* Bordas */
   --radius-sm: 3px;
@@ -75,14 +97,42 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background: var(--bg-secondary);
-  color: var(--gray-900);
+  background: var(--bg0);
+  color: var(--text1);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+}
+
+/* Grade de linhas de fundo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--line2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line2) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow âmbar no rodapé (identidade visual) */
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(255, 170, 0, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Scrollbar Industrial */
@@ -91,14 +141,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B1722;
+  background: var(--bg0);
 }
 ::-webkit-scrollbar-thumb {
-  background: #243848;
+  background: var(--line);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #1E90FF;
+  background: var(--blue);
 }
 
 /* Utilitários */
@@ -109,15 +159,24 @@ body {
 }
 
 .card {
-  background: linear-gradient(145deg, #162A3A, #1B3447);
+  background: var(--bg2);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 20px;
-  box-shadow: 0 0 0 1px #243848;
+  position: relative;
+  overflow: hidden;
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
-
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--blue), var(--amber), transparent 70%);
+  opacity: 0.4;
+}
 .card:hover {
-  box-shadow: 0 0 0 1px #1E90FF, 0 4px 16px rgba(30,144,255,0.15);
+  box-shadow: 0 0 0 1px var(--blue), 0 4px 16px rgba(26, 111, 255, 0.15);
 }
 
 .btn {
@@ -135,25 +194,25 @@ body {
 }
 
 .btn-primary {
-  background: #1E90FF;
-  color: #E6EDF3;
-  box-shadow: 0 0 0 1px #1470CC;
+  background: var(--blue);
+  color: var(--text1);
+  box-shadow: 0 0 0 1px var(--blue2);
 }
 
 .btn-primary:hover {
-  background: #3AA0FF;
-  box-shadow: 0 0 8px rgba(30,144,255,0.4);
+  background: var(--cyan);
+  box-shadow: 0 0 8px rgba(26, 111, 255, 0.4);
 }
 
 .btn-secondary {
-  background: #162A3A;
-  color: #9FB3C8;
-  box-shadow: 0 0 0 1px #243848;
+  background: var(--bg2);
+  color: var(--text2);
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .btn-secondary:hover {
-  background: #1B3447;
-  color: #E6EDF3;
+  background: var(--bg3);
+  color: var(--text1);
 }
 
 .badge {
@@ -175,18 +234,18 @@ body {
 
 /* Inputs */
 input, textarea, select {
-  background: #0F1E2E !important;
-  color: #E6EDF3 !important;
-  border: 1px solid #243848 !important;
+  background: var(--bg1) !important;
+  color: var(--text1) !important;
+  border: 1px solid var(--line) !important;
   border-radius: var(--radius-md) !important;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: #1E90FF !important;
+  border-color: var(--blue) !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(30,144,255,0.2) !important;
+  box-shadow: 0 0 0 2px rgba(26, 111, 255, 0.2) !important;
 }
 input::placeholder, textarea::placeholder {
-  color: #3A5068 !important;
+  color: var(--text3) !important;
 }
 
 /* Animações */
@@ -219,9 +278,9 @@ input::placeholder, textarea::placeholder {
 /* ── Chips / Tags industriais ────────────────────── */
 button[class*="chip"], button[class*="tag"], button[class*="example"],
 .kpi-chip, .example-chip, .tag-chip {
-  background: #0F1E2E !important;
-  color: #9FB3C8 !important;
-  border: 1px solid #243848 !important;
+  background: var(--bg1) !important;
+  color: var(--text2) !important;
+  border: 1px solid var(--line) !important;
   border-radius: 4px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
@@ -229,27 +288,29 @@ button[class*="chip"], button[class*="tag"], button[class*="example"],
 }
 button[class*="chip"]:hover, button[class*="tag"]:hover, button[class*="example"]:hover,
 .kpi-chip:hover, .example-chip:hover, .tag-chip:hover {
-  border-color: #1E90FF !important;
-  color: #3AA0FF !important;
-  background: #1A3A5C !important;
+  border-color: var(--blue) !important;
+  color: var(--cyan) !important;
+  background: var(--bg3) !important;
 }
 
 /* ── Recharts / Chart tooltip dark ──────────────── */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: #0F1E2E !important;
-  border: 1px solid #243848 !important;
+  background: var(--bg1) !important;
+  border: 1px solid var(--line) !important;
   border-radius: 6px !important;
   box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
 }
-.recharts-tooltip-label { color: #9FB3C8 !important; }
-.recharts-tooltip-item  { color: #3AA0FF !important; }
+.recharts-tooltip-label { color: var(--text2) !important; }
+.recharts-tooltip-item  { color: var(--cyan) !important; }
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: #243848 !important;
+  stroke: var(--line) !important;
 }
-.recharts-text { fill: #9FB3C8 !important; }
+.recharts-text { fill: var(--text2) !important; }
 
 /* ── Página principal content area ──────────────── */
 .page-content, .dashboard-content, .content-scroll, main {
-  background: #0F1E2E !important;
+  background: transparent !important;
+  position: relative;
+  z-index: 1;
 }

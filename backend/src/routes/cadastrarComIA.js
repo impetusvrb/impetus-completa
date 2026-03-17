@@ -101,6 +101,22 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
         sourceType = 'audio';
         const trans = await mediaProcessor.transcribeAudio(filePath, { language: 'pt' });
         conteudoOriginal = trans.text || '(transcrição não disponível)';
+        if (trans.text && companyId) {
+          try {
+            const audioLogs = require('../services/audioLogsService');
+            await audioLogs.persist({
+              companyId,
+              source: 'cadastrar_ia',
+              userId,
+              senderName: req.user?.name,
+              mediaUrl: '/uploads/cadastrar-ia/' + req.file.filename,
+              transcription: trans.text,
+              messageType: 'audio'
+            });
+          } catch (e) {
+            console.warn('[CADASTRAR_IA] audioLogs.persist:', e?.message);
+          }
+        }
         if (conteudoOriginal && ai.chatCompletion) {
           const interpreted = await ai.chatCompletion(
             `Extraia dados estruturados deste texto de cadastro industrial. Retorne JSON: { "categoria": "equipamento|custo|processo|material|fornecedor|documentacao|outro", "dados": {}, "resumo": "" }. Texto: ${conteudoOriginal.slice(0, 3000)}`,

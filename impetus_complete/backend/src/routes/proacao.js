@@ -5,7 +5,11 @@ const { isValidUUID } = require('../utils/security');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const { requireAuth } = require('../middleware/auth');
 
-router.post('/', requireAuth, async (req, res) => {
+// Todas as rotas de Pró-Ação exigem usuário autenticado.
+// Isso garante que requireHierarchyScope sempre receba req.user.
+router.use(requireAuth);
+
+router.post('/', async (req, res) => {
   try {
     const payload = { ...req.body, company_id: req.user.company_id };
     const p = await proacao.createProposal(payload);

@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const db = require('../db');
 const chatService = require('./chatService');
+const documentContext = require('./documentContext');
 const AI_USER_ID = chatService.AI_USER_ID;
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const AI_ORCHESTRATOR_ENABLED = process.env.AI_ORCHESTRATOR_ENABLED === 'true';
@@ -48,8 +49,13 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       }
     }
 
+    const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
+    const systemContent = [
+      'Você é a Impetus IA, assistente do chat interno IMPETUS. Responda em português, de forma concisa e profissional.',
+      lgpdProtocol ? `\n\n---\nPROTOCOLO OBRIGATÓRIO - LGPD E ÉTICA DA IA (aplicar em TODAS as respostas):\n${lgpdProtocol}` : ''
+    ].filter(Boolean).join('');
     const msgs = [
-      { role: 'system', content: 'Você é a Impetus IA, assistente do chat interno IMPETUS. Responda em português, de forma concisa e profissional.' },
+      { role: 'system', content: systemContent },
       ...history.slice(-20).map(m => ({ role: m.sender_id === AI_USER_ID ? 'assistant' : 'user', content: (m.sender?.name || 'Usuário') + ': ' + (m.content || '[arquivo]') }))
     ];
     const r = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: msgs, max_tokens: 600, temperature: 0.7 });

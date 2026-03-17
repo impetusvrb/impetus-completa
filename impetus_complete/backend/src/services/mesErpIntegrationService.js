@@ -6,23 +6,92 @@
 const db = require('../db');
 const crypto = require('crypto');
 
+function maskAuthConfig(authType, authConfig) {
+  const cfg = authConfig && typeof authConfig === 'object' ? authConfig : {};
+  if (!authType || authType === 'none') return {};
+  if (authType === 'api_key') return { header_name: cfg.header_name || 'X-API-Key' };
+  if (authType === 'bearer') return {};
+  if (authType === 'basic') return { username: cfg.username ? '***' : undefined };
+  if (authType === 'oauth2') return { token_url: cfg.token_url, client_id: cfg.client_id ? '***' : undefined };
+  return {};
+}
+
 /**
  * Registra um conector MES/ERP
  */
-async function createConnector(companyId, { name, endpoint_url, auth_type, auth_config, mapping_config }) {
+async function createConnector(companyId, {
+  name,
+  endpoint_url,
+  auth_type,
+  auth_config,
+  mapping_config,
+  receive_mode,
+  schedule_cron,
+  field_map
+}) {
   const r = await db.query(`
-    INSERT INTO integration_connectors (company_id, connector_type, name, endpoint_url, auth_type, auth_config, mapping_config)
-    VALUES ($1, 'mes_erp', $2, $3, $4, $5, $6)
-    RETURNING id, name, connector_type, enabled, created_at
+    INSERT INTO integration_connectors (
+      company_id, connector_type, name, endpoint_url,
+      auth_type, auth_config, mapping_config,
+      receive_mode, schedule_cron, field_map
+    )
+    VALUES ($1, 'mes_erp', $2, $3, $4, $5, $6, COALESCE($7,'webhook'), $8, COALESCE($9,'{}'::jsonb))
+    RETURNING id, name, connector_type, endpoint_url, enabled, receive_mode, schedule_cron, last_sync_at, last_status, created_at
   `, [
     companyId,
     name || 'MES/ERP',
     endpoint_url || null,
-    auth_type || 'api_key',
+    auth_type || 'none',
     JSON.stringify(auth_config || {}),
-    JSON.stringify(mapping_config || {})
+    JSON.stringify(mapping_config || {}),
+    receive_mode || 'webhook',
+    schedule_cron || null,
+    JSON.stringify(field_map || {})
   ]);
   return r.rows[0];
+}
+
+async function updateConnector(companyId, connectorId, patch) {
+  const {
+    name,
+    endpoint_url,
+    auth_type,
+    auth_config,
+    mapping_config,
+    receive_mode,
+    schedule_cron,
+    field_map,
+    enabled
+  } = patch || {};
+
+  const r = await db.query(`
+    UPDATE integration_connectors SET
+      name = COALESCE($3, name),
+      endpoint_url = COALESCE($4, endpoint_url),
+      auth_type = COALESCE($5, auth_type),
+      auth_config = COALESCE($6::jsonb, auth_config),
+      mapping_config = COALESCE($7::jsonb, mapping_config),
+      receive_mode = COALESCE($8, receive_mode),
+      schedule_cron = COALESCE($9, schedule_cron),
+      field_map = COALESCE($10::jsonb, field_map),
+      enabled = COALESCE($11, enabled),
+      updated_at = now()
+    WHERE id = $1 AND company_id = $2 AND connector_type = 'mes_erp'
+    RETURNING id, name, connector_type, endpoint_url, enabled, receive_mode, schedule_cron, last_sync_at, last_status, created_at, updated_at
+  `, [
+    connectorId,
+    companyId,
+    name ?? null,
+    endpoint_url ?? null,
+    auth_type ?? null,
+    auth_config !== undefined ? JSON.stringify(auth_config) : null,
+    mapping_config !== undefined ? JSON.stringify(mapping_config) : null,
+    receive_mode ?? null,
+    schedule_cron ?? null,
+    field_map !== undefined ? JSON.stringify(field_map) : null,
+    enabled ?? null
+  ]);
+  return r.rows[0] || null;
 }
 
 /**
@@ -30,10 +99,27 @@ async function createConnector(companyId, { name, endpoint_url, auth_type, auth_
  */
 async function listConnectors(companyId) {
   const r = await db.query(`
-    SELECT id, name, connector_type, endpoint_url, enabled, created_at
+    SELECT id, name, connector_type, endpoint_url, enabled, created_at,
+           receive_mode, schedule_cron, last_sync_at, last_status, last_error,
+           auth_type, auth_config, field_map
     FROM integration_connectors WHERE company_id = $1 AND connector_type = 'mes_erp'
   `, [companyId]);
-  return r.rows || [];
+  return (r.rows || []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    connector_type: row.connector_type,
+    endpoint_url: row.endpoint_url,
+    enabled: row.enabled,
+    created_at: row.created_at,
+    receive_mode: row.receive_mode,
+    schedule_cron: row.schedule_cron,
+    last_sync_at: row.last_sync_at,
+    last_status: row.last_status,
+    last_error: row.last_error,
+    auth_type: row.auth_type,
+    auth_config: maskAuthConfig(row.auth_type, row.auth_config),
+    field_map: row.field_map || {}
+  }));
 }
 
 /**
@@ -108,6 +194,7 @@ function validateToken(connectorId, token) {
 
 module.exports = {
   createConnector,
+  updateConnector,
   listConnectors,
   processPush
 };

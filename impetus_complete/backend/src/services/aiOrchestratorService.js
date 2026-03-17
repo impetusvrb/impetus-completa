@@ -10,6 +10,7 @@ const db = require('../db');
 const ai = require('./ai');
 const claudeService = require('./claudeService');
 const geminiService = require('./geminiService');
+const documentContext = require('./documentContext');
 
 const QUESTION_TYPE_DATA = 'data';
 const QUESTION_TYPE_PHYSICAL = 'physical';
@@ -126,7 +127,10 @@ async function processWithOrchestrator(opts) {
     ? `\n\nUse o contexto abaixo para enriquecer sua resposta. Seja natural e objetivo.\n${contextBlocks.join('\n\n')}`
     : '';
 
-  const systemPrompt = `Você é o Impetus IA, assistente de inteligência operacional industrial.${systemExtra}
+  const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
+  const lgpdBlock = lgpdProtocol ? `\n\n---\nPROTOCOLO OBRIGATÓRIO - LGPD E ÉTICA DA IA:\n${lgpdProtocol}` : '';
+
+  const systemPrompt = `Você é o Impetus IA, assistente de inteligência operacional industrial.${lgpdBlock}${systemExtra}
 Responda em português, de forma natural e técnica quando apropriado.`;
 
   if (imageBase64 && !backendAnalysis) {

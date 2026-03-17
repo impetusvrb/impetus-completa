@@ -40,7 +40,6 @@ const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
-const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
 const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
 const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
@@ -189,9 +188,6 @@ export default function App() {
         
         <Route path="/app/insights" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
-        } />
-        <Route path="/app/cerebro-operacional" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-operacoes-industrial" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>

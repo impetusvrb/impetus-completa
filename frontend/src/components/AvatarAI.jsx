@@ -3,6 +3,7 @@
  * Estados: standby, listening, speaking
  */
 import React from 'react';
+import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './AvatarAI.css';
 
 export default function AvatarAI({ state = 'standby', size = 120 }) {
@@ -14,7 +15,7 @@ export default function AvatarAI({ state = 'standby', size = 120 }) {
     >
       <div className="avatar-ai__face">
         <img 
-          src="/ai-avatar.png" 
+          src={impetusIaAvatar} 
           alt="Impetus IA" 
           className="avatar-ai__img"
           onError={(e) => {

@@ -5,10 +5,14 @@ import MessageInput from './components/MessageInput';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
-import { User, ArrowLeft, Menu, Bot, Send, ClipboardList, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic } from 'lucide-react';
+import chatBrandImg from '../assets/chat-brand.png';
+import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
+const API_BASE=(import.meta.env.VITE_API_URL||'/api').replace('/api','');
+function toAbs(url){ if(!url) return null; if(url.startsWith('http')) return url; return API_BASE + url; }
 
 export default function ChatApp(){
   const [conversations,setConversations]=useState([]);
@@ -24,8 +28,16 @@ export default function ChatApp(){
   const [registroText,setRegistroText]=useState('');
   const [registroLoading,setRegistroLoading]=useState(false);
   const [registroResult,setRegistroResult]=useState(null);
+  const [showCadastrarIa,setShowCadastrarIa]=useState(false);
+  const [cadTexto,setCadTexto]=useState('');
+  const [cadSector,setCadSector]=useState('');
+  const [cadEquipamento,setCadEquipamento]=useState('');
+  const [cadFile,setCadFile]=useState(null);
+  const [cadLoading,setCadLoading]=useState(false);
+  const [cadResult,setCadResult]=useState(null);
   const [currentUser,setCurrentUser]=useState(null);
   const typingTimers=useRef({});
+  const avatarInputRef = useRef(null);
   const activeConv=conversations.find(c=>c.id===activeId);
   const {messages,loading,hasMore,loadMessages,addMessage,reset}=useMessages(activeId);
 
@@ -96,9 +108,57 @@ export default function ChatApp(){
   return (<div className="chat-app">
     <div className="chat-header">
       <button className="btn-icon chat-menu-btn" onClick={()=>setSidebarOpen(v=>!v)}><Menu size={20}/></button>
-      <div className="chat-header__brand"><img src="/icons/chat-icon-192.png" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover"}}/><span>IMPETUS Chat</span></div>
-      {currentUser&&<div className="chat-header__user"><User size={14}/><span>{currentUser.name||currentUser.email}</span></div>}
-      <button onClick={()=>{setShowRegistro(true);setRegistroResult(null);}} title="Registro Inteligente" style={{marginLeft:'auto',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:13,fontWeight:500}}><ClipboardList size={15}/><span style={{display:'none',['@media(min-width:500px)']:{display:'inline'}}}>Registro</span></button>
+      <div className="chat-header__brand"><img src={chatBrandImg} alt="" style={{width:32,height:32,objectFit:"contain"}}/><span>IMPETUS Chat</span></div>
+      {currentUser&&(
+        <div className="chat-header__user" style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>avatarInputRef.current?.click()}>
+          {currentUser.avatar_url ? (
+            <img
+              src={toAbs(currentUser.avatar_url)}
+              alt=""
+              style={{width:22,height:22,borderRadius:'50%',objectFit:'cover'}}
+              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+            />
+          ) : (
+            <User size={14}/>
+          )}
+          <span>{currentUser.name||currentUser.email}</span>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept=".png,.jpg,.jpeg"
+            style={{display:'none'}}
+            onChange={async e=>{
+              const file=e.target.files?.[0];
+              if(!file) return;
+              try{
+                const {data}=await chatApi.updateAvatar(file);
+                const u=JSON.parse(localStorage.getItem('impetus_user')||'{}');
+                const updated={...u,avatar_url:data.avatar_url};
+                localStorage.setItem('impetus_user',JSON.stringify(updated));
+                setCurrentUser(updated);
+              }catch(err){
+                console.error('Erro avatar',err);
+              }
+            }}
+          />
+        </div>
+      )}
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+        <button
+          onClick={()=>{setShowRegistro(true);setRegistroResult(null);}}
+          title="Registro Inteligente"
+          style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:13,fontWeight:500}}
+        >
+          <ClipboardList size={15}/><span style={{display:'none',['@media(min-width:500px)']:{display:'inline'}}}>Registro</span>
+        </button>
+        <button
+          onClick={()=>{setShowCadastrarIa(true);setCadResult(null);}}
+          title="Cadastrar com IA"
+          style={{background:'transparent',border:'1px solid #3a3a5e',borderRadius:8,padding:'6px 10px',color:'#e5e7eb',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:500}}
+        >
+          <FileText size={14}/><span style={{display:'none',['@media(min-width:640px)']:{display:'inline'}}}>Cadastrar com IA</span>
+        </button>
+      </div>
     </div>
     {showRegistro&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:'#12121e',border:'1px solid #2a2a3e',borderRadius:16,width:'100%',maxWidth:520,padding:24,display:'flex',flexDirection:'column',gap:16}}>
@@ -123,6 +183,95 @@ export default function ChatApp(){
         {registroResult?.ok&&<button onClick={()=>{setShowRegistro(false);setRegistroResult(null);}} style={{padding:'8px 16px',borderRadius:8,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:500,alignSelf:'flex-end'}}>Fechar</button>}
       </div>
     </div>}
+    {showCadastrarIa&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#050711',border:'1px solid #1e293b',borderRadius:18,width:'100%',maxWidth:620,padding:24,display:'flex',flexDirection:'column',gap:18}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:40,height:40,borderRadius:12,background:'radial-gradient(circle at 0 0,#38bdf8,#6366f1)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Upload size={18} color="#ecfeff"/>
+            </div>
+            <div>
+              <div style={{color:'#e5e7eb',fontWeight:600,fontSize:16}}>Cadastrar com IA</div>
+              <div style={{color:'#9ca3af',fontSize:12}}>Envie texto, imagem ou documento sem sair do chat</div>
+            </div>
+          </div>
+          <button onClick={()=>{setShowCadastrarIa(false);setCadResult(null);}} style={{background:'none',border:'none',color:'#6b7280',cursor:'pointer'}}><X size={20}/></button>
+        </div>
+        {cadResult&&(
+          <div style={{padding:12,borderRadius:10,background:cadResult.ok?'rgba(34,197,94,0.08)':'rgba(239,68,68,0.08)',border:`1px solid ${cadResult.ok?'#22c55e':'#ef4444'}`,display:'flex',gap:10}}>
+            {cadResult.ok?<CheckCircle size={18} color="#22c55e"/>:<AlertTriangle size={18} color="#ef4444"/>}
+            <div style={{color:'#e5e7eb',fontSize:13}}>
+              {cadResult.ok ? (cadResult.msg || 'Informação cadastrada com sucesso!') : (cadResult.msg || 'Erro ao cadastrar com IA.')}
+            </div>
+          </div>
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <label style={{color:'#9ca3af',fontSize:12}}>Texto ou descrição</label>
+          <textarea
+            value={cadTexto}
+            onChange={e=>setCadTexto(e.target.value)}
+            placeholder="Descreva o ocorrido, equipamento, processo ou informação que deseja registrar..."
+            rows={4}
+            style={{background:'#020617',border:'1px solid #1f2937',borderRadius:10,padding:12,color:'#f9fafb',fontSize:14,resize:'vertical',outline:'none'}}
+          />
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+            <label style={{color:'#9ca3af',fontSize:12}}>Setor (opcional)</label>
+            <input
+              value={cadSector}
+              onChange={e=>setCadSector(e.target.value)}
+              placeholder="Produção, Manutenção..."
+              style={{background:'#020617',border:'1px solid #1f2937',borderRadius:8,padding:'8px 10px',color:'#e5e7eb',fontSize:13,outline:'none'}}
+            />
+          </div>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+            <label style={{color:'#9ca3af',fontSize:12}}>Equipamento (opcional)</label>
+            <input
+              value={cadEquipamento}
+              onChange={e=>setCadEquipamento(e.target.value)}
+              placeholder="Ex: Compressor linha 4"
+              style={{background:'#020617',border:'1px solid #1f2937',borderRadius:8,padding:'8px 10px',color:'#e5e7eb',fontSize:13,outline:'none'}}
+            />
+          </div>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <label style={{color:'#9ca3af',fontSize:12}}>Arquivo (opcional)</label>
+          <label style={{display:'inline-flex',alignItems:'center',gap:8,background:'#020617',border:'1px dashed #334155',borderRadius:10,padding:'10px 12px',color:'#9ca3af',fontSize:12,cursor:'pointer'}}>
+            <Upload size={16}/> <span>{cadFile ? cadFile.name : 'Selecione PDF, DOC, imagem ou áudio (até 15MB)'}</span>
+            <input type="file" style={{display:'none'}} accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,.m4a,.wav" onChange={e=>setCadFile(e.target.files?.[0] || null)}/>
+          </label>
+        </div>
+        <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:4}}>
+          <button onClick={()=>{setShowCadastrarIa(false);setCadResult(null);}} style={{padding:'8px 16px',borderRadius:8,background:'#020617',border:'1px solid #1f2937',color:'#9ca3af',fontSize:13,cursor:'pointer'}}>Cancelar</button>
+          <button
+            onClick={async ()=>{
+              if(cadLoading || (!cadTexto.trim() && !cadFile)) return;
+              setCadLoading(true); setCadResult(null);
+              try{
+                const fd=new FormData();
+                fd.append('texto', cadTexto.trim());
+                if(cadSector) fd.append('sector', cadSector);
+                if(cadEquipamento) fd.append('equipamento', cadEquipamento);
+                if(cadFile) fd.append('file', cadFile);
+                const {data}=await chatApi.cadastrarComIA.cadastrar(fd);
+                const ok=data?.ok!==false;
+                setCadResult({ok, msg: ok ? 'Informação cadastrada com sucesso!' : (data?.error || 'Erro ao cadastrar com IA')});
+                if(ok){ setCadTexto(''); setCadSector(''); setCadEquipamento(''); setCadFile(null); }
+              }catch(e){
+                setCadResult({ok:false, msg:e?.response?.data?.error || 'Erro ao cadastrar com IA'});
+              }finally{
+                setCadLoading(false);
+              }
+            }}
+            disabled={cadLoading || (!cadTexto.trim() && !cadFile)}
+            style={{padding:'8px 18px',borderRadius:8,background:cadLoading||(!cadTexto.trim()&&!cadFile)?'#1f2937':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',color:'#f9fafb',fontSize:13,fontWeight:500,cursor:cadLoading||(!cadTexto.trim()&&!cadFile)?'not-allowed':'pointer'}}
+          >
+            {cadLoading ? 'Enviando...' : 'Cadastrar com IA'}
+          </button>
+        </div>
+      </div>
+    </div>}
     <div className="chat-body">
       <div className={'chat-sidebar'+(sidebarOpen?' open':' closed')}>
         <ConversationList conversations={conversations} activeId={activeId} onSelect={selectConv} currentUserId={currentUser&&currentUser.id} onlineUsers={onlineUsers} onRefresh={loadConversations}/>
@@ -132,16 +281,16 @@ export default function ChatApp(){
           <div className="chat-conv-header">
             <button className="btn-icon" onClick={()=>{setActiveId(null);setSidebarOpen(true);}}><ArrowLeft size={18}/></button>
             <div className="chat-conv-info" style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Bot size={16} color="#fff"/></div>
+              <img src={impetusIaAvatar} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}}/>
               <div><span className="chat-conv-name">Impetus IA</span><br/><span style={{color:'#22c55e',fontSize:11}}>online</span></div>
             </div>
           </div>
           <div className="msg-area" style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
             {aiMessages.map(msg=>(<div key={msg.id} style={{display:'flex',justifyContent:msg.isUser?'flex-end':'flex-start',gap:8,alignItems:'flex-end'}}>
-              {!msg.isUser&&<div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Bot size={14} color="#fff"/></div>}
+              {!msg.isUser&&<img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}}/>}
               <div style={{maxWidth:'72%',padding:'10px 14px',borderRadius:msg.isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',background:msg.isUser?'#6366f1':'#1e1e2e',color:'#fff',fontSize:14,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{msg.content}<div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,textAlign:'right'}}>{new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
             </div>))}
-            {aiLoading&&<div style={{display:'flex',gap:8}}><div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Bot size={14} color="#fff"/></div><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}
+            {aiLoading&&<div style={{display:'flex',gap:8}}><img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}}/><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}
           </div>
           <div style={{padding:'12px 16px',borderTop:'1px solid #2a2a3e',display:'flex',gap:8,background:'#12121e'}}>
             <input value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),handleAiSend())} placeholder="Pergunte algo para a Impetus IA..." style={{flex:1,background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:12,padding:'10px 14px',color:'#fff',fontSize:14,outline:'none'}}/>
@@ -158,7 +307,7 @@ export default function ChatApp(){
           <MessageArea messages={messages} currentUserId={currentUser&&currentUser.id} loading={loading} hasMore={hasMore} onLoadMore={()=>loadMessages(false)} typingUsers={typingUsers}/>
           <MessageInput conversationId={activeId} onSend={handleSend} onTyping={()=>emitTyping(activeId)} onStopTyping={()=>emitStopTyping(activeId)}/>
         </>):(
-          <div className="chat-welcome"><img src="/icons/chat-icon-192.png" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover"}}/><h2>IMPETUS Chat</h2><p>Selecione uma conversa ou inicie uma nova</p></div>
+          <div className="chat-welcome"><img src={chatBrandImg} alt="" style={{width:80,height:80,objectFit:"contain"}}/><h2>IMPETUS Chat</h2><p>Selecione uma conversa ou inicie uma nova</p></div>
         )}
       </div>
     </div>

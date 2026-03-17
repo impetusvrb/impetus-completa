@@ -1,11 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { Bot, File } from 'lucide-react';
+import { File } from 'lucide-react';
+import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 const AI_ID='00000000-0000-0000-0000-000000000001';
+const API_BASE=(import.meta.env.VITE_API_URL||'/api').replace('/api','');
 function initials(n){ return n?n.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase():'?'; }
 function fmtTime(d){ return d?new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''; }
+function toAbs(url){
+  if(!url) return null;
+  if(url.startsWith('http')) return url;
+  return API_BASE + url;
+}
 function Attachment({msg}){
-  const base=(import.meta.env.VITE_API_URL||'/api').replace('/api','');
-  const url=msg.file_url&&(msg.file_url.startsWith('http')?msg.file_url:base+msg.file_url);
+  const url=toAbs(msg.file_url);
   if(msg.message_type==='image') return <a href={url} target="_blank" rel="noreferrer"><img src={url} alt={msg.file_name||'img'} className="msg-img"/></a>;
   if(msg.message_type==='video') return <video src={url} controls className="msg-video"/>;
   if(msg.message_type==='audio') return <audio src={url} controls className="msg-audio"/>;
@@ -27,8 +33,19 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
       const isOwn=msg.sender_id===currentUserId; const isAI=msg.sender_id===AI_ID||msg.message_type==='ai';
       const name=msg.sender&&msg.sender.name||'Usuário';
       const showAvatar=!isOwn&&(idx===0||messages[idx-1].sender_id!==msg.sender_id);
+      const avatarUrl = !isAI ? toAbs(msg.sender?.avatar_url) : null;
       return (<div key={msg.id} className={'msg-row'+(isOwn?' own':'')+(isAI?' ai':'')}>
-        {!isOwn&&<div className={'msg-avatar'+(showAvatar?'':' invisible')}>{isAI?<Bot size={14}/>:<span>{initials(name)}</span>}</div>}
+        {!isOwn&&(
+          <div className={'msg-avatar'+(showAvatar?'':' invisible')}>
+            {isAI ? (
+              <img src={impetusIaAvatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+            ) : avatarUrl ? (
+              <img src={avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
+            ) : (
+              <span>{initials(name)}</span>
+            )}
+          </div>
+        )}
         <div className="msg-bubble-wrap">
           {!isOwn&&showAvatar&&<span className="msg-sender-name">{name}</span>}
           <div className={'msg-bubble'+(isOwn?' own':'')+(isAI?' ai-bubble':'')}>

@@ -18,5 +18,16 @@ const chatApi = {
   sendAIMessage: (messages) => http.post('/dashboard/chat', { messages }),
   submitRegistration: (text) => http.post('/intelligent-registration', { text }),
   listRegistrations: () => http.get('/intelligent-registration?limit=10'),
+  updateAvatar: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return http.post('/chat/me/avatar', fd);
+  },
+  cadastrarComIA: {
+    cadastrar: (formData) => {
+      const fd = formData instanceof FormData ? formData : Object.entries(formData || {}).reduce((acc,[k,v]) => { acc.append(k,v); return acc; }, new FormData());
+      return http.post('/cadastrar-com-ia', fd);
+    }
+  }
 };
 export default chatApi;

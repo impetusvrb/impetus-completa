@@ -10,6 +10,13 @@ const ai = require('./ai');
 const documentContext = require('./documentContext');
 const mediaProcessor = require('./mediaProcessorService');
 
+function getLGPDBlock() {
+  try {
+    const protocol = documentContext.getImpetusLGPDComplianceProtocol();
+    return protocol ? `\n\n---\nPROTOCOLO OBRIGATÓRIO - LGPD E ÉTICA DA IA:\n${protocol}\n---` : '';
+  } catch { return ''; }
+}
+
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/chat-multimodal');
 const MAX_FILE_MB = 15;
 const MAX_IMAGE_MB = 5;
@@ -94,7 +101,8 @@ async function processMultimodalChat(opts) {
   } = opts;
 
   const messages = [];
-  const systemContent = `Você é o **Impetus**, assistente de inteligência operacional industrial.
+  const lgpdBlock = getLGPDBlock();
+  const systemContent = `Você é o **Impetus**, assistente de inteligência operacional industrial.${lgpdBlock}
 ${systemPromptExtra}
 Responda de forma natural, direta e técnica quando apropriado. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português.`;
 
