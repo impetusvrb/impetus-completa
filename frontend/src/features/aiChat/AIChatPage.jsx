@@ -11,6 +11,7 @@ import { useActivityLog } from '../../hooks/useActivityLog';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useVoiceOutput } from '../../hooks/useVoiceOutput';
 import AvatarAI from '../../components/AvatarAI';
+import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 import './AIChatPage.css';
 
 export default function AIChatPage() {
@@ -43,6 +44,7 @@ export default function AIChatPage() {
     onError: (e) => console.warn('[VoiceInput]', e)
   });
   const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput({});
+  const recognitionRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,6 +87,39 @@ export default function AIChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Ativação por voz: "ok impetus" / "olá impetus" (só quando modo voz está ativo)
+  useEffect(() => {
+    if (!voiceMode) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+        recognitionRef.current = null;
+      }
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const last = event.results.length - 1;
+      const transcript = (event.results[last][0].transcript || '').toLowerCase().trim();
+      if (transcript.includes('ok impetus') || transcript.includes('olá impetus') || transcript.includes('ola impetus')) {
+        const greeting = 'Olá, estou pronta para te ajudar. O que você precisa?';
+        setMessages((m) => [...m, { id: 'wake-' + Date.now(), role: 'assistant', content: greeting }]);
+        speak(greeting);
+      }
+    };
+    recognition.onerror = () => {};
+    try { recognition.start(); } catch (_) {}
+    recognitionRef.current = recognition;
+    return () => {
+      try { recognition.stop(); } catch (_) {}
+      recognitionRef.current = null;
+    };
+  }, [voiceMode, speak]);
 
   const hasMultimodalContent = pendingImage || pendingFileContext;
   const canSend = (input.trim() || hasMultimodalContent) && !sending;
@@ -216,7 +251,7 @@ export default function AIChatPage() {
           {voiceMode ? (
             <AvatarAI state={isListening ? 'listening' : isSpeaking ? 'speaking' : 'standby'} size={64} />
           ) : (
-            <img src="/ai-avatar.png" alt="Impetus IA" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"2px solid #1E90FF",boxShadow:"0 0 12px rgba(30,144,255,0.4)"}} />
+            <img src={impetusIaAvatar} alt="Impetus IA" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"2px solid #1E90FF",boxShadow:"0 0 12px rgba(30,144,255,0.4)"}} />
           )}
           <div style={{ flex: 1 }}>
             <h1>Impetus</h1>
@@ -241,7 +276,7 @@ export default function AIChatPage() {
             messages.map((msg) => (
               <div key={msg.id} className={`ai-chat-msg ai-chat-msg--${msg.role}`}>
                 <div className="ai-chat-msg__avatar">
-                  {msg.role === 'assistant' ? <img src='/ai-avatar.png' alt='IA' style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid #1E90FF',background:'transparent',boxShadow:'0 0 8px rgba(30,144,255,0.4)'}} /> : <User size={20} />}
+                  {msg.role === 'assistant' ? <img src={impetusIaAvatar} alt="IA" style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid #1E90FF',background:'transparent',boxShadow:'0 0 8px rgba(30,144,255,0.4)'}} /> : <User size={20} />}
                 </div>
                 <div className="ai-chat-msg__content">
                   {msg.hasImage && msg.role === 'user' && (

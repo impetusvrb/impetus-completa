@@ -48,10 +48,13 @@ export function filterMenuByModules(menuItems, visibleModules) {
 }
 
 /**
- * Verifica se path é permitido
+ * Verifica se path é permitido.
+ * Dashboard (/app): sempre permitido para quem tem no menu (CEO, diretor, gerente, coordenador, supervisor).
+ * Só admin e colaborador não têm /app no menu; admin é bloqueado na rota.
  */
 export function canAccessPath(path, visibleModules) {
   if (!visibleModules?.length) return true;
+  if (path === '/app') return true;
   const mod = getModuleForPath(path);
   if (!mod) return true;
   return visibleModules.includes(mod);

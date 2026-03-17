@@ -62,7 +62,13 @@ api.interceptors.response.use(
 );
 
 function handleFinalError(error) {
-  if (error.response?.status === 401) {
+  const urlPath = error.config?.url || '';
+
+  // 401 em Pró-Ação não deve derrubar toda a sessão do usuário.
+  // Mantemos o usuário logado e apenas propagamos o erro para a tela tratar.
+  const isProacaoRequest = urlPath.includes('/proacao');
+
+  if (error.response?.status === 401 && !isProacaoRequest) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     window.location.href = '/';
@@ -194,6 +200,8 @@ export const roleVerification = {
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
   getMe: () => api.get('/dashboard/me'),
+  /** Layout personalizado por cargo/função/departamento (perfil + modulos + layout) */
+  getPersonalizado: () => api.get('/dashboard/personalizado'),
   getConfig: () => api.get('/dashboard/config'),
   savePreferences: (data) => api.post('/dashboard/preferences', data),
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
@@ -240,6 +248,10 @@ export const dashboard = {
     api.post('/dashboard/chat-multimodal', payload),
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
+
+  /** TTS via backend (ElevenLabs). Só gera áudio quando falar=true. */
+  gerarVoz: (texto, falar = true) =>
+    api.post('/voz', { texto: texto || '', falar: !!falar }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),
@@ -312,10 +324,17 @@ export const dashboard = {
     updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
   },
   costs: {
+    // Painel executivo (visão geral de custos)
     getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
     getByOrigin: () => api.get('/dashboard/costs/by-origin'),
     getTopLoss: () => api.get('/dashboard/costs/top-loss'),
-    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss')
+    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss'),
+
+    // Centro de Custos Industriais (Admin)
+    listItems: () => api.get('/dashboard/costs/items'),
+    createItem: (data) => api.post('/dashboard/costs/items', data),
+    updateItem: (id, data) => api.put(`/dashboard/costs/items/${id}`, data),
+    deleteItem: (id) => api.delete(`/dashboard/costs/items/${id}`)
   },
   financialLeakage: {
     getMap: () => api.get('/dashboard/financial-leakage/map'),
@@ -414,7 +433,12 @@ export const tasks = {
 export const integrations = {
   listConnectors: () => api.get('/integrations/mes-erp/connectors'),
   createConnector: (data) => api.post('/integrations/mes-erp/connectors', data),
+  updateConnector: (id, data) => api.put(`/integrations/mes-erp/connectors/${id}`, data),
+  testConnector: (id) => api.post(`/integrations/mes-erp/connectors/${id}/test`),
+  listConnectorLogs: (id, limit = 50) => api.get(`/integrations/mes-erp/connectors/${id}/logs`, { params: { limit } }),
   registerEdge: (data) => api.post('/integrations/edge/register', data),
+  listEdgeAgents: () => api.get('/integrations/edge/agents'),
+  revokeEdgeAgent: (id) => api.post(`/integrations/edge/agents/${id}/revoke`),
   getDigitalTwinState: () => api.get('/integrations/digital-twin/state'),
   saveDigitalTwinLayout: (data) => api.put('/integrations/digital-twin/layout', data)
 };
@@ -586,10 +610,84 @@ export default api;
 
 export const adminStructural = {
   getReferences: () => api.get('/admin/structural/references'),
-  getAll: (module) => api.get(`/admin/structural/${module}`),
-  create: (module, data) => api.post(`/admin/structural/${module}`, data),
-  update: (module, id, data) => api.put(`/admin/structural/${module}/${id}`, data),
-  remove: (module, id) => api.delete(`/admin/structural/${module}/${id}`),
+
+  // Dados da empresa
+  getCompanyData: () => api.get('/admin/structural/company-data'),
+  updateCompanyData: (data) => api.put('/admin/structural/company-data', data),
+
+  // Demais módulos usam CRUD genérico abaixo
+  roles: {
+    list: () => api.get('/admin/structural/roles'),
+    create: (data) => api.post('/admin/structural/roles', data),
+    update: (id, data) => api.put(`/admin/structural/roles/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/roles/${id}`)
+  },
+  lines: {
+    list: () => api.get('/admin/structural/production-lines'),
+    create: (data) => api.post('/admin/structural/production-lines', data),
+    update: (id, data) => api.put(`/admin/structural/production-lines/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/production-lines/${id}`)
+  },
+  assets: {
+    list: () => api.get('/admin/structural/assets'),
+    create: (data) => api.post('/admin/structural/assets', data),
+    update: (id, data) => api.put(`/admin/structural/assets/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/assets/${id}`)
+  },
+  processes: {
+    list: () => api.get('/admin/structural/processes'),
+    create: (data) => api.post('/admin/structural/processes', data),
+    update: (id, data) => api.put(`/admin/structural/processes/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/processes/${id}`)
+  },
+  products: {
+    list: () => api.get('/admin/structural/products'),
+    create: (data) => api.post('/admin/structural/products', data),
+    update: (id, data) => api.put(`/admin/structural/products/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/products/${id}`)
+  },
+  indicators: {
+    list: () => api.get('/admin/structural/indicators'),
+    create: (data) => api.post('/admin/structural/indicators', data),
+    update: (id, data) => api.put(`/admin/structural/indicators/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/indicators/${id}`)
+  },
+  failureRisks: {
+    list: () => api.get('/admin/structural/failure-risks'),
+    create: (data) => api.post('/admin/structural/failure-risks', data),
+    update: (id, data) => api.put(`/admin/structural/failure-risks/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/failure-risks/${id}`)
+  },
+  communicationRules: {
+    list: () => api.get('/admin/structural/communication-rules'),
+    create: (data) => api.post('/admin/structural/communication-rules', data),
+    update: (id, data) => api.put(`/admin/structural/communication-rules/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/communication-rules/${id}`)
+  },
+  routines: {
+    list: () => api.get('/admin/structural/routines'),
+    create: (data) => api.post('/admin/structural/routines', data),
+    update: (id, data) => api.put(`/admin/structural/routines/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/routines/${id}`)
+  },
+  shifts: {
+    list: () => api.get('/admin/structural/shifts'),
+    create: (data) => api.post('/admin/structural/shifts', data),
+    update: (id, data) => api.put(`/admin/structural/shifts/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/shifts/${id}`)
+  },
+  areaResponsibles: {
+    list: () => api.get('/admin/structural/area-responsibles'),
+    create: (data) => api.post('/admin/structural/area-responsibles', data),
+    update: (id, data) => api.put(`/admin/structural/area-responsibles/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/area-responsibles/${id}`)
+  },
+  aiConfig: {
+    list: () => api.get('/admin/structural/ai-config'),
+    create: (data) => api.post('/admin/structural/ai-config', data),
+    update: (id, data) => api.put(`/admin/structural/ai-config/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/ai-config/${id}`)
+  }
 };
 
 export const intelligentRegistration = {

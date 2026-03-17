@@ -84,11 +84,11 @@ function RoleGuard({ children, allowedRoles }) {
   return children;
 }
 
-// Colaborador só pode acessar Pró-Ação (compatibilidade)
+// Colaborador só acessa Pró-Ação (sem dashboard)
 function isColaborador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return user.role === 'colaborador';
+    return (user.role || '').toString().toLowerCase() === 'colaborador';
   } catch {
     return false;
   }

@@ -5,7 +5,8 @@ import MessageInput from './components/MessageInput';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
-import { User, ArrowLeft, Menu, Bot, Send, ClipboardList, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useVoiceOutput } from '../hooks/useVoiceOutput';
+import { User, ArrowLeft, Menu, Bot, Send, ClipboardList, X, CheckCircle, AlertTriangle, Mic, MicOff } from 'lucide-react';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
@@ -25,7 +26,9 @@ export default function ChatApp(){
   const [registroLoading,setRegistroLoading]=useState(false);
   const [registroResult,setRegistroResult]=useState(null);
   const [currentUser,setCurrentUser]=useState(null);
+  const [voiceMode,setVoiceMode]=useState(false);
   const typingTimers=useRef({});
+  const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput({});
   const activeConv=conversations.find(c=>c.id===activeId);
   const {messages,loading,hasMore,loadMessages,addMessage,reset}=useMessages(activeId);
 
@@ -65,6 +68,7 @@ export default function ChatApp(){
 
   async function handleAiSend(){
     if(!aiInput.trim()||aiLoading) return;
+    if(voiceMode&&isSpeaking) stopSpeaking();
     const text=aiInput.trim(); setAiInput(''); setAiLoading(true);
     const userMsg={id:Date.now(),content:text,isUser:true,created_at:new Date().toISOString()};
     setAiMessages(prev=>[...prev,userMsg]);
@@ -73,8 +77,11 @@ export default function ChatApp(){
       const {data}=await chatApi.sendAIMessage(hist);
       const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
       setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
+      if(voiceMode) speak(reply);
     }catch(e){
-      setAiMessages(prev=>[...prev,{id:Date.now()+1,content:'Erro ao conectar com a IA.',isUser:false,created_at:new Date().toISOString()}]);
+      const errMsg='Erro ao conectar com a IA.';
+      setAiMessages(prev=>[...prev,{id:Date.now()+1,content:errMsg,isUser:false,created_at:new Date().toISOString()}]);
+      if(voiceMode) speak(errMsg);
     } finally{ setAiLoading(false); }
   }
 
@@ -135,6 +142,7 @@ export default function ChatApp(){
               <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Bot size={16} color="#fff"/></div>
               <div><span className="chat-conv-name">Impetus IA</span><br/><span style={{color:'#22c55e',fontSize:11}}>online</span></div>
             </div>
+            <button onClick={()=>setVoiceMode(v=>!v)} title={voiceMode?'Desativar voz':'Ativar voz (IA fala as respostas)'} style={{marginLeft:'auto',width:36,height:36,borderRadius:'50%',border:'none',background:voiceMode?'#6366f1':'#2a2a3e',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{voiceMode?<MicOff size={18}/>:<Mic size={18}/>}</button>
           </div>
           <div className="msg-area" style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
             {aiMessages.map(msg=>(<div key={msg.id} style={{display:'flex',justifyContent:msg.isUser?'flex-end':'flex-start',gap:8,alignItems:'flex-end'}}>

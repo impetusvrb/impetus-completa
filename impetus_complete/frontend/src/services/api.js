@@ -39,8 +39,10 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config || {};
 
-    // Nunca fazer retry em erros de autenticação/autorização
+    // Nunca fazer retry em erros de autenticação/autorização (exceto /voz: não deslogar, só falhar)
+    const isVoz = (config.url || '').includes('/voz');
     if (error.response?.status === 401 || error.response?.status === 403) {
+      if (isVoz) return Promise.reject(error);
       return handleFinalError(error);
     }
 
@@ -62,7 +64,8 @@ api.interceptors.response.use(
 );
 
 function handleFinalError(error) {
-  if (error.response?.status === 401) {
+  const isVoz = (error.config?.url || '').includes('/voz');
+  if (error.response?.status === 401 && !isVoz) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     window.location.href = '/';
@@ -239,6 +242,10 @@ export const dashboard = {
     api.post('/dashboard/chat-multimodal', payload),
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
+
+  /** TTS via backend (ElevenLabs). Só gera áudio quando falar=true. */
+  gerarVoz: (texto, falar = true) =>
+    api.post('/voz', { texto: texto || '', falar: !!falar }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),

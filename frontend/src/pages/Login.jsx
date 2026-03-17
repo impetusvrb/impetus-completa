@@ -41,12 +41,18 @@ export default function Login() {
         navigate(redirect);
         return;
       }
+      const userRole = (data.user?.role || '').toLowerCase();
+      const rolesComDashboard = ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'];
+      const temDashboard = rolesComDashboard.includes(userRole);
+      // Quem tem dashboard: primeira tela após login é sempre o dashboard (não a validação).
+      if (temDashboard) {
+        navigate('/app');
+        return;
+      }
       if (data.user?.needs_role_verification) {
         navigate('/validacao-cargo');
         return;
       }
-      const userRole = (data.user?.role || '').toLowerCase();
-      // Admin só cadastra, não visualiza dashboard → entra direto no Impetus IA.
       if (userRole === 'admin') {
         navigate('/app/chatbot');
         return;

@@ -34,6 +34,7 @@ function invalidateDashboardCache(userId) {
   del(makeKey('dashboard:me', String(userId)));
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+const dynamicDashboardService = require('../services/dynamicDashboardService');
 const maintenanceDashboard = require('../services/maintenanceDashboardService');
 const multimodalChat = require('../services/multimodalChatService');
 const audioMonitoring = require('../services/audioMonitoringService');
@@ -50,6 +51,7 @@ const operationalForecastingAI = require('../services/operationalForecastingAI')
 const operationalForecastingAdvanced = require('../services/operationalForecastingAdvancedService');
 const industrialCost = require('../services/industrialCostService');
 const financialLeakage = require('../services/financialLeakageDetectorService');
+const dashboardPersonalizadoService = require('../services/dashboardPersonalizadoService');
 const { requireIndustrialView, requireIndustrialAdmin, canConfigureIndustrial } = require('../middleware/industrialIntegrationAccess');
 
 function requireIndustrialCostAdmin(req, res, next) {
@@ -116,6 +118,59 @@ router.get('/config', requireAuth, (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_CONFIG_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar configuração' });
+  }
+});
+
+/**
+ * GET /api/dashboard/personalizado
+ * Config personalizado por perfil (cargo, departamento) para Centro de Comando
+ */
+router.get('/personalizado', requireAuth, async (req, res) => {
+  try {
+    const config = await dashboardPersonalizadoService.getConfigPersonalizado(req.user);
+    if (!config) return res.status(404).json({ ok: false, error: 'Config não disponível' });
+    res.json({ ok: true, ...config });
+  } catch (err) {
+    console.error('[DASHBOARD_PERSONALIZADO_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao buscar dashboard personalizado' });
+  }
+});
+
+/**
+ * POST /api/dashboard/invalidar-cache
+ * Invalida cache da config personalizada do usuário
+ */
+router.post('/invalidar-cache', requireAuth, async (req, res) => {
+  try {
+    await dashboardPersonalizadoService.invalidarCache(req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DASHBOARD_INVALIDAR_CACHE_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao invalidar cache' });
+  }
+});
+
+/**
+ * GET /api/dashboard/dynamic-layout
+ * Layout dinâmico de widgets conforme perfil do usuário (cargo, departamento, hierarquia).
+ * Usado pelo Dashboard Dinâmico no frontend.
+ */
+router.get('/dynamic-layout', requireAuth, (req, res) => {
+  try {
+    const result = dynamicDashboardService.getDynamicLayout(req.user);
+    res.json({
+      ok: true,
+      widgets: result.widgets,
+      layout: result.layout,
+      userProfile: result.userProfile,
+      alerts: result.alerts || [],
+      version: result.version || '3.0',
+      generatedAt: result.generatedAt,
+      ttl: result.ttl ?? 300
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_DYNAMIC_LAYOUT_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao montar layout dinâmico' });
   }
 });
 
