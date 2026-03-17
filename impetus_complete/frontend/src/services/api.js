@@ -247,6 +247,10 @@ export const dashboard = {
   gerarVoz: (texto, falar = true) =>
     api.post('/voz', { texto: texto || '', falar: !!falar }),
 
+  /** Comando de voz (regra simples) - retorna texto e opcionalmente áudio */
+  comandoVoz: (comando, falar = false) =>
+    api.post('/voz/comando', { comando: comando || '', falar: !!falar }),
+
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),
 

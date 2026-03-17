@@ -6,6 +6,7 @@ import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
 import { useVoiceOutput } from '../hooks/useVoiceOutput';
+import { dashboard } from '../services/api';
 import { User, ArrowLeft, Menu, Bot, Send, ClipboardList, X, CheckCircle, AlertTriangle, Mic, MicOff } from 'lucide-react';
 import './styles/chat.css';
 
@@ -29,6 +30,7 @@ export default function ChatApp(){
   const [voiceMode,setVoiceMode]=useState(false);
   const typingTimers=useRef({});
   const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput({});
+  const recognitionRef = useRef(null);
   const activeConv=conversations.find(c=>c.id===activeId);
   const {messages,loading,hasMore,loadMessages,addMessage,reset}=useMessages(activeId);
 
@@ -42,6 +44,66 @@ export default function ChatApp(){
   useEffect(()=>{ if(activeId) loadMessages(true); },[activeId]);
 
   useEffect(()=>()=>{ Object.values(typingTimers.current||{}).forEach(t=>clearTimeout(t)); typingTimers.current={}; },[]);
+
+  // Wakeword + comando (apenas na conversa Impetus IA e com modo voz ativo)
+  useEffect(() => {
+    if (!voiceMode || activeId !== AI_CONV_ID) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch(_) {}
+        recognitionRef.current = null;
+      }
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = async (event) => {
+      const last = event.results.length - 1;
+      const transcript = (event.results[last][0].transcript || '').toLowerCase().trim();
+      if (transcript.includes('ok impetus') || transcript.includes('olá impetus') || transcript.includes('ola impetus')) {
+        const greeting = 'Estou ouvindo. Pode falar.';
+        setAiMessages((m) => [...m, { id: 'wake-' + Date.now(), content: greeting, isUser: false, created_at: new Date().toISOString() }]);
+        speak(greeting);
+        try {
+          const comandoRec = new SpeechRecognition();
+          comandoRec.lang = 'pt-BR';
+          comandoRec.continuous = false;
+          comandoRec.interimResults = false;
+          comandoRec.onresult = async (ev) => {
+            const comando = (ev.results?.[0]?.[0]?.transcript || '').trim();
+            if (!comando) return;
+            setAiMessages((m) => [...m, { id: 'cmd-' + Date.now(), content: `[Comando de voz] ${comando}`, isUser: true, created_at: new Date().toISOString() }]);
+            try {
+              const r = await dashboard.comandoVoz(comando, true);
+              const resposta = r.data?.resposta || 'Não entendi o comando.';
+              setAiMessages((m) => [...m, { id: 'cmd-rep-' + Date.now(), content: resposta, isUser: false, created_at: new Date().toISOString() }]);
+              if (r.data?.audio) {
+                const audio = new Audio('data:audio/mp3;base64,' + r.data.audio);
+                audio.play().catch(() => speak(resposta));
+              } else {
+                speak(resposta);
+              }
+            } catch {
+              const resposta = 'Não consegui processar o comando agora.';
+              setAiMessages((m) => [...m, { id: 'cmd-rep-' + Date.now(), content: resposta, isUser: false, created_at: new Date().toISOString() }]);
+              speak(resposta);
+            }
+          };
+          setTimeout(() => { try { comandoRec.start(); } catch(_) {} }, 1200);
+        } catch (_) {}
+      }
+    };
+    recognition.onerror = () => {};
+    try { recognition.start(); } catch(_) {}
+    recognitionRef.current = recognition;
+    return () => {
+      try { recognition.stop(); } catch(_) {}
+      recognitionRef.current = null;
+    };
+  }, [voiceMode, activeId, speak]);
 
   async function loadConversations(){ try{ const {data}=await chatApi.getConversations(); setConversations(data); }catch(e){ console.error(e); } }
 
