@@ -28,6 +28,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -45,7 +48,9 @@ api.interceptors.response.use(
     }
 
     const retryCount = config.__retryCount ?? 0;
+    const noRetryBody = config.data instanceof FormData;
     const isRetryable =
+      !noRetryBody &&
       retryCount < MAX_RETRIES &&
       (['ECONNABORTED', 'ERR_NETWORK', 'ETIMEDOUT'].includes(error.code) ||
         [502, 503, 504].includes(error.response?.status));

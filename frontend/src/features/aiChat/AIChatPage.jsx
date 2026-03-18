@@ -30,7 +30,9 @@ export default function AIChatPage() {
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingFileContext, setPendingFileContext] = useState(null);
   const [uploadError, setUploadError] = useState('');
+  const [voiceOneShotListening, setVoiceOneShotListening] = useState(false);
   const messagesEndRef = useRef(null);
+  const messagesRef = useRef([]);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -44,7 +46,9 @@ export default function AIChatPage() {
     onError: (e) => console.warn('[VoiceInput]', e)
   });
   const { speak, stop: stopSpeaking, isSpeaking } = useVoiceOutput({});
-  const recognitionRef = useRef(null);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,38 +92,85 @@ export default function AIChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Ativação por voz: "ok impetus" / "olá impetus" (só quando modo voz está ativo)
-  useEffect(() => {
-    if (!voiceMode) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) {}
-        recognitionRef.current = null;
+  const sendVoiceQuestionToIa = async (userText) => {
+    const text = String(userText || '').trim();
+    if (!text || sending) return;
+    const history = messagesRef.current.map((m) => ({ role: m.role, content: m.content }));
+    setMessages((m) => [...m, { id: Date.now(), role: 'user', content: text }]);
+    setSending(true);
+    if (isSpeaking) stopSpeaking();
+    try {
+      const r = await dashboard.chat(text, history);
+      const reply =
+        r.data?.ok && r.data?.reply
+          ? r.data.reply
+          : r.data?.fallback || 'Resposta temporariamente indisponível.';
+      const cleanTts = String(reply).replace(/\*\*/g, '').replace(/#{1,6}\s?/g, '').slice(0, 4500);
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
+      try {
+        const v = await dashboard.gerarVoz(cleanTts, true);
+        if (v.data?.ok && v.data?.audio) {
+          const a = new Audio('data:audio/mp3;base64,' + v.data.audio);
+          await a.play().catch(() => speak(reply));
+        } else {
+          speak(reply);
+        }
+      } catch {
+        speak(reply);
       }
+    } catch (e) {
+      if (e.response?.data?.code === 'SENSITIVE_CONTENT') {
+        setPendingMessage({ text, history });
+        setSensitiveModal(true);
+        setMessages((m) => m.slice(0, -1));
+        setSending(false);
+        return;
+      }
+      const errMsg =
+        e.apiMessage || e.response?.data?.fallback || e.response?.data?.error || 'Erro de conexão.';
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: errMsg }]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const askIaByVoice = async () => {
+    setUploadError('');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setUploadError('Seu navegador não suporta voz. Use Chrome e permita o microfone.');
       return;
     }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.onresult = (event) => {
-      const last = event.results.length - 1;
-      const transcript = (event.results[last][0].transcript || '').toLowerCase().trim();
-      if (transcript.includes('ok impetus') || transcript.includes('olá impetus') || transcript.includes('ola impetus')) {
-        const greeting = 'Olá, estou pronta para te ajudar. O que você precisa?';
-        setMessages((m) => [...m, { id: 'wake-' + Date.now(), role: 'assistant', content: greeting }]);
-        speak(greeting);
-      }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      setUploadError('Permita o microfone para falar com a IA.');
+      return;
+    }
+    const rec = new SR();
+    rec.lang = 'pt-BR';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onstart = () => setVoiceOneShotListening(true);
+    rec.onresult = (ev) => {
+      const t = (ev.results[0]?.[0]?.transcript || '').trim();
+      setVoiceOneShotListening(false);
+      if (t) sendVoiceQuestionToIa(t);
+      else setUploadError('Não ouvi nada. Tente de novo, falando mais perto.');
     };
-    recognition.onerror = () => {};
-    try { recognition.start(); } catch (_) {}
-    recognitionRef.current = recognition;
-    return () => {
-      try { recognition.stop(); } catch (_) {}
-      recognitionRef.current = null;
+    rec.onerror = () => {
+      setVoiceOneShotListening(false);
+      setUploadError('Erro no microfone ou na rede de voz. Tente de novo ou digite a pergunta.');
     };
-  }, [voiceMode, speak]);
+    rec.onend = () => setVoiceOneShotListening(false);
+    try {
+      rec.start();
+    } catch {
+      setVoiceOneShotListening(false);
+      setUploadError('Não foi possível iniciar. Tente outra vez.');
+    }
+  };
 
   const hasMultimodalContent = pendingImage || pendingFileContext;
   const canSend = (input.trim() || hasMultimodalContent) && !sending;
@@ -249,7 +300,16 @@ export default function AIChatPage() {
       <div className="ai-chat-page">
         <header className="ai-chat-header">
           {voiceMode ? (
-            <AvatarAI state={isListening ? 'listening' : isSpeaking ? 'speaking' : 'standby'} size={64} />
+            <AvatarAI
+              state={
+                voiceOneShotListening || isListening
+                  ? 'listening'
+                  : isSpeaking
+                    ? 'speaking'
+                    : 'standby'
+              }
+              size={64}
+            />
           ) : (
             <img src={impetusIaAvatar} alt="Impetus IA" style={{width:64,height:64,borderRadius:"50%",objectFit:"cover",border:"2px solid #1E90FF",boxShadow:"0 0 12px rgba(30,144,255,0.4)"}} />
           )}
@@ -258,14 +318,35 @@ export default function AIChatPage() {
             <p>Assistente de Inteligência Operacional Industrial • Multimodal</p>
           </div>
           <button
+            type="button"
             className={`ai-chat-voice-btn ${voiceMode ? 'active' : ''}`}
             onClick={toggleVoiceMode}
-            title={voiceMode ? 'Desativar modo voz' : 'Ativar modo voz (IA fala e ouve)'}
+            title={voiceMode ? 'Desativar modo voz' : 'Ativar modo voz: depois use o botão verde para perguntar por voz'}
             aria-pressed={voiceMode}
           >
             {voiceMode ? <MicOff size={22} /> : <Mic size={22} />}
           </button>
         </header>
+        {voiceMode && (
+          <div className="ai-chat-voice-ask-banner" role="region" aria-label="Pergunta por voz">
+            <button
+              type="button"
+              className="ai-chat-voice-ask-btn"
+              onClick={askIaByVoice}
+              disabled={voiceOneShotListening || sending}
+            >
+              {voiceOneShotListening
+                ? '🎤 Ouvindo… fale sua pergunta'
+                : sending
+                  ? '⏳ Aguarde a resposta…'
+                  : '🎤 Falar pergunta para a IA'}
+            </button>
+            <p className="ai-chat-voice-ask-hint">
+              Um clique → fale a pergunta → a IA responde <strong>no chat</strong> e em <strong>voz</strong>{' '}
+              (mesmo fluxo de digitar e enviar).
+            </p>
+          </div>
+        )}
         <div className="ai-chat-messages">
           {loading ? (
             <div className="ai-chat-loading">
