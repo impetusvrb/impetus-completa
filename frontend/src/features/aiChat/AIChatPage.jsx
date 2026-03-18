@@ -30,9 +30,14 @@ export default function AIChatPage() {
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingFileContext, setPendingFileContext] = useState(null);
   const [uploadError, setUploadError] = useState('');
-  const [voiceOneShotListening, setVoiceOneShotListening] = useState(false);
+  const [voiceConvOn, setVoiceConvOn] = useState(false);
+  const [voicePhase, setVoicePhase] = useState('idle');
   const messagesEndRef = useRef(null);
   const messagesRef = useRef([]);
+  const voiceModeRef = useRef(false);
+  const voiceLoopRef = useRef(false);
+  const voiceRecRef = useRef(null);
+  const voiceAudioRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -49,6 +54,9 @@ export default function AIChatPage() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+  }, [voiceMode]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,11 +100,119 @@ export default function AIChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const sendVoiceQuestionToIa = async (userText) => {
-    const text = String(userText || '').trim();
-    if (!text || sending) return;
+  const playVoiceReply = (reply) => {
+    const cleanTts = String(reply).replace(/\*\*/g, '').replace(/#{1,6}\s?/g, '').slice(0, 4500);
+    return new Promise((resolve) => {
+      const done = () => {
+        voiceAudioRef.current = null;
+        resolve();
+      };
+      dashboard
+        .gerarVoz(cleanTts, true)
+        .then((v) => {
+          if (v.data?.ok && v.data?.audio) {
+            const a = new Audio('data:audio/mp3;base64,' + v.data.audio);
+            voiceAudioRef.current = a;
+            a.onended = done;
+            a.onerror = done;
+            a.play().catch(() => {
+              window.speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(String(reply).slice(0, 4000));
+              u.lang = 'pt-BR';
+              u.onend = done;
+              u.onerror = done;
+              window.speechSynthesis.speak(u);
+            });
+          } else {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(String(reply).slice(0, 4000));
+            u.lang = 'pt-BR';
+            u.onend = done;
+            u.onerror = done;
+            window.speechSynthesis.speak(u);
+          }
+        })
+        .catch(() => {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(String(reply).slice(0, 4000));
+          u.lang = 'pt-BR';
+          u.onend = done;
+          window.speechSynthesis.speak(u);
+        });
+    });
+  };
+
+  const stopVoiceConversation = () => {
+    voiceLoopRef.current = false;
+    setVoiceConvOn(false);
+    setVoicePhase('idle');
+    try {
+      voiceRecRef.current?.stop?.();
+    } catch (_) {}
+    try {
+      voiceRecRef.current?.abort?.();
+    } catch (_) {}
+    voiceRecRef.current = null;
+    try {
+      if (voiceAudioRef.current) {
+        voiceAudioRef.current.pause();
+        voiceAudioRef.current = null;
+      }
+    } catch (_) {}
+    try {
+      window.speechSynthesis.cancel();
+    } catch (_) {}
+  };
+
+  const captureVoiceUtterance = () =>
+    new Promise((resolve) => {
+      if (!voiceLoopRef.current) {
+        resolve('');
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        resolve('');
+        return;
+      }
+      const rec = new SR();
+      voiceRecRef.current = rec;
+      rec.lang = 'pt-BR';
+      rec.continuous = false;
+      rec.interimResults = false;
+      let settled = false;
+      const finish = (t) => {
+        if (settled) return;
+        settled = true;
+        voiceRecRef.current = null;
+        resolve(String(t || '').trim());
+      };
+      rec.onresult = (ev) => finish(ev.results[0]?.[0]?.transcript || '');
+      rec.onerror = () => finish('');
+      rec.onend = () => setTimeout(() => finish(''), 700);
+      try {
+        rec.start();
+      } catch {
+        finish('');
+      }
+    });
+
+  const runVoiceTurn = async () => {
+    if (!voiceLoopRef.current || !voiceModeRef.current) return;
+    setVoicePhase('listening');
+    setUploadError('');
+    const text = await captureVoiceUtterance();
+    if (!voiceLoopRef.current || !voiceModeRef.current) return;
+    if (!text) {
+      setUploadError('Não ouvi. Fale quando aparecer “Ouvindo…”.');
+      setTimeout(() => voiceLoopRef.current && voiceModeRef.current && runVoiceTurn(), 450);
+      return;
+    }
+    setUploadError('');
     const history = messagesRef.current.map((m) => ({ role: m.role, content: m.content }));
-    setMessages((m) => [...m, { id: Date.now(), role: 'user', content: text }]);
+    const uid = Date.now();
+    setMessages((m) => [...m, { id: 'vu-' + uid, role: 'user', content: text }]);
+    setVoicePhase('thinking');
     setSending(true);
     if (isSpeaking) stopSpeaking();
     try {
@@ -105,71 +221,56 @@ export default function AIChatPage() {
         r.data?.ok && r.data?.reply
           ? r.data.reply
           : r.data?.fallback || 'Resposta temporariamente indisponível.';
-      const cleanTts = String(reply).replace(/\*\*/g, '').replace(/#{1,6}\s?/g, '').slice(0, 4500);
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
-      try {
-        const v = await dashboard.gerarVoz(cleanTts, true);
-        if (v.data?.ok && v.data?.audio) {
-          const a = new Audio('data:audio/mp3;base64,' + v.data.audio);
-          await a.play().catch(() => speak(reply));
-        } else {
-          speak(reply);
-        }
-      } catch {
-        speak(reply);
+      setMessages((m) => [...m, { id: 'va-' + uid, role: 'assistant', content: reply }]);
+      if (!voiceLoopRef.current) {
+        setSending(false);
+        setVoicePhase('idle');
+        return;
       }
+      setVoicePhase('speaking');
+      setSending(false);
+      await playVoiceReply(reply);
     } catch (e) {
+      setSending(false);
       if (e.response?.data?.code === 'SENSITIVE_CONTENT') {
         setPendingMessage({ text, history });
         setSensitiveModal(true);
         setMessages((m) => m.slice(0, -1));
-        setSending(false);
+        stopVoiceConversation();
         return;
       }
       const errMsg =
         e.apiMessage || e.response?.data?.fallback || e.response?.data?.error || 'Erro de conexão.';
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: errMsg }]);
-    } finally {
-      setSending(false);
+      setMessages((m) => [...m, { id: 'va-' + uid, role: 'assistant', content: errMsg }]);
+      if (voiceLoopRef.current) {
+        setVoicePhase('speaking');
+        await playVoiceReply(errMsg);
+      }
+    }
+    if (voiceLoopRef.current && voiceModeRef.current) {
+      setTimeout(() => runVoiceTurn(), 350);
+    } else {
+      setVoicePhase('idle');
     }
   };
 
-  const askIaByVoice = async () => {
+  const startVoiceConversation = async () => {
     setUploadError('');
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      setUploadError('Seu navegador não suporta voz. Use Chrome e permita o microfone.');
+      setUploadError('Use Chrome (ou Edge) com microfone liberado.');
       return;
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());
     } catch {
-      setUploadError('Permita o microfone para falar com a IA.');
+      setUploadError('Permita o microfone para iniciar.');
       return;
     }
-    const rec = new SR();
-    rec.lang = 'pt-BR';
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.onstart = () => setVoiceOneShotListening(true);
-    rec.onresult = (ev) => {
-      const t = (ev.results[0]?.[0]?.transcript || '').trim();
-      setVoiceOneShotListening(false);
-      if (t) sendVoiceQuestionToIa(t);
-      else setUploadError('Não ouvi nada. Tente de novo, falando mais perto.');
-    };
-    rec.onerror = () => {
-      setVoiceOneShotListening(false);
-      setUploadError('Erro no microfone ou na rede de voz. Tente de novo ou digite a pergunta.');
-    };
-    rec.onend = () => setVoiceOneShotListening(false);
-    try {
-      rec.start();
-    } catch {
-      setVoiceOneShotListening(false);
-      setUploadError('Não foi possível iniciar. Tente outra vez.');
-    }
+    voiceLoopRef.current = true;
+    setVoiceConvOn(true);
+    runVoiceTurn();
   };
 
   const hasMultimodalContent = pendingImage || pendingFileContext;
@@ -262,8 +363,21 @@ export default function AIChatPage() {
   };
 
   const toggleVoiceMode = () => {
+    if (voiceMode) {
+      stopVoiceConversation();
+      stopSpeaking();
+    }
     setVoiceMode((v) => !v);
     if (!voiceMode) stopSpeaking();
+  };
+
+  const interruptVoiceAndListen = () => {
+    try {
+      voiceAudioRef.current?.pause();
+      voiceAudioRef.current = null;
+    } catch (_) {}
+    window.speechSynthesis?.cancel();
+    if (voiceLoopRef.current) setTimeout(() => runVoiceTurn(), 200);
   };
 
   const handleVerifyAndSend = async () => {
@@ -302,9 +416,9 @@ export default function AIChatPage() {
           {voiceMode ? (
             <AvatarAI
               state={
-                voiceOneShotListening || isListening
+                voicePhase === 'listening'
                   ? 'listening'
-                  : isSpeaking
+                  : voicePhase === 'thinking' || voicePhase === 'speaking' || isSpeaking
                     ? 'speaking'
                     : 'standby'
               }
@@ -315,35 +429,54 @@ export default function AIChatPage() {
           )}
           <div style={{ flex: 1 }}>
             <h1>Impetus</h1>
-            <p>Assistente de Inteligência Operacional Industrial • Multimodal</p>
+            <p className="ai-chat-header-tag">
+              {voiceMode
+                ? 'Conversa por voz — mesma IA e histórico que o chat por texto'
+                : 'Assistente industrial • Multimodal'}
+            </p>
           </div>
           <button
             type="button"
             className={`ai-chat-voice-btn ${voiceMode ? 'active' : ''}`}
             onClick={toggleVoiceMode}
-            title={voiceMode ? 'Desativar modo voz' : 'Ativar modo voz: depois use o botão verde para perguntar por voz'}
+            title={voiceMode ? 'Sair do modo voz' : 'Entrar no modo conversa por voz'}
             aria-pressed={voiceMode}
           >
             {voiceMode ? <MicOff size={22} /> : <Mic size={22} />}
           </button>
         </header>
         {voiceMode && (
-          <div className="ai-chat-voice-ask-banner" role="region" aria-label="Pergunta por voz">
-            <button
-              type="button"
-              className="ai-chat-voice-ask-btn"
-              onClick={askIaByVoice}
-              disabled={voiceOneShotListening || sending}
-            >
-              {voiceOneShotListening
-                ? '🎤 Ouvindo… fale sua pergunta'
-                : sending
-                  ? '⏳ Aguarde a resposta…'
-                  : '🎤 Falar pergunta para a IA'}
-            </button>
-            <p className="ai-chat-voice-ask-hint">
-              Um clique → fale a pergunta → a IA responde <strong>no chat</strong> e em <strong>voz</strong>{' '}
-              (mesmo fluxo de digitar e enviar).
+          <div className="ai-voice-gpt-panel" role="region" aria-label="Conversa por voz">
+            <div
+              className={`ai-voice-gpt-orb ai-voice-gpt-orb--${voicePhase}`}
+              aria-hidden
+            />
+            <p className="ai-voice-gpt-status">
+              {!voiceConvOn && 'Toque abaixo para conversar por voz — igual ao chat, em sequência.'}
+              {voiceConvOn && voicePhase === 'listening' && 'Ouvindo… fale agora'}
+              {voiceConvOn && voicePhase === 'thinking' && 'Pensando… (mesmo modelo do chat)'}
+              {voiceConvOn && voicePhase === 'speaking' && 'Falando…'}
+            </p>
+            <div className="ai-voice-gpt-actions">
+              {!voiceConvOn ? (
+                <button type="button" className="ai-voice-gpt-primary" onClick={startVoiceConversation}>
+                  Iniciar conversa
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="ai-voice-gpt-secondary" onClick={stopVoiceConversation}>
+                    Encerrar conversa
+                  </button>
+                  {voicePhase === 'speaking' && (
+                    <button type="button" className="ai-voice-gpt-interrupt" onClick={interruptVoiceAndListen}>
+                      Interromper e falar
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            <p className="ai-voice-gpt-foot">
+              Você pode <strong>digitar</strong> no campo de baixo a qualquer momento — tudo fica no mesmo histórico.
             </p>
           </div>
         )}
@@ -385,7 +518,7 @@ export default function AIChatPage() {
           <button type="button" className="ai-chat-tool-btn" onClick={() => cameraInputRef.current?.click()} title="Abrir câmera">
             <Camera size={20} />
           </button>
-          {voiceInputSupported && (
+          {voiceInputSupported && !voiceConvOn && (
             <button
               type="button"
               className={`ai-chat-tool-btn ${isListening ? 'active' : ''}`}

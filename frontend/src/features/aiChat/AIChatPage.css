@@ -245,3 +245,211 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Painel voz estilo ChatGPT (orb + estados) */
+.ai-chat-header-tag {
+  margin: 4px 0 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.ai-voice-gpt-panel {
+  margin: 0 0 16px;
+  padding: 28px 20px 22px;
+  border-radius: 20px;
+  background: linear-gradient(165deg, #1a1d24 0%, #12141a 45%, #0d0f14 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 24px 48px -12px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-voice-gpt-panel::before {
+  content: '';
+  position: absolute;
+  inset: -40% -20%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(16, 163, 127, 0.12) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.ai-voice-gpt-orb {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.15), transparent 45%),
+    radial-gradient(circle at 50% 50%, #2a3441 0%, #151922 70%);
+  box-shadow:
+    0 0 40px rgba(16, 163, 127, 0.15),
+    inset 0 -8px 24px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.5s ease, transform 0.5s ease;
+}
+
+.ai-voice-gpt-orb--idle {
+  animation: ai-voice-orb-idle 4s ease-in-out infinite;
+}
+
+.ai-voice-gpt-orb--listening {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 50% 50%, #10a37f 0%, #0d7a5c 55%, #063d2f 100%);
+  box-shadow:
+    0 0 48px rgba(16, 163, 127, 0.55),
+    0 0 80px rgba(16, 163, 127, 0.2),
+    inset 0 -6px 20px rgba(0, 0, 0, 0.2);
+  animation: ai-voice-orb-pulse 1.1s ease-in-out infinite;
+}
+
+.ai-voice-gpt-orb--thinking {
+  background: radial-gradient(circle at 50% 50%, #3d4a5c 0%, #252b36 60%, #151922 100%);
+  box-shadow:
+    0 0 36px rgba(99, 102, 241, 0.35),
+    inset 0 -8px 24px rgba(0, 0, 0, 0.4);
+  animation: ai-voice-orb-think 1.4s ease-in-out infinite;
+}
+
+.ai-voice-gpt-orb--speaking {
+  background: radial-gradient(circle at 40% 35%, rgba(167, 139, 250, 0.2), transparent 45%),
+    radial-gradient(circle at 50% 50%, #6d28d9 0%, #4c1d95 50%, #1e1033 100%);
+  box-shadow:
+    0 0 44px rgba(139, 92, 246, 0.45),
+    0 0 72px rgba(139, 92, 246, 0.15),
+    inset 0 -6px 20px rgba(0, 0, 0, 0.25);
+  animation: ai-voice-orb-speak 0.85s ease-in-out infinite;
+}
+
+@keyframes ai-voice-orb-idle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+}
+
+@keyframes ai-voice-orb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes ai-voice-orb-think {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(3deg);
+  }
+}
+
+@keyframes ai-voice-orb-speak {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.06);
+  }
+  75% {
+    transform: scale(1.02);
+  }
+}
+
+.ai-voice-gpt-status {
+  position: relative;
+  z-index: 1;
+  margin: 18px 0 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ececf1;
+  letter-spacing: -0.01em;
+  max-width: 320px;
+  line-height: 1.45;
+  min-height: 2.8em;
+}
+
+.ai-voice-gpt-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.ai-voice-gpt-primary {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 999px;
+  background: #ececf1;
+  color: #0d0f14;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ai-voice-gpt-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 28px rgba(236, 236, 241, 0.12);
+}
+
+.ai-voice-gpt-secondary {
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #c5c5d2;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ai-voice-gpt-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ececf1;
+}
+
+.ai-voice-gpt-interrupt {
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 163, 127, 0.45);
+  background: rgba(16, 163, 127, 0.12);
+  color: #34d399;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ai-voice-gpt-interrupt:hover {
+  background: rgba(16, 163, 127, 0.2);
+}
+
+.ai-voice-gpt-foot {
+  position: relative;
+  z-index: 1;
+  margin: 16px 0 0;
+  font-size: 0.75rem;
+  color: rgba(236, 236, 241, 0.45);
+  max-width: 340px;
+  line-height: 1.5;
+}
