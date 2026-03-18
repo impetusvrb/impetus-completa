@@ -28,6 +28,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // FormData exige boundary automático — json default quebrava /voz/transcrever e uploads
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -47,7 +51,10 @@ api.interceptors.response.use(
     }
 
     const retryCount = config.__retryCount ?? 0;
+    const isFormOrUpload =
+      config.data instanceof FormData || String(config.url || '').includes('/transcrever');
     const isRetryable =
+      !isFormOrUpload &&
       retryCount < MAX_RETRIES &&
       (['ECONNABORTED', 'ERR_NETWORK', 'ETIMEDOUT'].includes(error.code) ||
         [502, 503, 504].includes(error.response?.status));
@@ -250,6 +257,25 @@ export const dashboard = {
   /** Comando de voz (regra simples) - retorna texto e opcionalmente áudio */
   comandoVoz: (comando, falar = false) =>
     api.post('/voz/comando', { comando: comando || '', falar: !!falar }),
+
+  /** Modo conversa Impetus IA: memória + GPT + TTS */
+  vozConversa: (message, reset = false, falar = true) =>
+    api.post('/voz/conversa', {
+      message: message || '',
+      reset: !!reset,
+      falar: !!falar
+    }),
+
+  vozConversaReset: () =>
+    api.post('/voz/conversa', { message: '', reset: true, falar: false }),
+
+  /** Gravação webm → texto (Whisper), para quando Web Speech não funciona */
+  transcreverVoz: (formData) =>
+    api.post('/voz/transcrever', formData, {
+      timeout: 90000,
+      maxContentLength: 15 * 1024 * 1024,
+      maxBodyLength: 15 * 1024 * 1024
+    }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),

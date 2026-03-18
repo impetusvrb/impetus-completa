@@ -22,6 +22,7 @@ const PATH_TO_MODULE = {
   '/app/mapa-vazamento-financeiro': 'operational',
   '/app/almoxarifado-inteligente': 'warehouse_intelligence',
   '/app/logistica-inteligente': 'logistics_intelligence',
+  '/app/manutencao/manuia': 'manuia',
   '/chat': 'chat'
 };
 
@@ -67,7 +68,7 @@ export function useVisibleModules() {
   const fetchModules = useCallback(async () => {
     try {
       const r = await dashboard.getMe();
-      const mods = r?.data?.visible_modules;
+      const mods = r?.data?.visible_modules ?? r?.data?.profile_config?.visible_modules;
       setVisibleModules(Array.isArray(mods) ? mods : []);
     } catch {
       setVisibleModules([]);

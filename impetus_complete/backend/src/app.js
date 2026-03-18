@@ -4,7 +4,8 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const app = express();
-app.use(cors({ origin: '*', credentials: true }));
+// origin: true espelha o Origin da requisição — necessário com credentials + Bearer (ex.: front :3000 → API :4000)
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -35,6 +36,7 @@ app.use('/api/integrations',             safe('./routes/integrations'));
 app.use('/api/webhook',                  safe('./routes/webhook'));
 app.use('/api/admin',                    safe('./routes/admin'));
 app.use('/api/dashboard',                safe('./routes/dashboard'));
+app.use('/api/manutencao-ia',            safe('./routes/manutencao-ia'));
 app.use('/api/diagnostics',              safe('./routes/diagnostic'));
 app.use('/api/cadastrar-com-ia',         safe('./routes/cadastrarComIA'));
 app.use('/api/intelligent-registration', safe('./routes/intelligentRegistration'));

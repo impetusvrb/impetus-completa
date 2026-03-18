@@ -55,6 +55,36 @@ async function chatCompletion(prompt, opts = {}) {
   }
 }
 
+/** Chat multi-turn (mensagens OpenAI) — usado pelo modo voz Impetus IA */
+async function chatCompletionMessages(messages, opts = {}) {
+  if (!client) return `FALLBACK: IA não configurada.`;
+  if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  if (!Array.isArray(messages) || messages.length === 0) return `FALLBACK: Mensagens vazias.`;
+
+  try {
+    const timeoutMs = opts.timeout || 28000;
+    const completionPromise = client.chat.completions.create({
+      model: opts.model || 'gpt-4o-mini',
+      messages,
+      max_tokens: opts.max_tokens || 550
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const res = await Promise.race([completionPromise, timeoutPromise]);
+    failures = 0;
+    return res.choices?.[0]?.message?.content || '';
+  } catch (err) {
+    failures++;
+    lastFailureTime = Date.now();
+    console.warn('[AI_MESSAGES_ERROR]', err.message, 'failures:', failures);
+    if (err.message === 'TIMEOUT') {
+      return `FALLBACK: Tempo esgotado. Tente de novo.`;
+    }
+    return `FALLBACK: IA indisponível. Erro: ${err.message?.slice(0, 100)}`;
+  }
+}
+
 async function embedText(text) {
   if (!client) return null;
   if (isCircuitOpen()) return null;
@@ -227,6 +257,7 @@ async function analyzeImage(imageBase64, userPrompt, opts = {}) {
 
 module.exports = {
   chatCompletion,
+  chatCompletionMessages,
   chatWithVision,
   analyzeImage,
   embedText,

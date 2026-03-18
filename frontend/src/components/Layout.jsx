@@ -12,6 +12,7 @@ import {
   Brain, 
   MapPin, 
   Settings,
+  Wrench,
   Bell,
   User,
   Users,
@@ -146,6 +147,7 @@ export default function Layout({ children }) {
     ],
     gerente: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro com IA' },
@@ -156,6 +158,7 @@ export default function Layout({ children }) {
     ],
     coordenador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro com IA' },
@@ -165,6 +168,7 @@ export default function Layout({ children }) {
     ],
     supervisor: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro com IA' },
@@ -174,6 +178,7 @@ export default function Layout({ children }) {
     ],
     colaborador: [
       { path: '/app/operacional', icon: Zap, label: 'Operacional' },
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },

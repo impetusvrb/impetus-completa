@@ -49,6 +49,7 @@ const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
 const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
 const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
 const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
+const ManuIA = lazy(() => import('./pages/ManuIA'));
 
 function needSetup() {
   try {
@@ -241,6 +242,10 @@ export default function App() {
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+
+        <Route path="/app/manutencao/manuia" element={
+          <PrivateRoute><SetupGuard><ManuIA /></SetupGuard></PrivateRoute>
         } />
         
         <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />

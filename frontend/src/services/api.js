@@ -401,6 +401,22 @@ export const proacao = {
 };
 
 // ============================================================================
+// MANUIA - Manutenção assistida por IA (perfis de manutenção)
+// ============================================================================
+
+export const manutencaoIa = {
+  getMachines: () => api.get('/manutencao-ia/machines'),
+  getMachine: (id) => api.get(`/manutencao-ia/machines/${id}`),
+  getDiagnostic: (id) => api.get(`/manutencao-ia/machines/${id}/diagnostic`),
+  getSensors: (machineId) =>
+    api.get('/manutencao-ia/sensors', { params: machineId ? { machine_id: machineId } : {} }),
+  getSessions: () => api.get('/manutencao-ia/sessions'),
+  createSession: (data) => api.post('/manutencao-ia/sessions', data),
+  getEmergencyEvents: () => api.get('/manutencao-ia/emergency-events'),
+  getHealth: () => api.get('/manutencao-ia/health')
+};
+
+// ============================================================================
 // DIAGNÓSTICO (MANUTENÇÃO ASSISTIDA)
 // ============================================================================
 

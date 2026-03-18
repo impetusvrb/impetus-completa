@@ -95,7 +95,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'audit', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -158,7 +158,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' },
@@ -220,7 +220,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -286,7 +286,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'practical_operational',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'manuia', 'settings'],
     cards: [
       { key: 'my_work_orders', title: 'Minhas OS', icon: 'target', color: 'blue' },
       { key: 'operational_alerts', title: 'Alertas operacionais', icon: 'alert', color: 'orange' },
