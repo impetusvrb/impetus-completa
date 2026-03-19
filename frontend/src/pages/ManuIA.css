@@ -352,8 +352,31 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.manuia-search-mic:hover:not(:disabled) {
+  background: rgba(30, 144, 255, 0.15);
+  border-color: rgba(30, 144, 255, 0.3);
+  color: var(--accent-primary, #1E90FF);
+}
+
+.manuia-search-mic:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.manuia-search-mic--listening {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  animation: manuia-pulse-mic 1s ease-in-out infinite;
+}
+
+@keyframes manuia-pulse-mic {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
 }
 
 .manuia-search-btn {
@@ -556,4 +579,187 @@
   color: var(--text-secondary);
   margin: 0;
   opacity: 0.85;
+}
+
+/* Modos de visualização 3D (Normal / Raio-X / Explodida) */
+.manuia-viewer {
+  position: relative;
+}
+
+.manuia-viewer-modes {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+
+.manuia-viewer-mode-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.manuia-viewer-mode-btn:hover {
+  background: rgba(30, 144, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.manuia-viewer-mode-btn--active {
+  background: rgba(30, 144, 255, 0.25);
+  border-color: rgba(30, 144, 255, 0.4);
+  color: var(--accent-primary, #1E90FF);
+}
+
+/* Diagnóstico guiado — passos e conclusão */
+.manuia-diagnosis-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-md);
+  border-left: 3px solid rgba(30, 144, 255, 0.5);
+}
+
+.manuia-diagnosis-panel h3 {
+  font-size: 0.9rem;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.manuia-diagnosis-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manuia-diagnosis-steps li {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  padding-left: 18px;
+  position: relative;
+}
+
+.manuia-diagnosis-steps li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--accent-primary, #1E90FF);
+}
+
+.manuia-conclude-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.manuia-conclude-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.manuia-conclude-btn--primary {
+  background: rgba(30, 144, 255, 0.25);
+  border: 1px solid rgba(30, 144, 255, 0.4);
+  color: var(--accent-primary, #1E90FF);
+}
+
+.manuia-conclude-btn--primary:hover {
+  background: rgba(30, 144, 255, 0.35);
+}
+
+.manuia-conclude-btn--secondary {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+
+.manuia-conclude-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Modal concluir sessão */
+.manuia-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.manuia-modal {
+  background: linear-gradient(145deg, #162A3A, #1B3447);
+  border: 1px solid #243848;
+  border-radius: var(--radius-lg);
+  max-width: 420px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.manuia-modal h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.manuia-modal p {
+  margin: 0 0 16px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.manuia-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.manuia-modal-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.manuia-modal-option:hover {
+  background: rgba(30, 144, 255, 0.1);
+}
+
+.manuia-modal-option--selected {
+  border-color: rgba(30, 144, 255, 0.4);
+  background: rgba(30, 144, 255, 0.1);
+}
+
+.manuia-modal-option input {
+  margin: 0;
+}
+
+.manuia-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }

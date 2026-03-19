@@ -7,8 +7,7 @@ import Layout from '../../components/Layout';
 import { Send, User, Mic, Paperclip, Image, Camera, X } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useActivityLog } from '../../hooks/useActivityLog';
-import { useVoiceEngine } from '../../hooks/useVoiceEngine';
-import { handleVoiceAlert } from '../../services/voiceAlertManager';
+import { useImpetusVoice } from '../../voice/ImpetusVoiceContext';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 import './AIChatPage.css';
 
@@ -28,81 +27,27 @@ export default function AIChatPage() {
   const [pendingFileContext, setPendingFileContext] = useState(null);
   const [uploadError, setUploadError] = useState('');
   const [wakeToast, setWakeToast] = useState('');
-  const [alertMinPriority, setAlertMinPriority] = useState('P2');
   const [autoSpeakResponses, setAutoSpeakResponses] = useState(true);
   const messagesEndRef = useRef(null);
   const messagesRef = useRef([]);
-  const alertsSeenRef = useRef(new Set());
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const { log } = useActivityLog();
+  const {
+    voiceState,
+    voiceBadge,
+    toggleVoice,
+    speakNaturalReply,
+    stopSpeaking,
+    setAlertsEnabled
+  } = useImpetusVoice();
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  const chatRound = useCallback(async (text) => {
-    const history = messagesRef.current.map((m) => ({ role: m.role, content: m.content }));
-    const uid = Date.now();
-    setMessages((m) => [...m, { id: 'uv-' + uid, role: 'user', content: text }]);
-    try {
-      const r = await dashboard.chat(text, history, { voiceMode: true });
-      const reply =
-        r.data?.ok && r.data?.reply
-          ? r.data.reply
-          : r.data?.fallback || 'Resposta temporariamente indisponível.';
-      setMessages((m) => [...m, { id: 'va-' + uid, role: 'assistant', content: reply }]);
-      return reply;
-    } catch (e) {
-      if (e.response?.data?.code === 'SENSITIVE_CONTENT') {
-        setPendingMessage({ text, history });
-        setSensitiveModal(true);
-        setMessages((m) => m.slice(0, -1));
-        const err = new Error('sensitive');
-        err.__sensitive = true;
-        throw err;
-      }
-      const errMsg =
-        e.apiMessage || e.response?.data?.fallback || e.response?.data?.error || 'Erro de conexão.';
-      setMessages((m) => [...m, { id: 'va-' + uid, role: 'assistant', content: errMsg }]);
-      return errMsg;
-    }
-  }, []);
-
-  const {
-    voiceState,
-    voiceBadge,
-    toggleVoice,
-    speakText,
-    speakNaturalReply,
-    stopSpeaking,
-    stopVoiceCapture,
-    setAlertsEnabled,
-    setVoicePrefs,
-    startWakeWord
-  } = useVoiceEngine({
-    chatRound,
-    onSensitiveBlock: () => {}
-  });
-
-  useEffect(() => {
-    dashboard
-      .getVoicePreferences()
-      .then((r) => {
-        const d = r.data;
-        if (!d?.ok) return;
-        setAlertsEnabled(d.alerts_enabled !== false);
-        setAlertMinPriority(d.alert_min_priority || 'P2');
-        setAutoSpeakResponses(d.auto_speak_responses !== false);
-        setVoicePrefs({
-          voice_id: d.voice_id,
-          speed: d.speed,
-          alerts_enabled: d.alerts_enabled
-        });
-      })
-      .catch(() => {});
-  }, [setAlertsEnabled, setVoicePrefs]);
+  // preferências de voz são carregadas no provider global
 
   useEffect(() => {
     const onWake = (ev) => {
@@ -113,52 +58,7 @@ export default function AIChatPage() {
     return () => window.removeEventListener('impetus-wake-toast', onWake);
   }, []);
 
-  const prevContinuousRef = useRef(false);
-  useEffect(() => {
-    if (prevContinuousRef.current && !voiceState.isContinuous && localStorage.getItem('impetus_mic_granted')) {
-      const t = setTimeout(() => startWakeWord(), 800);
-      prevContinuousRef.current = voiceState.isContinuous;
-      return () => clearTimeout(t);
-    }
-    prevContinuousRef.current = voiceState.isContinuous;
-  }, [voiceState.isContinuous, startWakeWord]);
-
-  useEffect(() => {
-    if (!voiceState.alertsEnabled) return;
-    const tick = async () => {
-      try {
-        const r = await dashboard.operationalBrain.getAlerts({ limit: 15 });
-        const list = r.data?.alerts || r.data?.items || [];
-        for (const a of list) {
-          const id = a.id ?? a.alert_id;
-          if (!id || alertsSeenRef.current.has(id)) continue;
-          alertsSeenRef.current.add(id);
-          const priority = a.priority || (a.severity === 'critical' ? 'P1' : a.severity === 'high' ? 'P2' : 'P3');
-          await handleVoiceAlert(
-            { ...a, priority },
-            {
-              alertsEnabled: voiceState.alertsEnabled,
-              alertMinPriority,
-              speakText: (msg) => speakNaturalReply(msg),
-              stopSpeaking,
-              stopVoiceCapture,
-              formatAlert: async (alert) => {
-                try {
-                  const fr = await dashboard.formatVoiceAlert(alert);
-                  return fr.data?.message || '';
-                } catch (_) {
-                  return '';
-                }
-              }
-            }
-          );
-        }
-      } catch (_) {}
-    };
-    const iv = setInterval(tick, 95000);
-    tick();
-    return () => clearInterval(iv);
-  }, [voiceState.alertsEnabled, alertMinPriority, speakText, stopSpeaking, stopVoiceCapture]);
+  // alertas por voz rodam no provider global (fora desta tela)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -377,7 +277,6 @@ export default function AIChatPage() {
                 checked={voiceState.alertsEnabled}
                 onChange={(e) => {
                   setAlertsEnabled(e.target.checked);
-                  dashboard.putVoicePreferences({ alerts_enabled: e.target.checked }).catch(() => {});
                 }}
               />
               Alertas por voz

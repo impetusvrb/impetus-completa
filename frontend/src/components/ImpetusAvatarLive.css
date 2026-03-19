@@ -1,0 +1,104 @@
+/* Avatar live (face + boca) para modo voz imersivo */
+.impetus-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.impetus-avatar__face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.impetus-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 3px solid rgba(30, 144, 255, 0.55);
+  border-radius: 50%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.impetus-avatar__mouth {
+  position: absolute;
+  left: 50%;
+  top: 63%;
+  transform: translate(-50%, -50%);
+  width: 34%;
+  max-width: 110px;
+  filter: drop-shadow(0 0 10px rgba(30, 144, 255, 0.25));
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.98;
+}
+
+.impetus-avatar__glow {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 144, 255, 0.22) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.impetus-avatar--standby .impetus-avatar__glow {
+  opacity: 0.55;
+  animation: impetus-pulse-soft 3.2s ease-in-out infinite;
+}
+
+.impetus-avatar--listening .impetus-avatar__glow {
+  opacity: 1;
+  animation: impetus-pulse-listen 1.2s ease-in-out infinite;
+}
+
+.impetus-avatar--speaking .impetus-avatar__glow {
+  opacity: 1;
+  animation: impetus-pulse-speak 0.65s ease-in-out infinite;
+}
+
+.impetus-avatar--listening .impetus-avatar__img,
+.impetus-avatar--speaking .impetus-avatar__img {
+  box-shadow: 0 0 34px rgba(30, 144, 255, 0.72), inset 0 0 22px rgba(30, 144, 255, 0.18);
+}
+
+@keyframes impetus-pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.75;
+  }
+}
+
+@keyframes impetus-pulse-listen {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes impetus-pulse-speak {
+  0%,
+  100% {
+    transform: scale(1.02);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+

@@ -316,6 +316,22 @@ export function useVoiceEngine(options = {}) {
     audioBlocked: false
   });
 
+  /**
+   * UI para modo imersivo (Nível B):
+   * - mouthState: 4 bocas (closed/open/o/e)
+   * - speechText: texto completo digitando progressivamente (opção B)
+   * - targetText: texto-alvo (vai crescendo conforme chegam chunks via WS)
+   */
+  const [ttsUi, setTtsUi] = useState({
+    mouthState: 'closed',
+    speechText: '',
+    targetText: '',
+    isTyping: false
+  });
+  const ttsTargetRef = useRef('');
+  const typingTimerRef = useRef(null);
+  const typingActiveRef = useRef(false);
+
   const [badge, setBadge] = useState({ text: '', visible: false });
   const badgeTimer = useRef(null);
 
@@ -359,7 +375,87 @@ export function useVoiceEngine(options = {}) {
       sourceRef.current?.stop();
     } catch (_) {}
     sourceRef.current = null;
+    typingActiveRef.current = false;
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    ttsTargetRef.current = '';
+    setTtsUi((u) => ({
+      ...u,
+      mouthState: 'closed',
+      isTyping: false
+    }));
   }, []);
+
+  const startTypingLoop = useCallback(() => {
+    if (typingTimerRef.current) return;
+    typingActiveRef.current = true;
+    setTtsUi((u) => ({ ...u, isTyping: true }));
+    const tick = () => {
+      if (!typingActiveRef.current) return;
+      const target = ttsTargetRef.current || '';
+      setTtsUi((u) => {
+        if (!typingActiveRef.current) return { ...u, isTyping: false };
+        if (!target) return { ...u, isTyping: false };
+        if (u.speechText.length >= target.length) return { ...u, targetText: target };
+        const nextChar = target[u.speechText.length];
+        const next = u.speechText + nextChar;
+        return { ...u, speechText: next, targetText: target };
+      });
+
+      const curLen = ttsTargetRef.current ? (ttsTargetRef.current.length || 0) : 0;
+      // atraso variável (pausas humanas)
+      const lastChar = target[Math.min(target.length - 1, Math.max(0, curLen - 1))] || '';
+      const fast = 16;
+      const comma = 70;
+      const dot = 140;
+      const ellipsis = 180;
+      const nl = 120;
+      const delay =
+        lastChar === ',' ? comma :
+        lastChar === '\n' ? nl :
+        lastChar === '.' || lastChar === '!' || lastChar === '?' ? dot :
+        lastChar === '…' ? ellipsis :
+        fast;
+      typingTimerRef.current = setTimeout(tick, delay);
+    };
+    typingTimerRef.current = setTimeout(tick, 30);
+  }, []);
+
+  const setTypingTarget = useCallback((text) => {
+    const t = String(text || '').replace(/\s+/g, ' ').trim();
+    ttsTargetRef.current = t;
+    setTtsUi((u) => ({
+      ...u,
+      targetText: t
+    }));
+    if (t && !typingTimerRef.current) startTypingLoop();
+  }, [startTypingLoop]);
+
+  function cleanChunkForUi(s) {
+    let t = String(s || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    // remove pontuação sobrando no início (ex.: ". A manutenção...")
+    t = t.replace(/^[\s.]+/, '');
+    // corrige duplicações comuns de pontuação
+    t = t.replace(/(\.\s*){2,}/g, '. ');
+    t = t.replace(/(\s\.){2,}/g, '. ');
+    t = t.replace(/\.\s+\./g, '. ');
+    t = t.replace(/\s+([,!?…])/g, '$1');
+    return t.trim();
+  }
+
+  function joinChunksSmart(prev, next) {
+    const a = String(prev || '').trim();
+    const b = cleanChunkForUi(next);
+    if (!b) return a;
+    if (!a) return b;
+    const last = a[a.length - 1];
+    const sep = /[.!?…]/.test(last) ? ' ' : '. ';
+    return (a + sep + b).replace(/\s+/g, ' ').trim();
+  }
 
   /** Garante Socket.IO /impetus-voice (streaming TTS em tempo real) */
   const ensureVoiceSocket = useCallback(() => {
@@ -415,10 +511,60 @@ export function useVoiceEngine(options = {}) {
     const audioBuf = await ctx.decodeAudioData(arrayBuffer.slice(0));
     const src = ctx.createBufferSource();
     src.buffer = audioBuf;
+    // Destino + Analyser (lip-sync Nível B)
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
     src.connect(ctx.destination);
+    src.connect(analyser);
     sourceRef.current = src;
     setVoiceState((s) => ({ ...s, status: 'speaking' }));
     showBadge('Falando...');
+
+    // Lip sync Nível B (closed/open/o/e) — heurística por energia + centroide
+    let raf = null;
+    let lastMouth = 'closed';
+    let lastSwitch = 0;
+    let emaRms = 0;
+    let emaCent = 1400;
+    const freq = new Uint8Array(analyser.frequencyBinCount);
+    const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const minHoldMs = 90;
+    const alpha = 0.18;
+    const sampleRate = ctx.sampleRate || 48000;
+    const binHz = sampleRate / analyser.fftSize;
+
+    const updateMouth = () => {
+      if (!sourceRef.current || speakAbortedRef.current) return;
+      analyser.getByteFrequencyData(freq);
+      let sum = 0;
+      let wsum = 0;
+      for (let i = 0; i < freq.length; i++) {
+        const v = freq[i] / 255;
+        const p = v * v;
+        sum += p;
+        wsum += p * (i * binHz);
+      }
+      const rms = Math.sqrt(sum / (freq.length || 1));
+      const centroid = sum > 0 ? wsum / sum : 1400;
+      emaRms = emaRms + alpha * (rms - emaRms);
+      emaCent = emaCent + alpha * (centroid - emaCent);
+
+      let next = 'closed';
+      // thresholds calibrados para MP3/AudioContext (ajustáveis depois)
+      if (emaRms < 0.09) next = 'closed';
+      else if (emaRms > 0.16) next = 'open';
+      else next = emaCent < 1250 ? 'o' : 'e';
+
+      const t = nowMs();
+      if (next !== lastMouth && t - lastSwitch >= minHoldMs) {
+        lastMouth = next;
+        lastSwitch = t;
+        setTtsUi((u) => ({ ...u, mouthState: next }));
+      }
+      raf = requestAnimationFrame(updateMouth);
+    };
+    setTtsUi((u) => ({ ...u, mouthState: 'open' }));
+    raf = requestAnimationFrame(updateMouth);
 
     let bargeTimer = null;
     let mediaStream = null;
@@ -470,12 +616,14 @@ export function useVoiceEngine(options = {}) {
 
     return new Promise((resolve) => {
       src.onended = () => {
+        if (raf) cancelAnimationFrame(raf);
         if (bargeTimer) clearInterval(bargeTimer);
         mediaStream?.getTracks().forEach((t) => t.stop());
         try {
           bargeCtx?.close();
         } catch (_) {}
         sourceRef.current = null;
+        setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
         resolve();
       };
       try {
@@ -536,9 +684,16 @@ export function useVoiceEngine(options = {}) {
           let streamDone = false;
           let notify = null;
           let mp3Count = 0;
+          // typing: reseta texto e cresce conforme chunks chegam (opção B)
+          ttsTargetRef.current = '';
+          setTtsUi((u) => ({ ...u, speechText: '', targetText: '', isTyping: false }));
           const onMp3 = (p) => {
             mp3Count++;
             queue.push(p);
+            if (p?.text) {
+              const nextTarget = joinChunksSmart(ttsTargetRef.current, p.text);
+              setTypingTarget(nextTarget);
+            }
             notify?.();
           };
           const onEnd = () => {
@@ -591,6 +746,10 @@ export function useVoiceEngine(options = {}) {
 
       speakAbortedRef.current = false;
       const parts = splitIntoSpeechChunks(full);
+      // HTTP fallback: usa texto completo como target e digita ao longo da fala
+      ttsTargetRef.current = full;
+      setTtsUi((u) => ({ ...u, speechText: '', targetText: full, isTyping: false }));
+      startTypingLoop();
       let nextBuf = null;
       for (let i = 0; i < parts.length; i++) {
         if (!continuousRef.current && i > 0) break;
@@ -611,7 +770,7 @@ export function useVoiceEngine(options = {}) {
         }
       }
     },
-    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer]
+    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer, setTypingTarget, startTypingLoop]
   );
 
   const stopVoiceCapture = useCallback(() => {
@@ -865,6 +1024,9 @@ export function useVoiceEngine(options = {}) {
         voiceSocketRef.current?.disconnect();
       } catch (_) {}
       voiceSocketRef.current = null;
+      typingActiveRef.current = false;
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
       wakeRef.current?.stop();
       if (badgeTimer.current) clearTimeout(badgeTimer.current);
     };
@@ -873,6 +1035,7 @@ export function useVoiceEngine(options = {}) {
   return {
     voiceState,
     voiceBadge: badge,
+    ttsUi,
     startListening,
     stopListening,
     toggleVoice,

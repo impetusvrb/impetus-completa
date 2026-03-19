@@ -1,22 +1,27 @@
 /**
  * IMPETUS - ManuIA - Manutenção assistida por IA
  * Pesquisa e renderização de qualquer equipamento por texto
- * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado
+ * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado → Concluir sessão
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { manutencaoIa } from '../services/api';
+import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import ThreeViewer from '../features/manutencao-ia/ThreeViewer';
+import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
 import {
   Wrench,
   Search,
   Mic,
+  MicOff,
   Cpu,
   AlertTriangle,
   ChevronRight,
   Sparkles,
-  ClipboardList
+  ClipboardList,
+  Check,
+  X
 } from 'lucide-react';
 import './ManuIA.css';
 
@@ -40,10 +45,25 @@ export default function ManuIA() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [copilotMessage, setCopilotMessage] = useState(null);
   const [selectedSymptom, setSelectedSymptom] = useState(null);
+  const [diagnosisData, setDiagnosisData] = useState(null);
+  const [viewMode, setViewMode] = useState('normal');
+  const [showConcludeModal, setShowConcludeModal] = useState(false);
+  const [concludeCreateWo, setConcludeCreateWo] = useState(true);
+  const [concludeAddCadastro, setConcludeAddCadastro] = useState(false);
+  const [concluding, setConcluding] = useState(false);
   const [machines, setMachines] = useState([]);
   const [emergencyEvents, setEmergencyEvents] = useState([]);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
+
+  const onSpeechResult = useCallback((text) => {
+    setEquipmentQuery((q) => (text ? text.trim() : q));
+  }, []);
+
+  const { isListening, error: speechError, supported: speechSupported, start: startMic, stop: stopMic } = useSpeechRecognition({
+    lang: 'pt-BR',
+    onResult: onSpeechResult
+  });
 
   const loadInitial = async () => {
     try {
@@ -83,6 +103,7 @@ export default function ManuIA() {
     setResearch(null);
     setCopilotMessage(null);
     setSelectedSymptom(null);
+    setDiagnosisData(null);
 
     try {
       const r = await manutencaoIa.researchEquipment(q);
@@ -116,17 +137,46 @@ export default function ManuIA() {
 
   const handleSymptomClick = (chip) => {
     setSelectedSymptom(chip);
-    const symptomLabel = chip.label;
-    navigate('/app/chatbot', {
-      state: {
-        initialMessage: `Estou no ManuIA. Equipamento: ${research?.equipment?.name || equipmentQuery}. Problema: ${symptomLabel}. Preciso de guia para diagnóstico e desmontagem.`
-      }
+    const modelType = (research?.model_3d_type || 'generic').toLowerCase();
+    const component = getDiagnosisComponent(chip.id, modelType);
+    const failure = research?.common_failures?.find(
+      (f) => f.symptom && chip.label.toLowerCase().includes((f.symptom || '').toLowerCase().slice(0, 15))
+    ) || research?.common_failures?.[0];
+    const steps = failure?.solution_steps || ['Desligue o equipamento e bloqueie energias.', 'Identifique o componente suspeito no modelo 3D.', 'Siga o procedimento do fabricante para desmontagem.'];
+    setDiagnosisData({
+      component,
+      rootCause: failure?.root_cause || 'Verifique o componente indicado no modelo.',
+      steps
     });
+  };
+
+  const handleConclude = async () => {
+    setConcluding(true);
+    try {
+      await manutencaoIa.concludeSession({
+        equipment_name: research?.equipment?.name || equipmentQuery,
+        equipment_manufacturer: research?.equipment?.manufacturer,
+        symptom: selectedSymptom?.label,
+        diagnosis_summary: diagnosisData?.rootCause,
+        create_work_order: concludeCreateWo,
+        add_to_cadastro: concludeAddCadastro
+      });
+      setShowConcludeModal(false);
+      setSelectedSymptom(null);
+      setDiagnosisData(null);
+      loadInitial();
+    } catch (e) {
+      console.warn('[ManuIA] conclude:', e);
+    } finally {
+      setConcluding(false);
+    }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleSearch();
   };
+
+  const explodeFactor = viewMode === 'exploded' ? 0.6 : 0;
 
   return (
     <Layout>
@@ -143,7 +193,6 @@ export default function ManuIA() {
           </div>
         </header>
 
-        {/* ETAPA 1 — Campo de pesquisa central */}
         <section className="manuia-block manuia-block--search">
           <h2><Search size={20} /> Pesquisar equipamento</h2>
           <p className="manuia-block__desc">
@@ -164,16 +213,17 @@ export default function ManuIA() {
               <div className="manuia-search-actions">
                 <button
                   type="button"
-                  className="manuia-search-mic"
-                  title="Pesquisar por voz (em breve)"
-                  disabled
+                  className={`manuia-search-mic ${isListening ? 'manuia-search-mic--listening' : ''}`}
+                  title={speechSupported ? (isListening ? 'Parar gravação' : 'Pesquisar por voz') : 'Microfone não suportado'}
+                  onClick={speechSupported ? (isListening ? stopMic : startMic) : undefined}
+                  disabled={!speechSupported || loading}
                 >
-                  <Mic size={20} />
+                  {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary manuia-search-btn"
-                  onClick={handleSearch}
+                  onClick={() => handleSearch()}
                   disabled={!equipmentQuery.trim() || equipmentQuery.trim().length < 3 || loading}
                 >
                   {loading ? (
@@ -192,12 +242,7 @@ export default function ManuIA() {
               <div className="manuia-suggestions" ref={suggestionsRef}>
                 <span className="manuia-suggestions__title">Últimas pesquisas</span>
                 {suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className="manuia-suggestion-item"
-                    onClick={() => handleSuggestionClick(s)}
-                  >
+                  <button key={i} type="button" className="manuia-suggestion-item" onClick={() => handleSuggestionClick(s)}>
                     {s.equipment_name || s.query_original}
                     <ChevronRight size={14} />
                   </button>
@@ -205,6 +250,7 @@ export default function ManuIA() {
               </div>
             )}
           </div>
+          {speechError && <p className="manuia-error" style={{ marginTop: 8 }}>{speechError}</p>}
           {researchError && (
             <div className="manuia-error">
               <AlertTriangle size={18} />
@@ -213,7 +259,6 @@ export default function ManuIA() {
           )}
         </section>
 
-        {/* ETAPA 3 + 4 — Viewer 3D + Copiloto */}
         {(research || loading) && (
           <section className="manuia-block manuia-two-col">
             <div className="manuia-viewer-col">
@@ -224,7 +269,13 @@ export default function ManuIA() {
                   <p>Pesquisando e renderizando...</p>
                 </div>
               ) : (
-                <ThreeViewer research={research} />
+                <ThreeViewer
+                  research={research}
+                  highlightedComponent={diagnosisData?.component}
+                  viewMode={viewMode}
+                  explodeFactor={explodeFactor}
+                  onViewModeChange={selectedSymptom ? setViewMode : undefined}
+                />
               )}
             </div>
             <div className="manuia-copilot-col">
@@ -249,9 +300,30 @@ export default function ManuIA() {
                       </button>
                     ))}
                   </div>
-                  <p className="manuia-copilot-hint">
-                    Clique em um sintoma para abrir o chat com guia de diagnóstico e desmontagem.
-                  </p>
+                  {diagnosisData && (
+                    <div className="manuia-diagnosis-panel">
+                      <h3>Diagnóstico — {diagnosisData.component}</h3>
+                      <p style={{ fontSize: '0.85rem', marginBottom: 8 }}>{diagnosisData.rootCause}</p>
+                      <ul className="manuia-diagnosis-steps">
+                        {diagnosisData.steps.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ul>
+                      <div className="manuia-conclude-actions">
+                        <button type="button" className="manuia-conclude-btn manuia-conclude-btn--primary" onClick={() => setShowConcludeModal(true)}>
+                          <Check size={16} /> Concluir sessão
+                        </button>
+                        <button type="button" className="manuia-conclude-btn manuia-conclude-btn--secondary" onClick={() => navigate('/app/chatbot', { state: { initialMessage: `ManuIA. Equipamento: ${research?.equipment?.name}. Problema: ${selectedSymptom?.label}. Preciso de mais detalhes.` } })}>
+                          Abrir chat
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {!diagnosisData && (
+                    <p className="manuia-copilot-hint">
+                      Clique em um sintoma para ver o diagnóstico guiado no modelo 3D (câmera, pulsação, raio-x, vista explodida).
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="manuia-empty">Pesquise um equipamento para iniciar o fluxo de diagnóstico.</p>
@@ -287,6 +359,34 @@ export default function ManuIA() {
           </div>
         </section>
       </div>
+
+      {showConcludeModal && (
+        <div className="manuia-modal-overlay" onClick={() => !concluding && setShowConcludeModal(false)}>
+          <div className="manuia-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Concluir sessão</h3>
+            <p>Deseja gerar a ordem de serviço e cadastrar o equipamento?</p>
+            <div className="manuia-modal-options">
+              <label className={`manuia-modal-option ${concludeCreateWo ? 'manuia-modal-option--selected' : ''}`} onClick={() => setConcludeCreateWo(!concludeCreateWo)}>
+                <input type="checkbox" checked={concludeCreateWo} onChange={(e) => setConcludeCreateWo(e.target.checked)} />
+                <span>Gerar OS automática</span>
+              </label>
+              <label className={`manuia-modal-option ${concludeAddCadastro ? 'manuia-modal-option--selected' : ''}`} onClick={() => setConcludeAddCadastro(!concludeAddCadastro)}>
+                <input type="checkbox" checked={concludeAddCadastro} onChange={(e) => setConcludeAddCadastro(e.target.checked)} />
+                <span>Adicionar equipamento ao cadastro permanente</span>
+              </label>
+            </div>
+            <div className="manuia-modal-actions">
+              <button type="button" className="manuia-conclude-btn manuia-conclude-btn--secondary" onClick={() => !concluding && setShowConcludeModal(false)} disabled={concluding}>
+                <X size={16} /> Cancelar
+              </button>
+              <button type="button" className="manuia-conclude-btn manuia-conclude-btn--primary" onClick={handleConclude} disabled={concluding}>
+                {concluding ? <span className="manuia-spinner-sm" /> : <Check size={16} />}
+                {concluding ? ' Salvando...' : ' Concluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

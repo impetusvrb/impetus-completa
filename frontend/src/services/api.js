@@ -427,7 +427,9 @@ export const manutencaoIa = {
     api.post('/manutencao-ia/research-equipment', { query, session_id: sessionId || null }),
   /** Últimas pesquisas para sugestões no campo de busca */
   getRecentSearches: (limit = 10) =>
-    api.get('/manutencao-ia/research-equipment/recent', { params: { limit } })
+    api.get('/manutencao-ia/research-equipment/recent', { params: { limit } }),
+  /** Concluir sessão: gera OS e opcionalmente cadastra equipamento */
+  concludeSession: (data) => api.post('/manutencao-ia/conclude-session', data)
 };
 
 // ============================================================================

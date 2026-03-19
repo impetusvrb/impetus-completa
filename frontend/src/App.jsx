@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
+import ImpetusVoiceProvider from './voice/ImpetusVoiceProvider';
 
 // Tela inicial — carregamento imediato
 import Login from './pages/Login';
@@ -164,8 +165,9 @@ export default function App() {
       <ErrorOffline />
       <ErrorBoundary>
         <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-          <Routes>
+          <ImpetusVoiceProvider>
+            <Suspense fallback={<PageLoader />}>
+            <Routes>
         {/* Rotas públicas */}
         <Route path="/" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -265,8 +267,9 @@ export default function App() {
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-          </Suspense>
+            </Routes>
+            </Suspense>
+          </ImpetusVoiceProvider>
         </BrowserRouter>
       </ErrorBoundary>
     </NotificationProvider>
