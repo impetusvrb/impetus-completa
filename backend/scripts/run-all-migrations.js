@@ -15,12 +15,9 @@ const MIGRATIONS_ORDER = [
   'lacunas_ind4_migration.sql',
   'industrial_intelligence_extended_migration.sql',
   'machine_safety_intervention_migration.sql',
-<<<<<<< HEAD
   'audio_logs_migration.sql',
-  'dashboard_personalizado_migration.sql'
-=======
-  'audio_logs_migration.sql'
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
+  'dashboard_personalizado_migration.sql',
+  'voice_preferences_migration.sql'
 ];
 
 async function runMigration(fileName) {

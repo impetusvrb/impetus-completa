@@ -1239,7 +1239,8 @@ router.post('/chat',
 
     let reply = '';
     try {
-      const { message, history = [] } = req.body;
+      const { message, history = [], voiceMode } = req.body;
+      const isVoiceMode = voiceMode === true;
     // Verificação de dados sigilosos
     const sensitivePatterns = [
       /senha/i, /password/i, /credencial/i,
@@ -1342,6 +1343,17 @@ Aplique em TODAS as respostas. Consistência absoluta entre o que você diz que 
 ${lgpdProtocol}
 ---` : '';
 
+    const VOICE_IMPETUS_IDENTITY = isVoiceMode ? `
+## MODO VOZ — Identidade Impetus (obrigatório, estilo ChatGPT Voice):
+- Você é a **IA Impetus**. Fale **sempre em português brasileiro** — nunca inglês. Tom de **assistente humana feminina** (voz calorosa, natural), ritmo **pausado** como conversa ao vivo — nunca narração robótica.
+- **Resposta progressiva**: NUNCA um bloco enorme. Vá **por partes**: primeiro confirme ou reaja ("Entendi." / "Beleza."). Depois desenvolva em **frases curtas** (uma ideia por frase), como quem pensa em voz alta.
+- **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Use vírgulas só dentro da mesma ideia curta. Soe como diálogo, não como manual.
+- Se o usuário **só** acionar com "Ok Impetus", "Oi Impetus", "Hey Impetus" ou similar (sem outra pergunta), responda **exatamente**: "Oi, pode falar. Estou te ouvindo." — nada mais.
+- **Tarefas**: confirme → explique em poucas frases → conclua (sempre em trechos curtos).
+- **Alertas**: direta, clara, sem rodeios.
+- **Proibido**: markdown, asteriscos, #, listas longas, emojis, URLs cruas. **Proibido** monólogo único de muitas linhas.
+` : '';
+
     const MAINTENANCE_CONTEXT = isMaintenanceProfile(req.user) ? `
 ## PERFIL TÉCNICO (Mecânico / Manutenção):
 O usuário trabalha em manutenção industrial. Priorize:
@@ -1359,9 +1371,10 @@ ${identityBlock}
 ${memoriaBlock}
 ${operationalMemoryBlock ? `\n${operationalMemoryBlock}\n` : ''}
 ${MAINTENANCE_CONTEXT}
+${VOICE_IMPETUS_IDENTITY}
 
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
-${COMMUNICATION_GUIDELINES}
+${isVoiceMode ? '## Estilo (voz): frases curtas em português brasileiro, tom de assistente real.\n' : COMMUNICATION_GUIDELINES}
 ${IMPETUS_CAPABILITIES}
 ${langInstruction ? `\n${langInstruction}` : ''}
 ${docContext ? `\n${docContext}\n` : ''}
@@ -1372,7 +1385,10 @@ ${manualsBlock}`;
       ? `Histórico recente:\n${historyBlock}\n\n${userName}: ${message.trim()}`
       : `${userName}: ${message.trim()}`;
 
-    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\nResponda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.`;
+    const promptTail = isVoiceMode
+      ? 'Responda em português brasileiro. Divida em várias frases MUITO curtas (efeito de pausa entre elas). Comece com uma reação breve se fizer sentido ("Entendi." / "Vou ver."). Sem markdown. Máximo ~8 frases curtas salvo se pedirem detalhe.'
+      : 'Responda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.';
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\n${promptTail}`;
 
     if (process.env.AI_ORCHESTRATOR_ENABLED === 'true') {
       try {
@@ -1383,7 +1399,8 @@ ${manualsBlock}`;
           operationalMemoryBlock,
           docContext ? `Documentação em contexto:\n${docContext}` : '',
           `Manuais/POPs:\n${manualsBlock}`,
-          MAINTENANCE_CONTEXT || ''
+          MAINTENANCE_CONTEXT || '',
+          isVoiceMode ? VOICE_IMPETUS_IDENTITY : ''
         ].filter(Boolean).join('\n\n');
         reply = await aiOrchestrator.processWithOrchestrator({
           message: message.trim(),

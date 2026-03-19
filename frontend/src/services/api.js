@@ -245,18 +245,31 @@ export const dashboard = {
   getSmartSummary: () => 
     api.get('/dashboard/smart-summary'),
 
-  chat: (message, history = []) => 
-    api.post('/dashboard/chat', { message, history }),
-  chatWithHeader: (message, history = [], headers = {}) =>
-    api.post('/dashboard/chat', { message, history }, { headers }),
+  chat: (message, history = [], opts = {}) =>
+    api.post('/dashboard/chat', {
+      message,
+      history,
+      ...(opts.voiceMode ? { voiceMode: true } : {})
+    }),
+  chatWithHeader: (message, history = [], headers = {}, opts = {}) =>
+    api.post(
+      '/dashboard/chat',
+      { message, history, ...(opts.voiceMode ? { voiceMode: true } : {}) },
+      { headers }
+    ),
   chatMultimodal: (payload) =>
     api.post('/dashboard/chat-multimodal', payload),
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
 
-  /** TTS via backend (ElevenLabs). Só gera áudio quando falar=true. */
+  /** Legado — preferir voz OpenAI em /dashboard/chat/voice/speak */
   gerarVoz: (texto, falar = true) =>
     api.post('/voz', { texto: texto || '', falar: !!falar }),
+
+  getVoicePreferences: () => api.get('/dashboard/chat/voice/preferences'),
+  putVoicePreferences: (body) => api.put('/dashboard/chat/voice/preferences', body),
+  formatVoiceAlert: (alert_data) =>
+    api.post('/dashboard/chat/voice/format-alert', { alert_data }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),
@@ -408,7 +421,13 @@ export const manutencaoIa = {
   getSessions: () => api.get('/manutencao-ia/sessions'),
   createSession: (data) => api.post('/manutencao-ia/sessions', data),
   getEmergencyEvents: () => api.get('/manutencao-ia/emergency-events'),
-  getHealth: () => api.get('/manutencao-ia/health')
+  getHealth: () => api.get('/manutencao-ia/health'),
+  /** Pesquisa equipamento por texto - IA retorna JSON estruturado para render 3D */
+  researchEquipment: (query, sessionId) =>
+    api.post('/manutencao-ia/research-equipment', { query, session_id: sessionId || null }),
+  /** Últimas pesquisas para sugestões no campo de busca */
+  getRecentSearches: (limit = 10) =>
+    api.get('/manutencao-ia/research-equipment/recent', { params: { limit } })
 };
 
 // ============================================================================

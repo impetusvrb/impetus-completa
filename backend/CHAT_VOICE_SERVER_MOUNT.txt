@@ -1,0 +1,6 @@
+Montar rotas de voz no server Express (após outras rotas /api):
+
+  const chatVoice = require('./src/routes/chatVoice');
+  app.use('/api/dashboard/chat/voice', chatVoice);
+
+Executar migration: npm run migrate (inclui voice_preferences_migration.sql)

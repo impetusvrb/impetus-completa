@@ -250,7 +250,7 @@ export const dashboard = {
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
 
-  /** TTS via backend (ElevenLabs). Só gera áudio quando falar=true. */
+  /** TTS via backend (OpenAI). Só gera áudio quando falar=true. */
   gerarVoz: (texto, falar = true) =>
     api.post('/voz', { texto: texto || '', falar: !!falar }),
 

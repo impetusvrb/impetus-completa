@@ -1,88 +1,132 @@
 /**
  * IMPETUS - ManuIA - Manutenção assistida por IA
- * Módulo exclusivo para equipe de manutenção (técnico, supervisor, coordenador, gerente)
- * Máquinas, diagnóstico, sensores, sessões e eventos de emergência
+ * Pesquisa e renderização de qualquer equipamento por texto
+ * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { manutencaoIa } from '../services/api';
+import ThreeViewer from '../features/manutencao-ia/ThreeViewer';
 import {
   Wrench,
+  Search,
+  Mic,
   Cpu,
   AlertTriangle,
   ChevronRight,
-  RefreshCw,
-  Activity,
   Sparkles,
   ClipboardList
 } from 'lucide-react';
 import './ManuIA.css';
 
+const SYMPTOM_CHIPS = [
+  { id: 'no_power', label: 'Não liga / sem energia' },
+  { id: 'overheating', label: 'Superaquecendo' },
+  { id: 'noise', label: 'Fazendo ruído anormal' },
+  { id: 'vibration', label: 'Vibração excessiva' },
+  { id: 'pressure_flow', label: 'Não atinge pressão/vazão' },
+  { id: 'stuck', label: 'Travado / não gira' },
+  { id: 'other', label: 'Outro problema...' }
+];
+
 export default function ManuIA() {
   const navigate = useNavigate();
+  const [equipmentQuery, setEquipmentQuery] = useState('');
+  const [research, setResearch] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [researchError, setResearchError] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [copilotMessage, setCopilotMessage] = useState(null);
+  const [selectedSymptom, setSelectedSymptom] = useState(null);
   const [machines, setMachines] = useState([]);
-  const [sensors, setSensors] = useState([]);
   const [emergencyEvents, setEmergencyEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMachine, setSelectedMachine] = useState(null);
-  const [diagnostic, setDiagnostic] = useState(null);
-  const [loadingDiag, setLoadingDiag] = useState(false);
+  const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
 
-  const load = async () => {
+  const loadInitial = async () => {
     try {
-      setLoading(true);
-      const [mRes, sRes, eRes] = await Promise.all([
+      const [mRes, eRes, recentRes] = await Promise.all([
         manutencaoIa.getMachines().catch(() => ({ data: { machines: [] } })),
-        manutencaoIa.getSensors().catch(() => ({ data: { sensors: [] } })),
-        manutencaoIa.getEmergencyEvents().catch(() => ({ data: { events: [] } }))
+        manutencaoIa.getEmergencyEvents().catch(() => ({ data: { events: [] } })),
+        manutencaoIa.getRecentSearches(8).catch(() => ({ data: { items: [] } }))
       ]);
       setMachines(mRes.data?.machines || []);
-      setSensors(sRes.data?.sensors || []);
       setEmergencyEvents(eRes.data?.events || []);
+      setSuggestions(recentRes.data?.items || recentRes.data || []);
     } catch (e) {
       console.warn('[ManuIA]', e?.message);
+    }
+  };
+
+  useEffect(() => {
+    loadInitial();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target) && inputRef.current && !inputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = async (queryOverride) => {
+    const q = (queryOverride ?? equipmentQuery).trim();
+    if (!q || q.length < 3) return;
+
+    setLoading(true);
+    setResearchError(null);
+    setResearch(null);
+    setCopilotMessage(null);
+    setSelectedSymptom(null);
+
+    try {
+      const r = await manutencaoIa.researchEquipment(q);
+      const data = r.data?.research;
+      if (data) {
+        setResearch(data);
+        const eqName = data.equipment?.name || q;
+        const compCount = data.components?.length || 0;
+        setCopilotMessage({
+          text: `Encontrei o **${eqName}**. Renderizei o modelo no painel com ${compCount} componentes mapeados.\n\nAgora me diga: qual problema você está enfrentando?`,
+          equipmentName: eqName
+        });
+        setSuggestions((prev) => {
+          const next = [{ query_original: q, equipment_name: eqName, created_at: new Date().toISOString() }, ...prev.filter((s) => s.query_original !== q)].slice(0, 8);
+          return next;
+        });
+      }
+    } catch (e) {
+      setResearchError(e?.response?.data?.error || e?.apiMessage || e?.message || 'Erro na pesquisa');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const handleMachineClick = async (m) => {
-    setSelectedMachine(m);
-    setLoadingDiag(true);
-    setDiagnostic(null);
-    try {
-      const r = await manutencaoIa.getDiagnostic(m.id);
-      setDiagnostic(r.data || null);
-    } catch (e) {
-      setDiagnostic({ summary: { status: 'error', message: e?.apiMessage || 'Erro ao carregar diagnóstico' } });
-    } finally {
-      setLoadingDiag(false);
-    }
+  const handleSuggestionClick = (item) => {
+    const q = item.query_original || item.equipment_name || '';
+    setEquipmentQuery(q);
+    setShowSuggestions(false);
+    handleSearch(q);
   };
 
-  const handleStartSession = () => {
+  const handleSymptomClick = (chip) => {
+    setSelectedSymptom(chip);
+    const symptomLabel = chip.label;
     navigate('/app/chatbot', {
       state: {
-        initialMessage: 'Preciso de suporte para manutenção. Estou no ManuIA.'
+        initialMessage: `Estou no ManuIA. Equipamento: ${research?.equipment?.name || equipmentQuery}. Problema: ${symptomLabel}. Preciso de guia para diagnóstico e desmontagem.`
       }
     });
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="manuia-loading">
-          <div className="manuia-spinner" />
-          <p>Carregando ManuIA...</p>
-        </div>
-      </Layout>
-    );
-  }
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
 
   return (
     <Layout>
@@ -94,21 +138,133 @@ export default function ManuIA() {
             </div>
             <div>
               <h1>ManuIA</h1>
-              <p>Manutenção assistida por IA · Diagnóstico, sensores e histórico</p>
+              <p>Pesquise qualquer equipamento e receba guia de manutenção com IA</p>
             </div>
           </div>
-          <div className="manuia-header__actions">
-            <button type="button" className="btn btn-secondary" onClick={load} disabled={loading}>
-              <RefreshCw size={16} /> Atualizar
-            </button>
-          </div>
         </header>
+
+        {/* ETAPA 1 — Campo de pesquisa central */}
+        <section className="manuia-block manuia-block--search">
+          <h2><Search size={20} /> Pesquisar equipamento</h2>
+          <p className="manuia-block__desc">
+            Digite ou fale o equipamento que vai manter. A IA pesquisa e renderiza o modelo em 3D.
+          </p>
+          <div className="manuia-search-wrap">
+            <div className="manuia-search-inner" ref={inputRef}>
+              <input
+                type="text"
+                className="manuia-search-input"
+                placeholder="Digite o equipamento que vai manter... Ex: Motor WEG W22 15cv | Bomba Grundfos CM5 | Quadro Schneider NSX 250"
+                value={equipmentQuery}
+                onChange={(e) => setEquipmentQuery(e.target.value)}
+                onFocus={() => setShowSuggestions(suggestions.length > 0)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+              />
+              <div className="manuia-search-actions">
+                <button
+                  type="button"
+                  className="manuia-search-mic"
+                  title="Pesquisar por voz (em breve)"
+                  disabled
+                >
+                  <Mic size={20} />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary manuia-search-btn"
+                  onClick={handleSearch}
+                  disabled={!equipmentQuery.trim() || equipmentQuery.trim().length < 3 || loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="manuia-spinner-sm" /> Pesquisando...
+                    </>
+                  ) : (
+                    <>
+                      <Search size={18} /> Pesquisar e Renderizar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="manuia-suggestions" ref={suggestionsRef}>
+                <span className="manuia-suggestions__title">Últimas pesquisas</span>
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="manuia-suggestion-item"
+                    onClick={() => handleSuggestionClick(s)}
+                  >
+                    {s.equipment_name || s.query_original}
+                    <ChevronRight size={14} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {researchError && (
+            <div className="manuia-error">
+              <AlertTriangle size={18} />
+              <span>{researchError}</span>
+            </div>
+          )}
+        </section>
+
+        {/* ETAPA 3 + 4 — Viewer 3D + Copiloto */}
+        {(research || loading) && (
+          <section className="manuia-block manuia-two-col">
+            <div className="manuia-viewer-col">
+              <h2><Cpu size={20} /> Modelo 3D</h2>
+              {loading ? (
+                <div className="manuia-viewer manuia-viewer--loading">
+                  <div className="manuia-spinner" />
+                  <p>Pesquisando e renderizando...</p>
+                </div>
+              ) : (
+                <ThreeViewer research={research} />
+              )}
+            </div>
+            <div className="manuia-copilot-col">
+              <h2><Sparkles size={20} /> Copiloto IA</h2>
+              {copilotMessage ? (
+                <div className="manuia-copilot">
+                  <div className="manuia-copilot-msg">
+                    {copilotMessage.text.split('\n').map((line, i) => (
+                      <p key={i}>{line.replace(/\*\*(.*?)\*\*/g, '$1')}</p>
+                    ))}
+                  </div>
+                  <div className="manuia-symptom-chips">
+                    <span className="manuia-symptom-label">Ou escolha um sintoma comum:</span>
+                    {SYMPTOM_CHIPS.map((chip) => (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        className={`manuia-symptom-chip ${selectedSymptom?.id === chip.id ? 'manuia-symptom-chip--active' : ''}`}
+                        onClick={() => handleSymptomClick(chip)}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="manuia-copilot-hint">
+                    Clique em um sintoma para abrir o chat com guia de diagnóstico e desmontagem.
+                  </p>
+                </div>
+              ) : (
+                <p className="manuia-empty">Pesquise um equipamento para iniciar o fluxo de diagnóstico.</p>
+              )}
+            </div>
+          </section>
+        )}
 
         {emergencyEvents.length > 0 && (
           <section className="manuia-block manuia-block--alert">
             <h2><AlertTriangle size={20} /> Eventos de Emergência</h2>
             <ul className="manuia-event-list">
-              {emergencyEvents.slice(0, 10).map((e) => (
+              {emergencyEvents.slice(0, 5).map((e) => (
                 <li key={e.id} className="manuia-event-item">
                   <strong>{e.machine_name || 'Máquina'}</strong>
                   <span>{e.description || e.event_type}</span>
@@ -120,90 +276,7 @@ export default function ManuIA() {
         )}
 
         <section className="manuia-block">
-          <h2><Cpu size={20} /> Máquinas Cadastradas</h2>
-          {machines.length === 0 ? (
-            <p className="manuia-empty">Nenhuma máquina cadastrada no ManuIA. O administrador pode configurar máquinas em Configurações.</p>
-          ) : (
-            <div className="manuia-machines-grid">
-              {machines.map((m) => (
-                <div
-                  key={m.id}
-                  className={`manuia-machine-card ${selectedMachine?.id === m.id ? 'manuia-machine-card--active' : ''}`}
-                  onClick={() => handleMachineClick(m)}
-                >
-                  <Cpu size={20} />
-                  <div className="manuia-machine-card__info">
-                    <strong>{m.name || m.code}</strong>
-                    <span>{m.sector || m.line_name || '-'}</span>
-                  </div>
-                  <ChevronRight size={18} />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {selectedMachine && (
-          <section className="manuia-block">
-            <h2><Activity size={20} /> Diagnóstico · {selectedMachine.name || selectedMachine.code}</h2>
-            {loadingDiag ? (
-              <div className="manuia-loading-inline">
-                <div className="manuia-spinner" />
-                <span>Carregando diagnóstico...</span>
-              </div>
-            ) : diagnostic ? (
-              <div className="manuia-diagnostic">
-                <div className="manuia-diagnostic__summary">
-                  <span className={`manuia-badge manuia-badge--${diagnostic.summary?.status || 'operational'}`}>
-                    {diagnostic.summary?.status === 'operational' ? 'Operacional' : diagnostic.summary?.status || 'N/A'}
-                  </span>
-                  <p>{diagnostic.summary?.message || 'Nenhum alerta ativo'}</p>
-                </div>
-                {diagnostic.sensors?.length > 0 && (
-                  <div className="manuia-diagnostic__sensors">
-                    <h3>Sensores</h3>
-                    <ul>
-                      {diagnostic.sensors.map((s) => (
-                        <li key={s.id}>
-                          {s.sensor_name || s.sensor_code}: {s.last_value != null ? `${s.last_value} ${s.unit || ''}` : '—'}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {diagnostic.recent_events?.length > 0 && (
-                  <div className="manuia-diagnostic__events">
-                    <h3>Eventos recentes</h3>
-                    <ul>
-                      {diagnostic.recent_events.map((e) => (
-                        <li key={e.id}>{e.description || e.event_type} — {e.severity}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </section>
-        )}
-
-        <section className="manuia-block manuia-block--ia">
-          <h2><Sparkles size={20} /> IA Técnica</h2>
-          <p className="manuia-block__desc">
-            Use o chat com IA para diagnóstico, histórico da máquina, manuais e soluções anteriores.
-          </p>
-          <div className="manuia-ia-actions">
-            <button type="button" className="btn btn-primary" onClick={handleStartSession}>
-              <Sparkles size={16} /> Abrir Chat com IA
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/chatbot')}>
-              Chat Completo
-            </button>
-          </div>
-        </section>
-
-        <section className="manuia-block">
           <h2><ClipboardList size={20} /> Atalhos</h2>
-          <p className="manuia-block__desc">Acesso rápido a diagnóstico e ordens de serviço.</p>
           <div className="manuia-shortcuts">
             <button type="button" className="manuia-shortcut" onClick={() => navigate('/diagnostic')}>
               <ClipboardList size={16} /> Diagnosticar Falha

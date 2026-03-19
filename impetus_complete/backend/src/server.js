@@ -2,6 +2,7 @@ require('dotenv').config({path:require('path').join(__dirname,'../.env'),overrid
 const http = require('http');
 const { Server } = require('socket.io');
 const { initChatSocket } = require('./socket/chatSocket');
+const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
 const operationalBrain = require('./services/operationalBrainEngine');
@@ -31,6 +32,7 @@ const io = new Server(server, {
 app.set('io', io);
 try { unifiedMessaging.setSocketIo(io); } catch (e) { console.warn('[SERVER] unifiedMessaging:', e?.message); }
 initChatSocket(io);
+initVoiceStreamSocket(io);
 reminderScheduler.start();
 
 let brainIntervalId = null;

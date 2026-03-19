@@ -42,36 +42,30 @@ app.use('/api/cadastrar-com-ia',         safe('./routes/cadastrarComIA'));
 app.use('/api/intelligent-registration', safe('./routes/intelligentRegistration'));
 app.use('/api/decision-engine',          safe('./routes/decisionEngine'));
 app.use('/api/voz',                      safe('./routes/voz'));
-app.get('/health', async (req, res) => {
-  let voz = { elevenlabs: false };
+app.use('/api/dashboard/chat/voice',     safe('./routes/chatVoice'));
+async function voiceHealthProbe() {
+  const voz = { openai: false };
   try {
-    const hasKey = !!(process.env.ELEVEN_API_KEY || '').trim();
-    if (hasKey) {
-      const { gerarAudio } = require('./services/elevenLabsVozService');
-      const buf = await gerarAudio('Ok');
-      voz.elevenlabs = !!(buf && buf.length > 0);
-    } else {
-      voz.error = 'ELEVEN_API_KEY não configurada';
+    const hasKey = !!(process.env.OPENAI_API_KEY || '').trim();
+    if (!hasKey) {
+      voz.error = 'OPENAI_API_KEY não configurada';
+      return voz;
     }
+    const { gerarAudio } = require('./services/openaiVozService');
+    const buf = await gerarAudio('Ok');
+    voz.openai = !!(buf && buf.length > 0);
+    if (!voz.openai) voz.error = 'TTS OpenAI sem resposta';
   } catch (e) {
     voz.error = (e && e.message) || String(e);
   }
+  return voz;
+}
+app.get('/health', async (req, res) => {
+  const voz = await voiceHealthProbe();
   res.json({ status: 'ok', voz });
 });
 app.get('/api/health', async (req, res) => {
-  let voz = { elevenlabs: false };
-  try {
-    const hasKey = !!(process.env.ELEVEN_API_KEY || '').trim();
-    if (hasKey) {
-      const { gerarAudio } = require('./services/elevenLabsVozService');
-      const buf = await gerarAudio('Ok');
-      voz.elevenlabs = !!(buf && buf.length > 0);
-    } else {
-      voz.error = 'ELEVEN_API_KEY não configurada';
-    }
-  } catch (e) {
-    voz.error = (e && e.message) || String(e);
-  }
+  const voz = await voiceHealthProbe();
   res.json({ status: 'ok', voz });
 });
 app.use((err, req, res, next) => { console.error('[ERR]', err.message); res.status(500).json({ error: 'Erro interno no servidor' }); });

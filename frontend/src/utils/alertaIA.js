@@ -1,27 +1,30 @@
 /**
- * IMPETUS - Alertas críticos com voz (TTS via backend)
- * Usar apenas para: erros críticos, riscos operacionais, avisos importantes.
+ * Alertas críticos por voz — TTS via OpenAI (rota /dashboard/chat/voice/speak).
  */
-import { dashboard } from '../services/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-function tocarAudio(base64) {
-  if (!base64) return;
-  const audio = new Audio('data:audio/mp3;base64,' + base64);
-  audio.play().catch(() => {});
+function authHeadersJson() {
+  const token = localStorage.getItem('impetus_token');
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
 }
 
-/**
- * Fala um alerta crítico (ex.: "Atenção: temperatura crítica no setor B").
- * Não narra respostas normais do chat — só chamar em situações que exigem voz.
- */
-export function alertaIA(mensagem) {
+export async function alertaIA(mensagem) {
   if (!mensagem || typeof mensagem !== 'string') return;
-  const texto = mensagem.trim().slice(0, 5000);
+  const texto = mensagem.trim().slice(0, 4000);
   if (!texto) return;
-  dashboard
-    .gerarVoz(texto, true)
-    .then((r) => {
-      if (r?.data?.ok && r?.data?.audio) tocarAudio(r.data.audio);
-    })
-    .catch(() => {});
+  try {
+    const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
+      method: 'POST',
+      headers: authHeadersJson(),
+      body: JSON.stringify({ text: texto, voice: 'nova', speed: 1 })
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = new Audio(url);
+    a.onended = () => URL.revokeObjectURL(url);
+    a.play().catch(() => URL.revokeObjectURL(url));
+  } catch (_) {}
 }

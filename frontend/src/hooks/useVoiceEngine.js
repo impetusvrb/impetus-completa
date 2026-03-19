@@ -1,0 +1,894 @@
+/**
+ * Motor central de voz — STT (Whisper ou Web Speech), TTS OpenAI via WebSocket (streaming) ou HTTP.
+ * Interrupção (barge-in): usuário fala → para TTS e volta a ouvir. Proibido: speechSynthesis na resposta principal.
+ */
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import { WakeWordDetector } from '../services/wakeWordDetector';
+
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+/** Base HTTP do backend (sem /api) para Socket.IO */
+function voiceIoBase() {
+  let b = import.meta.env.VITE_API_URL || '';
+  if (!b || b.startsWith('/')) {
+    b = `${typeof window !== 'undefined' ? window.location.origin : ''}${b || '/api'}`;
+  }
+  return b.replace(/\/api\/?$/, '').replace(/\/$/, '') || '';
+}
+
+const STOP_WORDS = /^(parar|para|desligar|sair|stop)\b/i;
+
+/** Só ativação ("Ok, Impetus" / "Ok Impetus" / …) — sem pergunta extra */
+function isOnlyActivationPhrase(t) {
+  const s = String(t || '')
+    .trim()
+    .replace(/[.!?…]+$/g, '')
+    .toLowerCase()
+    .replace(/,/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s) return false;
+  if (/^(ok|oi|olá|ola|hey)\s+impetus$/.test(s)) return true;
+  if (/^impetus$/.test(s)) return true;
+  return false;
+}
+
+/** Alinhado ao backend — frases curtas + pausas naturais entre elas */
+function splitIntoSpeechChunks(text) {
+  let t = String(text || '')
+    .replace(/\*\*/g, '')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/\n+/g, '. ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!t) return [];
+  const raw = t.split(/(?<=[.!?…])\s+/).map((x) => x.trim()).filter(Boolean);
+  const chunks = [];
+  for (const s of raw) {
+    if (s.length <= 130) chunks.push(s);
+    else {
+      s.split(/,\s+/).forEach((part) => {
+        const p = part.trim();
+        if (p) chunks.push(p.length > 150 ? `${p.slice(0, 147)}...` : p);
+      });
+    }
+  }
+  return chunks.length ? chunks : [t.slice(0, 400)];
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 880;
+    g.gain.value = 0.3;
+    o.start();
+    o.stop(ctx.currentTime + 0.08);
+    setTimeout(() => ctx.close().catch(() => {}), 200);
+  } catch (_) {}
+}
+
+function authHeaders() {
+  const token = localStorage.getItem('impetus_token');
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
+
+async function postTranscribe(blob) {
+  const fd = new FormData();
+  fd.append('audio', blob, 'voice.webm');
+  fd.append('language', 'pt');
+  fd.append(
+    'prompt',
+    'sistema industrial, manutenção, alertas, produção, linha, máquina, Impetus'
+  );
+  const token = localStorage.getItem('impetus_token');
+  const res = await fetch(`${API_BASE}/dashboard/chat/voice/transcribe`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Transcrição falhou');
+  return (data.transcript || '').trim();
+}
+
+async function recordUntilSilence(onRms, shouldStop) {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      channelCount: 1
+    }
+  });
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = ctx.createMediaStreamSource(stream);
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  source.connect(analyser);
+
+  const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : 'audio/webm';
+  const rec = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  rec.ondataavailable = (e) => {
+    if (e.data.size) chunks.push(e.data);
+  };
+  rec.start(120);
+
+  let silentMs = 0;
+  const TH = 0.012;
+  const NEED_SILENCE_MS = 1700;
+  const TICK = 100;
+  const GRACE_MS = 4000;
+  const SPEECH_RMS = 0.038;
+  let heardSpeech = false;
+  const t0 = Date.now();
+
+  return new Promise((resolve) => {
+    const iv = setInterval(() => {
+      if (shouldStop?.()) {
+        clearInterval(iv);
+        if (rec.state === 'recording') rec.stop();
+        return;
+      }
+      const elapsed = Date.now() - t0;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+      onRms?.(rms);
+      if (rms >= SPEECH_RMS) heardSpeech = true;
+
+      if (elapsed < GRACE_MS) {
+        silentMs = 0;
+      } else if (rms < TH) silentMs += TICK;
+      else silentMs = 0;
+
+      if (heardSpeech && silentMs >= NEED_SILENCE_MS && rec.state === 'recording') {
+        rec.stop();
+      }
+      if (!heardSpeech && elapsed >= 18000 && rec.state === 'recording') {
+        rec.stop();
+      }
+      if (elapsed >= 52000 && rec.state === 'recording') {
+        rec.stop();
+      }
+    }, TICK);
+
+    const cleanup = async () => {
+      clearInterval(iv);
+      stream.getTracks().forEach((t) => t.stop());
+      try {
+        await ctx.close();
+      } catch (_) {}
+    };
+
+    rec.onstop = async () => {
+      await cleanup();
+      const blob = new Blob(chunks, { type: 'webm' });
+      resolve(blob.size > 400 ? blob : null);
+    };
+
+    setTimeout(() => {
+      if (rec.state === 'recording') rec.stop();
+    }, 55000);
+  });
+}
+
+/** Uma tomada curta (navegador encerra após pausa). */
+function captureWebSpeech(onPartial, shouldStop) {
+  return new Promise((resolve) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      resolve('');
+      return;
+    }
+    const rec = new SR();
+    rec.lang = 'pt-BR';
+    rec.continuous = false;
+    rec.interimResults = true;
+    let finalText = '';
+    rec.onresult = (e) => {
+      if (shouldStop?.()) return;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText = (finalText + ' ' + t).trim();
+        else onPartial?.(((finalText ? finalText + ' ' : '') + t).trim());
+      }
+    };
+    rec.onend = () => resolve(finalText.trim());
+    rec.onerror = () => resolve(finalText.trim());
+    try {
+      rec.start();
+    } catch (_) {
+      resolve('');
+    }
+  });
+}
+
+/**
+ * Escuta contínua Web Speech: acumula até ~silenceMs sem novo áudio após fala (frases longas / pausas internas).
+ */
+function captureWebSpeechUntilPause(onPartial, shouldStop, opts = {}) {
+  const silenceMs = opts.silenceMs ?? 1550;
+  const maxMs = opts.maxMs ?? 34000;
+  return new Promise((resolve) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      resolve('');
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'pt-BR';
+    let aggregated = '';
+    let hasHeard = false;
+    let lastActivity = 0;
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearInterval(iv);
+      try {
+        rec.stop();
+      } catch (_) {}
+    };
+
+    const iv = setInterval(() => {
+      if (shouldStop?.()) {
+        finish();
+        return;
+      }
+      if (hasHeard && lastActivity && Date.now() - lastActivity >= silenceMs) {
+        finish();
+      }
+    }, 160);
+
+    rec.onresult = (e) => {
+      if (shouldStop?.()) return;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = (e.results[i][0].transcript || '').trim();
+        if (!t) continue;
+        hasHeard = true;
+        lastActivity = Date.now();
+        if (e.results[i].isFinal) {
+          aggregated = (aggregated + ' ' + t).trim();
+        }
+        const line = e.results[i].isFinal ? aggregated : `${aggregated} ${t}`.trim();
+        onPartial?.(line);
+      }
+    };
+
+    rec.onend = () => {
+      clearInterval(iv);
+      resolve(aggregated.trim());
+    };
+    rec.onerror = () => {
+      clearInterval(iv);
+      resolve(aggregated.trim());
+    };
+
+    try {
+      rec.start();
+    } catch (_) {
+      clearInterval(iv);
+      resolve('');
+      return;
+    }
+    setTimeout(() => {
+      if (!finished) finish();
+    }, maxMs);
+  });
+}
+
+/**
+ * @param {object} options
+ * @param {function(string): Promise<string>} options.chatRound - envia texto à IA, retorna resposta
+ * @param {function} [options.onSensitiveBlock] - quando conteúdo sensível interrompe o fluxo
+ */
+export function useVoiceEngine(options = {}) {
+  const { chatRound, onSensitiveBlock } = options;
+  const chatRoundRef = useRef(chatRound);
+  useEffect(() => {
+    chatRoundRef.current = chatRound;
+  }, [chatRound]);
+
+  const [voiceState, setVoiceState] = useState({
+    status: 'idle',
+    isActive: false,
+    isContinuous: false,
+    currentTranscript: '',
+    lastAlert: null,
+    alertsEnabled: true,
+    audioBlocked: false
+  });
+
+  const [badge, setBadge] = useState({ text: '', visible: false });
+  const badgeTimer = useRef(null);
+
+  const showBadge = useCallback((text) => {
+    if (badgeTimer.current) clearTimeout(badgeTimer.current);
+    setBadge({ text, visible: true });
+    badgeTimer.current = setTimeout(() => {
+      setBadge((b) => ({ ...b, visible: false }));
+      setTimeout(() => setBadge({ text: '', visible: false }), 400);
+    }, 2200);
+  }, []);
+
+  const continuousRef = useRef(false);
+  const loopRunningRef = useRef(false);
+  const failStreakRef = useRef(0);
+  const audioCtxRef = useRef(null);
+  const sourceRef = useRef(null);
+  const wakeRef = useRef(null);
+  const wakeActiveRef = useRef(false);
+  const [isWakeWordActive, setIsWakeWordActive] = useState(false);
+  const voiceIdRef = useRef('nova');
+  const speedRef = useRef(0.98);
+  const audioBlockedRef = useRef(false);
+  const speakAbortedRef = useRef(false);
+  const voiceSocketRef = useRef(null);
+  const voiceSocketConnectingRef = useRef(null);
+  useEffect(() => {
+    audioBlockedRef.current = voiceState.audioBlocked;
+  }, [voiceState.audioBlocked]);
+
+  const setPartial = useCallback((t) => {
+    setVoiceState((s) => ({ ...s, currentTranscript: t }));
+  }, []);
+
+  const stopSpeaking = useCallback(() => {
+    speakAbortedRef.current = true;
+    try {
+      voiceSocketRef.current?.emit('voice:cancel');
+    } catch (_) {}
+    try {
+      sourceRef.current?.stop();
+    } catch (_) {}
+    sourceRef.current = null;
+  }, []);
+
+  /** Garante Socket.IO /impetus-voice (streaming TTS em tempo real) */
+  const ensureVoiceSocket = useCallback(() => {
+    if (import.meta.env.VITE_VOICE_WEBSOCKET === 'false') return Promise.resolve(null);
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('impetus_token') : null;
+    if (!token) return Promise.resolve(null);
+    if (voiceSocketRef.current?.connected) return Promise.resolve(voiceSocketRef.current);
+    if (voiceSocketConnectingRef.current) return voiceSocketConnectingRef.current;
+    const base = voiceIoBase();
+    voiceSocketConnectingRef.current = new Promise((resolve) => {
+      const s = io(`${base}/impetus-voice`, {
+        path: '/socket.io',
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 2,
+        timeout: 8000
+      });
+      const done = (sock) => {
+        voiceSocketConnectingRef.current = null;
+        resolve(sock);
+      };
+      s.on('connect', () => {
+        voiceSocketRef.current = s;
+        done(s);
+      });
+      s.on('connect_error', () => {
+        try {
+          s.close();
+        } catch (_) {}
+        done(null);
+      });
+      setTimeout(() => {
+        if (!s.connected) {
+          try {
+            s.close();
+          } catch (_) {}
+          if (voiceSocketConnectingRef.current) done(null);
+        }
+      }, 6000);
+    });
+    return voiceSocketConnectingRef.current;
+  }, []);
+
+  const playMp3Buffer = useCallback(async (arrayBuffer) => {
+    if (audioBlockedRef.current || !arrayBuffer?.byteLength) return;
+    let ctx = audioCtxRef.current;
+    if (!ctx || ctx.state === 'closed') {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+    }
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    const audioBuf = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    const src = ctx.createBufferSource();
+    src.buffer = audioBuf;
+    src.connect(ctx.destination);
+    sourceRef.current = src;
+    setVoiceState((s) => ({ ...s, status: 'speaking' }));
+    showBadge('Falando...');
+
+    let bargeTimer = null;
+    let mediaStream = null;
+    let bargeCtx = null;
+    const tryBarge = continuousRef.current;
+    if (tryBarge) {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+        });
+        bargeCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const msrc = bargeCtx.createMediaStreamSource(mediaStream);
+        const an = bargeCtx.createAnalyser();
+        an.fftSize = 256;
+        msrc.connect(an);
+        let loudMs = 0;
+        bargeTimer = setInterval(() => {
+          if (speakAbortedRef.current) return;
+          const data = new Uint8Array(an.frequencyBinCount);
+          an.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / data.length);
+          if (rms > 0.042) loudMs += 90;
+          else loudMs = Math.max(0, loudMs - 50);
+          if (loudMs >= 400) {
+            speakAbortedRef.current = true;
+            try {
+              voiceSocketRef.current?.emit('voice:cancel');
+            } catch (_) {}
+            try {
+              src.stop();
+            } catch (_) {}
+            clearInterval(bargeTimer);
+            bargeTimer = null;
+            mediaStream?.getTracks().forEach((t) => t.stop());
+            try {
+              bargeCtx?.close();
+            } catch (_) {}
+          }
+        }, 90);
+      } catch (_) {
+        mediaStream = null;
+      }
+    }
+
+    return new Promise((resolve) => {
+      src.onended = () => {
+        if (bargeTimer) clearInterval(bargeTimer);
+        mediaStream?.getTracks().forEach((t) => t.stop());
+        try {
+          bargeCtx?.close();
+        } catch (_) {}
+        sourceRef.current = null;
+        resolve();
+      };
+      try {
+        src.start(0);
+      } catch (_) {
+        resolve();
+      }
+    });
+  }, [showBadge]);
+
+  const fetchSpeakAudio = useCallback(async (text) => {
+    const clean = String(text || '')
+      .replace(/[*_`#]/g, '')
+      .replace(/\n+/g, '. ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 4000);
+    if (!clean) return null;
+    const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        text: clean,
+        voice: voiceIdRef.current,
+        speed: speedRef.current
+      })
+    });
+    if (!res.ok) {
+      console.warn('[voiceEngine] TTS HTTP', res.status);
+      return null;
+    }
+    const buf = await res.arrayBuffer();
+    return buf.byteLength ? buf : null;
+  }, []);
+
+  const speakText = useCallback(
+    async (text) => {
+      if (audioBlockedRef.current) return;
+      speakAbortedRef.current = false;
+      const buf = await fetchSpeakAudio(text);
+      if (!buf) return;
+      await playMp3Buffer(buf);
+    },
+    [fetchSpeakAudio, playMp3Buffer]
+  );
+
+  const speakNaturalReply = useCallback(
+    async (reply) => {
+      speakAbortedRef.current = false;
+      const full = String(reply || '').trim();
+      if (!full) return;
+
+      const useWs = import.meta.env.VITE_VOICE_WEBSOCKET !== 'false';
+      if (useWs) {
+        const socket = await ensureVoiceSocket();
+        if (socket?.connected) {
+          const queue = [];
+          let streamDone = false;
+          let notify = null;
+          let mp3Count = 0;
+          const onMp3 = (p) => {
+            mp3Count++;
+            queue.push(p);
+            notify?.();
+          };
+          const onEnd = () => {
+            streamDone = true;
+            notify?.();
+          };
+          const onAbort = () => {
+            speakAbortedRef.current = true;
+            notify?.();
+          };
+          socket.on('voice:mp3', onMp3);
+          socket.once('voice:stream_end', onEnd);
+          socket.once('voice:stream_aborted', onAbort);
+          socket.emit('voice:speak_stream', {
+            text: full,
+            voice: voiceIdRef.current,
+            speed: speedRef.current
+          });
+
+          const wsDeadline = Date.now() + 120000;
+          while (
+            Date.now() < wsDeadline &&
+            !speakAbortedRef.current &&
+            (queue.length > 0 || !streamDone)
+          ) {
+            while (!queue.length && !streamDone && !speakAbortedRef.current) {
+              await new Promise((r) => {
+                notify = r;
+                setTimeout(r, 400);
+              });
+            }
+            if (speakAbortedRef.current) break;
+            const item = queue.shift();
+            if (!item) {
+              if (streamDone) break;
+              continue;
+            }
+            const bin = atob(item.b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+            await playMp3Buffer(bytes.buffer);
+            if (speakAbortedRef.current) break;
+            await new Promise((r) => setTimeout(r, 260 + Math.floor(Math.random() * 160)));
+          }
+          socket.off('voice:mp3', onMp3);
+          if (speakAbortedRef.current) return;
+          if (mp3Count > 0) return;
+        }
+      }
+
+      speakAbortedRef.current = false;
+      const parts = splitIntoSpeechChunks(full);
+      let nextBuf = null;
+      for (let i = 0; i < parts.length; i++) {
+        if (!continuousRef.current && i > 0) break;
+        if (speakAbortedRef.current) break;
+        const cur =
+          i === 0
+            ? await fetchSpeakAudio(parts[0])
+            : nextBuf
+              ? await nextBuf
+              : await fetchSpeakAudio(parts[i]);
+        nextBuf =
+          i + 1 < parts.length ? fetchSpeakAudio(parts[i + 1]) : null;
+        if (!cur) continue;
+        await playMp3Buffer(cur);
+        if (speakAbortedRef.current) break;
+        if (i < parts.length - 1) {
+          await new Promise((r) => setTimeout(r, 280 + Math.floor(Math.random() * 220)));
+        }
+      }
+    },
+    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer]
+  );
+
+  const stopVoiceCapture = useCallback(() => {
+    continuousRef.current = false;
+    loopRunningRef.current = false;
+  }, []);
+
+  const runContinuousLoop = useCallback(async () => {
+    if (loopRunningRef.current) return;
+    loopRunningRef.current = true;
+    const preferWhisper = import.meta.env.VITE_USE_WHISPER_STT === 'true';
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    while (continuousRef.current) {
+      setVoiceState((s) => ({
+        ...s,
+        status: 'listening',
+        isActive: true,
+        isContinuous: true,
+        currentTranscript: ''
+      }));
+      showBadge('Ouvindo...');
+
+      let text = '';
+      try {
+        if (preferWhisper) {
+          const blob = await recordUntilSilence(null, () => !continuousRef.current);
+          if (!continuousRef.current) break;
+          if (blob) {
+            setVoiceState((s) => ({ ...s, status: 'processing' }));
+            showBadge('Processando...');
+            try {
+              text = await postTranscribe(blob);
+            } catch (e) {
+              console.warn('[voiceEngine] Whisper:', e?.message || e);
+            }
+          }
+          if (!(text || '').trim() && SR) {
+            setVoiceState((s) => ({ ...s, status: 'listening' }));
+            showBadge('Ouvindo...');
+            text = await captureWebSpeechUntilPause(setPartial, () => !continuousRef.current);
+          }
+        } else if (SR) {
+          text = await captureWebSpeechUntilPause(setPartial, () => !continuousRef.current);
+        } else {
+          const blob = await recordUntilSilence(null, () => !continuousRef.current);
+          if (!continuousRef.current) break;
+          if (blob) {
+            setVoiceState((s) => ({ ...s, status: 'processing' }));
+            showBadge('Processando...');
+            try {
+              text = await postTranscribe(blob);
+            } catch (e) {
+              console.warn('[voiceEngine] transcribe', e);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[voiceEngine] capture', e);
+        failStreakRef.current++;
+        if (failStreakRef.current >= 3) {
+          continuousRef.current = false;
+          break;
+        }
+        continue;
+      }
+
+      if (!continuousRef.current) break;
+      text = (text || '').trim();
+      if (!text) {
+        failStreakRef.current++;
+        if (failStreakRef.current >= 3) {
+          continuousRef.current = false;
+          break;
+        }
+        continue;
+      }
+      if (STOP_WORDS.test(text)) {
+        continuousRef.current = false;
+        break;
+      }
+      if (isOnlyActivationPhrase(text)) {
+        failStreakRef.current = 0;
+        await speakNaturalReply('Oi. Pode falar. Estou te ouvindo.');
+        continue;
+      }
+      failStreakRef.current = 0;
+      setVoiceState((s) => ({ ...s, currentTranscript: '', status: 'processing' }));
+      showBadge('Processando...');
+
+      if (text.length > 40) {
+        await speakText('Só um segundo.');
+        showBadge('Processando...');
+      }
+
+      let reply = '';
+      try {
+        const fn = chatRoundRef.current;
+        if (fn) reply = await fn(text);
+      } catch (e) {
+        if (
+          e?.__sensitive ||
+          e?.response?.data?.code === 'SENSITIVE_CONTENT'
+        ) {
+          onSensitiveBlock?.();
+          continuousRef.current = false;
+          break;
+        }
+        reply = e?.message || 'Erro ao processar.';
+      }
+
+      if (!continuousRef.current) break;
+      await speakNaturalReply(reply);
+    }
+
+    loopRunningRef.current = false;
+    setVoiceState((s) => ({
+      ...s,
+      status: 'idle',
+      isActive: false,
+      isContinuous: false,
+      currentTranscript: ''
+    }));
+  }, [onSensitiveBlock, setPartial, showBadge, speakText, speakNaturalReply]);
+
+  const toggleVoice = useCallback(async () => {
+    if (continuousRef.current) {
+      continuousRef.current = false;
+      stopSpeaking();
+      showBadge('');
+      setVoiceState((s) => ({
+        ...s,
+        status: 'idle',
+        isActive: false,
+        isContinuous: false
+      }));
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      localStorage.setItem('impetus_mic_granted', '1');
+    } catch (e) {
+      setVoiceState((s) => ({ ...s, lastAlert: 'Permita o microfone nas configurações do navegador.' }));
+      return;
+    }
+    wakeRef.current?.stop();
+    wakeRef.current = null;
+    wakeActiveRef.current = false;
+    setIsWakeWordActive(false);
+
+    continuousRef.current = true;
+    failStreakRef.current = 0;
+    setVoiceState((s) => ({
+      ...s,
+      isActive: true,
+      isContinuous: true,
+      status: 'listening'
+    }));
+    runContinuousLoop();
+  }, [runContinuousLoop, stopSpeaking, showBadge]);
+
+  const startListening = useCallback(() => {
+    if (!continuousRef.current) toggleVoice();
+  }, [toggleVoice]);
+
+  const stopListening = useCallback(() => {
+    continuousRef.current = false;
+    stopSpeaking();
+    setVoiceState((s) => ({
+      ...s,
+      status: 'idle',
+      isActive: false,
+      isContinuous: false
+    }));
+  }, [stopSpeaking]);
+
+  const setAlertsEnabled = useCallback((v) => {
+    setVoiceState((s) => ({ ...s, alertsEnabled: !!v }));
+  }, []);
+
+  const startWakeWord = useCallback(() => {
+    if (wakeRef.current || !localStorage.getItem('impetus_mic_granted')) return;
+    let w;
+    w = new WakeWordDetector(() => {
+      stopSpeaking();
+      speakAbortedRef.current = false;
+      w.stop();
+      playBeep();
+      window.dispatchEvent(new CustomEvent('impetus-wake-toast', { detail: { text: 'Oi, pode falar.' } }));
+      (async () => {
+        if (continuousRef.current) {
+          w.start();
+          return;
+        }
+        await speakNaturalReply('Oi. Pode falar. Estou te ouvindo.');
+        let text = '';
+        try {
+          const useWhisper = import.meta.env.VITE_USE_WHISPER_STT === 'true';
+          if (useWhisper) {
+            const blob = await recordUntilSilence(null, () => false);
+            if (blob) text = await postTranscribe(blob);
+          }
+          if (!text) {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SR) {
+              text = await captureWebSpeechUntilPause(null, () => false, { silenceMs: 1600 });
+            }
+          }
+        } catch (_) {}
+        text = (text || '').trim();
+        const fn = chatRoundRef.current;
+        if (text && !STOP_WORDS.test(text) && fn && !isOnlyActivationPhrase(text)) {
+          await speakText('Só um segundo.');
+          const reply = await fn(text).catch(() => '');
+          if (reply) await speakNaturalReply(reply);
+        }
+        if (!continuousRef.current && localStorage.getItem('impetus_mic_granted')) {
+          w.start();
+        }
+      })();
+    });
+    wakeRef.current = w;
+    wakeActiveRef.current = true;
+    setIsWakeWordActive(true);
+    w.start();
+  }, [stopSpeaking, speakText, speakNaturalReply]);
+
+  const stopWakeWord = useCallback(() => {
+    wakeRef.current?.stop();
+    wakeRef.current = null;
+    wakeActiveRef.current = false;
+    setIsWakeWordActive(false);
+  }, []);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) {
+        /* pausa: não encerra contínuo */
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      continuousRef.current = false;
+      stopSpeaking();
+      try {
+        voiceSocketRef.current?.disconnect();
+      } catch (_) {}
+      voiceSocketRef.current = null;
+      wakeRef.current?.stop();
+      if (badgeTimer.current) clearTimeout(badgeTimer.current);
+    };
+  }, [stopSpeaking]);
+
+  return {
+    voiceState,
+    voiceBadge: badge,
+    startListening,
+    stopListening,
+    toggleVoice,
+    speakText,
+    stopSpeaking,
+    setAlertsEnabled,
+    setVoicePrefs: (p) => {
+      if (p.voice_id) voiceIdRef.current = p.voice_id;
+      if (p.speed != null) speedRef.current = parseFloat(p.speed) || 1;
+      if (typeof p.alerts_enabled === 'boolean')
+        setVoiceState((s) => ({ ...s, alertsEnabled: p.alerts_enabled }));
+    },
+    isWakeWordActive,
+    startWakeWord,
+    stopWakeWord,
+    stopVoiceCapture,
+    speakNaturalReply
+  };
+}

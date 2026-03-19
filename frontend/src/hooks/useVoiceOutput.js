@@ -1,5 +1,5 @@
 /**
- * useVoiceOutput - TTS via backend (ElevenLabs) com fallback para Web Speech
+ * useVoiceOutput - TTS via backend (OpenAI) com fallback para Web Speech
  * IA fala apenas quando o modo voz está ativo (botão "Ativar voz").
  */
 import { useCallback, useRef, useState } from 'react';
