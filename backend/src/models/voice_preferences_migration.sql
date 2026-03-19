@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS voice_preferences (
   alerts_enabled BOOLEAN DEFAULT true,
   alert_min_priority VARCHAR(2) DEFAULT 'P2',
   auto_speak_responses BOOLEAN DEFAULT true,
-  voice_id VARCHAR(50) DEFAULT 'onyx',
-  speed DECIMAL(3,1) DEFAULT 1.0,
+  voice_id VARCHAR(50) DEFAULT 'nova',
+  speed DECIMAL(4,2) DEFAULT 0.98,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(user_id)

@@ -1,12 +1,16 @@
 /**
  * IMPETUS - ManuIA 3D Vision - Componente principal
  * Orquestra: captura → análise Claude → modelo 3D → chat
+ * Inclui: Histórico de diagnósticos (IndexedDB)
  */
 import React, { useState, useRef, useCallback } from 'react';
 import Vision3DViewer from './components/Vision3DViewer';
 import ControlsHUD from './components/ControlsHUD';
 import CapturePanel from './components/CapturePanel';
 import CopilotChat from './chat/CopilotChat';
+import DiagnosisHistory from './components/DiagnosisHistory';
+import ComparePanel from './components/ComparePanel';
+import ReportModal from './components/ReportModal';
 import { useVisionChat } from './hooks/useVisionChat';
 import styles from './styles/Vision3D.module.css';
 
@@ -25,12 +29,21 @@ export default function Vision3DModule({
   const [machineType, setMachineType] = useState('generico');
   const [faultParts, setFaultParts] = useState([]);
   const [highlightPart, setHighlightPart] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSession, setCompareSession] = useState(null);
+  const [restoredSession, setRestoredSession] = useState(null);
+  const [thermalMode, setThermalMode] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const viewerRef = useRef(null);
   const origPositionsRef = useRef({});
 
   const handleAction = useCallback((action) => {
     if (action.type === 'ANALYSIS_COMPLETE') {
       const p = action.payload;
+      setRestoredSession(null);
+      setCompareMode(false);
+      setCompareSession(null);
       setMachineType(p.machineType || 'generico');
       setFaultParts(p.faultParts || []);
       setViewMode('split');
@@ -42,6 +55,16 @@ export default function Vision3DModule({
       if (p.highlight) setHighlightPart(p.highlight);
       if (p.explode !== null) setExplode(p.explode);
       if (p.markFault) setFaultParts((prev) => [...prev, p.markFault].filter(Boolean));
+      if (p.animationAction === 'remove' && p.animationTarget && !animatingStepRef.current) {
+        setAnimatingStep(true);
+        viewerRef.current?.animateDisassembly?.(p.animationTarget, null, () => {
+          setAnimatingStep(false);
+          setPartRemovedStep(0);
+        });
+      } else if (p.animationAction === 'return') {
+        viewerRef.current?.returnPart?.();
+        setPartRemovedStep(null);
+      }
     }
   }, [onDiagnosisComplete]);
 
@@ -51,7 +74,28 @@ export default function Vision3DModule({
     result,
     analyzeImage,
     sendMessage
-  } = useVisionChat({ onAction });
+  } = useVisionChat({ onAction, machineId });
+
+  const displayResult = restoredSession || result;
+  const displayMachineType = restoredSession ? restoredSession.machineType : machineType;
+  const displayFaultParts = restoredSession ? restoredSession.faultParts : faultParts;
+
+  const handleRestoreSession = useCallback((session) => {
+    setRestoredSession(session);
+    setMachineType(session.machineType || 'generico');
+    setFaultParts(session.faultParts || []);
+    setViewMode('split');
+  }, []);
+
+  const handleCompareSession = useCallback((session) => {
+    setCompareSession(session);
+    setCompareMode(true);
+  }, []);
+
+  const exitCompareMode = useCallback(() => {
+    setCompareMode(false);
+    setCompareSession(null);
+  }, []);
 
   const handleCapture = useCallback(
     async (base64) => {
@@ -61,42 +105,72 @@ export default function Vision3DModule({
     [analyzeImage]
   );
 
-  const handleStepClick = useCallback((index) => {
-    if (result?.steps?.[index]) {
-      const step = result.steps[index];
-      const partName = step.part || step.title;
-      if (partName) setHighlightPart(partName);
-    }
-  }, [result]);
+  const [animatingStep, setAnimatingStep] = useState(false);
+  const [partRemovedStep, setPartRemovedStep] = useState(null);
+  const animatingStepRef = useRef(false);
+  animatingStepRef.current = animatingStep;
+
+  const handleStepClick = useCallback((index, partName) => {
+    if (animatingStep || !displayResult?.steps?.[index]) return;
+    const step = displayResult.steps[index];
+    const name = partName || step.part || step.title;
+    if (name) setHighlightPart(name);
+    setAnimatingStep(true);
+    viewerRef.current?.animateDisassembly?.(name, null, () => {
+      setAnimatingStep(false);
+      setPartRemovedStep(index);
+    });
+  }, [displayResult, animatingStep]);
+
+  const handleReturnPart = useCallback(() => {
+    viewerRef.current?.returnPart?.();
+    setPartRemovedStep(null);
+  }, []);
+
+  const handleOpenReport = useCallback(() => {
+    if (displayResult) setReportModalOpen(true);
+  }, [displayResult]);
 
   const handleGenerateOS = useCallback(() => {
-    if (result && onGenerateOS) {
+    if (displayResult && onGenerateOS) {
       onGenerateOS({
-        equipment: result.equipment,
-        manufacturer: result.manufacturer,
-        severity: result.severity,
-        steps: result.steps,
-        parts: result.parts,
-        faultParts,
+        equipment: displayResult.equipment,
+        manufacturer: displayResult.manufacturer,
+        severity: displayResult.severity,
+        steps: displayResult.steps,
+        parts: displayResult.parts,
+        faultParts: displayFaultParts,
         machineId,
         machineName
       });
     }
-  }, [result, faultParts, machineId, machineName, onGenerateOS]);
+  }, [displayResult, displayFaultParts, machineId, machineName, onGenerateOS]);
+
+  const getModelScreenshot = useCallback(async () => {
+    const was = autoRotate;
+    setAutoRotate(false);
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 80));
+    const b64 = viewerRef.current?.captureScreenshot?.() ?? null;
+    setAutoRotate(was);
+    return b64;
+  }, [autoRotate]);
 
   const handleResetCamera = () => viewerRef.current?.resetCamera?.();
 
   return (
     <div className={styles.module}>
       <div className={styles.layoutSplit}>
-        <div className={styles.layoutSplitLeft}>
+        <div className={styles.layoutSplitLeft} style={{ position: 'relative' }}>
           {viewMode === '3d' ? (
             <div style={{ position: 'relative', height: '100%' }}>
               <Vision3DViewer
                 ref={viewerRef}
-                machineType={machineType}
-                faultParts={faultParts}
+                machineType={displayMachineType}
+                faultParts={displayFaultParts}
                 mode={mode3d}
+                thermalMode={thermalMode}
+                thermalData={displayResult?.thermalData || []}
                 autoRotate={autoRotate}
                 explodeAmount={explode ? 1.2 : 0}
                 origPositionsRef={origPositionsRef}
@@ -105,10 +179,13 @@ export default function Vision3DModule({
                 mode={mode3d}
                 autoRotate={autoRotate}
                 explode={explode}
+                thermalMode={thermalMode}
                 onModeChange={setMode3d}
                 onAutoRotate={setAutoRotate}
                 onExplode={setExplode}
                 onReset={handleResetCamera}
+                onHistory={() => setHistoryOpen(true)}
+                onThermalMode={setThermalMode}
               />
             </div>
           ) : viewMode === 'photo' ? (
@@ -129,9 +206,11 @@ export default function Vision3DModule({
               <div style={{ position: 'relative' }}>
                 <Vision3DViewer
                   ref={viewerRef}
-                  machineType={machineType}
-                  faultParts={faultParts}
+                  machineType={displayMachineType}
+                  faultParts={displayFaultParts}
                   mode={mode3d}
+                  thermalMode={thermalMode}
+                  thermalData={displayResult?.thermalData || []}
                   autoRotate={autoRotate}
                   explodeAmount={explode ? 1.2 : 0}
                 />
@@ -139,27 +218,75 @@ export default function Vision3DModule({
                   mode={mode3d}
                   autoRotate={autoRotate}
                   explode={explode}
+                  thermalMode={thermalMode}
                   onModeChange={setMode3d}
                   onAutoRotate={setAutoRotate}
                   onExplode={setExplode}
                   onReset={handleResetCamera}
+                  onHistory={() => setHistoryOpen(true)}
+                  onThermalMode={setThermalMode}
                 />
               </div>
             </div>
           )}
+          {historyOpen && (
+            <DiagnosisHistory
+              open={historyOpen}
+              machineId={machineId ?? 'default'}
+              currentResult={displayResult}
+              onClose={() => setHistoryOpen(false)}
+              onRestoreSession={handleRestoreSession}
+              onCompareSession={handleCompareSession}
+              onCompareMode={setCompareMode}
+            />
+          )}
         </div>
         <div className={styles.layoutSplitRight}>
+          {compareMode && compareSession && (
+            <ComparePanel
+              previousSession={compareSession}
+              currentResult={displayResult}
+              onClose={exitCompareMode}
+            />
+          )}
+          {!compareMode && (
           <CopilotChat
             messages={messages}
             isLoading={isLoading}
-            result={result}
+            result={displayResult}
             onSend={sendMessage}
             onStepClick={handleStepClick}
+            onReturnPart={handleReturnPart}
+            animatingStep={animatingStep}
+            partRemovedStep={partRemovedStep}
+            onOpenReport={handleOpenReport}
             onGenerateOS={handleGenerateOS}
             disabled={isLoading}
           />
+          )}
         </div>
       </div>
+      <ReportModal
+        open={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        data={
+          displayResult
+            ? {
+                equipment: displayResult.equipment,
+                manufacturer: displayResult.manufacturer,
+                severity: displayResult.severity,
+                confidence: displayResult.confidence,
+                parts: displayResult.parts,
+                steps: displayResult.steps,
+                faultParts: displayFaultParts,
+                webSources: displayResult.webSources,
+                capturedImageBase64: capturedImage
+              }
+            : null
+        }
+        getModelScreenshot={getModelScreenshot}
+        machineId={machineId}
+      />
     </div>
   );
 }

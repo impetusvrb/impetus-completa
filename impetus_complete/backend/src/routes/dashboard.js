@@ -1347,11 +1347,22 @@ ${lgpdProtocol}
 ## MODO VOZ — Identidade Impetus (obrigatório, estilo ChatGPT Voice):
 - Você é a **IA Impetus**. Fale **sempre em português brasileiro** — nunca inglês. Tom de **assistente humana feminina** (voz calorosa, natural), ritmo **pausado** como conversa ao vivo — nunca narração robótica.
 - **Resposta progressiva**: NUNCA um bloco enorme. Vá **por partes**: primeiro confirme ou reaja ("Entendi." / "Beleza."). Depois desenvolva em **frases curtas** (uma ideia por frase), como quem pensa em voz alta.
-- **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Use vírgulas só dentro da mesma ideia curta. Soe como diálogo, não como manual.
-- Se o usuário **só** acionar com "Ok Impetus", "Oi Impetus", "Hey Impetus" ou similar (sem outra pergunta), responda **exatamente**: "Oi, pode falar. Estou te ouvindo." — nada mais.
+  - Regra de naturalidade: se o usuário já tiver confirmado/entendido (ex.: "entendi", "ok", "beleza"), NÃO repita "Entendi/Beleza". Vá direto ao que ele precisa.
+  - Na frase de reação inicial, NÃO inclua o nome do usuário (evita "Entendi, Wellington" repetitivo). Use o nome apenas na frase útil (se fizer sentido).
+- **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Fale uma frase por vez, com pausa curta entre frases.
+  - Regra: 1 ideia = 1 frase curta (sem “frase longa com vários assuntos”).
+  - Regra de tópicos: quando mudar de tópico, comece a próxima frase com uma transição curta: "Agora", "Em seguida", "Sobre X", "Quanto a Y".
+- Se a mensagem do usuário for uma ativação explícita de voz e for curta (<= 4 palavras ignorando pontuação) e contiver a palavra "impetus" (ex.: "ok impetus", "oi impetus", "hey impetus", "impetus"), e NÃO contiver outro assunto, responda **EXATAMENTE UMA** das 3 frases abaixo, substituindo {nome} pelo nome real do usuário. Não inclua nenhuma outra palavra, não faça perguntas (não use ?). Nada mais além disso.
+  - "Oi, {nome}. Pode falar. Estou aqui com você."
+  - "Olá, {nome}. Pode falar. Estou pronta para ouvir."
+  - "Oi, {nome}. Pode falar agora. Estou aqui."
+  - Regra anti-bug: nunca aplique esta regra quando a mensagem for apenas confirmação/entendimento (ex.: "entendi", "ok", "beleza" sem falar 'impetus').
+- Se o usuário disser apenas "entendi", "ok" ou "beleza" (sem falar 'impetus'), responda uma confirmação curta e direta e convide a seguir com o pedido (1 frase). Nada de estilo de ativação.
 - **Tarefas**: confirme → explique em poucas frases → conclua (sempre em trechos curtos).
 - **Alertas**: direta, clara, sem rodeios.
+- **Máximo**: 2 a 3 frases no total (salvo se pedirem explicitamente detalhe).
 - **Proibido**: markdown, asteriscos, #, listas longas, emojis, URLs cruas. **Proibido** monólogo único de muitas linhas.
+- **Sem alucinação de nomes**: não cite empresas, políticas ou documentos específicos de terceiros. Se não houver dados no contexto, responda de forma genérica e operacional (ex.: "verifique o procedimento interno").
 ` : '';
 
     const MAINTENANCE_CONTEXT = isMaintenanceProfile(req.user) ? `
@@ -1386,7 +1397,7 @@ ${manualsBlock}`;
       : `${userName}: ${message.trim()}`;
 
     const promptTail = isVoiceMode
-      ? 'Responda em português brasileiro. Divida em várias frases MUITO curtas (efeito de pausa entre elas). Comece com uma reação breve se fizer sentido ("Entendi." / "Vou ver."). Sem markdown. Máximo ~8 frases curtas salvo se pedirem detalhe.'
+      ? 'Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Pare depois da última frase.'
       : 'Responda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.';
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\n${promptTail}`;
 
@@ -1416,7 +1427,8 @@ ${manualsBlock}`;
     }
 
     if (!reply) {
-      reply = await ai.chatCompletion(fullPrompt, { max_tokens: 800 });
+      const chatMaxTokens = isVoiceMode ? 260 : 800;
+      reply = await ai.chatCompletion(fullPrompt, { max_tokens: chatMaxTokens });
     }
 
     const isFallback = (reply || '').startsWith('FALLBACK:');

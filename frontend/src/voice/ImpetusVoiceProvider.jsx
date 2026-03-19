@@ -6,6 +6,7 @@
  * - Polling de alertas por voz (fora do AIChatPage)
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ImpetusVoiceContext } from './ImpetusVoiceContext';
 import { useVoiceEngine } from '../hooks/useVoiceEngine';
 import { dashboard } from '../services/api';
@@ -14,11 +15,18 @@ import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
 
 export default function ImpetusVoiceProvider({ children }) {
+  const location = useLocation();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [alertMinPriority, setAlertMinPriority] = useState('P2');
   const [autoSpeakResponses, setAutoSpeakResponses] = useState(true);
   const alertsSeenRef = useRef(new Set());
   const voiceHistoryRef = useRef([]); // últimos turnos para contexto do LLM no modo voz
+  const hasToken = !!localStorage.getItem('impetus_token');
+  const isVoiceRoute =
+    location.pathname.startsWith('/app') ||
+    location.pathname.startsWith('/chat') ||
+    location.pathname.startsWith('/m');
+  const voiceEnabled = hasToken && isVoiceRoute;
 
   const chatRound = useCallback(async (text) => {
     const history = voiceHistoryRef.current.slice(-6);
@@ -56,6 +64,7 @@ export default function ImpetusVoiceProvider({ children }) {
 
   // Preferências (voz/velocidade + alertas)
   useEffect(() => {
+    if (!voiceEnabled) return;
     dashboard
       .getVoicePreferences()
       .then((r) => {
@@ -71,30 +80,33 @@ export default function ImpetusVoiceProvider({ children }) {
         });
       })
       .catch(() => {});
-  }, [setAlertsEnabled, setVoicePrefs]);
+  }, [setAlertsEnabled, setVoicePrefs, voiceEnabled]);
 
   // Ao detectar wake word, abre presença (float/overlay) imediatamente
   useEffect(() => {
+    if (!voiceEnabled) return;
     const onWake = () => {
       setOverlayOpen(true);
     };
     window.addEventListener('impetus-wake-toast', onWake);
     return () => window.removeEventListener('impetus-wake-toast', onWake);
-  }, []);
+  }, [voiceEnabled]);
 
   // Wake word volta após sair do contínuo
   const prevContinuousRef = useRef(false);
   useEffect(() => {
+    if (!voiceEnabled) return;
     if (prevContinuousRef.current && !voiceState.isContinuous && localStorage.getItem('impetus_mic_granted')) {
       const t = setTimeout(() => startWakeWord(), 800);
       prevContinuousRef.current = voiceState.isContinuous;
       return () => clearTimeout(t);
     }
     prevContinuousRef.current = voiceState.isContinuous;
-  }, [voiceState.isContinuous, startWakeWord]);
+  }, [voiceState.isContinuous, startWakeWord, voiceEnabled]);
 
   // Alertas por voz global (em qualquer módulo)
   useEffect(() => {
+    if (!voiceEnabled) return;
     if (!voiceState.alertsEnabled) return;
     const tick = async () => {
       try {
@@ -132,14 +144,27 @@ export default function ImpetusVoiceProvider({ children }) {
     const iv = setInterval(tick, 95000);
     tick();
     return () => clearInterval(iv);
-  }, [voiceState.alertsEnabled, alertMinPriority, speakNaturalReply, stopSpeaking, stopVoiceCapture]);
+  }, [voiceState.alertsEnabled, alertMinPriority, speakNaturalReply, stopSpeaking, stopVoiceCapture, voiceEnabled]);
 
   // Overlay abre automaticamente quando o modo voz está ligado
   useEffect(() => {
+    if (!voiceEnabled) return;
     if (voiceState.isContinuous) setOverlayOpen(true);
-  }, [voiceState.isContinuous]);
+  }, [voiceState.isContinuous, voiceEnabled]);
 
-  const floatVisible = true; // sempre visível (standby), como “assistente ativa”
+  // Ao sair de rota autenticada, garante cleanup visual e de captura.
+  useEffect(() => {
+    if (voiceEnabled) return;
+    setOverlayOpen(false);
+    try {
+      stopSpeaking();
+    } catch (_) {}
+    try {
+      stopVoiceCapture();
+    } catch (_) {}
+  }, [voiceEnabled, stopSpeaking, stopVoiceCapture]);
+
+  const floatVisible = voiceEnabled; // visível apenas em rotas autenticadas
   const floatPulse = voiceState.status === 'speaking' || voiceState.status === 'processing';
 
   const ctxValue = useMemo(

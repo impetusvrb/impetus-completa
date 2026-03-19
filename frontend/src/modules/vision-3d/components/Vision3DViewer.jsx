@@ -5,7 +5,13 @@
  */
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
-import { buildMachineModel } from './MachineModel';
+import { buildMachineModel, applyHeatmap } from './MachineModel';
+import {
+  findMeshByPartName,
+  startDisassembly,
+  startReturn,
+  animateDisassemblyState
+} from '../utils/disassemblyAnimation';
 import PartTooltip from './PartTooltip';
 import styles from '../styles/Vision3D.module.css';
 
@@ -18,19 +24,14 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
   machineType = 'generico',
   faultParts = [],
   mode = 'normal',
+  thermalMode = false,
+  thermalData = [],
   autoRotate = false,
   opacity = 0.92,
   explodeAmount = 0,
   origPositionsRef,
   onPartClick
 }, ref) {
-  useImperativeHandle(ref, () => ({
-    resetCamera: () => {
-      orbitRef.current.theta = INIT_THETA;
-      orbitRef.current.phi = INIT_PHI;
-      orbitRef.current.r = INIT_R;
-    }
-  }));
 
   const containerRef = useRef(null);
   const rendererRef = useRef(null);
@@ -40,9 +41,49 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
   const orbitRef = useRef({ theta: INIT_THETA, phi: INIT_PHI, r: INIT_R, isDown: false, prevX: 0, prevY: 0 });
   const frameRef = useRef(null);
   const raycasterRef = useRef(new THREE.Raycaster());
+  const thermalModeRef = useRef(thermalMode);
+  const thermalDataRef = useRef(thermalData);
+  thermalModeRef.current = thermalMode;
+  thermalDataRef.current = thermalData || [];
   const mouseRef = useRef(new THREE.Vector2());
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, name: '', code: '', status: 'ok' });
   const explodeLerpRef = useRef(0);
+  const disassemblyStateRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    resetCamera: () => {
+      orbitRef.current.theta = INIT_THETA;
+      orbitRef.current.phi = INIT_PHI;
+      orbitRef.current.r = INIT_R;
+    },
+    animateDisassembly: (partName, direction, onComplete) => {
+      const { meshes } = meshGroupRef.current;
+      const scene = sceneRef.current;
+      const camera = cameraRef.current;
+      if (!meshes?.length || !scene || !camera) return;
+      const mesh = findMeshByPartName(meshes, partName);
+      if (!mesh) {
+        onComplete?.();
+        return;
+      }
+      let dir = direction;
+      if (!dir || !(dir instanceof THREE.Vector3)) {
+        dir = new THREE.Vector3().subVectors(camera.position, mesh.position).normalize();
+        dir.y += 0.3;
+        dir.normalize();
+      }
+      disassemblyStateRef.current = startDisassembly(mesh, scene, camera, dir, onComplete);
+    },
+    returnPart: () => {
+      const s = disassemblyStateRef.current;
+      if (s) disassemblyStateRef.current = startReturn(s);
+    },
+    captureScreenshot: () => {
+      const renderer = rendererRef.current;
+      if (!renderer?.domElement) return null;
+      return renderer.domElement.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+    }
+  }), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -174,7 +215,26 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
       explodeLerpRef.current = Math.max(0, Math.min(1, explodeLerpRef.current));
       const exp = explodeAmount * explodeLerpRef.current;
 
+      applyHeatmap(meshes.filter((m) => !m.userData?.isCritRing), thermalModeRef.current, Date.now());
+
+      const ds = disassemblyStateRef.current;
+      if (ds) {
+        const next = animateDisassemblyState(ds, meshes, scene, camera, performance.now(), origPositions);
+        disassemblyStateRef.current = next;
+      }
+
+      const animatingMesh = disassemblyStateRef.current?.mesh;
+      if (animatingMesh) {
+        meshes.forEach((m) => {
+          if (m.userData?.isCritRing && m.userData.partIndex === animatingMesh.userData?.index) {
+            m.position.copy(animatingMesh.position);
+          }
+        });
+      }
+
       meshes.forEach((mesh, i) => {
+        if (mesh === animatingMesh) return;
+        if (mesh.userData?.isCritRing && animatingMesh && mesh.userData.partIndex === animatingMesh.userData?.index) return;
         if (mesh.userData?.isCritRing) {
           const partIdx = mesh.userData.partIndex;
           const orig = origPositions[partIdx];
@@ -194,7 +254,10 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
         mesh.position.y = orig.y + dir[1] * exp;
         mesh.position.z = orig.z + dir[2] * exp;
 
-        if (mode === 'xray') {
+        if (thermalModeRef.current) {
+          mesh.material.wireframe = false;
+          mesh.material.opacity = opacity;
+        } else if (mode === 'xray') {
           mesh.material.opacity = 0.28;
           mesh.material.wireframe = false;
           mesh.material.transparent = true;
@@ -206,7 +269,7 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
           mesh.material.opacity = opacity;
         }
 
-        if (mesh.userData?.status === 'warn') {
+        if (!thermalModeRef.current && mesh.userData?.status === 'warn') {
           mesh.material.emissiveIntensity = 0.1 + Math.sin(t * 2) * 0.05;
         }
       });
@@ -219,13 +282,19 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
         const obj = hits[0].object;
         const ud = obj.userData;
         const rect = container.getBoundingClientRect();
+        const thermalEntry = thermalModeRef.current && thermalDataRef.current?.find(
+          (td) => (td.part && ud.name?.toLowerCase().includes(td.part.toLowerCase())) ||
+            (ud.code && td.part?.toLowerCase().includes(ud.code.toLowerCase()))
+        );
         setTooltip({
           visible: true,
           x: (mouseRef.current.x * 0.5 + 0.5) * rect.width + rect.left,
           y: (-mouseRef.current.y * 0.5 + 0.5) * rect.height + rect.top,
           name: ud.name || '',
           code: ud.code || '',
-          status: ud.status || 'ok'
+          status: ud.status || 'ok',
+          estimatedTemp: thermalEntry?.estimatedTemp,
+          tempUnit: thermalEntry?.unit || '°C'
         });
       } else {
         setTooltip((prev) => ({ ...prev, visible: false }));
@@ -270,6 +339,13 @@ const Vision3DViewer = forwardRef(function Vision3DViewer({
   return (
     <>
       <div ref={containerRef} className={styles.canvasWrap} style={{ width: '100%', height: '100%' }} />
+      {thermalMode && (
+        <div className={styles.thermalLegend}>
+          <div className={styles.thermalLegend__bar} />
+          <span className={styles.thermalLegend__cold}>Frio</span>
+          <span className={styles.thermalLegend__hot}>Quente</span>
+        </div>
+      )}
       <PartTooltip {...tooltip} />
     </>
   );

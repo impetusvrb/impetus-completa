@@ -39,11 +39,16 @@ function splitIntoSpeechChunks(text) {
   let t = String(text || '')
     .replace(/\*\*/g, '')
     .replace(/#{1,6}\s/g, '')
-    .replace(/\n+/g, '. ')
-    .replace(/\s+/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    // Mantém \n como fronteira de pausa; normaliza apenas espaços/tabs.
+    .replace(/[ \t]+/g, ' ')
     .trim();
   if (!t) return [];
-  const raw = t.split(/(?<=[.!?…])\s+/).map((x) => x.trim()).filter(Boolean);
+  // Divide por fim de frase OU por linha em branco/linha.
+  const raw = t
+    .split(/(?<=[.!?…])\s+|\n+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
   const chunks = [];
   for (const s of raw) {
     if (s.length <= 130) chunks.push(s);
@@ -335,6 +340,10 @@ export function useVoiceEngine(options = {}) {
   const [badge, setBadge] = useState({ text: '', visible: false });
   const badgeTimer = useRef(null);
 
+  // No modo contínuo (voz ativada/loop), fixamos um ritmo ligeiramente mais lento.
+  // Isso evita sensação de pressa logo após o usuário falar.
+  const CONTINUOUS_SPEED_OVERRIDE = 0.92;
+
   const showBadge = useCallback((text) => {
     if (badgeTimer.current) clearTimeout(badgeTimer.current);
     setBadge({ text, visible: true });
@@ -358,9 +367,105 @@ export function useVoiceEngine(options = {}) {
   const speakAbortedRef = useRef(false);
   const voiceSocketRef = useRef(null);
   const voiceSocketConnectingRef = useRef(null);
+  const bargeInDetectedRef = useRef(false);
+  const ttsAbortControllerRef = useRef(null);
+  const bargeMonitorCleanupRef = useRef(null);
+  const lastHeardTextRef = useRef('');
+  const lastHeardAtRef = useRef(0);
+  const lastSpokeAtRef = useRef(0);
+  const voiceLoopWindowRef = useRef({ startAt: Date.now(), count: 0 });
   useEffect(() => {
     audioBlockedRef.current = voiceState.audioBlocked;
   }, [voiceState.audioBlocked]);
+
+  function normalizeSpeech(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^0-9A-Za-zÀ-ÿ\s]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  async function monitorBargeinDuringTts(onDetected) {
+    // Só faz sentido em modo contínuo (enquanto estamos ouvindo do usuário).
+    if (!continuousRef.current) return () => {};
+    if (bargeMonitorCleanupRef.current) {
+      try { bargeMonitorCleanupRef.current(); } catch (_) {}
+      bargeMonitorCleanupRef.current = null;
+    }
+
+    const MIC_RMS_THRESHOLD = 0.015;
+    const CONSECUTIVE_MS = 180;
+    const TICK_MS = 30;
+
+    let mediaStream = null;
+    let bargeCtx = null;
+    let analyser = null;
+    let intervalId = null;
+
+    const stop = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = null;
+      try { analyser?.disconnect?.(); } catch (_) {}
+      analyser = null;
+      try {
+        mediaStream?.getTracks?.().forEach((t) => t.stop());
+      } catch (_) {}
+      mediaStream = null;
+      try { bargeCtx?.close?.(); } catch (_) {}
+      bargeCtx = null;
+    };
+
+    bargeMonitorCleanupRef.current = stop;
+
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+      });
+      bargeCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const msrc = bargeCtx.createMediaStreamSource(mediaStream);
+      analyser = bargeCtx.createAnalyser();
+      // FFT pequeno => leitura mais rápida do tempo.
+      analyser.fftSize = 256;
+      msrc.connect(analyser);
+
+      const data = new Uint8Array(analyser.fftSize);
+      let consecutive = 0;
+
+      intervalId = setInterval(() => {
+        if (speakAbortedRef.current) return;
+        if (!analyser) return;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+        if (rms > MIC_RMS_THRESHOLD) consecutive += TICK_MS;
+        else consecutive = 0;
+
+        if (!bargeInDetectedRef.current && consecutive >= CONSECUTIVE_MS) {
+          bargeInDetectedRef.current = true;
+          try {
+            voiceSocketRef.current?.emit('voice:cancel');
+          } catch (_) {}
+          try {
+            ttsAbortControllerRef.current?.abort?.();
+          } catch (_) {}
+          try {
+            onDetected?.();
+          } catch (_) {}
+          stop();
+        }
+      }, TICK_MS);
+    } catch (_) {
+      // Se não der permissão/acesso, não bloqueia o TTS.
+      stop();
+    }
+
+    return stop;
+  }
 
   const setPartial = useCallback((t) => {
     setVoiceState((s) => ({ ...s, currentTranscript: t }));
@@ -566,62 +671,31 @@ export function useVoiceEngine(options = {}) {
     setTtsUi((u) => ({ ...u, mouthState: 'open' }));
     raf = requestAnimationFrame(updateMouth);
 
-    let bargeTimer = null;
-    let mediaStream = null;
-    let bargeCtx = null;
-    const tryBarge = continuousRef.current;
-    if (tryBarge) {
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
-        });
-        bargeCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const msrc = bargeCtx.createMediaStreamSource(mediaStream);
-        const an = bargeCtx.createAnalyser();
-        an.fftSize = 256;
-        msrc.connect(an);
-        let loudMs = 0;
-        bargeTimer = setInterval(() => {
-          if (speakAbortedRef.current) return;
-          const data = new Uint8Array(an.frequencyBinCount);
-          an.getByteTimeDomainData(data);
-          let sum = 0;
-          for (let i = 0; i < data.length; i++) {
-            const v = (data[i] - 128) / 128;
-            sum += v * v;
-          }
-          const rms = Math.sqrt(sum / data.length);
-          if (rms > 0.042) loudMs += 90;
-          else loudMs = Math.max(0, loudMs - 50);
-          if (loudMs >= 400) {
-            speakAbortedRef.current = true;
-            try {
-              voiceSocketRef.current?.emit('voice:cancel');
-            } catch (_) {}
-            try {
-              src.stop();
-            } catch (_) {}
-            clearInterval(bargeTimer);
-            bargeTimer = null;
-            mediaStream?.getTracks().forEach((t) => t.stop());
-            try {
-              bargeCtx?.close();
-            } catch (_) {}
-          }
-        }, 90);
-      } catch (_) {
-        mediaStream = null;
-      }
+    // Barge-in em produção: monitora energia do microfone durante o TTS.
+    bargeInDetectedRef.current = false;
+    let stopBargeMonitor = () => {};
+    if (continuousRef.current) {
+      // Inicia em paralelo para não atrasar o começo da fala.
+      monitorBargeinDuringTts(() => {
+        // Interrompe áudio imediatamente.
+        speakAbortedRef.current = true;
+        try { src.stop(); } catch (_) {}
+        sourceRef.current = null;
+        // Feedback visual: volta a "ouvindo" instantaneamente.
+        setVoiceState((s) => ({ ...s, status: 'listening', isActive: true, isContinuous: true }));
+      }).then((cleanup) => {
+        stopBargeMonitor = cleanup;
+      });
     }
 
     return new Promise((resolve) => {
       src.onended = () => {
         if (raf) cancelAnimationFrame(raf);
-        if (bargeTimer) clearInterval(bargeTimer);
-        mediaStream?.getTracks().forEach((t) => t.stop());
+        try { stopBargeMonitor?.(); } catch (_) {}
         try {
-          bargeCtx?.close();
+          bargeMonitorCleanupRef.current?.();
         } catch (_) {}
+        bargeMonitorCleanupRef.current = null;
         sourceRef.current = null;
         setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
         resolve();
@@ -637,26 +711,41 @@ export function useVoiceEngine(options = {}) {
   const fetchSpeakAudio = useCallback(async (text) => {
     const clean = String(text || '')
       .replace(/[*_`#]/g, '')
-      .replace(/\n+/g, '. ')
+      .replace(/\r\n?/g, '\n')
+      // Mantém quebras de linha como pausas para o TTS processar natural.
+      .replace(/\n{3,}/g, '\n\n')
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 4000);
     if (!clean) return null;
-    const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        text: clean,
-        voice: voiceIdRef.current,
-        speed: speedRef.current
-      })
-    });
-    if (!res.ok) {
-      console.warn('[voiceEngine] TTS HTTP', res.status);
+    const effectiveSpeed = continuousRef.current ? CONTINUOUS_SPEED_OVERRIDE : speedRef.current;
+    const ac = new AbortController();
+    ttsAbortControllerRef.current = ac;
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
+        method: 'POST',
+        headers: authHeaders(),
+        signal: ac.signal,
+        body: JSON.stringify({
+          text: clean,
+          voice: voiceIdRef.current,
+          speed: effectiveSpeed
+        })
+      });
+      if (!res.ok) {
+        console.warn('[voiceEngine] TTS HTTP', res.status);
+        return null;
+      }
+      const buf = await res.arrayBuffer();
+      return buf.byteLength ? buf : null;
+    } catch (err) {
+      // Abort do barge-in: apenas interrompe o áudio e segue.
+      if (String(err?.name || '').toLowerCase().includes('abort')) return null;
+      console.warn('[voiceEngine] TTS HTTP error', err?.message || err);
       return null;
+    } finally {
+      if (ttsAbortControllerRef.current === ac) ttsAbortControllerRef.current = null;
     }
-    const buf = await res.arrayBuffer();
-    return buf.byteLength ? buf : null;
   }, []);
 
   const speakText = useCallback(
@@ -710,7 +799,7 @@ export function useVoiceEngine(options = {}) {
           socket.emit('voice:speak_stream', {
             text: full,
             voice: voiceIdRef.current,
-            speed: speedRef.current
+            speed: continuousRef.current ? CONTINUOUS_SPEED_OVERRIDE : speedRef.current
           });
 
           const wsDeadline = Date.now() + 120000;
@@ -736,7 +825,11 @@ export function useVoiceEngine(options = {}) {
             for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
             await playMp3Buffer(bytes.buffer);
             if (speakAbortedRef.current) break;
-            await new Promise((r) => setTimeout(r, 260 + Math.floor(Math.random() * 160)));
+            // Pausa entre chunks: maior quando termina frase/ponto.
+            const endsSentence = /[.!?…]$/.test(String(item?.text || '').trim());
+            const base = endsSentence ? 680 : 320;
+            // Intervalos maiores para o respiro ficar perceptível.
+            await new Promise((r) => setTimeout(r, base + Math.floor(Math.random() * (endsSentence ? 220 : 150))));
           }
           socket.off('voice:mp3', onMp3);
           if (speakAbortedRef.current) return;
@@ -766,12 +859,33 @@ export function useVoiceEngine(options = {}) {
         await playMp3Buffer(cur);
         if (speakAbortedRef.current) break;
         if (i < parts.length - 1) {
-          await new Promise((r) => setTimeout(r, 280 + Math.floor(Math.random() * 220)));
+          const endsSentence = /[.!?…]$/.test(String(parts[i] || '').trim());
+          const base = endsSentence ? 720 : 320;
+          await new Promise((r) => setTimeout(r, base + Math.floor(Math.random() * (endsSentence ? 260 : 240))));
         }
       }
     },
     [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer, setTypingTarget, startTypingLoop]
   );
+
+  const speakActivationReply = useCallback(async () => {
+    let name = 'Usuário';
+    try {
+      const raw = localStorage.getItem('impetus_user') || '{}';
+      const u = JSON.parse(raw);
+      name = u?.name || u?.full_name || u?.email || 'Usuário';
+    } catch (_) {}
+    const shortName = String(name || 'Usuário').trim().split(/\s+/)[0] || 'Usuário';
+
+    const options = [
+      `Oi, ${shortName}. Pode falar. Estou aqui com você.`,
+      `Olá, ${shortName}. Pode falar. Estou pronta para ouvir.`,
+      `Oi, ${shortName}. Pode falar agora. Estou aqui.`
+    ];
+    const msg = options[Math.floor(Math.random() * options.length)];
+    await speakNaturalReply(msg);
+    lastSpokeAtRef.current = Date.now();
+  }, [speakNaturalReply]);
 
   const stopVoiceCapture = useCallback(() => {
     continuousRef.current = false;
@@ -783,6 +897,7 @@ export function useVoiceEngine(options = {}) {
     loopRunningRef.current = true;
     const preferWhisper = import.meta.env.VITE_USE_WHISPER_STT === 'true';
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const USER_TURN_END_GRACE_MS = 300;
 
     while (continuousRef.current) {
       setVoiceState((s) => ({
@@ -848,21 +963,40 @@ export function useVoiceEngine(options = {}) {
         }
         continue;
       }
+
+      // Anti-eco / repetição: ignora entrada que acontece logo após a IA terminar de falar.
+      const now = Date.now();
+      if (now - lastSpokeAtRef.current < 1500) {
+        const n = normalizeSpeech(text);
+        if (n.length < 16) continue;
+      }
+
+      const nText = normalizeSpeech(text);
+      const sameAsLast = nText && nText === normalizeSpeech(lastHeardTextRef.current);
+      const repeatedQuickly = now - lastHeardAtRef.current < 4500;
+      if (sameAsLast && repeatedQuickly) continue;
+      lastHeardTextRef.current = text;
+      lastHeardAtRef.current = now;
+
       if (STOP_WORDS.test(text)) {
         continuousRef.current = false;
         break;
       }
       if (isOnlyActivationPhrase(text)) {
         failStreakRef.current = 0;
-        await speakNaturalReply('Oi. Pode falar. Estou te ouvindo.');
+        await speakActivationReply();
         continue;
       }
       failStreakRef.current = 0;
       setVoiceState((s) => ({ ...s, currentTranscript: '', status: 'processing' }));
       showBadge('Processando...');
+      // Pequena pausa depois que o usuário terminou de falar.
+      // Ajuda a reduzir eco/ruído residual e melhora a sensação de "turn-taking".
+      await new Promise((r) => setTimeout(r, USER_TURN_END_GRACE_MS));
 
       if (text.length > 40) {
         await speakText('Só um segundo.');
+        lastSpokeAtRef.current = Date.now();
         showBadge('Processando...');
       }
 
@@ -884,6 +1018,20 @@ export function useVoiceEngine(options = {}) {
 
       if (!continuousRef.current) break;
       await speakNaturalReply(reply);
+      lastSpokeAtRef.current = Date.now();
+
+      // Anti-loop: se estiver falando várias vezes sem entrada nova, encerra contínuo.
+      const w = voiceLoopWindowRef.current;
+      if (Date.now() - w.startAt > 30000) {
+        w.startAt = Date.now();
+        w.count = 0;
+      }
+      w.count += 1;
+      if (w.count >= 8) {
+        continuousRef.current = false;
+        stopSpeaking();
+        break;
+      }
     }
 
     loopRunningRef.current = false;
@@ -894,7 +1042,7 @@ export function useVoiceEngine(options = {}) {
       isContinuous: false,
       currentTranscript: ''
     }));
-  }, [onSensitiveBlock, setPartial, showBadge, speakText, speakNaturalReply]);
+  }, [onSensitiveBlock, setPartial, showBadge, speakText, speakNaturalReply, speakActivationReply]);
 
   const toggleVoice = useCallback(async () => {
     if (continuousRef.current) {
@@ -966,7 +1114,7 @@ export function useVoiceEngine(options = {}) {
           w.start();
           return;
         }
-        await speakNaturalReply('Oi. Pode falar. Estou te ouvindo.');
+        await speakActivationReply();
         let text = '';
         try {
           const useWhisper = import.meta.env.VITE_USE_WHISPER_STT === 'true';
@@ -997,7 +1145,7 @@ export function useVoiceEngine(options = {}) {
     wakeActiveRef.current = true;
     setIsWakeWordActive(true);
     w.start();
-  }, [stopSpeaking, speakText, speakNaturalReply]);
+  }, [stopSpeaking, speakText, speakNaturalReply, speakActivationReply]);
 
   const stopWakeWord = useCallback(() => {
     wakeRef.current?.stop();

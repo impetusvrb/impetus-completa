@@ -42,6 +42,68 @@ export const MACHINE_CONFIGS = {
   ]
 };
 
+/** Temperatura base por status (0-1) — crit=quente, ok=frio */
+function statusToTemp(status) {
+  const base = { crit: 0.925, warn: 0.55, ok: 0.15 }[status] ?? 0.2;
+  const jitter = (Math.random() - 0.5) * 0.16;
+  return Math.max(0, Math.min(1, base + jitter));
+}
+
+/** Cor térmica: t 0=azul frio, 1=vermelho quente */
+const HEAT_STOPS = [
+  [0.0, 0x0000b4],
+  [0.3, 0x00c8c8],
+  [0.5, 0x00dc32],
+  [0.7, 0xffb400],
+  [1.0, 0xff1e00]
+];
+
+export function heatColor(t) {
+  t = Math.max(0, Math.min(1, t));
+  const c = new THREE.Color();
+  for (let i = 0; i < HEAT_STOPS.length - 1; i++) {
+    const [t0, col0] = HEAT_STOPS[i];
+    const [t1, col1] = HEAT_STOPS[i + 1];
+    if (t >= t0 && t <= t1) {
+      const f = (t - t0) / (t1 - t0);
+      c.lerpColors(new THREE.Color(col0), new THREE.Color(col1), f);
+      return c;
+    }
+  }
+  c.setHex(HEAT_STOPS[HEAT_STOPS.length - 1][1]);
+  return c;
+}
+
+/**
+ * Aplica ou remove mapa térmico nos meshes.
+ * Oscilação: temp += 0.05 * sin(0.001 * now)
+ */
+export function applyHeatmap(meshes, enabled, time = 0) {
+  if (!meshes) return;
+  const osc = Math.sin(0.001 * time) * 0.05;
+  meshes.forEach((mesh) => {
+    if (mesh.userData?.isCritRing) return;
+    if (!mesh.material?.color) return;
+    if (enabled) {
+      if (mesh.userData.originalColor === undefined) {
+        mesh.userData.originalColor = mesh.material.color.clone();
+        mesh.userData.heatTemp = statusToTemp(mesh.userData?.status ?? 'ok');
+      }
+      const baseTemp = mesh.userData.heatTemp;
+      const t = Math.max(0, Math.min(1, baseTemp + osc));
+      mesh.material.color.copy(heatColor(t));
+      mesh.material.emissive.copy(heatColor(t)).multiplyScalar(0.35);
+      mesh.material.wireframe = false;
+    } else {
+      const orig = mesh.userData?.originalColor;
+      const origEm = mesh.userData?.originalEmissive;
+      if (orig) mesh.material.color.copy(orig);
+      if (origEm) mesh.material.emissive.copy(origEm);
+      delete mesh.userData.heatTemp;
+    }
+  });
+}
+
 const EXPLODE_DIRS = [
   [0, 0, 0], [-2.2, 1.5, 0], [2, 0, 0], [2.5, 0, 2.2], [-2.8, 1.5, 0],
   [0, 2.4, 0.8], [-1.5, 1.5, -2], [2.8, 0, 0.8], [1.5, 2.2, 1.2], [0, 0, 0]
@@ -81,6 +143,8 @@ export function buildMachineModel(scene, machineType, faultParts = []) {
       explodeDir: EXPLODE_DIRS[i] || [0, 0, 0],
       index: i
     };
+    mesh.userData.originalColor = mesh.material.color.clone();
+    mesh.userData.originalEmissive = mesh.material.emissive.clone();
     origPositions[i] = mesh.position.clone();
     scene.add(mesh);
     meshes.push(mesh);

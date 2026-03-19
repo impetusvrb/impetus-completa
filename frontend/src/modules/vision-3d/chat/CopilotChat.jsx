@@ -13,6 +13,10 @@ export default function CopilotChat({
   result,
   onSend,
   onStepClick,
+  onReturnPart,
+  animatingStep = false,
+  partRemovedStep = null,
+  onOpenReport,
   onGenerateOS,
   disabled
 }) {
@@ -47,18 +51,34 @@ export default function CopilotChat({
           {html && <div dangerouslySetInnerHTML={{ __html: html }} />}
           {steps.length > 0 && (
             <div style={{ marginTop: 12 }}>
-              {steps.map((s, j) => (
-                <div
-                  key={j}
-                  className={styles.stepCard}
-                  onClick={() => onStepClick?.(j)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className={styles.stepCard__title}>{s.title}</div>
-                  <div className={styles.stepCard__desc}>{s.desc}</div>
-                </div>
-              ))}
+              {steps.map((s, j) => {
+                const partName = s.part || s.title;
+                const isActive = partRemovedStep === j;
+                const showReturn = partRemovedStep === j;
+                return (
+                  <div
+                    key={j}
+                    className={`${styles.stepCard} ${isActive ? styles['stepCard--active'] : ''}`}
+                    onClick={() => !animatingStep && !showReturn && onStepClick?.(j, partName)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && !animatingStep && !showReturn && onStepClick?.(j, partName)}
+                    style={{ opacity: animatingStep && !showReturn ? 0.6 : 1 }}
+                  >
+                    <div className={styles.stepCard__title}>{s.title}</div>
+                    <div className={styles.stepCard__desc}>{s.desc}</div>
+                    {showReturn && (
+                      <button
+                        type="button"
+                        className={styles.stepCard__returnBtn}
+                        onClick={(e) => { e.stopPropagation(); onReturnPart?.(); }}
+                      >
+                        Peça removida — próximo passo
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
           {parts.length > 0 && (
@@ -134,7 +154,11 @@ export default function CopilotChat({
         </button>
       </form>
       {result && (
-        <button type="button" className={styles.generateOSBtn} onClick={() => onGenerateOS?.(result)}>
+        <button
+          type="button"
+          className={styles.generateOSBtn}
+          onClick={() => (onOpenReport ? onOpenReport() : onGenerateOS?.(result))}
+        >
           <FileText size={18} /> Gerar OS
         </button>
       )}

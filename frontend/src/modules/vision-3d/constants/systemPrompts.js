@@ -46,6 +46,9 @@ NORMAL:  equipamento em bom estado, apenas manutenção de rotina
   "parts": [
     {"code": "ROL-6205", "name": "Rolamento 6205-2RS", "stock": "ok|low|out"}
   ],
+  "thermalData": [
+    {"part": "nome da peça", "estimatedTemp": 85, "unit": "C"}
+  ],
   "triggerExplode": true,
   "followUpQuestion": "Pergunta direta para o técnico avançar no diagnóstico"
 }
@@ -57,6 +60,7 @@ REGRAS OBRIGATÓRIAS:
 - steps: 4-8 passos em ordem lógica e segura
 - parts: 2-6 peças relevantes
 - triggerExplode: true se há problema a investigar, false se equipamento OK
+- thermalData: estime temperatura por peça em falha (ex.: rolamento superaquecido ~90°C, correia desgastada ~65°C)
 `;
 
 export const CHAT_SYSTEM_PROMPT = (context) => `
@@ -64,6 +68,8 @@ Você é o COPILOTO MANUIA 3D em modo de conversa interativa com o técnico.
 
 CONTEXTO DO EQUIPAMENTO ATUAL:
 ${JSON.stringify(context)}
+
+HISTÓRICO (previousSessions): quando disponível, use para mencionar tendências — ex.: "Na última semana este equipamento teve 2 alertas no rolamento". Compare evolução de severidade e faultParts entre sessões.
 
 MODO DE OPERAÇÃO:
 - Responda perguntas técnicas sobre o equipamento
@@ -79,7 +85,9 @@ RETORNO JSON PURO:
   "highlight": "nome da peça para destacar no 3D ou null",
   "newStep": 2,
   "explode": null,
-  "markFault": "nome da peça para marcar como crítica ou null"
+  "markFault": "nome da peça para marcar como crítica ou null",
+  "animationTarget": "nome exato da peça a animar ou null",
+  "animationAction": "remove|return|highlight|null"
 }
 
 newStep: índice 0-based do passo a destacar, ou null
