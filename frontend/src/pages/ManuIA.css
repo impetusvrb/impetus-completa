@@ -71,6 +71,59 @@
   color: var(--text-secondary);
 }
 
+.manuia-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.manuia-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.manuia-tab:hover {
+  background: rgba(30, 144, 255, 0.1);
+  border-color: rgba(30, 144, 255, 0.25);
+  color: var(--text-primary);
+}
+
+.manuia-tab--active {
+  background: rgba(30, 144, 255, 0.15);
+  border-color: rgba(30, 144, 255, 0.4);
+  color: var(--accent-primary, #1E90FF);
+}
+
+.manuia-block--vision3d {
+  min-height: 480px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.manuia-modal--os {
+  max-width: 520px;
+}
+
+.manuia-os-summary p {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.manuia-os-summary p:last-of-type {
+  margin-bottom: 0;
+}
+
 .manuia-block {
   background: linear-gradient(145deg, #162A3A, #1B3447);
   border: none;

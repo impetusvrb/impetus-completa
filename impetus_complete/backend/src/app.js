@@ -43,6 +43,7 @@ app.use('/api/intelligent-registration', safe('./routes/intelligentRegistration'
 app.use('/api/decision-engine',          safe('./routes/decisionEngine'));
 app.use('/api/voz',                      safe('./routes/voz'));
 app.use('/api/dashboard/chat/voice',     safe('./routes/chatVoice'));
+app.use('/api/vision',                  safe('./routes/vision'));
 async function voiceHealthProbe() {
   const voz = { openai: false };
   try {

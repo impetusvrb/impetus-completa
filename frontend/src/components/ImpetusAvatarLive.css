@@ -28,14 +28,16 @@
 .impetus-avatar__mouth {
   position: absolute;
   left: 50%;
-  top: 63%;
-  transform: translate(-50%, -50%);
-  width: 34%;
-  max-width: 110px;
-  filter: drop-shadow(0 0 10px rgba(30, 144, 255, 0.25));
+  top: 65%;
+  transform: translate(-50%, -50%) translateY(4px);
+  width: 36%;
+  max-width: 140px;
+  z-index: 5;
+  filter: drop-shadow(0 0 12px rgba(30, 144, 255, 0.38));
   user-select: none;
   pointer-events: none;
-  opacity: 0.98;
+  opacity: 1;
+  mix-blend-mode: screen;
 }
 
 .impetus-avatar__glow {

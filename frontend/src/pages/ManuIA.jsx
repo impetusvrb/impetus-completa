@@ -1,6 +1,7 @@
 /**
  * IMPETUS - ManuIA - Manutenção assistida por IA
  * Pesquisa e renderização de qualquer equipamento por texto
+ * Abas: Pesquisa por texto | Diagnóstico 3D (câmera + visão computacional)
  * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado → Concluir sessão
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -10,6 +11,7 @@ import { manutencaoIa } from '../services/api';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import ThreeViewer from '../features/manutencao-ia/ThreeViewer';
 import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
+import Vision3DModule from '../modules/vision-3d/Vision3DModule';
 import {
   Wrench,
   Search,
@@ -21,7 +23,8 @@ import {
   Sparkles,
   ClipboardList,
   Check,
-  X
+  X,
+  Camera
 } from 'lucide-react';
 import './ManuIA.css';
 
@@ -37,6 +40,7 @@ const SYMPTOM_CHIPS = [
 
 export default function ManuIA() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('search');
   const [equipmentQuery, setEquipmentQuery] = useState('');
   const [research, setResearch] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +52,8 @@ export default function ManuIA() {
   const [diagnosisData, setDiagnosisData] = useState(null);
   const [viewMode, setViewMode] = useState('normal');
   const [showConcludeModal, setShowConcludeModal] = useState(false);
+  const [showOSModal, setShowOSModal] = useState(false);
+  const [osModalData, setOsModalData] = useState(null);
   const [concludeCreateWo, setConcludeCreateWo] = useState(true);
   const [concludeAddCadastro, setConcludeAddCadastro] = useState(false);
   const [concluding, setConcluding] = useState(false);
@@ -176,6 +182,11 @@ export default function ManuIA() {
     if (e.key === 'Enter') handleSearch();
   };
 
+  const handleVisionOS = useCallback((data) => {
+    setOsModalData(data);
+    setShowOSModal(true);
+  }, []);
+
   const explodeFactor = viewMode === 'exploded' ? 0.6 : 0;
 
   return (
@@ -193,6 +204,34 @@ export default function ManuIA() {
           </div>
         </header>
 
+        <div className="manuia-tabs">
+          <button
+            type="button"
+            className={`manuia-tab ${activeTab === 'search' ? 'manuia-tab--active' : ''}`}
+            onClick={() => setActiveTab('search')}
+          >
+            <Search size={18} /> Pesquisa por texto
+          </button>
+          <button
+            type="button"
+            className={`manuia-tab ${activeTab === 'vision3d' ? 'manuia-tab--active' : ''}`}
+            onClick={() => setActiveTab('vision3d')}
+          >
+            <Camera size={18} /> Diagnóstico 3D
+          </button>
+        </div>
+
+        {activeTab === 'vision3d' ? (
+          <section className="manuia-block manuia-block--vision3d">
+            <Vision3DModule
+              machineId={research?.machine_id}
+              machineName={research?.equipment?.name}
+              onDiagnosisComplete={(result) => setDiagnosisData({ visionResult: result })}
+              onGenerateOS={handleVisionOS}
+            />
+          </section>
+        ) : (
+          <>
         <section className="manuia-block manuia-block--search">
           <h2><Search size={20} /> Pesquisar equipamento</h2>
           <p className="manuia-block__desc">
@@ -358,6 +397,8 @@ export default function ManuIA() {
             </button>
           </div>
         </section>
+          </>
+        )}
       </div>
 
       {showConcludeModal && (
@@ -382,6 +423,40 @@ export default function ManuIA() {
               <button type="button" className="manuia-conclude-btn manuia-conclude-btn--primary" onClick={handleConclude} disabled={concluding}>
                 {concluding ? <span className="manuia-spinner-sm" /> : <Check size={16} />}
                 {concluding ? ' Salvando...' : ' Concluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOSModal && osModalData && (
+        <div className="manuia-modal-overlay" onClick={() => setShowOSModal(false)}>
+          <div className="manuia-modal manuia-modal--os" onClick={(e) => e.stopPropagation()}>
+            <h3>Ordem de Serviço — Diagnóstico 3D</h3>
+            <div className="manuia-os-summary">
+              <p><strong>Equipamento:</strong> {osModalData.equipment || 'N/A'}</p>
+              <p><strong>Fabricante:</strong> {osModalData.manufacturer || 'N/A'}</p>
+              <p><strong>Severidade:</strong> <span className={`manuia-badge manuia-badge--${osModalData.severity === 'CRITICO' ? 'critical' : osModalData.severity === 'ALERTA' ? 'medium' : 'operational'}`}>{osModalData.severity || 'N/A'}</span></p>
+              {osModalData.faultParts?.length > 0 && (
+                <p><strong>Peças com falha:</strong> {osModalData.faultParts.join(', ')}</p>
+              )}
+              {osModalData.steps?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <strong>Passos:</strong>
+                  <ul className="manuia-diagnosis-steps">
+                    {osModalData.steps.map((s, i) => (
+                      <li key={i}>{s.title || s.desc}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="manuia-modal-actions">
+              <button type="button" className="manuia-conclude-btn manuia-conclude-btn--secondary" onClick={() => setShowOSModal(false)}>
+                <X size={16} /> Fechar
+              </button>
+              <button type="button" className="manuia-conclude-btn manuia-conclude-btn--primary" onClick={() => { setShowOSModal(false); navigate('/diagnostic', { state: { osData: osModalData } }); }}>
+                <ClipboardList size={16} /> Criar OS
               </button>
             </div>
           </div>
