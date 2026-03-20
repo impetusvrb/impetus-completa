@@ -3,15 +3,33 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env'), ove
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
 const app = express();
+
+// Helmet: headers de segurança (X-Content-Type-Options, X-Frame-Options, etc.)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Compression: gzip para respostas JSON (60-80% menor)
+app.use(compression());
+
 // origin: true espelha o Origin da requisição — necessário com credentials + Bearer (ex.: front :3000 → API :4000)
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Servir uploads (chat, app-communications, etc.)
-// Estrutura de deploy: /var/www/impetus-completa/uploads
-app.use('/uploads', express.static(path.join(__dirname, '../../../uploads')));
+// Body parser: 1MB para rotas gerais (segurança). Vision usa 50MB (imagens base64)
+const jsonParserDefault = express.json({ limit: '1mb' });
+const jsonParserLarge = express.json({ limit: '50mb' });
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith('/api/vision')) {
+    return jsonParserLarge(req, res, next);
+  }
+  return jsonParserDefault(req, res, next);
+});
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Servir uploads com cache HTTP (1 dia) — reduz requisições repetidas
+const uploadsPath = path.join(__dirname, '../../../uploads');
+app.use('/uploads', express.static(uploadsPath, { maxAge: '1d', immutable: true }));
 function safe(file) {
   try { return require(file); } catch(e) { console.warn('[APP] Rota ignorada:', file, '-', e.message); return require('express').Router(); }
 }

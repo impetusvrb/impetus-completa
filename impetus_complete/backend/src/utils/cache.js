@@ -108,7 +108,8 @@ const TTL = {
   DASHBOARD_INSIGHTS: 1 * 60 * 1000,  // 1 min (mais dinâmico)
   DASHBOARD_INTERACTIONS: 60 * 1000,  // 1 min
   DASHBOARD_POINTS: 5 * 60 * 1000,   // 5 min
-  DASHBOARD_ME: 90 * 1000             // 90 s - payload completo por usuário
+  DASHBOARD_ME: 90 * 1000,            // 90 s - payload completo por usuário
+  DASHBOARD_KPIS: 90 * 1000           // 90 s - KPIs personalizados por usuário/escopo
 };
 
 function getStats() {

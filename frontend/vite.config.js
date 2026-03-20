@@ -22,6 +22,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           charts: ['recharts'],
+          three: ['three', '@react-three/fiber', '@react-three/drei'],
         },
       },
     },

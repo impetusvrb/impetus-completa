@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
+import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
@@ -244,6 +245,7 @@ export default function Layout({ children }) {
                 to={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}
+                onMouseEnter={() => prefetchRoute(item.path)}
               >
                 <span className="nav-dot" />
                 {item.aiIcon

@@ -28,10 +28,11 @@ const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const chatUserContext = require('../services/chatUserContext');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
 const intelligentDashboard = require('../services/intelligentDashboardService');
-const { cached, del, makeKey, TTL } = require('../utils/cache');
+const { cached, del, delByPrefix, makeKey, TTL } = require('../utils/cache');
 
 function invalidateDashboardCache(userId) {
   del(makeKey('dashboard:me', String(userId)));
+  delByPrefix(makeKey('dashboard:kpis', String(userId))); // KPIs podem depender de preferências
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const dynamicDashboardService = require('../services/dynamicDashboardService');
@@ -549,11 +550,22 @@ router.get('/visibility', requireAuth, async (req, res) => {
 /**
  * GET /api/dashboard/kpis
  * Indicadores dinâmicos personalizados por role + department + hierarchy
+ * Cache 90s por usuário/escopo para reduzir carga em sessões intensas
  */
 router.get('/kpis', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const dashboardKPIs = require('../services/dashboardKPIs');
-    const kpis = await dashboardKPIs.getDashboardKPIs(req.user, req.hierarchyScope);
+    const filterCtx = dashboardFilter.getFilterContext(req.user);
+    const scope = req.hierarchyScope;
+    const scopeKey = scope?.isFullAccess ? 'full'
+      : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
+
+    const kpis = await cached(
+      'dashboard:kpis',
+      () => dashboardKPIs.getDashboardKPIs(req.user, req.hierarchyScope),
+      () => `${req.user.id}:${scopeKey}`,
+      TTL.DASHBOARD_KPIS
+    );
     res.json({ ok: true, kpis });
   } catch (err) {
     console.error('[DASHBOARD_KPIS_ERROR]', err);
