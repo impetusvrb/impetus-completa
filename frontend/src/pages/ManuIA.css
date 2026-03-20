@@ -109,6 +109,12 @@
   overflow: hidden;
 }
 
+.manuia-block--asset-management {
+  min-height: 480px;
+  padding: 0;
+  overflow: auto;
+}
+
 .manuia-modal--os {
   max-width: 520px;
 }

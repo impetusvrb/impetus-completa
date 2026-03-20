@@ -132,6 +132,32 @@
   animation-timing-function: ease-in-out;
 }
 
+/* Flash extra quando o usuário interrompe (barge-in) durante TTS */
+.impetus-voice-overlay--listening-flash .impetus-voice-overlay__status {
+  color: rgba(210, 255, 235, 0.98);
+  text-shadow: 0 0 18px rgba(90, 255, 190, 0.66);
+}
+
+.impetus-voice-overlay--listening-flash {
+  transform: translateY(-10px) scale(1.01);
+  animation: impetus-listening-flash 0.5s ease-out 1;
+}
+
+@keyframes impetus-listening-flash {
+  0% {
+    filter: brightness(1);
+    transform: translateY(-10px) scale(1.01);
+  }
+  45% {
+    filter: brightness(1.35);
+    transform: translateY(-10px) scale(1.03);
+  }
+  100% {
+    filter: brightness(1);
+    transform: translateY(-10px) scale(1.01);
+  }
+}
+
 .impetus-voice-overlay--processing .impetus-voice-overlay__bar {
   animation: impetus-audio-bar 1.3s ease-in-out infinite alternate;
   opacity: 0.72;

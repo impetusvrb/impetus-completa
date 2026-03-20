@@ -16,8 +16,8 @@ function statusLabel(status) {
 export default function ImpetusVoiceOverlay({
   open,
   status,
+  bargeInFlash,
   mouthState,
-  speechText,
   onClose
 }) {
   if (!open) return null;
@@ -32,10 +32,11 @@ export default function ImpetusVoiceOverlay({
         : status === 'processing'
           ? 'impetus-voice-overlay--processing'
           : 'impetus-voice-overlay--idle';
+  const flashClass = bargeInFlash ? ' impetus-voice-overlay--listening-flash' : '';
   const bars = Array.from({ length: 28 }, (_, i) => i);
 
   return (
-    <div className={`impetus-voice-overlay ${modeClass}`} role="dialog" aria-modal="true">
+    <div className={`impetus-voice-overlay ${modeClass}${flashClass}`} role="dialog" aria-modal="true">
       <div className="impetus-voice-overlay__panel">
         <div className="impetus-voice-overlay__bg-grid" aria-hidden="true" />
         <div className="impetus-voice-overlay__top">
@@ -70,16 +71,7 @@ export default function ImpetusVoiceOverlay({
         </div>
 
         <div className="impetus-voice-overlay__speech" aria-live="polite">
-          {speechText ? (
-            <>
-              {speechText}
-              <span className="impetus-voice-overlay__cursor" aria-hidden="true">
-                ▌
-              </span>
-            </>
-          ) : (
-            <span className="impetus-voice-overlay__hint">Fale “Ok, Impetus” ou fale direto.</span>
-          )}
+          <span className="impetus-voice-overlay__hint">Fale “Ok, Impetus” ou fale direto.</span>
         </div>
       </div>
     </div>

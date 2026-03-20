@@ -12,6 +12,7 @@ import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import ThreeViewer from '../features/manutencao-ia/ThreeViewer';
 import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
 import Vision3DModule from '../modules/vision-3d/Vision3DModule';
+import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
 import {
   Wrench,
   Search,
@@ -24,7 +25,8 @@ import {
   ClipboardList,
   Check,
   X,
-  Camera
+  Camera,
+  TrendingUp
 } from 'lucide-react';
 import './ManuIA.css';
 
@@ -219,9 +221,20 @@ export default function ManuIA() {
           >
             <Camera size={18} /> Diagnóstico 3D
           </button>
+          <button
+            type="button"
+            className={`manuia-tab ${activeTab === 'asset-management' ? 'manuia-tab--active' : ''}`}
+            onClick={() => setActiveTab('asset-management')}
+          >
+            <TrendingUp size={18} /> Gestão de Ativos
+          </button>
         </div>
 
-        {activeTab === 'vision3d' ? (
+        {activeTab === 'asset-management' ? (
+          <section className="manuia-block manuia-block--asset-management">
+            <AssetManagementModule />
+          </section>
+        ) : activeTab === 'vision3d' ? (
           <section className="manuia-block manuia-block--vision3d">
             <Vision3DModule
               machineId={research?.machine_id}

@@ -249,7 +249,8 @@ export const dashboard = {
     api.post('/dashboard/chat', {
       message,
       history,
-      ...(opts.voiceMode ? { voiceMode: true } : {})
+      ...(opts.voiceMode ? { voiceMode: true } : {}),
+      ...(opts.sentimentContext ? { sentimentContext: opts.sentimentContext } : {})
     }),
   chatWithHeader: (message, history = [], headers = {}, opts = {}) =>
     api.post(

@@ -30,7 +30,26 @@ export default function ImpetusVoiceProvider({ children }) {
 
   const chatRound = useCallback(async (text) => {
     const history = voiceHistoryRef.current.slice(-6);
-    const r = await dashboard.chat(text, history, { voiceMode: true });
+    const t = String(text || '');
+    const tl = t.toLowerCase();
+    const inferSentimentContext = () => {
+      const urgent =
+        /\b(urgente|agora|imediato|parar|pare|desligar|sair|stop|travou|travado|falhou|erro|falhou|risco|perigo|socorro|chama)\b/i.test(tl);
+      const negative =
+        /\b(não|erro|falhou|falha|ruim|péssimo|medo|assustado|parou|parada|quebrou|quebra|travou)\b/i.test(tl);
+      const positive =
+        /\b(obrigado|perfeito|funcionou|consegui|bom|ótimo|melhorou|sucesso)\b/i.test(tl);
+
+      let sentiment = 'neutro';
+      if (urgent) sentiment = 'urgente';
+      else if (positive) sentiment = 'positivo';
+      else if (negative) sentiment = 'negativo';
+
+      return { sentiment };
+    };
+
+    const sentimentContext = inferSentimentContext();
+    const r = await dashboard.chat(text, history, { voiceMode: true, sentimentContext });
     const reply =
       r.data?.ok && r.data?.reply ? r.data.reply : r.data?.fallback || 'Resposta temporariamente indisponível.';
     // atualiza histórico interno do modo voz (não interfere no chat UI)
@@ -227,8 +246,8 @@ export default function ImpetusVoiceProvider({ children }) {
       <ImpetusVoiceOverlay
         open={overlayOpen}
         status={voiceState.status}
+        bargeInFlash={voiceState.bargeInFlash}
         mouthState={ttsUi?.mouthState}
-        speechText={ttsUi?.speechText}
         onClose={() => {
           try {
             stopSpeaking();

@@ -1,0 +1,18 @@
+Montar rotas de Gestão de Ativos no app Express (após outras rotas /api):
+
+  const assetManagement = require('./src/routes/assetManagement');
+  app.use('/api/asset-management', assetManagement);
+
+Rotas disponíveis (mock):
+  GET  /api/asset-management/twins
+  GET  /api/asset-management/twins/:id
+  POST /api/asset-management/twins/:id/simulate
+  GET  /api/asset-management/stock
+  PATCH /api/asset-management/stock/:id
+  POST /api/asset-management/stock/purchase-order
+  GET  /api/asset-management/orders
+  POST /api/asset-management/orders/:id/approve
+  POST /api/asset-management/orders/:id/reassign
+  POST /api/asset-management/orders
+
+Todas as rotas exigem autenticação (Bearer token).

@@ -1239,8 +1239,23 @@ router.post('/chat',
 
     let reply = '';
     try {
-      const { message, history = [], voiceMode } = req.body;
+      const { message, history = [], voiceMode, sentimentContext } = req.body;
       const isVoiceMode = voiceMode === true;
+      const sentiment = sentimentContext?.sentiment || sentimentContext || '';
+      const sentimentTone = (() => {
+        const s = String(sentiment || '').toLowerCase().trim();
+        if (!s) return '';
+        if (s === 'urgente') {
+          return 'Se o sentimento for URGENTE, comece com uma confirmação curta de prioridade e em seguida forneça uma ação objetiva (1 ideia por frase).';
+        }
+        if (s === 'negativo') {
+          return 'Se o sentimento for NEGATIVO, mantenha tom calmo e de alívio, valide o impacto em 1 frase e em seguida entregue o próximo passo objetivo.';
+        }
+        if (s === 'positivo') {
+          return 'Se o sentimento for POSITIVO, mantenha tom leve e encorajador, confirme o que funcionou e sugira um próximo passo curto.';
+        }
+        return 'Mantenha o tom profissional e direto, sem alterar a estrutura.';
+      })();
     // Verificação de dados sigilosos
     const sensitivePatterns = [
       /senha/i, /password/i, /credencial/i,
@@ -1349,6 +1364,7 @@ ${lgpdProtocol}
 - **Resposta progressiva**: NUNCA um bloco enorme. Vá **por partes**: primeiro confirme ou reaja ("Entendi." / "Beleza."). Depois desenvolva em **frases curtas** (uma ideia por frase), como quem pensa em voz alta.
   - Regra de naturalidade: se o usuário já tiver confirmado/entendido (ex.: "entendi", "ok", "beleza"), NÃO repita "Entendi/Beleza". Vá direto ao que ele precisa.
   - Na frase de reação inicial, NÃO inclua o nome do usuário (evita "Entendi, Wellington" repetitivo). Use o nome apenas na frase útil (se fizer sentido).
+- Regra anti-repetição: exceto na ativação de voz ("Oi, {nome}..."), nunca mencione o nome do usuário ao longo do restante da resposta.
 - **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Fale uma frase por vez, com pausa curta entre frases.
   - Regra: 1 ideia = 1 frase curta (sem “frase longa com vários assuntos”).
   - Regra de tópicos: quando mudar de tópico, comece a próxima frase com uma transição curta: "Agora", "Em seguida", "Sobre X", "Quanto a Y".
@@ -1361,8 +1377,13 @@ ${lgpdProtocol}
 - **Tarefas**: confirme → explique em poucas frases → conclua (sempre em trechos curtos).
 - **Alertas**: direta, clara, sem rodeios.
 - **Máximo**: 2 a 3 frases no total (salvo se pedirem explicitamente detalhe).
+- **Pergunta de confirmação**: só faça pergunta no final se faltar dado crítico para executar a próxima ação. Se já houver contexto suficiente, encerre com instrução objetiva sem perguntar.
 - **Proibido**: markdown, asteriscos, #, listas longas, emojis, URLs cruas. **Proibido** monólogo único de muitas linhas.
 - **Sem alucinação de nomes**: não cite empresas, políticas ou documentos específicos de terceiros. Se não houver dados no contexto, responda de forma genérica e operacional (ex.: "verifique o procedimento interno").
+- **Exemplos de comportamento (few-shot)**:
+  - Bom: "Entendi. Agora verifique a pressão da linha no painel local. Em seguida, me diga se ficou acima do limite."
+  - Bom: "Beleza. O alerta é de prioridade alta. Isole o equipamento e registre a ocorrência no painel de manutenção."
+  - Ruim: "Olá, sou a Impetus, fico feliz em ajudar, como posso ajudar você hoje com esse tema?"
 ` : '';
 
     const MAINTENANCE_CONTEXT = isMaintenanceProfile(req.user) ? `
@@ -1392,12 +1413,13 @@ ${docContext ? `\n${docContext}\n` : ''}
 ## Trechos de manuais/POPs (se relevantes):
 ${manualsBlock}`;
 
+    const userLabel = isVoiceMode ? 'Usuário' : userName;
     const userPrompt = historyBlock
-      ? `Histórico recente:\n${historyBlock}\n\n${userName}: ${message.trim()}`
-      : `${userName}: ${message.trim()}`;
+      ? `Histórico recente:\n${historyBlock}\n\n${userLabel}: ${message.trim()}`
+      : `${userLabel}: ${message.trim()}`;
 
-    const promptTail = isVoiceMode
-      ? 'Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Pare depois da última frase.'
+      const promptTail = isVoiceMode
+      ? `Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Faça pergunta de confirmação apenas quando faltar dado crítico para executar o próximo passo. ${sentimentTone} Pare depois da última frase.`
       : 'Responda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.';
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\n${promptTail}`;
 
@@ -1411,7 +1433,8 @@ ${manualsBlock}`;
           docContext ? `Documentação em contexto:\n${docContext}` : '',
           `Manuais/POPs:\n${manualsBlock}`,
           MAINTENANCE_CONTEXT || '',
-          isVoiceMode ? VOICE_IMPETUS_IDENTITY : ''
+          isVoiceMode ? VOICE_IMPETUS_IDENTITY : '',
+          isVoiceMode ? `Regras finais de resposta (voz):\n${promptTail}` : ''
         ].filter(Boolean).join('\n\n');
         reply = await aiOrchestrator.processWithOrchestrator({
           message: message.trim(),

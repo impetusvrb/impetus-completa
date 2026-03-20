@@ -5,6 +5,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { WakeWordDetector } from '../services/wakeWordDetector';
+import {
+  pickThinkingPhrase,
+  pickListeningPhrase,
+  pickProcessingPhrase,
+  pickSpeakingPhrase
+} from '../constants/voiceResponses';
+import { applyPronunciation } from '../constants/pronunciationMap';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -75,6 +82,21 @@ function playBeep() {
     o.stop(ctx.currentTime + 0.08);
     setTimeout(() => ctx.close().catch(() => {}), 200);
   } catch (_) {}
+}
+
+/**
+ * Micro-pausas de cadencia natural entre chunks (sem travar fluxo).
+ * Valores curtos para manter conversa fluida.
+ */
+function lightweightCadencePauseMs(chunkText) {
+  const s = String(chunkText || '').trim();
+  if (!s) return 50;
+  if (/,$/.test(s)) return 70;
+  if (/;$/u.test(s)) return 110;
+  if (/:$/u.test(s)) return 130;
+  if (/[.!?…]$/.test(s)) return 170;
+  if (/[—–]$/u.test(s)) return 90;
+  return 60;
 }
 
 function authHeaders() {
@@ -318,7 +340,9 @@ export function useVoiceEngine(options = {}) {
     currentTranscript: '',
     lastAlert: null,
     alertsEnabled: true,
-    audioBlocked: false
+    audioBlocked: false,
+    // Flash curto na UI quando o usuário faz barge-in durante TTS.
+    bargeInFlash: false
   });
 
   /**
@@ -342,7 +366,7 @@ export function useVoiceEngine(options = {}) {
 
   // No modo contínuo (voz ativada/loop), fixamos um ritmo ligeiramente mais lento.
   // Isso evita sensação de pressa logo após o usuário falar.
-  const CONTINUOUS_SPEED_OVERRIDE = 0.92;
+  const CONTINUOUS_SPEED_OVERRIDE = 1.02;
 
   const showBadge = useCallback((text) => {
     if (badgeTimer.current) clearTimeout(badgeTimer.current);
@@ -362,7 +386,7 @@ export function useVoiceEngine(options = {}) {
   const wakeActiveRef = useRef(false);
   const [isWakeWordActive, setIsWakeWordActive] = useState(false);
   const voiceIdRef = useRef('nova');
-  const speedRef = useRef(0.98);
+  const speedRef = useRef(1.02);
   const audioBlockedRef = useRef(false);
   const speakAbortedRef = useRef(false);
   const voiceSocketRef = useRef(null);
@@ -370,6 +394,7 @@ export function useVoiceEngine(options = {}) {
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
+  const bargeInFlashTimeoutRef = useRef(null);
   const lastHeardTextRef = useRef('');
   const lastHeardAtRef = useRef(0);
   const lastSpokeAtRef = useRef(0);
@@ -486,17 +511,32 @@ export function useVoiceEngine(options = {}) {
       typingTimerRef.current = null;
     }
     ttsTargetRef.current = '';
+    if (bargeInFlashTimeoutRef.current) {
+      clearTimeout(bargeInFlashTimeoutRef.current);
+      bargeInFlashTimeoutRef.current = null;
+    }
     setTtsUi((u) => ({
       ...u,
       mouthState: 'closed',
       isTyping: false
     }));
+    setVoiceState((s) => ({ ...s, bargeInFlash: false }));
   }, []);
 
   const startTypingLoop = useCallback(() => {
     if (typingTimerRef.current) return;
     typingActiveRef.current = true;
     setTtsUi((u) => ({ ...u, isTyping: true }));
+    const getTypingDelayMs = (lastChar) => {
+      // Ritmo visual próximo ao da fala: menos "metralhado", com pausas por pontuação.
+      if (lastChar === ',') return 85;
+      if (lastChar === ';') return 120;
+      if (lastChar === ':') return 180;
+      if (lastChar === '\n') return 140;
+      if (lastChar === '.' || lastChar === '!' || lastChar === '?') return 220;
+      if (lastChar === '…') return 240;
+      return 26;
+    };
     const tick = () => {
       if (!typingActiveRef.current) return;
       const target = ttsTargetRef.current || '';
@@ -512,20 +552,10 @@ export function useVoiceEngine(options = {}) {
       const curLen = ttsTargetRef.current ? (ttsTargetRef.current.length || 0) : 0;
       // atraso variável (pausas humanas)
       const lastChar = target[Math.min(target.length - 1, Math.max(0, curLen - 1))] || '';
-      const fast = 16;
-      const comma = 70;
-      const dot = 140;
-      const ellipsis = 180;
-      const nl = 120;
-      const delay =
-        lastChar === ',' ? comma :
-        lastChar === '\n' ? nl :
-        lastChar === '.' || lastChar === '!' || lastChar === '?' ? dot :
-        lastChar === '…' ? ellipsis :
-        fast;
+      const delay = getTypingDelayMs(lastChar);
       typingTimerRef.current = setTimeout(tick, delay);
     };
-    typingTimerRef.current = setTimeout(tick, 30);
+    typingTimerRef.current = setTimeout(tick, 45);
   }, []);
 
   const setTypingTarget = useCallback((text) => {
@@ -623,7 +653,7 @@ export function useVoiceEngine(options = {}) {
     src.connect(analyser);
     sourceRef.current = src;
     setVoiceState((s) => ({ ...s, status: 'speaking' }));
-    showBadge('Falando...');
+    showBadge(pickSpeakingPhrase());
 
     // Lip sync Nível B (closed/open/o/e) — heurística por energia + centroide
     let raf = null;
@@ -682,7 +712,12 @@ export function useVoiceEngine(options = {}) {
         try { src.stop(); } catch (_) {}
         sourceRef.current = null;
         // Feedback visual: volta a "ouvindo" instantaneamente.
-        setVoiceState((s) => ({ ...s, status: 'listening', isActive: true, isContinuous: true }));
+        setVoiceState((s) => ({ ...s, status: 'listening', isActive: true, isContinuous: true, bargeInFlash: true }));
+        if (bargeInFlashTimeoutRef.current) clearTimeout(bargeInFlashTimeoutRef.current);
+        bargeInFlashTimeoutRef.current = setTimeout(() => {
+          // Mantemos status listening, apenas reduzimos o destaque visual.
+          setVoiceState((s) => ({ ...s, bargeInFlash: false }));
+        }, 500);
       }).then((cleanup) => {
         stopBargeMonitor = cleanup;
       });
@@ -718,6 +753,8 @@ export function useVoiceEngine(options = {}) {
       .trim()
       .slice(0, 4000);
     if (!clean) return null;
+    // Forca leitura de termos/nome de marca em PT-BR, reduzindo “pronunciacao torta”.
+    const pronunciationText = applyPronunciation(clean);
     const effectiveSpeed = continuousRef.current ? CONTINUOUS_SPEED_OVERRIDE : speedRef.current;
     const ac = new AbortController();
     ttsAbortControllerRef.current = ac;
@@ -727,7 +764,7 @@ export function useVoiceEngine(options = {}) {
         headers: authHeaders(),
         signal: ac.signal,
         body: JSON.stringify({
-          text: clean,
+          text: pronunciationText,
           voice: voiceIdRef.current,
           speed: effectiveSpeed
         })
@@ -765,6 +802,8 @@ export function useVoiceEngine(options = {}) {
       const full = String(reply || '').trim();
       if (!full) return;
 
+      const pronunciationFull = applyPronunciation(full);
+
       const useWs = import.meta.env.VITE_VOICE_WEBSOCKET !== 'false';
       if (useWs) {
         const socket = await ensureVoiceSocket();
@@ -779,10 +818,6 @@ export function useVoiceEngine(options = {}) {
           const onMp3 = (p) => {
             mp3Count++;
             queue.push(p);
-            if (p?.text) {
-              const nextTarget = joinChunksSmart(ttsTargetRef.current, p.text);
-              setTypingTarget(nextTarget);
-            }
             notify?.();
           };
           const onEnd = () => {
@@ -797,7 +832,7 @@ export function useVoiceEngine(options = {}) {
           socket.once('voice:stream_end', onEnd);
           socket.once('voice:stream_aborted', onAbort);
           socket.emit('voice:speak_stream', {
-            text: full,
+            text: pronunciationFull,
             voice: voiceIdRef.current,
             speed: continuousRef.current ? CONTINUOUS_SPEED_OVERRIDE : speedRef.current
           });
@@ -811,7 +846,8 @@ export function useVoiceEngine(options = {}) {
             while (!queue.length && !streamDone && !speakAbortedRef.current) {
               await new Promise((r) => {
                 notify = r;
-                setTimeout(r, 400);
+                // Poll curto para reduzir gap entre chunks quando há jitter de rede.
+                setTimeout(r, 60);
               });
             }
             if (speakAbortedRef.current) break;
@@ -823,13 +859,19 @@ export function useVoiceEngine(options = {}) {
             const bin = atob(item.b64);
             const bytes = new Uint8Array(bin.length);
             for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+            // Texto segue o início da fala (speech-driven), não a chegada do payload.
+            if (item?.text) {
+              const nextTarget = joinChunksSmart(ttsTargetRef.current, item.text);
+              setTypingTarget(nextTarget);
+            }
             await playMp3Buffer(bytes.buffer);
             if (speakAbortedRef.current) break;
-            // Pausa entre chunks: maior quando termina frase/ponto.
-            const endsSentence = /[.!?…]$/.test(String(item?.text || '').trim());
-            const base = endsSentence ? 680 : 320;
-            // Intervalos maiores para o respiro ficar perceptível.
-            await new Promise((r) => setTimeout(r, base + Math.floor(Math.random() * (endsSentence ? 220 : 150))));
+            const moreExpected = queue.length > 0 || !streamDone;
+            if (moreExpected) {
+              await new Promise((r) =>
+                setTimeout(r, lightweightCadencePauseMs(item?.text))
+              );
+            }
           }
           socket.off('voice:mp3', onMp3);
           if (speakAbortedRef.current) return;
@@ -839,10 +881,9 @@ export function useVoiceEngine(options = {}) {
 
       speakAbortedRef.current = false;
       const parts = splitIntoSpeechChunks(full);
-      // HTTP fallback: usa texto completo como target e digita ao longo da fala
-      ttsTargetRef.current = full;
-      setTtsUi((u) => ({ ...u, speechText: '', targetText: full, isTyping: false }));
-      startTypingLoop();
+      // HTTP fallback speech-driven: texto cresce conforme cada chunk começa a tocar.
+      ttsTargetRef.current = '';
+      setTtsUi((u) => ({ ...u, speechText: '', targetText: '', isTyping: false }));
       let nextBuf = null;
       for (let i = 0; i < parts.length; i++) {
         if (!continuousRef.current && i > 0) break;
@@ -856,16 +897,18 @@ export function useVoiceEngine(options = {}) {
         nextBuf =
           i + 1 < parts.length ? fetchSpeakAudio(parts[i + 1]) : null;
         if (!cur) continue;
+        const nextTarget = joinChunksSmart(ttsTargetRef.current, parts[i]);
+        setTypingTarget(nextTarget);
         await playMp3Buffer(cur);
         if (speakAbortedRef.current) break;
         if (i < parts.length - 1) {
-          const endsSentence = /[.!?…]$/.test(String(parts[i] || '').trim());
-          const base = endsSentence ? 720 : 320;
-          await new Promise((r) => setTimeout(r, base + Math.floor(Math.random() * (endsSentence ? 260 : 240))));
+          await new Promise((r) =>
+            setTimeout(r, lightweightCadencePauseMs(parts[i]))
+          );
         }
       }
     },
-    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer, setTypingTarget, startTypingLoop]
+    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer, setTypingTarget]
   );
 
   const speakActivationReply = useCallback(async () => {
@@ -907,7 +950,7 @@ export function useVoiceEngine(options = {}) {
         isContinuous: true,
         currentTranscript: ''
       }));
-      showBadge('Ouvindo...');
+      showBadge(pickListeningPhrase());
 
       let text = '';
       try {
@@ -916,7 +959,7 @@ export function useVoiceEngine(options = {}) {
           if (!continuousRef.current) break;
           if (blob) {
             setVoiceState((s) => ({ ...s, status: 'processing' }));
-            showBadge('Processando...');
+            showBadge(pickProcessingPhrase());
             try {
               text = await postTranscribe(blob);
             } catch (e) {
@@ -925,7 +968,7 @@ export function useVoiceEngine(options = {}) {
           }
           if (!(text || '').trim() && SR) {
             setVoiceState((s) => ({ ...s, status: 'listening' }));
-            showBadge('Ouvindo...');
+            showBadge(pickListeningPhrase());
             text = await captureWebSpeechUntilPause(setPartial, () => !continuousRef.current);
           }
         } else if (SR) {
@@ -935,7 +978,7 @@ export function useVoiceEngine(options = {}) {
           if (!continuousRef.current) break;
           if (blob) {
             setVoiceState((s) => ({ ...s, status: 'processing' }));
-            showBadge('Processando...');
+            showBadge(pickProcessingPhrase());
             try {
               text = await postTranscribe(blob);
             } catch (e) {
@@ -989,15 +1032,15 @@ export function useVoiceEngine(options = {}) {
       }
       failStreakRef.current = 0;
       setVoiceState((s) => ({ ...s, currentTranscript: '', status: 'processing' }));
-      showBadge('Processando...');
+      showBadge(pickProcessingPhrase());
       // Pequena pausa depois que o usuário terminou de falar.
       // Ajuda a reduzir eco/ruído residual e melhora a sensação de "turn-taking".
       await new Promise((r) => setTimeout(r, USER_TURN_END_GRACE_MS));
 
       if (text.length > 40) {
-        await speakText('Só um segundo.');
+        await speakText(pickThinkingPhrase());
         lastSpokeAtRef.current = Date.now();
-        showBadge('Processando...');
+        showBadge(pickProcessingPhrase());
       }
 
       let reply = '';
@@ -1092,7 +1135,8 @@ export function useVoiceEngine(options = {}) {
       ...s,
       status: 'idle',
       isActive: false,
-      isContinuous: false
+      isContinuous: false,
+      bargeInFlash: false
     }));
   }, [stopSpeaking]);
 
@@ -1132,7 +1176,7 @@ export function useVoiceEngine(options = {}) {
         text = (text || '').trim();
         const fn = chatRoundRef.current;
         if (text && !STOP_WORDS.test(text) && fn && !isOnlyActivationPhrase(text)) {
-          await speakText('Só um segundo.');
+          await speakText(pickThinkingPhrase());
           const reply = await fn(text).catch(() => '');
           if (reply) await speakNaturalReply(reply);
         }

@@ -1,6 +1,8 @@
 /**
  * Alertas por voz — prioridades P1–P4, anti-repetição, integração com TTS do hook.
  */
+import { pickAlertFollowupPhrase } from '../constants/voiceResponses';
+
 const spokenAt = new Map();
 
 function priorityRank(p) {
@@ -69,6 +71,6 @@ export async function handleVoiceAlert(alert, opts) {
 
   if (alert.priority === 'P1') {
     await new Promise((r) => setTimeout(r, 600));
-    await opts.speakText('Deseja que eu abra o painel de manutenção?');
+    await opts.speakText(pickAlertFollowupPhrase());
   }
 }
