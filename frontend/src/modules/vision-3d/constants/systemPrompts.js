@@ -93,3 +93,34 @@ RETORNO JSON PURO:
 newStep: índice 0-based do passo a destacar, ou null
 explode: true para ativar, false para desativar, null para não alterar
 `;
+
+/**
+ * Prompt para análise de vibração por espectro FFT
+ * Usado quando o técnico grava áudio do equipamento via microfone
+ */
+export const AUDIO_ANALYSIS_PROMPT = (spectrumData, peaks, machineType) => `
+Você é especialista em análise de vibração industrial e diagnóstico acústico.
+
+TIPO DE MÁQUINA: ${machineType}
+ESPECTRO FFT (hz: amplitude) - primeiros 50 bins:
+${JSON.stringify((spectrumData || []).slice(0, 50))}
+PICOS DETECTADOS (frequências com amplitude acima da média):
+${JSON.stringify((peaks || []).slice(0, 20))}
+
+Identifique padrões de falha típicos por frequência:
+- rolamento: picos em frequências características (BPFO, BPFI, BSF)
+- desbalanceamento: pico em 1x rotação
+- cavitação: ruído de banda larga em bombas
+- folga: harmônicas múltiplas
+- normal: espectro plano ou sem picos significativos
+
+Retorne APENAS JSON puro, sem markdown:
+{
+  "faultType": "rolamento|desbalanceamento|cavitacao|folga|normal",
+  "severity": "ok|warn|critical",
+  "confidence": 0-100,
+  "affectedPart": "nome da peça mais provável (ex: Rolamento dianteiro, Correia, Eixo)",
+  "message": "diagnóstico técnico em 1-2 frases",
+  "recommendedAction": "ação recomendada em 1 frase"
+}
+`;

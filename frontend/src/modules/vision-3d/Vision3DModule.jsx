@@ -73,8 +73,9 @@ export default function Vision3DModule({
     isLoading,
     result,
     analyzeImage,
+    analyzeAudio,
     sendMessage
-  } = useVisionChat({ onAction, machineId });
+  } = useVisionChat({ onAction, machineId, machineName, machineType: machineType || 'generico' });
 
   const displayResult = restoredSession || result;
   const displayMachineType = restoredSession ? restoredSession.machineType : machineType;
@@ -99,10 +100,33 @@ export default function Vision3DModule({
 
   const handleCapture = useCallback(
     async (base64) => {
+      setAudioWaveform(null);
       setCapturedImage(base64);
       await analyzeImage(base64);
     },
     [analyzeImage]
+  );
+
+  const [audioWaveform, setAudioWaveform] = useState(null);
+
+  const handleAudioAnalyze = useCallback(
+    async (spectrum, peaks) => {
+      setAudioWaveform(spectrum?.slice(0, 80) || []);
+      const converted = await analyzeAudio(spectrum, peaks, machineType || 'generico');
+      if (converted?._audioDiagnosis?.severity === 'critical' && onGenerateOS) {
+        onGenerateOS({
+          equipment: converted.equipment,
+          manufacturer: converted.manufacturer,
+          severity: 'CRITICO',
+          steps: converted.steps,
+          parts: converted.parts,
+          faultParts: converted.faultParts,
+          machineId,
+          machineName
+        });
+      }
+    },
+    [analyzeAudio, machineType, machineId, machineName, onGenerateOS]
   );
 
   const [animatingStep, setAnimatingStep] = useState(false);
@@ -189,7 +213,13 @@ export default function Vision3DModule({
               />
             </div>
           ) : viewMode === 'photo' ? (
-            <CapturePanel onCapture={handleCapture} disabled={isLoading} />
+            <CapturePanel
+              onCapture={handleCapture}
+              onAudioAnalyze={handleAudioAnalyze}
+              disabled={isLoading}
+              machineType={displayMachineType}
+              machineName={machineName}
+            />
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100%' }}>
               <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -199,6 +229,23 @@ export default function Vision3DModule({
                     alt="Captura"
                     style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                   />
+                ) : audioWaveform?.length ? (
+                  <div style={{ width: '100%', textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 8 }}>Espectro de vibração</p>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2, height: 80 }}>
+                      {audioWaveform.slice(0, 60).map((s, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            width: 4,
+                            height: `${Math.max(4, Math.min(100, (s.amplitude || 0) * 0.5 + 20))}%`,
+                            background: 'rgba(30, 144, 255, 0.7)',
+                            borderRadius: 2
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <span style={{ color: 'var(--text-secondary)' }}>Nenhuma imagem</span>
                 )}

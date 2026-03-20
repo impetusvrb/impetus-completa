@@ -90,13 +90,15 @@ function playBeep() {
  */
 function lightweightCadencePauseMs(chunkText) {
   const s = String(chunkText || '').trim();
-  if (!s) return 50;
-  if (/,$/.test(s)) return 70;
-  if (/;$/u.test(s)) return 110;
-  if (/:$/u.test(s)) return 130;
-  if (/[.!?…]$/.test(s)) return 170;
-  if (/[—–]$/u.test(s)) return 90;
-  return 60;
+  const jitter = () => Math.floor((Math.random() * 19) - 9); // -9ms..+9ms
+  if (!s) return Math.max(25, 40 + jitter());
+  // Cadencia estável: mantém ritmo previsível e natural.
+  if (/,$/.test(s)) return Math.max(30, 55 + jitter());       // pausa curta
+  if (/;$/u.test(s)) return Math.max(45, 80 + jitter());      // pausa media
+  if (/:$/u.test(s)) return Math.max(55, 95 + jitter());      // transicao
+  if (/[.!?…]$/.test(s)) return Math.max(70, 130 + jitter()); // fim de frase
+  if (/[—–]$/u.test(s)) return Math.max(40, 75 + jitter());
+  return Math.max(30, 50 + jitter());
 }
 
 function authHeaders() {

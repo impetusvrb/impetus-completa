@@ -6,9 +6,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { callClaude } from '../services/claudeApi';
 import { saveSession, getSessions, createImageThumb } from '../services/historyService';
-import { VISION_SYSTEM_PROMPT, CHAT_SYSTEM_PROMPT } from '../constants/systemPrompts';
+import { VISION_SYSTEM_PROMPT, CHAT_SYSTEM_PROMPT, AUDIO_ANALYSIS_PROMPT } from '../constants/systemPrompts';
 
-export function useVisionChat({ onAction, machineId }) {
+export function useVisionChat({ onAction, machineId, machineName, machineType: initialMachineType }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -74,6 +74,70 @@ export function useVisionChat({ onAction, machineId }) {
     [onAction, machineId]
   );
 
+  const analyzeAudio = useCallback(
+    async (spectrum, peaks, machineType = initialMachineType || 'generico') => {
+      setIsLoading(true);
+      try {
+        const system = AUDIO_ANALYSIS_PROMPT(spectrum, peaks, machineType);
+        const res = await callClaude({
+          system,
+          maxTokens: 500,
+          messages: [{ role: 'user', content: [{ type: 'text', text: 'Analise o espectro de vibração e retorne o JSON.' }] }]
+        });
+
+        let raw = {};
+        try {
+          raw = typeof res === 'string' ? JSON.parse(res) : (res && typeof res === 'object' ? res : {});
+        } catch {
+          raw = { faultType: 'normal', severity: 'ok', message: 'Não foi possível analisar o espectro.', affectedPart: '', recommendedAction: '' };
+        }
+        const severityMap = { ok: 'NORMAL', warn: 'ALERTA', critical: 'CRITICO' };
+        const part = raw.affectedPart || 'Componente';
+        const converted = {
+          equipment: machineName || 'Equipamento (análise por áudio)',
+          manufacturer: 'Não identificado',
+          machineType: initialMachineType || 'generico',
+          severity: severityMap[raw.severity] || 'ALERTA',
+          confidence: raw.confidence ?? 70,
+          faultParts: raw.faultType !== 'normal' ? [part] : [],
+          highlightParts: raw.faultType !== 'normal' ? [part] : [],
+          mainMessage: `<span class="hi">${raw.message || ''}</span><br><br><strong>Ação:</strong> ${raw.recommendedAction || ''}`,
+          steps: raw.recommendedAction ? [{ title: raw.recommendedAction, desc: raw.message }] : [],
+          parts: [],
+          webSources: [],
+          detections: [{ label: raw.faultType, type: raw.severity === 'critical' ? 'critical' : raw.severity === 'warn' ? 'warning' : 'ok' }],
+          triggerExplode: raw.faultType !== 'normal',
+          followUpQuestion: 'Deseja gerar ordem de serviço?',
+          _audioDiagnosis: raw
+        };
+
+        setResult(converted);
+        setMessages((prev) => [...prev, { role: 'assistant', ...converted }]);
+        onAction?.({ type: 'ANALYSIS_COMPLETE', payload: converted });
+
+        try {
+          await saveSession(machineId, {
+            equipment: converted.equipment,
+            severity: converted.severity,
+            confidence: converted.confidence,
+            faultParts: converted.faultParts || [],
+            steps: converted.steps || [],
+            parts: converted.parts || [],
+            imageThumb: null,
+            machineType: converted.machineType
+          });
+        } catch (e) {
+          console.warn('[ManuIA] saveSession audio:', e?.message);
+        }
+
+        return converted;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [onAction, machineId, machineName, initialMachineType]
+  );
+
   const sendMessage = useCallback(
     async (userText) => {
       historyRef.current.push({ role: 'user', content: userText });
@@ -112,5 +176,5 @@ export function useVisionChat({ onAction, machineId }) {
     [result, onAction, machineId]
   );
 
-  return { messages, isLoading, result, analyzeImage, sendMessage };
+  return { messages, isLoading, result, analyzeImage, analyzeAudio, sendMessage };
 }

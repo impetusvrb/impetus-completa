@@ -1,14 +1,25 @@
 /**
- * IMPETUS - ManuIA 3D Vision - Tabs: Upload | Câmera | Gravar
+ * IMPETUS - ManuIA 3D Vision - Tabs: Upload | Câmera | Gravar | Vibração
  * Upload: FileReader | Camera: getUserMedia | Gravar: MediaRecorder
+ * Vibração: useAudioAnalysis + FFT para diagnóstico acústico
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Camera, Video, Square } from 'lucide-react';
+import { Upload, Camera, Video, Square, Mic } from 'lucide-react';
+import { useAudioAnalysis } from '../hooks/useAudioAnalysis';
 import styles from '../styles/Vision3D.module.css';
 
-export default function CapturePanel({ onCapture, disabled }) {
+export default function CapturePanel({ onCapture, onAudioAnalyze, disabled, machineType, machineName }) {
   const [tab, setTab] = useState('upload');
   const [preview, setPreview] = useState(null);
+  const {
+    recordAndAnalyze,
+    reset,
+    status: audioStatus,
+    spectrum,
+    waveform,
+    error: audioError,
+    RECORD_DURATION_MS
+  } = useAudioAnalysis({ machineType: machineType || 'generico', machineName });
   const [stream, setStream] = useState(null);
   const [recording, setRecording] = useState(false);
   const fileInputRef = useRef(null);
@@ -157,6 +168,23 @@ export default function CapturePanel({ onCapture, disabled }) {
     }
   }, [tab, stream]);
 
+  const handleVibrationTab = () => {
+    setTab('vibration');
+    stopStream();
+    reset();
+  };
+
+  const handleRecordVibration = async () => {
+    try {
+      const { spectrum: s, peaks } = await recordAndAnalyze();
+      if (onAudioAnalyze && s?.length) {
+        await onAudioAnalyze(s, peaks);
+      }
+    } catch (e) {
+      console.warn('[Vision3D] Audio:', e?.message);
+    }
+  };
+
   return (
     <div className={styles.captureArea} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
       <div className={styles.captureTabs}>
@@ -180,6 +208,13 @@ export default function CapturePanel({ onCapture, disabled }) {
           onClick={() => { setTab('record'); startRecording(); }}
         >
           <Video size={14} /> Gravar
+        </button>
+        <button
+          type="button"
+          className={`${styles.captureTab} ${tab === 'vibration' ? styles['captureTab--active'] : ''}`}
+          onClick={handleVibrationTab}
+        >
+          <Mic size={14} /> Vibração
         </button>
       </div>
 
@@ -256,6 +291,62 @@ export default function CapturePanel({ onCapture, disabled }) {
               <p>Iniciando câmera para gravação...</p>
             )}
           </>
+        )}
+        {tab === 'vibration' && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center', margin: 0 }}>
+              Aproxime o microfone do equipamento e grave {RECORD_DURATION_MS / 1000}s de áudio para análise de vibração.
+            </p>
+            {waveform.length > 0 && (
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 280,
+                  height: 60,
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 8px',
+                  overflow: 'hidden'
+                }}
+              >
+                {waveform.slice(0, 120).map((p, i) => {
+                  const v = typeof p === 'object' && p !== null && 'v' in p ? p.v : p;
+                  const h = Math.max(8, Math.min(100, 30 + (Number(v) || 0) * 0.5));
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        flex: 1,
+                        height: `${h}%`,
+                        minWidth: 2,
+                        background: 'rgba(30, 144, 255, 0.6)',
+                        borderRadius: 1
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {audioError && <p style={{ color: '#f87171', fontSize: '0.8rem', margin: 0 }}>{audioError}</p>}
+            <button
+              type="button"
+              className={styles.captureBtn}
+              onClick={handleRecordVibration}
+              disabled={disabled || audioStatus === 'recording' || audioStatus === 'analyzing'}
+              style={{
+                background: audioStatus === 'recording' ? 'rgba(239,68,68,0.2)' : undefined
+              }}
+            >
+              <Mic size={16} />
+              {audioStatus === 'recording' && ' Gravando...'}
+              {audioStatus === 'analyzing' && ' Analisando...'}
+              {audioStatus === 'idle' && ' Gravar e analisar vibração'}
+              {audioStatus === 'done' && ' Gravar novamente'}
+              {audioStatus === 'error' && ' Tentar novamente'}
+            </button>
+          </div>
         )}
       </div>
     </div>

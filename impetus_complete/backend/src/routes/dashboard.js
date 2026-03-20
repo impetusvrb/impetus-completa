@@ -1459,7 +1459,18 @@ ${manualsBlock}`;
       reply = CHAT_FALLBACK_IMPETUS;
     }
 
-    const finalReply = (reply || '').trim() || 'Desculpe, não consegui processar. Tente novamente.';
+    const sanitizeVoiceReply = (text) => {
+      const raw = String(text || '').trim();
+      if (!isVoiceMode || !raw) return raw;
+      // Segurança extra: remove aberturas repetitivas de apresentação no início.
+      return raw
+        .replace(/^(olá|oi)[!,.:\s]+(eu (sou|sou a)|aqui (é|e)|sou a ia)\s+impetus[,.\s-]*/i, '')
+        .replace(/^sou\s+a?\s*impetus[,.\s-]*/i, '')
+        .replace(/^\s+/, '')
+        .trim();
+    };
+    const finalReply =
+      sanitizeVoiceReply(reply) || 'Desculpe, não consegui processar. Tente novamente.';
     await aiAudit.logAIInteraction({
       userId: req.user?.id,
       companyId: req.user?.company_id,
