@@ -178,6 +178,15 @@ export default function Layout({ children }) {
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
+    operador: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro de Atividades' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+    ],
     colaborador: [
       { path: '/app/operacional', icon: Zap, label: 'Meu Painel' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
@@ -199,7 +208,7 @@ export default function Layout({ children }) {
     ],
   };
 
-  const baseMenuItems = MENUS[role] || MENUS['colaborador'];
+  const baseMenuItems = MENUS[role] || MENUS['colaborador'] || MENUS['operador'];
   const menuItems = filterMenu(baseMenuItems);
 
   const handleLogout = () => {

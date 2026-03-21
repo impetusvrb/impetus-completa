@@ -11,7 +11,7 @@ const path = require('path');
 const BACKEND_ROOT = path.join(__dirname, '..', '..');
 const DEFAULT_KEY_FILE = path.join(BACKEND_ROOT, 'config', 'google-tts.json');
 
-const DEFAULT_VOICE = 'pt-BR-Chirp3-HD-Aoede';
+const DEFAULT_VOICE = 'pt-BR-Neural2-C';
 
 function getVoiceLang() {
   return (process.env.GOOGLE_TTS_LANG || 'pt-BR').trim();

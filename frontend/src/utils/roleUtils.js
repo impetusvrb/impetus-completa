@@ -32,7 +32,8 @@ export function resolveMenuRole(user) {
   if (role.includes('gerente') || role.includes('manager') || profile.includes('manager_')) return 'gerente';
   if (role.includes('coordenador') || role.includes('coordinator') || profile.includes('coordinator_')) return 'coordenador';
   if (role.includes('supervisor') || profile.includes('supervisor_')) return 'supervisor';
-  if (role.includes('auxiliar') || role.includes('operador') || jobTitle.includes('auxiliar') || jobTitle.includes('aux. produ')) return 'colaborador';
+  if (role === 'operador' || profile.includes('operator_floor')) return 'operador';
+  if (role.includes('auxiliar') || jobTitle.includes('auxiliar') || jobTitle.includes('aux. produ')) return 'colaborador';
 
   return 'colaborador';
 }

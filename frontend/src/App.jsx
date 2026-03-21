@@ -85,18 +85,18 @@ function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !allowedRoles.includes(role)) {
     // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
-    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app/operacional', auxiliar_producao: '/app/operacional', operador: '/app/operacional', auxiliar: '/app/operacional' };
+    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app/operacional', auxiliar_producao: '/app/operacional', auxiliar: '/app/operacional', operador: '/app' };
     return <Navigate to={defaults[role] || '/app/operacional'} replace />;
   }
   return children;
 }
 
-// Colaborador / Auxiliar de produção / Operador — acessa painel operacional
+// Colaborador / Auxiliar de produção — acessa painel operacional (operador tem dashboard próprio)
 function isColaborador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
     const role = (user.role || '').toString().toLowerCase();
-    return ['colaborador', 'auxiliar_producao', 'operador', 'auxiliar'].includes(role);
+    return ['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role);
   } catch {
     return false;
   }

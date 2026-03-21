@@ -1,0 +1,327 @@
+/**
+ * Dashboard do Operador — Métricas em tempo real, status máquinas
+ * Padrão CentroComando (cc-widget, metric-card, cc-kpi)
+ */
+.dop {
+  padding: 0 1.5rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dop__header {
+  margin-bottom: 1.5rem;
+}
+
+.dop__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text1);
+  margin: 0 0 0.25rem 0;
+}
+
+.dop__subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text3);
+  margin: 0;
+}
+
+.dop__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  grid-auto-rows: minmax(120px, auto);
+}
+
+.dop-widget {
+  min-height: 120px;
+}
+
+.dop-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dop-status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.dop-status-badge--green {
+  background: rgba(0, 255, 136, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.dop-status-badge--amber {
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--amber);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.dop-status-badge--red {
+  background: rgba(255, 68, 85, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(255, 68, 85, 0.3);
+}
+
+.dop-meta-grid,
+.dop-ciclo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dop-ciclo-hint {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin: 0.5rem 0 0 0;
+}
+
+.dop-progress-wrap {
+  position: relative;
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dop-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.dop-progress-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.dop-oee-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+
+.dop-oee-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.dop-oee-value--green { color: var(--green); }
+.dop-oee-value--amber { color: var(--amber); }
+.dop-oee-value--red { color: var(--red); }
+
+.dop-parada-select {
+  margin-top: 0.75rem;
+}
+
+.dop-parada-select label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.dop-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg1);
+  color: var(--text1);
+}
+
+.dop-op-card {
+  padding: 0.75rem;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.dop-op-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dop-op-numero {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+.dop-op-produto {
+  font-size: 0.9rem;
+  color: var(--text2);
+}
+
+.dop-op-qtd {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+
+.dop-op-tempo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line2);
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+
+.dop-proxima-op {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.dop-proxima-numero {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text1);
+}
+
+.dop-proxima-produto {
+  font-size: 0.85rem;
+  color: var(--text2);
+}
+
+.dop-proxima-qtd {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+
+.dop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+
+.dop-btn--primary {
+  background: var(--blue);
+  color: var(--text1);
+}
+
+.dop-btn--primary:hover {
+  background: var(--blue2);
+  transform: translateY(-1px);
+}
+
+.dop-btn--secondary {
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--line);
+}
+
+.dop-btn--secondary:hover {
+  border-color: var(--blue);
+  color: var(--text1);
+}
+
+.dop-checklist-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.dop-checklist-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+
+.dop-checklist-preview li {
+  padding: 0.25rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.dop-checklist-preview li::before {
+  content: '□';
+  position: absolute;
+  left: 0;
+  font-size: 1rem;
+  color: var(--text3);
+}
+
+.dop-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.dop-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+}
+
+.dop-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--line);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .dop__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dop__grid {
+    grid-template-columns: 1fr;
+  }
+}
