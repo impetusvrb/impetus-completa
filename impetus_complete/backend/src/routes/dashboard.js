@@ -33,6 +33,27 @@ const { cached, del, makeKey, TTL } = require('../utils/cache');
 function invalidateDashboardCache(userId) {
   del(makeKey('dashboard:me', String(userId)));
 }
+
+/** Pausa breve vs. retorno — reforça continuidade sem novo armazenamento. */
+function conversationContinuityKind(message) {
+  const t = String(message || '').trim().toLowerCase();
+  if (!t) return null;
+  if (
+    /volto\s+já|já\s+volto|volto\s+logo|um\s+minuto|me\s+dá\s+um\s+minuto|me\s+da\s+um\s+minuto|preciso\s+(de\s+)?um\s+minuto|espera\s+a[ií]|só\s+um\s+instante|so\s+um\s+instante|já\s+venho|ja\s+venho|até\s+já|ate\s+ja|deixa\s+eu\s+só|deixa\s+eu\s+so|preciso\s+sair|pera[ií]|aguenta\s+a[ií]/.test(
+      t
+    )
+  ) {
+    return 'pause';
+  }
+  if (
+    /\bvoltei\b|t[oô]\s+de\s+volta|estou\s+de\s+volta|to\s+de\s+volta|\bond(e)?\s+(a\s+gente\s+)?par(ou|amos)\b|\bcontinua(ndo)?\b|\bcontinue\b|\bseguimos\b|\bpode\s+continuar\b|\bvoltando\b|\bcheguei\b/.test(
+      t
+    )
+  ) {
+    return 'resume';
+  }
+  return null;
+}
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const dynamicDashboardService = require('../services/dynamicDashboardService');
 const maintenanceDashboard = require('../services/maintenanceDashboardService');
@@ -1328,10 +1349,22 @@ router.post('/chat',
         console.warn('[CHAT] searchCompanyManuals:', err.message);
       }
 
-      const historyBlock = (Array.isArray(history) ? history.slice(-6) : []).map((m) => {
+      const historyLimit = isVoiceMode ? 12 : 6;
+      const historyBlock = (Array.isArray(history) ? history.slice(-historyLimit) : []).map((m) => {
         const role = m.role === 'user' ? userName : 'IA';
         return `${role}: ${(m.content || '').slice(0, 300)}`;
       }).join('\n');
+
+      const continuityKind = conversationContinuityKind(message);
+      const hasConversationHistory = Array.isArray(history) && history.length > 0;
+      let continuityAppend = '';
+      if (continuityKind === 'pause') {
+        continuityAppend =
+          '\n\n[Nota operacional: o usuário vai se ausentar brevemente. Responda em 1–2 frases curtas: confirme, diga que você mantém o contexto da conversa e convide a retomar quando ele voltar. Sem perguntas longas.]';
+      } else if (continuityKind === 'resume' && hasConversationHistory) {
+        continuityAppend =
+          '\n\n[Nota operacional: o usuário retornou após uma pausa. Cumprimente pelo primeiro nome uma vez, relembre em 1 frase o que estavam fazendo (use o histórico) e ofereça o próximo passo. Não reinicie explicações longas já dadas.]';
+      }
 
       const IMPETUS_CAPABILITIES = `
 ## O que o Impetus oferece (apresente APENAS quando perguntarem "o que é" ou "o que faz"):
@@ -1363,7 +1396,8 @@ ${lgpdProtocol}
 - **Resposta progressiva**: NUNCA um bloco enorme. Vá **por partes**: primeiro confirme ou reaja ("Entendi." / "Beleza."). Depois desenvolva em **frases curtas** (uma ideia por frase), como quem pensa em voz alta.
   - Regra de naturalidade: se o usuário já tiver confirmado/entendido (ex.: "entendi", "ok", "beleza"), NÃO repita "Entendi/Beleza". Vá direto ao que ele precisa.
   - Na frase de reação inicial, NÃO inclua o nome do usuário (evita "Entendi, Wellington" repetitivo). Use o nome apenas na frase útil (se fizer sentido).
-- Regra anti-repetição: exceto na ativação de voz ("Oi, {nome}..."), nunca mencione o nome do usuário ao longo do restante da resposta.
+- Regra anti-repetição: exceto na **ativação de voz** ("Oi, {nome}...") ou quando o usuário **acabou de voltar de uma pausa** (instrução explícita no contexto), não mencione o nome no meio da resposta.
+- **Retorno após pausa:** se o histórico ou a nota operacional indicar retorno, use o primeiro nome **uma vez**, retome o último assunto em 1 frase e siga com o próximo passo (sem recomeçar do zero).
 - **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Fale uma frase por vez, com pausa curta entre frases.
   - Regra: 1 ideia = 1 frase curta (sem “frase longa com vários assuntos”).
   - Regra de tópicos: quando mudar de tópico, comece a próxima frase com uma transição curta: "Agora", "Em seguida", "Sobre X", "Quanto a Y".
@@ -1414,8 +1448,8 @@ ${manualsBlock}`;
 
     const userLabel = isVoiceMode ? 'Usuário' : userName;
     const userPrompt = historyBlock
-      ? `Histórico recente:\n${historyBlock}\n\n${userLabel}: ${message.trim()}`
-      : `${userLabel}: ${message.trim()}`;
+      ? `Histórico recente:\n${historyBlock}\n\n${userLabel}: ${message.trim()}${continuityAppend}`
+      : `${userLabel}: ${message.trim()}${continuityAppend}`;
 
       const promptTail = isVoiceMode
       ? `Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Faça pergunta de confirmação apenas quando faltar dado crítico para executar o próximo passo. ${sentimentTone} Pare depois da última frase.`
@@ -1433,11 +1467,12 @@ ${manualsBlock}`;
           `Manuais/POPs:\n${manualsBlock}`,
           MAINTENANCE_CONTEXT || '',
           isVoiceMode ? VOICE_IMPETUS_IDENTITY : '',
-          isVoiceMode ? `Regras finais de resposta (voz):\n${promptTail}` : ''
+          isVoiceMode ? `Regras finais de resposta (voz):\n${promptTail}` : '',
+          continuityAppend.trim() ? `Continuidade (pausa/retorno):${continuityAppend}` : ''
         ].filter(Boolean).join('\n\n');
         reply = await aiOrchestrator.processWithOrchestrator({
           message: message.trim(),
-          history: Array.isArray(history) ? history : [],
+          history: Array.isArray(history) ? history.slice(-historyLimit) : [],
           imageBase64: null,
           companyId,
           userName: chatCtx.userName || 'Usuário',
