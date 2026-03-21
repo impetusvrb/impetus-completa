@@ -27,6 +27,7 @@ const dashboardFilter = require('../services/dashboardFilter');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const chatUserContext = require('../services/chatUserContext');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
+const voiceNaturalnessMemory = require('../services/voiceNaturalnessMemory');
 const intelligentDashboard = require('../services/intelligentDashboardService');
 const { cached, del, makeKey, TTL } = require('../utils/cache');
 
@@ -1304,6 +1305,25 @@ router.post('/chat',
       const chatCtx = await chatUserContext.buildChatUserContext(req.user);
       const { userName, identityBlock, memoriaBlock } = chatCtx;
 
+      const firstName =
+        String(userName || '')
+          .trim()
+          .split(/\s+/)[0] || 'você';
+      const hasAssistantHistory =
+        Array.isArray(history) &&
+        history.some((m) => m.role === 'assistant' || m.role === 'model');
+
+      if (isVoiceMode) {
+        voiceNaturalnessMemory.noteUserTurn(req.user.id, message);
+      }
+
+      const VOICE_NATURALNESS_BLOCK = isVoiceMode
+        ? voiceNaturalnessMemory.buildPromptExtra(req.user.id, {
+            firstName,
+            hasAssistantHistory
+          })
+        : '';
+
       let operationalMemoryBlock = '';
       try {
         const ctxPromise = claudeAnalytics.getContextForChat({
@@ -1395,7 +1415,7 @@ ${lgpdProtocol}
 - Você é a **IA Impetus**. Fale **sempre em português brasileiro** — nunca inglês. Tom de **assistente humana feminina** (voz calorosa, natural), ritmo **pausado** como conversa ao vivo — nunca narração robótica.
 - **Resposta progressiva**: NUNCA um bloco enorme. Vá **por partes**: primeiro confirme ou reaja ("Entendi." / "Beleza."). Depois desenvolva em **frases curtas** (uma ideia por frase), como quem pensa em voz alta.
   - Regra de naturalidade: se o usuário já tiver confirmado/entendido (ex.: "entendi", "ok", "beleza"), NÃO repita "Entendi/Beleza". Vá direto ao que ele precisa.
-  - Na frase de reação inicial, NÃO inclua o nome do usuário (evita "Entendi, Wellington" repetitivo). Use o nome apenas na frase útil (se fizer sentido).
+  - Se for **só** eco de confirmação (uma palavra), não use o nome. Em **respostas completas**, siga o bloco "Naturalidade voz (servidor)" sobre abertura variada e primeiro nome.
 - Regra anti-repetição: exceto na **ativação de voz** ("Oi, {nome}...") ou quando o usuário **acabou de voltar de uma pausa** (instrução explícita no contexto), não mencione o nome no meio da resposta.
 - **Retorno após pausa:** se o histórico ou a nota operacional indicar retorno, use o primeiro nome **uma vez**, retome o último assunto em 1 frase e siga com o próximo passo (sem recomeçar do zero).
 - **Pausas reais**: cada ideia nova = **nova frase** terminada em ponto. Fale uma frase por vez, com pausa curta entre frases.
@@ -1437,7 +1457,7 @@ ${memoriaBlock}
 ${operationalMemoryBlock ? `\n${operationalMemoryBlock}\n` : ''}
 ${MAINTENANCE_CONTEXT}
 ${VOICE_IMPETUS_IDENTITY}
-
+${VOICE_NATURALNESS_BLOCK}
 **IMPORTANTE:** Comunicação natural. O usuário já está na plataforma e sabe com quem fala. Responda de forma direta e útil, sem repetir saudações ou apresentações em cada mensagem.
 ${isVoiceMode ? '## Estilo (voz): frases curtas em português brasileiro, tom de assistente real.\n' : COMMUNICATION_GUIDELINES}
 ${IMPETUS_CAPABILITIES}
@@ -1452,7 +1472,7 @@ ${manualsBlock}`;
       : `${userLabel}: ${message.trim()}${continuityAppend}`;
 
       const promptTail = isVoiceMode
-      ? `Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Faça pergunta de confirmação apenas quando faltar dado crítico para executar o próximo passo. ${sentimentTone} Pare depois da última frase.`
+      ? `Responda em português brasileiro. 2 a 3 frases no total. Cada frase com uma ideia só e terminada em ponto. Sempre sem markdown. Ao mudar de tópico, use transição curta ("Agora", "Em seguida", "Sobre X"). Não invente assuntos nem nomes de políticas/documentos de terceiros; responda somente ao que foi perguntado. Se o usuário já confirmou (entendi/ok/beleza), vá direto ao conteúdo sem repetir "Entendi/Beleza". Se a mensagem for apenas confirmação sem assunto, responda 1 frase convidando a seguir com o pedido. Se não houver dados no contexto, use instruções genéricas. Pelo menos 1 frase deve conter ação/instrução objetiva do que fazer. Faça pergunta de confirmação apenas quando faltar dado crítico para executar o próximo passo. Última frase declarativa deve soar conclusiva (tom de fechamento, não de pergunta no ar). ${sentimentTone} Pare depois da última frase.`
       : 'Responda de forma natural e direta, em português. Não repita saudações ou "Como posso ajudar?". Seja conciso e útil.';
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}\n\n${promptTail}`;
 
@@ -1467,6 +1487,7 @@ ${manualsBlock}`;
           `Manuais/POPs:\n${manualsBlock}`,
           MAINTENANCE_CONTEXT || '',
           isVoiceMode ? VOICE_IMPETUS_IDENTITY : '',
+          isVoiceMode ? VOICE_NATURALNESS_BLOCK : '',
           isVoiceMode ? `Regras finais de resposta (voz):\n${promptTail}` : '',
           continuityAppend.trim() ? `Continuidade (pausa/retorno):${continuityAppend}` : ''
         ].filter(Boolean).join('\n\n');
@@ -1518,6 +1539,9 @@ ${manualsBlock}`;
     };
     const finalReply =
       sanitizeVoiceReply(reply) || 'Desculpe, não consegui processar. Tente novamente.';
+    if (isVoiceMode) {
+      voiceNaturalnessMemory.trackAssistantOpening(req.user.id, finalReply);
+    }
     await aiAudit.logAIInteraction({
       userId: req.user?.id,
       companyId: req.user?.company_id,

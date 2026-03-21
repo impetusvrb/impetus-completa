@@ -26,6 +26,17 @@ function voiceIoBase() {
 
 const STOP_WORDS = /^(parar|para|desligar|sair|stop)\b/i;
 
+function getStoredUserDisplayName() {
+  try {
+    const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    const n = String(u?.name || u?.full_name || '').trim();
+    if (!n) return '';
+    return n.split(/\s+/)[0] || '';
+  } catch {
+    return '';
+  }
+}
+
 /** Só ativação ("Ok, Impetus" / "Ok Impetus" / …) — sem pergunta extra */
 function isOnlyActivationPhrase(t) {
   const s = String(t || '')
@@ -959,6 +970,7 @@ export function useVoiceEngine(options = {}) {
     const ac = new AbortController();
     ttsAbortControllerRef.current = ac;
     try {
+      const userDisplayName = getStoredUserDisplayName();
       const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
         method: 'POST',
         headers: authHeaders(),
@@ -967,6 +979,7 @@ export function useVoiceEngine(options = {}) {
           text: pronunciationText,
           voice: voiceIdRef.current,
           speed: effectiveSpeed,
+          ...(userDisplayName ? { userDisplayName } : {}),
           ...(meta?.sentimentContext ? { sentimentContext: meta.sentimentContext } : {})
         })
       });

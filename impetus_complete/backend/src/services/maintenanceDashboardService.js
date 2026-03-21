@@ -15,13 +15,86 @@ async function safeQuery(sql, params, defaultValue = { rows: [{ total: 0, c: 0 }
   }
 }
 
+const MTBF_MTTR_DAYS = 30;
+const MTBF_MTTR_DEF = { rows: [{ mttr_h: null, n: 0 }] };
+
+/**
+ * Calcula MTBF (Mean Time Between Failures) e MTTR (Mean Time to Repair)
+ * MTBF (h): período em horas / número de falhas (últimos 30 dias)
+ * MTTR (h): média do tempo de reparo em horas
+ * Usa work_orders, technical_interventions e equipment_failures com safeQuery
+ */
+async function getMTBFandMTTR(companyId) {
+  const periodHours = MTBF_MTTR_DAYS * 24;
+  let mtbf = null;
+  let mttr = null;
+
+  // MTTR: work_orders com started_at e completed_at (mais preciso)
+  const mttrFromWO = await safeQuery(`
+    SELECT ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - COALESCE(started_at, created_at))) / 3600)::numeric, 1) as mttr_h,
+           COUNT(*) as n
+    FROM work_orders
+    WHERE company_id = $1 AND status IN ('resolved', 'closed')
+      AND completed_at IS NOT NULL AND (started_at IS NOT NULL OR created_at IS NOT NULL)
+      AND completed_at > COALESCE(started_at, created_at)
+      AND created_at >= now() - interval '${MTBF_MTTR_DAYS} days'
+  `, [companyId], MTBF_MTTR_DEF);
+  if (mttrFromWO.rows[0]?.n > 0 && mttrFromWO.rows[0].mttr_h != null) {
+    mttr = parseFloat(mttrFromWO.rows[0].mttr_h);
+  }
+
+  // MTTR fallback: technical_interventions.execution_minutes
+  if (mttr == null || isNaN(mttr)) {
+    const mttrFromTI = await safeQuery(`
+      SELECT ROUND(AVG(execution_minutes) / 60.0, 1) as mttr_h, COUNT(*) as n
+      FROM technical_interventions
+      WHERE company_id = $1 AND execution_minutes > 0
+        AND intervention_date >= now() - interval '${MTBF_MTTR_DAYS} days'
+    `, [companyId], MTBF_MTTR_DEF);
+    if (mttrFromTI.rows[0]?.n > 0 && mttrFromTI.rows[0].mttr_h != null) {
+      mttr = parseFloat(mttrFromTI.rows[0].mttr_h);
+    }
+  }
+
+  // MTTR fallback: equipment_failures (resolved_at - reported_at)
+  if (mttr == null || isNaN(mttr)) {
+    const mttrFromEF = await safeQuery(`
+      SELECT ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at - reported_at)) / 3600)::numeric, 1) as mttr_h, COUNT(*) as n
+      FROM equipment_failures
+      WHERE company_id = $1 AND resolved_at IS NOT NULL AND resolved_at > reported_at
+        AND reported_at >= now() - interval '${MTBF_MTTR_DAYS} days'
+    `, [companyId], MTBF_MTTR_DEF);
+    if (mttrFromEF.rows[0]?.n > 0 && mttrFromEF.rows[0].mttr_h != null) {
+      mttr = parseFloat(mttrFromEF.rows[0].mttr_h);
+    }
+  }
+
+  // MTBF: falhas nos últimos N dias
+  const failuresCount = await safeQuery(`
+    SELECT (
+      (SELECT COUNT(*) FROM equipment_failures WHERE company_id = $1 AND reported_at >= now() - interval '${MTBF_MTTR_DAYS} days')
+      +
+      (SELECT COUNT(*) FROM technical_interventions WHERE company_id = $1 AND intervention_date >= now() - interval '${MTBF_MTTR_DAYS} days')
+    ) as total
+  `, [companyId], { rows: [{ total: 0 }] });
+  const numFailures = parseInt(failuresCount.rows[0]?.total || 0);
+  if (numFailures > 0) {
+    mtbf = Math.round((periodHours / numFailures) * 10) / 10;
+  }
+
+  return {
+    mtbf: mtbf != null && !isNaN(mtbf) ? mtbf : null,
+    mttr: mttr != null && !isNaN(mttr) ? mttr : null
+  };
+}
+
 /**
  * Resumo técnico do dia (cabeçalho)
  */
 async function getTechnicalSummary(companyId, userId) {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [osOpen, preventivesToday, machinesAttention, interventionsToday, callsWaiting] = await Promise.all([
+  const [osOpen, preventivesToday, machinesAttention, interventionsToday, callsWaiting, mtbfMttr] = await Promise.all([
     safeQuery(`
       SELECT COUNT(*) as total FROM work_orders
       WHERE company_id = $1 AND status IN ('open', 'in_progress', 'waiting_parts', 'waiting_support')
@@ -44,7 +117,8 @@ async function getTechnicalSummary(companyId, userId) {
     safeQuery(`
       SELECT COUNT(*) as total FROM work_orders
       WHERE company_id = $1 AND status = 'waiting_support' AND assigned_to = $2
-    `, [companyId, userId])
+    `, [companyId, userId]),
+    getMTBFandMTTR(companyId)
   ]);
 
   const osAbertas = parseInt(osOpen.rows[0]?.total || 0);
@@ -67,7 +141,12 @@ async function getTechnicalSummary(companyId, userId) {
     chamados_aguardando_apoio: aguardandoApoio,
     frase_resumo: parts.length > 0
       ? `Hoje você tem ${parts.join(', ')}.`
-      : 'Nenhuma pendência técnica no momento.'
+      : 'Nenhuma pendência técnica no momento.',
+    mtbf: mtbfMttr.mtbf ?? null,
+    mttr: mtbfMttr.mttr ?? null,
+    MTBF: mtbfMttr.mtbf ?? null,
+    MTTR: mtbfMttr.mttr ?? null,
+    work_orders_open: osAbertas
   };
 }
 

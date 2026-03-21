@@ -15,10 +15,21 @@ export async function alertaIA(mensagem) {
   const texto = mensagem.trim().slice(0, 4000);
   if (!texto) return;
   try {
+    let userDisplayName = '';
+    try {
+      const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+      const full = String(u?.name || u?.full_name || '').trim();
+      userDisplayName = full ? full.split(/\s+/)[0] : '';
+    } catch (_) {}
     const res = await fetch(`${API_BASE}/dashboard/chat/voice/speak`, {
       method: 'POST',
       headers: authHeadersJson(),
-      body: JSON.stringify({ text: texto, voice: 'nova', speed: 1 })
+      body: JSON.stringify({
+        text: texto,
+        voice: 'nova',
+        speed: 1,
+        ...(userDisplayName ? { userDisplayName } : {})
+      })
     });
     if (!res.ok) return;
     const blob = await res.blob();

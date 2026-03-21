@@ -271,6 +271,9 @@ export const dashboard = {
   putVoicePreferences: (body) => api.put('/dashboard/chat/voice/preferences', body),
   formatVoiceAlert: (alert_data) =>
     api.post('/dashboard/chat/voice/format-alert', { alert_data }),
+  /** TTS boas-vindas SSML (variant full|short, userDisplayName, spellName opcional) */
+  speakWelcome: (body = {}) =>
+    api.post('/dashboard/chat/voice/welcome', body, { responseType: 'arraybuffer' }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),

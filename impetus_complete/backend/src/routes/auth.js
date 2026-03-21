@@ -80,7 +80,9 @@ router.post('/login', async (req, res) => {
         role_verified: user.role_verified === true,
         role_verification_status: user.role_verification_status || 'pending',
         is_company_root: user.is_company_root === true,
-        needs_role_verification: needsVerification
+        needs_role_verification: needsVerification,
+        functional_area: user.functional_area || null,
+        dashboard_profile: user.dashboard_profile || null
       }
     });
 

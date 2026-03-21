@@ -29,7 +29,7 @@ export default function ImpetusVoiceProvider({ children }) {
   const voiceEnabled = hasToken && isVoiceRoute;
 
   const chatRound = useCallback(async (text) => {
-    const history = voiceHistoryRef.current.slice(-6);
+    const history = voiceHistoryRef.current.slice(-12);
     const t = String(text || '');
     const tl = t.toLowerCase();
     const inferSentimentContext = () => {
@@ -58,7 +58,7 @@ export default function ImpetusVoiceProvider({ children }) {
       { role: 'user', content: String(text || '').slice(0, 2000) },
       { role: 'assistant', content: String(reply || '').slice(0, 2000) }
     ];
-    voiceHistoryRef.current = next.slice(-10);
+    voiceHistoryRef.current = next.slice(-14);
     return { reply, sentimentContext };
   }, []);
 
