@@ -163,6 +163,19 @@ export function getLayoutPorCargo(role = '', department = '') {
     ];
   }
 
+  // Auxiliar de produção / Colaborador — foco em tarefas, instruções, produção do turno
+  const isAuxiliarProducao = r.includes('colaborador') || r.includes('auxiliar') || r.includes('operador');
+  if (isAuxiliarProducao && (d.includes('produ') || d.includes('oper') || !d)) {
+    return [
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Meus indicadores', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas do turno', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo do dia', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Pergunte à IA', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.OPERACOES, label: 'Operações', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights', position: pos(2, 2, 2) }
+    ];
+  }
+
   // Default (operador/colaborador)
   return [
     { id: WIDGET_IDS.KPI_CARDS, label: 'Meus indicadores', position: pos(0, 0, 2) },

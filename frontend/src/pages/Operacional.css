@@ -94,6 +94,22 @@
   color: #7c3aed;
 }
 
+.operacional-card--green {
+  border-left-color: #16a34a;
+}
+
+.operacional-card--green .operacional-card-icon {
+  color: #16a34a;
+}
+
+.operacional-card--indigo {
+  border-left-color: #4f46e5;
+}
+
+.operacional-card--indigo .operacional-card-icon {
+  color: #4f46e5;
+}
+
 .operacional-card-icon {
   flex-shrink: 0;
   width: 56px;

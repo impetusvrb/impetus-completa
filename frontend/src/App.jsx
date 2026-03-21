@@ -51,6 +51,11 @@ const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
 const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
 const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
 const ManuIA = lazy(() => import('./pages/ManuIA'));
+const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
+const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
+const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
+const AlmoxarifadoInteligente = lazy(() => import('./pages/AlmoxarifadoInteligente'));
+const LogisticaInteligente = lazy(() => import('./pages/LogisticaInteligente'));
 
 function needSetup() {
   try {
@@ -80,26 +85,27 @@ function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !allowedRoles.includes(role)) {
     // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
-    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app/proacao' };
-    return <Navigate to={defaults[role] || '/app/proacao'} replace />;
+    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app/operacional', auxiliar_producao: '/app/operacional', operador: '/app/operacional', auxiliar: '/app/operacional' };
+    return <Navigate to={defaults[role] || '/app/operacional'} replace />;
   }
   return children;
 }
 
-// Colaborador só acessa Pró-Ação (sem dashboard)
+// Colaborador / Auxiliar de produção / Operador — acessa painel operacional
 function isColaborador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return (user.role || '').toString().toLowerCase() === 'colaborador';
+    const role = (user.role || '').toString().toLowerCase();
+    return ['colaborador', 'auxiliar_producao', 'operador', 'auxiliar'].includes(role);
   } catch {
     return false;
   }
 }
 
-// Redireciona colaborador para Pró-Ação ao tentar acessar rotas restritas
+// Redireciona colaborador (auxiliar de produção) para o painel operacional ao tentar acessar rotas restritas
 function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
-  return <Navigate to="/app/proacao" replace />;
+  return <Navigate to="/app/operacional" replace />;
 }
 
 // CEO só acessa /app (Visão Executiva) — bloqueia admin, settings, operacional, etc.
@@ -239,6 +245,21 @@ export default function App() {
 
         <Route path="/app/manutencao/manuia" element={
           <PrivateRoute><SetupGuard><ManuIA /></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-previsao-operacional" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><CentroPrevisaoOperacional /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-custos-industriais" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><CentroCustosExecutivo /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/mapa-vazamento-financeiro" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><MapaVazamentoFinanceiro /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/almoxarifado-inteligente" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AlmoxarifadoInteligente /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/logistica-inteligente" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><LogisticaInteligente /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         
         <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />

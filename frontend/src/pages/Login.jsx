@@ -57,8 +57,8 @@ export default function Login() {
         navigate('/app/chatbot');
         return;
       }
-      if (userRole === 'colaborador') {
-        navigate('/app/proacao');
+      if (['colaborador', 'auxiliar_producao', 'operador'].includes(userRole)) {
+        navigate('/app/operacional');
         return;
       }
       navigate('/app');

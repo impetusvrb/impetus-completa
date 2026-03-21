@@ -1,20 +1,22 @@
 /**
- * INTERFACE OPERACIONAL - FASE 4
- * Visão focada para o chão de fábrica
- * Acesso rápido às principais operações do dia
+ * PAINEL DO AUXILIAR DE PRODUÇÃO
+ * Interface focada nas atividades do chão de fábrica
+ * Acesso rápido: Pró-Ação, instruções, registro e suporte
  */
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Lightbulb, Wrench, MapPin, ChevronRight, Zap } from 'lucide-react';
+import { Lightbulb, FolderOpen, FileEdit, Wrench, MessageSquare, MapPin, ChevronRight, ClipboardList } from 'lucide-react';
 import Layout from '../components/Layout';
 import './Operacional.css';
 
 const OPERACIONAL_CARDS = [
-  { path: '/app/chatbot', icon: MessageSquare, title: 'Comunicações', description: 'Chatbot e mensagens operacionais', color: 'blue' },
-  { path: '/proposals', icon: Lightbulb, title: 'Pró-Ação', description: 'Propostas de melhoria contínua', color: 'teal' },
-  { path: '/diagnostic', icon: Wrench, title: 'Diagnóstico', description: 'Manutenção assistida por IA', color: 'orange' },
-  { path: '/app/monitored-points', icon: MapPin, title: 'Pontos Monitorados', description: 'Monitoramento de equipamentos', color: 'purple' }
+  { path: '/app/proacao', icon: Lightbulb, title: 'Pró-Ação', description: 'Envie propostas de melhoria e acompanhe as suas sugestões', color: 'teal' },
+  { path: '/app/biblioteca', icon: FolderOpen, title: 'Instruções e Procedimentos', description: 'Manuais, POPs e procedimentos operacionais', color: 'blue' },
+  { path: '/app/registro-inteligente', icon: FileEdit, title: 'Registro de Atividades', description: 'Registre suas atividades e ocorrências do turno', color: 'purple' },
+  { path: '/diagnostic', icon: Wrench, title: 'Reportar Problema', description: 'Assistência da IA para diagnosticar falhas e equipamentos', color: 'orange' },
+  { path: '/app/chatbot', icon: MessageSquare, title: 'Impetus IA', description: 'Tire dúvidas e consulte informações com a IA', color: 'green' },
+  { path: '/app/monitored-points', icon: MapPin, title: 'Pontos Monitorados', description: 'Status dos equipamentos e pontos de controle', color: 'indigo' }
 ];
 
 export default function Operacional() {
@@ -23,10 +25,10 @@ export default function Operacional() {
       <div className="operacional-container">
         <div className="operacional-header">
           <div className="operacional-title-group">
-            <Zap size={28} className="operacional-icon" />
+            <ClipboardList size={28} className="operacional-icon" />
             <div>
-              <h1 className="operacional-title">Interface Operacional</h1>
-              <p className="operacional-subtitle">Acesso rápido às operações do dia</p>
+              <h1 className="operacional-title">Painel do Auxiliar de Produção</h1>
+              <p className="operacional-subtitle">Suas atividades, instruções e ferramentas do dia</p>
             </div>
           </div>
         </div>
@@ -46,7 +48,7 @@ export default function Operacional() {
           })}
         </div>
         <div className="operacional-footer">
-          <p>Use o menu lateral para acessar o Dashboard completo, Gestão de Usuários e Configurações.</p>
+          <p>Use o menu lateral para acessar Pró-Ação, Instruções, Registro de Atividades e a IA Impetus.</p>
         </div>
       </div>
     </Layout>

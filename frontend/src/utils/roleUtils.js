@@ -18,11 +18,13 @@ export function isMaintenanceProfile(user) {
 
 /**
  * Mapeia role/profile para chave de menu do Layout (admin, diretor, gerente, coordenador, supervisor, colaborador, ceo)
+ * Auxiliar de produção = colaborador (mesmo menu e painel)
  */
 export function resolveMenuRole(user) {
   if (!user) return 'colaborador';
   const role = (user.role || '').toLowerCase();
   const profile = (user.dashboard_profile || '').toLowerCase();
+  const jobTitle = (user.job_title || '').toLowerCase();
 
   if (role === 'admin' || profile === 'admin_system') return 'admin';
   if (role === 'ceo' || profile === 'ceo_executive') return 'ceo';
@@ -30,6 +32,7 @@ export function resolveMenuRole(user) {
   if (role.includes('gerente') || role.includes('manager') || profile.includes('manager_')) return 'gerente';
   if (role.includes('coordenador') || role.includes('coordinator') || profile.includes('coordinator_')) return 'coordenador';
   if (role.includes('supervisor') || profile.includes('supervisor_')) return 'supervisor';
+  if (role.includes('auxiliar') || role.includes('operador') || jobTitle.includes('auxiliar') || jobTitle.includes('aux. produ')) return 'colaborador';
 
   return 'colaborador';
 }

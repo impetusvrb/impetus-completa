@@ -19,6 +19,7 @@ const PATH_TO_MODULE = {
   '/app/cerebro-operacional': 'operational',
   '/app/centro-operacoes-industrial': 'operational',
   '/app/centro-previsao-operacional': 'operational',
+  '/app/centro-custos-industriais': 'operational',
   '/app/mapa-vazamento-financeiro': 'operational',
   '/app/almoxarifado-inteligente': 'warehouse_intelligence',
   '/app/logistica-inteligente': 'logistics_intelligence',
