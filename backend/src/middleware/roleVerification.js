@@ -53,8 +53,12 @@ function requireRoleVerified(req, res, next) {
   }
 
   const isGet = req.method === 'GET';
-  const allowedBasicPaths = ['/dashboard/industrial/status', '/dashboard/industrial/events', '/dashboard/industrial/profiles'];
-  const pathNorm = path.replace(/^\/api/, '');
+  const allowedBasicPaths = [
+    '/dashboard/industrial/status', '/dashboard/industrial/events', '/dashboard/industrial/profiles',
+    '/dashboard/me',
+    '/dashboard/maintenance'
+  ];
+  const pathNorm = (req.path || path || '').replace(/^\/api/, '');
   if (isGet && allowedBasicPaths.some(ap => pathNorm.includes(ap))) {
     return next();
   }

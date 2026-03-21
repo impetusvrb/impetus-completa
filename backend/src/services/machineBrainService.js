@@ -14,13 +14,16 @@ async function listProfiles(companyId) {
   if (!companyId) return [];
 
   // 1. machine_monitoring_config (configuração explícita)
+  // LIMIT 1000: evita sobrecarga em empresas com milhares de equipamentos
+  const MACHINE_PROFILES_LIMIT = parseInt(process.env.MACHINE_PROFILES_LIMIT, 10) || 1000;
   try {
     const r1 = await db.query(`
       SELECT machine_identifier, machine_name, line_name
       FROM machine_monitoring_config
       WHERE company_id = $1 AND enabled = true
       ORDER BY line_name NULLS LAST, machine_identifier
-    `, [companyId]);
+      LIMIT $2
+    `, [companyId, MACHINE_PROFILES_LIMIT]);
     if (r1.rows?.length) return r1.rows;
   } catch (e) {
     if (!e.message?.includes('does not exist')) console.warn('[MACHINE_BRAIN] machine_monitoring_config:', e?.message);

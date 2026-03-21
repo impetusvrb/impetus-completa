@@ -47,23 +47,26 @@ function splitIntoSpeechChunks(text) {
     .replace(/\*\*/g, '')
     .replace(/#{1,6}\s/g, '')
     .replace(/\r\n?/g, '\n')
+    // Normaliza elipses (três pontos) para o caractere único que a gente já trata como pausa.
+    .replace(/\.{3,}/g, '…')
     // Mantém \n como fronteira de pausa; normaliza apenas espaços/tabs.
     .replace(/[ \t]+/g, ' ')
     .trim();
   if (!t) return [];
   // Divide por fim de frase OU por linha em branco/linha.
   const raw = t
-    .split(/(?<=[.!?…])\s+|\n+/)
+    // Quebra por final de sentença e também por linhas em branco.
+    .split(/(?<=[.!?…;:])\s+|\n+/)
     .map((x) => x.trim())
     .filter(Boolean);
   const chunks = [];
   for (const s of raw) {
-    if (s.length <= 130) chunks.push(s);
-    else {
-      s.split(/,\s+/).forEach((part) => {
-        const p = part.trim();
-        if (p) chunks.push(p.length > 150 ? `${p.slice(0, 147)}...` : p);
-      });
+    // Sempre trata vírgula como fronteira de pausa (evita “bloco único” quando não há ponto).
+    const commaParts = s.split(/,\s+/).map((p) => p.trim()).filter(Boolean);
+    const parts = commaParts.length ? commaParts : [s];
+    for (const part of parts) {
+      if (part.length <= 130) chunks.push(part);
+      else chunks.push(part.length > 150 ? `${part.slice(0, 147)}…` : part);
     }
   }
   return chunks.length ? chunks : [t.slice(0, 400)];
@@ -99,6 +102,184 @@ function lightweightCadencePauseMs(chunkText) {
   if (/[.!?…]$/.test(s)) return Math.max(70, 130 + jitter()); // fim de frase
   if (/[—–]$/u.test(s)) return Math.max(40, 75 + jitter());
   return Math.max(30, 50 + jitter());
+}
+
+function antiGagueira(text) {
+  let t = String(text || '').trim();
+  // Colapsa repetições do tipo "eu... eu" / "tô tô" / "bom bom"
+  t = t
+    .replace(/\b(eu|ah|é|uai|tá)\b\s*[.!?,;:\s…-]*\b(eu|ah|é|uai|tá)\b/gi, '$1')
+    .replace(
+      /\b([A-Za-zÀ-ÖØ-öø-ÿ]+)\b\s*[.!?,;:\s…-]+\s*\1\b/gi,
+      '$1'
+    )
+    // Remove início travado "eu..." para evitar sensação de indecisão
+    .replace(/^\s*(?:eu|ah|é|uai|tá)\s*[.!?,;:\s…-]*/i, '');
+  return t.trim();
+}
+
+function adaptarParaConversa(pergunta, resposta) {
+  const q = String(pergunta || '').toLowerCase();
+  const r = String(resposta || '').trim();
+  if (!r) return r;
+
+  // Evita prefixar de novo se a resposta já veio com lead-in.
+  if (/^(certo|deixa eu ver|já estou vendo|entendi|olha só|já vi aqui|beleza)\b/i.test(r)) {
+    return r;
+  }
+
+  if (q.includes('?')) return `Deixa eu ver isso... ${r}`;
+  if (q.includes('verifica') || q.includes('checa') || q.includes('checar')) {
+    return `Já estou vendo isso pra você... ${r}`;
+  }
+  if (q.includes('erro') || q.includes('problema') || q.includes('falha')) {
+    return `Entendi... deixa eu analisar isso... ${r}`;
+  }
+  return `Certo... ${r}`;
+}
+
+function prepareVoiceFinal(text, meta = {}) {
+  const userText = meta?.userText;
+  let t = String(text || '').trim();
+  if (!t) return t;
+
+  // “Conversa” (lead-in) só quando temos a pergunta.
+  if (userText) {
+    t = adaptarParaConversa(userText, t);
+  }
+
+  // Anti-gagueira depois do lead-in.
+  t = antiGagueira(t);
+  return t;
+}
+
+function variacaoHumana(texto) {
+  let t = String(texto || '');
+  // Variar pausa das elipses (antes do chunking do TTS).
+  t = t.replace(/\.{3,}/g, () => {
+    const opcoes = ['...', '...\n', '...\n\n'];
+    return opcoes[Math.floor(Math.random() * opcoes.length)];
+  });
+  // Se já existirem elipses curvadas, variar também.
+  t = t.replace(/…/g, () => {
+    const opcoes = ['…', '…\n', '…\n\n'];
+    return opcoes[Math.floor(Math.random() * opcoes.length)];
+  });
+  return t;
+}
+
+function imperfeicaoNatural(texto, prob = 0.22) {
+  const t = String(texto || '').trim();
+  if (!t) return t;
+  if (Math.random() >= prob) return t;
+  // Evita “empilhar” imperfeição no início.
+  if (/^(deixa eu ver|já estou|já vi aqui|entendi|certo|olha só|é\.\.\.)/i.test(t)) return t;
+  return `é... ${t}`;
+}
+
+function splitIntoVoiceParts(texto) {
+  const t = String(texto || '').trim();
+  if (!t) return [];
+
+  const chunks = splitIntoSpeechChunks(t);
+  if (chunks.length <= 4) return [t];
+
+  // Partes menores para evitar sensação de “resposta pronta → leitura”.
+  const maxFirst = 105;
+  const maxOther = 120;
+
+  const parts = [];
+  let cur = '';
+
+  const push = () => {
+    const x = String(cur || '').trim();
+    if (x) parts.push(x);
+    cur = '';
+  };
+
+  for (const ch of chunks) {
+    const next = cur ? `${cur} ${ch}` : ch;
+    const maxLen = parts.length === 0 ? maxFirst : maxOther;
+    if (next.trim().length <= maxLen) {
+      cur = next;
+    } else {
+      push();
+      cur = ch;
+    }
+  }
+  push();
+
+  // Se ainda ficou curto demais, força pelo menos 3 partes em respostas longas.
+  if (parts.length < 3 && t.length > 180) {
+    const biggestIdx = parts
+      .map((p, i) => ({ p: String(p), i, len: String(p).length }))
+      .sort((a, b) => b.len - a.len)[0]?.i;
+    if (biggestIdx != null && parts[biggestIdx]) {
+      const p = parts[biggestIdx];
+      const mid = Math.floor(p.length / 2);
+      const cut = p.lastIndexOf(' ', mid);
+      const a = p.slice(0, cut > 30 ? cut : mid).trim();
+      const b = p.slice(cut > 30 ? cut : mid).trim();
+      if (a && b) parts.splice(biggestIdx, 1, a, b);
+    }
+  }
+
+  // Limita pra no máximo 4 partes (pra não ficar “picotado” demais).
+  if (parts.length > 4) {
+    const head = parts.slice(0, 3);
+    const tail = parts.slice(3).join(' ');
+    parts.splice(0, parts.length, ...head, tail);
+  }
+
+  return parts.length ? parts.map((x) => String(x).trim()).filter(Boolean) : [t];
+}
+
+function injectReactionIntoPart(partText, sentimentContext, kind = 'generic') {
+  const t = String(partText || '').trim();
+  if (!t) return t;
+  if (/^(certo|entendi|deixa eu ver|já estou|já vi aqui|olha só|perfeito|ótimo|boa|então)\b/i.test(t)) return t;
+
+  const s = String(sentimentContext?.sentiment || sentimentContext || '').toLowerCase();
+  let reactions = ['certo', 'entendi', 'deixa eu ver', 'já vi aqui', 'olha só'];
+
+  if (kind === 'attention') reactions = ['olha só', 'já vi aqui', 'vê bem'];
+  if (kind === 'positive') reactions = ['perfeito', 'ótimo', 'boa'];
+  if (kind === 'negative') reactions = ['entendi', 'certo', 'vamos corrigir'];
+  if (kind === 'urgent') reactions = ['entendi', 'tá', 'vamos já', 'foco'];
+
+  if (s === 'urgente') reactions = reactions.concat(['vamos no ponto', 'agora já']);
+  if (s === 'positivo') reactions = ['perfeito', 'ótimo', 'boa'];
+  if (s === 'negativo') reactions = ['certo', 'entendi', 'vamos corrigir'];
+
+  const r = reactions[Math.floor(Math.random() * reactions.length)];
+  return `${r}... ${t}`;
+}
+
+function injectReactionAfterFirstSentence(text, sentimentContext) {
+  const s = String(sentimentContext?.sentiment || sentimentContext || '').toLowerCase().trim();
+  const t = String(text || '').trim();
+  if (!t) return t;
+
+  // Se não tiver fronteira clara, apenas retorna (já temos lead-in em adaptarParaConversa).
+  const m = t.match(/^(.*?[.!?…])(\s+)([\s\S]*)$/);
+  if (!m) return t;
+
+  const before = m[1];
+  const rest = String(m[3] || '').trim();
+  if (!rest) return t;
+
+  // Não injeta reação se o começo do restante já parece “reação”.
+  if (/^(certo|entendi|deixa eu ver|já estou|já vi aqui|olha só|perfeito|ótimo|boa)\b/i.test(rest)) return t;
+
+  let kind = 'generic';
+  if (s === 'urgente') kind = 'urgent';
+  if (s === 'positivo') kind = 'positive';
+  if (s === 'negativo') kind = 'negative';
+  // Pequena “atenção” extra no meio pra quebrar monotonia.
+  if (s === 'neutro' || !s) kind = 'attention';
+
+  const r = injectReactionIntoPart(rest, sentimentContext, kind);
+  return `${before} ${r}`;
 }
 
 function authHeaders() {
@@ -648,11 +829,28 @@ export function useVoiceEngine(options = {}) {
     const audioBuf = await ctx.decodeAudioData(arrayBuffer.slice(0));
     const src = ctx.createBufferSource();
     src.buffer = audioBuf;
-    // Destino + Analyser (lip-sync Nível B)
+    // Pós-processamento leve pra aumentar presença (dinâmica) e evitar “distância”
+    // sem depender de ffmpeg/sox no servidor.
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 512;
-    src.connect(ctx.destination);
+
+    // Compressor + ganho (para soar mais presente e “menos sala morta”).
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = parseFloat(import.meta.env.VITE_VOICE_COMP_THRESHOLD) || -26;
+    compressor.knee.value = parseFloat(import.meta.env.VITE_VOICE_COMP_KNEE) || 24;
+    compressor.ratio.value = parseFloat(import.meta.env.VITE_VOICE_COMP_RATIO) || 5;
+    compressor.attack.value = parseFloat(import.meta.env.VITE_VOICE_COMP_ATTACK) || 0.003;
+    compressor.release.value = parseFloat(import.meta.env.VITE_VOICE_COMP_RELEASE) || 0.25;
+
+    const outGain = ctx.createGain();
+    // Multiplicador linear (ex.: 2 => +6dB aprox). Ajustável por env.
+    outGain.gain.value = parseFloat(import.meta.env.VITE_VOICE_OUTPUT_GAIN) || 2.2;
+
+    // Lip-sync usa apenas análise; áudio real passa pelo compressor+ganho.
     src.connect(analyser);
+    src.connect(compressor);
+    compressor.connect(outGain);
+    outGain.connect(ctx.destination);
     sourceRef.current = src;
     setVoiceState((s) => ({ ...s, status: 'speaking' }));
     showBadge(pickSpeakingPhrase());
@@ -745,7 +943,7 @@ export function useVoiceEngine(options = {}) {
     });
   }, [showBadge]);
 
-  const fetchSpeakAudio = useCallback(async (text) => {
+  const fetchSpeakAudio = useCallback(async (text, meta = {}) => {
     const clean = String(text || '')
       .replace(/[*_`#]/g, '')
       .replace(/\r\n?/g, '\n')
@@ -768,7 +966,8 @@ export function useVoiceEngine(options = {}) {
         body: JSON.stringify({
           text: pronunciationText,
           voice: voiceIdRef.current,
-          speed: effectiveSpeed
+          speed: effectiveSpeed,
+          ...(meta?.sentimentContext ? { sentimentContext: meta.sentimentContext } : {})
         })
       });
       if (!res.ok) {
@@ -799,118 +998,49 @@ export function useVoiceEngine(options = {}) {
   );
 
   const speakNaturalReply = useCallback(
-    async (reply) => {
+    async (reply, meta = {}) => {
       speakAbortedRef.current = false;
       const full = String(reply || '').trim();
       if (!full) return;
 
-      const pronunciationFull = applyPronunciation(full);
+      const sentimentContext = meta?.sentimentContext || null;
 
-      const useWs = import.meta.env.VITE_VOICE_WEBSOCKET !== 'false';
-      if (useWs) {
-        const socket = await ensureVoiceSocket();
-        if (socket?.connected) {
-          const queue = [];
-          let streamDone = false;
-          let notify = null;
-          let mp3Count = 0;
-          // typing: reseta texto e cresce conforme chunks chegam (opção B)
-          ttsTargetRef.current = '';
-          setTtsUi((u) => ({ ...u, speechText: '', targetText: '', isTyping: false }));
-          const onMp3 = (p) => {
-            mp3Count++;
-            queue.push(p);
-            notify?.();
-          };
-          const onEnd = () => {
-            streamDone = true;
-            notify?.();
-          };
-          const onAbort = () => {
-            speakAbortedRef.current = true;
-            notify?.();
-          };
-          socket.on('voice:mp3', onMp3);
-          socket.once('voice:stream_end', onEnd);
-          socket.once('voice:stream_aborted', onAbort);
-          socket.emit('voice:speak_stream', {
-            text: pronunciationFull,
-            voice: voiceIdRef.current,
-            speed: continuousRef.current ? CONTINUOUS_SPEED_OVERRIDE : speedRef.current
-          });
+      // Pipeline: lead-in + anti-gagueira + variações + “fala em partes”.
+      let preparedFull = prepareVoiceFinal(full, meta);
+      preparedFull = variacaoHumana(preparedFull);
 
-          const wsDeadline = Date.now() + 120000;
-          while (
-            Date.now() < wsDeadline &&
-            !speakAbortedRef.current &&
-            (queue.length > 0 || !streamDone)
-          ) {
-            while (!queue.length && !streamDone && !speakAbortedRef.current) {
-              await new Promise((r) => {
-                notify = r;
-                // Poll curto para reduzir gap entre chunks quando há jitter de rede.
-                setTimeout(r, 60);
-              });
-            }
-            if (speakAbortedRef.current) break;
-            const item = queue.shift();
-            if (!item) {
-              if (streamDone) break;
-              continue;
-            }
-            const bin = atob(item.b64);
-            const bytes = new Uint8Array(bin.length);
-            for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
-            // Texto segue o início da fala (speech-driven), não a chegada do payload.
-            if (item?.text) {
-              const nextTarget = joinChunksSmart(ttsTargetRef.current, item.text);
-              setTypingTarget(nextTarget);
-            }
-            await playMp3Buffer(bytes.buffer);
-            if (speakAbortedRef.current) break;
-            const moreExpected = queue.length > 0 || !streamDone;
-            if (moreExpected) {
-              await new Promise((r) =>
-                setTimeout(r, lightweightCadencePauseMs(item?.text))
-              );
-            }
-          }
-          socket.off('voice:mp3', onMp3);
+      let ttsThoughtDelayDone = false;
+      // Em vez de múltiplos pedidos de TTS (que geram gaps), mantemos 1 áudio só,
+      // mas com “reação” e micro imperfeição inseridas no texto.
+      let preparedSpeech = injectReactionAfterFirstSentence(preparedFull, sentimentContext);
+      preparedSpeech = imperfeicaoNatural(preparedSpeech, 0.14);
+
+      const speakOnePart = async (textToSpeak) => {
+        if (speakAbortedRef.current) return;
+        const t = String(textToSpeak || '').trim();
+        if (!t) return;
+
+        // Força UM único request TTS para toda resposta e evita gaps entre chunks.
+        ttsTargetRef.current = '';
+        setTtsUi((u) => ({ ...u, speechText: '', targetText: '', isTyping: false }));
+        setTypingTarget(t);
+
+        const cur = await fetchSpeakAudio(t, { sentimentContext });
+        if (!cur) return;
+
+        if (!ttsThoughtDelayDone) {
+          const d = 360 + Math.floor(Math.random() * 140);
+          await new Promise((r) => setTimeout(r, d));
           if (speakAbortedRef.current) return;
-          if (mp3Count > 0) return;
+          ttsThoughtDelayDone = true;
         }
-      }
 
-      speakAbortedRef.current = false;
-      const parts = splitIntoSpeechChunks(full);
-      // HTTP fallback speech-driven: texto cresce conforme cada chunk começa a tocar.
-      ttsTargetRef.current = '';
-      setTtsUi((u) => ({ ...u, speechText: '', targetText: '', isTyping: false }));
-      let nextBuf = null;
-      for (let i = 0; i < parts.length; i++) {
-        if (!continuousRef.current && i > 0) break;
-        if (speakAbortedRef.current) break;
-        const cur =
-          i === 0
-            ? await fetchSpeakAudio(parts[0])
-            : nextBuf
-              ? await nextBuf
-              : await fetchSpeakAudio(parts[i]);
-        nextBuf =
-          i + 1 < parts.length ? fetchSpeakAudio(parts[i + 1]) : null;
-        if (!cur) continue;
-        const nextTarget = joinChunksSmart(ttsTargetRef.current, parts[i]);
-        setTypingTarget(nextTarget);
         await playMp3Buffer(cur);
-        if (speakAbortedRef.current) break;
-        if (i < parts.length - 1) {
-          await new Promise((r) =>
-            setTimeout(r, lightweightCadencePauseMs(parts[i]))
-          );
-        }
-      }
+      };
+
+      await speakOnePart(preparedSpeech);
     },
-    [ensureVoiceSocket, fetchSpeakAudio, playMp3Buffer, setTypingTarget]
+    [fetchSpeakAudio, playMp3Buffer, setTypingTarget]
   );
 
   const speakActivationReply = useCallback(async () => {
@@ -1046,9 +1176,19 @@ export function useVoiceEngine(options = {}) {
       }
 
       let reply = '';
+      let sentimentContext = null;
       try {
         const fn = chatRoundRef.current;
-        if (fn) reply = await fn(text);
+        if (fn) {
+          const chatRes = await fn(text);
+          if (typeof chatRes === 'string') {
+            reply = chatRes;
+          } else {
+            reply = chatRes?.reply || '';
+            sentimentContext =
+              chatRes?.sentimentContext || chatRes?.sentiment || null;
+          }
+        }
       } catch (e) {
         if (
           e?.__sensitive ||
@@ -1062,7 +1202,10 @@ export function useVoiceEngine(options = {}) {
       }
 
       if (!continuousRef.current) break;
-      await speakNaturalReply(reply);
+      await speakNaturalReply(
+        reply,
+        sentimentContext ? { sentimentContext, userText: text } : { userText: text }
+      );
       lastSpokeAtRef.current = Date.now();
 
       // Anti-loop: se estiver falando várias vezes sem entrada nova, encerra contínuo.
@@ -1179,8 +1322,16 @@ export function useVoiceEngine(options = {}) {
         const fn = chatRoundRef.current;
         if (text && !STOP_WORDS.test(text) && fn && !isOnlyActivationPhrase(text)) {
           await speakText(pickThinkingPhrase());
-          const reply = await fn(text).catch(() => '');
-          if (reply) await speakNaturalReply(reply);
+          const chatRes = await fn(text).catch(() => null);
+          const reply =
+            typeof chatRes === 'string' ? chatRes : chatRes?.reply || '';
+          const sentimentContext =
+            typeof chatRes === 'string' ? null : (chatRes?.sentimentContext || chatRes?.sentiment || null);
+          if (reply)
+            await speakNaturalReply(
+              reply,
+              sentimentContext ? { sentimentContext, userText: text } : { userText: text }
+            );
         }
         if (!continuousRef.current && localStorage.getItem('impetus_mic_granted')) {
           w.start();

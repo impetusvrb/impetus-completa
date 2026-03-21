@@ -159,14 +159,33 @@ function gerarConfigPorRegras(user) {
     add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
     add(WIDGET_IDS.alertas, 'grande', 'media');
   }
-  // Supervisor / Coordenador
-  else if (role === 'supervisor' || role === 'coordenador') {
-    add(WIDGET_IDS.resumo_executivo, 'grande', 'critica');
+  // Supervisor / Coordenador — inclui roles em inglês (supervisor_maintenance, coordinator_maintenance)
+  else if (role === 'supervisor' || role === 'coordenador' || role.includes('supervisor') || role.includes('coordinator')) {
+    const isManutencao = dept.includes('manuten') || dept.includes('mecan') || dept.includes('maintenance') || role.includes('maintenance');
+    if (isManutencao) {
+      add(WIDGET_IDS.manutencao, 'grande', 'critica');
+      add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+      add(WIDGET_IDS.alertas, 'grande', 'alta');
+      add(WIDGET_IDS.grafico_tendencia, 'grande', 'alta');
+      add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+      add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    } else {
+      add(WIDGET_IDS.resumo_executivo, 'grande', 'critica');
+      add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+      add(WIDGET_IDS.alertas, 'grande', 'alta');
+      add(WIDGET_IDS.grafico_tendencia, 'grande', 'alta');
+      add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+      add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    }
+  }
+  // Colaborador/Técnico de Manutenção — mecânico, eletricista, technician_maintenance
+  else if ((dept.includes('manuten') || dept.includes('mecan') || dept.includes('maintenance')) || role.includes('maintenance') || role.includes('technician') || role.includes('mecan') || role.includes('eletric')) {
+    add(WIDGET_IDS.manutencao, 'grande', 'critica');
     add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
     add(WIDGET_IDS.alertas, 'grande', 'alta');
-    add(WIDGET_IDS.grafico_tendencia, 'grande', 'alta');
+    add(WIDGET_IDS.resumo_executivo, 'grande', 'media');
     add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
-    add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    add(WIDGET_IDS.grafico_tendencia, 'grande', 'media');
   }
   // Default (operador/colaborador)
   else {

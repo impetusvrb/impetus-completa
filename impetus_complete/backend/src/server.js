@@ -72,6 +72,13 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server.listen(PORT, async () => {
   console.log(`🚀 Backend listening on ${PORT}`);
 
+  try {
+    const gt = require('./services/googleTtsCore');
+    if (gt.getTtsAvailable()) {
+      console.log(`[TTS] Google Cloud ativo — voz: ${gt.getVoiceName()} (${gt.ttsEngineFingerprint()})`);
+    }
+  } catch (_) {}
+
   // Status Claude (opcional - fallback para OpenAI quando não configurado)
   try {
     const claudeService = require('./services/claudeService');

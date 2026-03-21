@@ -1,11 +1,54 @@
 /**
  * IMPETUS - Rotas do dashboard (perfil, módulos visíveis, layout personalizado)
- * GET /dashboard/me - já pode existir noutro lugar; aqui apenas /personalizado
  */
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/auth').requireAuth;
 const dashboardPersonalizadoService = require('../services/dashboardPersonalizadoService');
+const dashboardMaintenanceRouter = require('./dashboardMaintenance');
+const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+const dashboardAccessService = require('../services/dashboardAccessService');
+const dashboardVisibility = require('../services/dashboardVisibility');
+const dashboardKPIs = require('../services/dashboardKPIs');
+const userContext = require('../services/userContext');
+const hierarchicalFilter = require('../services/hierarchicalFilter');
+
+router.use('/maintenance', dashboardMaintenanceRouter);
+
+/**
+ * GET /dashboard/me
+ * Payload completo: perfil, visible_modules, user_context, sections, kpis.
+ * Usado por useDashboardMe, useVisibleModules e Dashboard Inteligente.
+ */
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const config = dashboardProfileResolver.getDashboardConfigForUser(user);
+    const profileConfig = config.profile_config || {};
+    const allowedModules = dashboardAccessService.getAllowedModules(user);
+    const hierarchyLevel = user.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
+    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
+
+    const [sections, kpis] = await Promise.all([
+      dashboardVisibility.getVisibilityForUser(hierarchyLevel, user.company_id),
+      dashboardKPIs.getDashboardKPIs(user, scope).catch(() => [])
+    ]);
+
+    res.json({
+      profile_code: config.profile_code,
+      profile_label: profileConfig.label || config.profile_code,
+      profile_config: profileConfig,
+      visible_modules: allowedModules.length ? allowedModules : (profileConfig.visible_modules || []),
+      user_context: userContext.buildUserContext(user),
+      sections,
+      kpis,
+      functional_area: config.functional_area
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_ME]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar perfil' });
+  }
+});
 
 /**
  * GET /dashboard/personalizado

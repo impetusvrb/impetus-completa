@@ -1,35 +1,31 @@
-import { useCallback } from 'react';
-import { useCachedFetch } from '../../../hooks/useCachedFetch';
-import { assetApi } from '../services/assetApi';
+import { useCallback, useEffect, useState } from 'react';
 
-const TTL_MS = 90 * 1000; // 90 segundos — dados de ativos mudam em minutos
+export function useAssetData() {
+  const [twins, setTwins] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [stock, setStock] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-export function useAssetData(departmentId) {
-  const cacheKey = `asset:${departmentId || 'all'}`;
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Stub mínimo: módulo em desenvolvimento paralelo.
+      setTwins([]);
+      setOrders([]);
+      setStock([]);
+    } catch (e) {
+      setError(e?.message || 'Falha ao carregar dados de ativos.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const { data, loading, error, refetch } = useCachedFetch(
-    cacheKey,
-    useCallback(async () => {
-      const [twinsRes, ordersRes, stockRes] = await Promise.all([
-        assetApi.getTwins(departmentId),
-        assetApi.getOrders({ department_id: departmentId }),
-        assetApi.getStock({ department_id: departmentId })
-      ]);
-      return {
-        twins: twinsRes?.data?.twins ?? [],
-        orders: ordersRes?.data?.orders ?? [],
-        stock: stockRes?.data?.items ?? []
-      };
-    }, [departmentId]),
-    { ttlMs: TTL_MS }
-  );
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  const twins = data?.twins ?? [];
-  const orders = data?.orders ?? [];
-  const stock = data?.stock ?? [];
-
-  const reload = useCallback(() => refetch(), [refetch]);
-
-  return { twins, orders, stock, loading, error: error?.message || error, reload };
+  return { twins, orders, stock, loading, error, reload };
 }
 

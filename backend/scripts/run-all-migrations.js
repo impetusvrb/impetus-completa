@@ -18,7 +18,8 @@ const MIGRATIONS_ORDER = [
   'audio_logs_migration.sql',
   'dashboard_personalizado_migration.sql',
   'voice_preferences_migration.sql',
-  'voice_preferences_restore_migration.sql'
+  'voice_preferences_restore_migration.sql',
+  'performance_indexes_migration.sql'
 ];
 
 async function runMigration(fileName) {

@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
 const appImpetusService = require('./appImpetusService');
+const { cached } = require('../utils/cache');
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
 const REVALIDATION_DAYS = 90; // Revalidação periódica
@@ -268,7 +269,12 @@ async function fetchExecutiveData(companyId) {
  * Processa consulta estratégica do CEO via IA
  */
 async function processExecutiveQuery(companyId, userId, query, modoApresentacao = false) {
-  const rawData = await fetchExecutiveData(companyId);
+  const rawData = await cached(
+    'executive:data',
+    () => fetchExecutiveData(companyId),
+    () => String(companyId),
+    2 * 60 * 1000
+  );
 
   const dataContext = JSON.stringify({
     ...rawData,

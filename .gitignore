@@ -3,6 +3,10 @@
 # NUNCA commite credenciais ou dados sensíveis!
 # ============================================================================
 
+# Google Cloud TTS — chave de serviço (nunca commitar)
+backend/config/google-tts.json
+impetus_complete/backend/config/google-tts.json
+
 # Variáveis de ambiente (CONTÉM SECRETOS - CRÍTICO)
 .env
 .env.local

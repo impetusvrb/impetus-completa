@@ -1,5 +1,5 @@
 /**
- * Rotas de voz do chat Impetus — Whisper STT, OpenAI TTS, format-alert, preferências
+ * Rotas de voz do chat Impetus — Whisper STT, Google Cloud TTS, format-alert, preferências
  * Montar: app.use('/api/dashboard/chat/voice', chatVoiceRouter);
  */
 const express = require('express');
@@ -113,8 +113,11 @@ router.post('/speak', requireAuth, express.json({ limit: '64kb' }), async (req, 
   if (!rateLimit(req.user.id + ':tts', 60, 60 * 1000)) {
     return res.status(429).json({ ok: false, error: 'Limite TTS. Aguarde.' });
   }
-  if (!voiceTts.getOpenaiAvailable()) {
-    return res.status(503).json({ ok: false, error: 'TTS indisponível (OpenAI não configurada)' });
+  if (!voiceTts.getTtsAvailable()) {
+    return res.status(503).json({
+      ok: false,
+      error: 'TTS indisponível (configure config/google-tts.json ou GOOGLE_APPLICATION_CREDENTIALS)'
+    });
   }
   const text = cleanTtsInput(req.body.text);
   if (!text) {
@@ -123,11 +126,11 @@ router.post('/speak', requireAuth, express.json({ limit: '64kb' }), async (req, 
   const voice = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].includes(req.body.voice)
     ? req.body.voice
     : 'nova';
-  const defSp = parseFloat(process.env.OPENAI_TTS_DEFAULT_SPEED) || 0.98;
+  const defSp = parseFloat(process.env.GOOGLE_TTS_DEFAULT_SPEAKING_RATE) || 0.98;
   const speed = Math.min(1.25, Math.max(0.75, parseFloat(req.body.speed) || defSp));
-  const modelTag = (process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts').slice(0, 32);
+  const engineTag = voiceTts.ttsEngineFingerprint();
 
-  const hash = crypto.createHash('sha256').update(text + voice + speed + modelTag).digest('hex');
+  const hash = crypto.createHash('sha256').update(text + voice + speed + engineTag).digest('hex');
   const cached = ttsCache.get(hash);
   if (cached && Date.now() < cached.exp) {
     res.setHeader('Content-Type', 'audio/mpeg');

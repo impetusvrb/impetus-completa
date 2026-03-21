@@ -9,6 +9,7 @@ const documentContext = require('./documentContext');
 const userContext = require('./userContext');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const personalizedInsights = require('./personalizedInsightsService');
+const { cached } = require('../utils/cache');
 
 const isFriday = () => new Date().getDay() === 5;
 
@@ -195,41 +196,50 @@ Seja conciso e acionável. Máximo 600 palavras.`;
 
 /**
  * Fluxo principal: coleta dados e gera resumo
+ * Cache 2 min por usuário para reduzir carga em acessos repetidos
  * @param {Object} user - req.user (com area, job_title, department, hierarchy_level)
  */
 async function buildSmartSummary(userId, userName, companyId, user = null) {
   const isWeekly = isFriday();
-  const days = isWeekly ? 7 : 1;
+  const cacheKey = `${userId}:${companyId}:${isWeekly ? 'w' : 'd'}`;
 
-  const [activities, commSummary, openComms, openProposals] = await Promise.all([
-    getUserActivity(userId, companyId, 7),
-    getCommunicationsSummary(companyId, days),
-    getOpenCommunications(companyId, days),
-    getOpenProposals(companyId),
-  ]);
+  return cached(
+    'smart:summary',
+    async () => {
+      const days = isWeekly ? 7 : 1;
+      const [activities, commSummary, openComms, openProposals] = await Promise.all([
+        getUserActivity(userId, companyId, 7),
+        getCommunicationsSummary(companyId, days),
+        getOpenCommunications(companyId, days),
+        getOpenProposals(companyId),
+      ]);
 
-  const ctx = user ? userContext.buildUserContext(user) : null;
+      const ctx = user ? userContext.buildUserContext(user) : null;
 
-  const summary = await generateSummary({
-    userName: userName || 'Usuário',
-    userId,
-    companyId,
-    isWeekly,
-    activities,
-    commSummary,
-    openComms,
-    openProposals,
-    userCtx: ctx,
-    user,
-  });
+      const summary = await generateSummary({
+        userName: userName || 'Usuário',
+        userId,
+        companyId,
+        isWeekly,
+        activities,
+        commSummary,
+        openComms,
+        openProposals,
+        userCtx: ctx,
+        user,
+      });
 
-  return {
-    summary,
-    isWeekly,
-    periodo: isWeekly ? 'semanal' : 'diário',
-    openCommsCount: commSummary.open_count || 0,
-    openProposalsCount: openProposals.length,
-  };
+      return {
+        summary,
+        isWeekly,
+        periodo: isWeekly ? 'semanal' : 'diário',
+        openCommsCount: commSummary.open_count || 0,
+        openProposalsCount: openProposals.length,
+      };
+    },
+    () => cacheKey,
+    2 * 60 * 1000
+  );
 }
 
 module.exports = { buildSmartSummary, getUserActivity };

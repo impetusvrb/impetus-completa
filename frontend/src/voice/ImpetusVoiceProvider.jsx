@@ -59,7 +59,7 @@ export default function ImpetusVoiceProvider({ children }) {
       { role: 'assistant', content: String(reply || '').slice(0, 2000) }
     ];
     voiceHistoryRef.current = next.slice(-10);
-    return reply;
+    return { reply, sentimentContext };
   }, []);
 
   const {
@@ -142,7 +142,7 @@ export default function ImpetusVoiceProvider({ children }) {
             {
               alertsEnabled: voiceState.alertsEnabled,
               alertMinPriority,
-              speakText: (msg) => speakNaturalReply(msg),
+              speakText: (msg, meta) => speakNaturalReply(msg, meta),
               stopSpeaking,
               stopVoiceCapture,
               formatAlert: async (alert) => {

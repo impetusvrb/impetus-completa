@@ -28,11 +28,10 @@ const { requireHierarchyScope } = require('../middleware/hierarchyScope');
 const chatUserContext = require('../services/chatUserContext');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
 const intelligentDashboard = require('../services/intelligentDashboardService');
-const { cached, del, delByPrefix, makeKey, TTL } = require('../utils/cache');
+const { cached, del, makeKey, TTL } = require('../utils/cache');
 
 function invalidateDashboardCache(userId) {
   del(makeKey('dashboard:me', String(userId)));
-  delByPrefix(makeKey('dashboard:kpis', String(userId))); // KPIs podem depender de preferências
 }
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const dynamicDashboardService = require('../services/dynamicDashboardService');
@@ -123,7 +122,6 @@ router.get('/config', requireAuth, (req, res) => {
 });
 
 /**
-<<<<<<< HEAD
  * GET /api/dashboard/personalizado
  * Config personalizado por perfil (cargo, departamento) para Centro de Comando
  */
@@ -550,22 +548,11 @@ router.get('/visibility', requireAuth, async (req, res) => {
 /**
  * GET /api/dashboard/kpis
  * Indicadores dinâmicos personalizados por role + department + hierarchy
- * Cache 90s por usuário/escopo para reduzir carga em sessões intensas
  */
 router.get('/kpis', requireAuth, requireHierarchyScope, async (req, res) => {
   try {
     const dashboardKPIs = require('../services/dashboardKPIs');
-    const filterCtx = dashboardFilter.getFilterContext(req.user);
-    const scope = req.hierarchyScope;
-    const scopeKey = scope?.isFullAccess ? 'full'
-      : filterCtx.departmentId ? `d:${filterCtx.departmentId}` : `u:${filterCtx.userId}`;
-
-    const kpis = await cached(
-      'dashboard:kpis',
-      () => dashboardKPIs.getDashboardKPIs(req.user, req.hierarchyScope),
-      () => `${req.user.id}:${scopeKey}`,
-      TTL.DASHBOARD_KPIS
-    );
+    const kpis = await dashboardKPIs.getDashboardKPIs(req.user, req.hierarchyScope);
     res.json({ ok: true, kpis });
   } catch (err) {
     console.error('[DASHBOARD_KPIS_ERROR]', err);
@@ -1475,11 +1462,24 @@ ${manualsBlock}`;
       const raw = String(text || '').trim();
       if (!isVoiceMode || !raw) return raw;
       // Segurança extra: remove aberturas repetitivas de apresentação no início.
-      return raw
+      let out = raw
         .replace(/^(olá|oi)[!,.:\s]+(eu (sou|sou a)|aqui (é|e)|sou a ia)\s+impetus[,.\s-]*/i, '')
         .replace(/^sou\s+a?\s*impetus[,.\s-]*/i, '')
         .replace(/^\s+/, '')
         .trim();
+
+      // Anti-gagueira: colapsa repetições do tipo "eu... eu" / "eu, eu" / "tô tô"
+      out = out
+        .replace(/\b(eu|ah|é|uai|tá)\b\s*[.!?,;:\s…-]*\b(eu|ah|é|uai|tá)\b/gi, '$1')
+        .replace(
+          /\b([A-Za-zÀ-ÖØ-öø-ÿ]+)\b\s*[.!?,;:\s…-]+\s*\1\b/gi,
+          '$1'
+        );
+
+      // Remove início travado do tipo "eu..." (mantém o restante da frase).
+      out = out.replace(/^\s*(?:eu|ah|é|uai|tá)\s*[.!?,;:\s…-]+\s*/i, '');
+
+      return out.trim();
     };
     const finalReply =
       sanitizeVoiceReply(reply) || 'Desculpe, não consegui processar. Tente novamente.';

@@ -44,6 +44,7 @@ import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
+import { resolveMenuRole } from '../utils/roleUtils';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './Layout.css';
@@ -112,7 +113,7 @@ export default function Layout({ children }) {
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
-  const role = (user.role || 'colaborador').toLowerCase();
+  const role = resolveMenuRole(user);
   const { filterMenu, canAccessPath, loading: modulesLoading } = useVisibleModules();
 
   if (!modulesLoading && location.pathname !== '/app' && !canAccessPath(location.pathname)) {

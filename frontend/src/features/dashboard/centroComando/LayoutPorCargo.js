@@ -95,8 +95,9 @@ export function getLayoutPorCargo(role = '', department = '') {
     ];
   }
 
-  // Gerente Manutenção — MTBF, MTTR, custo por máquina, máquinas críticas, OEE; Manutenção, Mapa Vazamentos, Energia, Cérebro
-  if (r.includes('gerente') && (d.includes('manuten') || d.includes('mecan'))) {
+  // Gerente Manutenção — PT: gerente + manutenção | EN: manager_maintenance
+  const isGerenteManutencao = (r.includes('gerente') || r.includes('manager')) && (d.includes('manuten') || d.includes('mecan') || r.includes('maintenance'));
+  if (isGerenteManutencao) {
     return [
       { id: WIDGET_IDS.MANUTENCAO, label: 'Centro de Manutenção', position: pos(0, 0, 2) },
       { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
@@ -136,10 +137,24 @@ export function getLayoutPorCargo(role = '', department = '') {
     ];
   }
 
-  // Supervisor / Coordenador / Técnico — visão operacional
-  if (r.includes('supervisor') || r.includes('coordenador') || r.includes('técnico') || r.includes('tecnico')) {
+  // Supervisor / Coordenador / Técnico — visão operacional (PT e EN: technician, supervisor_maintenance, coordinator_maintenance)
+  const isSupervisorCoordTecnico = r.includes('supervisor') || r.includes('coordenador') || r.includes('coordinator') || r.includes('técnico') || r.includes('tecnico') || r.includes('technician');
+  if (isSupervisorCoordTecnico) {
     return [
       { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo do dia', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Pergunte à IA', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 2, 2) }
+    ];
+  }
+
+  // Colaborador/Técnico de Manutenção — manutenção em destaque
+  const isColabManutencao = (d.includes('manuten') || d.includes('mecan') || r.includes('maintenance')) && (r.includes('colaborador') || r.includes('technician') || r.includes('mecan') || r.includes('eletric'));
+  if (isColabManutencao) {
+    return [
+      { id: WIDGET_IDS.MANUTENCAO, label: 'Centro de Manutenção', position: pos(0, 0, 2) },
       { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
       { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 0, 2) },
       { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência', position: pos(1, 2, 2) },

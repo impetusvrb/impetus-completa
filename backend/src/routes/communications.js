@@ -190,19 +190,25 @@ router.get('/', requireAuth, requireHierarchyScope, async (req, res) => {
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `, [...params, limit, offset]);
 
+    // COUNT limitado: evita full table scan em tabelas grandes (>10k linhas)
+    // Se houver mais que COUNT_CAP registros, retorna cap + flag estimated
+    const COUNT_CAP = parseInt(process.env.PAGINATION_COUNT_CAP, 10) || 10001;
     const countResult = await db.query(`
-      SELECT COUNT(*) as total
-      FROM communications c
-      WHERE ${whereClause}
-    `, params);
+      SELECT COUNT(*)::int as total
+      FROM (SELECT 1 FROM communications c WHERE ${whereClause} LIMIT $${paramCount + 1}) sub
+    `, [...params, COUNT_CAP]);
+
+    const total = parseInt(countResult.rows[0]?.total ?? 0, 10) || 0;
+    const estimated = total >= COUNT_CAP;
 
     res.json({
       ok: true,
       communications: result.rows,
       pagination: {
-        total: parseInt(countResult.rows[0].total),
+        total,
         limit: parseInt(limit),
-        offset: parseInt(offset)
+        offset: parseInt(offset),
+        estimated: estimated || undefined
       }
     });
 

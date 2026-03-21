@@ -9,6 +9,7 @@ const appImpetusService = require('../services/appImpetusService');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireCompanyActive } = require('../middleware/multiTenant');
+const { appImpetusLimiter } = require('../middleware/appImpetusRateLimit');
 
 /**
  * POST /api/app-impetus/messages
@@ -50,8 +51,9 @@ router.post('/messages', requireAuth, requireCompanyActive, async (req, res) => 
  * GET /api/app-impetus/outbox
  * App Impetus busca mensagens pendentes para o usuário autenticado
  * Retorna mensagens onde recipient_phone = telefone do usuário
+ * Rate limit: 2 req/s por empresa (evita polling agressivo)
  */
-router.get('/outbox', requireAuth, requireCompanyActive, async (req, res) => {
+router.get('/outbox', requireAuth, requireCompanyActive, appImpetusLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const companyId = req.user.company_id;

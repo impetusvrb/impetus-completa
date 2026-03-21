@@ -66,11 +66,18 @@ export async function handleVoiceAlert(alert, opts) {
     message = `Atenção: ${alert.title || alert.message || 'Alerta operacional'}.`;
   }
 
+  const sentiment =
+    alert.priority === 'P1' || alert.priority === 'P2'
+      ? 'urgente'
+      : alert.priority === 'P3'
+        ? 'negativo'
+        : 'neutro';
+
   markAlertAsSpoken(id);
-  await opts.speakText(message);
+  await opts.speakText(message, { sentimentContext: { sentiment } });
 
   if (alert.priority === 'P1') {
     await new Promise((r) => setTimeout(r, 600));
-    await opts.speakText(pickAlertFollowupPhrase());
+    await opts.speakText(pickAlertFollowupPhrase(), { sentimentContext: { sentiment } });
   }
 }

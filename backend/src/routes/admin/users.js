@@ -157,19 +157,25 @@ router.get('/',
         LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
       `, [...params, safeLimit, safeOffset]);
 
+      // COUNT limitado: evita full table scan em empresas com muitos usuários
+      const COUNT_CAP = parseInt(process.env.PAGINATION_COUNT_CAP, 10) || 10001;
+      const countPlaceholder = params.length + 1;
       const countResult = await db.query(`
-        SELECT COUNT(*) as total
-        FROM users u
-        WHERE ${whereClause} AND u.deleted_at IS NULL
-      `, params);
+        SELECT COUNT(*)::int as total
+        FROM (SELECT 1 FROM users u WHERE ${whereClause} AND u.deleted_at IS NULL LIMIT $${countPlaceholder}) sub
+      `, [...params, COUNT_CAP]);
+
+      const total = parseInt(countResult.rows[0]?.total ?? 0, 10) || 0;
+      const estimated = total >= COUNT_CAP;
 
       res.json({
         ok: true,
         users: result.rows,
         pagination: {
-          total: parseInt(countResult.rows[0]?.total ?? 0, 10) || 0,
+          total,
           limit: safeLimit,
-          offset: safeOffset
+          offset: safeOffset,
+          estimated: estimated || undefined
         }
       });
 
