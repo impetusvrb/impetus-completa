@@ -1,0 +1,203 @@
+/**
+ * Dashboard do Colaborador — Padrão CentroComando (cc-widget, metric-card, cc-kpi)
+ * Mesmo design system do DashboardOperador
+ */
+.dcl {
+  padding: 0 1.5rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dcl__header {
+  margin-bottom: 1.5rem;
+}
+
+.dcl__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text1);
+  margin: 0 0 0.25rem 0;
+}
+
+.dcl__subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text3);
+  margin: 0;
+}
+
+.dcl__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  grid-auto-rows: minmax(120px, auto);
+}
+
+.dcl-widget {
+  min-height: 120px;
+}
+
+.dcl-status-row {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.dcl-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dcl-progress-wrap {
+  position: relative;
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dcl-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.dcl-progress-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.dcl-card-acao {
+  padding: 0.75rem;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dcl-card-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.dcl-card-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text3);
+}
+
+.dcl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+
+.dcl-btn--primary {
+  background: var(--blue);
+  color: var(--text1);
+}
+
+.dcl-btn--primary:hover {
+  background: var(--blue2);
+  transform: translateY(-1px);
+}
+
+.dcl-btn--secondary {
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--line);
+}
+
+.dcl-btn--secondary:hover {
+  border-color: var(--blue);
+  color: var(--text1);
+}
+
+.dcl-checklist-preview {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.dcl-checklist-preview ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+
+.dcl-checklist-preview li {
+  padding: 0.25rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.dcl-checklist-preview li::before {
+  content: '□';
+  position: absolute;
+  left: 0;
+  font-size: 1rem;
+  color: var(--text3);
+}
+
+.dcl-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.dcl-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+}
+
+.dcl-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--line);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: dcl-spin 0.8s linear infinite;
+}
+
+@keyframes dcl-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .dcl__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dcl__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -4,6 +4,10 @@
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import {
+  OpenaiRealtimeVoiceSession,
+  DEFAULT_REALTIME_SESSION
+} from '../services/openaiRealtimeVoiceSession';
 import { WakeWordDetector } from '../services/wakeWordDetector';
 import {
   pickThinkingPhrase,
@@ -14,6 +18,23 @@ import {
 import { applyPronunciation } from '../constants/pronunciationMap';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+function isVoiceRealtimeEnabled() {
+  const v = String(import.meta.env.VITE_VOICE_REALTIME || '').trim().toLowerCase();
+  return v === 'true' || v === '1';
+}
+
+function buildRealtimeSessionUpdate() {
+  const envInstr = String(import.meta.env.VITE_REALTIME_INSTRUCTIONS || '').trim();
+  if (!envInstr) return DEFAULT_REALTIME_SESSION;
+  return {
+    ...DEFAULT_REALTIME_SESSION,
+    session: {
+      ...DEFAULT_REALTIME_SESSION.session,
+      instructions: envInstr
+    }
+  };
+}
 
 /** Base HTTP do backend (sem /api) para Socket.IO */
 function voiceIoBase() {
@@ -531,6 +552,7 @@ export function useVoiceEngine(options = {}) {
     status: 'idle',
     isActive: false,
     isContinuous: false,
+    isRealtimeMode: false,
     currentTranscript: '',
     lastAlert: null,
     alertsEnabled: true,
@@ -585,6 +607,9 @@ export function useVoiceEngine(options = {}) {
   const speakAbortedRef = useRef(false);
   const voiceSocketRef = useRef(null);
   const voiceSocketConnectingRef = useRef(null);
+  const realtimeSessionRef = useRef(null);
+  const realtimeAsstTranscriptRef = useRef('');
+  const realtimeUserTranscriptRef = useRef('');
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
@@ -692,6 +717,11 @@ export function useVoiceEngine(options = {}) {
 
   const stopSpeaking = useCallback(() => {
     speakAbortedRef.current = true;
+    if (isVoiceRealtimeEnabled()) {
+      try {
+        realtimeSessionRef.current?.cancelResponse();
+      } catch (_) {}
+    }
     try {
       voiceSocketRef.current?.emit('voice:cancel');
     } catch (_) {}
@@ -1078,6 +1108,22 @@ export function useVoiceEngine(options = {}) {
   const stopVoiceCapture = useCallback(() => {
     continuousRef.current = false;
     loopRunningRef.current = false;
+    if (isVoiceRealtimeEnabled() && realtimeSessionRef.current) {
+      try {
+        realtimeSessionRef.current.disconnect();
+      } catch (_) {}
+      realtimeSessionRef.current = null;
+      realtimeAsstTranscriptRef.current = '';
+      realtimeUserTranscriptRef.current = '';
+      setVoiceState((s) => ({
+        ...s,
+        isRealtimeMode: false,
+        isContinuous: false,
+        isActive: false,
+        status: 'idle',
+        currentTranscript: ''
+      }));
+    }
   }, []);
 
   const runContinuousLoop = useCallback(async () => {
@@ -1248,13 +1294,26 @@ export function useVoiceEngine(options = {}) {
   const toggleVoice = useCallback(async () => {
     if (continuousRef.current) {
       continuousRef.current = false;
+      if (isVoiceRealtimeEnabled()) {
+        try {
+          realtimeSessionRef.current?.cancelResponse();
+        } catch (_) {}
+        try {
+          realtimeSessionRef.current?.disconnect();
+        } catch (_) {}
+        realtimeSessionRef.current = null;
+        realtimeAsstTranscriptRef.current = '';
+        realtimeUserTranscriptRef.current = '';
+      }
       stopSpeaking();
       showBadge('');
       setVoiceState((s) => ({
         ...s,
         status: 'idle',
         isActive: false,
-        isContinuous: false
+        isContinuous: false,
+        isRealtimeMode: false,
+        currentTranscript: ''
       }));
       return;
     }
@@ -1273,10 +1332,151 @@ export function useVoiceEngine(options = {}) {
 
     continuousRef.current = true;
     failStreakRef.current = 0;
+
+    if (isVoiceRealtimeEnabled()) {
+      realtimeAsstTranscriptRef.current = '';
+      realtimeUserTranscriptRef.current = '';
+      setVoiceState((s) => ({
+        ...s,
+        isActive: true,
+        isContinuous: true,
+        isRealtimeMode: true,
+        status: 'processing',
+        lastAlert: null,
+        currentTranscript: ''
+      }));
+      showBadge('Conectando voz Realtime…');
+
+      const sess = new OpenaiRealtimeVoiceSession({
+        onClose: () => {
+          realtimeSessionRef.current = null;
+          if (!continuousRef.current) return;
+          continuousRef.current = false;
+          setVoiceState((s) => ({
+            ...s,
+            status: 'idle',
+            isActive: false,
+            isContinuous: false,
+            isRealtimeMode: false,
+            currentTranscript: ''
+          }));
+        },
+        onError: (err) => {
+          setVoiceState((s) => ({
+            ...s,
+            lastAlert: err?.message || 'Erro no modo Realtime'
+          }));
+        },
+        onEvent: (ev) => {
+          const t = ev.type || '';
+          if (t === 'input_audio_buffer.speech_started') {
+            realtimeAsstTranscriptRef.current = '';
+            realtimeUserTranscriptRef.current = '';
+            setVoiceState((s) => ({ ...s, status: 'listening', currentTranscript: '' }));
+            setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+          }
+          if (
+            (t === 'response.output_audio_transcript.delta' ||
+              (String(t).includes('output_audio_transcript') && String(t).endsWith('.delta'))) &&
+            ev.delta
+          ) {
+            realtimeAsstTranscriptRef.current += ev.delta;
+            setVoiceState((s) => ({
+              ...s,
+              status: 'speaking',
+              currentTranscript: realtimeAsstTranscriptRef.current
+            }));
+            setTtsUi((u) => ({ ...u, mouthState: 'open' }));
+          }
+          if (String(t).includes('input_audio_transcription') && String(t).includes('delta') && ev.delta) {
+            realtimeUserTranscriptRef.current += ev.delta;
+            setVoiceState((s) => ({
+              ...s,
+              status: 'listening',
+              currentTranscript: realtimeUserTranscriptRef.current
+            }));
+          }
+          if (
+            String(t).includes('input_audio_transcription') &&
+            (String(t).includes('completed') || String(t).includes('done')) &&
+            ev.transcript
+          ) {
+            realtimeUserTranscriptRef.current = String(ev.transcript);
+            setVoiceState((s) => ({
+              ...s,
+              status: 'processing',
+              currentTranscript: realtimeUserTranscriptRef.current
+            }));
+          }
+          if (t === 'response.output_audio.delta' || t === 'response.audio.delta') {
+            setVoiceState((s) =>
+              s.status === 'speaking' ? s : { ...s, status: 'speaking' }
+            );
+            setTtsUi((u) => ({ ...u, mouthState: 'open' }));
+          }
+          if (t === 'response.done' || t === 'response.output_audio_transcript.done') {
+            realtimeAsstTranscriptRef.current = '';
+            setVoiceState((s) => ({
+              ...s,
+              status: 'listening',
+              currentTranscript: ''
+            }));
+            setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+          }
+          if (t === 'error') {
+            const msg =
+              ev.error?.message ||
+              ev.error?.code ||
+              ev.message ||
+              'Erro na sessão Realtime';
+            setVoiceState((s) => ({ ...s, lastAlert: String(msg) }));
+          }
+        }
+      });
+
+      try {
+        await sess.connect({ sessionUpdate: buildRealtimeSessionUpdate() });
+        if (!continuousRef.current) {
+          sess.disconnect();
+          return;
+        }
+        await sess.startMic();
+        if (!continuousRef.current) {
+          sess.disconnect();
+          return;
+        }
+        realtimeSessionRef.current = sess;
+        setVoiceState((s) => ({
+          ...s,
+          status: 'listening',
+          currentTranscript: ''
+        }));
+        showBadge(pickListeningPhrase());
+      } catch (e) {
+        continuousRef.current = false;
+        realtimeSessionRef.current = null;
+        try {
+          sess.disconnect();
+        } catch (_) {}
+        setVoiceState((s) => ({
+          ...s,
+          isActive: false,
+          isContinuous: false,
+          isRealtimeMode: false,
+          status: 'idle',
+          lastAlert:
+            e?.message ||
+            'Realtime indisponível. No backend: IMPETUS_REALTIME_PROXY_ENABLED=true e reinicie o servidor.'
+        }));
+      }
+      return;
+    }
+
     setVoiceState((s) => ({
       ...s,
       isActive: true,
       isContinuous: true,
+      isRealtimeMode: false,
       status: 'listening'
     }));
     runContinuousLoop();
@@ -1288,13 +1488,23 @@ export function useVoiceEngine(options = {}) {
 
   const stopListening = useCallback(() => {
     continuousRef.current = false;
+    if (isVoiceRealtimeEnabled()) {
+      try {
+        realtimeSessionRef.current?.disconnect();
+      } catch (_) {}
+      realtimeSessionRef.current = null;
+      realtimeAsstTranscriptRef.current = '';
+      realtimeUserTranscriptRef.current = '';
+    }
     stopSpeaking();
     setVoiceState((s) => ({
       ...s,
       status: 'idle',
       isActive: false,
       isContinuous: false,
-      bargeInFlash: false
+      isRealtimeMode: false,
+      bargeInFlash: false,
+      currentTranscript: ''
     }));
   }, [stopSpeaking]);
 
@@ -1378,6 +1588,12 @@ export function useVoiceEngine(options = {}) {
     return () => {
       continuousRef.current = false;
       stopSpeaking();
+      if (isVoiceRealtimeEnabled()) {
+        try {
+          realtimeSessionRef.current?.disconnect();
+        } catch (_) {}
+        realtimeSessionRef.current = null;
+      }
       try {
         voiceSocketRef.current?.disconnect();
       } catch (_) {}

@@ -85,7 +85,7 @@ function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !allowedRoles.includes(role)) {
     // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
-    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app/operacional', auxiliar_producao: '/app/operacional', auxiliar: '/app/operacional', operador: '/app' };
+    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
     return <Navigate to={defaults[role] || '/app/operacional'} replace />;
   }
   return children;
@@ -102,10 +102,12 @@ function isColaborador() {
   }
 }
 
-// Redireciona colaborador (auxiliar de produção) para o painel operacional ao tentar acessar rotas restritas
+// Colaborador acessa /app (DashboardColaborador). Rotas restritas redirecionam para /app.
 function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
-  return <Navigate to="/app/operacional" replace />;
+  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  if (path === '/app' || path === '/app/') return children;
+  return <Navigate to="/app" replace />;
 }
 
 // CEO só acessa /app (Visão Executiva) — bloqueia admin, settings, operacional, etc.

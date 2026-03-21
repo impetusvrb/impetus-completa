@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { initChatSocket } = require('./socket/chatSocket');
 const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
+const { attachRealtimeOpenaiProxy } = require('./socket/realtimeOpenaiProxy');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
 const operationalBrain = require('./services/operationalBrainEngine');
@@ -23,6 +24,7 @@ process.on('uncaughtException', (err) => {
 });
 
 const server = http.createServer(app);
+attachRealtimeOpenaiProxy(server);
 
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },

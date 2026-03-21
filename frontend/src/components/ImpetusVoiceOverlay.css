@@ -186,6 +186,13 @@
 .impetus-voice-overlay__hint {
   color: rgba(170, 190, 215, 0.8);
 }
+
+.impetus-voice-overlay__caption {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(200, 236, 255, 0.96);
+}
 .impetus-voice-overlay__cursor {
   margin-left: 1px;
   color: rgba(132, 220, 255, 0.95);

@@ -62,7 +62,7 @@ export default function Login() {
         return;
       }
       if (['colaborador', 'auxiliar_producao', 'auxiliar'].includes(userRole)) {
-        navigate('/app/operacional');
+        navigate('/app');
         return;
       }
       navigate('/app');

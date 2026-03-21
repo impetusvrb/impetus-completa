@@ -6,7 +6,10 @@ import React from 'react';
 import ImpetusAvatarLive from './ImpetusAvatarLive';
 import './ImpetusVoiceOverlay.css';
 
-function statusLabel(status) {
+function statusLabel(status, realtimeMode) {
+  if (realtimeMode && status === 'listening') return 'REALTIME · OUVINDO…';
+  if (realtimeMode && status === 'speaking') return 'REALTIME · VOZ…';
+  if (realtimeMode && status === 'processing') return 'REALTIME · CONECTANDO…';
   if (status === 'listening') return 'OUVINDO…';
   if (status === 'processing') return 'PROCESSANDO…';
   if (status === 'speaking') return 'RESPONDENDO…';
@@ -18,6 +21,8 @@ export default function ImpetusVoiceOverlay({
   status,
   bargeInFlash,
   mouthState,
+  liveCaption = '',
+  realtimeMode = false,
   onClose
 }) {
   if (!open) return null;
@@ -52,7 +57,7 @@ export default function ImpetusVoiceOverlay({
         </div>
 
         <div className="impetus-voice-overlay__status" aria-live="polite">
-          {statusLabel(status)}
+          {statusLabel(status, realtimeMode)}
         </div>
 
         <div className="impetus-voice-overlay__meter-wrap" aria-hidden="true">
@@ -71,7 +76,15 @@ export default function ImpetusVoiceOverlay({
         </div>
 
         <div className="impetus-voice-overlay__speech" aria-live="polite">
-          <span className="impetus-voice-overlay__hint">Fale “Ok, Impetus” ou fale direto.</span>
+          {String(liveCaption || '').trim() ? (
+            <span className="impetus-voice-overlay__caption">{String(liveCaption).trim()}</span>
+          ) : (
+            <span className="impetus-voice-overlay__hint">
+              {realtimeMode
+                ? 'Conversa contínua com a IA (OpenAI Realtime). Fale naturalmente.'
+                : 'Fale “Ok, Impetus” ou fale direto.'}
+            </span>
+          )}
         </div>
       </div>
     </div>

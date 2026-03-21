@@ -142,7 +142,10 @@ export default function ImpetusVoiceProvider({ children }) {
             {
               alertsEnabled: voiceState.alertsEnabled,
               alertMinPriority,
-              speakText: (msg, meta) => speakNaturalReply(msg, meta),
+              speakText: (msg, meta) => {
+                if (voiceState.isRealtimeMode) return Promise.resolve();
+                return speakNaturalReply(msg, meta);
+              },
               stopSpeaking,
               stopVoiceCapture,
               formatAlert: async (alert) => {
@@ -163,7 +166,15 @@ export default function ImpetusVoiceProvider({ children }) {
     const iv = setInterval(tick, 95000);
     tick();
     return () => clearInterval(iv);
-  }, [voiceState.alertsEnabled, alertMinPriority, speakNaturalReply, stopSpeaking, stopVoiceCapture, voiceEnabled]);
+  }, [
+    voiceState.alertsEnabled,
+    voiceState.isRealtimeMode,
+    alertMinPriority,
+    speakNaturalReply,
+    stopSpeaking,
+    stopVoiceCapture,
+    voiceEnabled
+  ]);
 
   // Overlay abre automaticamente quando o modo voz está ligado
   useEffect(() => {
@@ -248,15 +259,18 @@ export default function ImpetusVoiceProvider({ children }) {
         status={voiceState.status}
         bargeInFlash={voiceState.bargeInFlash}
         mouthState={ttsUi?.mouthState}
+        liveCaption={voiceState.currentTranscript}
+        realtimeMode={voiceState.isRealtimeMode}
         onClose={() => {
           try {
             stopSpeaking();
           } catch (_) {}
-          try {
-            stopVoiceCapture();
-          } catch (_) {}
+          // Desliga o modo contínuo antes de stopVoiceCapture para toggleVoice ver continuousRef === true
           try {
             if (voiceState.isContinuous) toggleVoice();
+          } catch (_) {}
+          try {
+            stopVoiceCapture();
           } catch (_) {}
           setOverlayOpen(false);
         }}

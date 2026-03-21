@@ -188,7 +188,7 @@ export default function Layout({ children }) {
       { path: '/app/settings', icon: Settings, label: 'Configurações' },
     ],
     colaborador: [
-      { path: '/app/operacional', icon: Zap, label: 'Meu Painel' },
+      { path: '/app', icon: LayoutDashboard, label: 'Meu Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro de Atividades' },
