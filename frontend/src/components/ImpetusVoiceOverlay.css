@@ -67,22 +67,103 @@
 
 .impetus-voice-overlay__avatar {
   margin-top: 14px;
+  padding: 28px 20px;
   display: flex;
   justify-content: center;
+  align-items: center;
   position: relative;
+  min-height: 380px;
+  overflow: visible;
+  flex-shrink: 0;
+  /* Camada própria para animações sob backdrop-filter */
+  transform: translate3d(0, 0, 0);
+  isolation: isolate;
+}
+
+/* Anéis assimétricos (tracejado) — rotação VISÍVEL (círculo sólido sozinho não muda nada ao girar) */
+.impetus-voice-overlay__avatar-decor {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  height: 400px;
+  transform: translate(-50%, calc(-50% - 10px));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.impetus-voice-overlay__orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.impetus-voice-overlay__orbit--a {
+  width: 108%;
+  height: 108%;
+  border: 2px dashed rgba(90, 180, 255, 0.5);
+  box-shadow: 0 0 18px rgba(30, 144, 255, 0.25);
+  animation: impetus-orbit-spin 16s linear infinite;
+}
+
+.impetus-voice-overlay__orbit--b {
+  width: 124%;
+  height: 124%;
+  border: 1px solid rgba(60, 150, 255, 0.35);
+  opacity: 0.75;
+  animation: impetus-orbit-spin-rev 22s linear infinite;
+}
+
+.impetus-voice-overlay__orbit--c {
+  width: 142%;
+  height: 142%;
+  border: 2px dashed rgba(120, 210, 255, 0.28);
+  animation: impetus-orbit-spin 30s linear infinite;
+}
+
+@keyframes impetus-orbit-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes impetus-orbit-spin-rev {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
 }
 
 .impetus-voice-overlay__avatar-ring {
   position: absolute;
+  left: 50%;
+  top: 50%;
   width: 392px;
   height: 392px;
+  margin-left: -196px;
+  margin-top: -196px;
   border-radius: 50%;
-  border: 1px solid rgba(30, 144, 255, 0.38);
+  border: 1px solid rgba(30, 144, 255, 0.42);
   box-shadow:
     0 0 30px rgba(30, 144, 255, 0.24),
     inset 0 0 40px rgba(30, 144, 255, 0.12);
   transform: translateY(-10px);
-  animation: impetus-ring-rotate 20s linear infinite;
+  animation: impetus-ring-breathe 2.8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.impetus-voice-overlay--listening .impetus-voice-overlay__avatar-ring,
+.impetus-voice-overlay--speaking .impetus-voice-overlay__avatar-ring {
+  animation: impetus-ring-breathe-fast 1.4s ease-in-out infinite;
 }
 
 .impetus-voice-overlay__status {
@@ -233,12 +314,31 @@
   }
 }
 
-@keyframes impetus-ring-rotate {
-  from {
-    transform: translateY(-10px) rotate(0deg);
+@keyframes impetus-ring-breathe {
+  0%,
+  100% {
+    transform: translateY(-10px) scale(1);
+    opacity: 0.88;
+    box-shadow:
+      0 0 26px rgba(30, 144, 255, 0.22),
+      inset 0 0 36px rgba(30, 144, 255, 0.1);
   }
-  to {
-    transform: translateY(-10px) rotate(360deg);
+  50% {
+    transform: translateY(-10px) scale(1.045);
+    opacity: 1;
+    box-shadow:
+      0 0 44px rgba(30, 144, 255, 0.45),
+      inset 0 0 48px rgba(30, 144, 255, 0.16);
+  }
+}
+
+@keyframes impetus-ring-breathe-fast {
+  0%,
+  100% {
+    transform: translateY(-10px) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.06);
   }
 }
 

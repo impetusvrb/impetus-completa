@@ -1,0 +1,12 @@
+{
+  "name": "Impetus Comunica IA",
+  "short_name": "Impetus",
+  "description": "Plataforma de inteligência operacional industrial",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#03080f",
+  "theme_color": "#1a6fff",
+  "lang": "pt-BR",
+  "icons": []
+}

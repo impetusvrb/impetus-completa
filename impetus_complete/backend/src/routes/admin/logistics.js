@@ -408,4 +408,26 @@ router.delete('/drivers/:id', ...adminMw, async (req, res) => {
   }
 });
 
+// ============================================================================
+// IA — painel Logística (rotas esperadas pelo frontend; agregação futura)
+// ============================================================================
+
+router.get('/intelligence/dashboard', requireAuth, async (req, res) => {
+  res.json({
+    ok: true,
+    dashboard: {
+      profile_level: 'none',
+      message: 'Painel inteligente em integração. Cadastros disponíveis em Admin → Logística.'
+    }
+  });
+});
+
+router.post('/intelligence/alerts/:id/ack', requireAuth, async (req, res) => {
+  res.json({ ok: true });
+});
+
+router.post('/intelligence/run-alerts', requireAuth, async (req, res) => {
+  res.json({ ok: true });
+});
+
 module.exports = router;

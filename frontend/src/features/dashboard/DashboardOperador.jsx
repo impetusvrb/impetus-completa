@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import { CadastrarComIAWidget } from './widgets';
 import { dashboard } from '../../services/api';
 import {
   Activity, AlertTriangle, CheckCircle2, Clock, Package, Target,
@@ -271,7 +272,10 @@ export default function DashboardOperador() {
             </div>
           </section>
 
-          {/* 10. Checklist Segurança */}
+          {/* 10. Cadastrar com IA */}
+          <CadastrarComIAWidget widgetClass="dop-widget" btnClass="dop-btn" />
+
+          {/* 11. Checklist Segurança */}
           <section className="cc-widget dop-widget">
             <div className="cc-kpi__header">
               <Shield size={20} />

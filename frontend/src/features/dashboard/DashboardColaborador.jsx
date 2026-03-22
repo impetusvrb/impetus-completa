@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import { CadastrarComIAWidget } from './widgets';
 import { dashboard, proacao } from '../../services/api';
 import {
   Target, Lightbulb, FolderOpen, FileEdit, AlertTriangle, CheckCircle2,
@@ -173,7 +174,10 @@ export default function DashboardColaborador() {
             )}
           </section>
 
-          {/* 5. Acesso Rápido */}
+          {/* 5. Cadastrar com IA */}
+          <CadastrarComIAWidget widgetClass="dcl-widget" btnClass="dcl-btn" />
+
+          {/* 6. Instruções */}
           <section className="cc-widget dcl-widget">
             <div className="cc-kpi__header">
               <FolderOpen size={20} />
@@ -185,7 +189,7 @@ export default function DashboardColaborador() {
             </button>
           </section>
 
-          {/* 6. Registro de Atividades */}
+          {/* 7. Registro de Atividades */}
           <section className="cc-widget dcl-widget">
             <div className="cc-kpi__header">
               <FileEdit size={20} />
@@ -197,7 +201,7 @@ export default function DashboardColaborador() {
             </button>
           </section>
 
-          {/* 7. Alertas */}
+          {/* 8. Alertas */}
           <section className="cc-widget dcl-widget">
             <div className="cc-kpi__header">
               <AlertTriangle size={20} />
@@ -216,7 +220,7 @@ export default function DashboardColaborador() {
             )}
           </section>
 
-          {/* 8. Checklist Segurança */}
+          {/* 9. Checklist Segurança */}
           <section className="cc-widget dcl-widget">
             <div className="cc-kpi__header">
               <CheckCircle2 size={20} />

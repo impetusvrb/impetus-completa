@@ -8,6 +8,7 @@ import AlertsWidget from './AlertsWidget';
 import SmartSummaryWidget from './SmartSummaryWidget';
 import IndicatorsWidget from './IndicatorsWidget';
 import GenericWidget from './GenericWidget';
+import CadastrarComIAWidget from './CadastrarComIAWidget';
 
 const WIDGET_MAP = {
   center_predictions: CenterWidget,
@@ -29,4 +30,4 @@ export function getWidgetComponent(widgetId) {
   return WIDGET_MAP[widgetId] || GenericWidget;
 }
 
-export { CenterWidget, AlertsWidget, SmartSummaryWidget, IndicatorsWidget, GenericWidget };
+export { CenterWidget, AlertsWidget, SmartSummaryWidget, IndicatorsWidget, GenericWidget, CadastrarComIAWidget };

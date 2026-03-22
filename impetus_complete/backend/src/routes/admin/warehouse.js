@@ -635,4 +635,26 @@ router.get('/references', ...adminMw, async (req, res) => {
   }
 });
 
+// ============================================================================
+// 10. IA — painel Almoxarifado (rotas esperadas pelo frontend; agregação futura)
+// ============================================================================
+
+router.get('/intelligence/dashboard', requireAuth, async (req, res) => {
+  res.json({
+    ok: true,
+    dashboard: {
+      profile_level: 'none',
+      message: 'Painel inteligente em integração. Cadastros disponíveis em Admin → Almoxarifado.'
+    }
+  });
+});
+
+router.post('/intelligence/alerts/:id/ack', requireAuth, async (req, res) => {
+  res.json({ ok: true });
+});
+
+router.post('/intelligence/run-alerts', requireAuth, async (req, res) => {
+  res.json({ ok: true });
+});
+
 module.exports = router;

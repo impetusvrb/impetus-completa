@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impetus — Neural Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #03070f;
+      --neon: #00d4ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--neon);
+      font-family: 'Orbitron', sans-serif;
+      overflow-x: hidden;
+    }
+
+    #particleCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .corner-deco {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      border: 2px solid var(--neon);
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 6;
+      box-shadow: 0 0 16px rgba(0, 212, 255, 0.25), inset 0 0 16px rgba(0, 212, 255, 0.15);
+    }
+    .corner-deco.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+    .corner-deco.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+    .corner-deco.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+    .corner-deco.br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+    .key-panel {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-end;
+      max-width: min(280px, 45vw);
+    }
+    .key-panel .klab {
+      font-size: 9px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      font-weight: 600;
+    }
+    .key-panel input {
+      width: 100%;
+      padding: 8px 10px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      background: rgba(0, 212, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      color: var(--neon);
+      border-radius: 4px;
+      outline: none;
+    }
+    .key-panel input:focus {
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+    }
+    .key-panel .proxy-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      opacity: 0.75;
+      margin-bottom: 4px;
+    }
+    .key-panel .proxy-row input[type="checkbox"] {
+      accent-color: var(--neon);
+      width: 12px;
+      height: 12px;
+    }
+    .key-panel .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+    .key-panel .panel-section[hidden] {
+      display: none !important;
+    }
+
+    .stage {
+      position: relative;
+      z-index: 4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 20px 48px;
+    }
+
+    .title {
+      font-size: clamp(0.7rem, 2.5vw, 0.95rem);
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 36px;
+      opacity: 0.9;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.35);
+    }
+
+    .avatar-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 28px;
+    }
+
+    /* Anéis orbitais — atrás do avatar */
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .orbit {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 212, 255, var(--oa, 0.45));
+      pointer-events: none;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      animation: spin var(--dur, 8s) linear infinite;
+    }
+    .orbit.rev { animation-direction: reverse; }
+    .orbit::after {
+      content: '';
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      left: 50%;
+      top: 0;
+      margin-left: -3.5px;
+      margin-top: -3.5px;
+      border-radius: 50%;
+      background: #00d4ff;
+      box-shadow: 0 0 10px #00d4ff, 0 0 22px rgba(0, 212, 255, 0.6);
+    }
+    .orbit.o1 { width: 300px; height: 275px; --oa: 0.55; --dur: 5s; }
+    .orbit.o2 { width: 320px; height: 292px; --oa: 0.42; --dur: 8s; }
+    .orbit.o3 { width: 340px; height: 310px; --oa: 0.28; --dur: 13s; }
+    .orbit.o4 { width: 362px; height: 328px; --oa: 0.16; --dur: 20s; }
+
+    .pulse-wave {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 280px;
+      height: 280px;
+      margin-left: -140px;
+      margin-top: -140px;
+      border-radius: 50%;
+      border: 1px solid #00d4ff;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      animation: none;
+    }
+    .pulse-wave.active {
+      animation: pulseExpand 2s ease-out infinite;
+    }
+    .pulse-wave.d1 { animation-delay: 0s; }
+    .pulse-wave.d2 { animation-delay: 0.5s; }
+    .pulse-wave.d3 { animation-delay: 1s; }
+
+    @keyframes pulseExpand {
+      0% {
+        width: 280px;
+        height: 280px;
+        margin-left: -140px;
+        margin-top: -140px;
+        opacity: 0.5;
+      }
+      100% {
+        width: 420px;
+        height: 420px;
+        margin-left: -210px;
+        margin-top: -210px;
+        opacity: 0;
+      }
+    }
+
+    #avatarCircle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      border: 2px solid #00d4ff;
+      box-shadow:
+        0 0 8px #00d4ff,
+        0 0 25px #00d4ff,
+        0 0 60px rgba(0, 212, 255, 0.3);
+      overflow: hidden;
+      z-index: 10;
+      background: #050a12;
+      transition: filter 0.35s ease;
+    }
+    #avatarCircle.speaking {
+      filter: brightness(1.2) saturate(1.5);
+    }
+
+    .avatar-video-stack {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #050a12;
+    }
+    .avatar-vid {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      z-index: 0;
+    }
+    .avatar-vid.active {
+      opacity: 1;
+      z-index: 1;
+    }
+    #vid-lipsync {
+      z-index: 3;
+      opacity: 0;
+      visibility: hidden;
+    }
+    #vid-lipsync.lipsync-visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .lip-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 280px;
+      height: 280px;
+      pointer-events: none;
+      z-index: 11;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .dots {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
+    }
+
+    .state-standby .dot { opacity: 0.15; animation: none; }
+    .state-ouvindo .dot {
+      opacity: 0.8;
+      animation: dotPulse 1s ease-in-out infinite;
+    }
+    .state-processando .dot {
+      opacity: 0.85;
+      animation: dotWave 0.7s ease-in-out infinite;
+    }
+    .state-processando .dot:nth-child(1) { animation-delay: 0s; }
+    .state-processando .dot:nth-child(2) { animation-delay: 0.08s; }
+    .state-processando .dot:nth-child(3) { animation-delay: 0.16s; }
+    .state-processando .dot:nth-child(4) { animation-delay: 0.24s; }
+    .state-processando .dot:nth-child(5) { animation-delay: 0.32s; }
+    .state-processando .dot:nth-child(6) { animation-delay: 0.4s; }
+    .state-processando .dot:nth-child(7) { animation-delay: 0.48s; }
+    .state-processando .dot:nth-child(8) { animation-delay: 0.56s; }
+    .state-processando .dot:nth-child(9) { animation-delay: 0.64s; }
+
+    .state-falando .dot {
+      opacity: 1;
+      animation: dotBeat 0.25s ease-in-out infinite alternate;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.35); opacity: 1; }
+    }
+    @keyframes dotWave {
+      0%, 100% { transform: translateY(0); opacity: 0.35; }
+      50% { transform: translateY(-6px); opacity: 1; }
+    }
+    @keyframes dotBeat {
+      from { transform: scale(0.85); }
+      to { transform: scale(1.2); }
+    }
+
+    .status-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      min-width: 140px;
+    }
+
+    .hint {
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      opacity: 0.45;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    .ws-note {
+      position: fixed;
+      bottom: 8px;
+      left: 10px;
+      right: 10px;
+      font-size: 8px;
+      opacity: 0.35;
+      text-align: center;
+      z-index: 25;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particleCanvas" aria-hidden="true"></canvas>
+  <div class="corner-deco tl"></div>
+  <div class="corner-deco tr"></div>
+  <div class="corner-deco bl"></div>
+  <div class="corner-deco br"></div>
+
+  <div class="key-panel">
+    <label class="proxy-row">
+      <input type="checkbox" id="useProxy" />
+      <span>Proxy Impetus (Bearer no servidor)</span>
+    </label>
+    <div class="panel-section" id="panelDirect">
+      <span class="klab">OPENAI KEY</span>
+      <input type="password" id="apiKey" autocomplete="off" placeholder="sk-..." />
+    </div>
+    <div class="panel-section" id="panelProxy" hidden>
+      <span class="klab">JWT / TOKEN</span>
+      <input type="password" id="jwtToken" autocomplete="off" placeholder="mesmo token do login Impetus" />
+      <span class="klab" style="margin-top:4px">API BASE (HTTP)</span>
+      <input type="text" id="apiBase" autocomplete="off" placeholder="ex.: https://seu-dominio.com/api" />
+    </div>
+  </div>
+
+  <div class="stage">
+    <h1 class="title">IMPETUS — NEURAL INTERFACE</h1>
+
+    <div class="avatar-wrap" id="avatarWrap">
+      <div class="orbit o1"></div>
+      <div class="orbit o2 rev"></div>
+      <div class="orbit o3"></div>
+      <div class="orbit o4 rev"></div>
+
+      <div class="pulse-wave d1" id="pw1"></div>
+      <div class="pulse-wave d2" id="pw2"></div>
+      <div class="pulse-wave d3" id="pw3"></div>
+
+      <div id="avatarCircle">
+        <div class="avatar-video-stack" aria-hidden="true">
+          <video id="v-idle" class="avatar-vid active" src="./impetus-idle.mp4" autoplay muted playsinline loop preload="auto"></video>
+          <video id="v-thinking" class="avatar-vid" src="./impetus-thinking.mp4" muted playsinline loop preload="auto"></video>
+          <video id="v-right" class="avatar-vid" src="./impetus-right.mp4" muted playsinline loop preload="auto"></video>
+          <video id="v-left" class="avatar-vid" src="./impetus-left.mp4" muted playsinline loop preload="auto"></video>
+          <video id="v-attention" class="avatar-vid" src="./impetus-attention.mp4" muted playsinline loop preload="auto"></video>
+          <video id="v-speaking" class="avatar-vid" src="./impetus-speaking.mp4" muted playsinline loop preload="auto"></video>
+          <video id="vid-lipsync" class="avatar-vid" muted playsinline preload="auto"></video>
+        </div>
+        <svg class="lip-layer" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <filter id="lipGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <ellipse id="eyeL" cx="95" cy="108" rx="15" ry="9" fill="#00d4ff" opacity="0.12">
+            <animate attributeName="opacity" values="0.06;0.22;0.06" dur="3.5s" repeatCount="indefinite" />
+          </ellipse>
+          <ellipse id="eyeR" cx="183" cy="108" rx="15" ry="9" fill="#00d4ff" opacity="0.12">
+            <animate attributeName="opacity" values="0.06;0.22;0.06" dur="3.5s" repeatCount="indefinite" begin="0.6s" />
+          </ellipse>
+          <circle id="foreheadPulse" cx="140" cy="68" r="4" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.1">
+            <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.1;0.4;0.1" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <g id="mouthGroup" filter="url(#lipGlow)">
+            <path id="upperLip" d="M 112 195 Q 126 191 140 193 Q 154 191 168 195" stroke="#00d4ff" stroke-width="2" fill="none" stroke-linecap="round" />
+            <path id="lowerLip" d="M 112 197 Q 140 203 168 197" stroke="#00d4ff" stroke-width="2" fill="none" stroke-linecap="round" />
+            <ellipse id="mouthInterior" cx="140" cy="196" rx="20" ry="2" stroke="#00d4ff" stroke-width="2" fill="none" />
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="status-row state-standby" id="statusBar">
+      <div class="dots" id="dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <span class="status-label" id="statusText">STANDBY</span>
+    </div>
+    <p class="hint">diga &quot;Ok Impetus&quot; para ativar</p>
+  </div>
+
+  <p class="ws-note" id="wsNote">Modo direto: subprotocolo openai-insecure-api-key. Modo proxy: WebSocket para /impetus-realtime com JWT — chave OpenAI só no servidor (IMPETUS_REALTIME_PROXY_ENABLED=true). Wav2Lip: localStorage impetus_avatar_lipsync=1 e impetus_lipsync_io_url (ex.: http://127.0.0.1:4010).</p>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+(function () {
+  'use strict';
+
+  const STATES = { STANDBY: 'STANDBY', OUVINDO: 'OUVINDO', PROCESSANDO: 'PROCESSANDO', FALANDO: 'FALANDO' };
+  let appState = STATES.STANDBY;
+  let wakeActive = false;
+  let pendingWake = false;
+  let ws = null;
+  let introPlayed = false;
+  let sendingAudio = false;
+
+  const apiKeyInput = document.getElementById('apiKey');
+  const useProxyEl = document.getElementById('useProxy');
+  const panelDirect = document.getElementById('panelDirect');
+  const panelProxy = document.getElementById('panelProxy');
+  const jwtTokenInput = document.getElementById('jwtToken');
+  const apiBaseInput = document.getElementById('apiBase');
+
+  const REALTIME_MODEL = 'gpt-4o-realtime-preview';
+  const REALTIME_WS_PATH = '/impetus-realtime';
+  const statusBar = document.getElementById('statusBar');
+  const statusText = document.getElementById('statusText');
+  const avatarCircle = document.getElementById('avatarCircle');
+  const pw1 = document.getElementById('pw1');
+  const pw2 = document.getElementById('pw2');
+  const pw3 = document.getElementById('pw3');
+
+  const upperLip = document.getElementById('upperLip');
+  const lowerLip = document.getElementById('lowerLip');
+  const mouthInterior = document.getElementById('mouthInterior');
+  const vidLipsync = document.getElementById('vid-lipsync');
+
+  const BASE_VIDEO_IDS = ['v-idle', 'v-thinking', 'v-right', 'v-left', 'v-attention', 'v-speaking'];
+  let lipsyncActive = false;
+  let lipsyncObjectUrl = null;
+
+  function deactivateBaseClips() {
+    BASE_VIDEO_IDS.forEach((id) => {
+      const v = document.getElementById(id);
+      if (!v) return;
+      v.classList.remove('active');
+      try {
+        v.pause();
+      } catch (_) {}
+    });
+  }
+
+  function activateBaseClip(elId) {
+    if (lipsyncActive) return;
+    deactivateBaseClips();
+    const v = document.getElementById(elId);
+    if (v) {
+      v.classList.add('active');
+      v.play().catch(function () {});
+    }
+  }
+
+  function syncAvatarVideo(uiState) {
+    if (lipsyncActive) return;
+    const map = {
+      STANDBY: 'v-idle',
+      OUVINDO: 'v-attention',
+      PROCESSANDO: 'v-thinking',
+      FALANDO: 'v-speaking'
+    };
+    activateBaseClip(map[uiState] || 'v-idle');
+  }
+
+  function hideLipsyncVideo() {
+    const v = vidLipsync;
+    if (!v) return;
+    try {
+      v.pause();
+    } catch (_) {}
+    v.removeAttribute('src');
+    v.classList.remove('lipsync-visible');
+    v.onended = null;
+    if (lipsyncObjectUrl) {
+      URL.revokeObjectURL(lipsyncObjectUrl);
+      lipsyncObjectUrl = null;
+    }
+    lipsyncActive = false;
+    syncAvatarVideo(appState);
+  }
+
+  function showLipsyncFromBlob(blob) {
+    hideLipsyncVideo();
+    lipsyncActive = true;
+    deactivateBaseClips();
+    lipsyncObjectUrl = URL.createObjectURL(blob);
+    const v = vidLipsync;
+    v.loop = false;
+    v.muted = true;
+    v.src = lipsyncObjectUrl;
+    v.classList.add('lipsync-visible');
+    v.onended = function () {
+      hideLipsyncVideo();
+    };
+    v.play().catch(function () {
+      hideLipsyncVideo();
+    });
+  }
+
+  function initLipsyncSocket() {
+    if (typeof io === 'undefined') return;
+    if (localStorage.getItem('impetus_avatar_lipsync') !== '1') return;
+    var url = (localStorage.getItem('impetus_lipsync_io_url') || 'http://127.0.0.1:4010').trim();
+    try {
+      var socket = io(url, { transports: ['websocket', 'polling'] });
+      socket.on('connect', function () {
+        socket.emit('join_avatar');
+      });
+      function onMp4Payload(payload) {
+        if (payload instanceof ArrayBuffer) {
+          showLipsyncFromBlob(new Blob([payload], { type: 'video/mp4' }));
+          return;
+        }
+        if (payload && payload.base64) {
+          var bin = atob(payload.base64);
+          var bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          showLipsyncFromBlob(new Blob([bytes], { type: 'video/mp4' }));
+        }
+      }
+      socket.on('lipsync_mp4', onMp4Payload);
+      socket.on('impetus_avatar_lipsync', onMp4Payload);
+    } catch (e) {
+      console.warn('[lipsync socket]', e);
+    }
+  }
+
+  setInterval(function () {
+    if (lipsyncActive || appState !== STATES.STANDBY) return;
+    var r = Math.random();
+    if (r < 0.65) activateBaseClip('v-idle');
+    else if (r < 0.825) activateBaseClip('v-left');
+    else activateBaseClip('v-right');
+  }, 20000);
+
+  const TARGET_SR = 24000;
+  const BIN_COUNT = 32;
+
+  let lipOpen = 0;
+  let playbackContext = null;
+  let playbackAnalyser = null;
+  let playbackFreq = null;
+  let lipRafId = null;
+
+  function setUIState(s) {
+    appState = s;
+    statusBar.className = 'status-row';
+    if (s === STATES.STANDBY) {
+      statusBar.classList.add('state-standby');
+      statusText.textContent = 'STANDBY';
+    } else if (s === STATES.OUVINDO) {
+      statusBar.classList.add('state-ouvindo');
+      statusText.textContent = 'OUVINDO...';
+    } else if (s === STATES.PROCESSANDO) {
+      statusBar.classList.add('state-processando');
+      statusText.textContent = 'PROCESSANDO...';
+    } else if (s === STATES.FALANDO) {
+      statusBar.classList.add('state-falando');
+      statusText.textContent = 'FALANDO';
+    }
+    const wavesOn = s === STATES.FALANDO;
+    [pw1, pw2, pw3].forEach((el) => {
+      el.classList.toggle('active', wavesOn);
+    });
+    avatarCircle.classList.toggle('speaking', wavesOn);
+    syncAvatarVideo(s);
+  }
+
+  function updateMouthFromLipOpen(t) {
+    const maxDy = 8;
+    const maxRy = 12;
+    const dy = t * maxDy;
+    const ry = 2 + t * (maxRy - 2);
+    upperLip.setAttribute('transform', 'translate(0 ' + (-dy) + ')');
+    lowerLip.setAttribute('transform', 'translate(0 ' + dy + ')');
+    mouthInterior.setAttribute('cy', String(196 + dy * 0.35));
+    mouthInterior.setAttribute('ry', String(ry));
+  }
+
+  function lipLoop() {
+    let target = 0;
+    if (playbackAnalyser && playbackFreq) {
+      playbackAnalyser.getByteFrequencyData(playbackFreq);
+      let sum = 0;
+      for (let i = 0; i < BIN_COUNT && i < playbackFreq.length; i++) sum += playbackFreq[i];
+      const avg = sum / Math.min(BIN_COUNT, playbackFreq.length);
+      target = avg / 255;
+    }
+    lipOpen += (target - lipOpen) * 0.3;
+    if (lipOpen < 0.001) lipOpen = 0;
+    updateMouthFromLipOpen(lipOpen);
+    lipRafId = requestAnimationFrame(lipLoop);
+  }
+
+  function ensurePlaybackAudio() {
+    if (!playbackContext) {
+      playbackContext = new (window.AudioContext || window.webkitAudioContext)();
+      playbackAnalyser = playbackContext.createAnalyser();
+      playbackAnalyser.fftSize = 256;
+      playbackFreq = new Uint8Array(playbackAnalyser.frequencyBinCount);
+      playbackAnalyser.connect(playbackContext.destination);
+    }
+    return playbackContext;
+  }
+
+  let nextPlayTime = 0;
+  const playQueue = [];
+
+  function schedulePcm16(int16, sampleRate) {
+    const ctx = ensurePlaybackAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+    const n = int16.length;
+    const buf = ctx.createBuffer(1, n, sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) ch[i] = int16[i] / 32768;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(playbackAnalyser);
+    const now = ctx.currentTime;
+    const start = Math.max(now, nextPlayTime);
+    src.start(start);
+    nextPlayTime = start + buf.duration;
+    src.onended = () => {};
+  }
+
+  function base64ToInt16(b64) {
+    const bin = atob(b64);
+    const len = bin.length / 2;
+    const out = new Int16Array(len);
+    for (let i = 0; i < len; i++) {
+      out[i] = (bin.charCodeAt(i * 2 + 1) << 8) | bin.charCodeAt(i * 2);
+    }
+    return out;
+  }
+
+  /* Partículas */
+  const pCanvas = document.getElementById('particleCanvas');
+  const pCtx = pCanvas.getContext('2d');
+  const particles = [];
+  const P_N = 80;
+
+  function resizeCanvas() {
+    pCanvas.width = window.innerWidth;
+    pCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  for (let i = 0; i < P_N; i++) {
+    particles.push({
+      x: Math.random() * pCanvas.width,
+      y: Math.random() * pCanvas.height,
+      r: rand(0.3, 1.8),
+      vx: rand(-0.3, 0.3),
+      vy: rand(-0.5, -0.1),
+      alpha: rand(0.1, 0.5)
+    });
+  }
+
+  function particleFrame() {
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -4) {
+        p.y = pCanvas.height + 4;
+        p.x = Math.random() * pCanvas.width;
+        p.alpha = rand(0.1, 0.5);
+      }
+      if (p.x < -4) p.x = pCanvas.width;
+      if (p.x > pCanvas.width + 4) p.x = 0;
+      pCtx.beginPath();
+      pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      pCtx.fillStyle = 'rgba(0,212,255,' + p.alpha + ')';
+      pCtx.fill();
+    }
+    requestAnimationFrame(particleFrame);
+  }
+  requestAnimationFrame(particleFrame);
+
+  const IMPETUS_INSTRUCTIONS =
+    'Você é Impetus, assistente de IA com interface cibernética. ' +
+    'Responda SEMPRE em português brasileiro. ' +
+    'Seja EXTREMAMENTE direta — máximo 2 frases curtas por resposta. ' +
+    'Vá direto ao ponto. Sem "claro!", sem "com certeza!", sem introduções. ' +
+    'Exemplo ideal: "Olá Gustavo, acompanhe a linha A abaixo, qualquer coisa estou aqui." ' +
+    'Nunca repita a pergunta. Use o mínimo de palavras possível.';
+
+  function getJwtForProxy() {
+    return (
+      (jwtTokenInput.value || '').trim() ||
+      localStorage.getItem('impetus_avatar_jwt') ||
+      localStorage.getItem('impetus_token') ||
+      ''
+    );
+  }
+
+  function buildProxyWsUrl() {
+    const rawBase = (apiBaseInput.value || '').trim();
+    const base =
+      rawBase ||
+      (typeof window !== 'undefined' ? window.location.origin + '/api' : '');
+    const token = getJwtForProxy();
+    const u = new URL(base);
+    const wsProto = u.protocol === 'https:' ? 'wss:' : 'ws:';
+    return (
+      wsProto +
+      '//' +
+      u.host +
+      REALTIME_WS_PATH +
+      '?token=' +
+      encodeURIComponent(token) +
+      '&model=' +
+      encodeURIComponent(REALTIME_MODEL)
+    );
+  }
+
+  function connectWS() {
+    const useProxy = useProxyEl.checked;
+    if (useProxy) {
+      const token = getJwtForProxy();
+      if (!token) return;
+    } else {
+      const key = (apiKeyInput.value || '').trim();
+      if (!key) return;
+    }
+
+    if (ws) {
+      try { ws.close(); } catch (e) {}
+      ws = null;
+    }
+
+    let url;
+    let protocols;
+    if (useProxy) {
+      url = buildProxyWsUrl();
+      protocols = undefined;
+    } else {
+      const key = (apiKeyInput.value || '').trim();
+      url =
+        'wss://api.openai.com/v1/realtime?model=' +
+        encodeURIComponent(REALTIME_MODEL);
+      protocols = ['realtime', 'openai-insecure-api-key.' + key];
+    }
+
+    try {
+      ws = protocols ? new WebSocket(url, protocols) : new WebSocket(url);
+    } catch (e) {
+      console.error(e);
+      return;
+    }
+
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      const sessionUpdate = {
+        type: 'session.update',
+        session: {
+          modalities: ['text', 'audio'],
+          instructions: IMPETUS_INSTRUCTIONS,
+          voice: 'nova',
+          input_audio_format: 'pcm16',
+          output_audio_format: 'pcm16',
+          turn_detection: {
+            type: 'server_vad',
+            silence_duration_ms: 600,
+            threshold: 0.5
+          },
+          max_response_output_tokens: 80
+        }
+      };
+      ws.send(JSON.stringify(sessionUpdate));
+      if (pendingWake) {
+        pendingWake = false;
+        wakeActive = true;
+        sendingAudio = true;
+        setUIState(STATES.OUVINDO);
+      }
+    };
+
+    ws.onerror = () => {};
+    ws.onclose = () => { ws = null; };
+
+    ws.onmessage = (ev) => {
+      let msg;
+      try {
+        msg = JSON.parse(ev.data);
+      } catch (_) {
+        return;
+      }
+      const t = msg.type;
+
+      if (t === 'session.created' || t === 'session.updated') {
+        if (!introPlayed) {
+          introPlayed = true;
+          setTimeout(() => playIntro(), 1500);
+        }
+      }
+
+      if (t === 'input_audio_buffer.speech_stopped' && sendingAudio) {
+        setUIState(STATES.PROCESSANDO);
+      }
+
+      const audioB64 = msg.delta;
+      if (
+        (t === 'response.audio.delta' || t === 'response.output_audio.delta') &&
+        audioB64
+      ) {
+        setUIState(STATES.FALANDO);
+        const pcm = base64ToInt16(audioB64);
+        schedulePcm16(pcm, TARGET_SR);
+      }
+
+      if (
+        t === 'response.done' ||
+        t === 'response.completed' ||
+        t === 'response.output_audio.done'
+      ) {
+        sendingAudio = false;
+        setUIState(STATES.STANDBY);
+        wakeActive = false;
+      }
+
+      if (t === 'error') {
+        console.warn(msg);
+      }
+    };
+  }
+
+  function playIntro() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const payload = {
+      type: 'response.create',
+      response: {
+        modalities: ['text', 'audio'],
+        instructions:
+          'Diga exatamente em português brasileiro, de forma natural e breve: Impetus ativa. Diga ok Impetus para começar.'
+      }
+    };
+    setUIState(STATES.FALANDO);
+    ws.send(JSON.stringify(payload));
+  }
+
+  function floatTo16BitPCM(float32Array) {
+    const out = new Int16Array(float32Array.length);
+    for (let i = 0; i < float32Array.length; i++) {
+      let s = Math.max(-1, Math.min(1, float32Array[i]));
+      out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return out;
+  }
+
+  function resampleFloat(src, fromRate, toRate) {
+    if (fromRate === toRate) return src;
+    const ratio = fromRate / toRate;
+    const outLen = Math.floor(src.length / ratio);
+    const out = new Float32Array(outLen);
+    for (let i = 0; i < outLen; i++) {
+      const idx = i * ratio;
+      const i0 = Math.floor(idx);
+      const i1 = Math.min(i0 + 1, src.length - 1);
+      const f = idx - i0;
+      out[i] = src[i0] * (1 - f) + src[i1] * f;
+    }
+    return out;
+  }
+
+  function uint8ToBase64(u8) {
+    let bin = '';
+    for (let i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+    return btoa(bin);
+  }
+
+  let micCtx = null;
+  let scriptNode = null;
+
+  async function startMicPipeline() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = micCtx.createMediaStreamSource(stream);
+    const bufferSize = 4096;
+    scriptNode = micCtx.createScriptProcessor(bufferSize, 1, 1);
+    const inRate = micCtx.sampleRate;
+    const muteOut = micCtx.createGain();
+    muteOut.gain.value = 0;
+
+    scriptNode.onaudioprocess = (e) => {
+      if (!ws || ws.readyState !== WebSocket.OPEN || !sendingAudio) return;
+      const input = e.inputBuffer.getChannelData(0);
+      const resampled = resampleFloat(input, inRate, TARGET_SR);
+      const pcm = floatTo16BitPCM(resampled);
+      const u8 = new Uint8Array(pcm.buffer);
+      const b64 = uint8ToBase64(u8);
+      ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: b64 }));
+    };
+
+    source.connect(scriptNode);
+    scriptNode.connect(muteOut);
+    muteOut.connect(micCtx.destination);
+  }
+
+  /* Wake word */
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+
+  function onWakeHeard() {
+    const useProxy = useProxyEl.checked;
+    const credOk = useProxy
+      ? !!getJwtForProxy()
+      : !!(apiKeyInput.value || '').trim();
+    if (!credOk) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      pendingWake = true;
+      connectWS();
+      return;
+    }
+    wakeActive = true;
+    sendingAudio = true;
+    setUIState(STATES.OUVINDO);
+  }
+
+  function startWakeRecognition() {
+    if (!SpeechRecognition) return;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (ev) => {
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const text = (ev.results[i][0].transcript || '').toLowerCase();
+        if (/ok\s*impetus|impetus/.test(text) && !wakeActive) {
+          onWakeHeard();
+        }
+      }
+    };
+    recognition.onerror = () => {};
+    try {
+      recognition.start();
+    } catch (e) {}
+    setInterval(() => {
+      if (recognition && recognition.state === 'inactive' && !wakeActive) {
+        try { recognition.start(); } catch (e) {}
+      }
+    }, 2000);
+  }
+
+  function syncProxyPanels() {
+    const p = useProxyEl.checked;
+    panelDirect.hidden = p;
+    panelProxy.hidden = !p;
+  }
+
+  function persistAndReconnect() {
+    localStorage.setItem('impetus_openai_key', apiKeyInput.value.trim());
+    localStorage.setItem('avatar_impetus_use_proxy', useProxyEl.checked ? '1' : '0');
+    localStorage.setItem('avatar_impetus_api_base', apiBaseInput.value.trim());
+    localStorage.setItem('impetus_avatar_jwt', jwtTokenInput.value.trim());
+    introPlayed = false;
+    pendingWake = false;
+    syncProxyPanels();
+    if (useProxyEl.checked) {
+      if (getJwtForProxy()) connectWS();
+    } else if (apiKeyInput.value.trim()) {
+      connectWS();
+    }
+  }
+
+  apiKeyInput.addEventListener('change', persistAndReconnect);
+  jwtTokenInput.addEventListener('change', persistAndReconnect);
+  apiBaseInput.addEventListener('change', persistAndReconnect);
+  useProxyEl.addEventListener('change', persistAndReconnect);
+
+  window.addEventListener('load', async () => {
+    if (!lipRafId) lipRafId = requestAnimationFrame(lipLoop);
+    try {
+      await startMicPipeline();
+    } catch (e) {
+      console.warn('Microfone:', e);
+    }
+    startWakeRecognition();
+    const k = localStorage.getItem('impetus_openai_key');
+    if (k) apiKeyInput.value = k;
+    useProxyEl.checked = localStorage.getItem('avatar_impetus_use_proxy') === '1';
+    const ab = localStorage.getItem('avatar_impetus_api_base');
+    if (ab) apiBaseInput.value = ab;
+    const j = localStorage.getItem('impetus_avatar_jwt');
+    if (j) jwtTokenInput.value = j;
+    syncProxyPanels();
+    if (useProxyEl.checked) {
+      if (getJwtForProxy()) connectWS();
+    } else if (apiKeyInput.value.trim()) {
+      connectWS();
+    }
+    initLipsyncSocket();
+    var idleVid = document.getElementById('v-idle');
+    if (idleVid) idleVid.play().catch(function () {});
+  });
+})();
+  </script>
+</body>
+</html>

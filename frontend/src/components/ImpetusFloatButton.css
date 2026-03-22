@@ -21,6 +21,24 @@
   object-fit: cover;
   border-radius: 999px;
   border: 2px solid rgba(30, 144, 255, 0.55);
+  transform-origin: center center;
+  animation: impetus-float-img-breathe 2.4s ease-in-out infinite;
+}
+
+.impetus-float--pulse .impetus-float__img {
+  animation-duration: 1.05s;
+}
+
+@keyframes impetus-float-img-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    transform: scale(1.06);
+    filter: brightness(1.1) saturate(1.18);
+  }
 }
 
 .impetus-float__glow {

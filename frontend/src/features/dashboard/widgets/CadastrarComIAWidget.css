@@ -1,0 +1,106 @@
+/**
+ * CadastrarComIAWidget — Estilos alinhados ao design system (cc-widget, tokens)
+ */
+.cc-cadastrar__form {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cc-cadastrar__textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text1);
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.cc-cadastrar__textarea::placeholder {
+  color: var(--text3);
+}
+
+.cc-cadastrar__textarea:focus {
+  border-color: var(--blue);
+}
+
+.cc-cadastrar__textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cc-cadastrar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cc-cadastrar__file-label {
+  cursor: pointer;
+  margin: 0;
+}
+
+.cc-cadastrar__file-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.cc-cadastrar__file-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text2);
+  background: var(--bg3);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.cc-cadastrar__file-label:hover .cc-cadastrar__file-btn {
+  border-color: var(--blue);
+  color: var(--text1);
+}
+
+.cc-cadastrar__btn {
+  flex: 0 0 auto;
+}
+
+.cc-cadastrar__link {
+  margin-top: 0.75rem;
+}
+
+.cc-cadastrar__feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+}
+
+.cc-cadastrar__feedback--success {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  color: var(--green);
+}
+
+.cc-cadastrar__feedback--error {
+  background: rgba(255, 68, 85, 0.08);
+  border: 1px solid rgba(255, 68, 85, 0.25);
+  color: var(--red);
+}

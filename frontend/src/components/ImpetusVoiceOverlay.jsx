@@ -52,6 +52,11 @@ export default function ImpetusVoiceOverlay({
         </div>
 
         <div className="impetus-voice-overlay__avatar">
+          <div className="impetus-voice-overlay__avatar-decor" aria-hidden="true">
+            <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--a" />
+            <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--b" />
+            <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--c" />
+          </div>
           <div className="impetus-voice-overlay__avatar-ring" aria-hidden="true" />
           <ImpetusAvatarLive state={avatarState} mouthState={mouthState} size={320} />
         </div>

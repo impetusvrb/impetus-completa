@@ -1,9 +1,61 @@
-/* Avatar live (face + boca) para modo voz imersivo */
-.impetus-avatar {
+/* Pulso global bem leve — sem “cabeça doida” */
+.impetus-avatar-shell {
   position: relative;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-origin: center center;
+  animation: impetus-shell-idle 4s ease-in-out infinite;
+}
+
+.impetus-avatar-shell--listening {
+  animation: impetus-shell-listen 2.8s ease-in-out infinite;
+}
+
+.impetus-avatar-shell--speaking {
+  animation: impetus-shell-speak 2s ease-in-out infinite;
+}
+
+@keyframes impetus-shell-idle {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.015);
+  }
+}
+
+@keyframes impetus-shell-listen {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.028);
+  }
+}
+
+@keyframes impetus-shell-speak {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+.impetus-avatar {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
 }
 
 .impetus-avatar__face {
@@ -16,6 +68,8 @@
 }
 
 .impetus-avatar__img {
+  position: relative;
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -23,84 +77,204 @@
   border-radius: 50%;
   user-select: none;
   pointer-events: none;
+  animation: impetus-img-soft 3.5s ease-in-out infinite;
 }
 
+.impetus-avatar--listening .impetus-avatar__img,
+.impetus-avatar--speaking .impetus-avatar__img {
+  box-shadow: 0 0 28px rgba(30, 144, 255, 0.55), inset 0 0 18px rgba(30, 144, 255, 0.12);
+}
+
+.impetus-avatar--listening .impetus-avatar__img {
+  animation-duration: 2.8s;
+}
+
+.impetus-avatar--speaking .impetus-avatar__img {
+  animation-duration: 1.8s;
+}
+
+@keyframes impetus-img-soft {
+  0%,
+  100% {
+    filter: saturate(1) brightness(1);
+  }
+  50% {
+    filter: saturate(1.06) brightness(1.04);
+  }
+}
+
+/* Scan bem discreto (sem piscar forte no rosto) */
+.impetus-avatar__scan {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 44%,
+    rgba(120, 200, 255, 0.09) 50%,
+    transparent 56%,
+    transparent 100%
+  );
+  background-size: 180% 100%;
+  mix-blend-mode: screen;
+  opacity: 0.4;
+  animation: impetus-scan-drift 18s linear infinite;
+}
+
+.impetus-avatar--listening .impetus-avatar__scan {
+  opacity: 0.48;
+  animation-duration: 14s;
+}
+
+.impetus-avatar--speaking .impetus-avatar__scan {
+  opacity: 0.52;
+  animation-duration: 10s;
+}
+
+@keyframes impetus-scan-drift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Boca: movimento pequeno e lento (visível mas não caricato) */
 .impetus-avatar__mouth {
   position: absolute;
   left: 50%;
-  top: 65%;
-  transform: translate(-50%, -50%) translateY(4px);
-  width: 36%;
-  max-width: 140px;
+  top: 64%;
+  transform: translate(-50%, -50%);
+  width: 34%;
+  max-width: 128px;
   z-index: 5;
-  filter: drop-shadow(0 0 12px rgba(30, 144, 255, 0.38));
+  filter: drop-shadow(0 0 8px rgba(30, 144, 255, 0.35));
   user-select: none;
   pointer-events: none;
   opacity: 1;
   mix-blend-mode: screen;
+  transform-origin: center 40%;
+}
+
+.impetus-avatar--standby .impetus-avatar__mouth {
+  animation: impetus-mouth-idle 3s ease-in-out infinite;
+}
+
+.impetus-avatar--listening .impetus-avatar__mouth {
+  animation: impetus-mouth-listen 1.6s ease-in-out infinite;
+}
+
+.impetus-avatar--speaking .impetus-avatar__mouth {
+  animation: impetus-mouth-speak 0.42s ease-in-out infinite;
+}
+
+@keyframes impetus-mouth-idle {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.03);
+    opacity: 1;
+  }
+}
+
+@keyframes impetus-mouth-listen {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@keyframes impetus-mouth-speak {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scaleY(1) scaleX(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scaleY(1.09) scaleX(1.04);
+  }
+}
+
+/* Boca SVG quando não há PNGs em /assets/impetus-mouth/ */
+.impetus-avatar__mouth-fallback {
+  position: absolute;
+  left: 50%;
+  top: 64%;
+  width: 30%;
+  max-width: 112px;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(60, 170, 255, 0.5));
+  transform-origin: center center;
+}
+
+.impetus-avatar--standby .impetus-avatar__mouth-fallback {
+  animation: impetus-mouth-idle 3s ease-in-out infinite;
+}
+
+.impetus-avatar--listening .impetus-avatar__mouth-fallback {
+  animation: impetus-mouth-listen 1.6s ease-in-out infinite;
+}
+
+.impetus-avatar--speaking .impetus-avatar__mouth-fallback {
+  animation: impetus-mouth-speak 0.42s ease-in-out infinite;
+}
+
+.impetus-avatar__mouth-fallback-line {
+  transform-origin: 50% 50%;
 }
 
 .impetus-avatar__glow {
   position: absolute;
   inset: -14px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(30, 144, 255, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(30, 144, 255, 0.2) 0%, transparent 70%);
   z-index: 0;
 }
 
 .impetus-avatar--standby .impetus-avatar__glow {
-  opacity: 0.55;
-  animation: impetus-pulse-soft 3.2s ease-in-out infinite;
+  opacity: 0.5;
+  animation: impetus-glow-soft 3.5s ease-in-out infinite;
 }
 
 .impetus-avatar--listening .impetus-avatar__glow {
-  opacity: 1;
-  animation: impetus-pulse-listen 1.2s ease-in-out infinite;
+  opacity: 0.85;
+  animation: impetus-glow-soft 2.4s ease-in-out infinite;
 }
 
 .impetus-avatar--speaking .impetus-avatar__glow {
-  opacity: 1;
-  animation: impetus-pulse-speak 0.65s ease-in-out infinite;
+  opacity: 0.9;
+  animation: impetus-glow-speak 1.6s ease-in-out infinite;
 }
 
-.impetus-avatar--listening .impetus-avatar__img,
-.impetus-avatar--speaking .impetus-avatar__img {
-  box-shadow: 0 0 34px rgba(30, 144, 255, 0.72), inset 0 0 22px rgba(30, 144, 255, 0.18);
-}
-
-@keyframes impetus-pulse-soft {
+@keyframes impetus-glow-soft {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scale(1.02);
     opacity: 0.75;
   }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
 }
 
-@keyframes impetus-pulse-listen {
+@keyframes impetus-glow-speak {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.85;
   }
   50% {
     transform: scale(1.05);
-    opacity: 1;
   }
 }
-
-@keyframes impetus-pulse-speak {
-  0%,
-  100% {
-    transform: scale(1.02);
-    opacity: 0.92;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-

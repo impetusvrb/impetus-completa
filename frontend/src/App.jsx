@@ -102,11 +102,22 @@ function isColaborador() {
   }
 }
 
-// Colaborador acessa /app (DashboardColaborador). Rotas restritas redirecionam para /app.
+// Colaborador / Auxiliar: acessa dashboard /app e rotas operacionais (biblioteca, registro, proação, chatbot, etc.)
+const COLABORADOR_ALLOWED_PATHS = [
+  '/app',
+  '/app/',
+  '/app/biblioteca',
+  '/app/registro-inteligente',
+  '/app/cadastrar-com-ia',
+  '/app/proacao',
+  '/app/chatbot',
+  '/diagnostic'
+];
 function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
   const path = typeof window !== 'undefined' ? window.location.pathname : '';
-  if (path === '/app' || path === '/app/') return children;
+  if (COLABORADOR_ALLOWED_PATHS.includes(path)) return children;
+  if (path.startsWith('/app/proacao/')) return children; // detalhe de proposta
   return <Navigate to="/app" replace />;
 }
 

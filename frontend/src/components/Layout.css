@@ -171,6 +171,29 @@
   display: block;
   flex-shrink: 0;
   border: 1.5px solid var(--blue);
+  transform-origin: center center;
+  animation: nav-ia-avatar-alive 2.5s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(26, 111, 255, 0.35);
+}
+
+.nav-item.active .nav-item-ia-icon {
+  animation-duration: 1.6s;
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px rgba(77, 200, 255, 0.55);
+}
+
+@keyframes nav-ia-avatar-alive {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1) saturate(1);
+    box-shadow: 0 0 6px rgba(26, 111, 255, 0.35);
+  }
+  50% {
+    transform: scale(1.12);
+    filter: brightness(1.15) saturate(1.2);
+    box-shadow: 0 0 12px rgba(77, 200, 255, 0.55);
+  }
 }
 
 .sidebar.closed .nav-item {

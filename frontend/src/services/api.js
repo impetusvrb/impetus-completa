@@ -739,3 +739,16 @@ export const intelligentRegistration = {
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
   remove: (id) => api.delete(`/intelligent-registration/${id}`),
 };
+
+/** Almoxarifado Inteligente — painel IA (backend: /api/admin/warehouse/intelligence/*) */
+export const warehouseIntelligence = {
+  getDashboard: () => api.get('/admin/warehouse/intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/admin/warehouse/intelligence/alerts/${id}/ack`),
+  runAlerts: () => api.post('/admin/warehouse/intelligence/run-alerts')
+};
+
+export const logisticsIntelligence = {
+  getDashboard: () => api.get('/admin/logistics/intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/admin/logistics/intelligence/alerts/${id}/ack`),
+  runAlerts: () => api.post('/admin/logistics/intelligence/run-alerts')
+};

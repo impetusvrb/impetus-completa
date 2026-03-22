@@ -1,0 +1,12 @@
+{
+  "name": "impetus-lipsync-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bridge": "node bridge.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}

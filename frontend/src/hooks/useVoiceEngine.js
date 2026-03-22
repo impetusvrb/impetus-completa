@@ -6,7 +6,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import {
   OpenaiRealtimeVoiceSession,
-  DEFAULT_REALTIME_SESSION
+  buildImpetusRealtimeSessionUpdate
 } from '../services/openaiRealtimeVoiceSession';
 import { WakeWordDetector } from '../services/wakeWordDetector';
 import {
@@ -26,14 +26,7 @@ function isVoiceRealtimeEnabled() {
 
 function buildRealtimeSessionUpdate() {
   const envInstr = String(import.meta.env.VITE_REALTIME_INSTRUCTIONS || '').trim();
-  if (!envInstr) return DEFAULT_REALTIME_SESSION;
-  return {
-    ...DEFAULT_REALTIME_SESSION,
-    session: {
-      ...DEFAULT_REALTIME_SESSION.session,
-      instructions: envInstr
-    }
-  };
+  return buildImpetusRealtimeSessionUpdate(envInstr);
 }
 
 /** Base HTTP do backend (sem /api) para Socket.IO */
@@ -1348,6 +1341,12 @@ export function useVoiceEngine(options = {}) {
       showBadge('Conectando voz Realtime…');
 
       const sess = new OpenaiRealtimeVoiceSession({
+        onPhaseChange: (phase) => {
+          setVoiceState((s) => ({
+            ...s,
+            status: phase === 'speaking' ? 'speaking' : 'listening'
+          }));
+        },
         onClose: () => {
           realtimeSessionRef.current = null;
           if (!continuousRef.current) return;

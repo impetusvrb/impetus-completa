@@ -1,0 +1,9 @@
+flask>=3.0.0
+# Wav2Lip oficial usa requirements próprio; instale também em Wav2Lip/:
+#   pip install -r Wav2Lip/requirements.txt
+# Extras frequentes para o ambiente de inferência:
+torch
+torchvision
+opencv-python
+librosa
+numpy
