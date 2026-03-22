@@ -1605,6 +1605,14 @@ export function useVoiceEngine(options = {}) {
     };
   }, [stopSpeaking]);
 
+  const getRealtimePlaybackAnalyser = useCallback(() => {
+    try {
+      return realtimeSessionRef.current?.getPlaybackAnalyser?.() ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   return {
     voiceState,
     voiceBadge: badge,
@@ -1625,6 +1633,7 @@ export function useVoiceEngine(options = {}) {
     startWakeWord,
     stopWakeWord,
     stopVoiceCapture,
-    speakNaturalReply
+    speakNaturalReply,
+    getRealtimePlaybackAnalyser
   };
 }

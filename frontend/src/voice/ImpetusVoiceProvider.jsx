@@ -73,7 +73,8 @@ export default function ImpetusVoiceProvider({ children }) {
     stopVoiceCapture,
     setAlertsEnabled,
     setVoicePrefs,
-    startWakeWord
+    startWakeWord,
+    getRealtimePlaybackAnalyser
   } = useVoiceEngine({
     chatRound,
     onSensitiveBlock: () => {
@@ -261,6 +262,7 @@ export default function ImpetusVoiceProvider({ children }) {
         mouthState={ttsUi?.mouthState}
         liveCaption={voiceState.currentTranscript}
         realtimeMode={voiceState.isRealtimeMode}
+        getRealtimePlaybackAnalyser={getRealtimePlaybackAnalyser}
         onClose={() => {
           try {
             stopSpeaking();

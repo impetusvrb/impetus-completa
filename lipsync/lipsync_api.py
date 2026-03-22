@@ -75,7 +75,7 @@ def run_inference(face_path: Path, audio_path: Path, outfile: Path) -> None:
         str(audio_path),
         "--outfile",
         str(outfile),
-        "--nosmooth",
+        "--resize_factor", "2", "--nosmooth",
     ]
     env = os.environ.copy()
     proc = subprocess.run(

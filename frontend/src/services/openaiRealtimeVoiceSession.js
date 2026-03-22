@@ -128,8 +128,14 @@ function base64ToArrayBuffer(b64) {
 }
 
 class Pcm24kPlayer {
-  constructor(audioContext) {
+  /**
+   * @param {AudioContext} audioContext
+   * @param {AnalyserNode | null} playbackAnalyser — se definido, encadeia source → analyser → destination
+   */
+  constructor(audioContext, playbackAnalyser = null) {
     this.ctx = audioContext;
+    /** @type {AnalyserNode | null} */
+    this._playbackAnalyser = playbackAnalyser;
     this.nextTime = 0;
     this.playingCount = 0;
     /** @type {Set<AudioBufferSourceNode>} */
@@ -148,7 +154,11 @@ class Pcm24kPlayer {
     buf.copyToChannel(float32, 0);
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(this.ctx.destination);
+    if (this._playbackAnalyser) {
+      src.connect(this._playbackAnalyser);
+    } else {
+      src.connect(this.ctx.destination);
+    }
 
     const now = this.ctx.currentTime;
     if (this.nextTime < now) this.nextTime = now;
@@ -213,6 +223,8 @@ export class OpenaiRealtimeVoiceSession {
     this.scriptNode = null;
     this.muteGain = null;
     this.sourceNode = null;
+    /** Analyser na cadeia de playback do assistente (lip sync UI) */
+    this._playbackAnalyser = null;
     this.appendMicToApi = true;
     /** Estado explícito para half-duplex */
     this.phase = 'listening';
@@ -224,6 +236,22 @@ export class OpenaiRealtimeVoiceSession {
 
   getPhase() {
     return this.phase;
+  }
+
+  /** @returns {AnalyserNode | null} */
+  getPlaybackAnalyser() {
+    return this._playbackAnalyser || null;
+  }
+
+  _ensurePlaybackAnalyser() {
+    if (!this.audioCtx) return null;
+    if (!this._playbackAnalyser) {
+      const a = this.audioCtx.createAnalyser();
+      a.fftSize = 256;
+      a.connect(this.audioCtx.destination);
+      this._playbackAnalyser = a;
+    }
+    return this._playbackAnalyser;
   }
 
   _setPhase(phase) {
@@ -426,7 +454,8 @@ export class OpenaiRealtimeVoiceSession {
         if (isAudioDelta && ev.delta) {
           if (!this.player) {
             this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            this.player = new Pcm24kPlayer(this.audioCtx);
+            const an = this._ensurePlaybackAnalyser();
+            this.player = new Pcm24kPlayer(this.audioCtx, an);
           }
           if (this.audioCtx.state === 'suspended') {
             this.audioCtx.resume().catch(() => {});
@@ -506,7 +535,10 @@ export class OpenaiRealtimeVoiceSession {
     processor.connect(this.muteGain);
     this.muteGain.connect(ctx.destination);
 
-    if (!this.player) this.player = new Pcm24kPlayer(ctx);
+    if (!this.player) {
+      const an = this._ensurePlaybackAnalyser();
+      this.player = new Pcm24kPlayer(ctx, an);
+    }
 
     this._clearVadTuneTimer();
     this._vadTuneTimer = setTimeout(() => {
@@ -550,5 +582,6 @@ export class OpenaiRealtimeVoiceSession {
     } catch (_) {}
     this.audioCtx = null;
     this.player = null;
+    this._playbackAnalyser = null;
   }
 }

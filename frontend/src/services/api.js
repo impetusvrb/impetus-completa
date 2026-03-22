@@ -214,6 +214,9 @@ export const dashboard = {
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
   getWidgets: () => api.get('/dashboard/widgets'),
   getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
+  getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
+  /** Dashboard Inteligente Dinâmico do colaborador — layout gerado por perfil */
+  getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
 
   getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
   saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),

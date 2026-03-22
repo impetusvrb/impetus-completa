@@ -23,6 +23,7 @@ export default function ImpetusVoiceOverlay({
   mouthState,
   liveCaption = '',
   realtimeMode = false,
+  getRealtimePlaybackAnalyser,
   onClose
 }) {
   if (!open) return null;
@@ -64,7 +65,13 @@ export default function ImpetusVoiceOverlay({
             <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--c" />
           </div>
           <div className="impetus-voice-overlay__avatar-ring" aria-hidden="true" />
-          <ImpetusAvatarLive state={avatarState} mouthState={mouthState} size={320} />
+          <ImpetusAvatarLive
+            state={avatarState}
+            mouthState={mouthState}
+            size={320}
+            realtimeLipSync={realtimeMode}
+            getRealtimePlaybackAnalyser={getRealtimePlaybackAnalyser}
+          />
         </div>
 
         <div className="impetus-voice-overlay__status" aria-live="polite">
