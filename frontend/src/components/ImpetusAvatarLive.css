@@ -101,47 +101,6 @@
   z-index: 1;
 }
 
-/* Boca Realtime: mesmos critérios que .impetus-avatar__mouth (arte oficial + rumo) */
-.impetus-avatar__lipsync-mouth {
-  position: absolute;
-  left: 50%;
-  top: 64%;
-  width: 34%;
-  max-width: 128px;
-  z-index: 5;
-  pointer-events: none;
-  transform-origin: center 38%;
-  filter: drop-shadow(0 0 8px rgba(30, 144, 255, 0.35));
-  mix-blend-mode: screen;
-}
-
-.impetus-avatar__lipsync-mouth__stack {
-  position: relative;
-  width: 100%;
-}
-
-.impetus-avatar__lipsync-mouth__img {
-  display: block;
-  width: 100%;
-  height: auto;
-  vertical-align: top;
-}
-
-.impetus-avatar__lipsync-mouth__img--open {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: auto;
-}
-
-.impetus-avatar__lipsync-mouth__fallback {
-  display: block;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
 .impetus-avatar--has-video.impetus-avatar--listening .impetus-avatar__face,
 .impetus-avatar--has-video.impetus-avatar--processing .impetus-avatar__face,
 .impetus-avatar--has-video.impetus-avatar--speaking .impetus-avatar__face {

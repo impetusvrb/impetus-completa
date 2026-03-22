@@ -248,6 +248,9 @@
       opacity: 1;
       z-index: 1;
     }
+    #avatarVideo {
+      transition: opacity 0.4s ease;
+    }
     #vid-lipsync {
       z-index: 3;
       opacity: 0;
@@ -256,16 +259,6 @@
     #vid-lipsync.lipsync-visible {
       opacity: 1;
       visibility: visible;
-    }
-
-    .lip-layer {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 280px;
-      height: 280px;
-      pointer-events: none;
-      z-index: 11;
     }
 
     .status-row {
@@ -394,40 +387,9 @@
 
       <div id="avatarCircle">
         <div class="avatar-video-stack" aria-hidden="true">
-          <video id="v-idle" class="avatar-vid active" src="./impetus-idle.mp4" autoplay muted playsinline loop preload="auto"></video>
-          <video id="v-thinking" class="avatar-vid" src="./impetus-thinking.mp4" muted playsinline loop preload="auto"></video>
-          <video id="v-right" class="avatar-vid" src="./impetus-right.mp4" muted playsinline loop preload="auto"></video>
-          <video id="v-left" class="avatar-vid" src="./impetus-left.mp4" muted playsinline loop preload="auto"></video>
-          <video id="v-attention" class="avatar-vid" src="./impetus-attention.mp4" muted playsinline loop preload="auto"></video>
-          <video id="v-speaking" class="avatar-vid" src="./impetus-speaking.mp4" muted playsinline loop preload="auto"></video>
+          <video id="avatarVideo" class="avatar-vid active" muted playsinline preload="auto"></video>
           <video id="vid-lipsync" class="avatar-vid" muted playsinline preload="auto"></video>
         </div>
-        <svg class="lip-layer" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <filter id="lipGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <ellipse id="eyeL" cx="95" cy="108" rx="15" ry="9" fill="#00d4ff" opacity="0.12">
-            <animate attributeName="opacity" values="0.06;0.22;0.06" dur="3.5s" repeatCount="indefinite" />
-          </ellipse>
-          <ellipse id="eyeR" cx="183" cy="108" rx="15" ry="9" fill="#00d4ff" opacity="0.12">
-            <animate attributeName="opacity" values="0.06;0.22;0.06" dur="3.5s" repeatCount="indefinite" begin="0.6s" />
-          </ellipse>
-          <circle id="foreheadPulse" cx="140" cy="68" r="4" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.1">
-            <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.1;0.4;0.1" dur="2s" repeatCount="indefinite" />
-          </circle>
-          <g id="mouthGroup" filter="url(#lipGlow)">
-            <path id="upperLip" d="M 112 195 Q 126 191 140 193 Q 154 191 168 195" stroke="#00d4ff" stroke-width="2" fill="none" stroke-linecap="round" />
-            <path id="lowerLip" d="M 112 197 Q 140 203 168 197" stroke="#00d4ff" stroke-width="2" fill="none" stroke-linecap="round" />
-            <ellipse id="mouthInterior" cx="140" cy="196" rx="20" ry="2" stroke="#00d4ff" stroke-width="2" fill="none" />
-          </g>
-        </svg>
       </div>
     </div>
 
@@ -473,50 +435,290 @@
   const pw2 = document.getElementById('pw2');
   const pw3 = document.getElementById('pw3');
 
-  const upperLip = document.getElementById('upperLip');
-  const lowerLip = document.getElementById('lowerLip');
-  const mouthInterior = document.getElementById('mouthInterior');
   const vidLipsync = document.getElementById('vid-lipsync');
 
-  const BASE_VIDEO_IDS = ['v-idle', 'v-thinking', 'v-right', 'v-left', 'v-attention', 'v-speaking'];
   let lipsyncActive = false;
   let lipsyncObjectUrl = null;
   let lipsyncStandbyFallbackTimer = null;
   let lipsyncMediaHooked = false;
+  /** Evita chamar playSpeaking a cada chunk de áudio */
+  let speakingClipStarted = false;
 
-  function deactivateBaseClips() {
-    BASE_VIDEO_IDS.forEach((id) => {
-      const v = document.getElementById(id);
-      if (!v) return;
-      v.classList.remove('active');
-      try {
-        v.pause();
-      } catch (_) {}
-    });
+  // ── Lip sync por playbackRate do vídeo (volume PCM dos chunks Realtime) ──
+  var smoothVolume = 0;
+  var targetVolume = 0;
+  var volumeRaf = null;
+  var audioWindowVol = [];
+  var volumeSyncActive = false;
+  var stopVolumeSyncTimer = null;
+  var WINDOW_SIZE_VOL = 5;
+  var SPEED_MIN = 0.15;
+  var SPEED_IDLE = 0.4;
+  var SPEED_MAX = 1.8;
+  var LERP_SPEED_VOL = 0.1;
+  var VOLUME_SCALE = 3.2;
+
+  function calcChunkVolume(b64audio) {
+    var bytes = atob(b64audio);
+    var sum = 0;
+    var step = 4;
+    var i;
+    for (i = 0; i < bytes.length - 1; i += step * 2) {
+      var lo = bytes.charCodeAt(i);
+      var hi = bytes.charCodeAt(i + 1);
+      var s = (hi << 8) | lo;
+      var signed = s > 32767 ? s - 65536 : s;
+      sum += Math.abs(signed);
+    }
+    var samples = Math.floor(bytes.length / (step * 2));
+    return samples > 0 ? sum / samples / 32768 : 0;
   }
 
-  function activateBaseClip(elId) {
-    if (lipsyncActive) return;
-    deactivateBaseClips();
-    const v = document.getElementById(elId);
-    if (v) {
-      v.classList.add('active');
-      v.play().catch(function () {});
+  function updateVideoSpeed() {
+    var video = document.getElementById('avatarVideo');
+    if (video) {
+      smoothVolume += (targetVolume - smoothVolume) * LERP_SPEED_VOL;
+      var curve = Math.pow(Math.max(0, smoothVolume), 0.7);
+      var speed =
+        SPEED_IDLE + curve * (SPEED_MAX - SPEED_IDLE) * VOLUME_SCALE * 0.35;
+      video.playbackRate = Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed));
+    }
+    if (volumeSyncActive || smoothVolume > 0.008) {
+      volumeRaf = requestAnimationFrame(updateVideoSpeed);
+    } else {
+      if (video) video.playbackRate = 1.0;
+      volumeRaf = null;
     }
   }
 
-  function syncAvatarVideo(uiState) {
-    if (lipsyncActive) return;
-    const map = {
-      STANDBY: 'v-idle',
-      OUVINDO: 'v-attention',
-      PROCESSANDO: 'v-thinking',
-      FALANDO: 'v-speaking'
-    };
-    activateBaseClip(map[uiState] || 'v-idle');
+  function startVolumeSync() {
+    audioWindowVol = [];
+    smoothVolume = 0;
+    targetVolume = 0;
+    volumeSyncActive = true;
+    if (!volumeRaf) volumeRaf = requestAnimationFrame(updateVideoSpeed);
   }
 
-  function hideLipsyncVideo() {
+  function stopVolumeSync() {
+    volumeSyncActive = false;
+    targetVolume = 0;
+    if (stopVolumeSyncTimer) clearTimeout(stopVolumeSyncTimer);
+    stopVolumeSyncTimer = setTimeout(function () {
+      stopVolumeSyncTimer = null;
+      if (volumeRaf) {
+        cancelAnimationFrame(volumeRaf);
+        volumeRaf = null;
+      }
+      smoothVolume = 0;
+      var v = document.getElementById('avatarVideo');
+      if (v) v.playbackRate = 1.0;
+    }, 500);
+  }
+
+  /**
+   * Vídeos em ./videos/ (activation, idle-*.mp4, clip de fala com boca).
+   */
+  const VideoManager = (function () {
+    const VIDEO_BASE = './videos/';
+    const FADE_MS = 400;
+
+    const state = {
+      el: null,
+      currentState: 'idle',
+      activationSrc: VIDEO_BASE + 'activation.mp4',
+      speakingSrc:
+        VIDEO_BASE +
+        'Image_to_video_丨_Futuristic_female_AI_robot_face__ultra_realistic__close_up_port.mp4',
+      idleVideos: [
+        'idle-subtle.mp4',
+        'idle-eyes-left.mp4',
+        'idle-breathing.mp4',
+        'idle-head-turn.mp4',
+        'idle-head-turn2.mp4',
+        'idle-alive.mp4'
+      ].map(function (f) {
+        return VIDEO_BASE + f;
+      }),
+      lastIdleIndex: -1,
+      fadeTimer: null,
+      suspendedForLipsync: false
+    };
+
+    function pickIdleIndex() {
+      const n = state.idleVideos.length;
+      if (n === 0) return -1;
+      if (n === 1) return 0;
+      var idx;
+      var guard = 0;
+      do {
+        idx = Math.floor(Math.random() * n);
+        guard++;
+      } while (idx === state.lastIdleIndex && guard < 32);
+      state.lastIdleIndex = idx;
+      return idx;
+    }
+
+    function clearVideoListeners() {
+      if (!state.el) return;
+      state.el.onended = null;
+      state.el.onerror = null;
+    }
+
+    function fadeThen(run) {
+      if (!state.el) return;
+      var v = state.el;
+      v.style.opacity = '0';
+      if (state.fadeTimer) clearTimeout(state.fadeTimer);
+      state.fadeTimer = setTimeout(function () {
+        state.fadeTimer = null;
+        try {
+          run();
+        } catch (e) {
+          console.warn(e);
+        }
+        v.style.opacity = '1';
+      }, FADE_MS);
+    }
+
+    function bindErrorHandler(src, onFail) {
+      state.el.onerror = function () {
+        console.warn('Video não encontrado:', src);
+        state.el.onerror = null;
+        if (typeof onFail === 'function') onFail();
+      };
+    }
+
+    function startIdle() {
+      if (state.suspendedForLipsync || lipsyncActive) return;
+      if (!state.el) return;
+      if (state.idleVideos.length === 0) return;
+      clearVideoListeners();
+      state.currentState = 'idle';
+      var idx = pickIdleIndex();
+      var src = state.idleVideos[idx];
+      fadeThen(function () {
+        state.el.muted = true;
+        state.el.loop = false;
+        state.el.src = src;
+        state.el.load();
+        bindErrorHandler(src, function () {
+          state.lastIdleIndex = -1;
+          startIdle();
+        });
+        state.el.onended = function () {
+          if (state.currentState !== 'idle' || state.suspendedForLipsync || lipsyncActive) return;
+          startIdle();
+        };
+        state.el.play().catch(function (e) {
+          console.warn('idle play', e);
+          state.lastIdleIndex = -1;
+          startIdle();
+        });
+      });
+    }
+
+    function playActivation() {
+      if (!state.el) return;
+      clearVideoListeners();
+      state.currentState = 'activation';
+      fadeThen(function () {
+        state.el.muted = true;
+        state.el.loop = false;
+        state.el.src = state.activationSrc;
+        state.el.load();
+        bindErrorHandler(state.activationSrc, function () {
+          startIdle();
+        });
+        state.el.onended = function () {
+          state.el.onended = null;
+          if (state.suspendedForLipsync || lipsyncActive) return;
+          startIdle();
+        };
+        state.el.play().catch(function () {
+          startIdle();
+        });
+      });
+    }
+
+    function playSpeaking() {
+      if (!state.el || lipsyncActive || state.suspendedForLipsync) return;
+      if (state.currentState === 'speaking') return;
+      try {
+        startVolumeSync();
+      } catch (e) {}
+      clearVideoListeners();
+      state.currentState = 'speaking';
+      fadeThen(function () {
+        state.el.muted = true;
+        state.el.loop = true;
+        state.el.src = state.speakingSrc;
+        state.el.load();
+        bindErrorHandler(state.speakingSrc, function () {
+          stopSpeaking();
+        });
+        state.el.play().catch(function () {
+          stopSpeaking();
+        });
+      });
+    }
+
+    function stopSpeaking() {
+      try {
+        stopVolumeSync();
+      } catch (e) {}
+      if (!state.el) return;
+      var wasSpeaking = state.currentState === 'speaking';
+      try {
+        state.el.pause();
+      } catch (_) {}
+      try {
+        state.el.playbackRate = 1.0;
+      } catch (_) {}
+      clearVideoListeners();
+      state.currentState = 'idle';
+      if (wasSpeaking && !lipsyncActive && !state.suspendedForLipsync) {
+        startIdle();
+      }
+    }
+
+    function pauseForLipsync() {
+      state.suspendedForLipsync = true;
+      if (!state.el) return;
+      try {
+        state.el.pause();
+      } catch (_) {}
+      state.el.classList.remove('active');
+    }
+
+    function resumeAfterLipsync() {
+      state.suspendedForLipsync = false;
+      if (!state.el) return;
+      state.el.classList.add('active');
+      if (!lipsyncActive) startIdle();
+    }
+
+    function init() {
+      state.el = document.getElementById('avatarVideo');
+      if (state.el) {
+        state.el.muted = true;
+        state.el.setAttribute('playsinline', '');
+        state.el.playsInline = true;
+        state.el.style.opacity = '1';
+      }
+    }
+
+    return {
+      init: init,
+      startIdle: startIdle,
+      playActivation: playActivation,
+      playSpeaking: playSpeaking,
+      stopSpeaking: stopSpeaking,
+      pauseForLipsync: pauseForLipsync,
+      resumeAfterLipsync: resumeAfterLipsync
+    };
+  })();
+
+  function hideLipsyncVideo(opts) {
     const v = vidLipsync;
     if (!v) return;
     try {
@@ -530,7 +732,9 @@
       lipsyncObjectUrl = null;
     }
     lipsyncActive = false;
-    syncAvatarVideo(appState);
+    if (!opts || !opts.skipResume) {
+      VideoManager.resumeAfterLipsync();
+    }
   }
 
   function hookLipsyncVideoToAnalyser(videoEl) {
@@ -538,7 +742,6 @@
       var ctx = ensurePlaybackAudio();
       if (!lipsyncMediaHooked) {
         var srcNode = ctx.createMediaElementSource(videoEl);
-        srcNode.connect(playbackAnalyser);
         srcNode.connect(ctx.destination);
         lipsyncMediaHooked = true;
       }
@@ -549,13 +752,16 @@
   }
 
   function showLipsyncFromBlob(blob) {
+    try {
+      stopVolumeSync();
+    } catch (e) {}
     if (lipsyncStandbyFallbackTimer) {
       clearTimeout(lipsyncStandbyFallbackTimer);
       lipsyncStandbyFallbackTimer = null;
     }
-    hideLipsyncVideo();
+    hideLipsyncVideo({ skipResume: true });
     lipsyncActive = true;
-    deactivateBaseClips();
+    VideoManager.pauseForLipsync();
     lipsyncObjectUrl = URL.createObjectURL(blob);
     var v = vidLipsync;
     v.loop = false;
@@ -660,22 +866,9 @@
     }
   }
 
-  setInterval(function () {
-    if (lipsyncActive || appState !== STATES.STANDBY) return;
-    var r = Math.random();
-    if (r < 0.65) activateBaseClip('v-idle');
-    else if (r < 0.825) activateBaseClip('v-left');
-    else activateBaseClip('v-right');
-  }, 20000);
-
   const TARGET_SR = 24000;
-  const BIN_COUNT = 32;
 
-  let lipOpen = 0;
   let playbackContext = null;
-  let playbackAnalyser = null;
-  let playbackFreq = null;
-  let lipRafId = null;
 
   function setUIState(s) {
     appState = s;
@@ -698,42 +891,11 @@
       el.classList.toggle('active', wavesOn);
     });
     avatarCircle.classList.toggle('speaking', wavesOn);
-    syncAvatarVideo(s);
-  }
-
-  function updateMouthFromLipOpen(t) {
-    const maxDy = 8;
-    const maxRy = 12;
-    const dy = t * maxDy;
-    const ry = 2 + t * (maxRy - 2);
-    upperLip.setAttribute('transform', 'translate(0 ' + (-dy) + ')');
-    lowerLip.setAttribute('transform', 'translate(0 ' + dy + ')');
-    mouthInterior.setAttribute('cy', String(196 + dy * 0.35));
-    mouthInterior.setAttribute('ry', String(ry));
-  }
-
-  function lipLoop() {
-    let target = 0;
-    if (playbackAnalyser && playbackFreq) {
-      playbackAnalyser.getByteFrequencyData(playbackFreq);
-      let sum = 0;
-      for (let i = 0; i < BIN_COUNT && i < playbackFreq.length; i++) sum += playbackFreq[i];
-      const avg = sum / Math.min(BIN_COUNT, playbackFreq.length);
-      target = avg / 255;
-    }
-    lipOpen += (target - lipOpen) * 0.3;
-    if (lipOpen < 0.001) lipOpen = 0;
-    updateMouthFromLipOpen(lipOpen);
-    lipRafId = requestAnimationFrame(lipLoop);
   }
 
   function ensurePlaybackAudio() {
     if (!playbackContext) {
       playbackContext = new (window.AudioContext || window.webkitAudioContext)();
-      playbackAnalyser = playbackContext.createAnalyser();
-      playbackAnalyser.fftSize = 256;
-      playbackFreq = new Uint8Array(playbackAnalyser.frequencyBinCount);
-      playbackAnalyser.connect(playbackContext.destination);
     }
     return playbackContext;
   }
@@ -750,7 +912,7 @@
     for (let i = 0; i < n; i++) ch[i] = int16[i] / 32768;
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(playbackAnalyser);
+    src.connect(ctx.destination);
     const now = ctx.currentTime;
     const start = Math.max(now, nextPlayTime);
     src.start(start);
@@ -908,6 +1070,7 @@
       ws.send(JSON.stringify(sessionUpdate));
       if (pendingWake) {
         pendingWake = false;
+        VideoManager.playActivation();
         wakeActive = true;
         sendingAudio = true;
         setUIState(STATES.OUVINDO);
@@ -943,6 +1106,23 @@
         audioB64
       ) {
         setUIState(STATES.FALANDO);
+        var lipsyncOn =
+          localStorage.getItem('impetus_avatar_lipsync') === '1' && useProxyEl.checked;
+        if (!speakingClipStarted && !lipsyncOn) {
+          speakingClipStarted = true;
+          VideoManager.playSpeaking();
+        }
+        if (!lipsyncOn) {
+          try {
+            var vol = calcChunkVolume(audioB64);
+            audioWindowVol.push(vol);
+            if (audioWindowVol.length > WINDOW_SIZE_VOL) audioWindowVol.shift();
+            var sumW = 0;
+            for (var wi = 0; wi < audioWindowVol.length; wi++) sumW += audioWindowVol[wi];
+            targetVolume =
+              audioWindowVol.length > 0 ? sumW / audioWindowVol.length : 0;
+          } catch (e) {}
+        }
         const pcm = base64ToInt16(audioB64);
         schedulePcm16(pcm, TARGET_SR);
       }
@@ -954,16 +1134,22 @@
       if (t === 'response.done' || t === 'response.completed') {
         sendingAudio = false;
         wakeActive = false;
-        var lipsyncOn =
+        speakingClipStarted = false;
+        var lipsyncOnDone =
           localStorage.getItem('impetus_avatar_lipsync') === '1' && useProxyEl.checked;
-        if (lipsyncOn) {
+        if (lipsyncOnDone) {
+          VideoManager.stopSpeaking();
           setUIState(STATES.PROCESSANDO);
           if (lipsyncStandbyFallbackTimer) clearTimeout(lipsyncStandbyFallbackTimer);
           lipsyncStandbyFallbackTimer = setTimeout(function () {
             if (appState === STATES.PROCESSANDO) setUIState(STATES.STANDBY);
           }, 120000);
         } else {
-          setUIState(STATES.STANDBY);
+          setTimeout(function () {
+            if (appState !== STATES.FALANDO) return;
+            VideoManager.stopSpeaking();
+            setUIState(STATES.STANDBY);
+          }, 900);
         }
       }
 
@@ -1060,6 +1246,7 @@
       connectWS();
       return;
     }
+    VideoManager.playActivation();
     wakeActive = true;
     sendingAudio = true;
     setUIState(STATES.OUVINDO);
@@ -1117,7 +1304,6 @@
   useProxyEl.addEventListener('change', persistAndReconnect);
 
   window.addEventListener('load', async () => {
-    if (!lipRafId) lipRafId = requestAnimationFrame(lipLoop);
     try {
       await startMicPipeline();
     } catch (e) {
@@ -1138,8 +1324,8 @@
       connectWS();
     }
     initLipsyncSocket();
-    var idleVid = document.getElementById('v-idle');
-    if (idleVid) idleVid.play().catch(function () {});
+    VideoManager.init();
+    VideoManager.startIdle();
   });
 })();
   </script>

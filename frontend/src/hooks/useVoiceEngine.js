@@ -16,6 +16,7 @@ import {
   pickSpeakingPhrase
 } from '../constants/voiceResponses';
 import { applyPronunciation } from '../constants/pronunciationMap';
+import { calcPcmChunkVolumeNorm } from '../utils/pcmChunkVolume';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -566,6 +567,17 @@ export function useVoiceEngine(options = {}) {
     targetText: '',
     isTyping: false
   });
+  /** Lip-sync no avatar: volume alvo + drive (lido no rAF; sem canvas). */
+  const videoLipSyncRef = useRef({ targetVolume: 0, drive: false });
+  const lipSyncWindowRef = useRef([]);
+  const LIP_SYNC_WINDOW_SIZE = 5;
+
+  const resetVideoLipSync = useCallback(() => {
+    lipSyncWindowRef.current = [];
+    videoLipSyncRef.current.targetVolume = 0;
+    videoLipSyncRef.current.drive = false;
+  }, []);
+
   const ttsTargetRef = useRef('');
   const typingTimerRef = useRef(null);
   const typingActiveRef = useRef(false);
@@ -732,13 +744,14 @@ export function useVoiceEngine(options = {}) {
       clearTimeout(bargeInFlashTimeoutRef.current);
       bargeInFlashTimeoutRef.current = null;
     }
+    resetVideoLipSync();
     setTtsUi((u) => ({
       ...u,
       mouthState: 'closed',
       isTyping: false
     }));
     setVoiceState((s) => ({ ...s, bargeInFlash: false }));
-  }, []);
+  }, [resetVideoLipSync]);
 
   const startTypingLoop = useCallback(() => {
     if (typingTimerRef.current) return;
@@ -888,6 +901,7 @@ export function useVoiceEngine(options = {}) {
     sourceRef.current = src;
     setVoiceState((s) => ({ ...s, status: 'speaking' }));
     showBadge(pickSpeakingPhrase());
+    resetVideoLipSync();
 
     // Lip sync Nível B (closed/open/o/e) — heurística por energia + centroide
     let raf = null;
@@ -975,7 +989,7 @@ export function useVoiceEngine(options = {}) {
         resolve();
       }
     });
-  }, [showBadge]);
+  }, [showBadge, resetVideoLipSync]);
 
   const fetchSpeakAudio = useCallback(async (text, meta = {}) => {
     const clean = String(text || '')
@@ -1359,6 +1373,11 @@ export function useVoiceEngine(options = {}) {
             isRealtimeMode: false,
             currentTranscript: ''
           }));
+          resetVideoLipSync();
+          setTtsUi((u) => ({
+            ...u,
+            mouthState: 'closed'
+          }));
         },
         onError: (err) => {
           setVoiceState((s) => ({
@@ -1372,7 +1391,11 @@ export function useVoiceEngine(options = {}) {
             realtimeAsstTranscriptRef.current = '';
             realtimeUserTranscriptRef.current = '';
             setVoiceState((s) => ({ ...s, status: 'listening', currentTranscript: '' }));
-            setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+            resetVideoLipSync();
+            setTtsUi((u) => ({
+              ...u,
+              mouthState: 'closed'
+            }));
           }
           if (
             (t === 'response.output_audio_transcript.delta' ||
@@ -1408,19 +1431,36 @@ export function useVoiceEngine(options = {}) {
             }));
           }
           if (t === 'response.output_audio.delta' || t === 'response.audio.delta') {
+            const b64 = ev.delta;
+            if (b64) {
+              const vol = calcPcmChunkVolumeNorm(b64);
+              const w = lipSyncWindowRef.current;
+              w.push(vol);
+              if (w.length > LIP_SYNC_WINDOW_SIZE) w.shift();
+              const sum = w.reduce((a, b) => a + b, 0);
+              videoLipSyncRef.current.targetVolume = w.length > 0 ? sum / w.length : 0;
+              videoLipSyncRef.current.drive = true;
+            }
             setVoiceState((s) =>
               s.status === 'speaking' ? s : { ...s, status: 'speaking' }
             );
-            setTtsUi((u) => ({ ...u, mouthState: 'open' }));
+            setTtsUi((u) => ({
+              ...u,
+              mouthState: 'open'
+            }));
           }
           if (t === 'response.done' || t === 'response.output_audio_transcript.done') {
             realtimeAsstTranscriptRef.current = '';
+            resetVideoLipSync();
             setVoiceState((s) => ({
               ...s,
               status: 'listening',
               currentTranscript: ''
             }));
-            setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+            setTtsUi((u) => ({
+              ...u,
+              mouthState: 'closed'
+            }));
           }
           if (t === 'error') {
             const msg =
@@ -1479,7 +1519,7 @@ export function useVoiceEngine(options = {}) {
       status: 'listening'
     }));
     runContinuousLoop();
-  }, [runContinuousLoop, stopSpeaking, showBadge]);
+  }, [runContinuousLoop, stopSpeaking, showBadge, resetVideoLipSync]);
 
   const startListening = useCallback(() => {
     if (!continuousRef.current) toggleVoice();
@@ -1605,18 +1645,11 @@ export function useVoiceEngine(options = {}) {
     };
   }, [stopSpeaking]);
 
-  const getRealtimePlaybackAnalyser = useCallback(() => {
-    try {
-      return realtimeSessionRef.current?.getPlaybackAnalyser?.() ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
-
   return {
     voiceState,
     voiceBadge: badge,
     ttsUi,
+    videoLipSyncRef,
     startListening,
     stopListening,
     toggleVoice,
@@ -1633,7 +1666,6 @@ export function useVoiceEngine(options = {}) {
     startWakeWord,
     stopWakeWord,
     stopVoiceCapture,
-    speakNaturalReply,
-    getRealtimePlaybackAnalyser
+    speakNaturalReply
   };
 }

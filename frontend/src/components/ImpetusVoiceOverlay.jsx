@@ -21,9 +21,9 @@ export default function ImpetusVoiceOverlay({
   status,
   bargeInFlash,
   mouthState,
+  videoLipSyncRef = null,
   liveCaption = '',
   realtimeMode = false,
-  getRealtimePlaybackAnalyser,
   onClose
 }) {
   if (!open) return null;
@@ -68,9 +68,9 @@ export default function ImpetusVoiceOverlay({
           <ImpetusAvatarLive
             state={avatarState}
             mouthState={mouthState}
+            videoLipSyncRef={videoLipSyncRef}
+            convoBlinkVideo={realtimeMode}
             size={320}
-            realtimeLipSync={realtimeMode}
-            getRealtimePlaybackAnalyser={getRealtimePlaybackAnalyser}
           />
         </div>
 

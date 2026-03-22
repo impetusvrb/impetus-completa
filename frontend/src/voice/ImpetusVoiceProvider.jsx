@@ -66,6 +66,7 @@ export default function ImpetusVoiceProvider({ children }) {
     voiceState,
     voiceBadge,
     ttsUi,
+    videoLipSyncRef,
     toggleVoice,
     speakText,
     speakNaturalReply,
@@ -73,8 +74,7 @@ export default function ImpetusVoiceProvider({ children }) {
     stopVoiceCapture,
     setAlertsEnabled,
     setVoicePrefs,
-    startWakeWord,
-    getRealtimePlaybackAnalyser
+    startWakeWord
   } = useVoiceEngine({
     chatRound,
     onSensitiveBlock: () => {
@@ -260,9 +260,9 @@ export default function ImpetusVoiceProvider({ children }) {
         status={voiceState.status}
         bargeInFlash={voiceState.bargeInFlash}
         mouthState={ttsUi?.mouthState}
+        videoLipSyncRef={voiceState.isRealtimeMode ? videoLipSyncRef : null}
         liveCaption={voiceState.currentTranscript}
         realtimeMode={voiceState.isRealtimeMode}
-        getRealtimePlaybackAnalyser={getRealtimePlaybackAnalyser}
         onClose={() => {
           try {
             stopSpeaking();
