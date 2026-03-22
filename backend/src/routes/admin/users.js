@@ -19,13 +19,32 @@ const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisã
 /** Área funcional para dashboard inteligente: production, maintenance, quality, etc. */
 const FUNCTIONAL_AREA_OPTIONS = ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'];
 
+/** Inferir functional_area a partir do nome da área (permite Manutenção, Qualidade, etc.) */
+function inferFunctionalAreaFromArea(area) {
+  if (!area || typeof area !== 'string') return null;
+  const a = area.toLowerCase().trim();
+  if (/manuten|mecan|eletric|eletromecan/.test(a)) return 'maintenance';
+  if (/qualid|qualidade/.test(a)) return 'quality';
+  if (/produ|oper|opera[çc]/i.test(a)) return 'production';
+  if (/pcp|planej/.test(a)) return 'pcp';
+  if (/rh|recursos|pessoas/.test(a)) return 'hr';
+  if (/financ|contab/.test(a)) return 'finance';
+  if (/admin|gest[ãa]o/.test(a)) return 'admin';
+  return null;
+}
+
+const areaSchema = z.union([
+  z.enum(AREA_OPTIONS),
+  z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().min(2, 'Área customizada deve ter entre 2 e 80 caracteres').max(80))
+]).optional();
+
 const createUserSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Senha deve conter maiúscula, minúscula e número'),
   role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']),
-  area: z.enum(AREA_OPTIONS).optional(),
+  area: areaSchema,
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().optional()),
@@ -54,7 +73,7 @@ const updateUserSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   email: z.string().email().optional(),
   role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']).optional(),
-  area: z.enum(AREA_OPTIONS).nullable().optional(),
+  area: z.union([z.enum(AREA_OPTIONS), z.string().min(2).max(80)]).nullable().optional(),
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).nullable().optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).nullable().optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().nullable().optional()),
@@ -276,7 +295,9 @@ router.post('/',
       const passwordHash = hashPassword(validatedData.password);
 
       const area = validatedData.area || null;
-      const hierarchyLevel = validatedData.role === 'ceo' ? 0 : (area ? AREA_TO_LEVEL[area] : (validatedData.hierarchy_level ?? 5));
+      const isCustomArea = area && !AREA_OPTIONS.includes(area);
+      const hierarchyLevel = validatedData.role === 'ceo' ? 0 : (area ? (AREA_TO_LEVEL[area] ?? 5) : (validatedData.hierarchy_level ?? 5));
+      const functionalArea = validatedData.functional_area || (isCustomArea ? inferFunctionalAreaFromArea(area) : null) || null;
 
       // Criar usuário (CEO: executive_verified = false até verificação via WhatsApp)
       const result = await db.query(`
@@ -302,7 +323,7 @@ router.post('/',
         validatedData.role === 'ceo' ? 0 : hierarchyLevel,
         JSON.stringify(validatedData.permissions || []),
         false,
-        validatedData.functional_area || null
+        functionalArea
       ]);
 
       // Log de auditoria
@@ -393,9 +414,13 @@ router.put('/:id',
         }
       }
 
-      // Sincronizar hierarchy_level quando area muda
+      // Sincronizar hierarchy_level e functional_area quando area muda
       if (validatedData.area) {
-        validatedData.hierarchy_level = validatedData.area === 'Direção' ? 1 : AREA_TO_LEVEL[validatedData.area] ?? validatedData.hierarchy_level;
+        const isCustomArea = !AREA_OPTIONS.includes(validatedData.area);
+        validatedData.hierarchy_level = validatedData.area === 'Direção' ? 1 : (AREA_TO_LEVEL[validatedData.area] ?? (isCustomArea ? 5 : validatedData.hierarchy_level));
+        if (isCustomArea && validatedData.functional_area === undefined) {
+          validatedData.functional_area = inferFunctionalAreaFromArea(validatedData.area);
+        }
       }
 
       // Construir query de update

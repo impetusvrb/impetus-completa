@@ -68,6 +68,11 @@ coverage/
 .nyc_output/
 *.lcov
 
+# Wav2Lip (venv local + pesos grandes — não versionar)
+lipsync/.venv/
+lipsync/Wav2Lip/checkpoints/*.pth
+lipsync/Wav2Lip/face_detection/detection/sfd/*.pth
+
 # Docker (se usar volumes locais)
 .docker/
 

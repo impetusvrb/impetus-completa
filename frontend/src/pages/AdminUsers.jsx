@@ -38,12 +38,14 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Form state
+  const AREA_FIXED = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'colaborador',
     area: 'Colaborador',
+    custom_area: '',
     job_title: '',
     department: '',
     department_id: '',
@@ -114,9 +116,10 @@ export default function AdminUsers() {
       setSaving(true);
       setFormErrors({});
 
+      const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
       const payload = {
         ...formData,
-        area: formData.area || undefined,
+        area: areaVal,
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
         department_id: formData.department_id || undefined,
@@ -152,9 +155,10 @@ export default function AdminUsers() {
       setSaving(true);
       setFormErrors({});
 
+      const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
       const updateData = {
         ...formData,
-        area: formData.area || undefined,
+        area: areaVal,
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
         department_id: formData.department_id || undefined,
@@ -234,12 +238,15 @@ export default function AdminUsers() {
 
   const openEditModal = (user) => {
     setSelectedUser(user);
+    const userArea = user.area || (user.hierarchy_level <= 1 ? 'Direção' : user.hierarchy_level === 2 ? 'Gerência' : user.hierarchy_level === 3 ? 'Coordenação' : user.hierarchy_level === 4 ? 'Supervisão' : 'Colaborador');
+    const isCustomArea = userArea && !AREA_FIXED.includes(userArea);
     setFormData({
       name: user.name,
       email: user.email,
       password: '',
       role: user.role,
-      area: user.area || (user.hierarchy_level <= 1 ? 'Direção' : user.hierarchy_level === 2 ? 'Gerência' : user.hierarchy_level === 3 ? 'Coordenação' : user.hierarchy_level === 4 ? 'Supervisão' : 'Colaborador'),
+      area: isCustomArea ? '__custom__' : userArea,
+      custom_area: isCustomArea ? userArea : '',
       job_title: user.job_title || '',
       department: user.department || '',
       department_id: user.department_id || '',
@@ -272,6 +279,7 @@ export default function AdminUsers() {
       password: '',
       role: 'colaborador',
       area: 'Colaborador',
+      custom_area: '',
       job_title: '',
       department: '',
       department_id: '',
@@ -294,7 +302,15 @@ export default function AdminUsers() {
       else if (name === 'hierarchy_level') next[name] = (() => { const n = parseInt(value, 10); return Number.isNaN(n) ? 5 : Math.max(0, Math.min(5, n)); })();
       else if (name === 'area') {
         next[name] = value;
-        if (prev.role !== 'ceo') next.hierarchy_level = AREA_TO_LEVEL[value] ?? 5;
+        if (value === '__custom__') {
+          next.hierarchy_level = 5;
+          next.custom_area = prev.custom_area || '';
+        } else {
+          next.custom_area = '';
+          if (prev.role !== 'ceo') next.hierarchy_level = AREA_TO_LEVEL[value] ?? 5;
+        }
+      } else if (name === 'custom_area') {
+        next.custom_area = value;
       } else next[name] = value;
       return next;
     });
@@ -484,7 +500,7 @@ export default function AdminUsers() {
             onConfirm={handleCreate}
             confirmText="Criar Usuário"
             confirmLoading={saving}
-            confirmDisabled={!formData.name || !formData.email || !formData.password || (formData.role === 'ceo' && (!formData.whatsapp_number || formData.whatsapp_number.trim().length < 10))}
+            confirmDisabled={!formData.name || !formData.email || !formData.password || (formData.area === '__custom__' && !formData.custom_area?.trim()) || (formData.role === 'ceo' && (!formData.whatsapp_number || formData.whatsapp_number.trim().length < 10))}
           />
         </Modal>
 
@@ -509,7 +525,7 @@ export default function AdminUsers() {
             onConfirm={handleUpdate}
             confirmText="Salvar Alterações"
             confirmLoading={saving}
-            confirmDisabled={!formData.name || !formData.email}
+            confirmDisabled={!formData.name || !formData.email || (formData.area === '__custom__' && !formData.custom_area?.trim())}
           />
         </Modal>
 
@@ -645,10 +661,23 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
             { value: 'Gerência', label: 'Gerência' },
             { value: 'Coordenação', label: 'Coordenação' },
             { value: 'Supervisão', label: 'Supervisão' },
-            { value: 'Colaborador', label: 'Colaborador' }
+            { value: 'Colaborador', label: 'Colaborador' },
+            { value: '__custom__', label: 'Outra área (cadastrar)' }
           ]}
-          helperText="Define escopo de dados e personalização do dashboard"
+          helperText="Define escopo de dados e acesso aos módulos (ex: Manutenção, Qualidade)"
         />
+
+        {formData.area === '__custom__' && (
+          <InputField
+            label="Nome da área"
+            name="custom_area"
+            value={formData.custom_area}
+            onChange={onChange}
+            placeholder="Ex: Manutenção, Qualidade, Logística"
+            required
+            helperText="Ex: Manutenção para mecânicos, Qualidade para inspetores"
+          />
+        )}
 
         {formData.area === 'Direção' && (
           <CheckboxField

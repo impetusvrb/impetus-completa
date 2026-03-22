@@ -9,12 +9,16 @@ POST /lipsync  (multipart/form-data)
 Resposta: MP4 gerado (boca sincronizada).
 
 Pré-requisitos:
-  1) Clonar Wav2Lip dentro desta pasta ou definir WAV2LIP_ROOT:
-       cd lipsync && git clone https://github.com/Rudrabha/Wav2Lip.git
-  2) Colocar checkpoints/wav2lip.pth em Wav2Lip/checkpoints/
-  3) pip install -r requirements.txt
+  1) Clonar Wav2Lip (ou WAV2LIP_ROOT): git clone … dentro de lipsync/
+  2) Pesos: Wav2Lip/checkpoints/wav2lip.pth (Drive pode falhar com gdown;
+     espelho: curl -L …/huggingface.co/rippertnt/wav2lip/resolve/main/checkpoints/wav2lip.pth)
+     e face_detection/detection/sfd/s3fd.pth (README do Wav2Lip).
+  3) Python 3.10+: torch/torchvision CPU, depois pip install -r requirements-wav2lip.modern.txt
+     (opencv-python-headless evita libGL em servidor).
+  4) ffmpeg no sistema (mux final do inference.py).
 
 Uso:
+  export PYTHON=/caminho/lipsync/.venv/bin/python
   export WAV2LIP_ROOT=/caminho/absoluto/lipsync/Wav2Lip
   python lipsync_api.py
 """
@@ -34,6 +38,17 @@ app = Flask(__name__)
 
 THIS_DIR = Path(__file__).resolve().parent
 WAV2LIP_ROOT = Path(os.environ.get("WAV2LIP_ROOT", str(THIS_DIR / "Wav2Lip"))).resolve()
+
+
+def _python_for_inference() -> str:
+    """Mesmo interpretador do venv (PM2 não repassa ao subprocesso sem PYTHON)."""
+    explicit = os.environ.get("PYTHON", "").strip()
+    if explicit:
+        return explicit
+    candidate = THIS_DIR / ".venv" / "bin" / "python"
+    if candidate.is_file():
+        return str(candidate)
+    return "python3"
 CHECKPOINT = Path(
     os.environ.get(
         "WAV2LIP_CHECKPOINT",
@@ -50,7 +65,7 @@ def run_inference(face_path: Path, audio_path: Path, outfile: Path) -> None:
         raise FileNotFoundError(f"Checkpoint não encontrado: {CHECKPOINT}")
 
     cmd = [
-        os.environ.get("PYTHON", "python3"),
+        _python_for_inference(),
         str(inference),
         "--checkpoint_path",
         str(CHECKPOINT),

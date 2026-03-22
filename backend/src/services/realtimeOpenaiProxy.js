@@ -3,16 +3,32 @@
  * o servidor abre wss://api.openai.com/v1/realtime com Authorization: Bearer (OPENAI_API_KEY).
  *
  * Integração no servidor HTTP existente (após criar o server):
+ *   const { Server } = require('socket.io');
+ *   const { registerAvatarLipsyncNamespace } = require('./services/avatarLipsyncSocket');
+ *   const io = new Server(httpServer, { path: '/socket.io', cors: { origin: true, credentials: true } });
+ *   const avatarNsp = io.of('/impetus-avatar');
+ *   registerAvatarLipsyncNamespace(avatarNsp);
  *   const { attachRealtimeOpenaiProxy } = require('./services/realtimeOpenaiProxy');
- *   attachRealtimeOpenaiProxy(httpServer);
+ *   attachRealtimeOpenaiProxy(httpServer, { avatarLipsyncNamespace: avatarNsp });
  *
  * .env: IMPETUS_REALTIME_PROXY_ENABLED=true, OPENAI_API_KEY=sk-...
  * Opcional: OPENAI_REALTIME_MODEL=gpt-4o-realtime-preview, IMPETUS_REALTIME_WS_PATH=/impetus-realtime
+ *
+ * Wav2Lip (somente com proxy — o áudio só passa no servidor aqui):
+ *   IMPETUS_REALTIME_LIPSYNC_ENABLED=true
+ *   IMPETUS_LIPSYNC_URL=http://127.0.0.1:5001/lipsync
+ *   IMPETUS_LIPSYNC_FACE_VIDEO=/caminho/impetus-speaking.mp4 (opcional; padrão frontend/public/…)
+ *   IMPETUS_REALTIME_OUTPUT_AUDIO_HZ=24000
+ *   IMPETUS_LIPSYNC_MIN_PCM_BYTES=24000 (ignora áudio muito curto, ex. bips)
  */
 
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
+const {
+  createRealtimeResponseLipsyncTap,
+  isLipsyncEnabled
+} = require('./realtimeResponseLipsyncTap');
 
 const DEFAULT_PATH = String(
   process.env.IMPETUS_REALTIME_WS_PATH || '/impetus-realtime'
@@ -31,7 +47,10 @@ function defaultModel() {
 
 /**
  * @param {import('http').Server} httpServer
- * @param {{ path?: string }} [options]
+ * @param {{
+ *   path?: string,
+ *   avatarLipsyncNamespace?: import('socket.io').Namespace
+ * }} [options]
  * @returns {boolean} true se o handler de upgrade foi registrado
  */
 function attachRealtimeOpenaiProxy(httpServer, options = {}) {
@@ -95,6 +114,9 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
     wss.handleUpgrade(request, socket, head, (clientWs) => {
       const pending = [];
       let cleaned = false;
+      const lipsyncTap = createRealtimeResponseLipsyncTap(
+        options.avatarLipsyncNamespace || null
+      );
 
       const upstream = new WebSocket(upstreamUrl, {
         headers: {
@@ -106,6 +128,9 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
+        try {
+          lipsyncTap.reset();
+        } catch (_) {}
         try {
           clientWs.close();
         } catch (_) {}
@@ -135,6 +160,17 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
         if (clientWs.readyState === WebSocket.OPEN) {
           clientWs.send(data, { binary: !!isBinary });
         }
+        if (
+          !isBinary &&
+          options.avatarLipsyncNamespace &&
+          isLipsyncEnabled()
+        ) {
+          try {
+            const text = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+            const msg = JSON.parse(text);
+            lipsyncTap.feedFromUpstreamMessage(msg);
+          } catch (_) {}
+        }
       });
 
       upstream.on('error', (err) => {
@@ -154,5 +190,6 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
 module.exports = {
   attachRealtimeOpenaiProxy,
   isProxyEnabled,
-  DEFAULT_PATH
+  DEFAULT_PATH,
+  isLipsyncEnabled
 };

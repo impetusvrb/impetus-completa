@@ -52,6 +52,11 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
         ws: true,
       },
+      '/socket.io': {
+        target: process.env.VITE_API_BASE || 'http://localhost:4000',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   preview: {
@@ -63,6 +68,11 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
       },
       '/impetus-realtime': {
+        target: process.env.VITE_API_BASE || 'http://localhost:4000',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/socket.io': {
         target: process.env.VITE_API_BASE || 'http://localhost:4000',
         changeOrigin: true,
         ws: true,

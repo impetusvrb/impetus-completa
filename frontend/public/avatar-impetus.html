@@ -442,7 +442,7 @@
     <p class="hint">diga &quot;Ok Impetus&quot; para ativar</p>
   </div>
 
-  <p class="ws-note" id="wsNote">Modo direto: subprotocolo openai-insecure-api-key. Modo proxy: WebSocket para /impetus-realtime com JWT — chave OpenAI só no servidor (IMPETUS_REALTIME_PROXY_ENABLED=true). Wav2Lip: localStorage impetus_avatar_lipsync=1 e impetus_lipsync_io_url (ex.: http://127.0.0.1:4010).</p>
+  <p class="ws-note" id="wsNote">Proxy Realtime: /impetus-realtime + JWT. Wav2Lip: localStorage impetus_avatar_lipsync=1 — Socket.IO no mesmo host da API em /impetus-avatar (path /socket.io). Opcional impetus_lipsync_io_url para bridge legado na porta 4010.</p>
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script>
@@ -481,6 +481,8 @@
   const BASE_VIDEO_IDS = ['v-idle', 'v-thinking', 'v-right', 'v-left', 'v-attention', 'v-speaking'];
   let lipsyncActive = false;
   let lipsyncObjectUrl = null;
+  let lipsyncStandbyFallbackTimer = null;
+  let lipsyncMediaHooked = false;
 
   function deactivateBaseClips() {
     BASE_VIDEO_IDS.forEach((id) => {
@@ -531,35 +533,99 @@
     syncAvatarVideo(appState);
   }
 
+  function hookLipsyncVideoToAnalyser(videoEl) {
+    try {
+      var ctx = ensurePlaybackAudio();
+      if (!lipsyncMediaHooked) {
+        var srcNode = ctx.createMediaElementSource(videoEl);
+        srcNode.connect(playbackAnalyser);
+        srcNode.connect(ctx.destination);
+        lipsyncMediaHooked = true;
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) {
+      console.warn('[lipsync video audio]', e);
+    }
+  }
+
   function showLipsyncFromBlob(blob) {
+    if (lipsyncStandbyFallbackTimer) {
+      clearTimeout(lipsyncStandbyFallbackTimer);
+      lipsyncStandbyFallbackTimer = null;
+    }
     hideLipsyncVideo();
     lipsyncActive = true;
     deactivateBaseClips();
     lipsyncObjectUrl = URL.createObjectURL(blob);
-    const v = vidLipsync;
+    var v = vidLipsync;
     v.loop = false;
-    v.muted = true;
+    v.muted = false;
     v.src = lipsyncObjectUrl;
     v.classList.add('lipsync-visible');
+    setUIState(STATES.FALANDO);
     v.onended = function () {
       hideLipsyncVideo();
+      setUIState(STATES.STANDBY);
     };
-    v.play().catch(function () {
-      hideLipsyncVideo();
-    });
+    v.play()
+      .then(function () {
+        hookLipsyncVideoToAnalyser(v);
+      })
+      .catch(function () {
+        hideLipsyncVideo();
+        setUIState(STATES.STANDBY);
+      });
+  }
+
+  function getLipsyncSocketConnectOpts() {
+    var legacy = (localStorage.getItem('impetus_lipsync_io_url') || '').trim();
+    var ioOpts = { transports: ['websocket', 'polling'] };
+    if (legacy) {
+      return { url: legacy, opts: ioOpts };
+    }
+    var origin = typeof window !== 'undefined' ? window.location.origin : '';
+    try {
+      var apiB = (apiBaseInput && apiBaseInput.value) ? apiBaseInput.value.trim() : '';
+      if (apiB) origin = new URL(apiB).origin;
+    } catch (_) {}
+    /* Dev: Vite/preview na 3000 ou 4173 — API Socket.IO na 4000 (proxy /socket.io também cobre mesmo origin) */
+    if (typeof window !== 'undefined') {
+      var p = window.location.port;
+      if (!apiBaseInput || !apiBaseInput.value.trim()) {
+        if (p === '3000' || p === '4173') {
+          origin = window.location.protocol + '//' + window.location.hostname + ':4000';
+        }
+      }
+    }
+    return { url: origin + '/impetus-avatar', opts: Object.assign({ path: '/socket.io' }, ioOpts) };
   }
 
   function initLipsyncSocket() {
     if (typeof io === 'undefined') return;
     if (localStorage.getItem('impetus_avatar_lipsync') !== '1') return;
-    var url = (localStorage.getItem('impetus_lipsync_io_url') || 'http://127.0.0.1:4010').trim();
+    var conn = getLipsyncSocketConnectOpts();
     try {
-      var socket = io(url, { transports: ['websocket', 'polling'] });
+      var socket = io(conn.url, conn.opts);
       socket.on('connect', function () {
         socket.emit('join_avatar');
       });
+      socket.on('connect_error', function (err) {
+        console.warn('[lipsync socket] connect_error', err && err.message ? err.message : err);
+      });
       function onMp4Payload(payload) {
+        if (payload instanceof Blob) {
+          showLipsyncFromBlob(payload);
+          return;
+        }
         if (payload instanceof ArrayBuffer) {
+          showLipsyncFromBlob(new Blob([payload], { type: 'video/mp4' }));
+          return;
+        }
+        if (payload instanceof Uint8Array) {
+          showLipsyncFromBlob(new Blob([payload], { type: 'video/mp4' }));
+          return;
+        }
+        if (payload && payload.buffer instanceof ArrayBuffer && payload.byteLength !== undefined) {
           showLipsyncFromBlob(new Blob([payload], { type: 'video/mp4' }));
           return;
         }
@@ -572,6 +638,23 @@
       }
       socket.on('lipsync_mp4', onMp4Payload);
       socket.on('impetus_avatar_lipsync', onMp4Payload);
+      socket.on('lipsync_round_done', function (p) {
+        if (!p) return;
+        if (p.skipped && appState === STATES.PROCESSANDO) {
+          if (lipsyncStandbyFallbackTimer) {
+            clearTimeout(lipsyncStandbyFallbackTimer);
+            lipsyncStandbyFallbackTimer = null;
+          }
+          setUIState(STATES.STANDBY);
+        }
+        if (p.ok === false && appState === STATES.PROCESSANDO) {
+          if (lipsyncStandbyFallbackTimer) {
+            clearTimeout(lipsyncStandbyFallbackTimer);
+            lipsyncStandbyFallbackTimer = null;
+          }
+          setUIState(STATES.STANDBY);
+        }
+      });
     } catch (e) {
       console.warn('[lipsync socket]', e);
     }
@@ -864,14 +947,24 @@
         schedulePcm16(pcm, TARGET_SR);
       }
 
-      if (
-        t === 'response.done' ||
-        t === 'response.completed' ||
-        t === 'response.output_audio.done'
-      ) {
+      if (t === 'response.output_audio.done') {
         sendingAudio = false;
-        setUIState(STATES.STANDBY);
+      }
+
+      if (t === 'response.done' || t === 'response.completed') {
+        sendingAudio = false;
         wakeActive = false;
+        var lipsyncOn =
+          localStorage.getItem('impetus_avatar_lipsync') === '1' && useProxyEl.checked;
+        if (lipsyncOn) {
+          setUIState(STATES.PROCESSANDO);
+          if (lipsyncStandbyFallbackTimer) clearTimeout(lipsyncStandbyFallbackTimer);
+          lipsyncStandbyFallbackTimer = setTimeout(function () {
+            if (appState === STATES.PROCESSANDO) setUIState(STATES.STANDBY);
+          }, 120000);
+        } else {
+          setUIState(STATES.STANDBY);
+        }
       }
 
       if (t === 'error') {
