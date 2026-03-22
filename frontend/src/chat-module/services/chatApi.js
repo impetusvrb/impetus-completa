@@ -28,6 +28,9 @@ const chatApi = {
       const fd = formData instanceof FormData ? formData : Object.entries(formData || {}).reduce((acc,[k,v]) => { acc.append(k,v); return acc; }, new FormData());
       return http.post('/cadastrar-com-ia', fd);
     }
+  },
+  proacao: {
+    create: (data) => http.post('/proacao', data)
   }
 };
 export default chatApi;

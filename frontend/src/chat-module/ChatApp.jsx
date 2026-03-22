@@ -5,7 +5,7 @@ import MessageInput from './components/MessageInput';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
-import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic, Target } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
@@ -35,6 +35,13 @@ export default function ChatApp(){
   const [cadFile,setCadFile]=useState(null);
   const [cadLoading,setCadLoading]=useState(false);
   const [cadResult,setCadResult]=useState(null);
+  const [showProacao,setShowProacao]=useState(false);
+  const [proacaoSolucao,setProacaoSolucao]=useState('');
+  const [proacaoLocal,setProacaoLocal]=useState('');
+  const [proacaoCategoria,setProacaoCategoria]=useState('');
+  const [proacaoUrgencia,setProacaoUrgencia]=useState(2);
+  const [proacaoLoading,setProacaoLoading]=useState(false);
+  const [proacaoResult,setProacaoResult]=useState(null);
   const [currentUser,setCurrentUser]=useState(null);
   const typingTimers=useRef({});
   const avatarInputRef = useRef(null);
@@ -102,6 +109,26 @@ export default function ChatApp(){
     } finally{ setRegistroLoading(false); }
   }
 
+  async function handleProacao(){
+    if(!proacaoSolucao.trim()||proacaoLoading) return;
+    setProacaoLoading(true); setProacaoResult(null);
+    const user=JSON.parse(localStorage.getItem('impetus_user')||'{}');
+    try{
+      await chatApi.proacao.create({
+        reporter_id: user.id||null,
+        reporter_name: user.name||'',
+        proposed_solution: proacaoSolucao.trim(),
+        urgency: proacaoUrgencia||null,
+        location: proacaoLocal.trim()||null,
+        problem_category: proacaoCategoria.trim()||null
+      });
+      setProacaoResult({ok:true});
+      setProacaoSolucao(''); setProacaoLocal(''); setProacaoCategoria(''); setProacaoUrgencia(2);
+    }catch(e){
+      setProacaoResult({ok:false, msg:e?.response?.data?.error||'Erro ao enviar proposta'});
+    }finally{ setProacaoLoading(false); }
+  }
+
   const otherParticipant=activeConv&&activeConv.participants&&currentUser&&activeConv.participants.find(p=>p.id!==currentUser.id);
   const isOtherOnline=otherParticipant&&onlineUsers.has(otherParticipant.id);
 
@@ -157,6 +184,13 @@ export default function ChatApp(){
           style={{background:'transparent',border:'1px solid #3a3a5e',borderRadius:8,padding:'6px 10px',color:'#e5e7eb',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:500}}
         >
           <FileText size={14}/><span style={{display:'none',['@media(min-width:640px)']:{display:'inline'}}}>Cadastrar com IA</span>
+        </button>
+        <button
+          onClick={()=>{setShowProacao(true);setProacaoResult(null);}}
+          title="Pró-Ação — Propostas de melhoria"
+          style={{background:'transparent',border:'1px solid #3a3a5e',borderRadius:8,padding:'6px 10px',color:'#e5e7eb',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:500}}
+        >
+          <Target size={14}/><span style={{display:'none',['@media(min-width:640px)']:{display:'inline'}}}>Pró-Ação</span>
         </button>
       </div>
     </div>
@@ -270,6 +304,51 @@ export default function ChatApp(){
             {cadLoading ? 'Enviando...' : 'Cadastrar com IA'}
           </button>
         </div>
+      </div>
+    </div>}
+    {showProacao&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#12121e',border:'1px solid #2a2a3e',borderRadius:16,width:'100%',maxWidth:520,padding:24,display:'flex',flexDirection:'column',gap:16}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,#22c55e,#16a34a)',display:'flex',alignItems:'center',justifyContent:'center'}}><Target size={18} color="#fff"/></div><div><div style={{color:'#fff',fontWeight:600,fontSize:16}}>Pró-Ação</div><div style={{color:'#6b7280',fontSize:12}}>Registre propostas de melhoria contínua sem sair do chat</div></div></div>
+          <button onClick={()=>{setShowProacao(false);setProacaoResult(null);}} style={{background:'none',border:'none',color:'#6b7280',cursor:'pointer'}}><X size={20}/></button>
+        </div>
+        {proacaoResult?(
+          <div style={{padding:16,borderRadius:10,background:proacaoResult.ok?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)',border:`1px solid ${proacaoResult.ok?'#22c55e':'#ef4444'}`,display:'flex',gap:10,alignItems:'flex-start'}}>
+            {proacaoResult.ok?<CheckCircle size={18} color="#22c55e" style={{flexShrink:0,marginTop:2}}/>:<AlertTriangle size={18} color="#ef4444" style={{flexShrink:0,marginTop:2}}/>}
+            <div style={{color:'#fff',fontSize:14}}>{proacaoResult.ok?(<><div style={{fontWeight:600,color:'#22c55e',marginBottom:4}}>Proposta enviada com sucesso!</div><div style={{color:'#d1d5db'}}>Sua melhoria foi registrada no Pró-Ação.</div></>):<span style={{color:'#ef4444'}}>{proacaoResult.msg}</span>}</div>
+          </div>
+        ):(
+          <>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <label style={{color:'#9ca3af',fontSize:12}}>Solução proposta <span style={{color:'#ef4444'}}>*</span></label>
+              <textarea value={proacaoSolucao} onChange={e=>setProacaoSolucao(e.target.value)} placeholder="Descreva a melhoria ou solução proposta..." rows={4} style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:10,padding:12,color:'#fff',fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit'}}/>
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+                <label style={{color:'#9ca3af',fontSize:12}}>Local (opcional)</label>
+                <input value={proacaoLocal} onChange={e=>setProacaoLocal(e.target.value)} placeholder="Ex: Linha 2, Setor B" style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:8,padding:'8px 10px',color:'#e5e7eb',fontSize:13,outline:'none'}}/>
+              </div>
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:6}}>
+                <label style={{color:'#9ca3af',fontSize:12}}>Categoria (opcional)</label>
+                <input value={proacaoCategoria} onChange={e=>setProacaoCategoria(e.target.value)} placeholder="Ex: Processo, Segurança" style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:8,padding:'8px 10px',color:'#e5e7eb',fontSize:13,outline:'none'}}/>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <label style={{color:'#9ca3af',fontSize:12}}>Urgência</label>
+              <select value={proacaoUrgencia} onChange={e=>setProacaoUrgencia(Number(e.target.value))} style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:8,padding:'8px 10px',color:'#e5e7eb',fontSize:13,outline:'none'}}>
+                <option value={1}>Baixa</option>
+                <option value={2}>Média</option>
+                <option value={3}>Alta</option>
+                <option value={4}>Crítica</option>
+              </select>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setShowProacao(false)} style={{padding:'8px 16px',borderRadius:8,background:'#1e1e2e',border:'1px solid #3a3a5e',color:'#9ca3af',cursor:'pointer',fontSize:14}}>Cancelar</button>
+              <button onClick={handleProacao} disabled={proacaoLoading||!proacaoSolucao.trim()} style={{padding:'8px 20px',borderRadius:8,background:proacaoLoading||!proacaoSolucao.trim()?'#2a2a3e':'linear-gradient(135deg,#22c55e,#16a34a)',border:'none',color:'#fff',cursor:proacaoLoading||!proacaoSolucao.trim()?'not-allowed':'pointer',fontSize:14,fontWeight:500}}>{proacaoLoading?'Enviando...':'Enviar proposta'}</button>
+            </div>
+          </>
+        )}
+        {proacaoResult?.ok&&<button onClick={()=>{setShowProacao(false);setProacaoResult(null);}} style={{padding:'8px 16px',borderRadius:8,background:'linear-gradient(135deg,#22c55e,#16a34a)',border:'none',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:500,alignSelf:'flex-end'}}>Fechar</button>}
       </div>
     </div>}
     <div className="chat-body">

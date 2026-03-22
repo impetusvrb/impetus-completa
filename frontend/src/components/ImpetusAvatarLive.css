@@ -13,6 +13,10 @@
   animation: impetus-shell-listen 2.8s ease-in-out infinite;
 }
 
+.impetus-avatar-shell--processing {
+  animation: impetus-shell-listen 3.2s ease-in-out infinite;
+}
+
 .impetus-avatar-shell--speaking {
   animation: impetus-shell-speak 2s ease-in-out infinite;
 }
@@ -67,6 +71,42 @@
   z-index: 2;
 }
 
+.impetus-avatar--has-video .impetus-avatar__face {
+  border: 3px solid rgba(30, 144, 255, 0.55);
+  box-sizing: border-box;
+}
+
+.impetus-avatar__video-stack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #050a12;
+}
+
+.impetus-avatar__vid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 0;
+}
+
+.impetus-avatar__vid--active {
+  opacity: 1;
+  z-index: 1;
+}
+
+.impetus-avatar--has-video.impetus-avatar--listening .impetus-avatar__face,
+.impetus-avatar--has-video.impetus-avatar--processing .impetus-avatar__face,
+.impetus-avatar--has-video.impetus-avatar--speaking .impetus-avatar__face {
+  box-shadow: 0 0 28px rgba(30, 144, 255, 0.55), inset 0 0 18px rgba(30, 144, 255, 0.12);
+}
+
 .impetus-avatar__img {
   position: relative;
   z-index: 0;
@@ -81,7 +121,8 @@
 }
 
 .impetus-avatar--listening .impetus-avatar__img,
-.impetus-avatar--speaking .impetus-avatar__img {
+.impetus-avatar--speaking .impetus-avatar__img,
+.impetus-avatar--processing .impetus-avatar__img {
   box-shadow: 0 0 28px rgba(30, 144, 255, 0.55), inset 0 0 18px rgba(30, 144, 255, 0.12);
 }
 

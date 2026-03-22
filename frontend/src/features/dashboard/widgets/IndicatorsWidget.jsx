@@ -1,14 +1,9 @@
 /**
-<<<<<<< HEAD
  * Widget de Indicadores - KPIs rápidos do dashboard (spec v3: 6 estados)
-=======
- * Widget de Indicadores - KPIs rápidos do dashboard
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
  */
 import React, { useState, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { dashboard } from '../../../services/api';
-<<<<<<< HEAD
 import WidgetSkeleton from '../components/WidgetSkeleton';
 import { WIDGET_STATES } from '../components/WidgetState';
 
@@ -20,7 +15,8 @@ export default function IndicatorsWidget() {
   const load = () => {
     setState(WIDGET_STATES.loading);
     setErrorMsg('');
-    dashboard.getSummary()
+    dashboard
+      .getSummary()
       .then((r) => {
         const s = r?.data?.summary;
         if (s) setSummary(s);
@@ -32,43 +28,38 @@ export default function IndicatorsWidget() {
       });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   if (state === WIDGET_STATES.loading) return <WidgetSkeleton showKpiGrid lines={0} />;
   if (state === WIDGET_STATES.error) {
     return (
       <div className="dashboard-widget dashboard-widget--error">
-        <div className="dashboard-widget__header"><h3 className="dashboard-widget__title"><BarChart3 size={20} /> Indicadores</h3></div>
+        <div className="dashboard-widget__header">
+          <h3 className="dashboard-widget__title">
+            <BarChart3 size={20} /> Indicadores
+          </h3>
+        </div>
         <p className="dashboard-widget__empty">{errorMsg}</p>
-        <button type="button" className="dashboard-widget__action" onClick={load}>Tentar novamente</button>
+        <button type="button" className="dashboard-widget__action" onClick={load}>
+          Tentar novamente
+        </button>
       </div>
     );
   }
   if (state === WIDGET_STATES.empty) {
     return (
       <div className="dashboard-widget dashboard-widget--indicators">
-        <div className="dashboard-widget__header"><h3 className="dashboard-widget__title"><BarChart3 size={20} /> Indicadores</h3></div>
+        <div className="dashboard-widget__header">
+          <h3 className="dashboard-widget__title">
+            <BarChart3 size={20} /> Indicadores
+          </h3>
+        </div>
         <p className="dashboard-widget__empty">Nenhum dado para este período.</p>
       </div>
     );
   }
-=======
-
-export default function IndicatorsWidget() {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    dashboard.getSummary()
-      .then((r) => { if (!cancelled && r?.data?.summary) setSummary(r.data.summary); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  if (loading) return <div className="dashboard-widget dashboard-widget--indicators"><p className="dashboard-widget__loading">Carregando...</p></div>;
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 
   const inter = summary?.operational_interactions || {};
   const insights = summary?.ai_insights || {};
@@ -78,13 +69,27 @@ export default function IndicatorsWidget() {
   return (
     <div className="dashboard-widget dashboard-widget--indicators">
       <div className="dashboard-widget__header">
-        <h3 className="dashboard-widget__title"><BarChart3 size={20} /> Indicadores</h3>
+        <h3 className="dashboard-widget__title">
+          <BarChart3 size={20} /> Indicadores
+        </h3>
       </div>
       <div className="dashboard-widget__kpi-grid">
-        <div className="dashboard-widget__kpi"><span className="dashboard-widget__kpi-value">{inter.total ?? 0}</span><span className="dashboard-widget__kpi-label">Interações</span></div>
-        <div className="dashboard-widget__kpi"><span className="dashboard-widget__kpi-value">{insights.total ?? 0}</span><span className="dashboard-widget__kpi-label">Insights IA</span></div>
-        <div className="dashboard-widget__kpi"><span className="dashboard-widget__kpi-value">{points}</span><span className="dashboard-widget__kpi-label">Pontos</span></div>
-        <div className="dashboard-widget__kpi"><span className="dashboard-widget__kpi-value">{proposals}</span><span className="dashboard-widget__kpi-label">Propostas</span></div>
+        <div className="dashboard-widget__kpi">
+          <span className="dashboard-widget__kpi-value">{inter.total ?? 0}</span>
+          <span className="dashboard-widget__kpi-label">Interações</span>
+        </div>
+        <div className="dashboard-widget__kpi">
+          <span className="dashboard-widget__kpi-value">{insights.total ?? 0}</span>
+          <span className="dashboard-widget__kpi-label">Insights IA</span>
+        </div>
+        <div className="dashboard-widget__kpi">
+          <span className="dashboard-widget__kpi-value">{points}</span>
+          <span className="dashboard-widget__kpi-label">Pontos</span>
+        </div>
+        <div className="dashboard-widget__kpi">
+          <span className="dashboard-widget__kpi-value">{proposals}</span>
+          <span className="dashboard-widget__kpi-label">Propostas</span>
+        </div>
       </div>
     </div>
   );

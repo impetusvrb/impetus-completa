@@ -28,7 +28,13 @@ export default function ImpetusVoiceOverlay({
   if (!open) return null;
 
   const avatarState =
-    status === 'listening' ? 'listening' : status === 'speaking' ? 'speaking' : 'standby';
+    status === 'listening'
+      ? 'listening'
+      : status === 'speaking'
+        ? 'speaking'
+        : status === 'processing'
+          ? 'processing'
+          : 'standby';
   const modeClass =
     status === 'speaking'
       ? 'impetus-voice-overlay--speaking'

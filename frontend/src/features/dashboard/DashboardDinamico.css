@@ -33,7 +33,6 @@
   color: var(--warning, #f59e0b);
 }
 
-<<<<<<< HEAD
 .dashboard-dinamico__error-hint {
   font-size: 0.875rem;
   color: var(--gray-600, #4b5563);
@@ -75,8 +74,6 @@
   background: rgba(30, 144, 255, 0.08);
 }
 
-=======
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 .dashboard-dinamico__header {
   margin-bottom: 1.5rem;
 }
@@ -153,16 +150,10 @@
   margin-top: 0.5rem;
 }
 
-<<<<<<< HEAD
 /* Grid 4 colunas (spec v3 — Centro de Inteligência Industrial) */
 .dashboard-dinamico__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-=======
-.dashboard-dinamico__grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
   gap: 1.25rem;
   grid-auto-rows: minmax(120px, auto);
 }
@@ -171,13 +162,10 @@
   min-height: 120px;
 }
 
-<<<<<<< HEAD
 .dashboard-dinamico__cell[data-span="2"] {
   grid-column: span 2;
 }
 
-=======
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
 /* Widgets genéricos */
 .dashboard-widget {
   background: var(--bg-primary, #fff);
@@ -363,8 +351,6 @@
   padding: 0.4rem 0.75rem;
   border-radius: 8px;
 }
-<<<<<<< HEAD
-
 /* Skeleton e estados de widget (spec v3) */
 .dashboard-widget--skeleton .dashboard-widget-skeleton__title {
   height: 1.25rem;
@@ -423,5 +409,3 @@
 .dashboard-widget--error .btn-retry {
   margin-top: 0.5rem;
 }
-=======
->>>>>>> 69a0e341ce405218b402fdd9ef91e2bd110c65e3
