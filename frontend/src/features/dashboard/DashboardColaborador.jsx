@@ -11,7 +11,7 @@ import { CadastrarComIAWidget } from './widgets';
 import { dashboard, proacao } from '../../services/api';
 import {
   Target, Lightbulb, FolderOpen, FileEdit, AlertTriangle, CheckCircle2,
-  ClipboardList, ChevronRight, Zap
+  ClipboardList, ChevronRight, Zap, MessageSquare, Bot
 } from 'lucide-react';
 import './DashboardColaborador.css';
 
@@ -245,11 +245,31 @@ export default function DashboardColaborador() {
               </button>
             )}
           </section>
+
+          {/* 10. Impetus IA e Chat */}
+          <section className="cc-widget dcl-widget" style={{ gridColumn: 'span 2' }}>
+            <div className="cc-kpi__header">
+              <Bot size={20} />
+              <span>Impetus IA e Chat</span>
+            </div>
+            <p className="cc-resumo__text">Assistente IA e chat com a equipe.</p>
+            <div className="dcl-ia-chat-row">
+              <button type="button" className="dcl-btn dcl-btn--primary" onClick={() => navigate('/app/chatbot')}>
+                <Zap size={18} /> Impetus IA
+              </button>
+              <button type="button" className="dcl-btn dcl-btn--secondary" onClick={() => navigate('/chat')}>
+                <MessageSquare size={18} /> Chat Impetus
+              </button>
+            </div>
+          </section>
         </div>
 
         <div className="dcl-footer">
           <button type="button" className="dcl-btn dcl-btn--secondary" onClick={() => navigate('/app/chatbot')}>
-            <Zap size={18} /> Perguntar à IA
+            <Zap size={18} /> Impetus IA
+          </button>
+          <button type="button" className="dcl-btn dcl-btn--secondary" onClick={() => navigate('/chat')}>
+            <MessageSquare size={18} /> Chat Impetus
           </button>
         </div>
       </div>

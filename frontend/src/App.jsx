@@ -111,6 +111,7 @@ const COLABORADOR_ALLOWED_PATHS = [
   '/app/cadastrar-com-ia',
   '/app/proacao',
   '/app/chatbot',
+  '/chat',
   '/diagnostic'
 ];
 function ColaboradorRouteGuard({ children }) {
@@ -294,7 +295,13 @@ export default function App() {
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
-        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+        <Route path="/chat" element={
+          <PrivateRoute>
+            <ColaboradorRouteGuard>
+              <ChatPage />
+            </ColaboradorRouteGuard>
+          </PrivateRoute>
+        } />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />

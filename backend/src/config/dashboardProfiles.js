@@ -286,7 +286,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'practical_operational',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'chat', 'biblioteca', 'ai', 'settings'],
     cards: [
       { key: 'my_work_orders', title: 'Minhas OS', icon: 'target', color: 'blue' },
       { key: 'operational_alerts', title: 'Alertas operacionais', icon: 'alert', color: 'orange' },
@@ -304,7 +304,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'practical_operational',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'chat', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'pending_inspections', title: 'Inspeções pendentes', icon: 'target', color: 'blue' },
       { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
@@ -323,7 +323,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'objective_practical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'chat', 'biblioteca', 'ai', 'settings'],
     cards: [
       { key: 'my_interactions', title: 'Minhas interações', icon: 'message', color: 'blue' },
       { key: 'my_proposals', title: 'Minhas propostas', icon: 'target', color: 'purple' }

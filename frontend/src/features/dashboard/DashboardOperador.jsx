@@ -10,7 +10,7 @@ import { CadastrarComIAWidget } from './widgets';
 import { dashboard } from '../../services/api';
 import {
   Activity, AlertTriangle, CheckCircle2, Clock, Package, Target,
-  Cpu, ClipboardCheck, ChevronRight, Zap, Shield
+  Cpu, ClipboardCheck, ChevronRight, Zap, Shield, MessageSquare, Bot
 } from 'lucide-react';
 import './DashboardOperador.css';
 
@@ -300,12 +300,31 @@ export default function DashboardOperador() {
               </button>
             )}
           </section>
+
+          {/* 12. Impetus IA e Chat */}
+          <section className="cc-widget dop-widget" style={{ gridColumn: 'span 2' }}>
+            <div className="cc-kpi__header">
+              <Bot size={20} />
+              <span>Impetus IA e Chat</span>
+            </div>
+            <p className="cc-resumo__text">Assistente IA e chat com a equipe.</p>
+            <div className="dop-ia-chat-row">
+              <button type="button" className="dop-btn dop-btn--primary" onClick={() => navigate('/app/chatbot')}>
+                <Zap size={18} /> Impetus IA
+              </button>
+              <button type="button" className="dop-btn dop-btn--secondary" onClick={() => navigate('/chat')}>
+                <MessageSquare size={18} /> Chat Impetus
+              </button>
+            </div>
+          </section>
         </div>
 
-        {/* Link IA */}
         <div className="dop-footer">
           <button type="button" className="dop-btn dop-btn--secondary" onClick={() => navigate('/app/chatbot')}>
-            <Zap size={18} /> Perguntar à IA
+            <Zap size={18} /> Impetus IA
+          </button>
+          <button type="button" className="dop-btn dop-btn--secondary" onClick={() => navigate('/chat')}>
+            <MessageSquare size={18} /> Chat Impetus
           </button>
         </div>
       </div>
