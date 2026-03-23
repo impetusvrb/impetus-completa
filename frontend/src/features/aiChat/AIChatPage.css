@@ -208,6 +208,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
+  overflow: visible;
 }
 
 .ai-chat-input-inner:focus-within {
@@ -217,12 +218,14 @@
 .ai-chat-input-field {
   flex: 1;
   min-width: 0;
-  padding: 12px 40px 12px 14px;
+  padding: 12px 48px 12px 14px;
   border: none;
   border-radius: var(--radius-md);
   font-size: 15px;
   background: transparent;
   color: var(--text-primary);
+  position: relative;
+  z-index: 0;
 }
 
 .ai-chat-input-field:focus {
@@ -232,7 +235,7 @@
 .ai-chat-input-partial {
   position: absolute;
   left: 14px;
-  right: 44px;
+  right: 52px;
   bottom: 6px;
   font-size: 0.8rem;
   font-style: italic;
@@ -246,18 +249,22 @@
 
 .ai-chat-mic-icon {
   position: absolute;
-  right: 8px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px;
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--text-muted, var(--text-secondary));
   border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .ai-chat-mic-icon:hover {

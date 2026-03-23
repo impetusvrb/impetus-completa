@@ -63,6 +63,7 @@ app.use('/api/voz',                      safe('./routes/voz'));
 app.use('/api/dashboard/chat/voice',     safe('./routes/chatVoice'));
 app.use('/api/tts',                     safe('./routes/tts'));
 app.use('/api/vision',                  safe('./routes/vision'));
+app.use('/api/did',                    safe('./routes/did'));
 app.use('/api/asset-management',       safe('./routes/assetManagement'));
 async function voiceHealthProbe() {
   const voz = { openai: false };

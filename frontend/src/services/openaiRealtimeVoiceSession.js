@@ -226,6 +226,26 @@ export class OpenaiRealtimeVoiceSession {
     return this.phase;
   }
 
+  /** Resolve quando a fila PCM local da assistente esvaziou (para lipsync / D-ID depois do áudio). */
+  waitUntilPlaybackIdle(maxMs = 90000) {
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      const step = () => {
+        if (Date.now() - t0 > maxMs) {
+          resolve();
+          return;
+        }
+        const p = this.player;
+        if (!p || p.isPlaybackIdle()) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   _setPhase(phase) {
     if (this.phase === phase) return;
     this.phase = phase;

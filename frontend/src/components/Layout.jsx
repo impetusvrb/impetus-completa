@@ -248,7 +248,9 @@ export default function Layout({ children }) {
         <nav className="sidebar-nav">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const pathNorm = location.pathname.replace(/\/+$/, '') || '/';
+            const itemNorm = item.path.replace(/\/+$/, '') || '/';
+            const isActive = pathNorm === itemNorm;
             return (
               <Link
                 key={item.path}

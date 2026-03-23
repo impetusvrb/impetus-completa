@@ -17,6 +17,13 @@ import {
 } from '../constants/voiceResponses';
 import { applyPronunciation } from '../constants/pronunciationMap';
 import { calcPcmChunkVolumeNorm } from '../utils/pcmChunkVolume';
+import {
+  isDidAvatarEnabled,
+  isDidAvatarConfigured,
+  didAvatarSourceUrl,
+  createDidTalk,
+  pollDidTalkUntilVideo
+} from '../services/didAvatarApi';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -552,7 +559,12 @@ export function useVoiceEngine(options = {}) {
     alertsEnabled: true,
     audioBlocked: false,
     // Flash curto na UI quando o usuário faz barge-in durante TTS.
-    bargeInFlash: false
+    bargeInFlash: false,
+    /** Vídeo talking-head D-ID (URL temporária da API). */
+    didAvatarVideoUrl: null,
+    didAvatarPending: false,
+    /** Mostrar camada D-ID em “ouvir” após resposta Realtime (URL chega com status listening). */
+    didAvatarReplay: false
   });
 
   /**
@@ -567,7 +579,7 @@ export function useVoiceEngine(options = {}) {
     targetText: '',
     isTyping: false
   });
-  /** Lip-sync no avatar: volume alvo + drive (lido no rAF; sem canvas). */
+  /** Avatar vídeo hero: volume alvo + drive (lido no rAF em ImpetusAvatarLive). */
   const videoLipSyncRef = useRef({ targetVolume: 0, drive: false });
   const lipSyncWindowRef = useRef([]);
   const LIP_SYNC_WINDOW_SIZE = 5;
@@ -577,6 +589,54 @@ export function useVoiceEngine(options = {}) {
     videoLipSyncRef.current.targetVolume = 0;
     videoLipSyncRef.current.drive = false;
   }, []);
+
+  const didPollAbortRef = useRef(null);
+  const triggerDidAvatarRef = useRef(null);
+
+  const triggerDidAvatar = useCallback((rawText) => {
+    if (!isDidAvatarEnabled()) return;
+    // Imagem animada pela D-ID: didAvatarSourceUrl() → env ou /impetus-did-source.jpg no mesmo site.
+    const src = didAvatarSourceUrl();
+    if (!src.startsWith('https://')) return;
+    const text = String(rawText || '').trim();
+    if (text.length < 12 || text.length > 12000) return;
+
+    didPollAbortRef.current?.abort();
+    const ac = new AbortController();
+    didPollAbortRef.current = ac;
+
+    setVoiceState((s) => ({
+      ...s,
+      didAvatarPending: true,
+      didAvatarVideoUrl: null,
+      didAvatarReplay: false
+    }));
+
+    (async () => {
+      try {
+        const id = await createDidTalk(text, ac.signal);
+        const url = await pollDidTalkUntilVideo(id, { signal: ac.signal });
+        if (speakAbortedRef.current) return;
+        setVoiceState((s) => ({
+          ...s,
+          didAvatarPending: false,
+          didAvatarVideoUrl: url,
+          // Realtime: D-ID vem sempre depois do áudio local — tratar como replay sobreposta.
+          didAvatarReplay: s.isRealtimeMode ? true : s.status !== 'speaking'
+        }));
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+        setVoiceState((s) => ({
+          ...s,
+          didAvatarPending: false,
+          didAvatarReplay: false
+        }));
+        console.warn('[didAvatar]', e?.message || e);
+      }
+    })();
+  }, []);
+
+  triggerDidAvatarRef.current = triggerDidAvatar;
 
   const ttsTargetRef = useRef('');
   const typingTimerRef = useRef(null);
@@ -614,6 +674,7 @@ export function useVoiceEngine(options = {}) {
   const voiceSocketConnectingRef = useRef(null);
   const realtimeSessionRef = useRef(null);
   const realtimeAsstTranscriptRef = useRef('');
+  const didAvatarDispatchedForResponseRef = useRef(false);
   const realtimeUserTranscriptRef = useRef('');
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
@@ -745,12 +806,20 @@ export function useVoiceEngine(options = {}) {
       bargeInFlashTimeoutRef.current = null;
     }
     resetVideoLipSync();
+    didPollAbortRef.current?.abort();
+    didPollAbortRef.current = null;
     setTtsUi((u) => ({
       ...u,
       mouthState: 'closed',
       isTyping: false
     }));
-    setVoiceState((s) => ({ ...s, bargeInFlash: false }));
+    setVoiceState((s) => ({
+      ...s,
+      bargeInFlash: false,
+      didAvatarPending: false,
+      didAvatarVideoUrl: null,
+      didAvatarReplay: false
+    }));
   }, [resetVideoLipSync]);
 
   const startTypingLoop = useCallback(() => {
@@ -893,7 +962,7 @@ export function useVoiceEngine(options = {}) {
     // Multiplicador linear (ex.: 2 => +6dB aprox). Ajustável por env.
     outGain.gain.value = parseFloat(import.meta.env.VITE_VOICE_OUTPUT_GAIN) || 2.2;
 
-    // Lip-sync usa apenas análise; áudio real passa pelo compressor+ganho.
+    // Análise de espectro para boca (closed/open/o/e); áudio passa por compressor+ganho.
     src.connect(analyser);
     src.connect(compressor);
     compressor.connect(outGain);
@@ -903,7 +972,7 @@ export function useVoiceEngine(options = {}) {
     showBadge(pickSpeakingPhrase());
     resetVideoLipSync();
 
-    // Lip sync Nível B (closed/open/o/e) — heurística por energia + centroide
+    // Boca no fallback estático (closed/open/o/e) — heurística por energia + centroide
     let raf = null;
     let lastMouth = 'closed';
     let lastSwitch = 0;
@@ -932,6 +1001,9 @@ export function useVoiceEngine(options = {}) {
       emaRms = emaRms + alpha * (rms - emaRms);
       emaCent = emaCent + alpha * (centroid - emaCent);
 
+      videoLipSyncRef.current.drive = true;
+      videoLipSyncRef.current.targetVolume = Math.min(1, emaRms * 3.6);
+
       let next = 'closed';
       // thresholds calibrados para MP3/AudioContext (ajustáveis depois)
       if (emaRms < 0.09) next = 'closed';
@@ -959,8 +1031,18 @@ export function useVoiceEngine(options = {}) {
         speakAbortedRef.current = true;
         try { src.stop(); } catch (_) {}
         sourceRef.current = null;
+        resetVideoLipSync();
         // Feedback visual: volta a "ouvindo" instantaneamente.
-        setVoiceState((s) => ({ ...s, status: 'listening', isActive: true, isContinuous: true, bargeInFlash: true }));
+        setVoiceState((s) => ({
+          ...s,
+          status: 'listening',
+          isActive: true,
+          isContinuous: true,
+          bargeInFlash: true,
+          didAvatarVideoUrl: null,
+          didAvatarPending: false,
+          didAvatarReplay: false
+        }));
         if (bargeInFlashTimeoutRef.current) clearTimeout(bargeInFlashTimeoutRef.current);
         bargeInFlashTimeoutRef.current = setTimeout(() => {
           // Mantemos status listening, apenas reduzimos o destaque visual.
@@ -980,7 +1062,14 @@ export function useVoiceEngine(options = {}) {
         } catch (_) {}
         bargeMonitorCleanupRef.current = null;
         sourceRef.current = null;
+        resetVideoLipSync();
         setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+        setVoiceState((s) => ({
+          ...s,
+          didAvatarVideoUrl: null,
+          didAvatarPending: false,
+          didAvatarReplay: false
+        }));
         resolve();
       };
       try {
@@ -1065,6 +1154,8 @@ export function useVoiceEngine(options = {}) {
       let preparedSpeech = injectReactionAfterFirstSentence(preparedFull, sentimentContext);
       preparedSpeech = imperfeicaoNatural(preparedSpeech, 0.14);
 
+      triggerDidAvatar(preparedSpeech);
+
       const speakOnePart = async (textToSpeak) => {
         if (speakAbortedRef.current) return;
         const t = String(textToSpeak || '').trim();
@@ -1090,7 +1181,7 @@ export function useVoiceEngine(options = {}) {
 
       await speakOnePart(preparedSpeech);
     },
-    [fetchSpeakAudio, playMp3Buffer, setTypingTarget]
+    [fetchSpeakAudio, playMp3Buffer, setTypingTarget, triggerDidAvatar]
   );
 
   const speakActivationReply = useCallback(async () => {
@@ -1128,7 +1219,10 @@ export function useVoiceEngine(options = {}) {
         isContinuous: false,
         isActive: false,
         status: 'idle',
-        currentTranscript: ''
+        currentTranscript: '',
+        didAvatarVideoUrl: null,
+        didAvatarPending: false,
+        didAvatarReplay: false
       }));
     }
   }, []);
@@ -1294,7 +1388,10 @@ export function useVoiceEngine(options = {}) {
       status: 'idle',
       isActive: false,
       isContinuous: false,
-      currentTranscript: ''
+      currentTranscript: '',
+      didAvatarVideoUrl: null,
+      didAvatarPending: false,
+      didAvatarReplay: false
     }));
   }, [onSensitiveBlock, setPartial, showBadge, speakText, speakNaturalReply, speakActivationReply]);
 
@@ -1320,7 +1417,10 @@ export function useVoiceEngine(options = {}) {
         isActive: false,
         isContinuous: false,
         isRealtimeMode: false,
-        currentTranscript: ''
+        currentTranscript: '',
+        didAvatarVideoUrl: null,
+        didAvatarPending: false,
+        didAvatarReplay: false
       }));
       return;
     }
@@ -1371,7 +1471,10 @@ export function useVoiceEngine(options = {}) {
             isActive: false,
             isContinuous: false,
             isRealtimeMode: false,
-            currentTranscript: ''
+            currentTranscript: '',
+            didAvatarVideoUrl: null,
+            didAvatarPending: false,
+            didAvatarReplay: false
           }));
           resetVideoLipSync();
           setTtsUi((u) => ({
@@ -1389,8 +1492,16 @@ export function useVoiceEngine(options = {}) {
           const t = ev.type || '';
           if (t === 'input_audio_buffer.speech_started') {
             realtimeAsstTranscriptRef.current = '';
+            didAvatarDispatchedForResponseRef.current = false;
             realtimeUserTranscriptRef.current = '';
-            setVoiceState((s) => ({ ...s, status: 'listening', currentTranscript: '' }));
+            setVoiceState((s) => ({
+              ...s,
+              status: 'listening',
+              currentTranscript: '',
+              didAvatarVideoUrl: null,
+              didAvatarPending: false,
+              didAvatarReplay: false
+            }));
             resetVideoLipSync();
             setTtsUi((u) => ({
               ...u,
@@ -1449,18 +1560,51 @@ export function useVoiceEngine(options = {}) {
               mouthState: 'open'
             }));
           }
-          if (t === 'response.done' || t === 'response.output_audio_transcript.done') {
+          if (t === 'response.output_audio_transcript.done') {
+            // Não mudar para "listening" nem cortar lipsync aqui: o áudio PCM ainda pode estar a tocar.
+            // O estado visual segue em "speaking" até o player local esvaziar (onPhaseChange → listening).
+            const snapEarly = String(realtimeAsstTranscriptRef.current || '').trim();
+            if (
+              isDidAvatarConfigured() &&
+              snapEarly.length >= 12 &&
+              !didAvatarDispatchedForResponseRef.current
+            ) {
+              didAvatarDispatchedForResponseRef.current = true;
+              try {
+                triggerDidAvatarRef.current?.(snapEarly);
+              } catch (_) {}
+            }
+            setVoiceState((s) => ({ ...s, currentTranscript: '' }));
+          }
+          if (t === 'response.done') {
+            const snapForDid = String(realtimeAsstTranscriptRef.current || '').trim();
             realtimeAsstTranscriptRef.current = '';
-            resetVideoLipSync();
-            setVoiceState((s) => ({
-              ...s,
-              status: 'listening',
-              currentTranscript: ''
-            }));
-            setTtsUi((u) => ({
-              ...u,
-              mouthState: 'closed'
-            }));
+            setVoiceState((s) => ({ ...s, currentTranscript: '' }));
+
+            // Sempre esperar o PCM local acabar antes de cortar lipsync (D-ID ou não).
+            // Com D-ID, transcript.done já pode ter disparado o pedido; aqui só fallback + fechar boca.
+            const sess = realtimeSessionRef.current;
+            void (async () => {
+              try {
+                await sess?.waitUntilPlaybackIdle?.(90000);
+              } catch (_) {}
+              if (!continuousRef.current) return;
+              resetVideoLipSync();
+              setTtsUi((u) => ({ ...u, mouthState: 'closed' }));
+              if (snapForDid.length < 12) return;
+              if (isDidAvatarConfigured()) {
+                if (!didAvatarDispatchedForResponseRef.current) {
+                  didAvatarDispatchedForResponseRef.current = true;
+                  try {
+                    triggerDidAvatarRef.current?.(snapForDid);
+                  } catch (_) {}
+                }
+              } else {
+                try {
+                  triggerDidAvatarRef.current?.(snapForDid);
+                } catch (_) {}
+              }
+            })();
           }
           if (t === 'error') {
             const msg =
@@ -1505,7 +1649,10 @@ export function useVoiceEngine(options = {}) {
           status: 'idle',
           lastAlert:
             e?.message ||
-            'Realtime indisponível. No backend: IMPETUS_REALTIME_PROXY_ENABLED=true e reinicie o servidor.'
+            'Realtime indisponível. No backend: IMPETUS_REALTIME_PROXY_ENABLED=true e reinicie o servidor.',
+          didAvatarVideoUrl: null,
+          didAvatarPending: false,
+          didAvatarReplay: false
         }));
       }
       return;
@@ -1543,7 +1690,10 @@ export function useVoiceEngine(options = {}) {
       isContinuous: false,
       isRealtimeMode: false,
       bargeInFlash: false,
-      currentTranscript: ''
+      currentTranscript: '',
+      didAvatarVideoUrl: null,
+      didAvatarPending: false,
+      didAvatarReplay: false
     }));
   }, [stopSpeaking]);
 

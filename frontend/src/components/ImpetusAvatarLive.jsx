@@ -1,6 +1,6 @@
 /**
  * Avatar live da Impetus — modo voz (overlay /app/chatbot).
- * Vídeos em /videos/; em Realtime um único clipe com boca + playbackRate ligado ao volume PCM (sem canvas).
+ * Vídeos em /videos/ ou assets; clipe hero opcional (VITE_AVATAR_HERO_SPEAKING_VIDEO) na fala + lipsync por volume.
  */
 import React, { useState, useCallback, useId, useRef, useEffect, useMemo } from 'react';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
@@ -36,8 +36,25 @@ const useNineVideos =
   (import.meta.env.PROD && NINE_VIDEOS_FLAG !== 'false' && NINE_VIDEOS_FLAG !== '0');
 
 const VIDEOS_BASE = '/videos/';
-/** Vídeo com movimento de boca — sync por playbackRate no Realtime */
-const SPEAKING_MOUTH_VIDEO = `${VIDEOS_BASE}speaking.mp4`;
+const SPEAKING_VIDEO = `${VIDEOS_BASE}speaking.mp4`;
+
+const HERO_FLAG = String(import.meta.env.VITE_AVATAR_HERO_SPEAKING_VIDEO ?? '')
+  .trim()
+  .toLowerCase();
+const heroSpeakingEnvOn = HERO_FLAG === 'true' || HERO_FLAG === '1';
+const HERO_SPEAKING_SRC =
+  String(import.meta.env.VITE_AVATAR_HERO_SPEAKING_SRC ?? '').trim() || `${VIDEOS_BASE}hero-speaking.mp4`;
+
+/** Ouvindo o utilizador (ex.: piscar natural) — URL em /videos/ ou absoluto. */
+const LISTEN_VIDEO = String(import.meta.env.VITE_AVATAR_LISTEN_VIDEO ?? '').trim();
+/** A processar resposta (analise) — vídeo até o modelo / D-ID responder. */
+const ANALYZE_VIDEO = String(import.meta.env.VITE_AVATAR_ANALYZE_VIDEO ?? '').trim();
+
+const SPEED_MIN = 0.15;
+const SPEED_IDLE = 0.42;
+const SPEED_MAX = 1.85;
+const LERP_SPEED = 0.12;
+const VOLUME_SCALE = 3.1;
 
 const IDLE_POOL_NINE = [
   `${VIDEOS_BASE}idle-subtle.mp4`,
@@ -47,12 +64,6 @@ const IDLE_POOL_NINE = [
   `${VIDEOS_BASE}idle-head-turn2.mp4`,
   `${VIDEOS_BASE}idle-alive.mp4`
 ];
-
-const SPEED_MIN = 0.15;
-const SPEED_IDLE = 0.4;
-const SPEED_MAX = 1.8;
-const LERP_SPEED = 0.1;
-const VOLUME_SCALE = 3.2;
 
 function pickNextIdleIndex(prev) {
   const n = IDLE_POOL_NINE.length;
@@ -75,9 +86,13 @@ function resolveVideoSrc(clipKey) {
 }
 
 function nineVideoSrcForClip(clipKey) {
-  if (clipKey === 'thinking') return `${VIDEOS_BASE}idle-subtle.mp4`;
-  if (clipKey === 'attention') return `${VIDEOS_BASE}idle-eyes-left.mp4`;
-  if (clipKey === 'speaking') return SPEAKING_MOUTH_VIDEO;
+  if (clipKey === 'thinking') {
+    return ANALYZE_VIDEO || `${VIDEOS_BASE}idle-subtle.mp4`;
+  }
+  if (clipKey === 'attention') {
+    return LISTEN_VIDEO || `${VIDEOS_BASE}idle-eyes-left.mp4`;
+  }
+  if (clipKey === 'speaking') return SPEAKING_VIDEO;
   return IDLE_POOL_NINE[0];
 }
 
@@ -136,36 +151,74 @@ export default function ImpetusAvatarLive({
   state = 'standby',
   mouthState = 'closed',
   size = 240,
-  /** Ref mutável { targetVolume, drive } — volume PCM Realtime (useVoiceEngine). */
+  /** Modo overlay de voz: ativa clipe hero + lipsync quando configurado. */
+  immersiveVoice = false,
+  /** { targetVolume, drive } — Realtime (PCM) ou TTS (analisador). */
   videoLipSyncRef = null,
-  convoBlinkVideo = false
+  /** URL MP4 retornada pela D-ID (via backend); exibida por cima dos clipes locais. */
+  didVideoUrl = null,
+  /** D-ID após Realtime: URL chega com estado “listening” — manter camada visível até novo turno. */
+  didReplayOverlay = false,
+  /** Realtime: não usar hero/speaking como boca; idle até haver didVideoUrl (ex. D-ID). */
+  didPrimarySpeaking = false
 }) {
   const [mouthPngOk, setMouthPngOk] = useState(true);
   const [videoBroken, setVideoBroken] = useState(false);
+  const [heroSpeakingFailed, setHeroSpeakingFailed] = useState(false);
+  /** Só esconder vídeos locais quando o MP4 D-ID já tem frames (evita círculo preto). */
+  const [didMediaReady, setDidMediaReady] = useState(false);
   const onMouthError = useCallback(() => setMouthPngOk(false), []);
   const mouthGradId = `impMouthGrad-${useId().replace(/:/g, '')}`;
   const videoRefs = useRef({});
-  const convoVideoRef = useRef(null);
   const [idlePoolIdx, setIdlePoolIdx] = useState(() => pickNextIdleIndex(-1));
+  /** URLs custom ouvir/analisar falharam (404/codec): volta aos clipes em /videos/ para não ficar rosto preto. */
+  const [attentionSrcBroken, setAttentionSrcBroken] = useState(false);
+  const [thinkingSrcBroken, setThinkingSrcBroken] = useState(false);
 
-  const activeClip = STATE_TO_CLIP[state] || 'idle';
-  const useConvoSpeaking = useNineVideos && convoBlinkVideo && !videoBroken;
+  const rawClipFromState = STATE_TO_CLIP[state] || 'idle';
+  const activeClip =
+    didPrimarySpeaking && state === 'speaking' && !didVideoUrl
+      ? 'idle'
+      : rawClipFromState;
+  const activeClipRef = useRef(activeClip);
+  useEffect(() => {
+    activeClipRef.current = activeClip;
+  }, [activeClip]);
+
+  const useHeroSpeakingClip =
+    !didPrimarySpeaking && heroSpeakingEnvOn && immersiveVoice && !heroSpeakingFailed;
 
   const videoSrcByKey = useMemo(() => {
+    const speakingSrc = useHeroSpeakingClip ? HERO_SPEAKING_SRC : null;
     if (useNineVideos) {
       return {
         idle: IDLE_POOL_NINE[idlePoolIdx],
-        thinking: nineVideoSrcForClip('thinking'),
-        attention: nineVideoSrcForClip('attention'),
-        speaking: nineVideoSrcForClip('speaking')
+        thinking: thinkingSrcBroken
+          ? `${VIDEOS_BASE}idle-subtle.mp4`
+          : nineVideoSrcForClip('thinking'),
+        attention: attentionSrcBroken
+          ? `${VIDEOS_BASE}idle-eyes-left.mp4`
+          : nineVideoSrcForClip('attention'),
+        speaking: speakingSrc || nineVideoSrcForClip('speaking')
       };
     }
     const o = {};
     CLIP_ORDER.forEach((k) => {
-      o[k] = resolveVideoSrc(k);
+      if (k === 'speaking' && speakingSrc) o[k] = speakingSrc;
+      else if (k === 'attention') {
+        o[k] = LISTEN_VIDEO && !attentionSrcBroken ? LISTEN_VIDEO : resolveVideoSrc('attention');
+      } else if (k === 'thinking') {
+        o[k] = ANALYZE_VIDEO && !thinkingSrcBroken ? ANALYZE_VIDEO : resolveVideoSrc('thinking');
+      } else o[k] = resolveVideoSrc(k);
     });
     return o;
-  }, [useNineVideos, idlePoolIdx]);
+  }, [
+    useNineVideos,
+    idlePoolIdx,
+    useHeroSpeakingClip,
+    attentionSrcBroken,
+    thinkingSrcBroken
+  ]);
 
   const onIdleClipEnded = useCallback(() => {
     if (!useNineVideos) return;
@@ -174,8 +227,23 @@ export default function ImpetusAvatarLive({
   }, [useNineVideos, activeClip]);
 
   useEffect(() => {
+    if (!immersiveVoice) {
+      setHeroSpeakingFailed(false);
+      setAttentionSrcBroken(false);
+      setThinkingSrcBroken(false);
+    }
+  }, [immersiveVoice]);
+
+  /** D-ID: durante fala (TTS/Realtime) ou replay pós-resposta (URL chegou em “listening”). */
+  const didLayerActive =
+    Boolean(didVideoUrl) && (state === 'speaking' || didReplayOverlay);
+
+  useEffect(() => {
+    setDidMediaReady(false);
+  }, [didVideoUrl]);
+
+  useEffect(() => {
     if (videoBroken) return;
-    if (useConvoSpeaking) return;
     CLIP_ORDER.forEach((key) => {
       const el = videoRefs.current[key];
       if (!el) return;
@@ -187,39 +255,13 @@ export default function ImpetusAvatarLive({
         } catch (_) {}
       }
     });
-  }, [activeClip, videoBroken, videoSrcByKey, useConvoSpeaking]);
+  }, [activeClip, videoBroken, videoSrcByKey]);
 
+  /** playbackRate do clipe de fala ~ energia da voz (Realtime ou TTS). */
   useEffect(() => {
-    if (!useConvoSpeaking) return;
-    const el = convoVideoRef.current;
-    if (!el) return;
-    const kick = () => {
-      el.muted = true;
-      el.playsInline = true;
-      el.loop = true;
-      const p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
-    };
-    kick();
-    const onVis = () => {
-      if (document.visibilityState === 'visible') kick();
-    };
-    const onPause = () => {
-      if (document.visibilityState === 'visible') kick();
-    };
-    document.addEventListener('visibilitychange', onVis);
-    el.addEventListener('pause', onPause);
-    return () => {
-      document.removeEventListener('visibilitychange', onVis);
-      el.removeEventListener('pause', onPause);
-    };
-  }, [useConvoSpeaking]);
-
-  /** playbackRate ~ volume da fala (igual ideia a avatar-impetus.html). */
-  useEffect(() => {
-    if (!useConvoSpeaking || !videoLipSyncRef || videoBroken) {
-      const v = convoVideoRef.current;
-      if (v) v.playbackRate = 1;
+    if (videoBroken || !videoLipSyncRef || activeClip !== 'speaking') {
+      const el = videoRefs.current.speaking;
+      if (el) el.playbackRate = 1;
       return;
     }
     const syncRef = videoLipSyncRef;
@@ -227,17 +269,17 @@ export default function ImpetusAvatarLive({
     let smooth = 0;
 
     const tick = () => {
-      const video = convoVideoRef.current;
+      const video = videoRefs.current.speaking;
       const { targetVolume, drive } = syncRef.current;
       const goal = drive ? targetVolume : 0;
       smooth += (goal - smooth) * LERP_SPEED;
-      const curve = Math.pow(Math.max(0, smooth), 0.7);
+      const curve = Math.pow(Math.max(0, smooth), 0.68);
       const speed =
-        SPEED_IDLE + curve * (SPEED_MAX - SPEED_IDLE) * VOLUME_SCALE * 0.35;
+        SPEED_IDLE + curve * (SPEED_MAX - SPEED_IDLE) * VOLUME_SCALE * 0.38;
       if (video) {
         video.playbackRate = Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed));
       }
-      if (drive || smooth > 0.008) {
+      if (drive || smooth > 0.01) {
         rafId = requestAnimationFrame(tick);
       } else {
         if (video) video.playbackRate = 1;
@@ -248,10 +290,14 @@ export default function ImpetusAvatarLive({
     rafId = requestAnimationFrame(tick);
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      const v = convoVideoRef.current;
-      if (v) v.playbackRate = 1;
+      const el = videoRefs.current.speaking;
+      if (el) el.playbackRate = 1;
     };
-  }, [useConvoSpeaking, videoLipSyncRef, videoBroken]);
+  }, [activeClip, videoBroken, videoLipSyncRef]);
+
+  const onSpeakingVideoError = useCallback(() => {
+    if (useHeroSpeakingClip) setHeroSpeakingFailed(true);
+  }, [useHeroSpeakingClip]);
 
   const onIdleVideoError = useCallback(() => {
     if (useNineVideos) {
@@ -269,41 +315,64 @@ export default function ImpetusAvatarLive({
       <div className={`impetus-avatar impetus-avatar--${state} ${!videoBroken ? 'impetus-avatar--has-video' : ''}`}>
         <div className="impetus-avatar__face">
           {!videoBroken ? (
-            <div className="impetus-avatar__video-stack" aria-hidden="true">
-              {useConvoSpeaking ? (
+            <div
+              className={`impetus-avatar__video-stack${
+                didMediaReady && didLayerActive ? ' impetus-avatar__video-stack--under-did' : ''
+              }`}
+              aria-hidden="true"
+            >
+              {CLIP_ORDER.map((key) => (
                 <video
-                  ref={convoVideoRef}
-                  className="impetus-avatar__vid impetus-avatar__vid--active"
-                  src={SPEAKING_MOUTH_VIDEO}
+                  key={useNineVideos && key === 'idle' ? `${key}-${idlePoolIdx}` : key}
+                  ref={(el) => {
+                    if (el) videoRefs.current[key] = el;
+                    else delete videoRefs.current[key];
+                  }}
+                  className={`impetus-avatar__vid ${key === activeClip ? 'impetus-avatar__vid--active' : ''}`}
+                  src={videoSrcByKey[key]}
+                  muted
+                  playsInline
+                  loop={!(useNineVideos && key === 'idle')}
+                  preload="auto"
+                  onCanPlay={(e) => {
+                    const el = e.currentTarget;
+                    if (videoRefs.current[key] !== el || key !== activeClipRef.current || videoBroken) return;
+                    el.play().catch(() => {});
+                  }}
+                  onEnded={useNineVideos && key === 'idle' ? onIdleClipEnded : undefined}
+                  onError={
+                    key === 'idle'
+                      ? onIdleVideoError
+                      : key === 'speaking'
+                        ? onSpeakingVideoError
+                        : key === 'attention'
+                          ? () => setAttentionSrcBroken(true)
+                          : key === 'thinking'
+                            ? () => setThinkingSrcBroken(true)
+                            : undefined
+                  }
+                />
+              ))}
+              {didVideoUrl ? (
+                <video
+                  key={didVideoUrl}
+                  className={`impetus-avatar__did${
+                    didMediaReady && didLayerActive ? ' impetus-avatar__did--visible' : ''
+                  }`}
+                  src={didVideoUrl}
                   muted
                   playsInline
                   loop
                   autoPlay
                   preload="auto"
                   onLoadedData={(e) => {
-                    const v = e.currentTarget;
-                    v.play().catch(() => {});
+                    setDidMediaReady(true);
+                    e.currentTarget.play().catch(() => {});
                   }}
-                  onError={() => setVideoBroken(true)}
+                  onPlaying={() => setDidMediaReady(true)}
+                  onError={() => setDidMediaReady(false)}
                 />
-              ) : (
-                CLIP_ORDER.map((key) => (
-                  <video
-                    key={useNineVideos && key === 'idle' ? `${key}-${idlePoolIdx}` : key}
-                    ref={(el) => {
-                      if (el) videoRefs.current[key] = el;
-                    }}
-                    className={`impetus-avatar__vid ${key === activeClip ? 'impetus-avatar__vid--active' : ''}`}
-                    src={videoSrcByKey[key]}
-                    muted
-                    playsInline
-                    loop={!(useNineVideos && key === 'idle')}
-                    preload="auto"
-                    onEnded={useNineVideos && key === 'idle' ? onIdleClipEnded : undefined}
-                    onError={key === 'idle' ? onIdleVideoError : undefined}
-                  />
-                ))
-              )}
+              ) : null}
             </div>
           ) : null}
           {videoBroken ? (

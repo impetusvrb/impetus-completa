@@ -92,13 +92,40 @@
   object-fit: cover;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }
 
 .impetus-avatar__vid--active {
   opacity: 1;
   z-index: 1;
+}
+
+/* Vídeo gerado pela D-ID (sobreposto aos clipes locais) */
+.impetus-avatar__did {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.impetus-avatar__did--visible {
+  opacity: 1;
+}
+
+.impetus-avatar__video-stack--under-did .impetus-avatar__vid {
+  opacity: 0;
+  transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.impetus-avatar__video-stack--under-did .impetus-avatar__vid--active {
+  opacity: 0;
 }
 
 .impetus-avatar--has-video.impetus-avatar--listening .impetus-avatar__face,
@@ -201,50 +228,6 @@
   transform-origin: center 40%;
 }
 
-.impetus-avatar--standby .impetus-avatar__mouth {
-  animation: impetus-mouth-idle 3s ease-in-out infinite;
-}
-
-.impetus-avatar--listening .impetus-avatar__mouth {
-  animation: impetus-mouth-listen 1.6s ease-in-out infinite;
-}
-
-.impetus-avatar--speaking .impetus-avatar__mouth {
-  animation: impetus-mouth-speak 0.42s ease-in-out infinite;
-}
-
-@keyframes impetus-mouth-idle {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.92;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.03);
-    opacity: 1;
-  }
-}
-
-@keyframes impetus-mouth-listen {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.06);
-  }
-}
-
-@keyframes impetus-mouth-speak {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scaleY(1) scaleX(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) scaleY(1.09) scaleX(1.04);
-  }
-}
-
 /* Boca SVG quando não há PNGs em /assets/impetus-mouth/ */
 .impetus-avatar__mouth-fallback {
   position: absolute;
@@ -257,18 +240,6 @@
   pointer-events: none;
   filter: drop-shadow(0 0 6px rgba(60, 170, 255, 0.5));
   transform-origin: center center;
-}
-
-.impetus-avatar--standby .impetus-avatar__mouth-fallback {
-  animation: impetus-mouth-idle 3s ease-in-out infinite;
-}
-
-.impetus-avatar--listening .impetus-avatar__mouth-fallback {
-  animation: impetus-mouth-listen 1.6s ease-in-out infinite;
-}
-
-.impetus-avatar--speaking .impetus-avatar__mouth-fallback {
-  animation: impetus-mouth-speak 0.42s ease-in-out infinite;
 }
 
 .impetus-avatar__mouth-fallback-line {

@@ -91,6 +91,14 @@ useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');
 useRoute('/api/internal/sales', './routes/internal/sales');
 
+/* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
+const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';
+if (manuiaEnabled) {
+  useRoute('/api/manutencao-ia', './routes/manutencao-ia');
+} else {
+  console.log('[server] ManuIA: desabilitado (ENABLE_MANUIA=false)');
+}
+
 app.use((err, _req, res, _next) => {
   console.error('[server]', err);
   res.status(500).json({ ok: false, error: err.message || 'Erro interno' });

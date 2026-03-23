@@ -9,9 +9,9 @@ import './ImpetusVoiceOverlay.css';
 function statusLabel(status, realtimeMode) {
   if (realtimeMode && status === 'listening') return 'REALTIME · OUVINDO…';
   if (realtimeMode && status === 'speaking') return 'REALTIME · VOZ…';
-  if (realtimeMode && status === 'processing') return 'REALTIME · CONECTANDO…';
+  if (realtimeMode && status === 'processing') return 'REALTIME · ANALISANDO…';
   if (status === 'listening') return 'OUVINDO…';
-  if (status === 'processing') return 'PROCESSANDO…';
+  if (status === 'processing') return 'ANALISANDO…';
   if (status === 'speaking') return 'RESPONDENDO…';
   return 'PRONTA';
 }
@@ -22,10 +22,15 @@ export default function ImpetusVoiceOverlay({
   bargeInFlash,
   mouthState,
   videoLipSyncRef = null,
+  didAvatarVideoUrl = null,
+  didAvatarReplay = false,
   liveCaption = '',
   realtimeMode = false,
   onClose
 }) {
+  // Sempre ligar lipsync por volume ao clipe “speaking” (hero ou speaking.mp4) — Realtime ou TTS.
+  const passLipSync = videoLipSyncRef;
+
   if (!open) return null;
 
   const avatarState =
@@ -68,9 +73,12 @@ export default function ImpetusVoiceOverlay({
           <ImpetusAvatarLive
             state={avatarState}
             mouthState={mouthState}
-            videoLipSyncRef={videoLipSyncRef}
-            convoBlinkVideo={realtimeMode}
             size={320}
+            immersiveVoice
+            videoLipSyncRef={passLipSync}
+            didVideoUrl={didAvatarVideoUrl}
+            didReplayOverlay={didAvatarReplay}
+            didPrimarySpeaking={false}
           />
         </div>
 

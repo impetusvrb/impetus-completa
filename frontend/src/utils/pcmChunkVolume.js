@@ -1,23 +1,25 @@
 /**
- * Amplitude média normalizada (0–1) de um chunk PCM16 base64 (Realtime).
- * Alinhado a avatar-impetus.html (amostragem a cada 4 samples int16 LE).
+ * Volume normalizado [0..~1] a partir de um chunk PCM16 mono little-endian em base64
+ * (eventos response.output_audio.delta / response.audio.delta do Realtime).
  */
 export function calcPcmChunkVolumeNorm(b64) {
   if (!b64 || typeof b64 !== 'string') return 0;
   try {
-    const bytes = atob(b64);
+    const binary = atob(b64);
+    const n = binary.length;
+    if (n < 2) return 0;
+    const buf = new ArrayBuffer(n);
+    const view = new DataView(buf);
+    for (let i = 0; i < n; i++) view.setUint8(i, binary.charCodeAt(i));
+    const samples = Math.floor(n / 2);
+    if (samples < 1) return 0;
     let sum = 0;
-    const step = 4;
-    let samples = 0;
-    for (let i = 0; i + 1 < bytes.length; i += step * 2) {
-      const lo = bytes.charCodeAt(i);
-      const hi = bytes.charCodeAt(i + 1);
-      const s = (hi << 8) | lo;
-      const signed = s > 32767 ? s - 65536 : s;
-      sum += Math.abs(signed);
-      samples++;
+    for (let i = 0; i < samples; i++) {
+      const s = view.getInt16(i * 2, true) / 32768;
+      sum += s * s;
     }
-    return samples > 0 ? sum / samples / 32768 : 0;
+    const rms = Math.sqrt(sum / samples);
+    return Math.min(1, rms * 2.8);
   } catch {
     return 0;
   }

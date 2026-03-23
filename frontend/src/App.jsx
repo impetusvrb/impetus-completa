@@ -116,7 +116,8 @@ const COLABORADOR_ALLOWED_PATHS = [
 ];
 function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
-  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  const raw = typeof window !== 'undefined' ? window.location.pathname : '';
+  const path = raw.replace(/\/+$/, '') || '/';
   if (COLABORADOR_ALLOWED_PATHS.includes(path)) return children;
   if (path.startsWith('/app/proacao/')) return children; // detalhe de proposta
   return <Navigate to="/app" replace />;

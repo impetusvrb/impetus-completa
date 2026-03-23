@@ -21,7 +21,10 @@ export default function ImpetusVoiceProvider({ children }) {
   const [autoSpeakResponses, setAutoSpeakResponses] = useState(true);
   const alertsSeenRef = useRef(new Set());
   const voiceHistoryRef = useRef([]); // últimos turnos para contexto do LLM no modo voz
-  const hasToken = !!localStorage.getItem('impetus_token');
+  const hasToken = useMemo(
+    () => !!localStorage.getItem('impetus_token'),
+    [location.pathname, location.key]
+  );
   const isVoiceRoute =
     location.pathname.startsWith('/app') ||
     location.pathname.startsWith('/chat') ||
@@ -260,7 +263,9 @@ export default function ImpetusVoiceProvider({ children }) {
         status={voiceState.status}
         bargeInFlash={voiceState.bargeInFlash}
         mouthState={ttsUi?.mouthState}
-        videoLipSyncRef={voiceState.isRealtimeMode ? videoLipSyncRef : null}
+        videoLipSyncRef={videoLipSyncRef}
+        didAvatarVideoUrl={voiceState.didAvatarVideoUrl}
+        didAvatarReplay={voiceState.didAvatarReplay}
         liveCaption={voiceState.currentTranscript}
         realtimeMode={voiceState.isRealtimeMode}
         onClose={() => {
