@@ -164,8 +164,25 @@ REGRAS:
   return `## Memória operacional (contexto inteligente):\n${result}`;
 }
 
+const DECISION_ENGINE_SYSTEM = `Você é o Motor de Decisão Inteligente do IMPETUS (análise industrial).
+Responda de forma clara e objetiva em português. Priorize sempre segurança das pessoas.`;
+
+/**
+ * Interface compatível com decisionEngineService.analyzeWithAI (prompt único).
+ * @param {string} userPrompt - Texto completo da situação e pedido
+ * @param {Object} [opts] - { max_tokens, timeout }
+ * @returns {Promise<string|null>}
+ */
+async function generate(userPrompt, opts = {}) {
+  return analyze(DECISION_ENGINE_SYSTEM, String(userPrompt || '').slice(0, 12000), {
+    max_tokens: opts.max_tokens || 1024,
+    timeout: opts.timeout || 25000
+  });
+}
+
 module.exports = {
   analyze,
+  generate,
   extractOperationalFacts,
   buildMemoryContextForChat,
   isAvailable

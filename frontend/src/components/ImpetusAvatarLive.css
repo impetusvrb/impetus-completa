@@ -84,6 +84,38 @@
   background: #050a12;
 }
 
+.impetus-avatar__video-stack--voice3d {
+  background: #050a12;
+}
+
+.impetus-avatar__3d-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #050a12;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.impetus-avatar__3d-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.impetus-avatar__video-stack--under-did .impetus-avatar__3d-wrap {
+  opacity: 0;
+  transition: opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* GLB 3D: nunca esconder o canvas (D-ID não compete com este modo). */
+.impetus-avatar__video-stack--voice3d .impetus-avatar__3d-wrap {
+  opacity: 1;
+}
+
 .impetus-avatar__vid {
   position: absolute;
   inset: 0;
@@ -117,6 +149,14 @@
 
 .impetus-avatar__did--visible {
   opacity: 1;
+}
+
+/* Fonte 2D estática: afastar um pouco o rosto (menos zoom). */
+.impetus-avatar__did--image {
+  object-fit: contain;
+  transform: scale(0.88);
+  transform-origin: center center;
+  background: #050a12;
 }
 
 .impetus-avatar__video-stack--under-did .impetus-avatar__vid {

@@ -4,13 +4,15 @@ import KpiCard from '../shared/KpiCard';
 import AiInsightBanner from '../shared/AiInsightBanner';
 import ProfileBadge from '../shared/ProfileBadge';
 import TwinsPanel from '../twins/TwinsPanel';
+import OrdersPanel from '../orders/OrdersPanel';
 import { formatCurrency } from '../../utils/formatters';
 import { can } from '../../utils/permissions';
 import styles from '../../styles/AssetManagement.module.css';
 
-export default function DashboardGerente({ profile, user, data }) {
-  const { twins = [], orders = [], insights = [] } = data || {};
+export default function DashboardGerente({ profile, user, data, onApproveOrder }) {
+  const { twins = [], orders = [], stock = [], insights = [] } = data || {};
   const pendingP1P2 = orders.filter((o) => ['P1', 'P2'].includes(o.priority) && o.status === 'pending_approval').length;
+  const lowStock = stock.filter((s) => (s.qty ?? 0) <= (s.reorderPoint ?? 0)).length;
 
   return (
     <div className={styles.dashboard}>
@@ -40,23 +42,47 @@ export default function DashboardGerente({ profile, user, data }) {
         </div>
       </section>
 
-      {can(profile, 'twinsView') && <TwinsPanel twins={twins} profile={profile} />}
-
-      {can(profile, 'ordersApproveP1P2') && pendingP1P2 > 0 && (
+      {can(profile, 'stockViewSummary') && stock.length > 0 && (
         <section className={styles.dashboardSection}>
-          <h2><AlertTriangle size={20} /> Aprovação de OS P1/P2</h2>
-          <p className={styles.dashboardHint}>{pendingP1P2} ordem(ns) aguardando aprovação.</p>
+          <h2>Resumo de estoque</h2>
+          <p className={styles.dashboardHint}>
+            {stock.length} SKU(s) monitorados · {lowStock} abaixo do ponto de pedido cadastrado (detalhe apenas para PCM/supervisão).
+          </p>
         </section>
       )}
 
-      {insights.length > 0 && (
+      {can(profile, 'twinsViewSummary') && (
+        <TwinsPanel twins={twins} profile={profile} variant="summary" />
+      )}
+
+      {can(profile, 'ordersViewAll') && (
+        <OrdersPanel orders={orders} profile={profile} onApprove={onApproveOrder} />
+      )}
+
+      {can(profile, 'ordersApproveP1P2') && pendingP1P2 > 0 && (
         <section className={styles.dashboardSection}>
-          <h2>Insights da IA</h2>
+          <h2>
+            <AlertTriangle size={20} /> Aprovação rápida P1/P2
+          </h2>
+          <p className={styles.dashboardHint}>{pendingP1P2} ordem(ns) aguardando aprovação gerencial. Use os cards acima ou abra a OS para aprovar em um clique.</p>
+        </section>
+      )}
+
+      {can(profile, 'insightsView') && insights.length > 0 && (
+        <section className={styles.dashboardSection}>
+          <h2>Insights</h2>
           <div className={styles.insightsList}>
-            {insights.slice(0, 3).map((i, idx) => (
+            {insights.slice(0, 5).map((i, idx) => (
               <AiInsightBanner key={idx} type={i.type} title={i.title} description={i.description} estimatedValue={i.estimatedValue} />
             ))}
           </div>
+        </section>
+      )}
+
+      {can(profile, 'reportsManagerial') && (
+        <section className={styles.dashboardSection}>
+          <h2>Relatórios gerenciais</h2>
+          <p className={styles.dashboardHint}>Exportação PDF consolidado será ligada ao BI corporativo quando disponível.</p>
         </section>
       )}
     </div>

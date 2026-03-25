@@ -41,6 +41,7 @@ yarn-error.log*
 logs/
 tmp/
 impetus_complete/backend/scripts/test-voz-out/
+backend/scripts/test-voz-out/
 temp/
 *.tmp
 

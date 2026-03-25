@@ -15,6 +15,13 @@ try { qualityIntel = require('./qualityIntelligenceService'); } catch (_) {}
 try { operationalForecastingAdvanced = require('./operationalForecastingAdvancedService'); } catch (_) {}
 try { operationalAlerts = require('./operationalAlertsService'); } catch (_) {}
 
+let operationalBrain;
+try {
+  operationalBrain = require('./operationalBrainEngine');
+} catch (_) {
+  operationalBrain = null;
+}
+
 /**
  * Determina nível do cargo para distribuição de informações
  */
@@ -276,11 +283,22 @@ async function getCentralIntelligence(companyId, user) {
 
   const roleLevel = getRoleLevel(user);
 
-  const [alerts, sectors, predictions, insights] = await Promise.all([
+  const [alerts, sectors, predictions, insights, operationalBrainSummary] = await Promise.all([
     getUnifiedAlerts(companyId, user),
     getSectorStatus(companyId, user),
     getStrategicPredictions(companyId, user),
-    getCentralInsights(companyId, user)
+    getCentralInsights(companyId, user),
+    (async () => {
+      try {
+        if (!operationalBrain?.BRAIN_ENABLED || typeof operationalBrain.getOperationalSummary !== 'function') {
+          return null;
+        }
+        return await operationalBrain.getOperationalSummary(companyId, {});
+      } catch (e) {
+        console.warn('[CENTRAL_AI] operational_brain:', e?.message);
+        return null;
+      }
+    })()
   ]);
 
   const payload = {
@@ -302,7 +320,12 @@ async function getCentralIntelligence(companyId, user) {
     predictions: predictions || undefined,
     integrated_sectors: ['rh', 'warehouse', 'quality', 'logistics', 'production', 'maintenance'].filter(k =>
       sectors.some(s => s.key === k)
-    )
+    ),
+    operational_brain: operationalBrainSummary,
+    decision_engine: {
+      criteria_path: '/api/central-ai/decision/criteria',
+      analyze_path: '/api/central-ai/decision/analyze'
+    }
   };
 
   return payload;

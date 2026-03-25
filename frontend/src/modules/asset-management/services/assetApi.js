@@ -58,6 +58,7 @@ export function getMockOrders() {
   return [
     { id: 'OS-001', machineId: 'M3', machineName: 'Compressor Atlas Copco', priority: 'P1', status: 'pending_approval', type: 'Corretiva Urgente', createdBy: 'IA', createdAt: new Date().toISOString() },
     { id: 'OS-002', machineId: 'M1', machineName: 'Motor WEG W22', priority: 'P3', status: 'open', type: 'Preventiva', teamId: 'T1', createdAt: new Date().toISOString() },
-    { id: 'OS-003', machineId: 'M2', machineName: 'Bomba Grundfos', priority: 'P4', status: 'open', type: 'Rotina', teamId: 'T2', createdAt: new Date().toISOString() }
+    { id: 'OS-003', machineId: 'M2', machineName: 'Bomba Grundfos', priority: 'P4', status: 'open', type: 'Rotina', teamId: 'T2', createdAt: new Date().toISOString() },
+    { id: 'OS-004', machineId: 'M2', machineName: 'Bomba Grundfos', priority: 'P3', status: 'pending_approval', type: 'Corretiva programada', createdBy: 'IA', createdAt: new Date().toISOString() }
   ];
 }

@@ -23,7 +23,10 @@ function requireMaintenanceProfile(req, res, next) {
     return res.status(401).json({ ok: false, error: 'Não autenticado' });
   }
   const profile = resolveDashboardProfile(user);
-  if (!MAINTENANCE_PROFILES.has(profile)) {
+  const profileStr = String(profile || '');
+  const byCode = MAINTENANCE_PROFILES.has(profile);
+  const byName = profileStr.includes('maintenance') || profileStr.includes('manutencao');
+  if (!byCode && !byName) {
     return res.status(403).json({
       ok: false,
       error: 'Acesso restrito à equipe de manutenção',

@@ -52,6 +52,36 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /dashboard/summary
+ * Agregados para ExecutiveDashboard, widgets e dashboards inteligentes (evita 404 em /api/dashboard/summary).
+ */
+router.get('/summary', requireAuth, async (req, res) => {
+  try {
+    const summary = await dashboardKPIs.getDashboardSummary(req.user);
+    res.json({ summary });
+  } catch (err) {
+    console.error('[DASHBOARD_SUMMARY]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar resumo' });
+  }
+});
+
+/**
+ * GET /dashboard/kpis
+ * Lista de KPIs dinâmicos (paridade com o payload em /dashboard/me).
+ */
+router.get('/kpis', requireAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
+    const kpis = await dashboardKPIs.getDashboardKPIs(user, scope);
+    res.json({ kpis });
+  } catch (err) {
+    console.error('[DASHBOARD_KPIS_ROUTE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar KPIs' });
+  }
+});
+
+/**
  * GET /dashboard/personalizado
  * Retorna config do dashboard personalizado por perfil (perfil + modulos + layout).
  * Cache 24h por usuário.

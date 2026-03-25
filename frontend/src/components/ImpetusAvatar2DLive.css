@@ -1,0 +1,150 @@
+.impetus-2d-avatar {
+  --ia-breathe: 0;
+  --ia-head-x: 0px;
+  --ia-head-y: 0px;
+  --ia-gaze-x: 0px;
+  --ia-gaze-y: 0px;
+  --ia-blink: 0;
+  --ia-pulse: 0.3;
+  --ia-speak: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #050a12;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.impetus-2d-avatar__layer {
+  position: absolute;
+  inset: 0;
+}
+
+.impetus-2d-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: translate(var(--ia-head-x), var(--ia-head-y))
+    scale(calc(0.93 + var(--ia-breathe)));
+  transform-origin: center center;
+  filter: saturate(1.05) brightness(1.06);
+  transition: transform 120ms linear;
+}
+
+.impetus-2d-avatar__eyes {
+  position: absolute;
+  inset: 0;
+  transform: translate(var(--ia-gaze-x), var(--ia-gaze-y));
+  transition: transform 120ms linear;
+}
+
+.impetus-2d-avatar__eye {
+  position: absolute;
+  width: 13%;
+  height: 7.5%;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(14, 26, 46, 0.72), rgba(6, 12, 22, 0.86));
+  transform-origin: center top;
+  transform: scaleY(calc(var(--ia-blink) * 0.92));
+  opacity: calc(var(--ia-blink) * 0.95);
+}
+
+.impetus-2d-avatar__eye--left {
+  left: 30.2%;
+  top: 36.8%;
+}
+
+.impetus-2d-avatar__eye--right {
+  right: 30.2%;
+  top: 36.8%;
+}
+
+.impetus-2d-avatar__mouth {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  width: 25%;
+  transform: translate(-50%, -50%)
+    scale(calc(0.92 + var(--ia-speak) * 0.12), calc(0.94 + var(--ia-speak) * 0.18));
+  transform-origin: center center;
+  opacity: 0.96;
+  filter: drop-shadow(0 0 6px rgba(90, 190, 255, 0.4));
+  transition: transform 80ms linear, opacity 80ms linear;
+}
+
+.impetus-2d-avatar__mouth--closed {
+  opacity: 0.85;
+}
+
+.impetus-2d-avatar__mouth--mid {
+  opacity: 0.93;
+}
+
+.impetus-2d-avatar__mouth--open {
+  opacity: 1;
+}
+
+.impetus-2d-avatar__fx {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 26px rgba(95, 190, 255, calc(0.18 + var(--ia-pulse) * 0.2)),
+    0 0 18px rgba(95, 190, 255, calc(0.08 + var(--ia-pulse) * 0.1));
+}
+
+.impetus-2d-avatar__blink-mask {
+  position: absolute;
+  left: 22%;
+  top: 30%;
+  width: 56%;
+  height: 19%;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.impetus-2d-avatar__blink-lid {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: rgba(11, 18, 30, 0.88);
+  box-shadow: inset 0 0 12px rgba(120, 200, 255, 0.08);
+}
+
+.impetus-2d-avatar__blink-lid--top {
+  top: 0;
+  transform-origin: top center;
+  transform: scaleY(calc(var(--ia-blink) * 1.05));
+}
+
+.impetus-2d-avatar__blink-lid--bottom {
+  bottom: 0;
+  transform-origin: bottom center;
+  transform: scaleY(calc(var(--ia-blink) * 1.05));
+}
+
+.impetus-2d-avatar__mouth-fallback {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  width: 19%;
+  height: calc(6px + var(--ia-speak) * 14px);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(120, 205, 255, 0.75);
+  background: rgba(5, 10, 18, 0.55);
+  box-shadow: 0 0 10px rgba(80, 180, 255, 0.45);
+  opacity: calc(0.58 + var(--ia-speak) * 0.42);
+  z-index: 7;
+}
+
+.impetus-2d-avatar--processing .impetus-2d-avatar__fx {
+  box-shadow:
+    inset 0 0 28px rgba(95, 190, 255, 0.3),
+    inset 0 0 56px rgba(95, 190, 255, 0.2);
+}
+

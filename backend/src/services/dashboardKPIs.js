@@ -324,7 +324,45 @@ async function getDashboardKPIs(user, hierarchyScope) {
   }
 }
 
+const EMPTY_SUMMARY = {
+  alerts: { critical: 0 },
+  operational_interactions: { total: 0, growth_percentage: 0 },
+  proposals: { total: 0 },
+  monitored_points: { total: 0 },
+  ai_insights: { total: 0 }
+};
+
+/**
+ * Resumo agregado para widgets executivos e /dashboard/summary (mesmas contagens do escopo do usuário).
+ */
+async function getDashboardSummary(user) {
+  if (!user?.company_id) return { ...EMPTY_SUMMARY };
+  const companyId = user.company_id;
+  try {
+    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
+    const [commsWeek, criticalAlerts, growth, proposals, points, insights] = await Promise.all([
+      queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
+      queryCommunications(scope, companyId, "c.ai_priority = 1"),
+      getCommsGrowth(scope, companyId),
+      queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
+      queryMonitoredPoints(scope, companyId),
+      queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '1 week'")
+    ]);
+    return {
+      alerts: { critical: criticalAlerts },
+      operational_interactions: { total: commsWeek, growth_percentage: growth },
+      proposals: { total: proposals },
+      monitored_points: { total: points },
+      ai_insights: { total: insights }
+    };
+  } catch (err) {
+    console.error('[DASHBOARD_SUMMARY_ERROR]', err);
+    return { ...EMPTY_SUMMARY };
+  }
+}
+
 module.exports = {
   getDashboardKPIs,
+  getDashboardSummary,
   ICON_MAP
 };

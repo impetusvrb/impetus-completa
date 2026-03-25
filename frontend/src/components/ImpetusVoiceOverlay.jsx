@@ -26,7 +26,9 @@ export default function ImpetusVoiceOverlay({
   didAvatarReplay = false,
   liveCaption = '',
   realtimeMode = false,
-  onClose
+  onClose,
+  voiceAvatarAnimationEnabled = true,
+  voiceAvatarControlRef = null
 }) {
   // Sempre ligar lipsync por volume ao clipe “speaking” (hero ou speaking.mp4) — Realtime ou TTS.
   const passLipSync = videoLipSyncRef;
@@ -68,17 +70,20 @@ export default function ImpetusVoiceOverlay({
             <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--a" />
             <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--b" />
             <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--c" />
+            <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--d" />
           </div>
           <div className="impetus-voice-overlay__avatar-ring" aria-hidden="true" />
           <ImpetusAvatarLive
             state={avatarState}
             mouthState={mouthState}
-            size={320}
+            size={348}
             immersiveVoice
             videoLipSyncRef={passLipSync}
             didVideoUrl={didAvatarVideoUrl}
             didReplayOverlay={didAvatarReplay}
             didPrimarySpeaking={false}
+            voiceAvatarAnimationEnabled={voiceAvatarAnimationEnabled}
+            voiceAvatarControlRef={voiceAvatarControlRef}
           />
         </div>
 

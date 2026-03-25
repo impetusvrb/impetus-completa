@@ -1,6 +1,5 @@
 /**
- * Rotas de voz do chat Impetus — Whisper STT, Google Cloud TTS, format-alert, preferências
- * Montar: app.use('/api/dashboard/chat/voice', chatVoiceRouter);
+ * Voz do chat — Whisper STT, OpenAI TTS, preferências
  */
 const express = require('express');
 const multer = require('multer');
@@ -12,6 +11,8 @@ const { requireAuth } = require('../middleware/auth');
 const mediaProcessor = require('../services/mediaProcessorService');
 const ai = require('../services/ai');
 const voiceTts = require('../services/voiceTtsService');
+const googleTtsCore = require('../services/googleTtsCore');
+const ttsWelcomeTemplate = require('../services/ttsWelcomeTemplate');
 
 const router = express.Router();
 const upload = multer({
@@ -38,6 +39,7 @@ function rateLimit(userId, max, windowMs) {
 const ttsCache = new Map();
 const formatAlertCache = new Map();
 const TTS_TTL_MS = 60 * 1000;
+const MIN_MP3_BYTES = 1500;
 
 function cleanTtsInput(text) {
   return String(text || '')
@@ -49,12 +51,7 @@ function cleanTtsInput(text) {
     .slice(0, 4096);
 }
 
-let db;
-try {
-  db = require('../db');
-} catch (_) {
-  db = null;
-}
+const db = require('../db');
 
 router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res) => {
   if (!rateLimit(req.user.id, 30, 60 * 1000)) {
@@ -110,51 +107,166 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
 });
 
 router.post('/speak', requireAuth, express.json({ limit: '64kb' }), async (req, res) => {
-  if (!rateLimit(req.user.id + ':tts', 60, 60 * 1000)) {
+  if (!rateLimit(String(req.user.id) + ':tts', 60, 60 * 1000)) {
     return res.status(429).json({ ok: false, error: 'Limite TTS. Aguarde.' });
   }
   if (!voiceTts.getTtsAvailable()) {
     return res.status(503).json({
       ok: false,
-      error: 'TTS indisponível (configure config/google-tts.json ou GOOGLE_APPLICATION_CREDENTIALS)'
+      error: 'TTS indisponível (Google: config/google-tts.json ou OpenAI no .env)'
     });
   }
   const text = cleanTtsInput(req.body.text);
   if (!text) {
     return res.status(400).json({ ok: false, error: 'Texto vazio' });
   }
+  const userDisplayName = voiceTts.firstNameFromDisplay(
+    String(req.body.userDisplayName || req.user?.name || '').trim()
+  );
   const voice = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].includes(req.body.voice)
     ? req.body.voice
     : 'nova';
-  const defSp = parseFloat(process.env.GOOGLE_TTS_DEFAULT_SPEAKING_RATE) || 0.98;
+  const defSp = parseFloat(process.env.OPENAI_TTS_DEFAULT_SPEED) || 1.02;
   const speed = Math.min(1.25, Math.max(0.75, parseFloat(req.body.speed) || defSp));
+  const effective = voiceTts.getEffectiveTtsConfig({ voice, speed });
   const engineTag = voiceTts.ttsEngineFingerprint();
+  const sentimentContext = req.body?.sentimentContext || null;
 
-  const hash = crypto.createHash('sha256').update(text + voice + speed + engineTag).digest('hex');
+  const hash = crypto
+    .createHash('sha256')
+    .update(
+      text +
+        userDisplayName +
+        effective.voice +
+        effective.speed +
+        engineTag +
+        JSON.stringify(sentimentContext || {})
+    )
+    .digest('hex');
   const cached = ttsCache.get(hash);
   if (cached && Date.now() < cached.exp) {
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'private, max-age=60');
+    // Evita reutilização pelo browser em testes de voz (Wavenet/Neural/etc).
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('X-TTS-Engine', engineTag);
+    if (voiceTts.usesGoogleCloudTts()) res.setHeader('X-TTS-Voice-Google', googleTtsCore.getVoiceName());
     return res.send(cached.buf);
   }
 
   try {
-    const buf = await voiceTts.synthesizeMp3(text, { voice, speed });
-    if (!buf || !buf.length) {
+    const buf = await voiceTts.synthesizeMp3(text, {
+      voice: effective.voice,
+      speed: effective.speed,
+      sentimentContext,
+      userDisplayName: userDisplayName || undefined
+    });
+    if (!buf || buf.length < MIN_MP3_BYTES) {
       return res.status(502).json({ ok: false, error: 'TTS falhou' });
     }
     ttsCache.set(hash, { buf, exp: Date.now() + TTS_TTL_MS });
     if (ttsCache.size > 200) {
-      const old = [...ttsCache.entries()].filter(([, v]) => Date.now() > v.exp);
-      old.forEach(([k]) => ttsCache.delete(k));
+      [...ttsCache.entries()].filter(([, v]) => Date.now() > v.exp).forEach(([k]) => ttsCache.delete(k));
     }
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'private, max-age=60');
+    // Evita reutilização pelo browser em testes de voz (Wavenet/Neural/etc).
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('X-TTS-Engine', engineTag);
+    if (voiceTts.usesGoogleCloudTts()) res.setHeader('X-TTS-Voice-Google', googleTtsCore.getVoiceName());
     res.send(buf);
   } catch (err) {
     console.warn('[CHAT_VOICE speak]', err.message);
     res.status(502).json({ ok: false, error: err.message || 'TTS falhou' });
   }
+});
+
+/**
+ * Boas-vindas com SSML multi-prosody (template Impetus + Chirp3).
+ * Body: { variant?: 'full'|'short', userDisplayName?, speed?, spellName?: boolean }
+ */
+router.post('/welcome', requireAuth, express.json({ limit: '8kb' }), async (req, res) => {
+  if (!rateLimit(String(req.user.id) + ':tts:welcome', 20, 60 * 1000)) {
+    return res.status(429).json({ ok: false, error: 'Limite TTS. Aguarde.' });
+  }
+  if (!voiceTts.getTtsAvailable()) {
+    return res.status(503).json({
+      ok: false,
+      error: 'TTS indisponível (Google: config/google-tts.json ou OpenAI no .env)'
+    });
+  }
+  const userDisplayName = voiceTts.firstNameFromDisplay(
+    String(req.body.userDisplayName || req.user?.name || '').trim()
+  );
+  const variant = req.body.variant === 'short' ? 'short' : 'full';
+  const spellWelcome =
+    typeof req.body.spellName === 'boolean'
+      ? req.body.spellName
+      : process.env.GOOGLE_TTS_WELCOME_SPELL_NAME === 'true';
+  const voice = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].includes(req.body.voice)
+    ? req.body.voice
+    : 'nova';
+  const defSp = parseFloat(process.env.OPENAI_TTS_DEFAULT_SPEED) || 1.02;
+  const speed = Math.min(1.25, Math.max(0.75, parseFloat(req.body.speed) || defSp));
+  const effective = voiceTts.getEffectiveTtsConfig({ voice, speed });
+  const engineTag = voiceTts.ttsEngineFingerprint();
+  const welcomeOpts = { variant, spellName: spellWelcome };
+  const welcomeInput = voiceTts.usesGoogleCloudTts()
+    ? ttsWelcomeTemplate.buildWelcomeSsml(userDisplayName, welcomeOpts)
+    : ttsWelcomeTemplate.buildWelcomePlainText(userDisplayName, welcomeOpts);
+
+  const hash = crypto
+    .createHash('sha256')
+    .update(
+      `welcome:${variant}:${spellWelcome}:${userDisplayName}:${effective.voice}:${effective.speed}:${engineTag}`
+    )
+    .digest('hex');
+  const cached = ttsCache.get(hash);
+  if (cached && Date.now() < cached.exp) {
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('X-TTS-Engine', engineTag);
+    res.setHeader('X-TTS-Template', `welcome:${variant}`);
+    if (voiceTts.usesGoogleCloudTts()) res.setHeader('X-TTS-Voice-Google', googleTtsCore.getVoiceName());
+    return res.send(cached.buf);
+  }
+
+  try {
+    const buf = await voiceTts.synthesizeMp3(welcomeInput, {
+      voice: effective.voice,
+      speed: effective.speed,
+      userDisplayName: undefined
+    });
+    if (!buf || buf.length < MIN_MP3_BYTES) {
+      return res.status(502).json({ ok: false, error: 'TTS falhou' });
+    }
+    ttsCache.set(hash, { buf, exp: Date.now() + TTS_TTL_MS });
+    if (ttsCache.size > 200) {
+      [...ttsCache.entries()].filter(([, v]) => Date.now() > v.exp).forEach(([k]) => ttsCache.delete(k));
+    }
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('X-TTS-Engine', engineTag);
+    res.setHeader('X-TTS-Template', `welcome:${variant}`);
+    if (voiceTts.usesGoogleCloudTts()) res.setHeader('X-TTS-Voice-Google', googleTtsCore.getVoiceName());
+    res.send(buf);
+  } catch (err) {
+    console.warn('[CHAT_VOICE welcome]', err.message);
+    res.status(502).json({ ok: false, error: err.message || 'TTS falhou' });
+  }
+});
+
+router.get('/debug', requireAuth, (req, res) => {
+  const defaultVoice = 'nova';
+  const defaultSpeed = parseFloat(process.env.OPENAI_TTS_DEFAULT_SPEED) || 1.02;
+  const effective = voiceTts.getEffectiveTtsConfig({ voice: defaultVoice, speed: defaultSpeed });
+  return res.json({
+    ok: true,
+    tts: {
+      ...effective,
+      openai_available: voiceTts.getTtsAvailable(),
+      tts_provider: voiceTts.usesGoogleCloudTts() ? 'google' : 'openai',
+      tts_engine: voiceTts.ttsEngineFingerprint()
+    }
+  });
 });
 
 router.post('/format-alert', requireAuth, express.json({ limit: '128kb' }), async (req, res) => {
@@ -174,6 +286,7 @@ router.post('/format-alert', requireAuth, express.json({ limit: '128kb' }), asyn
   }
   try {
     const prompt = `Formate este alerta industrial em 1-2 frases naturais para leitura em voz. Português BR, profissional, direto, sem jargão excessivo.
+Varie o início entre confirmação curta ("Atenção", "Alerta", "Registro") — nunca use sempre a mesma palavra de abertura. Última frase com tom de conclusão.
 
 Dados: ${JSON.stringify(alertData).slice(0, 2000)}
 
@@ -187,7 +300,6 @@ Responda APENAS o texto falado, sem aspas.`;
 });
 
 async function prefsQuery(userId) {
-  if (!db) return null;
   try {
     const r = await db.query(
       `SELECT alerts_enabled, alert_min_priority, auto_speak_responses, voice_id, speed
@@ -210,7 +322,7 @@ router.get('/preferences', requireAuth, async (req, res) => {
       alert_min_priority: row?.alert_min_priority || 'P2',
       auto_speak_responses: row?.auto_speak_responses !== false,
       voice_id: row?.voice_id || 'nova',
-      speed: row?.speed != null ? parseFloat(row.speed) : 0.98
+      speed: row?.speed != null ? parseFloat(row.speed) : 1.02
     });
   } catch (err) {
     res.json({
@@ -219,15 +331,12 @@ router.get('/preferences', requireAuth, async (req, res) => {
       alert_min_priority: 'P2',
       auto_speak_responses: true,
       voice_id: 'nova',
-      speed: 0.98
+      speed: 1.02
     });
   }
 });
 
 router.put('/preferences', requireAuth, express.json(), async (req, res) => {
-  if (!db) {
-    return res.json({ ok: true, saved: false });
-  }
   const b = req.body || {};
   try {
     const cur = await prefsQuery(req.user.id);
@@ -237,7 +346,7 @@ router.put('/preferences', requireAuth, express.json(), async (req, res) => {
       typeof b.auto_speak_responses === 'boolean' ? b.auto_speak_responses : cur?.auto_speak_responses ?? true;
     const voice_id = b.voice_id || cur?.voice_id || 'nova';
     const speed =
-      b.speed != null ? parseFloat(b.speed) : cur?.speed != null ? parseFloat(cur.speed) : 0.98;
+      b.speed != null ? parseFloat(b.speed) : cur?.speed != null ? parseFloat(cur.speed) : 1.02;
 
     await db.query(
       `INSERT INTO voice_preferences (user_id, alerts_enabled, alert_min_priority, auto_speak_responses, voice_id, speed, updated_at)

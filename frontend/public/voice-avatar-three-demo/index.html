@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Avatar cabeça GLB + volume Realtime (Three.js)</title>
+  <style>
+    :root {
+      --bg: #0a0f18;
+      --panel: #121a28;
+      --text: #e8f0ff;
+      --muted: #8aa0c0;
+      --accent: #5eb8ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      max-width: 520px;
+    }
+    button {
+      background: var(--panel);
+      border: 1px solid #2a3a55;
+      color: var(--text);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: #1a3a5c; border-color: var(--accent); }
+    label { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+    input[type="range"] { width: 140px; }
+    #canvas-wrap {
+      width: min(420px, 92vw);
+      height: min(420px, 92vw);
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #1e3a5f;
+      box-shadow: 0 0 40px rgba(80, 160, 255, 0.12);
+      background: #050a12;
+    }
+    .note {
+      max-width: 520px;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--panel);
+      border-radius: 10px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .note code { color: #a8d4ff; font-size: 0.78rem; }
+  </style>
+</head>
+<body>
+  <h1>Demo: cabeça GLB + boca por volume (OpenAI Realtime)</h1>
+  <div class="toolbar">
+    <button type="button" id="btn-toggle" class="primary">Pausar animação</button>
+    <label>
+      Volume teste
+      <input type="range" id="vol-slider" min="0" max="100" value="0" />
+    </label>
+    <button type="button" id="btn-sim">Simular fala 2s</button>
+  </div>
+  <div id="canvas-wrap" aria-label="Avatar 3D"></div>
+
+  <div class="note">
+    <strong>Ligar ao Realtime (resumo):</strong> no teu handler WebSocket, em cada
+    <code>response.output_audio.delta</code> ou <code>response.audio.delta</code>, lê
+    <code>event.delta</code> (base64 PCM) e chama <code>app.feedPcmBase64(event.delta)</code>.
+    Quando a resposta de áudio terminar, chama <code>app.endSpeechDrive()</code> (ou deixa
+    <code>drive</code> cair sozinho). No React Impetus isto já está feito via
+    <code>videoLipSyncRef</code> + <code>calcPcmChunkVolumeNorm</code>.
+    <br /><br />
+    <strong>Evento global ON/OFF</strong> (igual ao overlay React):
+    <code>window.dispatchEvent(new CustomEvent('impetus:avatar3d-animation', { detail: { enabled: false } }))</code>
+  </div>
+
+  <script type="module">
+    import { HeadAvatarApp, VOICE_AVATAR_ANIMATION_EVENT } from './HeadAvatarApp.js';
+
+    const wrap = document.getElementById('canvas-wrap');
+    const glb =
+      new URLSearchParams(location.search).get('glb') || '/futuristic-headset.glb';
+
+    const app = new HeadAvatarApp(wrap, {
+      glbUrl: glb,
+      fitTarget: 1.62,
+      offsetY: -0.07,
+      baseYawDeg: -90
+    });
+
+    app.init().catch((err) => {
+      console.error(err);
+      wrap.innerHTML =
+        '<p style="padding:1rem;color:#f88">Erro ao carregar GLB. Confirma o path (?glb=/teu.glb) e CORS.</p>';
+    });
+
+    let animOn = true;
+    const btn = document.getElementById('btn-toggle');
+    btn.addEventListener('click', () => {
+      animOn = !animOn;
+      app.setAnimationEnabled(animOn);
+      btn.textContent = animOn ? 'Pausar animação' : 'Retomar animação';
+      btn.classList.toggle('primary', animOn);
+    });
+
+    document.getElementById('vol-slider').addEventListener('input', (e) => {
+      app.setManualVolume(Number(e.target.value) / 100);
+    });
+
+    document.getElementById('btn-sim').addEventListener('click', () => {
+      let t = 0;
+      const id = setInterval(() => {
+        t += 0.08;
+        app.setManualVolume(0.35 + Math.sin(t * 14) * 0.35);
+        if (t >= 2) {
+          clearInterval(id);
+          app.endSpeechDrive();
+          document.getElementById('vol-slider').value = '0';
+        }
+      }, 50);
+    });
+
+    // Expor para consola / integração externa
+    window.__voiceAvatarDemo = { app, VOICE_AVATAR_ANIMATION_EVENT };
+  </script>
+</body>
+</html>

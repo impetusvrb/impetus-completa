@@ -56,6 +56,7 @@ async function validateSession(token) {
       SELECT s.id as session_id, s.user_id, s.expires_at,
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
+             u.functional_area, u.dashboard_profile,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
       FROM sessions s
@@ -94,6 +95,8 @@ async function validateSession(token) {
       area: session.area,
       job_title: session.job_title,
       department: session.department,
+      functional_area: session.functional_area || null,
+      dashboard_profile: session.dashboard_profile || null,
       permissions: session.permissions || [],
       sessionId: session.session_id,
       is_first_access: session.is_first_access || false,
@@ -134,7 +137,8 @@ async function validateJWTAndLoadUser(token) {
 
     const r = await db.query(`
       SELECT id, name, email, role, company_id, department_id, hierarchy_level,
-             supervisor_id, area, job_title, department, permissions, active,
+             supervisor_id, area, job_title, department, functional_area, dashboard_profile,
+             permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
              role_verified, role_verification_status, is_company_root
       FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
@@ -154,6 +158,8 @@ async function validateJWTAndLoadUser(token) {
       area: u.area,
       job_title: u.job_title,
       department: u.department,
+      functional_area: u.functional_area || null,
+      dashboard_profile: u.dashboard_profile || null,
       permissions: u.permissions || [],
       sessionId: null,
       is_first_access: u.is_first_access || false,

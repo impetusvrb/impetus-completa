@@ -68,12 +68,19 @@ export function animateDisassemblyState(
     if (progress >= 1) {
       state.phase = 'pause';
       state.startTime = time;
-      if (state.onComplete) state.onComplete();
+      state.onCompletePending = state.onComplete;
+      state.onComplete = null;
     }
   } else if (phase === 'pause') {
     if (outlineClone && outlineClone.parent) {
       outlineClone.position.copy(mesh.position);
       outlineClone.rotation.copy(mesh.rotation);
+    }
+    const PAUSE_MS = 500;
+    if (state.onCompletePending && elapsed >= PAUSE_MS) {
+      const cb = state.onCompletePending;
+      state.onCompletePending = null;
+      cb();
     }
   } else if (phase === 'return') {
     const duration = 500;

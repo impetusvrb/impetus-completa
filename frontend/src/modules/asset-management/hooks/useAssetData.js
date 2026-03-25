@@ -1,26 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
+import { assetApi } from '../services/assetApi';
 
-export function useAssetData() {
+export function useAssetData(departmentId) {
   const [twins, setTwins] = useState([]);
   const [orders, setOrders] = useState([]);
   const [stock, setStock] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const reload = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      // Stub mínimo: módulo em desenvolvimento paralelo.
+      const [twRes, ordRes, stRes] = await Promise.all([
+        assetApi.getTwins(departmentId),
+        assetApi.getOrders(departmentId ? { department_id: departmentId } : {}),
+        assetApi.getStock(departmentId ? { department_id: departmentId } : {})
+      ]);
+
+      const twinPayload = twRes?.data?.twins ?? twRes?.data ?? [];
+      setTwins(Array.isArray(twinPayload) ? twinPayload : []);
+
+      const orderPayload = ordRes?.data?.orders ?? ordRes?.data ?? [];
+      setOrders(Array.isArray(orderPayload) ? orderPayload : []);
+
+      const stockPayload = stRes?.data?.items ?? stRes?.data?.stock ?? [];
+      setStock(Array.isArray(stockPayload) ? stockPayload : []);
+    } catch (e) {
+      setError(e?.message || 'Falha ao carregar dados de ativos.');
       setTwins([]);
       setOrders([]);
       setStock([]);
-    } catch (e) {
-      setError(e?.message || 'Falha ao carregar dados de ativos.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [departmentId]);
 
   useEffect(() => {
     reload();
@@ -28,4 +42,3 @@ export function useAssetData() {
 
   return { twins, orders, stock, loading, error, reload };
 }
-

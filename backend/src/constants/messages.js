@@ -9,7 +9,8 @@ const AUTH = {
 };
 
 const ERRORS = {
-  AUTH_VALIDATION: 'Erro de validação de autenticação'
+  AUTH_VALIDATION: 'Erro de validação de autenticação',
+  TOO_MANY_REQUESTS: 'Muitas requisições. Aguarde alguns minutos antes de tentar novamente.'
 };
 
 module.exports = { AUTH, ERRORS };

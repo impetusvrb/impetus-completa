@@ -4,7 +4,16 @@
  */
 import React, { useState, useCallback, useId, useRef, useEffect, useMemo } from 'react';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
+import ImpetusVoiceAvatar3D, { preloadVoiceAvatarGlb } from './ImpetusVoiceAvatar3D';
+import ImpetusAvatar2DLive from './ImpetusAvatar2DLive';
 import './ImpetusAvatarLive.css';
+
+/** GLB em `public/` — aceita desligar via env (off/false/0/none/null). */
+const VOICE_AVATAR_GLB_RAW = String(import.meta.env.VITE_VOICE_AVATAR_3D_GLB ?? '').trim();
+const VOICE_AVATAR_GLB_DISABLED = /^(off|false|0|none|null)$/i.test(VOICE_AVATAR_GLB_RAW);
+const VOICE_AVATAR_GLB = VOICE_AVATAR_GLB_DISABLED
+  ? ''
+  : (VOICE_AVATAR_GLB_RAW || '/futuristic-headset.glb');
 
 const bundledVideoUrls = import.meta.glob('../assets/impetus-video/*.mp4', {
   eager: true,
@@ -49,6 +58,9 @@ const HERO_SPEAKING_SRC =
 const LISTEN_VIDEO = String(import.meta.env.VITE_AVATAR_LISTEN_VIDEO ?? '').trim();
 /** A processar resposta (analise) — vídeo até o modelo / D-ID responder. */
 const ANALYZE_VIDEO = String(import.meta.env.VITE_AVATAR_ANALYZE_VIDEO ?? '').trim();
+const DID_ENABLED_FLAG = String(import.meta.env.VITE_DID_AVATAR_ENABLED ?? '').trim().toLowerCase();
+const DID_ENABLED = DID_ENABLED_FLAG === 'true' || DID_ENABLED_FLAG === '1';
+const DID_SOURCE_IMAGE = String(import.meta.env.VITE_DID_SOURCE_URL ?? '').trim() || '/impetus-did-source.jpg';
 
 const SPEED_MIN = 0.15;
 const SPEED_IDLE = 0.42;
@@ -160,7 +172,11 @@ export default function ImpetusAvatarLive({
   /** D-ID após Realtime: URL chega com estado “listening” — manter camada visível até novo turno. */
   didReplayOverlay = false,
   /** Realtime: não usar hero/speaking como boca; idle até haver didVideoUrl (ex. D-ID). */
-  didPrimarySpeaking = false
+  didPrimarySpeaking = false,
+  /** GLB 3D: animação (mixer + sway + morphs procedimentais) ligada. */
+  voiceAvatarAnimationEnabled = true,
+  /** GLB 3D: ref com { setAvatarAnimationEnabled(bool), getAvatarAnimationEnabled() }. */
+  voiceAvatarControlRef = null
 }) {
   const [mouthPngOk, setMouthPngOk] = useState(true);
   const [videoBroken, setVideoBroken] = useState(false);
@@ -174,6 +190,14 @@ export default function ImpetusAvatarLive({
   /** URLs custom ouvir/analisar falharam (404/codec): volta aos clipes em /videos/ para não ficar rosto preto. */
   const [attentionSrcBroken, setAttentionSrcBroken] = useState(false);
   const [thinkingSrcBroken, setThinkingSrcBroken] = useState(false);
+
+  const useVoice3d = immersiveVoice && VOICE_AVATAR_GLB.length > 0;
+  const useDidImageBase = immersiveVoice && !useVoice3d && DID_ENABLED;
+  const useAnimated2dAvatar = useDidImageBase;
+
+  useEffect(() => {
+    if (useVoice3d) preloadVoiceAvatarGlb(VOICE_AVATAR_GLB);
+  }, [useVoice3d]);
 
   const rawClipFromState = STATE_TO_CLIP[state] || 'idle';
   const activeClip =
@@ -234,16 +258,23 @@ export default function ImpetusAvatarLive({
     }
   }, [immersiveVoice]);
 
-  /** D-ID: durante fala (TTS/Realtime) ou replay pós-resposta (URL chegou em “listening”). */
+  /**
+   * D-ID: durante fala (TTS/Realtime) ou replay pós-resposta.
+   * Com avatar 3D (GLB) ativo, D-ID fica desligado: o CSS `under-did` punha o canvas 3D com
+   * opacity:0 e o vídeo D-ID cobria o círculo — parecia que “nada animava”.
+   */
   const didLayerActive =
-    Boolean(didVideoUrl) && (state === 'speaking' || didReplayOverlay);
+    !useVoice3d &&
+    !useAnimated2dAvatar &&
+    Boolean(didVideoUrl) &&
+    (state === 'speaking' || didReplayOverlay);
 
   useEffect(() => {
     setDidMediaReady(false);
   }, [didVideoUrl]);
 
   useEffect(() => {
-    if (videoBroken) return;
+    if (videoBroken || useVoice3d || useAnimated2dAvatar) return;
     CLIP_ORDER.forEach((key) => {
       const el = videoRefs.current[key];
       if (!el) return;
@@ -255,11 +286,11 @@ export default function ImpetusAvatarLive({
         } catch (_) {}
       }
     });
-  }, [activeClip, videoBroken, videoSrcByKey]);
+  }, [activeClip, videoBroken, videoSrcByKey, useVoice3d, useAnimated2dAvatar]);
 
   /** playbackRate do clipe de fala ~ energia da voz (Realtime ou TTS). */
   useEffect(() => {
-    if (videoBroken || !videoLipSyncRef || activeClip !== 'speaking') {
+    if (useVoice3d || useAnimated2dAvatar || videoBroken || !videoLipSyncRef || activeClip !== 'speaking') {
       const el = videoRefs.current.speaking;
       if (el) el.playbackRate = 1;
       return;
@@ -293,7 +324,7 @@ export default function ImpetusAvatarLive({
       const el = videoRefs.current.speaking;
       if (el) el.playbackRate = 1;
     };
-  }, [activeClip, videoBroken, videoLipSyncRef]);
+  }, [activeClip, videoBroken, videoLipSyncRef, useVoice3d, useAnimated2dAvatar]);
 
   const onSpeakingVideoError = useCallback(() => {
     if (useHeroSpeakingClip) setHeroSpeakingFailed(true);
@@ -312,48 +343,74 @@ export default function ImpetusAvatarLive({
       className={`impetus-avatar-shell impetus-avatar-shell--${state === 'processing' ? 'processing' : state}`}
       style={{ width: size, height: size }}
     >
-      <div className={`impetus-avatar impetus-avatar--${state} ${!videoBroken ? 'impetus-avatar--has-video' : ''}`}>
+      <div
+        className={`impetus-avatar impetus-avatar--${state} ${!videoBroken || useVoice3d ? 'impetus-avatar--has-video' : ''}`}
+      >
         <div className="impetus-avatar__face">
           {!videoBroken ? (
             <div
               className={`impetus-avatar__video-stack${
                 didMediaReady && didLayerActive ? ' impetus-avatar__video-stack--under-did' : ''
-              }`}
+              }${useVoice3d ? ' impetus-avatar__video-stack--voice3d' : ''}`}
               aria-hidden="true"
             >
-              {CLIP_ORDER.map((key) => (
-                <video
-                  key={useNineVideos && key === 'idle' ? `${key}-${idlePoolIdx}` : key}
-                  ref={(el) => {
-                    if (el) videoRefs.current[key] = el;
-                    else delete videoRefs.current[key];
-                  }}
-                  className={`impetus-avatar__vid ${key === activeClip ? 'impetus-avatar__vid--active' : ''}`}
-                  src={videoSrcByKey[key]}
-                  muted
-                  playsInline
-                  loop={!(useNineVideos && key === 'idle')}
-                  preload="auto"
-                  onCanPlay={(e) => {
-                    const el = e.currentTarget;
-                    if (videoRefs.current[key] !== el || key !== activeClipRef.current || videoBroken) return;
-                    el.play().catch(() => {});
-                  }}
-                  onEnded={useNineVideos && key === 'idle' ? onIdleClipEnded : undefined}
-                  onError={
-                    key === 'idle'
-                      ? onIdleVideoError
-                      : key === 'speaking'
-                        ? onSpeakingVideoError
-                        : key === 'attention'
-                          ? () => setAttentionSrcBroken(true)
-                          : key === 'thinking'
-                            ? () => setThinkingSrcBroken(true)
-                            : undefined
-                  }
+              {useVoice3d ? (
+                <ImpetusVoiceAvatar3D
+                  ref={voiceAvatarControlRef}
+                  glbUrl={VOICE_AVATAR_GLB}
+                  videoLipSyncRef={videoLipSyncRef}
+                  state={state}
+                  animationEnabled={voiceAvatarAnimationEnabled}
                 />
-              ))}
-              {didVideoUrl ? (
+              ) : useAnimated2dAvatar ? (
+                <ImpetusAvatar2DLive
+                  state={state}
+                  sourceUrl={DID_SOURCE_IMAGE}
+                  videoLipSyncRef={videoLipSyncRef}
+                />
+              ) : (
+                CLIP_ORDER.map((key) => (
+                  <video
+                    key={useNineVideos && key === 'idle' ? `${key}-${idlePoolIdx}` : key}
+                    ref={(el) => {
+                      if (el) videoRefs.current[key] = el;
+                      else delete videoRefs.current[key];
+                    }}
+                    className={`impetus-avatar__vid ${key === activeClip ? 'impetus-avatar__vid--active' : ''}`}
+                    src={videoSrcByKey[key]}
+                    muted
+                    playsInline
+                    loop={!(useNineVideos && key === 'idle')}
+                    preload="auto"
+                    onCanPlay={(e) => {
+                      const el = e.currentTarget;
+                      if (videoRefs.current[key] !== el || key !== activeClipRef.current || videoBroken) return;
+                      el.play().catch(() => {});
+                    }}
+                    onEnded={useNineVideos && key === 'idle' ? onIdleClipEnded : undefined}
+                    onError={
+                      key === 'idle'
+                        ? onIdleVideoError
+                        : key === 'speaking'
+                          ? onSpeakingVideoError
+                          : key === 'attention'
+                            ? () => setAttentionSrcBroken(true)
+                            : key === 'thinking'
+                              ? () => setThinkingSrcBroken(true)
+                              : undefined
+                    }
+                  />
+                ))
+              )}
+              {useDidImageBase && !useAnimated2dAvatar ? (
+                <img
+                  className="impetus-avatar__did impetus-avatar__did--image impetus-avatar__did--visible"
+                  src={DID_SOURCE_IMAGE}
+                  alt="Avatar Impetus"
+                  draggable="false"
+                />
+              ) : null}
+              {didVideoUrl && !useVoice3d && !useAnimated2dAvatar ? (
                 <video
                   key={didVideoUrl}
                   className={`impetus-avatar__did${
