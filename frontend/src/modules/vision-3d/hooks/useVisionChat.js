@@ -7,6 +7,7 @@ import { useState, useCallback, useRef } from 'react';
 import { callClaude } from '../services/claudeApi';
 import { saveSession, getSessions, createImageThumb } from '../services/historyService';
 import { VISION_SYSTEM_PROMPT, CHAT_SYSTEM_PROMPT, AUDIO_ANALYSIS_PROMPT } from '../constants/systemPrompts';
+import { applyVisualIntentsFromClaudePayload } from '../../../services/unity/aiVisualCommandRouter';
 
 export function useVisionChat({ onAction, machineId, machineName, machineType: initialMachineType }) {
   const [messages, setMessages] = useState([]);
@@ -48,6 +49,7 @@ export function useVisionChat({ onAction, machineId, machineName, machineType: i
 
         setResult(res);
         setMessages((prev) => [...prev, { role: 'assistant', ...res }]);
+        applyVisualIntentsFromClaudePayload(res);
         onAction?.({ type: 'ANALYSIS_COMPLETE', payload: res });
 
         try {
@@ -113,6 +115,7 @@ export function useVisionChat({ onAction, machineId, machineName, machineType: i
 
         setResult(converted);
         setMessages((prev) => [...prev, { role: 'assistant', ...converted }]);
+        applyVisualIntentsFromClaudePayload(converted);
         onAction?.({ type: 'ANALYSIS_COMPLETE', payload: converted });
 
         try {
@@ -167,6 +170,7 @@ export function useVisionChat({ onAction, machineId, machineName, machineType: i
 
         historyRef.current.push({ role: 'assistant', content: JSON.stringify(res) });
         setMessages((prev) => [...prev, { role: 'assistant', message: res.message, ...res }]);
+        applyVisualIntentsFromClaudePayload(res);
         onAction?.({ type: 'CHAT_RESPONSE', payload: res });
         return res;
       } finally {

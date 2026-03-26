@@ -50,8 +50,14 @@ NORMAL:  equipamento em bom estado, apenas manutenção de rotina
     {"part": "nome da peça", "estimatedTemp": 85, "unit": "C"}
   ],
   "triggerExplode": true,
-  "followUpQuestion": "Pergunta direta para o técnico avançar no diagnóstico"
+  "followUpQuestion": "Pergunta direta para o técnico avançar no diagnóstico",
+  "visualIntents": [
+    { "action": "load_machine", "target": "motor" },
+    { "action": "highlight_part", "target": "nome da peça principal" }
+  ]
 }
+
+Opcional: "visualIntents" — comandos para o viewer 3D (Unity). Ações: highlight_part, explode_view, reset_view, focus_part, show_failure, load_machine, xray_mode (objeto com "enabled"), set_transparency, isolate_part, show_inspection_step. Use [] ou omita se não aplicável.
 
 REGRAS OBRIGATÓRIAS:
 - JSON puro — zero texto antes ou depois, zero blocos de código
@@ -87,8 +93,11 @@ RETORNO JSON PURO:
   "explode": null,
   "markFault": "nome da peça para marcar como crítica ou null",
   "animationTarget": "nome exato da peça a animar ou null",
-  "animationAction": "remove|return|highlight|null"
+  "animationAction": "remove|return|highlight|null",
+  "visualIntents": [ { "action": "highlight_part", "target": "peça" } ]
 }
+
+Opcional — visualIntents: comandos explícitos para o viewer Unity (mesmas ações do modo visão). Pode omitir ou [].
 
 newStep: índice 0-based do passo a destacar, ou null
 explode: true para ativar, false para desativar, null para não alterar

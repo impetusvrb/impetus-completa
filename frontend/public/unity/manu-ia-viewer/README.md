@@ -1,11 +1,25 @@
 # ManuIA — Unity WebGL
 
-1. No Unity Editor, abra o projeto do viewer (product name recomendado: **ManuIAViewer**).
-2. **File → Build Settings → WebGL → Build** (ou pasta `Build`).
-3. Copie o conteúdo gerado para:
-   - `frontend/public/unity/manu-ia-viewer/`
-   - Deve existir `Build/ManuIAViewer.loader.js` (ou ajuste `UNITY_BUILD_NAME` em `src/config/viewerAssetsConfig.js`).
-4. Opcional: pasta `StreamingAssets` ao mesmo nível do `Build`.
-5. O React carrega `createUnityInstance` a partir do `.loader.js` e envia comandos via `SendMessage` para o GameObject **`MachineController`** (ver `unity/MachineController.cs.example` na raiz do repositório).
+## Checklist de deploy
 
-Sem esta pasta, o ManuIA mostra o painel de fallback; a ponte JS continua preparada para quando o build existir.
+1. No Unity Editor, **Product Name** = **ManuIAViewer** (ou altere `UNITY_BUILD_NAME` em `frontend/src/config/viewerAssetsConfig.js` para coincidir com o prefixo dos ficheiros em `Build/`).
+2. **File → Build Settings → WebGL → Build** (escolha uma pasta de saída).
+3. Copie para **`frontend/public/unity/manu-ia-viewer/`**:
+   - Toda a pasta **`Build/`** (contém `ManuIAViewer.loader.js`, `.data`, `.framework.js`, `.wasm` ou equivalentes).
+   - Opcional: **`StreamingAssets/`** ao mesmo nível que `Build/`.
+4. Confirme no browser:  
+   `https://<seu-dominio>/<base>/unity/manu-ia-viewer/Build/<UNITY_BUILD_NAME>.loader.js` → **200**.
+
+## Integração com o React
+
+- O componente `ManuIAUnityViewer` carrega `createUnityInstance` a partir do `.loader.js`.
+- Comandos: `SendMessage("MachineController", método, argumento)` — ver `unity/MachineController.cs.example` na raiz do repositório.
+- **IA (Claude)** no Diagnóstico 3D: o hook `useVisionChat` chama `applyVisualIntentsFromClaudePayload` após cada resposta; intenções opcionais vêm no JSON como `visualIntents` ou nos campos legados (`highlight`, `explode`, etc.).
+
+## Sem build no servidor
+
+O ManuIA mostra o **fallback** com instruções; `unityBridge` e `routeAIVisualIntent` continuam a aceitar comandos (fila até o Unity estar pronto).
+
+## MIME e compressão
+
+Em produção, o servidor deve servir `.wasm` com `application/wasm` e permitir **gzip/brotli** dos ficheiros grandes (configuração típica Nginx/CloudFront).

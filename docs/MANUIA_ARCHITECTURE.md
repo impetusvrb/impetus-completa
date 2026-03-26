@@ -22,7 +22,7 @@ Documento interno: alinha nomes do código com os prompts “3D Vision” e “G
 
 - **Componente:** `frontend/src/components/manu-ia/ManuIAUnityViewer.jsx` (abas Pesquisa e Diagnóstico 3D)
 - **Ponte JS:** `frontend/src/services/unity/unityBridge.js` (`SendMessage` → GameObject `MachineController` no Unity)
-- **Roteador de intenções visuais (IA):** `frontend/src/services/unity/aiVisualCommandRouter.js`
+- **Roteador de intenções visuais (IA):** `frontend/src/services/unity/aiVisualCommandRouter.js` — após cada resposta do Claude em `useVisionChat`, chama-se `applyVisualIntentsFromClaudePayload` (campo opcional `visualIntents` no JSON + campos legados `highlight` / `explode` / `animationTarget`).
 - **Catálogo / assets:** `frontend/src/config/machineCatalog.js`, `frontend/src/config/viewerAssetsConfig.js`
 - **Build público:** `frontend/public/unity/manu-ia-viewer/` (copiar export WebGL do Unity; ver `README.md` na pasta)
 - **Script C# de referência:** `unity/MachineController.cs.example`

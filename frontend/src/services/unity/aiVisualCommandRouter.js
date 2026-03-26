@@ -87,3 +87,47 @@ export function tryParseVisualIntentsFromText(text) {
     /* ignora */
   }
 }
+
+/**
+ * Consome o payload já parseado do Claude (visão, chat ou áudio) e envia comandos ao Unity.
+ * Não altera estado React — apenas unityBridge. Compatível com payloads antigos (highlight, explode, etc.).
+ */
+export function applyVisualIntentsFromClaudePayload(payload) {
+  if (!payload || typeof payload !== 'object') return;
+
+  const list = payload.visualIntents || payload.visual_intents;
+  if (Array.isArray(list)) {
+    list.forEach((i) => {
+      if (i && typeof i === 'object') routeAIVisualIntent(i);
+    });
+  }
+  const single = payload.visualIntent || payload.visual_intent;
+  if (single && typeof single === 'object' && single.action) {
+    routeAIVisualIntent(single);
+  }
+
+  if (typeof payload.message === 'string') tryParseVisualIntentsFromText(payload.message);
+  if (typeof payload.mainMessage === 'string') tryParseVisualIntentsFromText(payload.mainMessage);
+
+  if (payload.highlight && typeof payload.highlight === 'string') {
+    routeAIVisualIntent({ action: 'highlight_part', target: payload.highlight });
+  }
+  if (payload.markFault && typeof payload.markFault === 'string') {
+    routeAIVisualIntent({ action: 'show_failure', target: payload.markFault });
+  }
+  if (payload.explode === true) {
+    routeAIVisualIntent({ action: 'explode_view', target: 'assembly' });
+  }
+  if (payload.animationTarget && typeof payload.animationTarget === 'string') {
+    if (payload.animationAction === 'remove') {
+      routeAIVisualIntent({ action: 'focus_part', target: payload.animationTarget });
+      routeAIVisualIntent({ action: 'explode_view', target: payload.animationTarget });
+    }
+    if (payload.animationAction === 'return') {
+      routeAIVisualIntent({ action: 'reset_view' });
+    }
+    if (payload.animationAction === 'highlight') {
+      routeAIVisualIntent({ action: 'highlight_part', target: payload.animationTarget });
+    }
+  }
+}
