@@ -11,6 +11,7 @@ import { COMPONENT_WORLD_POSITIONS } from './diagnosisMapping';
 
 function CameraFocus({ targetComponent, enabled, targetRef }) {
   const targetPos = targetComponent ? COMPONENT_WORLD_POSITIONS[targetComponent] : null;
+  const { camera } = useThree();
 
   useFrame(() => {
     if (!enabled || !targetPos || !targetRef?.current) return;
@@ -18,6 +19,8 @@ function CameraFocus({ targetComponent, enabled, targetRef }) {
     const scale = 1.5;
     const wx = tx * scale; const wy = ty * scale; const wz = tz * scale;
     targetRef.current.lerp(new THREE.Vector3(wx, wy, wz), 0.05);
+    // Garante que a câmera aponte pro componente destacado (principalmente quando o usuário não interagiu com o OrbitControls).
+    camera.lookAt(wx, wy, wz);
   });
 
   return null;

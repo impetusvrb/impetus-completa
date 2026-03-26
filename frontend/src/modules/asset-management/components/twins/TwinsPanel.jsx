@@ -153,7 +153,11 @@ export default function TwinsPanel({
             </div>
             <div className={styles.modalFooter}>
               {onNavigateToMachine && detail.machineId && (
-                <button type="button" className={styles.btnSecondary} onClick={() => onNavigateToMachine(detail.machineId)}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => onNavigateToMachine(detail.name || detail.machineId, detail.machineId)}
+                >
                   Abrir cadastro
                 </button>
               )}

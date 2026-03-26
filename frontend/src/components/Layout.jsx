@@ -44,7 +44,7 @@ import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
-import { resolveMenuRole } from '../utils/roleUtils';
+import { resolveMenuRole, isMaintenanceProfile } from '../utils/roleUtils';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './Layout.css';
@@ -114,9 +114,14 @@ export default function Layout({ children }) {
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
   const role = resolveMenuRole(user);
+  const maintenanceProfile = isMaintenanceProfile(user);
   const { filterMenu, canAccessPath, loading: modulesLoading } = useVisibleModules();
 
-  if (!modulesLoading && location.pathname !== '/app' && !canAccessPath(location.pathname)) {
+  const rawPath = location.pathname || '/';
+  const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
+  const allowManuiaByMaintenance = maintenanceProfile && normalizedPath.startsWith('/app/manutencao/manuia');
+
+  if (!modulesLoading && location.pathname !== '/app' && !allowManuiaByMaintenance && !canAccessPath(location.pathname)) {
     if (role === 'admin') return <Navigate to="/app/chatbot" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
@@ -208,8 +213,31 @@ export default function Layout({ children }) {
     ],
   };
 
-  const baseMenuItems = MENUS[role] || MENUS['colaborador'] || MENUS['operador'];
-  const menuItems = filterMenu(baseMenuItems);
+  let baseMenuItems = MENUS[role] || MENUS['colaborador'] || MENUS['operador'];
+  // Garante que perfis de manutenção vejam o link do ManuIA no menu,
+  // mesmo quando resolveMenuRole() classifica o usuário em outro "menu role".
+  if (
+    maintenanceProfile
+    && !baseMenuItems.some((i) => i.path === '/app/manutencao/manuia')
+  ) {
+    baseMenuItems = [
+      ...baseMenuItems,
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' }
+    ];
+  }
+
+  let menuItems = filterMenu(baseMenuItems);
+  // Se o backend ainda não retornou visible_modules com "manuia", não bloqueia menu
+  // para quem é manutenção (o backend de /api/manutencao-ia continua sendo o gate real).
+  if (
+    maintenanceProfile
+    && !menuItems.some((i) => i.path === '/app/manutencao/manuia')
+  ) {
+    menuItems = [
+      ...menuItems,
+      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' }
+    ];
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('impetus_token');
@@ -391,7 +419,7 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            <button
+            <button 
               className="icon-btn header-icon-btn"
               title="Sair"
               onClick={handleLogout}

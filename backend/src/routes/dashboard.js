@@ -12,7 +12,6 @@ const dashboardVisibility = require('../services/dashboardVisibility');
 const dashboardKPIs = require('../services/dashboardKPIs');
 const userContext = require('../services/userContext');
 const hierarchicalFilter = require('../services/hierarchicalFilter');
-const colaboradorDynamicLayout = require('../services/colaboradorDynamicLayoutService');
 
 router.use('/maintenance', dashboardMaintenanceRouter);
 
@@ -95,27 +94,6 @@ router.get('/personalizado', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_PERSONALIZADO]', err);
     res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-/**
- * GET /dashboard/colaborador/dynamic-layout
- * Dashboard Inteligente Dinâmico — layout de widgets gerado por perfil do colaborador.
- * Retorna widgets, userProfile (cargo, função, departamento, permissões, áreas, hierarquia),
- * alertas e configuração do grid. Exclusivo para perfil colaborador.
- */
-router.get('/colaborador/dynamic-layout', requireAuth, async (req, res) => {
-  try {
-    const user = req.user;
-    const role = (user.role || '').toString().toLowerCase();
-    if (!['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role)) {
-      return res.status(403).json({ ok: false, error: 'Dashboard dinâmico disponível apenas para perfil colaborador' });
-    }
-    const layout = await colaboradorDynamicLayout.getDynamicLayout(user);
-    res.json(layout);
-  } catch (err) {
-    console.error('[DASHBOARD_COLABORADOR_DYNAMIC]', err);
-    res.status(500).json({ ok: false, error: err?.message || 'Erro ao gerar layout' });
   }
 });
 

@@ -38,9 +38,18 @@ function getAllowedModules(user) {
   if (!user) return [];
   const config = dashboardProfileResolver.getDashboardConfigForUser(user);
   const profileModules = config.profile_config?.visible_modules || [];
+  const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
+  const role = String(user.role || '').toLowerCase();
+  const leadershipRoles = new Set(['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor']);
+  // Compatibilidade: se permissions não vierem populadas para liderança,
+  // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
+  if (leadershipRoles.has(role) && userPerms.length === 0) {
+    return profileModules;
+  }
+
   const perms = new Set([
-    ...(Array.isArray(user.permissions) ? user.permissions : []),
-    ...(user.role === 'admin' || user.role === 'ceo' ? ['*'] : [])
+    ...userPerms,
+    ...(role === 'admin' || role === 'ceo' ? ['*'] : [])
   ]);
   const hasWildcard = perms.has('*');
 

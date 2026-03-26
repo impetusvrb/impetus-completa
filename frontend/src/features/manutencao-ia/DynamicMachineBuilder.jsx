@@ -12,7 +12,10 @@ function parseColor(hex) {
   return m ? parseInt(m[1], 16) : 0x2a3a50;
 }
 
-const hl = (name, h) => h === name;
+const hl = (name, h) => {
+  if (!h && h !== 0) return false;
+  return String(h).trim().toLowerCase() === String(name).trim().toLowerCase();
+};
 
 export function Motor3D({ config, highlightedComponent, viewMode, explodeFactor }) {
   const cfg = config || {};

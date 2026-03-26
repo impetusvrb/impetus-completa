@@ -5,7 +5,10 @@ Documento interno: alinha nomes do código com os prompts “3D Vision” e “G
 ## Rotas da aplicação
 
 - **Página:** `/app/manutencao/manuia` → `frontend/src/pages/ManuIA.jsx`
-- **Query `?q=`:** pré-preenche a pesquisa por equipamento e remove o parâmetro da URL após consumo (evita reexecução).
+- **Query string (consumo único, depois removida da URL com `replace`):**
+  - **`q`** — texto da pesquisa por equipamento (nome/código para a IA e para o campo de busca). Mínimo 3 caracteres para disparar pesquisa automática.
+  - **`mid`** — (opcional) UUID de `manuia_machines`. Vindo da Gestão de Ativos (“Abrir cadastro” no detalhe do gêmeo): associa o fluxo ao equipamento cadastrado (sessão `POST /sessions` com `machine_id`, e **Diagnóstico 3D** com `machineId` correto). Deve ir acompanhado de um `q` com o nome (ou fallback) do equipamento; não use só UUID em `q` para a pesquisa por texto.
+  - Exemplo: `/app/manutencao/manuia?q=Bomba+linha+3&mid=<uuid>`
 
 ## APIs backend (Express)
 

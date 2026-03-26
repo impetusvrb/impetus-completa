@@ -62,8 +62,12 @@ export default function ManuIA() {
   const [concluding, setConcluding] = useState(false);
   const [machines, setMachines] = useState([]);
   const [emergencyEvents, setEmergencyEvents] = useState([]);
+  /** UUID de manuia_machines vindo de Gestão de Ativos (?mid=) — liga Diagnóstico 3D e sessão */
+  const [linkedMachineId, setLinkedMachineId] = useState(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
+  const linkedMachineIdRef = useRef(null);
+  const sessionIdRef = useRef(null);
 
   const onSpeechResult = useCallback((text) => {
     setEquipmentQuery((q) => (text ? text.trim() : q));
@@ -83,7 +87,8 @@ export default function ManuIA() {
       ]);
       setMachines(mRes.data?.machines || []);
       setEmergencyEvents(eRes.data?.events || []);
-      setSuggestions(recentRes.data?.items || recentRes.data || []);
+      const items = recentRes.data?.items;
+      setSuggestions(Array.isArray(items) ? items : []);
     } catch (e) {
       console.warn('[ManuIA]', e?.message);
     }
@@ -103,7 +108,14 @@ export default function ManuIA() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = useCallback(async (queryOverride) => {
+  const handleSearch = useCallback(async (queryOverride, opts) => {
+    const fromUrl = opts?.fromUrl === true;
+    const machineIdForSession = fromUrl ? (opts?.machineId ?? linkedMachineIdRef.current ?? null) : null;
+    if (!fromUrl) {
+      linkedMachineIdRef.current = null;
+      setLinkedMachineId(null);
+    }
+
     const q = (typeof queryOverride === 'string' ? queryOverride : equipmentQuery).trim();
     if (!q || q.length < 3) return;
 
@@ -115,7 +127,23 @@ export default function ManuIA() {
     setDiagnosisData(null);
 
     try {
-      const r = await manutencaoIa.researchEquipment(q);
+      let sessionId = sessionIdRef.current;
+      if (!sessionId) {
+        try {
+          const cr = await manutencaoIa.createSession({
+            machine_id: machineIdForSession || null,
+            session_type: 'diagnostic'
+          });
+          const sid = cr.data?.session?.id;
+          if (sid) {
+            sessionIdRef.current = sid;
+            sessionId = sid;
+          }
+        } catch {
+          /* tabelas ManuIA ausentes ou 503 — pesquisa segue sem sessão */
+        }
+      }
+      const r = await manutencaoIa.researchEquipment(q, sessionId || null);
       const data = r.data?.research ?? r.data?.data?.research;
       if (data) {
         setResearch(data);
@@ -137,26 +165,34 @@ export default function ManuIA() {
     }
   }, [equipmentQuery]);
 
-  const lastUrlQueryRef = useRef('');
+  const lastConsumedUrlRef = useRef('');
   const qParam = searchParams.get('q');
+  const midParam = searchParams.get('mid');
   useEffect(() => {
     const q = (qParam || '').trim();
-    if (!q) return;
-    if (lastUrlQueryRef.current === q) return;
-    lastUrlQueryRef.current = q;
-    setEquipmentQuery(q);
+    const mid = (midParam || '').trim();
+    if (!q && !mid) return;
+    const key = `${q}__${mid}`;
+    if (lastConsumedUrlRef.current === key) return;
+    lastConsumedUrlRef.current = key;
+    if (mid) {
+      linkedMachineIdRef.current = mid;
+      setLinkedMachineId(mid);
+    }
+    if (q) setEquipmentQuery(q);
     setActiveTab('search');
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete('q');
+      next.delete('mid');
       return next;
     }, { replace: true });
     if (q.length >= 3) {
-      const t = setTimeout(() => handleSearch(q), 120);
+      const t = setTimeout(() => handleSearch(q, { machineId: mid || undefined, fromUrl: true }), 120);
       return () => clearTimeout(t);
     }
     return undefined;
-  }, [qParam, handleSearch, setSearchParams]);
+  }, [qParam, midParam, handleSearch, setSearchParams]);
 
   const handleSuggestionClick = (item) => {
     const q = item.query_original || item.equipment_name || '';
@@ -255,15 +291,19 @@ export default function ManuIA() {
         {activeTab === 'asset-management' ? (
           <section className="manuia-block manuia-block--asset-management">
             <AssetManagementModule
-              onNavigateToMachine={(machineId) => {
-                if (machineId) navigate(`/app/manutencao/manuia?q=${encodeURIComponent(machineId)}`);
+              onNavigateToMachine={(searchText, machineUuid) => {
+                if (!searchText && !machineUuid) return;
+                const p = new URLSearchParams();
+                if (searchText) p.set('q', searchText);
+                if (machineUuid) p.set('mid', machineUuid);
+                navigate(`/app/manutencao/manuia?${p.toString()}`);
               }}
             />
           </section>
         ) : activeTab === 'vision3d' ? (
           <section className="manuia-block manuia-block--vision3d">
             <Vision3DModule
-              machineId={research?.machine_id}
+              machineId={research?.machine_id || linkedMachineId}
               machineName={research?.equipment?.name}
               onDiagnosisComplete={(result) => setDiagnosisData({ visionResult: result })}
               onGenerateOS={handleVisionOS}
@@ -287,7 +327,16 @@ export default function ManuIA() {
                 onFocus={() => setShowSuggestions(suggestions.length > 0)}
                 onKeyDown={handleKeyDown}
                 disabled={loading}
+                list={machines.length > 0 ? 'manuia-machine-datalist' : undefined}
+                autoComplete="off"
               />
+              {machines.length > 0 && (
+                <datalist id="manuia-machine-datalist">
+                  {machines.map((m) => (
+                    <option key={m.id || m.code} value={m.name || m.code || String(m.id)} />
+                  ))}
+                </datalist>
+              )}
               <div className="manuia-search-actions">
                 <button
                   type="button"

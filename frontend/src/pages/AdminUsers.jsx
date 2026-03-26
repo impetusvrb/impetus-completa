@@ -307,7 +307,7 @@ export default function AdminUsers() {
           next.custom_area = prev.custom_area || '';
         } else {
           next.custom_area = '';
-          if (prev.role !== 'ceo') next.hierarchy_level = AREA_TO_LEVEL[value] ?? 5;
+        if (prev.role !== 'ceo') next.hierarchy_level = AREA_TO_LEVEL[value] ?? 5;
         }
       } else if (name === 'custom_area') {
         next.custom_area = value;
