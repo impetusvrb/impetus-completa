@@ -1,0 +1,19 @@
+// Exemplo — GameObject na cena Unity com nome "MachineController".
+// Métodos públicos (um argumento string) para SendMessage a partir do JS (unityBridge.js).
+// Ajuste nomes e parsing JSON em SetXRayMode / SetTransparency conforme o build.
+
+using UnityEngine;
+
+public class MachineController : MonoBehaviour
+{
+    public void HighlightPart(string partName) { /* destacar peça */ }
+    public void ExplodeView(string target) { /* vista explodida */ }
+    public void ResetView() { /* câmera / montagem */ }
+    public void FocusPart(string partName) { /* focar */ }
+    public void ShowFailure(string failureName) { /* realce falha */ }
+    public void LoadMachine(string machineName) { /* carregar prefab/cena */ }
+    public void SetXRayMode(string json) { /* JSON: { "enabled": true, "target": "motor" } */ }
+    public void SetTransparency(string json) { /* JSON: { "target", "value" } */ }
+    public void IsolatePart(string partName) { /* isolar */ }
+    public void ShowInspectionStep(string stepName) { /* passo guiado */ }
+}

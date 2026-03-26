@@ -45,11 +45,14 @@ import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
 import { resolveMenuRole, isMaintenanceProfile } from '../utils/roleUtils';
+import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
-import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './Layout.css';
 
+const IA_FACE_VIDEO = '/ia-face-1.mp4';
+
 export default function Layout({ children }) {
+  const { openOverlay } = useImpetusVoice();
   const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,6 +77,8 @@ export default function Layout({ children }) {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  const iaVideoSrc = IA_FACE_VIDEO;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -264,12 +269,42 @@ export default function Layout({ children }) {
         <div className="logo-area">
           {sidebarOpen ? (
             <>
-              <div className="logo-impetus">IMPETUS</div>
-              <div className="logo-line" />
-              <div className="logo-sub">Plataforma de Inteligência<br />Operacional Industrial</div>
+              <button
+                type="button"
+                className="logo-ia-trigger"
+                onClick={openOverlay}
+                title="Abrir Impetus IA"
+                aria-label="Abrir Impetus IA"
+              >
+                <video
+                  className="logo-ia-face logo-ia-face--large"
+                  src={iaVideoSrc}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                />
+              </button>
             </>
           ) : (
-            <div className="logo-impetus" style={{ fontSize: 16, letterSpacing: 1 }}>I</div>
+            <button
+              type="button"
+              className="logo-ia-trigger"
+              onClick={openOverlay}
+              title="Abrir Impetus IA"
+              aria-label="Abrir Impetus IA"
+            >
+              <video
+                className="logo-ia-face logo-ia-face--mini"
+                src={iaVideoSrc}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+              />
+            </button>
           )}
         </div>
 
@@ -289,7 +324,17 @@ export default function Layout({ children }) {
               >
                 <span className="nav-dot" />
                 {item.aiIcon
-                  ? <img src={impetusIaAvatar} alt="IA" className="nav-item-ia-icon" />
+                  ? (
+                    <video
+                      className="nav-item-ia-icon"
+                      src={iaVideoSrc}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                    />
+                  )
                   : item.chatIcon
                   ? <img src={chatSidebarIcon} alt="Chat" className="nav-item-chat-icon" />
                   : <Icon size={18} />}
@@ -318,6 +363,11 @@ export default function Layout({ children }) {
             <p className="datetime date-time" title="Data e hora atual">
               {getFormattedDate()} {currentTime}
             </p>
+          </div>
+
+          <div className="topbar-brand-center" aria-hidden="true">
+            <span className="topbar-brand-center__text">IMPETUS</span>
+            <span className="topbar-brand-center__sub">Plataforma de Inteligência Operacional Industrial</span>
           </div>
 
           <div className="header-right" ref={headerDropdownRef}>

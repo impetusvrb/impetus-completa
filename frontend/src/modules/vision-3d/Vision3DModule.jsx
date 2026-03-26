@@ -4,7 +4,7 @@
  * Inclui: Histórico de diagnósticos (IndexedDB)
  */
 import React, { useState, useRef, useCallback } from 'react';
-import Vision3DViewer from './components/Vision3DViewer';
+import ManuIAUnityViewer from '../../components/manu-ia/ManuIAUnityViewer';
 import ControlsHUD from './components/ControlsHUD';
 import CapturePanel from './components/CapturePanel';
 import CopilotChat from './chat/CopilotChat';
@@ -36,7 +36,6 @@ export default function Vision3DModule({
   const [thermalMode, setThermalMode] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const viewerRef = useRef(null);
-  const origPositionsRef = useRef({});
 
   const handleAction = useCallback((action) => {
     if (action.type === 'ANALYSIS_COMPLETE') {
@@ -188,16 +187,14 @@ export default function Vision3DModule({
         <div className={styles.layoutSplitLeft} style={{ position: 'relative' }}>
           {viewMode === '3d' ? (
             <div style={{ position: 'relative', height: '100%' }}>
-              <Vision3DViewer
+              <ManuIAUnityViewer
                 ref={viewerRef}
+                variant="vision"
                 machineType={displayMachineType}
                 faultParts={displayFaultParts}
                 mode={mode3d}
-                thermalMode={thermalMode}
-                thermalData={displayResult?.thermalData || []}
-                autoRotate={autoRotate}
                 explodeAmount={explode ? 1.2 : 0}
-                origPositionsRef={origPositionsRef}
+                machineName={machineName}
               />
               <ControlsHUD
                 mode={mode3d}
@@ -251,15 +248,14 @@ export default function Vision3DModule({
                 )}
               </div>
               <div style={{ position: 'relative' }}>
-                <Vision3DViewer
+                <ManuIAUnityViewer
                   ref={viewerRef}
+                  variant="vision"
                   machineType={displayMachineType}
                   faultParts={displayFaultParts}
                   mode={mode3d}
-                  thermalMode={thermalMode}
-                  thermalData={displayResult?.thermalData || []}
-                  autoRotate={autoRotate}
                   explodeAmount={explode ? 1.2 : 0}
+                  machineName={machineName}
                 />
                 <ControlsHUD
                   mode={mode3d}

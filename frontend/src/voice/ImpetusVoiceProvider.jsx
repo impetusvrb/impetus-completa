@@ -283,7 +283,7 @@ export default function ImpetusVoiceProvider({ children }) {
         }}
       />
       <ImpetusFloatButton
-        visible={floatVisible}
+        visible={false}
         pulse={floatPulse}
         label="Abrir Impetus (voz)"
         onClick={() => setOverlayOpen(true)}

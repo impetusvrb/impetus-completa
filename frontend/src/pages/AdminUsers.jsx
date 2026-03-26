@@ -11,7 +11,7 @@ import {
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
-import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
+import { InputField, SelectField, CheckboxField } from '../components/FormField';
 import { adminUsers, adminDepartments } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminUsers.css';
@@ -38,7 +38,7 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Form state
-  const AREA_FIXED = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
+  const AREA_FIXED = ['Direção', 'Gerência', 'Coordenação', 'Supervisão'];
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -293,7 +293,7 @@ export default function AdminUsers() {
     setFormErrors({});
   };
 
-  const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
+  const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4 };
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => {
@@ -653,7 +653,7 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
         <SelectField
           label="Área"
           name="area"
-          value={formData.area || 'Colaborador'}
+          value={formData.area || ''}
           onChange={onChange}
           required
           options={[
@@ -661,7 +661,6 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
             { value: 'Gerência', label: 'Gerência' },
             { value: 'Coordenação', label: 'Coordenação' },
             { value: 'Supervisão', label: 'Supervisão' },
-            { value: 'Colaborador', label: 'Colaborador' },
             { value: '__custom__', label: 'Outra área (cadastrar)' }
           ]}
           helperText="Define escopo de dados e acesso aos módulos (ex: Manutenção, Qualidade)"
@@ -690,16 +689,6 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
         )}
       </div>
 
-      <TextAreaField
-        label="Descrição da Função"
-        name="role_description"
-        value={formData.role_description || ''}
-        onChange={onChange}
-        placeholder="Descreva resumidamente a função deste usuário, suas responsabilidades e área de atuação. A IA usará essa informação para personalizar análises e respostas."
-        rows={3}
-        helperText="Campo livre — quanto mais detalhado, mais precisa será a IA para este usuário"
-      />
-
       <div className="form-grid-2">
         <InputField
           label="Cargo"
@@ -721,15 +710,6 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
       </div>
 
       <div className="form-grid-2">
-        <SelectField
-          label="Departamento (cadastro)"
-          name="department_id"
-          value={formData.department_id}
-          onChange={onChange}
-          placeholder="Selecione um departamento"
-          options={departments.map(d => ({ value: d.id, label: d.name }))}
-        />
-
         <SelectField
           label="Supervisor Imediato"
           name="supervisor_id"

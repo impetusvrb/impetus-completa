@@ -18,12 +18,19 @@ Documento interno: alinha nomes do código com os prompts “3D Vision” e “G
 | `/api/vision` | `backend/src/routes/vision.js` | `ANTHROPIC_API_KEY`. Mesmo `requireAuth` que o resto da API. |
 | `/api/asset-management` | `backend/src/routes/assetManagement.js` | Gêmeos/OS/estoque via `assetManagementService.js`; fallback mock se tabelas ausentes. |
 
-## 3D Vision (frontend)
+## Viewer 3D oficial — Unity WebGL (frontend)
+
+- **Componente:** `frontend/src/components/manu-ia/ManuIAUnityViewer.jsx` (abas Pesquisa e Diagnóstico 3D)
+- **Ponte JS:** `frontend/src/services/unity/unityBridge.js` (`SendMessage` → GameObject `MachineController` no Unity)
+- **Roteador de intenções visuais (IA):** `frontend/src/services/unity/aiVisualCommandRouter.js`
+- **Catálogo / assets:** `frontend/src/config/machineCatalog.js`, `frontend/src/config/viewerAssetsConfig.js`
+- **Build público:** `frontend/public/unity/manu-ia-viewer/` (copiar export WebGL do Unity; ver `README.md` na pasta)
+- **Script C# de referência:** `unity/MachineController.cs.example`
+
+## 3D Vision (frontend) — lógica e IA
 
 - **Módulo raiz:** `frontend/src/modules/vision-3d/Vision3DModule.jsx`
-- **Viewer Three.js (equivalente a “ThreeViewer” nos PDFs):** `Vision3DViewer.jsx`
-- **Modelo procedural:** `MachineModel.js` (`buildMachineModel`, `applyHeatmap`, `heatColor`)
-- **Chat e passos clicáveis (equivalente a “StepCard”):** `chat/CopilotChat.jsx` (cartões de passo inline)
+- **Chat e passos clicáveis:** `chat/CopilotChat.jsx`
 - **Histórico IndexedDB:** `services/historyService.js` (chave `manuia:history:{machineId}`)
 - **Cliente IA:** `services/claudeApi.js` → `fetch(POST /api/vision)` com `Authorization: Bearer`
 
@@ -41,6 +48,6 @@ Documento interno: alinha nomes do código com os prompts “3D Vision” e “G
 
 Título com prefixo `ManuIA-Asset:` em `work_orders`. Linha `MANUIA_MACHINE_ID:{uuid}` na descrição. Aprovação P1/P2: `status` `waiting_support` → `open`.
 
-## Desmontagem 3D (v1.1)
+## Desmontagem / inspeção visual
 
-- Lógica de animação: `utils/disassemblyAnimation.js` (inclui pausa ~500 ms após a fase de saída antes de `onComplete`).
+- Controlada no projeto Unity (animações de desmontagem, transparência, foco). O frontend envia comandos via `unityBridge`; ver `MachineController.cs.example`.

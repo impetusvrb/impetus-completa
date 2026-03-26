@@ -9,7 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { manutencaoIa } from '../services/api';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
-import ThreeViewer from '../features/manutencao-ia/ThreeViewer';
+import ManuIAUnityViewer from '../components/manu-ia/ManuIAUnityViewer';
 import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
 import Vision3DModule from '../modules/vision-3d/Vision3DModule';
 import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
@@ -396,7 +396,8 @@ export default function ManuIA() {
                   <p>Pesquisando e renderizando...</p>
                 </div>
               ) : (
-                <ThreeViewer
+                <ManuIAUnityViewer
+                  variant="search"
                   research={research}
                   highlightedComponent={diagnosisData?.component}
                   viewMode={viewMode}
