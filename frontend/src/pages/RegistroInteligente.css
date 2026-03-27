@@ -1,11 +1,32 @@
 /**
- * REGISTRO INTELIGENTE - Interface premium
+ * REGISTRO INTELIGENTE — memória operacional (visual premium, escuro)
  */
 
 .registro-inteligente-page {
   padding: 24px;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
+}
+
+.registro-hero {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.registro-hero::before {
+  content: '';
+  position: absolute;
+  inset: -8px -12px 12px;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(30, 144, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 50%, rgba(99, 102, 241, 0.08), transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.registro-hero .registro-header {
+  position: relative;
+  z-index: 1;
 }
 
 .registro-header {
@@ -55,6 +76,40 @@
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-md);
+}
+
+.registro-card--composer {
+  border-color: rgba(30, 144, 255, 0.25);
+  background: linear-gradient(165deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.registro-shift-row {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.registro-shift-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.registro-shift-input {
+  max-width: 280px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+
+.registro-shift-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 .registro-instruction {
@@ -160,13 +215,71 @@
   padding: 20px;
 }
 
+.registro-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
 .registro-history-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 16px 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+}
+
+.registro-history-title-icon {
+  opacity: 0.85;
+  color: var(--color-primary);
+}
+
+.registro-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.registro-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.registro-tab:hover {
+  color: var(--text-primary);
+}
+
+.registro-tab.active {
+  background: var(--bg-primary);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.registro-leadership-hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+  line-height: 1.45;
 }
 
 .registro-loading,
@@ -192,7 +305,7 @@
 }
 
 .registro-card-item--urgent {
-  border-left: 3px solid var(--color-warning);
+  border-left: 3px solid #f59e0b;
 }
 
 .registro-card-item--critical {
@@ -209,6 +322,16 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+}
+
+.registro-chevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .registro-card-header:hover {
@@ -267,8 +390,134 @@
   font-size: 0.9375rem;
   color: var(--text-primary);
   margin: 0;
+  padding-right: 28px;
   line-height: 1.4;
   flex: 1;
+}
+
+.registro-card-shift,
+.registro-card-user {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: rgba(30, 144, 255, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.registro-ai-summary-block {
+  margin-bottom: 14px;
+  padding: 12px;
+  background: rgba(30, 144, 255, 0.08);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(30, 144, 255, 0.2);
+}
+
+.registro-ai-summary-block p {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.registro-detail-heading {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.registro-sections {
+  margin: 12px 0;
+  font-size: 0.875rem;
+}
+
+.registro-section-block {
+  margin-bottom: 10px;
+}
+
+.registro-section-key {
+  display: block;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+
+.registro-section-block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.registro-impact {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 10px 0;
+}
+
+.registro-follow-class {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  margin: 8px 0;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.registro-critical-box {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(214, 40, 40, 0.35);
+  background: rgba(214, 40, 40, 0.08);
+  font-size: 0.875rem;
+}
+
+.registro-critical-box ul {
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+}
+
+.registro-questions {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.registro-questions ul {
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.registro-suggest-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(30, 144, 255, 0.45);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.registro-suggest-action svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.registro-flags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .registro-card-detail {

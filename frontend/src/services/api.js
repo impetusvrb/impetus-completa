@@ -761,7 +761,15 @@ export const adminStructural = {
 
 export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
-  create: (data) => api.post('/intelligent-registration', data),
+  /** Alias de getAll */
+  list: (params) => api.get('/intelligent-registration', { params }),
+  create: (data) =>
+    api.post(
+      '/intelligent-registration',
+      typeof data === 'string' ? { text: data } : data
+    ),
+  /** Registos de toda a empresa (hierarchy ≤ 2 no backend) */
+  leadership: (params) => api.get('/intelligent-registration/leadership', { params }),
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
   remove: (id) => api.delete(`/intelligent-registration/${id}`),
 };

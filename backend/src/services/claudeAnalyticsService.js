@@ -131,6 +131,10 @@ function ingestRegistroInteligente(registration, companyId) {
   if (registration.pendencies_detected?.length) parts.push(`Pendências: ${registration.pendencies_detected.join(', ')}`);
   if (registration.machine_identified) parts.push(`Máquina: ${registration.machine_identified}`);
   if (registration.line_identified) parts.push(`Linha: ${registration.line_identified}`);
+  const meta = registration.ai_metadata && typeof registration.ai_metadata === 'object' ? registration.ai_metadata : {};
+  if (Array.isArray(meta.critical_highlights) && meta.critical_highlights.length) {
+    parts.push(`Destaques críticos: ${meta.critical_highlights.join('; ')}`);
+  }
   const rawContent = parts.join('\n');
   if (!rawContent.trim()) return;
   ingestAsync(rawContent, {
