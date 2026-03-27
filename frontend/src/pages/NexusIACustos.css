@@ -1,0 +1,167 @@
+.nexus-custos-page {
+  padding: 1.25rem 1.5rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.nexus-custos-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.nexus-custos-title {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.nexus-custos-icon {
+  color: #38bdf8;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.nexus-custos-title h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.nexus-custos-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.75;
+  max-width: 42rem;
+  line-height: 1.45;
+}
+
+.nexus-custos-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.nexus-custos-refresh:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nexus-custos-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nexus-custos-refresh .spin {
+  animation: nexus-spin 0.8s linear infinite;
+}
+
+@keyframes nexus-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nexus-custos-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.nexus-custos-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.nexus-custos-filters select,
+.nexus-custos-filters input {
+  min-width: 140px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+}
+
+.nexus-custos-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.nexus-custos-loading {
+  opacity: 0.7;
+}
+
+.nexus-custos-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.nexus-custos-card {
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nexus-custos-card--highlight {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.nexus-custos-card--accent {
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.nexus-custos-card-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+  margin-bottom: 0.35rem;
+}
+
+.nexus-custos-card strong {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.nexus-custos-chart-wrap h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  opacity: 0.9;
+}
+
+.nexus-custos-chart {
+  width: 100%;
+  min-height: 280px;
+}
+
+.nexus-custos-empty {
+  opacity: 0.65;
+  font-size: 0.9rem;
+}

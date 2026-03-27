@@ -141,6 +141,11 @@ export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
 
+/** NexusIA — custos de tokens (admin da empresa); sem detalhe por API */
+export const nexusIA = {
+  getCustos: (params) => api.get('/admin/nexus-custos', { params })
+};
+
 // App Impetus - Canal de comunicação unificado
 export const appImpetus = {
   getStatus: () => api.get('/app-impetus/status'),

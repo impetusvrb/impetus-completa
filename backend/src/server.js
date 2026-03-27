@@ -143,6 +143,7 @@ useRoute('/api/admin/warehouse', './routes/admin/warehouse');
 useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials');
 useRoute('/api/admin/logistics', './routes/admin/logistics');
 useRoute('/api/admin/time-clock', './routes/admin/timeClock');
+useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
 useRoute('/api/dashboard/chat/voice', './routes/chatVoice');
 useRoute('/api/tts', './routes/tts');
 useRoute('/api/voz', './routes/voz');
@@ -303,6 +304,24 @@ function gracefulShutdown(signal) {
 
 process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+
+if (String(process.env.ENABLE_NEXUS_TOKEN_BILLING_CRON || '').toLowerCase() === 'true') {
+  try {
+    const cron = require('node-cron');
+    const billingTokenService = require('./services/billingTokenService');
+    const tz = process.env.TZ || 'America/Sao_Paulo';
+    cron.schedule(
+      '0 8 1 * *',
+      () => {
+        billingTokenService.runMonthlyTokenBilling().catch((e) => console.error('[NEXUS_CRON]', e));
+      },
+      { timezone: tz }
+    );
+    console.log('[server] NexusIA token billing: cron dia 1 às 08:00 (' + tz + ')');
+  } catch (e) {
+    console.warn('[server] NexusIA cron não iniciado:', e.message);
+  }
+}
 
 httpServer.listen(PORT, () => {
   console.log(`[impetus-backend] http://0.0.0.0:${PORT}  (health: /health)`);

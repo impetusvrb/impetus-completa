@@ -52,6 +52,7 @@ function cleanTtsInput(text) {
 }
 
 const db = require('../db');
+const billingTokenService = require('../services/billingTokenService');
 
 router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res) => {
   if (!rateLimit(req.user.id, 30, 60 * 1000)) {
@@ -82,6 +83,13 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
     const result = await mediaProcessor.transcribeAudio(transcribePath, {
       language: (req.body.language || 'pt').slice(0, 5)
     });
+    let billQty = 0;
+    if (result.success && req.user?.company_id) {
+      try {
+        const st = fs.statSync(transcribePath);
+        billQty = Math.max(1, Math.round(st.size / 8000));
+      } catch (_) {}
+    }
     fs.unlink(transcribePath, () => {});
     if (!result.success) {
       return res.status(422).json({
@@ -90,6 +98,9 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
         confidence: 0,
         error: result.error || 'Transcrição falhou'
       });
+    }
+    if (billQty && result.text) {
+      billingTokenService.registrarUsoSafe(req.user.company_id, req.user.id, 'outro', billQty);
     }
     res.json({
       ok: true,
@@ -166,6 +177,9 @@ router.post('/speak', requireAuth, express.json({ limit: '64kb' }), async (req, 
     ttsCache.set(hash, { buf, exp: Date.now() + TTS_TTL_MS });
     if (ttsCache.size > 200) {
       [...ttsCache.entries()].filter(([, v]) => Date.now() > v.exp).forEach(([k]) => ttsCache.delete(k));
+    }
+    if (req.user?.company_id && text.length) {
+      billingTokenService.registrarUsoSafe(req.user.company_id, req.user.id, 'tts', text.length, 'chars');
     }
     res.setHeader('Content-Type', 'audio/mpeg');
     // Evita reutilização pelo browser em testes de voz (Wavenet/Neural/etc).

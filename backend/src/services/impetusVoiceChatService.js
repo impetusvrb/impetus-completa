@@ -99,7 +99,11 @@ async function processVoiceTurn(user, message, { reset } = {}) {
   }
   openaiMessages.push({ role: 'user', content: trimmed });
 
-  let reply = await ai.chatCompletionMessages(openaiMessages, { max_tokens: 500 });
+  let reply = await ai.chatCompletionMessages(openaiMessages, {
+    max_tokens: 500,
+    billing:
+      user.company_id ? { companyId: user.company_id, userId: user.id } : undefined
+  });
   if (!reply || (reply || '').startsWith('FALLBACK:')) {
     reply = CHAT_FALLBACK;
   }

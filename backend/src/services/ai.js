@@ -6,6 +6,7 @@
 const OpenAI = require('openai');
 const documentContext = require('./documentContext');
 const incomingProcessor = require('./incomingMessageProcessor');
+const billingTokenService = require('./billingTokenService');
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -43,7 +44,12 @@ async function chatCompletion(prompt, opts = {}) {
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
-    return res.choices?.[0]?.message?.content || '';
+    const content = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return content;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -55,12 +61,52 @@ async function chatCompletion(prompt, opts = {}) {
   }
 }
 
-async function embedText(text) {
+/**
+ * Chat com histórico (messages OpenAI). Usado pelo modo voz e outros fluxos.
+ * opts.billing: { companyId, userId } — regista tokens NexusIA quando houver usage.
+ */
+async function chatCompletionMessages(messages, opts = {}) {
+  if (!client) return `FALLBACK: IA não configurada.`;
+  if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  try {
+    const timeoutMs = opts.timeout || 45000;
+    const completionPromise = client.chat.completions.create({
+      model: opts.model || 'gpt-4o-mini',
+      messages: Array.isArray(messages) ? messages : [],
+      max_tokens: opts.max_tokens || 800
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const res = await Promise.race([completionPromise, timeoutPromise]);
+    failures = 0;
+    const content = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return content;
+  } catch (err) {
+    failures++;
+    lastFailureTime = Date.now();
+    console.warn('[AI_MESSAGES_ERROR]', err.message);
+    if (err.message === 'TIMEOUT') {
+      return `FALLBACK: Tempo esgotado na análise. Tente novamente.`;
+    }
+    return `FALLBACK: IA indisponível. Erro: ${err.message?.slice(0, 100)}`;
+  }
+}
+
+async function embedText(text, opts = {}) {
   if (!client) return null;
   if (isCircuitOpen()) return null;
   try {
     const r = await client.embeddings.create({ model: 'text-embedding-3-small', input: text });
     failures = 0;
+    const total = r.usage?.total_tokens;
+    if (opts.billing?.companyId && total) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'outro', total);
+    }
     return r.data[0].embedding;
   } catch (err) {
     failures++;
@@ -197,7 +243,12 @@ async function chatWithVision(messages, opts = {}) {
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
-    return res.choices?.[0]?.message?.content || '';
+    const out = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return out;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -227,6 +278,7 @@ async function analyzeImage(imageBase64, userPrompt, opts = {}) {
 
 module.exports = {
   chatCompletion,
+  chatCompletionMessages,
   chatWithVision,
   analyzeImage,
   embedText,

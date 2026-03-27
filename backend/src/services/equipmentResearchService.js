@@ -5,6 +5,7 @@
  */
 const OpenAI = require('openai');
 const db = require('../db');
+const billingTokenService = require('./billingTokenService');
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -160,6 +161,10 @@ async function researchEquipment(query, companyId, userId, sessionId = null) {
       response_format: { type: 'json_object' }
     });
     rawResponse = completion.choices?.[0]?.message?.content || '';
+    const usage = completion.usage?.total_tokens;
+    if (usage && companyId) {
+      billingTokenService.registrarUsoSafe(companyId, userId, 'chat', usage);
+    }
   } catch (err) {
     console.error('[MANUIA_RESEARCH] OpenAI:', err?.message);
     throw new Error(`Erro na pesquisa: ${err?.message}`);
