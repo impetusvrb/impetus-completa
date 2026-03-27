@@ -5,7 +5,6 @@
  */
 const { getProfile } = require('../config/dashboardProfiles');
 const userContext = require('./userContext');
-const intelligentDashboard = require('./intelligentDashboardService');
 
 /** Modos de insight e suas características */
 const INSIGHTS_MODES = {

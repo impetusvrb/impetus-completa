@@ -57,6 +57,7 @@ async function validateSession(token) {
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.functional_area, u.dashboard_profile,
+             u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
       FROM sessions s
@@ -97,6 +98,11 @@ async function validateSession(token) {
       department: session.department,
       functional_area: session.functional_area || null,
       dashboard_profile: session.dashboard_profile || null,
+      preferred_kpis: session.preferred_kpis,
+      dashboard_preferences: session.dashboard_preferences,
+      seniority_level: session.seniority_level || null,
+      onboarding_completed: session.onboarding_completed === true,
+      ai_profile_context: session.ai_profile_context,
       permissions: session.permissions || [],
       sessionId: session.session_id,
       is_first_access: session.is_first_access || false,
@@ -138,6 +144,7 @@ async function validateJWTAndLoadUser(token) {
     const r = await db.query(`
       SELECT id, name, email, role, company_id, department_id, hierarchy_level,
              supervisor_id, area, job_title, department, functional_area, dashboard_profile,
+             preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
              permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
              role_verified, role_verification_status, is_company_root
@@ -160,6 +167,11 @@ async function validateJWTAndLoadUser(token) {
       department: u.department,
       functional_area: u.functional_area || null,
       dashboard_profile: u.dashboard_profile || null,
+      preferred_kpis: u.preferred_kpis,
+      dashboard_preferences: u.dashboard_preferences,
+      seniority_level: u.seniority_level || null,
+      onboarding_completed: u.onboarding_completed === true,
+      ai_profile_context: u.ai_profile_context,
       permissions: u.permissions || [],
       sessionId: null,
       is_first_access: u.is_first_access || false,

@@ -23,16 +23,28 @@ export default function DashboardCustomizerModal({ isOpen, onClose, payload, onS
   const [saved, setSaved] = useState(false);
   const closeTimerRef = useRef(null);
 
-  const cards = payload?.cards || [];
+  const profileCards = payload?.profile_config?.cards || [];
+  const cards = payload?.cards?.length ? payload.cards : profileCards;
   const kpis = payload?.kpis || [];
   const allKeys = [...new Set([...cards.map(c => c.key), ...kpis.map(k => k.key || k.id)])].filter(Boolean);
 
   useEffect(() => {
     if (payload && isOpen) {
-      setCardsOrder(payload.cards?.map(c => c.key).filter(Boolean) || []);
-      setFavoriteKpis(Array.isArray(payload.favorite_kpis) ? payload.favorite_kpis : []);
-      setDefaultPeriod(payload.default_period || '7d');
-      setCompactMode(!!payload.compact_mode);
+      const p = payload.personalization || {};
+      const cardList = payload.cards?.length ? payload.cards : (payload.profile_config?.cards || []);
+      const orderFromProfile = cardList.map((c) => c.key).filter(Boolean);
+      setCardsOrder(
+        Array.isArray(p.cards_order) && p.cards_order.length ? p.cards_order : orderFromProfile
+      );
+      setFavoriteKpis(
+        Array.isArray(p.preferred_kpis) && p.preferred_kpis.length
+          ? p.preferred_kpis
+          : Array.isArray(payload.favorite_kpis)
+            ? payload.favorite_kpis
+            : []
+      );
+      setDefaultPeriod(p.default_period || p.favorite_period || payload.default_period || '7d');
+      setCompactMode(!!(p.compact_mode ?? payload.compact_mode));
     }
   }, [payload, isOpen]);
   useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);

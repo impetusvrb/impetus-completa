@@ -217,6 +217,8 @@ export const dashboard = {
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
+  /** Preferências de perfil / IA (próprio utilizador) */
+  patchProfileContext: (body) => api.patch('/dashboard/profile-context', body),
   getWidgets: () => api.get('/dashboard/widgets'),
   getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
   getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),

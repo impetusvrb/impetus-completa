@@ -13,6 +13,7 @@ const db = require('../src/db');
 const MODELS_DIR = path.join(__dirname, '../src/models');
 const MIGRATIONS_ORDER = [
   'nexus_token_billing_migration.sql',
+  'dashboard_intelligence_migration.sql',
   'lacunas_ind4_migration.sql',
   'industrial_intelligence_extended_migration.sql',
   'machine_safety_intervention_migration.sql',
