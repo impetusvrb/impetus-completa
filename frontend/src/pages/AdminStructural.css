@@ -142,6 +142,43 @@
   gap: 16px;
 }
 
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.structural-form-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin: 1rem 0 0.5rem;
+}
+
+.structural-inline-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.structural-inline-link:hover {
+  opacity: 0.9;
+}
+
+.structural-generic-form {
+  max-height: min(70vh, 720px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 @media (max-width: 640px) {
   .company-data-module .form-grid-2 {
     grid-template-columns: 1fr;

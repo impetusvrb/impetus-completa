@@ -247,45 +247,6 @@
   height: 30%;
 }
 
-.impetus-voice-overlay__user-msg,
-.impetus-voice-overlay__ai-msg {
-  margin: 8px 0;
-  color: #ffffff;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.impetus-voice-overlay__ai-msg {
-  color: #a0c8e0;
-}
-
-.impetus-voice-overlay__suggestions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.impetus-voice-overlay__suggestions button {
-  border: 1px solid #1a4a7a;
-  border-radius: 10px;
-  background: rgba(10, 22, 40, 0.9);
-  color: #eaf6ff;
-  font-size: 0.82rem;
-  padding: 8px 10px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.impetus-voice-overlay__suggestions button:hover {
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.22);
-}
-
 .impetus-voice-overlay__right {
   border: 1px solid #1a4a7a;
   border-radius: 16px;

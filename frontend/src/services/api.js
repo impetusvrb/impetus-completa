@@ -661,6 +661,19 @@ export const adminSettings = {
 
 export default api;
 
+const structuralProductionLinesApi = {
+  list: () => api.get('/admin/structural/production-lines'),
+  getOne: (id) => api.get(`/admin/structural/production-lines/${id}`),
+  create: (data) => api.post('/admin/structural/production-lines', data),
+  update: (id, data) => api.put(`/admin/structural/production-lines/${id}`, data),
+  delete: (id) => api.delete(`/admin/structural/production-lines/${id}`),
+  addMachine: (lineId, data) => api.post(`/admin/structural/production-lines/${lineId}/machines`, data),
+  updateMachine: (lineId, machineId, data) =>
+    api.put(`/admin/structural/production-lines/${lineId}/machines/${machineId}`, data),
+  deleteMachine: (lineId, machineId) =>
+    api.delete(`/admin/structural/production-lines/${lineId}/machines/${machineId}`)
+};
+
 export const adminStructural = {
   getReferences: () => api.get('/admin/structural/references'),
 
@@ -675,12 +688,9 @@ export const adminStructural = {
     update: (id, data) => api.put(`/admin/structural/roles/${id}`, data),
     delete: (id) => api.delete(`/admin/structural/roles/${id}`)
   },
-  lines: {
-    list: () => api.get('/admin/structural/production-lines'),
-    create: (data) => api.post('/admin/structural/production-lines', data),
-    update: (id, data) => api.put(`/admin/structural/production-lines/${id}`, data),
-    delete: (id) => api.delete(`/admin/structural/production-lines/${id}`)
-  },
+  lines: structuralProductionLinesApi,
+  /** Alias para a UI da Base Estrutural (mesmo método que `lines`) */
+  productionLines: structuralProductionLinesApi,
   assets: {
     list: () => api.get('/admin/structural/assets'),
     create: (data) => api.post('/admin/structural/assets', data),
@@ -740,6 +750,12 @@ export const adminStructural = {
     create: (data) => api.post('/admin/structural/ai-config', data),
     update: (id, data) => api.put(`/admin/structural/ai-config/${id}`, data),
     delete: (id) => api.delete(`/admin/structural/ai-config/${id}`)
+  },
+  knowledgeDocuments: {
+    list: () => api.get('/admin/structural/knowledge-documents'),
+    create: (data) => api.post('/admin/structural/knowledge-documents', data),
+    update: (id, data) => api.put(`/admin/structural/knowledge-documents/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/knowledge-documents/${id}`)
   }
 };
 

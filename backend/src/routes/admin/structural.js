@@ -51,43 +51,92 @@ router.put('/company-data', ...adminMw, auditMiddleware({ action: 'company_data_
     const cid = getCompanyId(req);
     if (!cid) return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
     const {
-      trade_name, subsegment, main_unit, other_units, employee_count, shift_count,
-      operating_hours, operation_type, production_type, products_manufactured,
-      market, company_description, mission, vision, values_text, internal_policy,
-      operation_rules, organizational_culture, strategic_notes
+      name,
+      trade_name,
+      industry_segment,
+      cnpj,
+      address,
+      city,
+      state,
+      country,
+      subsegment,
+      main_unit,
+      other_units,
+      employee_count,
+      shift_count,
+      operating_hours,
+      operation_type,
+      production_type,
+      products_manufactured,
+      market,
+      company_description,
+      mission,
+      vision,
+      values_text,
+      internal_policy,
+      operation_rules,
+      organizational_culture,
+      strategic_notes
     } = req.body;
 
     await db.query(`
       UPDATE companies SET
-        trade_name = COALESCE($2, trade_name),
-        subsegment = COALESCE($3, subsegment),
-        main_unit = COALESCE($4, main_unit),
-        other_units = COALESCE($5::jsonb, other_units),
-        employee_count = COALESCE($6, employee_count),
-        shift_count = COALESCE($7, shift_count),
-        operating_hours = COALESCE($8, operating_hours),
-        operation_type = COALESCE($9, operation_type),
-        production_type = COALESCE($10, production_type),
-        products_manufactured = COALESCE($11::text[], products_manufactured),
-        market = COALESCE($12, market),
-        company_description = COALESCE($13, company_description),
-        mission = COALESCE($14, mission),
-        vision = COALESCE($15, vision),
-        values_text = COALESCE($16, values_text),
-        internal_policy = COALESCE($17, internal_policy),
-        operation_rules = COALESCE($18, operation_rules),
-        organizational_culture = COALESCE($19, organizational_culture),
-        strategic_notes = COALESCE($20, strategic_notes),
+        name = COALESCE($2, name),
+        trade_name = COALESCE($3, trade_name),
+        industry_segment = COALESCE($4, industry_segment),
+        cnpj = COALESCE($5, cnpj),
+        address = COALESCE($6, address),
+        city = COALESCE($7, city),
+        state = COALESCE($8, state),
+        country = COALESCE($9, country),
+        subsegment = COALESCE($10, subsegment),
+        main_unit = COALESCE($11, main_unit),
+        other_units = COALESCE($12::jsonb, other_units),
+        employee_count = COALESCE($13, employee_count),
+        shift_count = COALESCE($14, shift_count),
+        operating_hours = COALESCE($15, operating_hours),
+        operation_type = COALESCE($16, operation_type),
+        production_type = COALESCE($17, production_type),
+        products_manufactured = COALESCE($18::text[], products_manufactured),
+        market = COALESCE($19, market),
+        company_description = COALESCE($20, company_description),
+        mission = COALESCE($21, mission),
+        vision = COALESCE($22, vision),
+        values_text = COALESCE($23, values_text),
+        internal_policy = COALESCE($24, internal_policy),
+        operation_rules = COALESCE($25, operation_rules),
+        organizational_culture = COALESCE($26, organizational_culture),
+        strategic_notes = COALESCE($27, strategic_notes),
         updated_at = now()
       WHERE id = $1
     `, [
-      cid, trade_name, subsegment, main_unit,
-      other_units ? JSON.stringify(other_units) : null,
-      employee_count ?? null, shift_count ?? null, operating_hours,
-      operation_type, production_type,
-      products_manufactured ? products_manufactured : null,
-      market, company_description, mission, vision, values_text,
-      internal_policy, operation_rules, organizational_culture, strategic_notes
+      cid,
+      name,
+      trade_name,
+      industry_segment,
+      cnpj,
+      address,
+      city,
+      state,
+      country,
+      subsegment,
+      main_unit,
+      other_units ? (typeof other_units === 'string' ? other_units : JSON.stringify(other_units)) : null,
+      employee_count ?? null,
+      shift_count ?? null,
+      operating_hours,
+      operation_type,
+      production_type,
+      Array.isArray(products_manufactured) ? products_manufactured : null,
+      market,
+      company_description,
+      mission,
+      vision,
+      values_text,
+      internal_policy,
+      operation_rules,
+      organizational_culture,
+      strategic_notes
     ]);
 
     res.json({ ok: true });
@@ -127,7 +176,7 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
         sectors_involved, leadership_type, communication_profile, direct_superior_role_id,
         expected_subordinates, decision_level, visible_themes, hidden_themes, escalation_role,
         operation_role, approval_role, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `, [
       cid, b.name || '', b.description, b.hierarchy_level, b.work_area,
@@ -252,14 +301,15 @@ router.post('/production-lines', ...adminMw, auditMiddleware({ action: 'producti
     const r = await db.query(`
       INSERT INTO production_lines (company_id, name, code, department_id, unit_plant,
         process_type, productive_capacity, status, responsible_id, description,
-        main_bottleneck, critical_point, operation_time, criticality_level, operational_notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        main_bottleneck, critical_point, operation_time, criticality_level, operational_notes,
+        main_product_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `, [
       cid, b.name || '', b.code, b.department_id || null, b.unit_plant,
       b.process_type, b.productive_capacity, b.status || 'active', b.responsible_id || null,
       b.description, b.main_bottleneck, b.critical_point, b.operation_time,
-      b.criticality_level, b.operational_notes
+      b.criticality_level, b.operational_notes, b.main_product_id || null
     ]);
     res.status(201).json({ ok: true, data: r.rows[0] });
   } catch (err) {
@@ -1456,6 +1506,149 @@ router.delete('/ai-config/:id', ...adminMw, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('[STRUCTURAL_AI_CONFIG_DELETE]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// 7b. BASE DE CONHECIMENTO (metadados — complementa a Biblioteca de Arquivos)
+// ============================================================================
+
+router.get('/knowledge-documents', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    const r = await db.query(
+      `
+      SELECT kd.*, d.name AS department_name, pl.name AS line_name
+      FROM company_knowledge_documents kd
+      LEFT JOIN departments d ON kd.department_id = d.id
+      LEFT JOIN production_lines pl ON kd.line_id = pl.id
+      WHERE kd.company_id = $1 AND kd.active
+      ORDER BY kd.title
+    `,
+      [cid]
+    );
+    res.json({ ok: true, data: r.rows });
+  } catch (err) {
+    console.error('[STRUCTURAL_KNOWLEDGE_LIST]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao listar documentos de conhecimento' });
+  }
+});
+
+router.post('/knowledge-documents', ...adminMw, auditMiddleware({ action: 'knowledge_doc_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    const b = req.body;
+    const r = await db.query(
+      `
+      INSERT INTO company_knowledge_documents (
+        company_id, title, doc_type, category, summary,
+        department_id, line_id, asset_id, process_id, product_id,
+        version, valid_until, responsible_id, keywords,
+        confidentiality_level, allowed_audience, external_url, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      RETURNING *
+    `,
+      [
+        cid,
+        b.title || '',
+        b.doc_type || null,
+        b.category || null,
+        b.summary || null,
+        b.department_id || null,
+        b.line_id || null,
+        b.asset_id || null,
+        b.process_id || null,
+        b.product_id || null,
+        b.version || null,
+        b.valid_until || null,
+        b.responsible_id || null,
+        b.keywords || [],
+        b.confidentiality_level || null,
+        b.allowed_audience || [],
+        b.external_url || null,
+        b.notes || null
+      ]
+    );
+    res.status(201).json({ ok: true, data: r.rows[0] });
+  } catch (err) {
+    console.error('[STRUCTURAL_KNOWLEDGE_CREATE]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.put('/knowledge-documents/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    const b = req.body;
+    const r = await db.query(
+      `
+      UPDATE company_knowledge_documents SET
+        title = COALESCE($3, title),
+        doc_type = COALESCE($4, doc_type),
+        category = COALESCE($5, category),
+        summary = COALESCE($6, summary),
+        department_id = $7,
+        line_id = $8,
+        asset_id = $9,
+        process_id = $10,
+        product_id = $11,
+        version = COALESCE($12, version),
+        valid_until = $13,
+        responsible_id = $14,
+        keywords = COALESCE($15, keywords),
+        confidentiality_level = COALESCE($16, confidentiality_level),
+        allowed_audience = COALESCE($17, allowed_audience),
+        external_url = COALESCE($18, external_url),
+        notes = COALESCE($19, notes),
+        updated_at = now()
+      WHERE id = $2 AND company_id = $1
+      RETURNING *
+    `,
+      [
+        cid,
+        req.params.id,
+        b.title,
+        b.doc_type,
+        b.category,
+        b.summary,
+        b.department_id || null,
+        b.line_id || null,
+        b.asset_id || null,
+        b.process_id || null,
+        b.product_id || null,
+        b.version,
+        b.valid_until || null,
+        b.responsible_id || null,
+        b.keywords,
+        b.confidentiality_level,
+        b.allowed_audience,
+        b.external_url,
+        b.notes
+      ]
+    );
+    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Documento não encontrado' });
+    res.json({ ok: true, data: r.rows[0] });
+  } catch (err) {
+    console.error('[STRUCTURAL_KNOWLEDGE_UPDATE]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.delete('/knowledge-documents/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    const r = await db.query(
+      'UPDATE company_knowledge_documents SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
+      [req.params.id, cid]
+    );
+    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Documento não encontrado' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[STRUCTURAL_KNOWLEDGE_DELETE]', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

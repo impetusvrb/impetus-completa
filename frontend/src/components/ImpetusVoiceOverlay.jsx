@@ -3,7 +3,7 @@
  * Esquerda: avatar e comandos. Direita: painel dinâmico vazio para resultados em tempo real.
  */
 import React from 'react';
-import { Activity, BarChart3, FileText, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import ImpetusAvatarLive from './ImpetusAvatarLive';
 import './ImpetusVoiceOverlay.css';
 
@@ -110,16 +110,6 @@ export default function ImpetusVoiceOverlay({
                 </div>
               </div>
 
-              <p className="impetus-voice-overlay__user-msg">IMPETUS, COMO ESTÁ A LINHA DE PRODUÇÃO A?</p>
-              <p className="impetus-voice-overlay__ai-msg">
-                VOCÊ DESEJA QUE EU GERE UM RELATÓRIO OU GRÁFICO PARA VOCÊ ACOMPANHAR?
-              </p>
-
-              <div className="impetus-voice-overlay__suggestions">
-                <button type="button"><FileText size={15} /> RELATÓRIO</button>
-                <button type="button"><BarChart3 size={15} /> GRÁFICO</button>
-                <button type="button"><Activity size={15} /> ANÁLISE</button>
-              </div>
             </div>
           </section>
 
