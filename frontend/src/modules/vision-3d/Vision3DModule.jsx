@@ -35,7 +35,12 @@ export default function Vision3DModule({
   const [restoredSession, setRestoredSession] = useState(null);
   const [thermalMode, setThermalMode] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [audioWaveform, setAudioWaveform] = useState(null);
+  const [animatingStep, setAnimatingStep] = useState(false);
+  const [partRemovedStep, setPartRemovedStep] = useState(null);
   const viewerRef = useRef(null);
+  const animatingStepRef = useRef(false);
+  animatingStepRef.current = animatingStep;
 
   const handleAction = useCallback((action) => {
     if (action.type === 'ANALYSIS_COMPLETE') {
@@ -74,7 +79,7 @@ export default function Vision3DModule({
     analyzeImage,
     analyzeAudio,
     sendMessage
-  } = useVisionChat({ onAction, machineId, machineName, machineType: machineType || 'generico' });
+  } = useVisionChat({ onAction: handleAction, machineId, machineName, machineType: machineType || 'generico' });
 
   const displayResult = restoredSession || result;
   const displayMachineType = restoredSession ? restoredSession.machineType : machineType;
@@ -106,8 +111,6 @@ export default function Vision3DModule({
     [analyzeImage]
   );
 
-  const [audioWaveform, setAudioWaveform] = useState(null);
-
   const handleAudioAnalyze = useCallback(
     async (spectrum, peaks) => {
       setAudioWaveform(spectrum?.slice(0, 80) || []);
@@ -127,11 +130,6 @@ export default function Vision3DModule({
     },
     [analyzeAudio, machineType, machineId, machineName, onGenerateOS]
   );
-
-  const [animatingStep, setAnimatingStep] = useState(false);
-  const [partRemovedStep, setPartRemovedStep] = useState(null);
-  const animatingStepRef = useRef(false);
-  animatingStepRef.current = animatingStep;
 
   const handleStepClick = useCallback((index, partName) => {
     if (animatingStep || !displayResult?.steps?.[index]) return;
