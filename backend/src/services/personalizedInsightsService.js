@@ -99,19 +99,54 @@ function getSmartSummaryContext(user) {
 function adaptInsightsToProfile(user, rawInsights) {
   if (!rawInsights || !Array.isArray(rawInsights)) return [];
   const config = require('./dashboardProfileResolver').getDashboardConfigForUser(user);
-  const mode = config.profile_config?.insights_mode || 'objective_practical';
   const level = user?.hierarchy_level ?? 5;
+  const profileLabel = config.profile_config?.label || config.profile_code || '';
 
   const maxItems = level <= 1 ? 10 : level <= 3 ? 8 : 5;
   return rawInsights.slice(0, maxItems).map((ins, i) => ({
     ...ins,
-    priority: level <= 1 ? (ins.severity || 'alto') : (i < 3 ? 'alta' : 'média')
+    profile_context: profileLabel || undefined,
+    priority: level <= 1 ? (ins.severity === 'alto' ? 'crítica' : ins.severity || 'alta') : (i < 3 ? 'alta' : 'média')
   }));
+}
+
+/**
+ * Texto de insight mais rico a partir de um KPI dinâmico (sem alterar fontes de dados).
+ */
+function buildInsightSummaryForKpi(k, user) {
+  const title = (k.title || 'Indicador').trim();
+  const val = k.value != null ? String(k.value) : '—';
+  const kkey = `${k.key || ''} ${k.id || ''}`.toLowerCase();
+  const cfg = require('./dashboardProfileResolver').getDashboardConfigForUser(user);
+  const pLabel = cfg.profile_config?.label || cfg.profile_code || 'perfil atual';
+
+  if (/open_work|ativos|maintenance|manuten|os abert|critical_asset|máquinas|compressor/.test(kkey)) {
+    return `${title}: ${val}. Leitura alinhada a manutenção e ativos (${pLabel}).`;
+  }
+  if (/nc|qualid|conform|auditor|inspe|desvio|não conform/.test(kkey)) {
+    return `${title}: ${val}. Contexto de qualidade e conformidade (${pLabel}).`;
+  }
+  if (/produ|meta|turno|linha|eficien|perda|parada|gargalo/.test(kkey)) {
+    return `${title}: ${val}. Foco em produção e ritmo operacional (${pLabel}).`;
+  }
+  if (/intera|comunic|proposta|insight/.test(kkey)) {
+    return `${title}: ${val}. Acompanhamento de fluxo e pendências (${pLabel}).`;
+  }
+  return `${title}: ${val}.`;
+}
+
+function severityFromKpi(k) {
+  const c = (k.color || '').toLowerCase();
+  if (c === 'red') return 'alto';
+  if (c === 'orange' || c === 'amber') return 'médio';
+  return 'informativo';
 }
 
 module.exports = {
   getInsightsInstructions,
   getSmartSummaryContext,
   adaptInsightsToProfile,
+  buildInsightSummaryForKpi,
+  severityFromKpi,
   INSIGHTS_MODES
 };

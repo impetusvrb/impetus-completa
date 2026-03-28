@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { auth } from '../services/api';
+import { isColaboradorSimples, isMaintenanceProfile } from '../utils/roleUtils';
 import loginBg from '../assets/login-bg.png';
 import logoImpetus from '../assets/logo-impetus-login.png';
 import './Login.css';
@@ -62,6 +63,14 @@ export default function Login() {
         return;
       }
       if (['colaborador', 'auxiliar_producao', 'auxiliar'].includes(userRole)) {
+        if (isColaboradorSimples(data.user)) {
+          navigate('/app');
+          return;
+        }
+        if (isMaintenanceProfile(data.user)) {
+          navigate('/app');
+          return;
+        }
         navigate('/app');
         return;
       }

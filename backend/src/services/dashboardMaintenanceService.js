@@ -4,8 +4,6 @@
  * Usa consultas defensivas (tabelas podem não existir em ambientes mínimos).
  */
 const db = require('../db');
-const dashboardProfileResolver = require('./dashboardProfileResolver');
-const hierarchicalFilter = require('./hierarchicalFilter');
 
 const MAINTENANCE_PROFILE_PATTERN = /maintenance|manuten|mecan|eletric|technician_maintenance|manager_maintenance|coordinator_maintenance|supervisor_maintenance/;
 
@@ -55,7 +53,8 @@ async function getSummary(user) {
   }
 
   try {
-    const [woCount, mpCount] = await Promise.all([
+    const today = new Date().toISOString().slice(0, 10);
+    const [woCount, mpCount, prevHoje, prevVencidas, aguardando] = await Promise.all([
       safeQuery(
         `SELECT COUNT(*) as c FROM work_orders 
          WHERE company_id = $1 AND status IN ('open','in_progress','waiting_parts','waiting_support')`,
@@ -68,14 +67,46 @@ async function getSummary(user) {
          AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`,
         [companyId],
         [{ c: 0 }]
+      ),
+      safeQuery(
+        `SELECT COUNT(*) as c FROM maintenance_preventives 
+         WHERE company_id = $1 AND DATE(scheduled_date) = $2::date
+         AND COALESCE(status,'') NOT IN ('completed','cancelled')`,
+        [companyId, today],
+        [{ c: 0 }]
+      ),
+      safeQuery(
+        `SELECT COUNT(*) as c FROM maintenance_preventives 
+         WHERE company_id = $1 AND scheduled_date IS NOT NULL AND DATE(scheduled_date) < $2::date
+         AND COALESCE(status,'') NOT IN ('completed','cancelled')`,
+        [companyId, today],
+        [{ c: 0 }]
+      ),
+      safeQuery(
+        `SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status = 'waiting_support'`,
+        [companyId],
+        [{ c: 0 }]
       )
     ]);
 
     const osAbertas = parseInt(woCount[0]?.c || 0, 10);
     const maquinasAtencao = parseInt(mpCount[0]?.c || 0, 10);
-    const frase = osAbertas > 0 || maquinasAtencao > 0
-      ? `${osAbertas} OS aberta(s), ${maquinasAtencao} máquina(s) em atenção.`
-      : 'Todas as máquinas operando dentro dos parâmetros.';
+    const nPrev = parseInt(prevHoje[0]?.c || 0, 10);
+    const nVenc = parseInt(prevVencidas[0]?.c || 0, 10);
+    const nApoio = parseInt(aguardando[0]?.c || 0, 10);
+
+    let frase;
+    if (osAbertas === 0 && maquinasAtencao === 0 && nPrev === 0 && nVenc === 0 && nApoio === 0) {
+      frase = 'Todas as máquinas operando dentro dos parâmetros.';
+    } else {
+      const partes = [];
+      if (osAbertas > 0) partes.push(`${osAbertas} ordem(ns) de serviço aberta(s)`);
+      if (nPrev > 0) partes.push(`${nPrev} preventiva(s) prevista(s) para hoje`);
+      if (nVenc > 0) partes.push(`${nVenc} preventiva(s) vencida(s)`);
+      if (maquinasAtencao > 0) partes.push(`${maquinasAtencao} máquina(s) em atenção`);
+      if (nApoio > 0) partes.push(`${nApoio} chamado(s) aguardando apoio`);
+      frase = `Hoje você tem ${partes.join(', ')}.`;
+    }
 
     return {
       is_maintenance: true,
@@ -84,6 +115,9 @@ async function getSummary(user) {
         os_abertas: osAbertas,
         work_orders_open: osAbertas,
         maquinas_atencao: maquinasAtencao,
+        preventivas_hoje: nPrev,
+        preventivas_vencidas: nVenc,
+        chamados_aguardando_apoio: nApoio,
         mtbf: 0,
         mttr: 0
       }
@@ -125,6 +159,7 @@ async function getCards(user) {
   try {
     const [
       ordensAbertas,
+      pendenciasTurno,
       preventivasDia,
       maquinasAtencao,
       intervencoesHoje,
@@ -138,8 +173,15 @@ async function getCards(user) {
         [{ c: 0 }]
       ),
       safeQuery(
+        `SELECT COUNT(*) as c FROM work_orders 
+         WHERE company_id = $1 AND status IN ('waiting_parts','waiting_support')`,
+        [companyId],
+        [{ c: 0 }]
+      ),
+      safeQuery(
         `SELECT COUNT(*) as c FROM maintenance_preventives 
-         WHERE company_id = $1 AND DATE(scheduled_date) = $2`,
+         WHERE company_id = $1 AND DATE(scheduled_date) = $2::date
+         AND COALESCE(status,'') NOT IN ('completed','cancelled')`,
         [companyId, today],
         [{ c: 0 }]
       ),
@@ -152,7 +194,7 @@ async function getCards(user) {
       ),
       safeQuery(
         `SELECT COUNT(*) as c FROM technical_interventions 
-         WHERE company_id = $1 AND DATE(intervention_date) = $2`,
+         WHERE company_id = $1 AND (intervention_date::date = $2::date)`,
         [companyId, today],
         [{ c: 0 }]
       ),
@@ -167,7 +209,7 @@ async function getCards(user) {
     defaults.cards = {
       ordens_abertas: parseInt(ordensAbertas[0]?.c || 0, 10),
       preventivas_dia: parseInt(preventivasDia[0]?.c || 0, 10),
-      pendencias_turno: parseInt(ordensAbertas[0]?.c || 0, 10),
+      pendencias_turno: parseInt(pendenciasTurno[0]?.c || 0, 10),
       maquinas_atencao: parseInt(maquinasAtencao[0]?.c || 0, 10),
       intervencoes_concluidas: parseInt(intervencoesHoje[0]?.c || 0, 10),
       chamados_aguardando: parseInt(chamadosAguardando[0]?.c || 0, 10),
@@ -193,12 +235,15 @@ async function getMyTasks(user) {
 
   try {
     const rows = await safeQuery(
-      `SELECT id, title, status, priority, machine_name, line_name as sector, created_at
+      `SELECT id, title, status, priority, machine_name, line_name, sector, scheduled_at, created_at
        FROM work_orders 
        WHERE company_id = $1 AND (assigned_to = $2 OR assigned_to IS NULL)
        AND status IN ('open','in_progress','waiting_parts')
        ORDER BY 
-         CASE priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,
+         CASE COALESCE(priority,'normal')
+           WHEN 'critical' THEN 1 WHEN 'urgent' THEN 2 WHEN 'high' THEN 3
+           WHEN 'normal' THEN 4 WHEN 'low' THEN 5 ELSE 6 END,
+         scheduled_at NULLS LAST,
          created_at ASC
        LIMIT 50`,
       [companyId, userId],
@@ -210,9 +255,11 @@ async function getMyTasks(user) {
         id: r.id,
         title: r.title,
         status: r.status,
-        priority: r.priority || 'medium',
+        priority: r.priority || 'normal',
         machine_name: r.machine_name,
+        line_name: r.line_name,
         sector: r.sector,
+        scheduled_at: r.scheduled_at,
         created_at: r.created_at
       }))
     };
@@ -231,32 +278,41 @@ async function getMachinesAttention(user) {
   const companyId = user.company_id;
   if (!companyId) return { machines: [] };
 
+  const today = new Date().toISOString().slice(0, 10);
+
   try {
-    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
-    const deptIds = scope?.managedDepartmentIds;
+    const sql = `SELECT id, name, code, sector, line_name, operational_status, criticality,
+                        next_maintenance, last_maintenance
+                 FROM monitored_points mp
+                 WHERE company_id = $1 AND active = true
+                 AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')
+                 ORDER BY (criticality = 'critical') DESC, operational_status DESC
+                 LIMIT 30`;
 
-    let sql = `SELECT id, name, code, operational_status, criticality
-                FROM monitored_points mp
-                WHERE company_id = $1 AND active = true 
-                AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`;
-    const params = [companyId];
-
-    if (deptIds?.length) {
-      sql += ` AND (department_id = ANY($2) OR department_id IS NULL)`;
-      params.push(deptIds);
-    }
-    sql += ` ORDER BY criticality = 'critical' DESC, operational_status DESC LIMIT 30`;
-
-    const rows = await safeQuery(sql, params, []);
+    const rows = await safeQuery(sql, [companyId], []);
     return {
-      machines: rows.map(r => ({
-        id: r.id,
-        name: r.name,
-        code: r.code,
-        operational_status: r.operational_status,
-        criticality: r.criticality || 'medium',
-        open_failures: 0
-      }))
+      machines: rows.map((r) => {
+        const reasons = [];
+        if (r.criticality === 'critical') reasons.push('Criticidade elevada');
+        if (r.operational_status === 'failure') reasons.push('Falha / condição crítica');
+        if (r.operational_status === 'maintenance') reasons.push('Em manutenção');
+        if (r.next_maintenance && String(r.next_maintenance).slice(0, 10) < today) {
+          reasons.push('Preventiva vencida');
+        }
+        return {
+          id: r.id,
+          name: r.name,
+          code: r.code,
+          sector: r.sector,
+          line_name: r.line_name,
+          operational_status: r.operational_status,
+          criticality: r.criticality || 'medium',
+          next_maintenance: r.next_maintenance,
+          attention_reasons: reasons,
+          attention_label: reasons[0] || r.operational_status || 'Atenção',
+          open_failures: 0
+        };
+      })
     };
   } catch (e) {
     return { machines: [] };
@@ -275,7 +331,8 @@ async function getInterventions(user) {
 
   try {
     const rows = await safeQuery(
-      `SELECT ti.id, ti.machine_name, ti.sector, ti.action_taken, ti.intervention_date,
+      `SELECT ti.id, ti.machine_name, ti.line_name, ti.sector, ti.action_taken, ti.intervention_date,
+              ti.status, ti.pending_note, ti.failure_found, ti.symptom_observed,
               u.name as technician_name
        FROM technical_interventions ti
        LEFT JOIN users u ON u.id = ti.technician_id
@@ -290,9 +347,14 @@ async function getInterventions(user) {
       interventions: rows.map(r => ({
         id: r.id,
         machine_name: r.machine_name,
+        line_name: r.line_name,
         sector: r.sector,
         action_taken: r.action_taken,
         intervention_date: r.intervention_date,
+        status: r.status || 'completed',
+        pending_note: r.pending_note,
+        failure_found: r.failure_found,
+        symptom_observed: r.symptom_observed,
         technician_name: r.technician_name
       }))
     };
@@ -315,9 +377,10 @@ async function getPreventives(user) {
 
   try {
     const rows = await safeQuery(
-      `SELECT id, title, machine_name, sector, preventive_type, status, scheduled_date
+      `SELECT id, title, machine_name, sector, preventive_type, status, scheduled_date, assigned_to
        FROM maintenance_preventives
-       WHERE company_id = $1 AND DATE(scheduled_date) = $2
+       WHERE company_id = $1 AND scheduled_date IS NOT NULL AND DATE(scheduled_date) = $2::date
+       AND COALESCE(status,'') NOT IN ('completed','cancelled')
        ORDER BY scheduled_date ASC
        LIMIT 30`,
       [companyId, today],
@@ -332,11 +395,83 @@ async function getPreventives(user) {
         sector: r.sector,
         preventive_type: r.preventive_type || 'preventive',
         status: r.status || 'scheduled',
-        scheduled_date: r.scheduled_date
+        scheduled_date: r.scheduled_date,
+        assigned_to: r.assigned_to
       }))
     };
   } catch (e) {
     return { preventives: [] };
+  }
+}
+
+function mapPreventiveRow(r) {
+  return {
+    id: r.id,
+    title: r.title,
+    machine_name: r.machine_name,
+    sector: r.sector,
+    preventive_type: r.preventive_type || 'preventive',
+    status: r.status || 'scheduled',
+    scheduled_date: r.scheduled_date,
+    assigned_to: r.assigned_to,
+    checklist: r.checklist
+  };
+}
+
+/**
+ * GET /preventives-board — hoje, vencidas, concluídas hoje (painel mecânico)
+ */
+async function getPreventivesBoard(user) {
+  const isMaintenance = isMaintenanceProfile(user);
+  if (!isMaintenance) {
+    return { preventives_today: [], preventives_overdue: [], preventives_completed_today: [] };
+  }
+
+  const companyId = user.company_id;
+  if (!companyId) {
+    return { preventives_today: [], preventives_overdue: [], preventives_completed_today: [] };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const [todayRows, overdueRows, doneRows] = await Promise.all([
+      safeQuery(
+        `SELECT id, title, machine_name, sector, preventive_type, status, scheduled_date, assigned_to, checklist
+         FROM maintenance_preventives
+         WHERE company_id = $1 AND scheduled_date IS NOT NULL AND DATE(scheduled_date) = $2::date
+         AND COALESCE(status,'') NOT IN ('completed','cancelled')
+         ORDER BY scheduled_date ASC LIMIT 40`,
+        [companyId, today],
+        []
+      ),
+      safeQuery(
+        `SELECT id, title, machine_name, sector, preventive_type, status, scheduled_date, assigned_to, checklist
+         FROM maintenance_preventives
+         WHERE company_id = $1 AND scheduled_date IS NOT NULL AND DATE(scheduled_date) < $2::date
+         AND COALESCE(status,'') NOT IN ('completed','cancelled')
+         ORDER BY scheduled_date ASC LIMIT 40`,
+        [companyId, today],
+        []
+      ),
+      safeQuery(
+        `SELECT id, title, machine_name, sector, preventive_type, status, scheduled_date, assigned_to, checklist
+         FROM maintenance_preventives
+         WHERE company_id = $1 AND COALESCE(status,'') = 'completed'
+         AND DATE(COALESCE(updated_at, created_at)) = $2::date
+         ORDER BY updated_at DESC NULLS LAST LIMIT 20`,
+        [companyId, today],
+        []
+      )
+    ]);
+
+    return {
+      preventives_today: todayRows.map(mapPreventiveRow),
+      preventives_overdue: overdueRows.map(mapPreventiveRow),
+      preventives_completed_today: doneRows.map(mapPreventiveRow)
+    };
+  } catch (e) {
+    return { preventives_today: [], preventives_overdue: [], preventives_completed_today: [] };
   }
 }
 
@@ -383,5 +518,6 @@ module.exports = {
   getMachinesAttention,
   getInterventions,
   getPreventives,
+  getPreventivesBoard,
   getRecurringFailures
 };

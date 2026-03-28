@@ -1,5 +1,62 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+
+/**
+ * Evita que o fallback SPA do Vite (preview + dev) sirva index.html em vez de 404
+ * para .loader.js / .wasm / etc. em /unity/manu-ia-viewer/ quando o build ainda não foi copiado.
+ */
+function unityManuIaViewerStrict404() {
+  const prefix = '/unity/manu-ia-viewer/';
+  const addMw = (middlewares, baseDir) => {
+    const sentinel = path.resolve(baseDir, 'unity/manu-ia-viewer');
+    middlewares.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        next();
+        return;
+      }
+      let pathname;
+      try {
+        pathname = decodeURIComponent((req.url || '').split('?')[0] || '');
+      } catch {
+        next();
+        return;
+      }
+      if (!pathname.startsWith(prefix)) {
+        next();
+        return;
+      }
+      const rel = pathname.replace(/^\/+/, '');
+      const filePath = path.resolve(baseDir, rel);
+      if (!filePath.startsWith(sentinel)) {
+        next();
+        return;
+      }
+      fs.stat(filePath, (err, st) => {
+        if (err || !st.isFile()) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Not found');
+          return;
+        }
+        next();
+      });
+    });
+  };
+  return {
+    name: 'unity-manu-ia-viewer-strict-404',
+    configureServer(server) {
+      addMw(server.middlewares, path.resolve(server.config.root, 'public'));
+    },
+    configurePreviewServer(server) {
+      addMw(
+        server.middlewares,
+        path.resolve(server.config.root, server.config.build.outDir)
+      );
+    }
+  };
+}
 
 /** Cache-Control: no-store só em *.html (avatar-impetus.html sempre fresco). */
 function htmlNoCachePlugin() {
@@ -36,7 +93,7 @@ export default defineConfig(({ mode }) => {
   const devPort = Number(process.env.PORT || env.VITE_DEV_PORT || 3000);
 
   return {
-  plugins: [react(), htmlNoCachePlugin()],
+  plugins: [unityManuIaViewerStrict404(), react(), htmlNoCachePlugin()],
   root: '.',
   publicDir: 'public',
   server: {

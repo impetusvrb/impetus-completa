@@ -242,3 +242,143 @@
 .dashboard-mecanico__base {
   margin-top: 8px;
 }
+
+.mecanico-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.block-desc.subtle {
+  opacity: 0.9;
+  font-size: 0.82rem;
+}
+
+.block-empty.small {
+  font-size: 0.85rem;
+}
+
+.mecanico-task__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  min-width: 36px;
+}
+
+.btn-ghost:hover {
+  border-color: rgba(30, 144, 255, 0.45);
+  color: var(--text-primary);
+}
+
+.mecanico-machine__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mecanico-machine__sub,
+.mecanico-machine__reasons {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.mecanico-machine__reasons {
+  color: #fbbf24;
+}
+
+.mecanico-machine-item {
+  align-items: flex-start;
+}
+
+.mecanico-intervention__action {
+  display: block;
+  margin-top: 4px;
+}
+
+.mecanico-intervention__pending {
+  display: block;
+  font-size: 0.8rem;
+  color: #fb923c;
+  margin-top: 4px;
+}
+
+.mecanico-preventive-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.mecanico-preventive-sub {
+  font-size: 0.95rem;
+  margin: 0 0 10px 0;
+  color: var(--text-primary);
+}
+
+.mecanico-preventive-sub.warn {
+  color: #f87171;
+}
+
+.mecanico-preventive-sub.ok {
+  color: #4ade80;
+}
+
+.mecanico-preventive__time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 4px;
+}
+
+.mecanico-failure-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mecanico-failure-chips li {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mecanico-failure-chips strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.mecanico-failure-chips span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.mecanico-passagem-actions,
+.mecanico-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.badge-normal {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}

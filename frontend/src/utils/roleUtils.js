@@ -37,3 +37,16 @@ export function resolveMenuRole(user) {
 
   return 'colaborador';
 }
+
+/** Colaborador/auxiliar sem perfil de manutenção — menu mínimo (sem dashboard tradicional) */
+export function isColaboradorSimples(user) {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase();
+  if (!['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role)) return false;
+  return !isMaintenanceProfile(user);
+}
+
+/** Técnico de manutenção (mecânico, eletricista, etc.): dashboard e módulos técnicos, não o menu mínimo do colaborador */
+export function isMaintenanceTechnicianMenu(user) {
+  return isMaintenanceProfile(user) && resolveMenuRole(user) === 'colaborador';
+}

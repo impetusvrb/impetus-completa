@@ -206,8 +206,8 @@ router.get('/insights', requireAuth, async (req, res) => {
     const raw = kpis.slice(0, limit).map((k, i) => ({
       id: `ins-${k.key || k.id || i}`,
       title: k.title || 'Indicador',
-      summary: `${k.title}: ${k.value}`,
-      severity: k.color === 'red' ? 'alto' : 'médio'
+      summary: personalizedInsightsService.buildInsightSummaryForKpi(k, user),
+      severity: personalizedInsightsService.severityFromKpi(k)
     }));
     const insights = personalizedInsightsService.adaptInsightsToProfile(user, raw);
     res.json({ ok: true, insights, insights_instructions: personalizedInsightsService.getInsightsInstructions(
@@ -319,6 +319,7 @@ router.get('/kpis', requireAuth, async (req, res) => {
 
 /**
  * GET /dashboard/personalizado
+ * Resposta inclui: ok, perfil, modulos, assistente_ia, layout, layout_rules_version (número da versão das regras de grid; debugging/telemetria).
  */
 router.get('/personalizado', requireAuth, async (req, res) => {
   try {

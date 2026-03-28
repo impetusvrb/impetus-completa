@@ -189,7 +189,7 @@ export default function ExecutiveDashboard() {
             );
           }) : (
             <>
-              <ExecKpiCard icon={MessageSquare} title="Interacoes" value={modoApresentacao ? '\u2014' : interactions} growth={!modoApresentacao ? growth : undefined} color="blue" onClick={() => navigate('/app/operacional')} />
+              <ExecKpiCard icon={MessageSquare} title="Interacoes" value={modoApresentacao ? '\u2014' : interactions} growth={!modoApresentacao ? growth : undefined} color="blue" onClick={() => navigate('/app')} />
               <ExecKpiCard icon={Brain} title="Insights IA" value={modoApresentacao ? '\u2014' : insights} color="teal" onClick={() => navigate('/app/chatbot')} />
               <ExecKpiCard icon={AlertTriangle} title="Alertas Criticos" value={modoApresentacao ? '\u2014' : alertsCount} color={alertsCount > 2 ? 'red' : 'amber'} />
               <ExecKpiCard icon={TrendingUp} title="Pro-Acao" value={modoApresentacao ? '\u2014' : proposals} color="purple" onClick={() => navigate('/app/proacao')} />

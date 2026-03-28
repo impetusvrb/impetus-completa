@@ -36,9 +36,10 @@ export default function Dashboard() {
   return (
     <ModuleErrorBoundary moduleName="Dashboard">
       {useOperadorDashboard && <DashboardOperador />}
-      {!useOperadorDashboard && useColaboradorDashboard && <DashboardColaborador />}
-      {!useOperadorDashboard && !useColaboradorDashboard && useMaintenanceDashboard && <DashboardMecanico />}
-      {!useOperadorDashboard && !useColaboradorDashboard && !useMaintenanceDashboard && <CentroComando />}
+      {/** Manutenção antes de colaborador: técnicos de campo usam role colaborador + área manutenção */}
+      {!useOperadorDashboard && useMaintenanceDashboard && <DashboardMecanico />}
+      {!useOperadorDashboard && !useMaintenanceDashboard && useColaboradorDashboard && <DashboardColaborador />}
+      {!useOperadorDashboard && !useMaintenanceDashboard && !useColaboradorDashboard && <CentroComando />}
     </ModuleErrorBoundary>
   );
 }

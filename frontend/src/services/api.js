@@ -210,7 +210,7 @@ export const roleVerification = {
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
   getMe: () => api.get('/dashboard/me'),
-  /** Layout personalizado por cargo/função/departamento (perfil + modulos + layout) */
+  /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
   getPersonalizado: () => api.get('/dashboard/personalizado'),
   getConfig: () => api.get('/dashboard/config'),
   savePreferences: (data) => api.post('/dashboard/preferences', data),
@@ -221,7 +221,6 @@ export const dashboard = {
   patchProfileContext: (body) => api.patch('/dashboard/profile-context', body),
   getWidgets: () => api.get('/dashboard/widgets'),
   getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
-  getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
   /** Dashboard Inteligente Dinâmico do colaborador — layout gerado por perfil */
   getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
 
@@ -308,6 +307,7 @@ export const dashboard = {
     getMachinesAttention: () => api.get('/dashboard/maintenance/machines-attention'),
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
+    getPreventivesBoard: () => api.get('/dashboard/maintenance/preventives-board'),
     getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
   },
 

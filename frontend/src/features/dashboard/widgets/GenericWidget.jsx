@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
 const ROUTES = {
-  trend_chart: '/app/operacional',
-  recent_interactions: '/app/operacional',
+  trend_chart: '/app',
+  recent_interactions: '/app',
   insights_list: '/app/insights',
   maintenance_cards: '/app',
   plc_alerts: '/app/cerebro-operacional'

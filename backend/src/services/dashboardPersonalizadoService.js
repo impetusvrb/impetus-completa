@@ -6,6 +6,10 @@
  */
 
 const db = require('../db');
+const dashboardProfileResolver = require('./dashboardProfileResolver');
+
+/** Versão das regras de layout — incrementar para invalidar cache em `dashboard_configs`. */
+const LAYOUT_RULES_VERSION = 2;
 
 /** Mapeamento tamanho doc → width no grid (1 ou 2) */
 const TAMANHO_TO_SPAN = { pequeno: 1, medio: 1, grande: 2, full: 2 };
@@ -159,14 +163,49 @@ function gerarConfigPorRegras(user) {
     add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
     add(WIDGET_IDS.alertas, 'grande', 'media');
   }
-  // Supervisor / Coordenador — inclui roles em inglês (supervisor_maintenance, coordinator_maintenance)
+  // Supervisor / Coordenador — diferenciação fina por perfil resolvido (produção / manutenção / qualidade)
   else if (role === 'supervisor' || role === 'coordenador' || role.includes('supervisor') || role.includes('coordinator')) {
-    const isManutencao = dept.includes('manuten') || dept.includes('mecan') || dept.includes('maintenance') || role.includes('maintenance');
-    if (isManutencao) {
+    const profileCode = dashboardProfileResolver.resolveDashboardProfile(user);
+    const isSupCoordMaintenance =
+      profileCode === 'supervisor_maintenance' ||
+      profileCode === 'coordinator_maintenance' ||
+      dept.includes('manuten') ||
+      dept.includes('mecan') ||
+      dept.includes('maintenance') ||
+      role.includes('maintenance');
+    const isSupCoordQuality =
+      profileCode === 'supervisor_quality' ||
+      profileCode === 'coordinator_quality' ||
+      dept.includes('qualid');
+    const isSupCoordProduction =
+      profileCode === 'supervisor_production' ||
+      profileCode === 'coordinator_production' ||
+      dept.includes('produ') ||
+      dept.includes('oper') ||
+      dept.includes('pcp');
+
+    if (isSupCoordMaintenance) {
       add(WIDGET_IDS.manutencao, 'grande', 'critica');
       add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
       add(WIDGET_IDS.alertas, 'grande', 'alta');
       add(WIDGET_IDS.grafico_tendencia, 'grande', 'alta');
+      add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+      add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    } else if (isSupCoordQuality) {
+      add(WIDGET_IDS.qualidade, 'grande', 'critica');
+      add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+      add(WIDGET_IDS.rastreabilidade, 'grande', 'alta');
+      add(WIDGET_IDS.receitas, 'grande', 'alta');
+      add(WIDGET_IDS.alertas, 'grande', 'alta');
+      add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+      add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    } else if (isSupCoordProduction) {
+      add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+      add(WIDGET_IDS.operacoes, 'grande', 'critica');
+      add(WIDGET_IDS.gargalos, 'grande', 'alta');
+      add(WIDGET_IDS.centro_previsao, 'grande', 'alta');
+      add(WIDGET_IDS.alertas, 'grande', 'alta');
+      add(WIDGET_IDS.grafico_tendencia, 'grande', 'media');
       add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
       add(WIDGET_IDS.insights_ia, 'grande', 'media');
     } else {
@@ -206,7 +245,7 @@ function gerarConfigPorRegras(user) {
     ]
   };
 
-  return { perfil, modulos, assistente_ia };
+  return { perfil, modulos, assistente_ia, layout_rules_version: LAYOUT_RULES_VERSION };
 }
 
 /**
@@ -254,7 +293,10 @@ async function getConfigPersonalizado(user) {
       [user.id]
     );
     if (r.rows.length > 0) {
-      config = r.rows[0].config_json;
+      const parsed = r.rows[0].config_json;
+      if (parsed && Number(parsed.layout_rules_version) === LAYOUT_RULES_VERSION) {
+        config = parsed;
+      }
     }
   } catch (e) {
     // Tabela pode não existir
@@ -275,11 +317,14 @@ async function getConfigPersonalizado(user) {
   }
 
   const layout = configParaLayout(config);
+  const version = Number(config.layout_rules_version);
   return {
     perfil: config.perfil,
     modulos: config.modulos,
     assistente_ia: config.assistente_ia,
-    layout
+    layout,
+    /** Versão das regras de montagem do grid (telemetria, suporte, debugging). */
+    layout_rules_version: Number.isFinite(version) && version > 0 ? version : LAYOUT_RULES_VERSION
   };
 }
 
@@ -300,5 +345,6 @@ module.exports = {
   configParaLayout,
   getConfigPersonalizado,
   invalidarCache,
-  WIDGET_IDS
+  WIDGET_IDS,
+  LAYOUT_RULES_VERSION
 };

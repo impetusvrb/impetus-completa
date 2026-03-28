@@ -1,13 +1,17 @@
 /**
  * ManuIA — configuração do build Unity WebGL (caminhos públicos).
- * Após exportar o projeto Unity, copie a pasta Build/ para public/unity/manu-ia-viewer/Build/
- * e ajuste UNITY_BUILD_FILE se o nome do ficheiro .loader.js for diferente.
+ * Copie Build/, TemplateData/ e index.html para public/unity/manu-ia-viewer/.
+ * O nome do .loader.js é detetado via index.html em runtime; use VITE_UNITY_BUILD_NAME para forçar.
  */
 const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
 export const UNITY_VIEWER_BASE = `${base}/unity/manu-ia-viewer`;
 
-/** Nome base do ficheiro gerado pelo Unity (ex.: ManuIAViewer.loader.js → "ManuIAViewer") */
-export const UNITY_BUILD_NAME = 'ManuIAViewer';
+const envBuild = typeof import.meta.env.VITE_UNITY_BUILD_NAME === 'string'
+  ? import.meta.env.VITE_UNITY_BUILD_NAME.trim()
+  : '';
+
+/** Fallback se index.html não existir ou não for possível extrair o prefixo dos ficheiros em Build/ */
+export const UNITY_BUILD_NAME = envBuild || 'manu-ia-viewer';
 
 /** GameObject no Unity que expõe SendMessage (ver MachineController.cs.example) */
 export const UNITY_MACHINE_CONTROLLER = 'MachineController';

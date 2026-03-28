@@ -29,8 +29,8 @@ import {
   ExternalLink,
   Layers,
   FileEdit,
+  ClipboardList,
   Cpu,
-  Shield,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -44,7 +44,7 @@ import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
-import { resolveMenuRole, isMaintenanceProfile } from '../utils/roleUtils';
+import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, isMaintenanceTechnicianMenu } from '../utils/roleUtils';
 import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import './Layout.css';
@@ -126,11 +126,77 @@ export default function Layout({ children }) {
   const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
   const allowManuiaByMaintenance = maintenanceProfile && normalizedPath.startsWith('/app/manutencao/manuia');
 
-  if (!modulesLoading && location.pathname !== '/app' && !allowManuiaByMaintenance && !canAccessPath(location.pathname)) {
-    if (role === 'admin') return <Navigate to="/app/chatbot" replace state={{ from: location }} />;
+  let pathOk = canAccessPath(location.pathname);
+  if (isColaboradorSimples(user)) {
+    const allowedOperacional = [
+      '/app',
+      '/app/proacao',
+      '/app/cadastrar-com-ia',
+      '/app/biblioteca',
+      '/app/registro-inteligente',
+      '/app/chatbot',
+      '/chat',
+      '/app/settings'
+    ];
+    pathOk =
+      allowedOperacional.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
+  } else if (isMaintenanceTechnicianMenu(user)) {
+    const allowMaint = [
+      '/app',
+      '/app/proacao',
+      '/app/registro-inteligente',
+      '/app/chatbot',
+      '/chat',
+      '/diagnostic',
+      '/app/manutencao/manuia',
+      '/app/biblioteca',
+      '/app/almoxarifado-inteligente',
+      '/app/settings'
+    ];
+    pathOk = allowMaint.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
+  }
+
+  if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
+    if ((user.role || '').toLowerCase() === 'admin') return <Navigate to="/app/chatbot" replace state={{ from: location }} />;
+    if (isColaboradorSimples(user)) return <Navigate to="/app" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
   if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/chatbot" replace />;
+
+  /** Diretor, gerente, coordenador, supervisor — mesmo núcleo (sem Operacional, sem base estrutural) */
+  const MENU_LIDERANCA = [
+    { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+    { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+    { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
+    { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+    { path: '/app/settings', icon: Settings, label: 'Configurações' }
+  ];
+
+  /** Colaborador operacional (sem manutenção): dashboard + turno — não confundir com técnico de manutenção */
+  const MENU_COLABORADOR_OPERACIONAL = [
+    { path: '/app', icon: LayoutDashboard, label: 'Meu Dashboard' },
+    { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+    { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
+    { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
+    { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+    { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+    { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
+    { path: '/app/settings', icon: Settings, label: 'Configurações' }
+  ];
+
+  /** Mecânico / eletricista / eletromecânico — dashboard técnico + ferramentas de campo */
+  const MENU_MANUTENCAO_TECNICO = [
+    { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
+    { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+    { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+    { path: '/diagnostic', icon: ClipboardList, label: 'Diagnóstico / OS' },
+    { path: '/app/biblioteca', icon: FolderOpen, label: 'Manuais e Biblioteca' },
+    { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
+    { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+    { path: '/app/settings', icon: Settings, label: 'Configurações' }
+  ];
 
   const MENUS = {
     admin: [
@@ -147,67 +213,23 @@ export default function Layout({ children }) {
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'NexusIA — Custos' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
-    diretor: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
-      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
-    gerente: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
-      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
-      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação Organizacional' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
-    coordenador: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
-      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
-      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
-    supervisor: [
-      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
-      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
-      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
+    diretor: MENU_LIDERANCA,
+    gerente: MENU_LIDERANCA,
+    coordenador: MENU_LIDERANCA,
+    supervisor: MENU_LIDERANCA,
     operador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
-    colaborador: [
-      { path: '/app', icon: LayoutDashboard, label: 'Meu Dashboard' },
-      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
-      { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
-      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
-      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
+    colaborador: MENU_COLABORADOR_OPERACIONAL,
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
@@ -216,35 +238,18 @@ export default function Layout({ children }) {
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
-      { path: '/app/settings', icon: Settings, label: 'Configurações' },
-    ],
+      { path: '/app/settings', icon: Settings, label: 'Configurações' }
+    ]
   };
 
-  let baseMenuItems = MENUS[role] || MENUS['colaborador'] || MENUS['operador'];
-  // Garante que perfis de manutenção vejam o link do ManuIA no menu,
-  // mesmo quando resolveMenuRole() classifica o usuário em outro "menu role".
-  if (
-    maintenanceProfile
-    && !baseMenuItems.some((i) => i.path === '/app/manutencao/manuia')
-  ) {
-    baseMenuItems = [
-      ...baseMenuItems,
-      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' }
-    ];
+  let baseMenuItems;
+  if (isMaintenanceTechnicianMenu(user)) {
+    baseMenuItems = MENU_MANUTENCAO_TECNICO;
+  } else {
+    baseMenuItems = MENUS[role] || MENU_COLABORADOR_OPERACIONAL;
   }
 
   let menuItems = filterMenu(baseMenuItems);
-  // Se o backend ainda não retornou visible_modules com "manuia", não bloqueia menu
-  // para quem é manutenção (o backend de /api/manutencao-ia continua sendo o gate real).
-  if (
-    maintenanceProfile
-    && !menuItems.some((i) => i.path === '/app/manutencao/manuia')
-  ) {
-    menuItems = [
-      ...menuItems,
-      { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' }
-    ];
-  }
 
   const handleLogout = () => {
     localStorage.removeItem('impetus_token');
@@ -375,7 +380,7 @@ export default function Layout({ children }) {
           <div className="header-right" ref={headerDropdownRef}>
             <div className="sys-status" title="Status do sistema">
               <span className="pulse" />
-              OPERACIONAL
+              SISTEMA ATIVO
             </div>
             <div className="header-dropdown-wrapper">
               <button

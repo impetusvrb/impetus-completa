@@ -26,6 +26,7 @@ router.get('/my-tasks', requireAuth, handle(maintenanceService.getMyTasks));
 router.get('/machines-attention', requireAuth, handle(maintenanceService.getMachinesAttention));
 router.get('/interventions', requireAuth, handle(maintenanceService.getInterventions));
 router.get('/preventives', requireAuth, handle(maintenanceService.getPreventives));
+router.get('/preventives-board', requireAuth, handle(maintenanceService.getPreventivesBoard));
 router.get('/recurring-failures', requireAuth, handle(maintenanceService.getRecurringFailures));
 
 module.exports = router;

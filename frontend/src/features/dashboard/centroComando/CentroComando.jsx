@@ -3,7 +3,7 @@
  * Grid 4 colunas; gráficos, indicadores, relatórios, diagramas; tudo IA onde aplicável.
  * Suporta layout personalizado por perfil (API /dashboard/personalizado) ou fallback por cargo.
  */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Layout from '../../../components/Layout';
 import { getLayoutPorCargo } from './LayoutPorCargo';
 import { dashboard } from '../../../services/api';
@@ -73,13 +73,20 @@ export default function CentroComando() {
   const user = userStr ? (() => { try { return JSON.parse(userStr); } catch { return null; } })() : null;
   const role = user?.role ?? '';
   const department = user?.functional_area ?? user?.area ?? '';
+  const dashboardProfile = user?.dashboard_profile ?? '';
 
   const [personalizado, setPersonalizado] = useState(null);
+  const layoutTrackSig = useRef('');
 
   useEffect(() => {
     dashboard.getPersonalizado()
       .then((r) => {
-        if (r?.data?.ok) setPersonalizado(r.data);
+        if (r?.data?.ok) {
+          if (import.meta.env.DEV && r.data.layout_rules_version != null) {
+            console.debug('[CentroComando] layout_rules_version', r.data.layout_rules_version);
+          }
+          setPersonalizado(r.data);
+        }
       })
       .catch((err) => {
         if (import.meta.env.DEV) console.warn('[CentroComando] /dashboard/personalizado falhou:', err?.response?.status ?? err?.message);
@@ -88,8 +95,20 @@ export default function CentroComando() {
 
   const widgets = useMemo(() => {
     if (personalizado?.layout?.length) return personalizado.layout;
-    return getLayoutPorCargo(role, department);
-  }, [personalizado, role, department]);
+    return getLayoutPorCargo(role, department, dashboardProfile);
+  }, [personalizado, role, department, dashboardProfile]);
+
+  useEffect(() => {
+    if (!widgets?.length || !user?.id || !user?.company_id) return;
+    const source = personalizado?.layout?.length ? 'personalizado_api' : 'layout_fallback';
+    const sig = `${source}:${widgets.map((w) => w.id).join(',')}`;
+    if (layoutTrackSig.current === sig) return;
+    layoutTrackSig.current = sig;
+    dashboard.trackInteraction('centro_comando_layout', 'dashboard_layout', dashboardProfile || role, {
+      source,
+      widget_count: widgets.length
+    }).catch(() => {});
+  }, [widgets, personalizado, user, role, dashboardProfile]);
 
   const titulo = personalizado?.perfil?.titulo_dashboard ?? 'Centro de Comando Industrial';
   const subtitulo = personalizado?.perfil?.subtitulo

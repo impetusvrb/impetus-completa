@@ -40,10 +40,12 @@ export const WIDGET_IDS = {
 /**
  * Retorna lista de widgets com posição para o perfil (role/department).
  * Grid 4 colunas; width 1 ou 2. Conforme Part 5 do prompt.
+ * `dashboardProfile` (ex.: supervisor_maintenance) alinha o fallback ao motor em dashboardPersonalizadoService.
  */
-export function getLayoutPorCargo(role = '', department = '') {
+export function getLayoutPorCargo(role = '', department = '', dashboardProfile = '') {
   const r = (role || '').toLowerCase();
   const d = (department || '').toLowerCase();
+  const dp = (dashboardProfile || '').toLowerCase();
 
   // CEO — Prompt: faturamento, lucro, custo industrial, OEE, eficiência, desperdício, previsão 30d;
   // gráficos crescimento, produção vs demanda, custos por setor, margem; centros Custos, Performance, Cérebro
@@ -137,9 +139,63 @@ export function getLayoutPorCargo(role = '', department = '') {
     ];
   }
 
-  // Supervisor / Coordenador / Técnico — visão operacional (PT e EN: technician, supervisor_maintenance, coordinator_maintenance)
-  const isSupervisorCoordTecnico = r.includes('supervisor') || r.includes('coordenador') || r.includes('coordinator') || r.includes('técnico') || r.includes('tecnico') || r.includes('technician');
+  // Supervisor / Coordenador — produção vs manutenção vs qualidade (espelha backend gerarConfigPorRegras)
+  const isSupervisorCoordTecnico =
+    r.includes('supervisor') ||
+    r.includes('coordenador') ||
+    r.includes('coordinator') ||
+    r.includes('técnico') ||
+    r.includes('tecnico') ||
+    r.includes('technician');
   if (isSupervisorCoordTecnico) {
+    const isM =
+      dp.includes('supervisor_maintenance') ||
+      dp.includes('coordinator_maintenance') ||
+      d.includes('manuten') ||
+      d.includes('mecan') ||
+      d.includes('maintenance') ||
+      r.includes('maintenance');
+    const isQ = dp.includes('supervisor_quality') || dp.includes('coordinator_quality') || d.includes('qualid');
+    const isP =
+      dp.includes('supervisor_production') ||
+      dp.includes('coordinator_production') ||
+      d.includes('produ') ||
+      d.includes('oper') ||
+      d.includes('pcp');
+
+    if (isM) {
+      return [
+        { id: WIDGET_IDS.MANUTENCAO, label: 'Centro de Manutenção', position: pos(0, 0, 2) },
+        { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+        { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 0, 2) },
+        { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência', position: pos(1, 2, 2) },
+        { id: WIDGET_IDS.PERGUNTE_IA, label: 'Pergunte à IA', position: pos(2, 0, 2) },
+        { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 2, 2) }
+      ];
+    }
+    if (isQ) {
+      return [
+        { id: WIDGET_IDS.QUALIDADE, label: 'Centro de Qualidade', position: pos(0, 0, 2) },
+        { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+        { id: WIDGET_IDS.RASTREABILIDADE, label: 'Rastreabilidade', position: pos(1, 0, 2) },
+        { id: WIDGET_IDS.RECEITAS, label: 'Centro de Receitas', position: pos(1, 2, 2) },
+        { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(2, 0, 2) },
+        { id: WIDGET_IDS.PERGUNTE_IA, label: 'Pergunte à IA', position: pos(2, 2, 2) },
+        { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(3, 0, 2) }
+      ];
+    }
+    if (isP) {
+      return [
+        { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 0, 2) },
+        { id: WIDGET_IDS.OPERACOES, label: 'Centro de Operações', position: pos(0, 2, 2) },
+        { id: WIDGET_IDS.GARGALOS, label: 'Gargalos', position: pos(1, 0, 2) },
+        { id: WIDGET_IDS.CENTRO_PREVISAO, label: 'Previsão', position: pos(1, 2, 2) },
+        { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(2, 0, 2) },
+        { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência', position: pos(2, 2, 2) },
+        { id: WIDGET_IDS.PERGUNTE_IA, label: 'Pergunte à IA', position: pos(3, 0, 2) },
+        { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(3, 2, 2) }
+      ];
+    }
     return [
       { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo do dia', position: pos(0, 0, 2) },
       { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },

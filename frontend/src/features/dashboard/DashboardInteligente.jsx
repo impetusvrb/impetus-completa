@@ -190,7 +190,7 @@ export default function DashboardInteligente({ embed = false }) {
           {sections.recent_interactions && (
             <section className="dashboard-inteligente__block block-interacoes">
               <h2><MessageSquare size={20} /> Interações</h2>
-              <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app/operacional')} />
+              <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app')} />
             </section>
           )}
 

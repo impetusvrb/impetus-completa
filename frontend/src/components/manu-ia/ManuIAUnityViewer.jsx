@@ -40,6 +40,77 @@ function loadScriptOnce(src) {
   });
 }
 
+function viewerPublicUrl(viewerBase, relativePath) {
+  const root = viewerBase.replace(/\/$/, '');
+  const parts = relativePath.split('/').filter(Boolean).map((p) => encodeURIComponent(p));
+  return `${root}/${parts.join('/')}`;
+}
+
+/**
+ * Prefixo dos ficheiros em Build/ (ex. ManualViewer.loader.js → ManualViewer).
+ * Aceita nomes com espaços (produto Unity).
+ */
+function resolveUnityBuildPrefixFromHtml(html) {
+  if (!html) return null;
+  const fromScript = html.match(/Build\/([^"']+\.loader\.js)/i);
+  if (fromScript?.[1]) return fromScript[1].replace(/\.loader\.js$/i, '');
+  const fromConcat = html.match(/buildUrl\s*\+\s*["']\/([^"']+\.loader\.js)["']/i);
+  if (fromConcat?.[1]) return fromConcat[1].replace(/\.loader\.js$/i, '');
+  const fromData = html.match(/["']Build\/([^"']+)\.data(?:\.br)?["']/i);
+  if (fromData?.[1]) return fromData[1];
+  return null;
+}
+
+/**
+ * Extrai dataUrl / frameworkUrl / codeUrl do index.html gerado pelo Unity
+ * (inclui sufixos .br quando o template usa buildUrl + "...").
+ */
+function tryParseUnityAssetUrlsFromIndexHtml(html, viewerBase) {
+  if (!html) return null;
+  const mBuild = html.match(/var\s+buildUrl\s*=\s*["']([^"']*)["']/i);
+  const buildFolder = (mBuild?.[1] ?? 'Build').replace(/\/$/, '');
+
+  const fromConcat = (key) => {
+    const re = new RegExp(`${key}\\s*:\\s*buildUrl\\s*\\+\\s*["']([^"']+)["']`, 'i');
+    const add = html.match(re);
+    if (!add) return null;
+    const rel = `${buildFolder}${add[1]}`.replace(/\/{2,}/g, '/').replace(/^\//, '');
+    return viewerPublicUrl(viewerBase, rel);
+  };
+
+  const dataUrl = fromConcat('dataUrl');
+  const frameworkUrl = fromConcat('frameworkUrl');
+  const codeUrl = fromConcat('codeUrl');
+
+  let streamingAssetsUrl = viewerPublicUrl(viewerBase, 'StreamingAssets');
+  const streamConcat = html.match(/streamingAssetsUrl\s*:\s*buildUrl\s*\+\s*["']([^"']+)["']/i);
+  const streamQuoted = html.match(/streamingAssetsUrl\s*:\s*["']([^"']*)["']/i);
+  if (streamConcat) {
+    const rel = `${buildFolder}${streamConcat[1]}`.replace(/\/{2,}/g, '/').replace(/^\//, '');
+    streamingAssetsUrl = viewerPublicUrl(viewerBase, rel);
+  } else if (streamQuoted && streamQuoted[1] !== '') {
+    const q = streamQuoted[1];
+    streamingAssetsUrl = /^https?:\/\//i.test(q)
+      ? q
+      : viewerPublicUrl(viewerBase, q.replace(/^\//, ''));
+  }
+
+  if (dataUrl && frameworkUrl && codeUrl) {
+    return { dataUrl, frameworkUrl, codeUrl, streamingAssetsUrl };
+  }
+  return null;
+}
+
+async function fetchUnityViewerIndexHtml(baseUrl) {
+  try {
+    const r = await fetch(`${baseUrl}/index.html`, { cache: 'no-store' });
+    if (r.ok) return await r.text();
+  } catch (_) {
+    /* same-origin; falha rara */
+  }
+  return null;
+}
+
 const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
   const {
     variant = 'search',
@@ -66,27 +137,29 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
 
   const mountUnity = useCallback(async () => {
     const base = normalizeBasePath();
-    const loaderUrl = `${base}/Build/${UNITY_BUILD_NAME}.loader.js`;
     try {
-      const head = await fetch(loaderUrl, { method: 'HEAD', cache: 'no-store' });
-      if (!head.ok) {
-        setBuildMissing(true);
-        setLoading(false);
-        setViewerStatus('build não encontrado — copie a pasta Build do Unity');
-        bridge.clearCommandQueue();
-        return;
-      }
+      const indexHtml = await fetchUnityViewerIndexHtml(base);
+      const forced =
+        typeof import.meta.env.VITE_UNITY_BUILD_NAME === 'string'
+          ? import.meta.env.VITE_UNITY_BUILD_NAME.trim()
+          : '';
+      const buildPrefix =
+        forced || resolveUnityBuildPrefixFromHtml(indexHtml) || UNITY_BUILD_NAME;
+      const loaderUrl = viewerPublicUrl(base, `Build/${buildPrefix}.loader.js`);
       await loadScriptOnce(loaderUrl);
       const createUnityInstance = window.createUnityInstance;
       if (typeof createUnityInstance !== 'function') {
         throw new Error('createUnityInstance indisponível após carregar o loader');
       }
+      const parsed = tryParseUnityAssetUrlsFromIndexHtml(indexHtml, base);
       const buildUrl = `${base}/Build`;
       const config = {
-        dataUrl: `${buildUrl}/${UNITY_BUILD_NAME}.data`,
-        frameworkUrl: `${buildUrl}/${UNITY_BUILD_NAME}.framework.js`,
-        codeUrl: `${buildUrl}/${UNITY_BUILD_NAME}.wasm`,
-        streamingAssetsUrl: `${base}/StreamingAssets`,
+        ...(parsed || {
+          dataUrl: viewerPublicUrl(buildUrl, `${buildPrefix}.data`),
+          frameworkUrl: viewerPublicUrl(buildUrl, `${buildPrefix}.framework.js`),
+          codeUrl: viewerPublicUrl(buildUrl, `${buildPrefix}.wasm`),
+          streamingAssetsUrl: viewerPublicUrl(base, 'StreamingAssets')
+        }),
         companyName: 'Impetus',
         productName: 'ManuIA',
         productVersion: '1.0'
