@@ -319,6 +319,63 @@ function requirePermission(permission) {
 }
 
 /**
+ * Autorização por role (ex.: apenas admin do sistema).
+ * Comparação case-insensitive com a lista permitida.
+ */
+function requireRole(...allowedRoles) {
+  const allowed = new Set(allowedRoles.map((r) => String(r).toLowerCase()));
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        ok: false,
+        error: AUTH.NOT_AUTHENTICATED,
+        code: 'AUTH_REQUIRED'
+      });
+    }
+    const role = String(req.user.role || '').toLowerCase();
+    if (!allowed.has(role)) {
+      logAction({
+        companyId: req.user.company_id,
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'access_denied',
+        entityType: 'role',
+        description: `Acesso negado: role requerida ${[...allowed].join('|')}, atual ${role}`,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        severity: 'warning',
+        success: false
+      }).catch(() => {});
+      return res.status(403).json({
+        ok: false,
+        error: AUTH.ACCESS_DENIED_ROLE,
+        code: 'AUTH_ROLE_DENIED',
+        required_roles: [...allowedRoles]
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * Exige company_id no utilizador autenticado (cadastros multi-tenant).
+ */
+function requireCompanyId(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ ok: false, error: AUTH.NOT_AUTHENTICATED, code: 'AUTH_REQUIRED' });
+  }
+  if (!req.user.company_id) {
+    return res.status(403).json({
+      ok: false,
+      error: AUTH.COMPANY_REQUIRED,
+      code: 'AUTH_COMPANY_REQUIRED'
+    });
+  }
+  next();
+}
+
+/**
  * Middleware que verifica se usuário pertence à mesma empresa
  */
 function sameCompanyOnly(req, res, next) {
@@ -373,6 +430,8 @@ module.exports = {
   destroySession,
   requireAuth,
   requireHierarchy,
+  requireRole,
+  requireCompanyId,
   requirePermission,
   sameCompanyOnly,
   hashPassword,

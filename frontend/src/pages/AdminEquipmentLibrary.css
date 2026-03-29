@@ -1,0 +1,88 @@
+.eq-lib-page .page-header {
+  margin-bottom: 1.25rem;
+}
+
+.eq-lib-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.eq-lib-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.eq-lib-tabs button.active {
+  background: var(--accent-soft, rgba(99, 102, 241, 0.2));
+  border-color: var(--accent, #6366f1);
+}
+
+.eq-lib-section {
+  margin-top: 0.5rem;
+}
+
+.eq-lib-hint {
+  opacity: 0.85;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+}
+
+.eq-lib-meta {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin-bottom: 0.75rem;
+}
+
+.eq-lib-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eq-lib-link {
+  color: var(--accent, #818cf8);
+  text-decoration: none;
+}
+
+.eq-lib-link:hover {
+  text-decoration: underline;
+}
+
+.eq-lib-file {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.9;
+}
+
+.eq-lib-file:hover {
+  opacity: 1;
+}
+
+.eq-lib-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.eq-lib-parts-toolbar {
+  margin-bottom: 1rem;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}

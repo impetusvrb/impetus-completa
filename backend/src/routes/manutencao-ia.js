@@ -269,10 +269,19 @@ router.get('/emergency-events', manuiaGuard, async (req, res) => {
 
 const equipmentResearchService = require('../services/equipmentResearchService');
 
+function manuiaPublicBaseUrl(req) {
+  const env = process.env.PUBLIC_APP_URL;
+  if (env && /^https?:\/\//i.test(String(env).trim())) return String(env).trim().replace(/\/$/, '');
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+  const host = req.get('x-forwarded-host') || req.get('host');
+  return host ? `${proto}://${host}` : '';
+}
+
 /**
  * POST /api/manutencao-ia/research-equipment
  * Pesquisa equipamento na internet via IA e retorna dados estruturados para renderização 3D
  * Body: { query: string, session_id?: uuid }
+ * Prioriza Biblioteca Técnica Inteligente (modelo GLB/GLTF) antes do catálogo procedural.
  */
 router.post('/research-equipment', manuiaGuard, async (req, res) => {
   try {
@@ -288,7 +297,8 @@ router.post('/research-equipment', manuiaGuard, async (req, res) => {
       query.trim(),
       companyId,
       userId,
-      session_id || null
+      session_id || null,
+      manuiaPublicBaseUrl(req)
     );
     res.json({ ok: true, research: result });
   } catch (err) {

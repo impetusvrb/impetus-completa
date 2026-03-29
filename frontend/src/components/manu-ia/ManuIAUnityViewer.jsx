@@ -191,9 +191,21 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
     };
   }, [mountUnity]);
 
-  /* --- Modo pesquisa: sincroniza pesquisa IA + diagnóstico --- */
+  /* --- Modo pesquisa: prioriza modelo da Biblioteca Técnica (URL), senão catálogo procedural --- */
   useEffect(() => {
     if (variant !== 'search' || !research) return;
+    const libUrl =
+      research.library_model_url ||
+      research.technical_library_resolution?.unityPayload?.modelUrl ||
+      null;
+    if (libUrl && typeof libUrl === 'string') {
+      const key = `lib:${libUrl}`;
+      if (key === lastLoadRef.current) return;
+      lastLoadRef.current = key;
+      bridge.loadModelFromUrl(libUrl);
+      setViewerStatus('Modelo: biblioteca técnica');
+      return;
+    }
     const entry = resolveCatalogEntryFromResearch(research);
     const key = entry.unityModelId;
     if (key === lastLoadRef.current) return;

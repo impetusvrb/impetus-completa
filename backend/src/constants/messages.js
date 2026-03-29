@@ -5,7 +5,9 @@ const AUTH = {
   NOT_AUTHENTICATED: 'Não autenticado',
   ACCESS_DENIED_HIERARCHY: 'Acesso negado por hierarquia',
   ACCESS_DENIED_PERMISSION: 'Acesso negado',
-  ACCESS_DENIED_COMPANY: 'Acesso negado à empresa'
+  ACCESS_DENIED_COMPANY: 'Acesso negado à empresa',
+  ACCESS_DENIED_ROLE: 'Acesso negado: perfil insuficiente',
+  COMPANY_REQUIRED: 'Conta sem empresa associada'
 };
 
 const ERRORS = {

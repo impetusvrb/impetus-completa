@@ -111,14 +111,133 @@ function normalizeQuery(query) {
 }
 
 /**
+ * Enriquece o resultado da pesquisa com a Biblioteca Técnica Inteligente (prioridade sobre render procedural genérico).
+ */
+async function mergeTechnicalLibraryIntoResearch(result, companyId, queryText, publicBaseUrl) {
+  try {
+    const modelResolver = require('../modules/technicalLibrary/services/modelResolverService');
+    const resolved = await modelResolver.resolve(companyId, { query: queryText }, publicBaseUrl || '');
+    if (!resolved || resolved.source === 'not_found') {
+      return result;
+    }
+    const out = { ...result };
+    out.technical_library_resolution = resolved;
+    if (resolved.source === 'library' && resolved.unityPayload) {
+      out.library_model_url = resolved.unityPayload.modelUrl;
+      out.render_mode = resolved.unityPayload.modelUrl ? 'library_model' : out.render_mode;
+      out.equipment = { ...(out.equipment || {}) };
+      const meta = resolved.unityPayload.metadata || {};
+      if (meta.name) out.equipment.name = out.equipment.name || meta.name;
+      if (meta.manufacturer) out.equipment.manufacturer = out.equipment.manufacturer || meta.manufacturer;
+      if (meta.model) out.equipment.model = out.equipment.model || meta.model;
+      if (meta.category && !out.equipment.category) out.equipment.category = meta.category;
+      if (resolved.unityPayload.highlightParts?.length) {
+        const hp = resolved.unityPayload.highlightParts;
+        if (!out.components?.length) {
+          out.components = hp.map((p) => ({
+            name: p.name,
+            technical_name: String(p.code || p.name || 'part')
+              .toLowerCase()
+              .replace(/\s+/g, '_'),
+            position: 'library',
+            function: p.subsystem || '',
+            common_failure: false
+          }));
+        }
+        if (!out.spare_parts?.length) {
+          out.spare_parts = hp.slice(0, 30).map((p) => ({
+            code: p.code || '',
+            name: p.name || '',
+            quantity_per_unit: 1
+          }));
+        }
+      }
+      const ds = out.data_sources || [];
+      out.data_sources = Array.from(new Set([...ds, 'Biblioteca técnica inteligente (empresa)']));
+    }
+    if (resolved.source === 'library_no_model' && resolved.proceduralPayload) {
+      out.library_procedural_payload = resolved.proceduralPayload;
+      out.render_mode = out.render_mode || 'library_procedural';
+      const ds = out.data_sources || [];
+      out.data_sources = Array.from(new Set([...ds, 'Biblioteca técnica (cadastro sem GLB — procedural a partir de peças)']));
+    }
+    return out;
+  } catch (err) {
+    console.warn('[MANUIA_RESEARCH] merge technical library:', err?.message);
+    return result;
+  }
+}
+
+/**
+ * Quando não há OpenAI: devolve pesquisa mínima se existir equipamento na biblioteca técnica.
+ */
+async function tryLibraryOnlyResearch(companyId, queryText, publicBaseUrl) {
+  try {
+    const modelResolver = require('../modules/technicalLibrary/services/modelResolverService');
+    const resolved = await modelResolver.resolve(companyId, { query: queryText }, publicBaseUrl || '');
+    if (!resolved || resolved.source === 'not_found') return null;
+    const base = {
+      equipment: { name: queryText, manufacturer: '', model: '', category: 'generic' },
+      specs: {},
+      components: [],
+      common_failures: [],
+      spare_parts: [],
+      model_3d_type: 'generic',
+      render_config: {
+        main_body_shape: 'rectangular',
+        has_shaft: false,
+        has_impeller: false,
+        has_fan: false,
+        primary_color_hex: '#2a3a50',
+        accent_color_hex: '#1d6fe8'
+      },
+      data_confidence: 'high',
+      data_sources: ['Biblioteca técnica inteligente (empresa)'],
+      technical_library_resolution: resolved
+    };
+    if (resolved.source === 'library' && resolved.unityPayload?.metadata) {
+      const m = resolved.unityPayload.metadata;
+      base.equipment.name = m.name || queryText;
+      base.equipment.manufacturer = m.manufacturer || '';
+      base.equipment.model = m.model || '';
+      if (m.category) base.equipment.category = m.category;
+    }
+    if (resolved.source === 'library' && resolved.unityPayload) {
+      base.library_model_url = resolved.unityPayload.modelUrl;
+      base.render_mode = 'library_model';
+      if (resolved.unityPayload.highlightParts?.length) {
+        base.components = resolved.unityPayload.highlightParts.map((p) => ({
+          name: p.name,
+          technical_name: String(p.code || p.name || 'part')
+            .toLowerCase()
+            .replace(/\s+/g, '_'),
+          position: 'library',
+          function: p.subsystem || '',
+          common_failure: false
+        }));
+      }
+    }
+    if (resolved.source === 'library_no_model' && resolved.proceduralPayload) {
+      base.library_procedural_payload = resolved.proceduralPayload;
+      base.render_mode = 'library_procedural';
+    }
+    return base;
+  } catch (err) {
+    console.warn('[MANUIA_RESEARCH] library-only:', err?.message);
+    return null;
+  }
+}
+
+/**
  * Pesquisa equipamento via IA e retorna JSON estruturado
  * @param {string} query - Texto do equipamento (ex: "bomba UXVD marca Vital")
  * @param {string} companyId
  * @param {string} userId
  * @param {string} sessionId - opcional
+ * @param {string} publicBaseUrl - origem pública para URLs absolutas de modelos (opcional)
  * @returns {Promise<object>} research_result
  */
-async function researchEquipment(query, companyId, userId, sessionId = null) {
+async function researchEquipment(query, companyId, userId, sessionId = null, publicBaseUrl = null) {
   const q = (query || '').trim();
   if (!q || q.length < 3) {
     throw new Error('Informe ao menos 3 caracteres do equipamento');
@@ -136,13 +255,50 @@ async function researchEquipment(query, companyId, userId, sessionId = null) {
     );
     if (cached.rows?.length > 0) {
       const res = cached.rows[0].research_result;
-      return typeof res === 'string' ? JSON.parse(res) : res;
+      const parsed = typeof res === 'string' ? JSON.parse(res) : res;
+      return mergeTechnicalLibraryIntoResearch(parsed, companyId, q, publicBaseUrl);
     }
   } catch (err) {
     console.warn('[MANUIA_RESEARCH] cache check:', err?.message);
   }
 
   if (!client) {
+    const libOnly = await tryLibraryOnlyResearch(companyId, q, publicBaseUrl);
+    if (libOnly) {
+      try {
+        const equipmentName = libOnly.equipment?.name || q;
+        const manufacturer = libOnly.equipment?.manufacturer || '';
+        const model3dType = libOnly.model_3d_type || 'generic';
+        await db.query(
+          `INSERT INTO manuia_equipment_research
+           (company_id, user_id, query_normalized, query_original, research_result, equipment_name, equipment_manufacturer, model_3d_type, session_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           ON CONFLICT (company_id, query_normalized)
+           DO UPDATE SET
+             research_result = EXCLUDED.research_result,
+             equipment_name = EXCLUDED.equipment_name,
+             equipment_manufacturer = EXCLUDED.equipment_manufacturer,
+             model_3d_type = EXCLUDED.model_3d_type,
+             user_id = EXCLUDED.user_id,
+             session_id = EXCLUDED.session_id,
+             created_at = now()`,
+          [
+            companyId,
+            userId || null,
+            normalized,
+            q.slice(0, 500),
+            JSON.stringify(libOnly),
+            equipmentName,
+            manufacturer,
+            model3dType,
+            sessionId
+          ]
+        );
+      } catch (e) {
+        console.warn('[MANUIA_RESEARCH] cache save (library-only):', e?.message);
+      }
+      return libOnly;
+    }
     throw new Error('IA não configurada. Configure OPENAI_API_KEY.');
   }
 
@@ -197,9 +353,11 @@ async function researchEquipment(query, companyId, userId, sessionId = null) {
     };
   }
 
-  const equipmentName = result?.equipment?.name || q;
-  const manufacturer = result?.equipment?.manufacturer || '';
-  const model3dType = result?.model_3d_type || 'generic';
+  let merged = await mergeTechnicalLibraryIntoResearch(result, companyId, q, publicBaseUrl);
+
+  const equipmentName = merged?.equipment?.name || q;
+  const manufacturer = merged?.equipment?.manufacturer || '';
+  const model3dType = merged?.model_3d_type || 'generic';
 
   // Salvar no cache (upsert)
   try {
@@ -216,13 +374,13 @@ async function researchEquipment(query, companyId, userId, sessionId = null) {
          user_id = EXCLUDED.user_id,
          session_id = EXCLUDED.session_id,
          created_at = now()`,
-      [companyId, userId || null, normalized, q.slice(0, 500), JSON.stringify(result), equipmentName, manufacturer, model3dType, sessionId]
+      [companyId, userId || null, normalized, q.slice(0, 500), JSON.stringify(merged), equipmentName, manufacturer, model3dType, sessionId]
     );
   } catch (err) {
     console.warn('[MANUIA_RESEARCH] cache save:', err?.message);
   }
 
-  return result;
+  return merged;
 }
 
 /**

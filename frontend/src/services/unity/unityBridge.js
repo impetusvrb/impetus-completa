@@ -64,6 +64,11 @@ export function loadMachine(machineName) {
   enqueue('LoadMachine', machineName);
 }
 
+/** URL de modelo da Biblioteca Técnica (.glb/.gltf) — requer método homónimo no Unity */
+export function loadModelFromUrl(url) {
+  enqueue('LoadModelFromUrl', url || '');
+}
+
 export function setXRayMode(enabled, target) {
   enqueue('SetXRayMode', JSON.stringify({ enabled: !!enabled, target: target || '' }));
 }

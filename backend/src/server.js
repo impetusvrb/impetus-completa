@@ -4,6 +4,8 @@
  */
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
@@ -55,7 +57,9 @@ function needsLargeBodyParser(url) {
     p.startsWith('/api/vision') ||
     p.startsWith('/api/cadastrar-com-ia') ||
     p.startsWith('/api/intelligent-registration') ||
-    p.startsWith('/api/asset-management')
+    p.startsWith('/api/asset-management') ||
+    p.startsWith('/api/admin/equipment-library') ||
+    p.startsWith('/api/technical-library')
   );
 }
 
@@ -119,6 +123,14 @@ app.get('/api/health', async (_req, res) => {
   res.json({ ok: true, status: 'ok', service: 'impetus-backend', voz });
 });
 
+const uploadsPublicPath = path.join(__dirname, '../../uploads');
+try {
+  fs.mkdirSync(uploadsPublicPath, { recursive: true });
+  app.use('/uploads', express.static(uploadsPublicPath));
+} catch (e) {
+  console.warn('[server] /uploads estático não montado:', e?.message);
+}
+
 function useRoute(mountPath, modulePath, ...middlewares) {
   try {
     const router = require(modulePath);
@@ -139,6 +151,8 @@ useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
 useRoute('/api/admin/departments', './routes/admin/departments');
 useRoute('/api/admin/structural', './routes/admin/structural');
+useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
+useRoute('/api/technical-library', './routes/technicalLibrary');
 useRoute('/api/admin/warehouse', './routes/admin/warehouse');
 useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials');
 useRoute('/api/admin/logistics', './routes/admin/logistics');

@@ -22,7 +22,9 @@ const MIGRATIONS_ORDER = [
   'voice_preferences_migration.sql',
   'voice_preferences_restore_migration.sql',
   'performance_indexes_migration.sql',
-  'manuia_migration.sql'
+  'manuia_migration.sql',
+  'equipment_library_admin_migration.sql',
+  'technical_library_inteligente_migration.sql'
 ];
 
 async function runMigration(fileName) {

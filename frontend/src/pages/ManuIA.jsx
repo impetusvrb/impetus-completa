@@ -13,6 +13,7 @@ import ManuIAUnityViewer from '../components/manu-ia/ManuIAUnityViewer';
 import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
 import Vision3DModule from '../modules/vision-3d/Vision3DModule';
 import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
+import TechnicalLibraryInteligenteModule from '../features/technical-library/TechnicalLibraryInteligenteModule';
 import {
   Wrench,
   Search,
@@ -26,9 +27,18 @@ import {
   Check,
   X,
   Camera,
-  TrendingUp
+  TrendingUp,
+  Library
 } from 'lucide-react';
 import './ManuIA.css';
+
+function isStrictAdmin() {
+  try {
+    return (JSON.parse(localStorage.getItem('impetus_user') || '{}').role || '').toLowerCase() === 'admin';
+  } catch {
+    return false;
+  }
+}
 
 const SYMPTOM_CHIPS = [
   { id: 'no_power', label: 'Não liga / sem energia' },
@@ -97,6 +107,21 @@ export default function ManuIA() {
   useEffect(() => {
     loadInitial();
   }, []);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'technical-library' && isStrictAdmin()) {
+      setActiveTab('technical-library');
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('tab');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -286,9 +311,22 @@ export default function ManuIA() {
           >
             <TrendingUp size={18} /> Gestão de Ativos
           </button>
+          {isStrictAdmin() && (
+            <button
+              type="button"
+              className={`manuia-tab ${activeTab === 'technical-library' ? 'manuia-tab--active' : ''}`}
+              onClick={() => setActiveTab('technical-library')}
+            >
+              <Library size={18} /> Biblioteca técnica inteligente
+            </button>
+          )}
         </div>
 
-        {activeTab === 'asset-management' ? (
+        {activeTab === 'technical-library' && isStrictAdmin() ? (
+          <section className="manuia-block manuia-block--technical-library">
+            <TechnicalLibraryInteligenteModule onBack={() => setActiveTab('search')} />
+          </section>
+        ) : activeTab === 'asset-management' ? (
           <section className="manuia-block manuia-block--asset-management">
             <AssetManagementModule
               onNavigateToMachine={(searchText, machineUuid) => {

@@ -786,3 +786,93 @@ export const logisticsIntelligence = {
   acknowledgeAlert: (id) => api.post(`/admin/logistics/intelligence/alerts/${id}/ack`),
   runAlerts: () => api.post('/admin/logistics/intelligence/run-alerts')
 };
+
+/** Biblioteca técnica de equipamentos — backend exige role admin + company_id */
+export const equipmentLibraryAdmin = {
+  health: () => api.get('/admin/equipment-library/health'),
+  references: () => api.get('/admin/equipment-library/references'),
+  assets: {
+    list: () => api.get('/admin/equipment-library/assets'),
+    get: (id) => api.get(`/admin/equipment-library/assets/${id}`),
+    create: (data) => api.post('/admin/equipment-library/assets', data),
+    update: (id, data) => api.put(`/admin/equipment-library/assets/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/assets/${id}`),
+    uploadModel3d: (id, file, opts) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (opts?.is_primary) fd.append('is_primary', 'true');
+      return api.post(`/admin/equipment-library/assets/${id}/model-3d`, fd);
+    },
+    uploadManualPdf: (id, file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return api.post(`/admin/equipment-library/assets/${id}/manual-pdf`, fd);
+    }
+  },
+  knowledgeDocuments: {
+    list: () => api.get('/admin/equipment-library/knowledge-documents'),
+    create: (data) => api.post('/admin/equipment-library/knowledge-documents', data),
+    update: (id, data) => api.put(`/admin/equipment-library/knowledge-documents/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/knowledge-documents/${id}`)
+  },
+  spareParts: {
+    list: () => api.get('/admin/equipment-library/spare-parts'),
+    upsert: (data) => api.post('/admin/equipment-library/spare-parts', data),
+    updateKeywords: (id, keywords) =>
+      api.patch(`/admin/equipment-library/spare-parts/${id}/keywords`, { keywords }),
+    validateAi: (id) => api.patch(`/admin/equipment-library/spare-parts/${id}/validate-ai`),
+    importCsv: (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return api.post('/admin/equipment-library/spare-parts/import-csv', fd);
+    }
+  }
+};
+
+/** Biblioteca Técnica Inteligente — Central técnica de ativos 3D (ManuIA), admin + company_id */
+export const technicalLibrary = {
+  health: () => api.get('/technical-library/health'),
+  listEquipments: (params) => api.get('/technical-library/equipments', { params }),
+  getEquipment: (id) => api.get(`/technical-library/equipments/${id}`),
+  createEquipment: (data) => api.post('/technical-library/equipments', data),
+  updateEquipment: (id, data) => api.put(`/technical-library/equipments/${id}`, data),
+  deleteEquipment: (id) => api.delete(`/technical-library/equipments/${id}`),
+  postKeywords: (equipmentId, body) => api.post(`/technical-library/equipments/${equipmentId}/keywords`, body),
+  deleteKeyword: (keywordId) => api.delete(`/technical-library/keywords/${keywordId}`),
+  uploadModel: (equipmentId, file, fields) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (fields) {
+      Object.keys(fields).forEach((k) => {
+        if (fields[k] != null && fields[k] !== '') fd.append(k, fields[k]);
+      });
+    }
+    return api.post(`/technical-library/equipments/${equipmentId}/models`, fd);
+  },
+  patchModel: (modelId, data) => api.patch(`/technical-library/models/${modelId}`, data),
+  setPrimaryModel: (modelId) => api.patch(`/technical-library/models/${modelId}/set-primary`),
+  deleteModel: (modelId) => api.delete(`/technical-library/models/${modelId}`),
+  uploadDocument: (equipmentId, file, fields) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (fields) {
+      Object.keys(fields).forEach((k) => {
+        if (fields[k] != null && fields[k] !== '') fd.append(k, fields[k]);
+      });
+    }
+    return api.post(`/technical-library/equipments/${equipmentId}/documents`, fd);
+  },
+  deleteDocument: (documentId) => api.delete(`/technical-library/documents/${documentId}`),
+  createPart: (equipmentId, data) => api.post(`/technical-library/equipments/${equipmentId}/parts`, data),
+  updatePart: (partId, data) => api.put(`/technical-library/parts/${partId}`, data),
+  deletePart: (partId) => api.delete(`/technical-library/parts/${partId}`),
+  importCsv: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post('/technical-library/import/csv', fd);
+  },
+  buildUnityPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-unity-payload`),
+  buildProceduralPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-procedural-payload`),
+  testResolve: (body) => api.post('/technical-library/resolve/test', body),
+  listAudit: (params) => api.get('/technical-library/audit', { params })
+};

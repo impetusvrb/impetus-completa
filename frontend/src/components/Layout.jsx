@@ -207,6 +207,7 @@ export default function Layout({ children }) {
       { path: '/app/admin/centro-custos', icon: DollarSign, label: 'Centro de Custos (Config)' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
+      { path: '/app/admin/equipment-library', icon: Package, label: 'Biblioteca técnica' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
