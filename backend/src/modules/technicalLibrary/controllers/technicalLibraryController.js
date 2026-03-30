@@ -4,6 +4,7 @@
 'use strict';
 
 const svc = require('../services/technicalLibraryService');
+const unityVisualizationPayload = require('../services/unityVisualizationPayloadService');
 const { isValidUUID } = require('../../../utils/security');
 
 function publicBaseUrl(req) {
@@ -271,6 +272,41 @@ async function listAudit(req, res) {
   }
 }
 
+/**
+ * POST body: { source: 'alarm'|'ai', alarm?: {...}, ai?: {...}, context?: {...} }
+ * Payload visual unificado para Unity (contrato modelId, renderMode, labels, overlayData, fallbackLevel).
+ */
+async function buildUnityVisualPayload(req, res) {
+  try {
+    const b = req.body || {};
+    const src = String(b.source || '').toLowerCase();
+    if (src === 'alarm') {
+      const data = await unityVisualizationPayload.buildFromAlarmIntegration(
+        req.user.company_id,
+        b.alarm || b,
+        publicBaseUrl(req)
+      );
+      return res.json({ ok: true, data });
+    }
+    if (src === 'ai') {
+      const data = await unityVisualizationPayload.buildFromAiAnalysisResult(
+        req.user.company_id,
+        b.ai || {},
+        b.context || {},
+        publicBaseUrl(req)
+      );
+      return res.json({ ok: true, data });
+    }
+    return res.status(400).json({
+      ok: false,
+      error: 'Informe source: "alarm" ou "ai" (e o objeto correspondente).'
+    });
+  } catch (e) {
+    console.error('[TL_UNITY_VISUAL]', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+}
+
 module.exports = {
   listEquipments,
   getEquipment,
@@ -292,5 +328,6 @@ module.exports = {
   buildUnity,
   buildProcedural,
   testResolve,
-  listAudit
+  listAudit,
+  buildUnityVisualPayload
 };

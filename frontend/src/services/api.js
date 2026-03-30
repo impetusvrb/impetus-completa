@@ -146,6 +146,17 @@ export const nexusIA = {
   getCustos: (params) => api.get('/admin/nexus-custos', { params })
 };
 
+/** NexusIA — carteira de créditos, recargas (Stripe), taxas por serviço */
+export const nexusWallet = {
+  getDashboard: (params) => api.get('/admin/nexus-wallet', { params }),
+  updateSettings: (data) => api.patch('/admin/nexus-wallet/settings', data),
+  checkoutStripe: (data) => api.post('/admin/nexus-wallet/checkout/stripe', data),
+  checkoutPagSeguro: (data) => api.post('/admin/nexus-wallet/checkout/pagseguro', data),
+  upsertRate: (servico, credits_per_unit) =>
+    api.put(`/admin/nexus-wallet/rates/${encodeURIComponent(servico)}`, { credits_per_unit }),
+  deleteRate: (servico) => api.delete(`/admin/nexus-wallet/rates/${encodeURIComponent(servico)}`)
+};
+
 // App Impetus - Canal de comunicação unificado
 export const appImpetus = {
   getStatus: () => api.get('/app-impetus/status'),
@@ -826,6 +837,22 @@ export const equipmentLibraryAdmin = {
       fd.append('file', file);
       return api.post('/admin/equipment-library/spare-parts/import-csv', fd);
     }
+  },
+  /** Catálogo 3D versionado (equipamento ou peça) */
+  models3d: {
+    list: (params) => api.get('/admin/equipment-library/technical-3d-models', { params }),
+    upload: (file, fields) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (fields?.asset_id) fd.append('asset_id', fields.asset_id);
+      if (fields?.spare_part_id) fd.append('spare_part_id', fields.spare_part_id);
+      if (fields?.version_label) fd.append('version_label', fields.version_label);
+      if (fields?.notes) fd.append('notes', fields.notes);
+      if (fields?.is_primary) fd.append('is_primary', 'true');
+      return api.post('/admin/equipment-library/technical-3d-models', fd);
+    },
+    update: (id, data) => api.patch(`/admin/equipment-library/technical-3d-models/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/technical-3d-models/${id}`)
   }
 };
 
@@ -874,5 +901,15 @@ export const technicalLibrary = {
   buildUnityPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-unity-payload`),
   buildProceduralPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-procedural-payload`),
   testResolve: (body) => api.post('/technical-library/resolve/test', body),
-  listAudit: (params) => api.get('/technical-library/audit', { params })
+  listAudit: (params) => api.get('/technical-library/audit', { params }),
+  /** Análise de campo (foto/vídeo) — utilizador com empresa (não exige admin) */
+  fieldAnalysis: {
+    create: (formData) =>
+      api.post('/technical-library/field-analysis', formData, {
+        timeout: 300000
+      }),
+    get: (id) => api.get(`/technical-library/field-analysis/${id}`)
+  },
+  /** Payload visual unificado (alarme ou resultado IA) → contrato Unity */
+  buildUnityVisualPayload: (body) => api.post('/technical-library/unity/build-visual-payload', body)
 };

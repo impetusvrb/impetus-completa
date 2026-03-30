@@ -165,3 +165,182 @@
   opacity: 0.65;
   font-size: 0.9rem;
 }
+
+.nexus-view-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.nexus-view-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.nexus-view-tabs button.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.nexus-wallet-section {
+  margin-top: 0.25rem;
+}
+
+.nexus-wallet-info {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.nexus-wallet-alert-pause {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+.nexus-wallet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.nexus-wallet-recharge,
+.nexus-wallet-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.nexus-wallet-recharge label,
+.nexus-wallet-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.nexus-wallet-recharge input,
+.nexus-wallet-settings input {
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+  min-width: 100px;
+}
+
+.nexus-btn-primary,
+.nexus-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.nexus-btn-primary {
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.nexus-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: inherit;
+}
+
+.nexus-wallet-h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.65rem;
+}
+
+.nexus-wallet-h3 {
+  font-size: 0.95rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.nexus-wallet-hint {
+  font-size: 0.82rem;
+  opacity: 0.75;
+  margin: 0 0 0.75rem;
+}
+
+.nexus-wallet-mini-chart {
+  min-height: 220px;
+}
+
+.nexus-wallet-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 1.25rem;
+}
+
+.nexus-wallet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.nexus-wallet-table th,
+.nexus-wallet-table td {
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nexus-wallet-table th {
+  opacity: 0.7;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.nexus-wallet-table .muted {
+  opacity: 0.65;
+}
+
+.nexus-wallet-rate-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.nexus-wallet-rate-form select,
+.nexus-wallet-rate-form input {
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+}
+
+.nexus-wallet-override-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}

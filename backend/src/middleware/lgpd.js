@@ -5,11 +5,11 @@
 const db = require('../db');
 
 async function registerConsent(_payload) {
-  return { ok: true };
+    return { ok: true };
 }
 
 async function revokeConsent(_userId, _type) {
-  return { ok: true };
+    return { ok: true };
 }
 
 async function exportUserData(userId) {
@@ -20,7 +20,7 @@ async function exportUserData(userId) {
 }
 
 async function anonymizeUserData(_userId) {
-  return { ok: true };
+    return { ok: true };
 }
 
 async function processDataRequest(_payload) {

@@ -6,6 +6,18 @@
 const OpenAI = require('openai');
 const documentContext = require('./documentContext');
 const incomingProcessor = require('./incomingMessageProcessor');
+const billingTokenService = require('./billingTokenService');
+const nexusWalletService = require('./nexusWalletService');
+
+const WALLET_FALLBACK_MSG =
+  'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';
+
+async function nexusWalletPrecheck(billing, servico, estimatedUnits) {
+  if (!billing?.companyId) return null;
+  const r = await nexusWalletService.canConsumeEstimate(billing.companyId, servico, estimatedUnits);
+  if (r.skipped || r.ok) return null;
+  return WALLET_FALLBACK_MSG;
+}
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -32,18 +44,27 @@ async function chatCompletion(prompt, opts = {}) {
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
   try {
+    const maxTok = opts.max_tokens || 800;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 30000; // 30s
     const completionPromise = client.chat.completions.create({
       model: opts.model || 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: opts.max_tokens || 800
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
-    return res.choices?.[0]?.message?.content || '';
+    const content = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return content;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -55,25 +76,37 @@ async function chatCompletion(prompt, opts = {}) {
   }
 }
 
-/** Chat multi-turn (mensagens OpenAI) — usado pelo modo voz Impetus IA */
+/**
+ * Chat com histórico (messages OpenAI). Usado pelo modo voz e outros fluxos.
+ * opts.billing: { companyId, userId } — regista tokens NexusIA quando houver usage.
+ */
 async function chatCompletionMessages(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
   if (!Array.isArray(messages) || messages.length === 0) return `FALLBACK: Mensagens vazias.`;
 
   try {
+    const maxTok = opts.max_tokens || 550;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 28000;
     const completionPromise = client.chat.completions.create({
       model: opts.model || 'gpt-4o-mini',
       messages,
-      max_tokens: opts.max_tokens || 550
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
-    return res.choices?.[0]?.message?.content || '';
+    const content = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return content;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -85,12 +118,20 @@ async function chatCompletionMessages(messages, opts = {}) {
   }
 }
 
-async function embedText(text) {
+async function embedText(text, opts = {}) {
   if (!client) return null;
   if (isCircuitOpen()) return null;
   try {
+    const estTok = Math.min(8000, Math.max(1, Math.ceil(String(text || '').length / 4)));
+    const blocked = await nexusWalletPrecheck(opts.billing, 'openai_embed', estTok);
+    if (blocked) return null;
+
     const r = await client.embeddings.create({ model: 'text-embedding-3-small', input: text });
     failures = 0;
+    const total = r.usage?.total_tokens;
+    if (opts.billing?.companyId && total) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'openai_embed', total);
+    }
     return r.data[0].embedding;
   } catch (err) {
     failures++;
@@ -106,8 +147,11 @@ const SAFETY_DISCLAIMER = `
 ⚠️ **AVISO DE SEGURANÇA** – Procedimentos elétricos, com pressão ou fluidos perigosos exigem: bloqueio/etiquetagem (LOTO), EPI adequado, desenergia confirmada e supervisão de técnico qualificado. NUNCA execute sem confirmação humana de que as condições de segurança foram atendidas.
 ---`;
 
-async function generateDiagnosticReport(text, candidates, docContext = ''){
-  const context = (candidates||[]).slice(0,6).map((c,i)=>`[${i+1}] Manual: ${(c.title||'manual')}\n${(c.chunk_text||'').slice(0,600)}`).join('\n---\n');
+async function generateDiagnosticReport(text, candidates, docContext = '') {
+  const context = (candidates || [])
+    .slice(0, 6)
+    .map((c, i) => `[${i + 1}] Manual: ${c.title || 'manual'}\n${(c.chunk_text || '').slice(0, 600)}`)
+    .join('\n---\n');
   const basePrompt = `Você é um assistente técnico industrial.${docContext ? '\n' + docContext : ''}
 
 Mensagem do usuário: "${text}"
@@ -128,10 +172,6 @@ REGRAS: Cite SEMPRE a fonte ao mencionar informação vinda dos manuais. Evite a
   return needsDisclaimer ? report + SAFETY_DISCLAIMER : report;
 }
 
-/**
- * Classifica mensagem operacional (arquitetura IMPETUS)
- * Tipos: tarefa, lembrete, comunicado, falha_técnica, autorização, alerta, dúvida, outro
- */
 async function classify(text) {
   if (!text || typeof text !== 'string' || text.trim().length < 3) return 'outro';
   if (!client || isCircuitOpen()) return classifyByKeywords(text);
@@ -161,17 +201,10 @@ function classifyByKeywords(text) {
   return 'outro';
 }
 
-/**
- * Busca trechos de manuais relevantes para o texto (scaffold)
- */
 async function searchManualsForText(query, companyId = null) {
   return documentContext.searchCompanyManuals(companyId, query, 6);
 }
 
-/**
- * Processa mensagem recebida (webhook) - scaffold original + arquitetura IMPETUS
- * Classifica, cria diagnóstico (falha) ou tarefa conforme tipo
- */
 async function processIncomingMessage(msg, opts = {}) {
   const { companyId = null } = opts;
   const text = msg.text || msg.body || '';
@@ -205,29 +238,33 @@ async function processIncomingMessage(msg, opts = {}) {
   return { kind };
 }
 
-/**
- * Chat multimodal com visão (texto + imagens)
- * @param {Array} messages - OpenAI format: [{ role, content }] onde content pode ser string ou array com text + image_url
- * @param {Object} opts - { model, max_tokens, timeout }
- */
 async function chatWithVision(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
   const modelVision = opts.model || 'gpt-4o';
   try {
+    const maxTok = opts.max_tokens || 1024;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 45000;
     const completionPromise = client.chat.completions.create({
       model: modelVision,
       messages,
-      max_tokens: opts.max_tokens || 1024
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
-    return res.choices?.[0]?.message?.content || '';
+    const out = res.choices?.[0]?.message?.content || '';
+    const usage = res.usage?.total_tokens;
+    if (opts.billing?.companyId && usage) {
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+    }
+    return out;
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
@@ -236,18 +273,14 @@ async function chatWithVision(messages, opts = {}) {
   }
 }
 
-/**
- * Analisa imagem com prompt contextual (manutenção, diagnóstico)
- * @param {string} imageBase64 - imagem em base64 (data:image/xxx;base64,... ou base64 puro)
- * @param {string} userPrompt - pergunta/contexto do usuário
- * @param {Object} opts - { systemContext }
- */
 async function analyzeImage(imageBase64, userPrompt, opts = {}) {
   let url = imageBase64;
   if (url && !url.startsWith('data:')) {
     url = `data:image/jpeg;base64,${url}`;
   }
-  const systemContext = opts.systemContext || 'Você é o Impetus, assistente técnico industrial. Analise imagens de máquinas, peças, painéis elétricos e manuais. Descreva o que vê, sugira diagnósticos quando aplicável e oriente sobre manutenção. Seja objetivo e técnico.';
+  const systemContext =
+    opts.systemContext ||
+    'Você é o Impetus, assistente técnico industrial. Analise imagens de máquinas, peças, painéis elétricos e manuais. Descreva o que vê, sugira diagnósticos quando aplicável e oriente sobre manutenção. Seja objetivo e técnico.';
   const content = [
     { type: 'text', text: `${systemContext}\n\nPergunta/contexto do usuário: ${userPrompt || 'Analise esta imagem e descreva.'}` },
     { type: 'image_url', image_url: { url } }

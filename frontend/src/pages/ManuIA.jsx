@@ -14,6 +14,7 @@ import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMappin
 import Vision3DModule from '../modules/vision-3d/Vision3DModule';
 import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
 import TechnicalLibraryInteligenteModule from '../features/technical-library/TechnicalLibraryInteligenteModule';
+import TechnicalFieldAnalysisModule from '../features/technical-library/TechnicalFieldAnalysisModule';
 import {
   Wrench,
   Search,
@@ -28,7 +29,8 @@ import {
   X,
   Camera,
   TrendingUp,
-  Library
+  Library,
+  ImageIcon
 } from 'lucide-react';
 import './ManuIA.css';
 
@@ -311,6 +313,13 @@ export default function ManuIA() {
           >
             <TrendingUp size={18} /> Gestão de Ativos
           </button>
+          <button
+            type="button"
+            className={`manuia-tab ${activeTab === 'field-analysis' ? 'manuia-tab--active' : ''}`}
+            onClick={() => setActiveTab('field-analysis')}
+          >
+            <ImageIcon size={18} /> Análise foto/vídeo
+          </button>
           {isStrictAdmin() && (
             <button
               type="button"
@@ -325,6 +334,10 @@ export default function ManuIA() {
         {activeTab === 'technical-library' && isStrictAdmin() ? (
           <section className="manuia-block manuia-block--technical-library">
             <TechnicalLibraryInteligenteModule onBack={() => setActiveTab('search')} />
+          </section>
+        ) : activeTab === 'field-analysis' ? (
+          <section className="manuia-block manuia-block--field-analysis">
+            <TechnicalFieldAnalysisModule />
           </section>
         ) : activeTab === 'asset-management' ? (
           <section className="manuia-block manuia-block--asset-management">

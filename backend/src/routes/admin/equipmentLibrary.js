@@ -80,6 +80,38 @@ const uploadCsv = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+const ALLOWED_3D_EXT = new Set(['.glb', '.gltf', '.obj', '.stl', '.fbx']);
+const uploadTechnical3d = multer({
+  storage: multer.diskStorage({
+    destination: (req, _file, cb) => {
+      try {
+        const dir = path.join(ensureUploadDir(cid(req)), '3d');
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      } catch (e) {
+        cb(e);
+      }
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      const safeExt = ALLOWED_3D_EXT.has(ext) ? ext : '.glb';
+      cb(null, `3d-${Date.now()}-${Math.random().toString(36).slice(2, 9)}${safeExt}`);
+    }
+  }),
+  limits: { fileSize: 120 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (ALLOWED_3D_EXT.has(ext)) cb(null, true);
+    else cb(new Error('Formato não permitido: use .glb, .gltf, .obj, .stl ou .fbx'));
+  }
+});
+
+function absStoragePathFromPublic(storagePath) {
+  const prefix = '/uploads/equipment-library/';
+  if (!storagePath || !storagePath.startsWith(prefix)) return null;
+  return path.join(uploadRoot, storagePath.slice(prefix.length));
+}
+
 router.get('/health', ...adminOnly, (_req, res) => {
   res.json({ ok: true, module: 'equipment-library', access: 'admin_only' });
 });
@@ -178,6 +210,90 @@ router.post('/assets/:id/manual-pdf', ...adminOnly, uploadPdf.single('file'), as
     res.json({ ok: true, data: row, url: rel });
   } catch (err) {
     console.error('[EQ_LIB_MANUAL_PDF]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/technical-3d-models', ...adminOnly, async (req, res) => {
+  try {
+    const data = await svc.listTechnical3dModels(cid(req), {
+      asset_id: req.query.asset_id,
+      spare_part_id: req.query.spare_part_id
+    });
+    res.json({ ok: true, data });
+  } catch (err) {
+    console.error('[EQ_LIB_3D_LIST]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.post(
+  '/technical-3d-models',
+  ...adminOnly,
+  (req, res, next) => {
+    uploadTechnical3d.single('file')(req, res, (e) => {
+      if (!e) return next();
+      console.error('[EQ_LIB_3D_UPLOAD]', e.message);
+      return res.status(400).json({ ok: false, error: e.message || 'Falha no upload' });
+    });
+  },
+  auditMiddleware({ action: 'equipment_library_3d_uploaded', entityType: 'equipment_library', severity: 'info' }),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ ok: false, error: 'Arquivo obrigatório (field: file)' });
+      const assetId = (req.body.asset_id || '').trim() || null;
+      const sparePartId = (req.body.spare_part_id || '').trim() || null;
+      const rel = `/uploads/equipment-library/${cid(req)}/3d/${req.file.filename}`;
+      const ext = path.extname(req.file.originalname || '').toLowerCase().replace(/^\./, '') || 'glb';
+      const row = await svc.createTechnical3dModel(cid(req), {
+        asset_id: assetId,
+        spare_part_id: sparePartId,
+        storage_path: rel,
+        original_filename: req.file.originalname || req.file.filename,
+        format: ext,
+        version_label: req.body.version_label || null,
+        is_primary: req.body.is_primary,
+        notes: req.body.notes || null,
+        file_size: req.file.size
+      });
+      res.status(201).json({ ok: true, data: row });
+    } catch (err) {
+      console.error('[EQ_LIB_3D_CREATE]', err);
+      try {
+        if (req.file?.path) fs.unlinkSync(req.file.path);
+      } catch (_) {}
+      res.status(400).json({ ok: false, error: err.message });
+    }
+  }
+);
+
+router.patch('/technical-3d-models/:id', ...adminOnly, async (req, res) => {
+  try {
+    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    const row = await svc.updateTechnical3dModel(cid(req), req.params.id, req.body || {});
+    if (!row) return res.status(404).json({ ok: false, error: 'Modelo não encontrado' });
+    res.json({ ok: true, data: row });
+  } catch (err) {
+    console.error('[EQ_LIB_3D_PATCH]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.delete('/technical-3d-models/:id', ...adminOnly, async (req, res) => {
+  try {
+    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    const before = await svc.getTechnical3dModel(cid(req), req.params.id);
+    if (!before) return res.status(404).json({ ok: false, error: 'Modelo não encontrado' });
+    await svc.softDeleteTechnical3dModel(cid(req), req.params.id);
+    const abs = absStoragePathFromPublic(before.storage_path);
+    if (abs) {
+      try {
+        fs.unlinkSync(abs);
+      } catch (_) {}
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[EQ_LIB_3D_DELETE]', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

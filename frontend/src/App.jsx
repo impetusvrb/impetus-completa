@@ -214,10 +214,10 @@ export default function App() {
     <NotificationProvider>
       <ErrorOffline />
       <ErrorBoundary>
-        <BrowserRouter>
+      <BrowserRouter>
           <ImpetusVoiceProvider>
-            <Suspense fallback={<PageLoader />}>
-            <Routes>
+          <Suspense fallback={<PageLoader />}>
+          <Routes>
         {/* Rotas públicas */}
         <Route path="/" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -336,11 +336,11 @@ export default function App() {
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-            </Suspense>
+          </Routes>
+          </Suspense>
           </ImpetusVoiceProvider>
         </BrowserRouter>
-      </ErrorBoundary>
+        </ErrorBoundary>
     </NotificationProvider>
   );
 }

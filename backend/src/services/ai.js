@@ -7,6 +7,17 @@ const OpenAI = require('openai');
 const documentContext = require('./documentContext');
 const incomingProcessor = require('./incomingMessageProcessor');
 const billingTokenService = require('./billingTokenService');
+const nexusWalletService = require('./nexusWalletService');
+
+const WALLET_FALLBACK_MSG =
+  'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';
+
+async function nexusWalletPrecheck(billing, servico, estimatedUnits) {
+  if (!billing?.companyId) return null;
+  const r = await nexusWalletService.canConsumeEstimate(billing.companyId, servico, estimatedUnits);
+  if (r.skipped || r.ok) return null;
+  return WALLET_FALLBACK_MSG;
+}
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -33,11 +44,15 @@ async function chatCompletion(prompt, opts = {}) {
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
   try {
+    const maxTok = opts.max_tokens || 800;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 30000; // 30s
     const completionPromise = client.chat.completions.create({
       model: opts.model || 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: opts.max_tokens || 800
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
@@ -69,11 +84,15 @@ async function chatCompletionMessages(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
   try {
+    const maxTok = opts.max_tokens || 800;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 45000;
     const completionPromise = client.chat.completions.create({
       model: opts.model || 'gpt-4o-mini',
       messages: Array.isArray(messages) ? messages : [],
-      max_tokens: opts.max_tokens || 800
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
@@ -101,11 +120,15 @@ async function embedText(text, opts = {}) {
   if (!client) return null;
   if (isCircuitOpen()) return null;
   try {
+    const estTok = Math.min(8000, Math.max(1, Math.ceil(String(text || '').length / 4)));
+    const blocked = await nexusWalletPrecheck(opts.billing, 'openai_embed', estTok);
+    if (blocked) return null;
+
     const r = await client.embeddings.create({ model: 'text-embedding-3-small', input: text });
     failures = 0;
     const total = r.usage?.total_tokens;
     if (opts.billing?.companyId && total) {
-      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'outro', total);
+      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'openai_embed', total);
     }
     return r.data[0].embedding;
   } catch (err) {
@@ -232,11 +255,15 @@ async function chatWithVision(messages, opts = {}) {
 
   const modelVision = opts.model || 'gpt-4o';
   try {
+    const maxTok = opts.max_tokens || 1024;
+    const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
+    if (blocked) return blocked;
+
     const timeoutMs = opts.timeout || 45000;
     const completionPromise = client.chat.completions.create({
       model: modelVision,
       messages,
-      max_tokens: opts.max_tokens || 1024
+      max_tokens: maxTok
     });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)

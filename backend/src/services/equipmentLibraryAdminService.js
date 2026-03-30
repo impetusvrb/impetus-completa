@@ -357,6 +357,198 @@ async function getReferences(companyId) {
   };
 }
 
+async function listTechnical3dModels(companyId, filters = {}) {
+  const assetId = filters.asset_id;
+  const sparePartId = filters.spare_part_id;
+  let sql = `
+    SELECT m.*,
+      a.name AS asset_name,
+      a.code_patrimonial AS asset_code,
+      p.code AS spare_part_code,
+      p.name AS spare_part_name
+    FROM equipment_technical_3d_models m
+    LEFT JOIN assets a ON a.id = m.asset_id
+    LEFT JOIN manuia_spare_parts p ON p.id = m.spare_part_id
+    WHERE m.company_id = $1 AND m.active = true`;
+  const params = [companyId];
+  let n = 2;
+  if (assetId && isValidUUID(assetId)) {
+    sql += ` AND m.asset_id = $${n}`;
+    params.push(assetId);
+    n += 1;
+  }
+  if (sparePartId && isValidUUID(sparePartId)) {
+    sql += ` AND m.spare_part_id = $${n}`;
+    params.push(sparePartId);
+  }
+  sql += ' ORDER BY m.created_at DESC';
+  const r = await db.query(sql, params);
+  return r.rows;
+}
+
+async function nextTechnical3dVersionSeq(companyId, assetId, sparePartId) {
+  if (assetId) {
+    const r = await db.query(
+      `SELECT COALESCE(MAX(version_seq), 0) + 1 AS n FROM equipment_technical_3d_models
+       WHERE company_id = $1 AND asset_id = $2 AND active`,
+      [companyId, assetId]
+    );
+    return Number(r.rows[0].n) || 1;
+  }
+  const r = await db.query(
+    `SELECT COALESCE(MAX(version_seq), 0) + 1 AS n FROM equipment_technical_3d_models
+     WHERE company_id = $1 AND spare_part_id = $2 AND active`,
+    [companyId, sparePartId]
+  );
+  return Number(r.rows[0].n) || 1;
+}
+
+async function refreshAssetModel3dFromCatalog(companyId, assetId) {
+  if (!isValidUUID(assetId)) return;
+  const r = await db.query(
+    `SELECT storage_path FROM equipment_technical_3d_models
+     WHERE company_id = $1 AND asset_id = $2 AND active
+     ORDER BY is_primary DESC, version_seq DESC, created_at DESC
+     LIMIT 1`,
+    [companyId, assetId]
+  );
+  const url = r.rows[0]?.storage_path || null;
+  await db.query(
+    `UPDATE assets SET model_3d_url = $2, model_3d_is_primary = $3, updated_at = now()
+     WHERE id = $1 AND company_id = $4`,
+    [assetId, url, !!url, companyId]
+  );
+}
+
+async function applyPrimaryForAssetModel(companyId, assetId, modelId, storagePath) {
+  await db.query(
+    `UPDATE equipment_technical_3d_models SET is_primary = false, updated_at = now()
+     WHERE company_id = $1 AND asset_id = $2 AND id <> $3 AND active`,
+    [companyId, assetId, modelId]
+  );
+  await db.query(
+    `UPDATE equipment_technical_3d_models SET is_primary = true, updated_at = now()
+     WHERE id = $1 AND company_id = $2`,
+    [modelId, companyId]
+  );
+  await db.query(
+    `UPDATE assets SET model_3d_url = $2, model_3d_is_primary = true, updated_at = now()
+     WHERE id = $1 AND company_id = $3`,
+    [assetId, storagePath, companyId]
+  );
+}
+
+async function createTechnical3dModel(companyId, body) {
+  const b = body || {};
+  const hasAsset = b.asset_id && isValidUUID(b.asset_id);
+  const hasPart = b.spare_part_id && isValidUUID(b.spare_part_id);
+  if ((hasAsset && hasPart) || (!hasAsset && !hasPart)) {
+    throw new Error('Informe asset_id ou spare_part_id (apenas um)');
+  }
+  if (hasAsset) {
+    const a = await db.query(
+      'SELECT id FROM assets WHERE id = $1 AND company_id = $2 AND active',
+      [b.asset_id, companyId]
+    );
+    if (!a.rows[0]) throw new Error('Equipamento não encontrado');
+  }
+  if (hasPart) {
+    const p = await db.query('SELECT id FROM manuia_spare_parts WHERE id = $1 AND company_id = $2', [
+      b.spare_part_id,
+      companyId
+    ]);
+    if (!p.rows[0]) throw new Error('Peça não encontrada');
+  }
+  const versionSeq = await nextTechnical3dVersionSeq(
+    companyId,
+    hasAsset ? b.asset_id : null,
+    hasPart ? b.spare_part_id : null
+  );
+  const isPrimary = b.is_primary === true || b.is_primary === 'true';
+  const r = await db.query(
+    `
+    INSERT INTO equipment_technical_3d_models (
+      company_id, asset_id, spare_part_id, storage_path, original_filename, format,
+      version_label, version_seq, is_primary, notes, file_size
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    RETURNING *
+  `,
+    [
+      companyId,
+      hasAsset ? b.asset_id : null,
+      hasPart ? b.spare_part_id : null,
+      b.storage_path,
+      b.original_filename,
+      b.format,
+      b.version_label || null,
+      versionSeq,
+      isPrimary,
+      b.notes || null,
+      b.file_size != null ? Number(b.file_size) : null
+    ]
+  );
+  const row = r.rows[0];
+  if (isPrimary && hasAsset) {
+    await applyPrimaryForAssetModel(companyId, b.asset_id, row.id, b.storage_path);
+  }
+  return row;
+}
+
+async function getTechnical3dModel(companyId, id) {
+  if (!isValidUUID(id)) return null;
+  const r = await db.query(
+    `SELECT * FROM equipment_technical_3d_models WHERE id = $1 AND company_id = $2 AND active`,
+    [id, companyId]
+  );
+  return r.rows[0] || null;
+}
+
+async function updateTechnical3dModel(companyId, id, body) {
+  if (!isValidUUID(id)) return null;
+  const cur = await getTechnical3dModel(companyId, id);
+  if (!cur) return null;
+  const b = body || {};
+  const versionLabel = b.version_label !== undefined ? b.version_label : cur.version_label;
+  const notes = b.notes !== undefined ? b.notes : cur.notes;
+  let isPrimary = cur.is_primary;
+  if (b.is_primary === true || b.is_primary === 'true') isPrimary = true;
+  if (b.is_primary === false || b.is_primary === 'false') isPrimary = false;
+
+  await db.query(
+    `UPDATE equipment_technical_3d_models SET
+      version_label = $2,
+      notes = $3,
+      is_primary = $4,
+      updated_at = now()
+     WHERE id = $1 AND company_id = $5`,
+    [id, versionLabel, notes, isPrimary, companyId]
+  );
+
+  if (cur.asset_id) {
+    if (isPrimary) {
+      await applyPrimaryForAssetModel(companyId, cur.asset_id, id, cur.storage_path);
+    } else {
+      await refreshAssetModel3dFromCatalog(companyId, cur.asset_id);
+    }
+  }
+  return getTechnical3dModel(companyId, id);
+}
+
+async function softDeleteTechnical3dModel(companyId, id) {
+  if (!isValidUUID(id)) return null;
+  const cur = await getTechnical3dModel(companyId, id);
+  if (!cur) return null;
+  await db.query(
+    `UPDATE equipment_technical_3d_models SET active = false, updated_at = now()
+     WHERE id = $1 AND company_id = $2`,
+    [id, companyId]
+  );
+  if (cur.asset_id) {
+    await refreshAssetModel3dFromCatalog(companyId, cur.asset_id);
+  }
+  return cur;
+}
+
 module.exports = {
   listAssets,
   getAsset,
@@ -372,5 +564,10 @@ module.exports = {
   updateSparePartKeywords,
   validateSparePartSuggestion,
   getReferences,
-  normalizeKeywords
+  normalizeKeywords,
+  listTechnical3dModels,
+  createTechnical3dModel,
+  getTechnical3dModel,
+  updateTechnical3dModel,
+  softDeleteTechnical3dModel
 };

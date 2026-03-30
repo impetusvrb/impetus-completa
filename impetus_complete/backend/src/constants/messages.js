@@ -12,6 +12,8 @@ const AUTH = {
   ACCESS_DENIED_HIERARCHY: 'Acesso negado - hierarquia insuficiente',
   ACCESS_DENIED_PERMISSION: 'Acesso negado - permissão insuficiente',
   ACCESS_DENIED_COMPANY: 'Acesso negado - empresa diferente',
+  ACCESS_DENIED_ROLE: 'Acesso negado - perfil insuficiente',
+  COMPANY_REQUIRED: 'Empresa obrigatória para esta operação',
   ACCESS_DENIED_INTERNAL: 'Acesso restrito à equipe interna',
   NO_PERMISSION: 'Você não possui permissão para acessar este recurso.',
   PERMISSION_INSUFFICIENT: 'Permissão insuficiente',

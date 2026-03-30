@@ -13,6 +13,7 @@ export default function Table({
   loading = false,
   emptyMessage = 'Nenhum registro encontrado',
   onRowClick,
+  getRowClassName,
   pagination,
   onPageChange,
   sortable = false,
@@ -116,7 +117,9 @@ export default function Table({
             <tr 
               key={row.id || rowIdx}
               onClick={() => onRowClick && onRowClick(row)}
-              className={onRowClick ? 'clickable' : ''}
+              className={[onRowClick ? 'clickable' : '', getRowClassName ? getRowClassName(row) : '']
+                .filter(Boolean)
+                .join(' ')}
             >
               {columns.map((col) => (
                 <td key={col.key}>

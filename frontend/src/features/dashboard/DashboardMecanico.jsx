@@ -186,10 +186,10 @@ export default function DashboardMecanico() {
       <div className="dashboard-mecanico">
         {isMaintenance && (
           <>
-            <div className="dashboard-mecanico__tech-header">
-              <Wrench size={20} />
+              <div className="dashboard-mecanico__tech-header">
+                <Wrench size={20} />
               <p>{summary?.frase_resumo || 'Painel de manutenção — visão operacional do seu turno.'}</p>
-            </div>
+              </div>
 
             {cards && (
               <section className="dashboard-mecanico__block dashboard-mecanico__cards">
@@ -323,8 +323,8 @@ export default function DashboardMecanico() {
                       </div>
                       <div className="mecanico-task__actions">
                         <button type="button" className="btn btn-sm" title="Abrir" onClick={() => navigate('/diagnostic', { state: { workOrderId: t.id } })}>
-                          Abrir <ChevronRight size={14} />
-                        </button>
+                        Abrir <ChevronRight size={14} />
+                      </button>
                         <button type="button" className="btn btn-sm btn-ghost" title="Iniciar / acompanhar" onClick={() => navigate('/diagnostic', { state: { workOrderId: t.id } })}>
                           <PlayCircle size={16} />
                         </button>
@@ -350,7 +350,7 @@ export default function DashboardMecanico() {
                   {machines.map((m) => (
                     <li key={m.id} className="mecanico-machine-item">
                       <div className="mecanico-machine__main">
-                        <strong>{m.name || m.code}</strong>
+                      <strong>{m.name || m.code}</strong>
                         <span className="mecanico-machine__sub">
                           {[m.line_name, m.sector].filter(Boolean).join(' · ') || '—'}
                         </span>
@@ -448,12 +448,12 @@ export default function DashboardMecanico() {
                   <h3 className="mecanico-preventive-sub">Hoje</h3>
                   {pt.length === 0 ? (
                     <p className="block-empty small">Nenhuma para hoje.</p>
-                  ) : (
-                    <ul className="mecanico-preventive-list">
+              ) : (
+                <ul className="mecanico-preventive-list">
                       {pt.map((p) => (
-                        <li key={p.id} className="mecanico-preventive-item">
-                          <strong>{p.title}</strong>
-                          <span>{p.machine_name || p.sector} · {p.preventive_type}</span>
+                    <li key={p.id} className="mecanico-preventive-item">
+                      <strong>{p.title}</strong>
+                      <span>{p.machine_name || p.sector} · {p.preventive_type}</span>
                           <span className={`badge badge-${p.status === 'overdue' ? 'overdue' : 'pending'}`}>{p.status}</span>
                           <span className="mecanico-preventive__time">{formatDt(p.scheduled_date)}</span>
                         </li>
@@ -489,10 +489,10 @@ export default function DashboardMecanico() {
                           <strong>{p.title}</strong>
                           <span>{p.machine_name || p.sector}</span>
                           <span className="badge badge-completed">concluída</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                    </li>
+                  ))}
+                </ul>
+              )}
                 </div>
               </div>
             </section>
@@ -513,9 +513,9 @@ export default function DashboardMecanico() {
                 <button type="button" className="btn btn-primary" disabled={passagemText.trim().length < 15} onClick={handlePassagemResumir}>
                   <Sparkles size={16} /> Resumir com IA
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/registro-inteligente')}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/registro-inteligente')}>
                   Registro Inteligente completo
-                </button>
+              </button>
               </div>
             </section>
 
@@ -526,12 +526,12 @@ export default function DashboardMecanico() {
                 <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/admin/structural')}>
                   Cadastrar / estrutura
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/biblioteca')}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate('/app/biblioteca')}>
                   Consultar biblioteca
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => goChatHelp('Busque informações técnicas e procedimentos nos manuais cadastrados sobre: ')}>
                   Buscar documento técnico
-                </button>
+              </button>
               </div>
             </section>
           </>

@@ -115,4 +115,48 @@ function buildProceduralPayload(detail) {
   };
 }
 
-module.exports = { buildUnityPayload, buildProceduralPayload, absUrl };
+/**
+ * Fallback quando não há equipamento na biblioteca — garante visualização procedural mínima.
+ */
+function buildFallbackProceduralFromFieldAnalysis(hints) {
+  const h = hints || {};
+  const label = (h.assetLabel || h.suspectedComponent || 'Componente').slice(0, 80);
+  const prim = mapSubsystemToPrimitive(label);
+  return {
+    renderMode: 'procedural',
+    equipmentId: null,
+    machineId: null,
+    modelUrl: null,
+    proceduralParts: [
+      {
+        id: 'suspect-region',
+        name: label,
+        subsystem: h.assetSubtype || null,
+        primitive: prim,
+        position: [0, 0.5, 0],
+        scale: prim === 'cylinder' ? [1.2, 2.2, 1.2] : [2, 1.2, 2]
+      }
+    ],
+    metadata: {
+      manufacturer: null,
+      model: null,
+      name: h.assetLabel || 'Ativo (aproximação)',
+      category: h.assetType || 'industrial'
+    },
+    recommendedRenderMode: h.recommendedRenderMode || 'fault_focus',
+    highlightParts: Array.isArray(h.highlightParts) ? h.highlightParts : [],
+    severity: h.severity || 'medium',
+    cameraFocus: h.cameraFocus || 'suspect-region',
+    labels: Array.isArray(h.labels) ? h.labels : [],
+    overlayData: h.overlayData || {},
+    fallbackLevel: typeof h.fallbackLevel === 'number' ? h.fallbackLevel : 4,
+    iaHints: { source: 'field_analysis_generic', notes: h.notes || null }
+  };
+}
+
+module.exports = {
+  buildUnityPayload,
+  buildProceduralPayload,
+  buildFallbackProceduralFromFieldAnalysis,
+  absUrl
+};

@@ -1,0 +1,297 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { promisify } = require('util');
+const { execFile } = require('child_process');
+const Anthropic = require('@anthropic-ai/sdk');
+const repo = require('../repositories/fieldAnalysisRepository');
+const modelResolver = require('./modelResolverService');
+const unityVisualizationPayload = require('./unityVisualizationPayloadService');
+
+const execFileAsync = promisify(execFile);
+
+const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
+
+const AI_SYSTEM = `Você é um especialista em manutenção industrial. Analise imagens de equipamentos, motores, bombas, painéis, rolamentos, vedações, etc.
+Responda APENAS um JSON válido (sem markdown), neste schema:
+{
+  "assetType": "string (ex.: electric_motor, pump, valve, bearing, panel, generic)",
+  "assetSubtype": "string ou null",
+  "confidence": 0.0 a 1.0,
+  "suspectedComponent": "string",
+  "faultType": "string",
+  "severity": "low|medium|high|critical",
+  "recommendedRenderMode": "normal|exploded|xray|xray_exploded|fault_focus",
+  "highlightParts": ["id ou nome legível"],
+  "cameraFocus": "string",
+  "needsHumanValidation": true,
+  "recommendation": "texto técnico curto em PT-BR",
+  "notes": "observações"
+}`;
+
+function parseAiJson(text) {
+  const raw = String(text || '').trim();
+  const tryParse = (s) => {
+    try {
+      return JSON.parse(s);
+    } catch {
+      return null;
+    }
+  };
+  let p = tryParse(raw);
+  if (p) return p;
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (m) {
+    p = tryParse(m[0]);
+    if (p) return p;
+  }
+  return {
+    assetType: 'generic',
+    assetSubtype: null,
+    confidence: 0.35,
+    suspectedComponent: 'componente não identificado',
+    faultType: 'indeterminado',
+    severity: 'medium',
+    recommendedRenderMode: 'fault_focus',
+    highlightParts: [],
+    cameraFocus: 'suspect-region',
+    needsHumanValidation: true,
+    recommendation: 'Revisão manual recomendada.',
+    notes: 'Resposta da IA não pôde ser interpretada como JSON.'
+  };
+}
+
+async function imageToBase64Part(absPath) {
+  const buf = await fs.promises.readFile(absPath);
+  const ext = path.extname(absPath).toLowerCase();
+  let mediaType = 'image/jpeg';
+  if (ext === '.png') mediaType = 'image/png';
+  if (ext === '.webp') mediaType = 'image/webp';
+  return {
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: mediaType,
+      data: buf.toString('base64')
+    }
+  };
+}
+
+async function extractVideoFrames(videoAbsPath, outDir, maxFrames) {
+  const mf = maxFrames || 4;
+  const frames = [];
+  try {
+    await fs.promises.mkdir(outDir, { recursive: true });
+    const pattern = path.join(outDir, 'vf-%03d.jpg');
+    await execFileAsync(
+      'ffmpeg',
+      ['-y', '-i', videoAbsPath, '-vf', 'fps=1/4', '-frames:v', String(mf), pattern],
+      { timeout: 120000 }
+    );
+    const files = await fs.promises.readdir(outDir);
+    for (const f of files.sort()) {
+      if (f.startsWith('vf-') && f.endsWith('.jpg')) {
+        frames.push(path.join(outDir, f));
+      }
+    }
+  } catch (e) {
+    console.warn('[FIELD_ANALYSIS] ffmpeg:', e.message);
+  }
+  return frames;
+}
+
+async function runAnalysis(companyId, userId, analysisId, body, files, publicBaseUrl) {
+  void userId;
+  if (!client) {
+    const e = new Error('ANTHROPIC_API_KEY não configurada');
+    e.status = 503;
+    throw e;
+  }
+
+  const machineLabel = (body.machine_label || body.machine || '').trim() || null;
+  const sector = (body.sector || '').trim() || null;
+  const maintenanceType = (body.maintenance_type || '').trim() || null;
+  const urgency = (body.urgency || '').trim() || null;
+  const observation = (body.observation || '').trim() || null;
+
+  const photos = files.photos || [];
+  const video = files.video && files.video[0] ? files.video[0] : null;
+
+  const mediaPaths = [];
+  for (const p of photos) {
+    mediaPaths.push({
+      kind: 'image',
+      path: `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/${p.filename}`,
+      abs: p.path
+    });
+  }
+  if (video) {
+    mediaPaths.push({
+      kind: 'video',
+      path: `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/${video.filename}`,
+      abs: video.path
+    });
+  }
+
+  let framePaths = [];
+  if (video && video.path) {
+    const framesDir = path.join(path.dirname(video.path), 'vframes');
+    framePaths = await extractVideoFrames(video.path, framesDir, 4);
+    for (const ap of framePaths) {
+      mediaPaths.push({
+        kind: 'frame',
+        path: `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/vframes/${path.basename(ap)}`,
+        abs: ap
+      });
+    }
+  }
+
+  const imageAbs = photos.map((p) => p.path).concat(framePaths).filter(Boolean);
+
+  if (imageAbs.length === 0) {
+    const e = new Error('Nenhuma imagem disponível para análise (envie fotos ou vídeo processável com ffmpeg).');
+    e.status = 400;
+    throw e;
+  }
+
+  const userText = [
+    'Contexto do mecânico:',
+    machineLabel ? `Máquina informada: ${machineLabel}` : '',
+    sector ? `Setor: ${sector}` : '',
+    maintenanceType ? `Tipo de manutenção: ${maintenanceType}` : '',
+    urgency ? `Urgência: ${urgency}` : '',
+    observation ? `Observação: ${observation}` : '',
+    'Analise as imagens e preencha o JSON solicitado.'
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const content = [];
+  for (const ap of imageAbs.slice(0, 12)) {
+    content.push(await imageToBase64Part(ap));
+  }
+  content.push({ type: 'text', text: userText });
+
+  await repo.updateResult(companyId, analysisId, { status: 'processing' });
+
+  let aiText = '';
+  try {
+    const resp = await client.messages.create({
+      model: process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: AI_SYSTEM,
+      messages: [{ role: 'user', content }]
+    });
+    const block = (resp.content || []).find((b) => b.type === 'text');
+    aiText = block ? block.text : '';
+  } catch (e) {
+    console.error('[FIELD_ANALYSIS] Anthropic:', e.message);
+    await repo.updateResult(companyId, analysisId, {
+      status: 'failed',
+      error_message: e.message,
+      ai_result: { error: e.message }
+    });
+    throw e;
+  }
+
+  const ai = parseAiJson(aiText);
+  const queryBits = [machineLabel, ai.assetType, ai.assetSubtype, ai.suspectedComponent]
+    .filter(Boolean)
+    .join(' ');
+  const resolverOut = await modelResolver.resolve(
+    companyId,
+    { query: queryBits || machineLabel || 'equipamento industrial' },
+    publicBaseUrl
+  );
+
+  const { unityPayload, fallbackLevel, matchedEquipmentId } = unityVisualizationPayload.mergeResolverAndAiHints(
+    resolverOut,
+    ai,
+    { machineLabel, sector }
+  );
+
+  const row = await repo.updateResult(companyId, analysisId, {
+    status: 'completed',
+    media_paths: mediaPaths.map((m) => ({ path: m.path, kind: m.kind })),
+    video_path: video ? (mediaPaths.find((m) => m.kind === 'video') || {}).path || null : null,
+    extracted_frame_paths: framePaths.map(
+      (ap) => `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/vframes/${path.basename(ap)}`
+    ),
+    ai_result: Object.assign({}, ai, { raw_excerpt: aiText.slice(0, 4000) }),
+    unity_payload: unityPayload,
+    fallback_level: fallbackLevel,
+    matched_equipment_id: matchedEquipmentId
+  });
+
+  return formatRow(row);
+}
+
+async function createAndProcess(companyId, userId, analysisId, body, files, publicBaseUrl) {
+  const photos = files.photos || [];
+  const video = files.video && files.video[0] ? files.video[0] : null;
+  if ((!photos || photos.length === 0) && !video) {
+    const e = new Error('Envie pelo menos uma foto ou um vídeo.');
+    e.status = 400;
+    throw e;
+  }
+
+  await repo.insert({
+    id: analysisId,
+    company_id: companyId,
+    user_id: userId,
+    machine_label: (body.machine_label || body.machine || '').trim() || null,
+    sector: (body.sector || '').trim() || null,
+    maintenance_type: (body.maintenance_type || '').trim() || null,
+    urgency: (body.urgency || '').trim() || null,
+    observation: (body.observation || '').trim() || null,
+    media_paths: [],
+    video_path: null,
+    extracted_frame_paths: [],
+    status: 'pending'
+  });
+
+  try {
+    return await runAnalysis(companyId, userId, analysisId, body, files, publicBaseUrl);
+  } catch (e) {
+    await repo.updateResult(companyId, analysisId, {
+      status: 'failed',
+      error_message: e.message || 'Erro na análise'
+    });
+    throw e;
+  }
+}
+
+async function getById(companyId, id) {
+  const row = await repo.findById(companyId, id);
+  if (!row) return null;
+  return formatRow(row);
+}
+
+function formatRow(row) {
+  return {
+    id: row.id,
+    status: row.status,
+    machine_label: row.machine_label,
+    sector: row.sector,
+    maintenance_type: row.maintenance_type,
+    urgency: row.urgency,
+    observation: row.observation,
+    media_paths: row.media_paths,
+    video_path: row.video_path,
+    extracted_frame_paths: row.extracted_frame_paths,
+    ai_result: row.ai_result,
+    unity_payload: row.unity_payload,
+    fallback_level: row.fallback_level,
+    matched_equipment_id: row.matched_equipment_id,
+    error_message: row.error_message,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+module.exports = {
+  createAndProcess,
+  getById,
+  runAnalysis
+};

@@ -10,16 +10,24 @@ const fs = require('fs');
 const multer = require('multer');
 const { requireAuth, requireRole, requireCompanyId } = require('../middleware/auth');
 const ctrl = require('../modules/technicalLibrary/controllers/technicalLibraryController');
+const fieldCtrl = require('../modules/technicalLibrary/controllers/fieldAnalysisController');
 
 const router = express.Router();
 
+const companyUser = [requireAuth, requireCompanyId];
 const adminCompany = [requireAuth, requireRole('admin'), requireCompanyId];
+
+const baseUpload = path.join(__dirname, '../../../uploads/technical-library');
+
+const fieldMulter = fieldCtrl.createFieldMulter(baseUpload);
+const uploadFieldMedia = fieldMulter.fields([
+  { name: 'photos', maxCount: 10 },
+  { name: 'video', maxCount: 1 }
+]);
 
 function cid(req) {
   return req.user.company_id;
 }
-
-const baseUpload = path.join(__dirname, '../../../uploads/technical-library');
 
 function ensureDir(companyId, equipmentId, sub) {
   const dir = path.join(baseUpload, String(companyId), String(equipmentId), sub);
@@ -103,6 +111,18 @@ const uploadCsv = multer({
     cb(new Error('Envie um arquivo .csv'));
   }
 });
+
+/** Análise de campo (foto/vídeo) — qualquer utilizador com empresa (ManuIA / mecânico) */
+router.post(
+  '/field-analysis',
+  ...companyUser,
+  fieldCtrl.prepareFieldAnalysisDir(baseUpload),
+  uploadFieldMedia,
+  fieldCtrl.postFieldAnalysis
+);
+router.get('/field-analysis/:id', ...companyUser, fieldCtrl.getFieldAnalysis);
+
+router.post('/unity/build-visual-payload', ...companyUser, ctrl.buildUnityVisualPayload);
 
 router.get('/health', ...adminCompany, (_req, res) => {
   res.json({ ok: true, module: 'technical-library-inteligente', version: 1 });

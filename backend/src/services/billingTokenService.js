@@ -5,6 +5,7 @@
 const db = require('../db');
 const { createResilientClient } = require('../utils/httpClient');
 const asaasService = require('./asaasService');
+const nexusWalletService = require('./nexusWalletService');
 
 const ENABLED = process.env.ENABLE_TOKEN_BILLING !== 'false' && process.env.ENABLE_TOKEN_BILLING !== '0';
 
@@ -17,6 +18,8 @@ const CUSTO_REAL_POR_UNIDADE = {
   tts: 0.00018,
   analise: 0.000015,
   conteudo: 0.000015,
+  openai_embed: 0.00001,
+  akool: 0.02,
   outro: 0.00001
 };
 
@@ -59,15 +62,20 @@ function registrarUsoSafe(companyId, userId, servico, quantidade, unidade = 'tok
   const custo = unit * q;
 
   setImmediate(() => {
-    db.query(
-      `INSERT INTO token_usage (company_id, user_id, servico, quantidade, unidade, custo_real)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [companyId, userId || null, servico, q, unidade, custo]
-    ).catch((err) => {
-      if (!String(err.message || '').includes('token_usage')) {
-        console.warn('[NEXUS_BILLING] registrarUso:', err.message);
+    (async () => {
+      try {
+        await db.query(
+          `INSERT INTO token_usage (company_id, user_id, servico, quantidade, unidade, custo_real)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [companyId, userId || null, servico, q, unidade, custo]
+        );
+        await nexusWalletService.debitAfterUsageSafe(companyId, userId, servico, q, unidade);
+      } catch (err) {
+        if (!String(err.message || '').includes('token_usage')) {
+          console.warn('[NEXUS_BILLING] registrarUso:', err.message);
+        }
       }
-    });
+    })();
   });
 }
 

@@ -7,6 +7,18 @@ const compression = require('compression');
 const helmet = require('helmet');
 const app = express();
 
+app.post(
+  '/api/webhooks/stripe-nexus-wallet',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const stripeNexusWalletWebhook = require('./routes/webhooks/stripeNexusWallet');
+    Promise.resolve(stripeNexusWalletWebhook(req, res)).catch((e) => {
+      console.error('[STRIPE_NEXUS_WEBHOOK]', e);
+      res.status(500).send('error');
+    });
+  }
+);
+
 // Helmet: headers de segurança (X-Content-Type-Options, X-Frame-Options, etc.)
 app.use(helmet({ contentSecurityPolicy: false }));
 

@@ -51,6 +51,18 @@ app.use(
   })
 );
 
+const stripeNexusWalletWebhook = require('./routes/webhooks/stripeNexusWallet');
+app.post(
+  '/api/webhooks/stripe-nexus-wallet',
+  bodyParser.raw({ type: 'application/json' }),
+  (req, res) => {
+    Promise.resolve(stripeNexusWalletWebhook(req, res)).catch((e) => {
+      console.error('[STRIPE_NEXUS_WEBHOOK]', e);
+      res.status(500).send('error');
+    });
+  }
+);
+
 function needsLargeBodyParser(url) {
   const p = String(url || '').split('?')[0];
   return (
@@ -158,6 +170,7 @@ useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials');
 useRoute('/api/admin/logistics', './routes/admin/logistics');
 useRoute('/api/admin/time-clock', './routes/admin/timeClock');
 useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
+useRoute('/api/admin/nexus-wallet', './routes/admin/nexusWallet');
 useRoute('/api/dashboard/chat/voice', './routes/chatVoice');
 useRoute('/api/tts', './routes/tts');
 useRoute('/api/voz', './routes/voz');

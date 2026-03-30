@@ -295,7 +295,7 @@ router.get('/summary', requireAuth, async (req, res) => {
   try {
     const summary = await dashboardKPIs.getDashboardSummary(req.user);
     res.json({ summary });
-  } catch (err) {
+        } catch (err) {
     console.error('[DASHBOARD_SUMMARY]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar resumo' });
   }

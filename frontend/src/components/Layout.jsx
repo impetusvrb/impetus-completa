@@ -213,7 +213,7 @@ export default function Layout({ children }) {
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
-      { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'NexusIA — Custos' },
+      { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
     diretor: MENU_LIDERANCA,
