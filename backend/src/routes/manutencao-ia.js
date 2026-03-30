@@ -346,17 +346,33 @@ router.post('/conclude-session', manuiaGuard, async (req, res) => {
 
     let woId = null;
     let machineId = null;
+    let workOrderTitle = null;
 
     if (create_work_order) {
-      const title = `ManuIA: ${equipment_name || 'Equipamento'} - ${symptom || 'Manutenção'}`;
+      workOrderTitle = `ManuIA: ${equipment_name || 'Equipamento'} - ${symptom || 'Manutenção'}`;
       const description = diagnosis_summary || `Manutenção assistida por IA. Equipamento: ${equipment_name}. Sintoma: ${symptom}`;
       const r = await db.query(
         `INSERT INTO work_orders (company_id, title, description, type, machine_name, line_name, sector, status, created_by)
          VALUES ($1, $2, $3, 'corrective', $4, $5, $6, 'open', $7)
          RETURNING id`,
-        [companyId, title.slice(0, 200), description, equipment_name || null, line_name || null, sector || null, userId]
+        [companyId, workOrderTitle.slice(0, 200), description, equipment_name || null, line_name || null, sector || null, userId]
       );
       woId = r.rows?.[0]?.id;
+    }
+
+    if (woId && String(process.env.MANUIA_INBOX_FROM_SESSION || '').toLowerCase() === 'true') {
+      try {
+        const ingest = require('../services/manuiaApp/manuiaInboxIngestService');
+        await ingest.notifyUserForWorkOrderCreated({
+          companyId,
+          userId,
+          workOrderId: woId,
+          woTitle: workOrderTitle,
+          machineName: equipment_name
+        });
+      } catch (inboxErr) {
+        console.warn('[MANUIA_INBOX_FROM_SESSION]', inboxErr?.message);
+      }
     }
 
     if (add_to_cadastro && equipment_name) {
@@ -389,5 +405,8 @@ router.post('/conclude-session', manuiaGuard, async (req, res) => {
 router.get('/health', manuiaGuard, (req, res) => {
   res.json({ ok: true, module: 'manuia', version: '1.0.0' });
 });
+
+/** App de extensão ManuIA (PWA / mobile): preferências, inbox, plantão, decisão de alerta */
+router.use('/app', require('./manuiaApp'));
 
 module.exports = router;

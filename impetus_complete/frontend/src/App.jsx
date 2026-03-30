@@ -45,6 +45,7 @@ const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
+const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'));
 
 function needSetup() {
   try {
@@ -195,6 +196,10 @@ export default function App() {
         
         <Route path="/app/monitored-points" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+
+        <Route path="/app/manutencao/manuia-app" element={
+          <PrivateRoute><SetupGuard><ManuIAExtensionApp /></SetupGuard></PrivateRoute>
         } />
         
         <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />

@@ -52,7 +52,7 @@ const SYMPTOM_CHIPS = [
   { id: 'other', label: 'Outro problema...' }
 ];
 
-export default function ManuIA() {
+export default function ManuIA({ embedded = false }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('search');
@@ -276,8 +276,8 @@ export default function ManuIA() {
 
   const explodeFactor = viewMode === 'exploded' ? 0.6 : 0;
 
-  return (
-    <Layout>
+  const body = (
+    <>
       <div className="manuia">
         <header className="manuia-header">
           <div className="manuia-header__left">
@@ -602,6 +602,8 @@ export default function ManuIA() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
+
+  return embedded ? body : <Layout>{body}</Layout>;
 }

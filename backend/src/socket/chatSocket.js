@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
+const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 const onlineUsers = new Map();
 
 function initChatSocket(io) {
@@ -38,6 +39,16 @@ function initChatSocket(io) {
         io.to(conversationId).emit('new_message', msg);
         if (ack) ack({ ok: true, message: msg });
         if (mentionsAI(content)) setImmediate(() => handleAIMessage(conversationId, content, io));
+        // Captura todas as conversas do chat Impetus para automações operacionais em tempo real.
+        if (type === 'text' && content && String(content).trim().length >= 3) {
+          setImmediate(() => operationalRealtimeCoordinator.processChatMessage({
+            companyId: user.company_id,
+            conversationId,
+            senderUser: user,
+            content,
+            io
+          }).catch(() => {}));
+        }
       } catch (e) { if (ack) ack({ error: e.message }); }
     });
 

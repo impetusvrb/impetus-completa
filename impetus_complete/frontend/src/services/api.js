@@ -398,6 +398,29 @@ export const diagnostic = {
     api.get(`/diagnostic/report/${diagId}`, { responseType: 'text' })
 };
 
+/** ManuIA App de extensão (PWA / mobile) — preferências, inbox, OS, dashboard */
+export const manuiaApp = {
+  getPreferences: () => api.get('/manutencao-ia/app/preferences'),
+  putPreferences: (data) => api.put('/manutencao-ia/app/preferences', data),
+  registerDevice: (body) => api.post('/manutencao-ia/app/devices', body),
+  getInbox: (params) => api.get('/manutencao-ia/app/inbox', { params }),
+  getInboxItem: (id) => api.get(`/manutencao-ia/app/inbox/${id}`),
+  patchInboxAttendance: (id, body) => api.patch(`/manutencao-ia/app/inbox/${id}/attendance`, body),
+  ackInbox: (id) => api.post(`/manutencao-ia/app/inbox/${id}/ack`),
+  readInbox: (id) => api.post(`/manutencao-ia/app/inbox/${id}/read`),
+  getWorkOrders: (params) => api.get('/manutencao-ia/app/work-orders', { params }),
+  getDashboard: () => api.get('/manutencao-ia/app/dashboard'),
+  previewDecision: (body) => api.post('/manutencao-ia/app/decision/preview', body),
+  notificationPreview: (body) => api.post('/manutencao-ia/app/notification-preview', body),
+  getVapidPublicKey: () => api.get('/manutencao-ia/app/push/vapid-public-key'),
+  pushTest: (body) => api.post('/manutencao-ia/app/push/test', body),
+  listOnCallSlots: () => api.get('/manutencao-ia/app/on-call'),
+  createOnCallSlot: (data) => api.post('/manutencao-ia/app/on-call', data),
+  updateOnCallSlot: (id, data) => api.put(`/manutencao-ia/app/on-call/${id}`, data),
+  deleteOnCallSlot: (id) => api.delete(`/manutencao-ia/app/on-call/${id}`),
+  simulateIngest: (body) => api.post('/manutencao-ia/app/notifications/simulate-ingest', body)
+};
+
 // ============================================================================
 // TAREFAS
 // ============================================================================

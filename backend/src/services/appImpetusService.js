@@ -128,6 +128,23 @@ async function processIncomingFromApp(companyId, payload) {
     let aiClassification = null;
     const senderPhoneNorm = String(sender || '').replace(/\D/g, '');
 
+    try {
+      const coordinator = require('./operationalRealtimeCoordinator');
+      await coordinator.processChatMessage({
+        companyId,
+        conversationId: null,
+        senderUser: {
+          id: senderUserId || null,
+          role: payload?.metadata?.role || 'colaborador',
+          hierarchy_level: payload?.metadata?.hierarchy_level ?? null
+        },
+        content: text,
+        io: null
+      });
+    } catch (coordErr) {
+      console.warn('[APP_IMPETUS] realtime coordinator:', coordErr.message);
+    }
+
     if (text && text.trim().length >= 3) {
       try {
         const tpmConversation = require('./tpmConversation');

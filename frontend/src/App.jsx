@@ -54,6 +54,7 @@ const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
 const NexusIACustos = lazy(() => import('./pages/NexusIACustos'));
 const AdminEquipmentLibrary = lazy(() => import('./pages/AdminEquipmentLibrary'));
 const ManuIA = lazy(() => import('./pages/ManuIA'));
+const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'));
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
@@ -129,7 +130,7 @@ function ColaboradorRouteGuard({ children }) {
     }
 
     if (isMaintenanceTechnicianMenu(user)) {
-      const allow = ['/app', '/app/proacao', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/biblioteca', '/app/almoxarifado-inteligente', '/app/settings'];
+      const allow = ['/app', '/app/proacao', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/almoxarifado-inteligente', '/app/settings'];
       const ok = allow.includes(path) || path.startsWith('/app/proacao/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
@@ -285,6 +286,9 @@ export default function App() {
 
         <Route path="/app/manutencao/manuia" element={
           <PrivateRoute><SetupGuard><ManuIA /></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/manutencao/manuia-app" element={
+          <PrivateRoute><SetupGuard><ManuIAExtensionApp /></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-previsao-operacional" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><CentroPrevisaoOperacional /></CEORouteGuard></SetupGuard></PrivateRoute>

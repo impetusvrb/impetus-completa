@@ -37,7 +37,8 @@ import {
   Package,
   Truck,
   Upload,
-  Mic
+  Mic,
+  Smartphone
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -124,7 +125,9 @@ export default function Layout({ children }) {
 
   const rawPath = location.pathname || '/';
   const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
-  const allowManuiaByMaintenance = maintenanceProfile && normalizedPath.startsWith('/app/manutencao/manuia');
+  const allowManuiaByMaintenance =
+    maintenanceProfile &&
+    (normalizedPath.startsWith('/app/manutencao/manuia') || normalizedPath.startsWith('/app/manutencao/manuia-app'));
 
   let pathOk = canAccessPath(location.pathname);
   if (isColaboradorSimples(user)) {
@@ -149,6 +152,7 @@ export default function Layout({ children }) {
       '/chat',
       '/diagnostic',
       '/app/manutencao/manuia',
+      '/app/manutencao/manuia-app',
       '/app/biblioteca',
       '/app/almoxarifado-inteligente',
       '/app/settings'
@@ -188,6 +192,7 @@ export default function Layout({ children }) {
   /** Mecânico / eletricista / eletromecânico — dashboard técnico + ferramentas de campo */
   const MENU_MANUTENCAO_TECNICO = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/app/manutencao/manuia-app', icon: Smartphone, label: 'ManuIA Campo' },
     { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
     { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },

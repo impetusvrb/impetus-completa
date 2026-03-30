@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
 const executiveMode = require('../services/executiveMode');
+const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
@@ -64,6 +65,13 @@ router.post('/conversations/:id/messages', async (req, res) => {
     const io = getIo(req);
     if (io) io.to(req.params.id).emit('new_message', msg);
     if (mentionsAI(content)) setImmediate(() => handleAIMessage(req.params.id, content, io));
+    setImmediate(() => operationalRealtimeCoordinator.processChatMessage({
+      companyId: req.user.company_id,
+      conversationId: req.params.id,
+      senderUser: req.user,
+      content: content.trim(),
+      io
+    }).catch(() => {}));
     res.json(msg);
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });

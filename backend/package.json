@@ -30,7 +30,8 @@
     "format:check": "prettier --check \"src/**/*.js\"",
     "test:voz": "node scripts/test-voz.js",
     "test:realtime": "node scripts/test-realtime-ws.js",
-    "test:did": "node scripts/test-did.js"
+    "test:did": "node scripts/test-did.js",
+    "smoke:manuia-app": "node scripts/smoke-manuia-app.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -59,6 +60,7 @@
     "socket.io": "^4.8.3",
     "tesseract.js": "^5.0.4",
     "uuid": "^9.0.1",
+    "web-push": "^3.6.7",
     "ws": "^8.20.0",
     "zod": "^3.22.4"
   },

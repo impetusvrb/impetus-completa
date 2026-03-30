@@ -24,6 +24,8 @@ const MIGRATIONS_ORDER = [
   'voice_preferences_restore_migration.sql',
   'performance_indexes_migration.sql',
   'manuia_migration.sql',
+  'manuia_extension_app_migration.sql',
+  'manuia_inbox_attendance_migration.sql',
   'equipment_library_admin_migration.sql',
   'equipment_technical_3d_models_migration.sql',
   'technical_library_inteligente_migration.sql',

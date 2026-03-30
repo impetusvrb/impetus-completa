@@ -1,0 +1,21 @@
+{
+  "name": "Impetus ManuIA",
+  "short_name": "ManuIA",
+  "description": "Extensão de manutenção — alertas, OS, diagnóstico e biblioteca técnica",
+  "start_url": "/app/manutencao/manuia-app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e14",
+  "theme_color": "#0d8a5b",
+  "lang": "pt-BR",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/manuia-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
