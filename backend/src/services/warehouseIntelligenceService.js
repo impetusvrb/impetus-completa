@@ -316,7 +316,14 @@ async function createWarehouseAlert(companyId, alert) {
     alert.entity_type || null, alert.entity_id || null,
     JSON.stringify(alert.metrics || {}), alert.target_role_level ?? 5
   ]);
-  return r.rows?.[0];
+  const row = r.rows?.[0];
+  if (row) {
+    const eventDispatch = require('./manuiaApp/manuiaEventDispatchService');
+    eventDispatch.scheduleDispatch('[MANUIA_DISPATCH_WAREHOUSE]', () =>
+      eventDispatch.dispatchFromWarehouseAlert(companyId, row)
+    );
+  }
+  return row;
 }
 
 /**

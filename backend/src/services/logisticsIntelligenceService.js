@@ -223,7 +223,14 @@ async function createLogisticsAlert(companyId, alert) {
     alert.route_id || null, alert.driver_id || null, JSON.stringify(alert.metrics || {}),
     alert.target_role_level ?? 5, alert.target_functional_area || null
   ]);
-  return r.rows?.[0];
+  const row = r.rows?.[0];
+  if (row) {
+    const eventDispatch = require('./manuiaApp/manuiaEventDispatchService');
+    eventDispatch.scheduleDispatch('[MANUIA_DISPATCH_LOGISTICS]', () =>
+      eventDispatch.dispatchFromLogisticsAlert(companyId, row)
+    );
+  }
+  return row;
 }
 
 /**

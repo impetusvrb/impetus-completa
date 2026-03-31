@@ -52,27 +52,35 @@ async function updateStep(sessionId, step, data) {
   return r.rows[0];
 }
 
-async function saveIncident(session) {
-  const d = session.collected_data || {};
+/**
+ * Persiste um incidente TPM a partir dos dados coletados (chat ou formulário web).
+ * @param {string} companyId
+ * @param {object} d — mesmo formato que collected_data da sessão conversacional
+ * @param {{ communicationId?: string|null, operatorPhone?: string|null }} meta
+ */
+async function persistTpmIncidentFromData(companyId, d, meta = {}) {
   const lossesBefore = parseInt(d.losses_before, 10) || 0;
   const lossesDuring = parseInt(d.losses_during, 10) || 0;
   const lossesAfter = parseInt(d.losses_after, 10) || 0;
   const total = lossesBefore + lossesDuring + lossesAfter;
 
   const lotCode = (d.lot_code || '').trim();
-  if (lotService && lotCode && await lotService.isLotBlocked(session.company_id, lotCode)) {
+  if (lotService && lotCode && (await lotService.isLotBlocked(companyId, lotCode))) {
     throw new Error(`O lote ${lotCode} está bloqueado para produção. Entre em contato com a Qualidade.`);
   }
 
   let shiftNumber = null;
   if (d.incident_time) {
-    const [h, m] = String(d.incident_time).split(/[:\s]/).map(x => parseInt(x, 10) || 0);
+    const [h, m] = String(d.incident_time).split(/[:\s]/).map((x) => parseInt(x, 10) || 0);
     shiftNumber = getShiftFromTime(h, m);
   }
 
   const incidentDate = d.incident_date || new Date().toISOString().slice(0, 10);
+  const communicationId = meta.communicationId != null ? meta.communicationId : null;
+  const operatorPhone = meta.operatorPhone != null ? meta.operatorPhone : null;
 
-  const r = await db.query(`
+  const r = await db.query(
+    `
     INSERT INTO tpm_incidents (
       company_id, communication_id, operator_phone, incident_date, incident_time,
       equipment_code, component_name, maintainer_name, root_cause, frequency_observation,
@@ -80,52 +88,123 @@ async function saveIncident(session) {
       operator_name, observation, shift_number, lot_code, supplier_name, material_name
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
     RETURNING *
-  `, [
-    session.company_id, session.communication_id, session.operator_phone,
-    d.incident_date || null, d.incident_time || null,
-    d.equipment_code || null, d.component_name || null,
-    d.maintainer_name || null, d.root_cause || null, d.frequency_observation || null,
-    d.failing_part || null, d.corrective_action || null,
-    lossesBefore, lossesDuring, lossesAfter,
-    d.operator_name || null, d.observation || null, shiftNumber,
-    lotCode || null, d.supplier_name || null, d.material_name || null
-  ]);
+  `,
+    [
+      companyId,
+      communicationId,
+      operatorPhone,
+      d.incident_date || null,
+      d.incident_time || null,
+      d.equipment_code || null,
+      d.component_name || null,
+      d.maintainer_name || null,
+      d.root_cause || null,
+      d.frequency_observation || null,
+      d.failing_part || null,
+      d.corrective_action || null,
+      lossesBefore,
+      lossesDuring,
+      lossesAfter,
+      d.operator_name || null,
+      d.observation || null,
+      shiftNumber,
+      lotCode || null,
+      d.supplier_name || null,
+      d.material_name || null
+    ]
+  );
 
   const incident = r.rows[0];
 
   if (shiftNumber && incidentDate) {
     try {
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO tpm_shift_totals (company_id, shift_date, shift_number, total_losses, incident_count)
         VALUES ($1, $2, $3, $4, 1)
         ON CONFLICT (company_id, shift_date, shift_number)
         DO UPDATE SET total_losses = tpm_shift_totals.total_losses + EXCLUDED.total_losses,
                       incident_count = tpm_shift_totals.incident_count + 1
-      `, [session.company_id, incidentDate, shiftNumber, total]);
+      `,
+        [companyId, incidentDate, shiftNumber, total]
+      );
     } catch (e) {
       console.warn('[TPM] shift_totals update:', e.message);
     }
   }
 
-  await db.query(`
-    UPDATE tpm_form_sessions SET status = 'completed', incident_id = $1, updated_at = now() WHERE id = $2
-  `, [incident.id, session.id]);
-
   if (lotService && lotCode) {
-    lotService.recordLotUsage(session.company_id, {
-      lot_code: lotCode,
-      material_name: d.material_name,
-      supplier_name: d.supplier_name,
-      source_type: 'tpm_incident',
-      source_id: incident.id,
-      machine_used: d.equipment_code,
-      operator_name: d.operator_name,
-      defect_count: 1,
-      rework_count: 0,
-      inspection_result: null
-    }).catch(() => {});
+    lotService
+      .recordLotUsage(companyId, {
+        lot_code: lotCode,
+        material_name: d.material_name,
+        supplier_name: d.supplier_name,
+        source_type: 'tpm_incident',
+        source_id: incident.id,
+        machine_used: d.equipment_code,
+        operator_name: d.operator_name,
+        defect_count: 1,
+        rework_count: 0,
+        inspection_result: null
+      })
+      .catch(() => {});
   }
 
+  return incident;
+}
+
+async function saveIncident(session) {
+  const d = session.collected_data || {};
+  const incident = await persistTpmIncidentFromData(session.company_id, d, {
+    communicationId: session.communication_id,
+    operatorPhone: session.operator_phone
+  });
+
+  await db.query(
+    `
+    UPDATE tpm_form_sessions SET status = 'completed', incident_id = $1, updated_at = now() WHERE id = $2
+  `,
+    [incident.id, session.id]
+  );
+
+  return incident;
+}
+
+/**
+ * Registo TPM pelo módulo web Pró-Ação (mesmos dados que o fluxo conversacional).
+ */
+async function createIncidentFromWeb(companyId, body, userId) {
+  const d = {
+    incident_date: body.incident_date,
+    incident_time: body.incident_time,
+    equipment_code: body.equipment_code,
+    component_name: body.component_name,
+    maintainer_name: body.maintainer_name,
+    root_cause: body.root_cause,
+    frequency_observation: body.frequency_observation,
+    failing_part: body.failing_part,
+    corrective_action: body.corrective_action,
+    losses_before: body.losses_before,
+    losses_during: body.losses_during,
+    losses_after: body.losses_after,
+    operator_name: body.operator_name,
+    observation: body.observation,
+    lot_code: body.lot_code,
+    supplier_name: body.supplier_name,
+    material_name: body.material_name
+  };
+  const incident = await persistTpmIncidentFromData(companyId, d, {
+    communicationId: null,
+    operatorPhone: userId ? `web:${userId}` : 'web:anonymous'
+  });
+  try {
+    const tpmNotifications = require('./tpmNotifications');
+    if (tpmNotifications?.notifyTpmIncident) {
+      await tpmNotifications.notifyTpmIncident(companyId, incident);
+    }
+  } catch (_) {
+    /* módulo opcional */
+  }
   return incident;
 }
 
@@ -156,7 +235,9 @@ module.exports = {
   createSession,
   getActiveSession,
   updateStep,
+  persistTpmIncidentFromData,
   saveIncident,
+  createIncidentFromWeb,
   listIncidents,
   getShiftTotals,
   getShiftFromTime

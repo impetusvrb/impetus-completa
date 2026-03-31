@@ -101,21 +101,37 @@ async function saveAnalysisAndAlert(companyId, analysis) {
 
     const anal = analR.rows[0];
 
-    await client.query(`
+    const alertIns = await client.query(
+      `
       INSERT INTO plc_alerts (company_id, analysis_id, equipment_id, equipment_name, title, message, severity, possible_causes)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [
-      companyId,
-      anal.id,
-      analysis.equipment_id,
-      analysis.equipment_name || null,
-      analysis.alert_title || `Variação detectada: ${analysis.equipment_id}`,
-      analysis.alert_message || analysis.variation_description || '',
-      analysis.severity || 'medium',
-      JSON.stringify(analysis.possible_causes || [])
-    ]);
+      RETURNING id, analysis_id, equipment_id, equipment_name, title, message, severity
+    `,
+      [
+        companyId,
+        anal.id,
+        analysis.equipment_id,
+        analysis.equipment_name || null,
+        analysis.alert_title || `Variação detectada: ${analysis.equipment_id}`,
+        analysis.alert_message || analysis.variation_description || '',
+        analysis.severity || 'medium',
+        JSON.stringify(analysis.possible_causes || [])
+      ]
+    );
 
     await client.query('COMMIT');
+    const alertRow = alertIns.rows[0];
+    if (alertRow) {
+      const eventDispatch = require('./manuiaApp/manuiaEventDispatchService');
+      eventDispatch.scheduleDispatch('[MANUIA_DISPATCH_PLC]', () =>
+        eventDispatch.dispatchFromPlcAlert(companyId, alertRow, {
+          alert_title: analysis.alert_title,
+          variation_description: analysis.variation_description,
+          severity: analysis.severity,
+          recommendation: analysis.recommendation
+        })
+      );
+    }
     return anal;
   } catch (err) {
     await client.query('ROLLBACK');

@@ -9,5 +9,7 @@ module.exports = {
   decision: require('./manuiaAlertDecisionService'),
   aiSummary: require('./manuiaAiSummaryService'),
   webPush: require('./manuiaWebPushService'),
-  ingest: require('./manuiaInboxIngestService')
+  ingest: require('./manuiaInboxIngestService'),
+  eventDispatch: require('./manuiaEventDispatchService'),
+  recipientResolver: require('./manuiaRecipientResolverService')
 };

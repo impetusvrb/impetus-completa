@@ -14,6 +14,7 @@ const decision = require('../services/manuiaApp/manuiaAlertDecisionService');
 const aiSummary = require('../services/manuiaApp/manuiaAiSummaryService');
 const webPush = require('../services/manuiaApp/manuiaWebPushService');
 const ingest = require('../services/manuiaApp/manuiaInboxIngestService');
+const eventDispatch = require('../services/manuiaApp/manuiaEventDispatchService');
 const db = require('../db');
 
 const MAINTENANCE_PROFILES = new Set([
@@ -103,7 +104,12 @@ router.post('/devices', ...guard, express.json({ limit: '64kb' }), async (req, r
 
 router.get('/inbox', ...guard, async (req, res) => {
   try {
-    const items = await repo.listInbox(req.user.company_id, req.user.id, req.query.limit);
+    const items = await repo.listInbox(req.user.company_id, req.user.id, {
+      limit: req.query.limit,
+      alert_level: req.query.alert_level,
+      attendance_status: req.query.attendance_status,
+      unread_only: req.query.unread_only === '1' || req.query.unread_only === 'true'
+    });
     res.json({ ok: true, items });
   } catch (e) {
     if (e.message?.includes('does not exist')) {
@@ -140,6 +146,39 @@ router.patch('/inbox/:id/attendance', ...guard, express.json(), async (req, res)
       return res.status(503).json({ ok: false, migration_required: true, error: 'Execute npm run migrate' });
     }
     res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+/**
+ * Escalação manual: marca o alerta e notifica supervisores de manutenção (se MANUIA_EVENT_DISPATCH_ENABLED).
+ */
+router.post('/inbox/:id/escalate', ...guard, express.json(), async (req, res) => {
+  try {
+    if (String(process.env.MANUIA_MANUAL_ESCALATION_ENABLED || '').toLowerCase() !== 'true') {
+      return res.status(403).json({
+        ok: false,
+        error: 'Escalação manual desativada. Defina MANUIA_MANUAL_ESCALATION_ENABLED=true.'
+      });
+    }
+    const row = await repo.getInboxById(req.user.company_id, req.user.id, req.params.id);
+    if (!row) return res.status(404).json({ ok: false, error: 'Notificação não encontrada' });
+    await repo.updateInboxAttendance(req.user.company_id, req.user.id, req.params.id, 'escalated');
+    const notify = await eventDispatch.notifySupervisorsOnManualEscalation({
+      companyId: req.user.company_id,
+      originUserId: req.user.id,
+      inboxNotificationId: row.id,
+      title: row.title,
+      body: row.body || '',
+      note: (req.body?.note || '').slice(0, 500)
+    });
+    const updated = await repo.getInboxById(req.user.company_id, req.user.id, req.params.id);
+    res.json({ ok: true, data: updated, escalation: notify });
+  } catch (e) {
+    if (String(e.message || '').includes('does not exist')) {
+      return res.status(503).json({ ok: false, migration_required: true, error: 'Execute npm run migrate' });
+    }
+    console.error('[MANUIA_ESCALATE]', e);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 

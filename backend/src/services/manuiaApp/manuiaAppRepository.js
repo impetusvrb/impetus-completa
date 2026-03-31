@@ -139,14 +139,46 @@ async function insertDevice(companyId, userId, data) {
   return r.rows[0];
 }
 
-async function listInbox(companyId, userId, limit) {
-  const lim = Math.min(parseInt(limit, 10) || 40, 100);
+async function listInbox(companyId, userId, limitOrOpts) {
+  let lim = 40;
+  let alertLevel = null;
+  let attendanceStatus = null;
+  let unreadOnly = false;
+
+  if (limitOrOpts != null && typeof limitOrOpts === 'object') {
+    lim = Math.min(parseInt(limitOrOpts.limit, 10) || 40, 100);
+    alertLevel = limitOrOpts.alert_level || limitOrOpts.alertLevel || null;
+    attendanceStatus = limitOrOpts.attendance_status || limitOrOpts.attendanceStatus || null;
+    unreadOnly = !!limitOrOpts.unread_only || !!limitOrOpts.unreadOnly;
+  } else {
+    lim = Math.min(parseInt(limitOrOpts, 10) || 40, 100);
+  }
+
+  const cond = ['company_id = $1', 'user_id = $2'];
+  const params = [companyId, userId];
+  let n = 3;
+
+  if (alertLevel) {
+    cond.push(`alert_level = $${n}`);
+    params.push(String(alertLevel));
+    n++;
+  }
+  if (attendanceStatus) {
+    cond.push(`attendance_status = $${n}`);
+    params.push(String(attendanceStatus));
+    n++;
+  }
+  if (unreadOnly) {
+    cond.push('read_at IS NULL');
+  }
+
+  params.push(lim);
   const r = await db.query(
     `SELECT * FROM manuia_inbox_notifications
-     WHERE company_id = $1 AND user_id = $2
+     WHERE ${cond.join(' AND ')}
      ORDER BY created_at DESC
-     LIMIT $3`,
-    [companyId, userId, lim]
+     LIMIT $${n}`,
+    params
   );
   return r.rows || [];
 }

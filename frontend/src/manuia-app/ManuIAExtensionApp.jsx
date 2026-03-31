@@ -11,7 +11,11 @@ import {
   Settings,
   AlertTriangle,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Sun,
+  Moon,
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { manuiaApp } from '../services/api';
 import { useManuiaPush } from './hooks/useManuiaPush';
@@ -35,6 +39,13 @@ export default function ManuIAExtensionApp() {
   const [prefs, setPrefs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [lightMode, setLightMode] = useState(
+    () => typeof localStorage !== 'undefined' && localStorage.getItem('manuia_app_theme') === 'light'
+  );
+  const [filterAlertLevel, setFilterAlertLevel] = useState('');
+  const [filterUnreadOnly, setFilterUnreadOnly] = useState(false);
+  const [occurrence, setOccurrence] = useState(null);
+  const [escalateNote, setEscalateNote] = useState('');
   const { requestPermission, subscribeAndRegister } = useManuiaPush();
 
   useEffect(() => {
@@ -73,8 +84,12 @@ export default function ManuIAExtensionApp() {
         pr = pRes.data?.data ?? null;
       }
       setPrefs(pr);
-      const iRes = await manuiaApp.getInbox({ limit: 40 }).catch(() => ({ data: {} }));
-      if (iRes.data?.items?.length) setInbox(iRes.data.items);
+      const inboxParams = { limit: 60 };
+      if (filterAlertLevel) inboxParams.alert_level = filterAlertLevel;
+      if (filterUnreadOnly) inboxParams.unread_only = 'true';
+      const iRes = await manuiaApp.getInbox(inboxParams).catch(() => ({ data: {} }));
+      const inboxItems = iRes.data?.items;
+      if (Array.isArray(inboxItems)) setInbox(inboxItems);
       const oRes = await manuiaApp.getWorkOrders({ limit: 30 }).catch(() => ({ data: {} }));
       if (oRes.data?.items?.length) setOrders(oRes.data.items);
     } catch (e) {
@@ -86,7 +101,15 @@ export default function ManuIAExtensionApp() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [filterAlertLevel, filterUnreadOnly]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('manuia_app_theme', lightMode ? 'light' : 'dark');
+    } catch {
+      /* ignore */
+    }
+  }, [lightMode]);
 
   const savePrefs = async (patch) => {
     try {
@@ -109,14 +132,34 @@ export default function ManuIAExtensionApp() {
   const markAttending = async (id) => {
     try {
       await manuiaApp.patchInboxAttendance(id, { attendance_status: 'in_progress' });
+      if (occurrence?.id === id) setOccurrence((o) => (o ? { ...o, attendance_status: 'in_progress' } : null));
       await load();
     } catch (_) {
       /* ignore */
     }
   };
 
+  const openLinkedWorkOrder = (n) => {
+    const wo = n?.payload?.work_order_id || n?.work_order_id;
+    if (wo) window.location.href = `/diagnostic?context=wo&id=${encodeURIComponent(wo)}`;
+    else window.location.href = '/diagnostic';
+  };
+
+  const runEscalate = async () => {
+    if (!occurrence?.id) return;
+    setErr('');
+    try {
+      await manuiaApp.escalateInbox(occurrence.id, { note: escalateNote });
+      setEscalateNote('');
+      setOccurrence(null);
+      await load();
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || 'Escalação indisponível (verifique MANUIA_MANUAL_ESCALATION_ENABLED).');
+    }
+  };
+
   return (
-    <div className="manuia-app">
+    <div className={`manuia-app${lightMode ? ' manuia-app--light' : ''}`}>
       <header className="manuia-app__top">
         <div className="manuia-app__brand">
           <LayoutDashboard size={22} color="#3ecf8e" />
@@ -125,25 +168,37 @@ export default function ManuIAExtensionApp() {
             <span>Extensão de manutenção · Impetus</span>
           </div>
         </div>
-        <button
-          type="button"
-          className="manuia-app__btn manuia-app__btn--ghost"
-          style={{ minHeight: 40, padding: '0 12px', fontSize: 12 }}
-          onClick={async () => {
-            setErr('');
-            await requestPermission();
-            const r = await subscribeAndRegister();
-            if (!r?.ok) {
-              setErr(
-                r?.reason === 'no_vapid'
-                  ? 'Push não configurado no servidor (MANUIA_VAPID_*).'
-                  : r?.detail || r?.reason || 'Não foi possível ativar o push.'
-              );
-            }
-          }}
-        >
-          Ativar push
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            className="manuia-app__btn manuia-app__btn--ghost"
+            style={{ minHeight: 40, minWidth: 40, padding: 8 }}
+            title={lightMode ? 'Modo escuro' : 'Modo claro'}
+            onClick={() => setLightMode((v) => !v)}
+            aria-label="Alternar tema"
+          >
+            {lightMode ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <button
+            type="button"
+            className="manuia-app__btn manuia-app__btn--ghost"
+            style={{ minHeight: 40, padding: '0 12px', fontSize: 12 }}
+            onClick={async () => {
+              setErr('');
+              await requestPermission();
+              const r = await subscribeAndRegister();
+              if (!r?.ok) {
+                setErr(
+                  r?.reason === 'no_vapid'
+                    ? 'Push não configurado no servidor (MANUIA_VAPID_*).'
+                    : r?.detail || r?.reason || 'Não foi possível ativar o push.'
+                );
+              }
+            }}
+          >
+            Ativar push
+          </button>
+        </div>
       </header>
 
       <main className="manuia-app__body">
@@ -189,11 +244,41 @@ export default function ManuIAExtensionApp() {
         {view === VIEWS.alerts && (
           <div className="manuia-app__list">
             <h2 style={{ fontSize: '1rem', margin: '0 0 10px' }}>Alertas</h2>
+            <div className="manuia-app__filters" style={{ marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <label style={{ fontSize: 13, color: '#8b9aab', display: 'flex', alignItems: 'center', gap: 6 }}>
+                Criticidade
+                <select
+                  className="manuia-app__select"
+                  value={filterAlertLevel}
+                  onChange={(e) => setFilterAlertLevel(e.target.value)}
+                >
+                  <option value="">Todas</option>
+                  <option value="silent">Silencioso</option>
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgente</option>
+                  <option value="critical">Crítico</option>
+                </select>
+              </label>
+              <label style={{ fontSize: 13, color: '#8b9aab', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={filterUnreadOnly}
+                  onChange={(e) => setFilterUnreadOnly(e.target.checked)}
+                />
+                Só não lidos
+              </label>
+            </div>
             {inbox.length === 0 && <p style={{ color: '#8b9aab' }}>Nenhum alerta na caixa.</p>}
             {inbox.map((n) => (
               <div
                 key={n.id}
-                className={`manuia-app__row ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setOccurrence(n);
+                }}
+                onClick={() => setOccurrence(n)}
+                className={`manuia-app__row manuia-app__row--clickable ${
                   n.alert_level === 'critical'
                     ? 'manuia-app__row--critical'
                     : n.alert_level === 'urgent'
@@ -214,13 +299,24 @@ export default function ManuIAExtensionApp() {
                     type="button"
                     className="manuia-app__btn manuia-app__btn--ghost"
                     style={{ marginTop: 8, marginRight: 8 }}
-                    onClick={() => markAttending(n.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAttending(n.id);
+                    }}
                   >
                     Em atendimento
                   </button>
                 )}
                 {!n.acknowledged_at && (
-                  <button type="button" className="manuia-app__btn manuia-app__btn--primary" style={{ marginTop: 8 }} onClick={() => ack(n.id)}>
+                  <button
+                    type="button"
+                    className="manuia-app__btn manuia-app__btn--primary"
+                    style={{ marginTop: 8 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      ack(n.id);
+                    }}
+                  >
                     <CheckCircle2 size={16} style={{ verticalAlign: 'middle' }} /> Confirmar recebimento
                   </button>
                 )}
@@ -305,6 +401,57 @@ export default function ManuIAExtensionApp() {
           <p style={{ color: '#8b9aab' }}>Preferências indisponíveis. Execute a migration do backend (manuia_extension_app).</p>
         )}
       </main>
+
+      {occurrence && (
+        <div className="manuia-app__drawer-backdrop" role="presentation" onClick={() => setOccurrence(null)}>
+          <div
+            className="manuia-app__drawer"
+            role="dialog"
+            aria-labelledby="manuia-occ-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="manuia-app__drawer-top">
+              <h2 id="manuia-occ-title" style={{ margin: 0, fontSize: '1.05rem' }}>
+                Ocorrência
+              </h2>
+              <button type="button" className="manuia-app__btn manuia-app__btn--ghost" onClick={() => setOccurrence(null)} aria-label="Fechar">
+                <X size={22} />
+              </button>
+            </div>
+            <div className="manuia-app__drawer-body">
+              <span className="manuia-app__pill">{occurrence.alert_level || 'normal'}</span>
+              {occurrence.attendance_status && (
+                <span className="manuia-app__pill" style={{ marginLeft: 8 }}>
+                  {occurrence.attendance_status}
+                </span>
+              )}
+              <p style={{ margin: '12px 0 8px', fontWeight: 600 }}>{occurrence.title}</p>
+              {occurrence.body && <p style={{ fontSize: 14, color: '#b8c5d4', lineHeight: 1.45 }}>{occurrence.body}</p>}
+              {occurrence.payload && typeof occurrence.payload === 'object' && (
+                <pre className="manuia-app__payload-preview">{JSON.stringify(occurrence.payload, null, 2)}</pre>
+              )}
+              <label style={{ display: 'block', fontSize: 13, color: '#8b9aab', marginTop: 12 }}>
+                Nota para supervisão (opcional)
+                <textarea
+                  className="manuia-app__textarea"
+                  rows={2}
+                  value={escalateNote}
+                  onChange={(e) => setEscalateNote(e.target.value)}
+                  style={{ width: '100%', marginTop: 6, borderRadius: 8, padding: 8 }}
+                />
+              </label>
+            </div>
+            <div className="manuia-app__drawer-actions">
+              <button type="button" className="manuia-app__btn manuia-app__btn--ghost" onClick={() => openLinkedWorkOrder(occurrence)}>
+                <ExternalLink size={16} style={{ verticalAlign: 'middle' }} /> Abrir diagnóstico / OS
+              </button>
+              <button type="button" className="manuia-app__btn manuia-app__btn--primary" onClick={runEscalate}>
+                Escalar supervisão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <nav className="manuia-app__nav" aria-label="Navegação principal">
         <button

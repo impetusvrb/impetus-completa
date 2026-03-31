@@ -209,7 +209,14 @@ async function createQualityAlert(companyId, alert) {
     alert.raw_material_id || null, alert.product_id || null,
     alert.target_role_level ?? 5, JSON.stringify(alert.metrics || {})
   ]);
-  return r.rows?.[0];
+  const row = r.rows?.[0];
+  if (row) {
+    const eventDispatch = require('./manuiaApp/manuiaEventDispatchService');
+    eventDispatch.scheduleDispatch('[MANUIA_DISPATCH_QUALITY]', () =>
+      eventDispatch.dispatchFromQualityAlert(companyId, row)
+    );
+  }
+  return row;
 }
 
 /**

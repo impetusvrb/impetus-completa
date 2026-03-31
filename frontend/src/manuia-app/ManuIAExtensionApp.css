@@ -193,3 +193,128 @@
   display: inline-block;
   animation: manuia-app-spin 0.8s linear infinite;
 }
+
+/* Modo claro (contraste industrial em campo com luminosidade alta) */
+.manuia-app--light {
+  background: linear-gradient(180deg, #e8eef5 0%, #f2f5f9 100%);
+  color: #15202b;
+}
+.manuia-app--light .manuia-app__brand span,
+.manuia-app--light .manuia-app__nav {
+  color: #5c6d80;
+}
+.manuia-app--light .manuia-app__top {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+.manuia-app--light .manuia-app__row {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.manuia-app--light .manuia-app__select,
+.manuia-app--light .manuia-app__textarea {
+  background: #fff;
+  color: #15202b;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.manuia-app__row--clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.manuia-app__row--clickable:active {
+  transform: scale(0.99);
+}
+
+.manuia-app__select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+  font-size: 13px;
+}
+
+.manuia-app__textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.manuia-app__filters {
+  margin-bottom: 14px;
+}
+
+.manuia-app__drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.manuia-app__drawer {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  background: linear-gradient(180deg, #12181f 0%, #0d1118 100%);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.manuia-app--light .manuia-app__drawer {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #15202b;
+}
+
+.manuia-app__drawer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.manuia-app__drawer-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.manuia-app__drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.manuia-app__payload-preview {
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 12px 0 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: auto;
+  max-height: 160px;
+}
+
+.manuia-app--light .manuia-app__payload-preview {
+  background: #f0f3f7;
+  color: #334;
+}

@@ -406,6 +406,7 @@ export const manuiaApp = {
   getInbox: (params) => api.get('/manutencao-ia/app/inbox', { params }),
   getInboxItem: (id) => api.get(`/manutencao-ia/app/inbox/${id}`),
   patchInboxAttendance: (id, body) => api.patch(`/manutencao-ia/app/inbox/${id}/attendance`, body),
+  escalateInbox: (id, body) => api.post(`/manutencao-ia/app/inbox/${id}/escalate`, body),
   ackInbox: (id) => api.post(`/manutencao-ia/app/inbox/${id}/ack`),
   readInbox: (id) => api.post(`/manutencao-ia/app/inbox/${id}/read`),
   getWorkOrders: (params) => api.get('/manutencao-ia/app/work-orders', { params }),
