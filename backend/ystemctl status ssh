@@ -1,0 +1,23 @@
+[0;1;32m●[0m ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/lib/systemd/system/ssh.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Tue 2026-03-31 15:24:09 UTC; 7min ago
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 649 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 697 (sshd)
+      Tasks: 1 (limit: 9474)
+     Memory: 7.4M
+        CPU: 137ms
+     CGroup: /system.slice/ssh.service
+             └─697 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Mar 31 15:24:09 srv1422313 sshd[697]: Server listening on :: port 22.
+Mar 31 15:24:09 srv1422313 systemd[1]: Started OpenBSD Secure Shell server.
+Mar 31 15:25:15 srv1422313 sshd[979]: Accepted publickey for root from 169.254.0.1 port 49588 ssh2: RSA SHA256:Vs4JYEPBBPlmXDXijbPj8O9iJ0TNIKWf4jpFsZ2Pvyo
+Mar 31 15:25:15 srv1422313 sshd[979]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Mar 31 15:29:52 srv1422313 sshd[1124]: [0;1;39m[0;1;31m[0;1;39mpam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=170.246.208.19  user=root[0m
+Mar 31 15:29:53 srv1422313 sshd[1124]: Failed password for root from 170.246.208.19 port 30112 ssh2
+Mar 31 15:30:14 srv1422313 sshd[1124]: Failed password for root from 170.246.208.19 port 30112 ssh2
+Mar 31 15:30:23 srv1422313 sshd[1124]: Failed password for root from 170.246.208.19 port 30112 ssh2
+Mar 31 15:30:25 srv1422313 sshd[1124]: Connection reset by authenticating user root 170.246.208.19 port 30112 [preauth]
+Mar 31 15:30:25 srv1422313 sshd[1124]: [0;1;39m[0;1;31m[0;1;39mPAM 2 more authentication failures; logname= uid=0 euid=0 tty=ssh ruser= rhost=170.246.208.19  user=root[0m

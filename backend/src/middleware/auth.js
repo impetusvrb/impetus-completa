@@ -153,12 +153,13 @@ async function validateJWTAndLoadUser(token) {
 
     if (r.rows.length === 0) return null;
     const u = r.rows[0];
+    const companyId = u.company_id || decoded.company_id || null;
     return {
       id: u.id,
       name: u.name,
       email: u.email,
       role: u.role,
-      company_id: u.company_id,
+      company_id: companyId,
       department_id: u.department_id,
       hierarchy_level: u.hierarchy_level,
       supervisor_id: u.supervisor_id,
@@ -184,6 +185,26 @@ async function validateJWTAndLoadUser(token) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Quando users.company_id está NULL na BD mas o JWT de login inclui company_id,
+ * repõe o tenant (evita 403 "Empresa não identificada" em rotas como /api/tpm).
+ * Só aplica se a BD não tiver company_id — a BD continua a ter prioridade.
+ */
+function attachCompanyIdFromJwtClaims(user, rawToken) {
+  if (!user || user.company_id) return user;
+  if (!rawToken || typeof rawToken !== 'string') return user;
+  if (rawToken.split('.').length !== 3) return user;
+  try {
+    const decoded = jwt.verify(rawToken, JWT_SECRET);
+    if (decoded && decoded.company_id) {
+      return { ...user, company_id: decoded.company_id };
+    }
+  } catch (_) {
+    /* token opaco ou JWT inválido */
+  }
+  return user;
 }
 
 /**
@@ -215,7 +236,7 @@ function requireAuth(req, res, next) {
       });
     }
 
-    req.user = user;
+    req.user = attachCompanyIdFromJwtClaims(user, token);
     req.session = { id: user.sessionId };
     next();
   }).catch(err => {

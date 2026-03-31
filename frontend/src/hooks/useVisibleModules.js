@@ -24,6 +24,7 @@ const PATH_TO_MODULE = {
   '/app/almoxarifado-inteligente': 'warehouse_intelligence',
   '/app/logistica-inteligente': 'logistics_intelligence',
   '/app/manutencao/manuia': 'manuia',
+  '/app/manutencao/manuia-app': 'manuia',
   '/chat': 'chat'
 };
 

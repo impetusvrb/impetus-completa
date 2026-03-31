@@ -73,7 +73,25 @@ export default function ManuIAExtensionApp() {
     setErr('');
     setLoading(true);
     try {
-      const dRes = await manuiaApp.getDashboard().catch(() => ({ data: {} }));
+      let dRes;
+      try {
+        dRes = await manuiaApp.getDashboard();
+      } catch (e) {
+        const st = e?.response?.status;
+        const code = e?.response?.data?.code;
+        if (st === 403 || code === 'MAINTENANCE_PROFILE_REQUIRED') {
+          setErr(
+            e?.response?.data?.error ||
+              'Acesso restrito: o ManuIA Campo exige perfil de manutenção (técnico, supervisor ou coordenador de manutenção). Peça ao administrador para ajustar o cargo ou o dashboard_profile.'
+          );
+          setDash(null);
+          setInbox([]);
+          setOrders([]);
+          setPrefs(null);
+          return;
+        }
+        dRes = { data: {} };
+      }
       const d = dRes.data || {};
       setDash(d);
       setInbox(Array.isArray(d.recent_inbox) ? d.recent_inbox : []);

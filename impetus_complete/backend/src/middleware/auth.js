@@ -56,6 +56,8 @@ async function validateSession(token) {
       SELECT s.id as session_id, s.user_id, s.expires_at,
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
+             u.functional_area, u.dashboard_profile,
+             u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
       FROM sessions s
@@ -94,6 +96,13 @@ async function validateSession(token) {
       area: session.area,
       job_title: session.job_title,
       department: session.department,
+      functional_area: session.functional_area || null,
+      dashboard_profile: session.dashboard_profile || null,
+      preferred_kpis: session.preferred_kpis,
+      dashboard_preferences: session.dashboard_preferences,
+      seniority_level: session.seniority_level || null,
+      onboarding_completed: session.onboarding_completed === true,
+      ai_profile_context: session.ai_profile_context,
       permissions: session.permissions || [],
       sessionId: session.session_id,
       is_first_access: session.is_first_access || false,
@@ -134,7 +143,9 @@ async function validateJWTAndLoadUser(token) {
 
     const r = await db.query(`
       SELECT id, name, email, role, company_id, department_id, hierarchy_level,
-             supervisor_id, area, job_title, department, permissions, active,
+             supervisor_id, area, job_title, department, functional_area, dashboard_profile,
+             preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
+             permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
              role_verified, role_verification_status, is_company_root
       FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
@@ -142,18 +153,26 @@ async function validateJWTAndLoadUser(token) {
 
     if (r.rows.length === 0) return null;
     const u = r.rows[0];
+    const companyId = u.company_id || decoded.company_id || null;
     return {
       id: u.id,
       name: u.name,
       email: u.email,
       role: u.role,
-      company_id: u.company_id,
+      company_id: companyId,
       department_id: u.department_id,
       hierarchy_level: u.hierarchy_level,
       supervisor_id: u.supervisor_id,
       area: u.area,
       job_title: u.job_title,
       department: u.department,
+      functional_area: u.functional_area || null,
+      dashboard_profile: u.dashboard_profile || null,
+      preferred_kpis: u.preferred_kpis,
+      dashboard_preferences: u.dashboard_preferences,
+      seniority_level: u.seniority_level || null,
+      onboarding_completed: u.onboarding_completed === true,
+      ai_profile_context: u.ai_profile_context,
       permissions: u.permissions || [],
       sessionId: null,
       is_first_access: u.is_first_access || false,
@@ -166,6 +185,26 @@ async function validateJWTAndLoadUser(token) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Quando users.company_id está NULL na BD mas o JWT de login inclui company_id,
+ * repõe o tenant (evita 403 "Empresa não identificada" em rotas como /api/tpm).
+ * Só aplica se a BD não tiver company_id — a BD continua a ter prioridade.
+ */
+function attachCompanyIdFromJwtClaims(user, rawToken) {
+  if (!user || user.company_id) return user;
+  if (!rawToken || typeof rawToken !== 'string') return user;
+  if (rawToken.split('.').length !== 3) return user;
+  try {
+    const decoded = jwt.verify(rawToken, JWT_SECRET);
+    if (decoded && decoded.company_id) {
+      return { ...user, company_id: decoded.company_id };
+    }
+  } catch (_) {
+    /* token opaco ou JWT inválido */
+  }
+  return user;
 }
 
 /**
@@ -197,7 +236,7 @@ function requireAuth(req, res, next) {
       });
     }
 
-    req.user = user;
+    req.user = attachCompanyIdFromJwtClaims(user, token);
     req.session = { id: user.sessionId };
     next();
   }).catch(err => {
