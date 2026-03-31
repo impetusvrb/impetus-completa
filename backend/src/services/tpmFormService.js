@@ -85,8 +85,9 @@ async function persistTpmIncidentFromData(companyId, d, meta = {}) {
       company_id, communication_id, operator_phone, incident_date, incident_time,
       equipment_code, component_name, maintainer_name, root_cause, frequency_observation,
       failing_part, corrective_action, losses_before, losses_during, losses_after,
-      operator_name, observation, shift_number, lot_code, supplier_name, material_name
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      operator_name, observation, shift_number, lot_code, supplier_name, material_name,
+      product_description
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     RETURNING *
   `,
     [
@@ -110,7 +111,8 @@ async function persistTpmIncidentFromData(companyId, d, meta = {}) {
       shiftNumber,
       lotCode || null,
       d.supplier_name || null,
-      d.material_name || null
+      d.material_name || null,
+      (d.product_description && String(d.product_description).trim()) || null
     ]
   );
 
@@ -191,7 +193,8 @@ async function createIncidentFromWeb(companyId, body, userId) {
     observation: body.observation,
     lot_code: body.lot_code,
     supplier_name: body.supplier_name,
-    material_name: body.material_name
+    material_name: body.material_name,
+    product_description: body.product_description
   };
   const incident = await persistTpmIncidentFromData(companyId, d, {
     communicationId: null,

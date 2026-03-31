@@ -66,7 +66,8 @@ function getTpmInitial() {
     observation: '',
     lot_code: '',
     supplier_name: '',
-    material_name: ''
+    material_name: '',
+    product_description: ''
   };
 }
 
@@ -267,7 +268,8 @@ export default function Proposals() {
         observation: tpmForm.observation?.trim() || null,
         lot_code: tpmForm.lot_code?.trim() || null,
         supplier_name: tpmForm.supplier_name?.trim() || null,
-        material_name: tpmForm.material_name?.trim() || null
+        material_name: tpmForm.material_name?.trim() || null,
+        product_description: tpmForm.product_description?.trim() || null
       });
       notify.success('Registro TPM salvo. Os totais por turno foram atualizados.');
       setShowTpmModal(false);
@@ -506,6 +508,8 @@ export default function Proposals() {
                             <th className="tpm-table__num">Depois</th>
                             <th>Operador</th>
                             <th>Mecânico</th>
+                            <th>Lote</th>
+                            <th>Descrição do produto</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -520,6 +524,17 @@ export default function Proposals() {
                               <td className="tpm-table__num">{row.losses_after ?? '—'}</td>
                               <td>{row.operator_name || '—'}</td>
                               <td>{row.maintainer_name || '—'}</td>
+                              <td title={row.lot_code || ''}>{row.lot_code || '—'}</td>
+                              <td
+                                className="tpm-table__clip"
+                                title={row.product_description || ''}
+                              >
+                                {row.product_description
+                                  ? row.product_description.length > 48
+                                    ? `${row.product_description.slice(0, 48)}…`
+                                    : row.product_description
+                                  : '—'}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -766,8 +781,16 @@ export default function Proposals() {
                 name="material_name"
                 value={tpmForm.material_name}
                 onChange={(e) => setTpmForm((f) => ({ ...f, material_name: e.target.value }))}
+                placeholder="Nome ou código do material"
               />
             </div>
+            <TextAreaField
+              label="Descrição do produto (opcional)"
+              name="product_description"
+              value={tpmForm.product_description}
+              onChange={(e) => setTpmForm((f) => ({ ...f, product_description: e.target.value }))}
+              placeholder="Detalhe o produto afetado para análise de perdas e relatórios"
+            />
             <TextAreaField
               label="Observações"
               name="observation"

@@ -83,6 +83,12 @@
   background: var(--gray-50, #f9fafb);
 }
 
+.tpm-table__clip {
+  max-width: 14rem;
+  vertical-align: top;
+  word-break: break-word;
+}
+
 .tpm-table__num {
   text-align: right;
   font-variant-numeric: tabular-nums;

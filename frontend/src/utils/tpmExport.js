@@ -34,7 +34,8 @@ export function buildTpmIncidentsCsv(rows) {
     'acao_corretiva',
     'lote',
     'fornecedor',
-    'material'
+    'material',
+    'descricao_produto'
   ];
   const lines = [headers.join(';')];
   for (const row of rows || []) {
@@ -54,7 +55,8 @@ export function buildTpmIncidentsCsv(rows) {
         escapeCsvCell(row.corrective_action),
         escapeCsvCell(row.lot_code),
         escapeCsvCell(row.supplier_name),
-        escapeCsvCell(row.material_name)
+        escapeCsvCell(row.material_name),
+        escapeCsvCell(row.product_description)
       ].join(';')
     );
   }
@@ -120,7 +122,8 @@ export async function downloadTpmExcelWorkbook(incidents, shiftTotals) {
     'Ação corretiva': r.corrective_action,
     Lote: r.lot_code,
     Fornecedor: r.supplier_name,
-    Material: r.material_name
+    Material: r.material_name,
+    'Descrição do produto': r.product_description
   }));
 
   const ws1 = XLSX.utils.json_to_sheet(
