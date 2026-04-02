@@ -157,8 +157,11 @@ export default function ChatApp(){
     const userMsg={id:Date.now(),content:text,isUser:true,created_at:new Date().toISOString()};
     setAiMessages(prev=>[...prev,userMsg]);
     try{
-      const hist=[...aiMessages,userMsg].map(m=>({role:m.isUser?'user':'assistant',content:m.content}));
-      const {data}=await chatApi.sendAIMessage(hist);
+      const history = aiMessages.map(m => ({
+        role: m.isUser ? 'user' : 'assistant',
+        content: m.content || ''
+      }));
+      const { data } = await chatApi.sendAIMessage({ message: text, history });
       const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
       setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
       if(voiceMode) speak(reply);

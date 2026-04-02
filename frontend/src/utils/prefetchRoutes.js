@@ -14,8 +14,6 @@ const prefetchMap = {
   '/app/centro-previsao-operacional': () => import('../pages/CentroPrevisaoOperacional'),
   '/app/centro-custos-industriais': () => import('../pages/CentroCustosExecutivo'),
   '/app/mapa-vazamento-financeiro': () => import('../pages/MapaVazamentoFinanceiro'),
-  '/app/almoxarifado-inteligente': () => import('../pages/AlmoxarifadoInteligente'),
-  '/app/logistica-inteligente': () => import('../pages/LogisticaInteligente'),
   '/app/biblioteca': () => import('../features/biblioteca'),
   '/app/operacional': () => import('../pages/Operacional'),
 };

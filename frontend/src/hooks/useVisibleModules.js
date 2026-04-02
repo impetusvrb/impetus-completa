@@ -13,7 +13,6 @@ const PATH_TO_MODULE = {
   '/app/registro-inteligente': 'operational',
   '/app/biblioteca': 'biblioteca',
   '/app/chatbot': 'ai',
-  '/app/monitored-points': 'monitored_points',
   '/app/settings': 'settings',
   '/app/insights': 'operational',
   '/app/cerebro-operacional': 'operational',
@@ -21,8 +20,8 @@ const PATH_TO_MODULE = {
   '/app/centro-previsao-operacional': 'operational',
   '/app/centro-custos-industriais': 'operational',
   '/app/mapa-vazamento-financeiro': 'operational',
-  '/app/almoxarifado-inteligente': 'warehouse_intelligence',
-  '/app/logistica-inteligente': 'logistics_intelligence',
+  '/app/pulse-rh': 'operational',
+  '/app/pulse-gestao': 'operational',
   '/app/manutencao/manuia': 'manuia',
   '/app/manutencao/manuia-app': 'manuia',
   '/chat': 'chat'

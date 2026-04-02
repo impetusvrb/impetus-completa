@@ -27,8 +27,17 @@ async function updateUserProfilePhoto(userId, photoUrl) {
 async function getConversations(userId, companyId) {
   const { rows } = await db.query(`
     SELECT c.id, c.type, c.name, c.avatar_url, c.updated_at,
-      (SELECT json_build_object('id',m.id,'content',m.content,'message_type',m.message_type,'created_at',m.created_at,'sender_id',m.sender_id)
-       FROM chat_messages m WHERE m.conversation_id = c.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message,
+      (SELECT json_build_object(
+        'id', m.id,
+        'content', CASE WHEN m.deleted_for_everyone_at IS NOT NULL THEN 'Mensagem apagada' ELSE m.content END,
+        'message_type', m.message_type,
+        'created_at', m.created_at,
+        'sender_id', m.sender_id
+       )
+       FROM chat_messages m
+       WHERE m.conversation_id = c.id AND m.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM chat_message_deleted_for_user dfu WHERE dfu.message_id = m.id AND dfu.user_id = $1)
+       ORDER BY m.created_at DESC LIMIT 1) AS last_message,
       (SELECT json_agg(json_build_object('id',u.id,'name',u.name,'email',u.email,'role',u.role,'avatar_url',COALESCE(u.foto_perfil, u.avatar_url),'status_online',u.status_online,'ultimo_visto',COALESCE(u.ultimo_visto,u.last_seen)))
        FROM chat_participants cp2 JOIN users u ON u.id = cp2.user_id WHERE cp2.conversation_id = c.id AND cp2.user_id != $1 LIMIT 5) AS participants
     FROM chat_conversations c
@@ -71,15 +80,52 @@ async function createGroup(userId, companyId, name, participantIds) {
 async function getMessages(conversationId, userId, limit = 50, before = null) {
   await verifyParticipant(conversationId, userId);
   let q = `SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.content, m.file_url, m.file_name, m.file_size, m.reply_to, m.created_at,
+    m.deleted_for_everyone_at,
     json_build_object('id',u.id,'name',u.name,'avatar_url',COALESCE(u.foto_perfil, u.avatar_url),'status_online',u.status_online,'ultimo_visto',COALESCE(u.ultimo_visto,u.last_seen)) AS sender
     FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = $1 AND m.deleted_at IS NULL`;
-  const params = [conversationId];
+    WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM chat_message_deleted_for_user dfu WHERE dfu.message_id = m.id AND dfu.user_id = $2)`;
+  const params = [conversationId, userId];
   if (before) { params.push(before); q += ` AND m.created_at < $${params.length}`; }
   q += ` ORDER BY m.created_at DESC LIMIT $${params.length + 1}`;
   params.push(limit);
   const { rows } = await db.query(q, params);
   return rows.reverse();
+}
+
+async function deleteMessageForUser(messageId, userId) {
+  const { rows } = await db.query(
+    `SELECT m.id, m.conversation_id FROM chat_messages m WHERE m.id = $1 AND m.deleted_at IS NULL`,
+    [messageId]
+  );
+  if (!rows.length) throw Object.assign(new Error('Mensagem não encontrada'), { status: 404 });
+  const { conversation_id: conversationId } = rows[0];
+  await verifyParticipant(conversationId, userId);
+  await db.query(
+    `INSERT INTO chat_message_deleted_for_user (message_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [messageId, userId]
+  );
+  return { conversationId, messageId, scope: 'me' };
+}
+
+async function deleteMessageForEveryone(messageId, userId) {
+  const { rows } = await db.query(
+    `SELECT m.id, m.conversation_id, m.sender_id FROM chat_messages m WHERE m.id = $1 AND m.deleted_at IS NULL`,
+    [messageId]
+  );
+  if (!rows.length) throw Object.assign(new Error('Mensagem não encontrada'), { status: 404 });
+  const msg = rows[0];
+  if (String(msg.sender_id) !== String(userId)) {
+    throw Object.assign(new Error('Só quem enviou pode apagar para todos'), { status: 403 });
+  }
+  await verifyParticipant(msg.conversation_id, userId);
+  const { rowCount } = await db.query(
+    `UPDATE chat_messages SET deleted_for_everyone_at = NOW(), content = '', file_url = NULL, file_name = NULL, file_size = NULL
+     WHERE id = $1 AND deleted_for_everyone_at IS NULL`,
+    [messageId]
+  );
+  if (!rowCount) throw Object.assign(new Error('Mensagem já apagada ou indisponível'), { status: 400 });
+  return { conversationId: msg.conversation_id, messageId, scope: 'everyone' };
 }
 
 async function saveMessage({ conversationId, senderId, type, content, fileUrl, fileName, fileSize, replyTo }) {
@@ -144,4 +190,4 @@ async function getPushSubscriptions(userIds) {
   return rows;
 }
 
-module.exports = { AI_USER_ID, getConversations, getOrCreatePrivateConversation, createGroup, getMessages, saveMessage, markAsRead, addReaction, removeReaction, verifyParticipant, getConversationParticipantIds, getConversationParticipants, addParticipant, removeParticipant, getCompanyUsers, savePushSubscription, getPushSubscriptions, setUserPresence, updateUserProfilePhoto };
+module.exports = { AI_USER_ID, getConversations, getOrCreatePrivateConversation, createGroup, getMessages, saveMessage, markAsRead, addReaction, removeReaction, verifyParticipant, getConversationParticipantIds, getConversationParticipants, addParticipant, removeParticipant, getCompanyUsers, savePushSubscription, getPushSubscriptions, setUserPresence, updateUserProfilePhoto, deleteMessageForUser, deleteMessageForEveryone };

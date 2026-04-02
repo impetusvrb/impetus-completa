@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { Search, Plus, Users, X } from 'lucide-react';
 import chatApi from '../services/chatApi';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
+/** Com VITE_API_URL=/api, mídia e socket no mesmo host (proxy /uploads e /socket.io no serveDist/vite). */
 const API_BASE = (() => {
   const api = import.meta.env.VITE_API_URL || '/api';
   if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined' && window.location.port === '3000') {
-    return `${window.location.protocol}//${window.location.hostname}:4000`;
-  }
   if (typeof window !== 'undefined') return window.location.origin;
   return '';
 })();

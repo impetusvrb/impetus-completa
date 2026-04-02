@@ -9,7 +9,7 @@ import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import KPIRequest from './components/KPIRequest';
 import PLCAlertsPanel from './components/PLCAlertsPanel';
-import { MessageSquare, Brain, TrendingUp, Gauge } from 'lucide-react';
+import { MessageSquare, Brain, TrendingUp } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import { useDashboardVisibility } from '../../hooks/useDashboardVisibility';
@@ -97,7 +97,7 @@ export default function DashboardGerencial() {
         )}
 
         <div className="dashboard-gerencial__grid">
-          {(sections.operational_interactions || sections.ai_insights || sections.proposals || sections.monitored_points) && (
+          {(sections.operational_interactions || sections.ai_insights || sections.proposals) && (
             <div className="dashboard-gerencial__metrics">
               <h3>Visão Geral</h3>
               <div className="metrics-grid">
@@ -127,14 +127,6 @@ export default function DashboardGerencial() {
                     color="purple"
                   />
                 )}
-                {sections.monitored_points && (
-                  <MetricCard
-                    icon={Gauge}
-                    title="Pontos Monitorados"
-                    value={summary?.monitored_points?.total || 482}
-                    color="blue"
-                  />
-                )}
               </div>
             </div>
           )}
@@ -144,7 +136,7 @@ export default function DashboardGerencial() {
             </div>
           )}
 
-          {!(sections.operational_interactions || sections.ai_insights || sections.proposals || sections.monitored_points || sections.plc_alerts || sections.kpi_request || sections.communication_panel) && (
+          {!(sections.operational_interactions || sections.ai_insights || sections.proposals || sections.plc_alerts || sections.kpi_request || sections.communication_panel) && (
             <div className="dashboard-empty-visibility">
               <p>Nenhuma informação configurada para exibição. Entre em contato com o Diretor para personalizar sua visão do dashboard.</p>
             </div>

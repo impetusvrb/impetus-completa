@@ -8,17 +8,15 @@ import { useSearchParams } from 'react-router-dom';
 import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
-import { adminSettings, appImpetus } from '../services/api';
+import { adminSettings, appImpetus, pulse } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminSettings.css';
 
 const SECTION_LABELS = {
   operational_interactions: 'Interações Operacionais',
   ai_insights: 'Insights IA',
-  monitored_points: 'Pontos Monitorados',
   proposals: 'Propostas Pró-Ação',
   trend_chart: 'Gráfico de Tendência',
-  points_chart: 'Gráfico Pontos Monitorados',
   insights_list: 'Lista de Insights',
   recent_interactions: 'Interações Recentes',
   smart_summary: 'Resumo Inteligente',
@@ -34,7 +32,7 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility', 'pulse'];
 const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function AdminSettings() {
@@ -53,6 +51,7 @@ export default function AdminSettings() {
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
   const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
+  const isStrictAdmin = (user.role || '').toString().toLowerCase() === 'admin';
   const [connectionStatus, setConnectionStatus] = useState(null);
 
   useEffect(() => {
@@ -82,6 +81,9 @@ export default function AdminSettings() {
       } else if (activeTab === 'dashboard-visibility') {
         const r = await adminSettings.getDashboardVisibilityConfigs();
         setVisibilityConfigs(r.data.configs || []);
+      } else if (activeTab === 'pulse' && isStrictAdmin) {
+        const r = await pulse.getAdminSettings();
+        setPulseEnabled(!!r.data?.settings?.pulse_enabled);
       }
     } catch (e) {
       console.error(e);
@@ -98,6 +100,7 @@ export default function AdminSettings() {
   const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
   const [visibilityConfigs, setVisibilityConfigs] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [pulseEnabled, setPulseEnabled] = useState(false);
 
   const handleSaveNotifications = async () => {
     try {
@@ -133,6 +136,18 @@ export default function AdminSettings() {
       const existing = prev.find(c => c.hierarchy_level === level);
       return [...rest, { hierarchy_level: level, sections: updated, ...existing }];
     });
+  };
+
+  const handleSavePulse = async () => {
+    try {
+      setSaving(true);
+      await pulse.putAdminSettings({ pulse_enabled: pulseEnabled });
+      notify.success('Impetus Pulse atualizado.');
+    } catch (e) {
+      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveVisibility = async (level) => {
@@ -258,6 +273,9 @@ export default function AdminSettings() {
           <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
           {canConfigDashboard && (
             <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
+          )}
+          {isStrictAdmin && (
+            <button className={`stab ${activeTab === 'pulse' ? 'active' : ''}`} onClick={() => setActiveTab('pulse')}><Shield size={18} /> Impetus Pulse</button>
           )}
         </div>
 
@@ -409,6 +427,34 @@ export default function AdminSettings() {
                   <button className="btn btn-secondary" onClick={() => handleSaveVisibility(level)} disabled={saving}>Salvar {HIERARCHY_LABELS[level]}</button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {activeTab === 'pulse' && isStrictAdmin && (
+            <div className="settings-panel">
+              <h3>Impetus Pulse</h3>
+              <p className="form-hint">
+                Ative o módulo de autoavaliação e inteligência humana. O RH dispara ciclos; colaboradores recebem o pop-up
+                &quot;Autoavaliação do Nosso Desempenho&quot; sem item fixo no menu. Defina o supervisor imediato na{' '}
+                <strong>Gestão de Usuários</strong> (campo supervisor).
+              </p>
+              {loading ? (
+                <p>Carregando...</p>
+              ) : (
+                <>
+                  <CheckboxField
+                    label="Impetus Pulse ativo para esta empresa"
+                    name="pulse_enabled"
+                    checked={pulseEnabled}
+                    onChange={(e) => setPulseEnabled(e.target.checked)}
+                  />
+                  <div className="panel-actions">
+                    <button type="button" className="btn btn-primary" onClick={handleSavePulse} disabled={saving}>
+                      Salvar
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

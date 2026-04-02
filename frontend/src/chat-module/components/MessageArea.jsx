@@ -1,13 +1,10 @@
-import React, { useEffect, useRef } from 'react';
-import { File } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { File, MoreVertical } from 'lucide-react';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 const AI_ID='00000000-0000-0000-0000-000000000001';
 const API_BASE = (() => {
   const api = import.meta.env.VITE_API_URL || '/api';
   if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined' && window.location.port === '3000') {
-    return `${window.location.protocol}//${window.location.hostname}:4000`;
-  }
   if (typeof window !== 'undefined') return window.location.origin;
   return '';
 })();
@@ -34,9 +31,16 @@ function TypingIndicator({users}){
   if(!users||!users.length) return null;
   return <div className="typing-indicator"><span className="typing-dots"><span/><span/><span/></span><span>{users.map(u=>u.userName).join(', ')} {users.length===1?'está':'estão'} digitando...</span></div>;
 }
-export default function MessageArea({messages,currentUserId,loading,hasMore,onLoadMore,typingUsers}){
+export default function MessageArea({messages,currentUserId,loading,hasMore,onLoadMore,typingUsers,onDeleteMessage}){
   const bottomRef=useRef(null); const containerRef=useRef(null);
+  const [menuMsgId,setMenuMsgId]=useState(null);
   useEffect(()=>{ bottomRef.current&&bottomRef.current.scrollIntoView({behavior:'smooth'}); },[messages.length]);
+  useEffect(()=>{
+    if(menuMsgId==null) return;
+    const close=()=>setMenuMsgId(null);
+    const t=setTimeout(()=>document.addEventListener('click',close),0);
+    return ()=>{ clearTimeout(t); document.removeEventListener('click',close); };
+  },[menuMsgId]);
   function onScroll(){ if(containerRef.current&&containerRef.current.scrollTop===0&&hasMore&&!loading) onLoadMore(); }
   return (<div className="msg-area" ref={containerRef} onScroll={onScroll}>
     {loading&&<div className="msg-loading">Carregando...</div>}
@@ -47,6 +51,9 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
       const name=msg.sender&&msg.sender.name||'Usuário';
       const showAvatar=!isOwn&&(idx===0||messages[idx-1].sender_id!==msg.sender_id);
       const avatarUrl = !isAI ? toAbs(msg.sender?.avatar_url) : null;
+      const deletedEveryone = !!msg.deleted_for_everyone_at;
+      const showMenu = onDeleteMessage && currentUserId && !deletedEveryone;
+      const canDeleteEveryone = isOwn && showMenu;
       return (<div key={msg.id} className={'msg-row'+(isOwn?' own':'')+(isAI?' ai':'')}>
         {!isOwn&&(
           <div className={'msg-avatar'+(showAvatar?'':' invisible')}>
@@ -57,12 +64,40 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
             )}
           </div>
         )}
-        <div className="msg-bubble-wrap">
+        <div className={'msg-bubble-wrap'+(menuMsgId===msg.id?' msg-bubble-wrap--menu':'')}>
           {!isOwn&&showAvatar&&<span className="msg-sender-name">{name}</span>}
-          <div className={'msg-bubble'+(isOwn?' own':'')+(isAI?' ai-bubble':'')}>
-            {msg.file_url?<Attachment msg={msg}/>:<p>{msg.content}</p>}
-            <span className="msg-time">{fmtTime(msg.created_at)}</span>
+          <div className={'msg-bubble-row'+(isOwn?' own':'')}>
+            <div className={'msg-bubble'+(isOwn?' own':'')+(isAI?' ai-bubble':'')}>
+              {deletedEveryone ? (
+                <p className="msg-deleted">Mensagem apagada</p>
+              ) : msg.file_url ? (
+                <Attachment msg={msg}/>
+              ) : (
+                <p>{msg.content}</p>
+              )}
+              <span className="msg-time">{fmtTime(msg.created_at)}</span>
+            </div>
+            {showMenu&&(
+              <button
+                type="button"
+                className="msg-msg-menu-btn"
+                aria-label="Opções da mensagem"
+                onClick={(e)=>{ e.stopPropagation(); setMenuMsgId(menuMsgId===msg.id?null:msg.id); }}
+              >
+                <MoreVertical size={16}/>
+              </button>
+            )}
           </div>
+          {menuMsgId===msg.id&&showMenu&&(
+            <div className="msg-actions-popover" onClick={(e)=>e.stopPropagation()} role="menu">
+              <button type="button" role="menuitem" onClick={()=>{ onDeleteMessage(msg,'me'); setMenuMsgId(null); }}>Apagar para mim</button>
+              {canDeleteEveryone&&(
+                <button type="button" role="menuitem" className="danger" onClick={()=>{
+                  if(window.confirm('Apagar esta mensagem para todos na conversa?')){ onDeleteMessage(msg,'everyone'); setMenuMsgId(null); }
+                }}>Apagar para todos</button>
+              )}
+            </div>
+          )}
         </div>
       </div>);
     })}

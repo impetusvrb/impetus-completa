@@ -8,10 +8,10 @@ const db = require('../db');
 const DEFAULT_SECTIONS = {
   operational_interactions: true,
   ai_insights: true,
-  monitored_points: true,
+  monitored_points: false,
   proposals: true,
   trend_chart: true,
-  points_chart: true,
+  points_chart: false,
   insights_list: true,
   recent_interactions: true,
   smart_summary: true,

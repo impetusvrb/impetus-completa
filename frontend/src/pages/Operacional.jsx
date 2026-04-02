@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Lightbulb, FolderOpen, FileEdit, Wrench, MessageSquare, MapPin, ChevronRight, ClipboardList } from 'lucide-react';
+import { Lightbulb, FolderOpen, FileEdit, Wrench, MessageSquare, ChevronRight, ClipboardList } from 'lucide-react';
 import Layout from '../components/Layout';
 import './Operacional.css';
 
@@ -15,8 +15,7 @@ const OPERACIONAL_CARDS = [
   { path: '/app/biblioteca', icon: FolderOpen, title: 'Instruções e Procedimentos', description: 'Manuais, POPs e procedimentos operacionais', color: 'blue' },
   { path: '/app/registro-inteligente', icon: FileEdit, title: 'Registro de Atividades', description: 'Registre suas atividades e ocorrências do turno', color: 'purple' },
   { path: '/diagnostic', icon: Wrench, title: 'Reportar Problema', description: 'Assistência da IA para diagnosticar falhas e equipamentos', color: 'orange' },
-  { path: '/app/chatbot', icon: MessageSquare, title: 'Impetus IA', description: 'Tire dúvidas e consulte informações com a IA', color: 'green' },
-  { path: '/app/monitored-points', icon: MapPin, title: 'Pontos Monitorados', description: 'Status dos equipamentos e pontos de controle', color: 'indigo' }
+  { path: '/app/chatbot', icon: MessageSquare, title: 'Impetus IA', description: 'Tire dúvidas e consulte informações com a IA', color: 'green' }
 ];
 
 export default function Operacional() {

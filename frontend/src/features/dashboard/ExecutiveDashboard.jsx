@@ -105,7 +105,6 @@ export default function ExecutiveDashboard() {
   const interactions = summary?.operational_interactions?.total ?? 0;
   const growth = summary?.operational_interactions?.growth_percentage ?? 0;
   const proposals = summary?.proposals?.total ?? 0;
-  const monitoredPoints = summary?.monitored_points?.total ?? 0;
   const insights = summary?.ai_insights?.total ?? 0;
 
   const handleQuery = async (q) => {
@@ -128,7 +127,6 @@ export default function ExecutiveDashboard() {
   const priorities = [
     alertsCount > 0 && { icon: AlertTriangle, color: 'red', text: `${alertsCount} alerta${alertsCount > 1 ? 's' : ''} critico${alertsCount > 1 ? 's' : ''} ativo${alertsCount > 1 ? 's' : ''}`, urgency: 'alta' },
     proposals > 0 && { icon: Target, color: 'amber', text: `${proposals} proposta${proposals > 1 ? 's' : ''} Pro-Acao em aberto`, urgency: 'media' },
-    monitoredPoints > 0 && { icon: MapPin, color: 'blue', text: `${monitoredPoints} ponto${monitoredPoints > 1 ? 's' : ''} monitorado${monitoredPoints > 1 ? 's' : ''} com IA`, urgency: 'info' },
     insights > 0 && { icon: Brain, color: 'teal', text: `${insights} insight${insights > 1 ? 's' : ''} de IA gerado${insights > 1 ? 's' : ''} no periodo`, urgency: 'info' },
   ].filter(Boolean);
 
@@ -193,7 +191,6 @@ export default function ExecutiveDashboard() {
               <ExecKpiCard icon={Brain} title="Insights IA" value={modoApresentacao ? '\u2014' : insights} color="teal" onClick={() => navigate('/app/chatbot')} />
               <ExecKpiCard icon={AlertTriangle} title="Alertas Criticos" value={modoApresentacao ? '\u2014' : alertsCount} color={alertsCount > 2 ? 'red' : 'amber'} />
               <ExecKpiCard icon={TrendingUp} title="Pro-Acao" value={modoApresentacao ? '\u2014' : proposals} color="purple" onClick={() => navigate('/app/proacao')} />
-              <ExecKpiCard icon={MapPin} title="Monitorados" value={modoApresentacao ? '\u2014' : monitoredPoints} color="blue" onClick={() => navigate('/app/monitored-points')} />
             </>
           )}
         </section>

@@ -56,6 +56,7 @@ app.use('/api/audit',                    safe('./routes/audit'));
 app.use('/api/communications',           safe('./routes/communications'));
 app.use('/api/subscription',             safe('./routes/subscription'));
 app.use('/api/tpm',                      safe('./routes/tpm'));
+app.use('/api/pulse',                    safe('./routes/pulse'));
 app.use('/api/lgpd',                     safe('./routes/lgpd'));
 app.use('/api/role-verification',        safe('./routes/roleVerification'));
 app.use('/api/app-communications',       safe('./routes/appCommunications'));

@@ -13,6 +13,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
+import ImpetusVoiceProvider from './voice/ImpetusVoiceProvider';
+import { isColaboradorSimples, isMaintenanceTechnicianMenu } from './utils/roleUtils';
 
 // Tela inicial — carregamento imediato
 import Login from './pages/Login';
@@ -40,13 +42,24 @@ const SubscriptionExpired = lazy(() => import('./pages/SubscriptionExpired'));
 const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
+const PulseRh = lazy(() => import('./pages/PulseRh'));
+const PulseGestao = lazy(() => import('./pages/PulseGestao'));
+const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
 const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
 const RoleVerificationPage = lazy(() => import('./pages/RoleVerificationPage'));
 const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalValidationPanel'));
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
+const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
+const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
+const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
+const NexusIACustos = lazy(() => import('./pages/NexusIACustos'));
+const AdminEquipmentLibrary = lazy(() => import('./pages/AdminEquipmentLibrary'));
+const ManuIA = lazy(() => import('./pages/ManuIA'));
 const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'));
-
+const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
+const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
+const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -74,26 +87,69 @@ function getUserRole() {
 function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !allowedRoles.includes(role)) {
-    const defaults = { admin: '/app/admin/users', ceo: '/app', supervisor: '/app/operacional', colaborador: '/app/operacional' };
-    return <Navigate to={defaults[role] || '/app/proacao'} replace />;
+    // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
+    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
+    return <Navigate to={defaults[role] || '/app'} replace />;
   }
   return children;
 }
 
-// Colaborador só pode acessar Pró-Ação (compatibilidade)
 function isColaborador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return user.role === 'colaborador';
+    const role = (user.role || '').toString().toLowerCase();
+    return ['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role);
   } catch {
     return false;
   }
 }
 
-// Redireciona colaborador para Pró-Ação ao tentar acessar rotas restritas
+/** Rotas permitidas para colaborador: simples (mínimo) vs técnico de manutenção */
 function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
-  return <Navigate to="/app/proacao" replace />;
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    const raw = typeof window !== 'undefined' ? window.location.pathname : '';
+    const path = raw.replace(/\/+$/, '') || '/';
+
+    if (isColaboradorSimples(user)) {
+      const allowOp = [
+        '/app',
+        '/app/proacao',
+        '/app/cadastrar-com-ia',
+        '/app/biblioteca',
+        '/app/registro-inteligente',
+        '/app/chatbot',
+        '/chat',
+        '/app/settings'
+      ];
+      const ok = allowOp.includes(path) || path.startsWith('/app/proacao/');
+      if (!ok) return <Navigate to="/app" replace />;
+      return children;
+    }
+
+    if (isMaintenanceTechnicianMenu(user)) {
+      const allow = ['/app', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
+      const ok = allow.includes(path) || path.startsWith('/app/proacao/');
+      if (!ok) return <Navigate to="/app" replace />;
+      return children;
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return children;
+}
+
+function DashboardRouteEntry() {
+  return (
+    <ColaboradorRouteGuard>
+      <Dashboard />
+    </ColaboradorRouteGuard>
+  );
+}
+
+function SettingsAccessGuard({ children }) {
+  return children;
 }
 
 // CEO só acessa /app (Visão Executiva) — bloqueia admin, settings, operacional, etc.
@@ -107,7 +163,7 @@ function isCEO() {
 }
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente'];
+  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente', '/app/cadastrar-com-ia'];
   if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
@@ -126,12 +182,40 @@ function AdminRouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+function isStrictAdmin() {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    return (user.role || '').toString().toLowerCase() === 'admin';
+  } catch {
+    return false;
+  }
+}
+function StrictAdminRouteGuard({ children }) {
+  if (isStrictAdmin()) return children;
+  return <Navigate to="/app" replace />;
+}
+
+// Logs de Áudio: acesso exclusivo CEO e diretoria (conteúdo sensível)
+function isDirectorOrCEO() {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    return ['ceo', 'admin', 'diretor'].includes(user.role);
+  } catch {
+    return false;
+  }
+}
+function DirectorOrCEORouteGuard({ children }) {
+  if (isDirectorOrCEO()) return children;
+  return <Navigate to="/app" replace />;
+}
+
 export default function App() {
   return (
     <NotificationProvider>
       <ErrorOffline />
       <ErrorBoundary>
-        <BrowserRouter>
+      <BrowserRouter>
+          <ImpetusVoiceProvider>
           <Suspense fallback={<PageLoader />}>
           <Routes>
         {/* Rotas públicas */}
@@ -160,9 +244,7 @@ export default function App() {
         <Route path="/app" element={
           <PrivateRoute>
             <SetupGuard>
-              <ColaboradorRouteGuard>
-                <Dashboard />
-              </ColaboradorRouteGuard>
+              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <DashboardRouteEntry />}
             </SetupGuard>
           </PrivateRoute>
         } />
@@ -171,13 +253,13 @@ export default function App() {
         } />
         
         <Route path="/app/operacional" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><Operacional /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><StrictAdminRouteGuard><Operacional /></StrictAdminRouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/registro-inteligente" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><RegistroInteligente /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/cadastrar-com-ia" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><CadastrarComIA /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><ColaboradorRouteGuard><CadastrarComIA /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
@@ -188,20 +270,39 @@ export default function App() {
         } />
         
         <Route path="/app/insights" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/pulse-rh" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['rh']}><PulseRh /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/pulse-gestao" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><PulseGestao /></RoleGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/cerebro-operacional" element={
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-operacoes-industrial" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
         } />
-        
-        <Route path="/app/monitored-points" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
-        } />
+        <Route path="/app/monitored-points" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
+        <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
+        <Route path="/app/logistica-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
 
+        <Route path="/app/manutencao/manuia" element={
+          <PrivateRoute><SetupGuard><ManuIA /></SetupGuard></PrivateRoute>
+        } />
         <Route path="/app/manutencao/manuia-app" element={
           <PrivateRoute><SetupGuard><ManuIAExtensionApp /></SetupGuard></PrivateRoute>
         } />
-        
+        <Route path="/app/centro-previsao-operacional" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><CentroPrevisaoOperacional /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/centro-custos-industriais" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><CentroCustosExecutivo /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/mapa-vazamento-financeiro" element={
+          <PrivateRoute><SetupGuard><CEORouteGuard><MapaVazamentoFinanceiro /></CEORouteGuard></SetupGuard></PrivateRoute>
+        } />
         <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         
         <Route path="/proposals" element={
@@ -215,10 +316,21 @@ export default function App() {
         <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminUsers /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminAuditLogs /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><AdminSettings /></SetupGuard></PrivateRoute>} />
-        <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
+        <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminAuditLogs /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/equipment-library" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminEquipmentLibrary /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><AdminSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/chat" element={
+          <PrivateRoute>
+            <ColaboradorRouteGuard>
+              <ChatPage />
+            </ColaboradorRouteGuard>
+          </PrivateRoute>
+        } />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
@@ -227,8 +339,9 @@ export default function App() {
         <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
           </Suspense>
+          </ImpetusVoiceProvider>
         </BrowserRouter>
-      </ErrorBoundary>
+        </ErrorBoundary>
     </NotificationProvider>
   );
 }

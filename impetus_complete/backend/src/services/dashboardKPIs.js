@@ -67,33 +67,6 @@ async function queryTasks(companyId, extraWhere = '') {
 }
 
 /**
- * Monitored points: por department quando restrito
- */
-async function queryMonitoredPoints(scope, companyId) {
-  if (!companyId) return 0;
-  try {
-    if (scope?.isFullAccess) {
-      const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
-      return parseInt(r.rows[0]?.total || 0, 10);
-    }
-    const deptIds = scope?.managedDepartmentIds;
-    if (!deptIds?.length) {
-      const r = await db.query('SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true', [companyId]);
-      return parseInt(r.rows[0]?.total || 0, 10);
-    }
-    const r = await db.query(
-      'SELECT COUNT(*) as total FROM monitored_points WHERE company_id = $1 AND active = true AND (department_id = ANY($2) OR department_id IS NULL)',
-      [companyId, deptIds]
-    );
-    return parseInt(r.rows[0]?.total || 0, 10);
-  } catch (e) {
-    // Evita travar o dashboard quando a tabela não existe no ambiente
-    if (e?.code === '42P01' || e?.message?.includes('does not exist')) return 0;
-    throw e;
-  }
-}
-
-/**
  * Crescimento semanal (communications)
  */
 async function getCommsGrowth(scope, companyId) {
@@ -117,14 +90,12 @@ async function getCommsGrowth(scope, companyId) {
 async function getMaintenanceKpis(scope, companyId, userId) {
   const kpis = [];
   try {
-    const [openWo, criticalAssets, points] = await Promise.all([
+    const [openWo, criticalAssets] = await Promise.all([
       db.query(`SELECT COUNT(*) as c FROM work_orders WHERE company_id = $1 AND status IN ('open','in_progress','waiting_parts','waiting_support') AND (assigned_to = $2 OR assigned_to IS NULL)`, [companyId, userId]).catch(() => ({ rows: [{ c: 0 }] })),
-      db.query(`SELECT COUNT(*) as c FROM monitored_points WHERE company_id = $1 AND active = true AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`, [companyId]).catch(() => ({ rows: [{ c: 0 }] })),
-      queryMonitoredPoints(scope, companyId)
+      db.query(`SELECT COUNT(*) as c FROM monitored_points WHERE company_id = $1 AND active = true AND (operational_status IN ('maintenance','failure') OR criticality = 'critical')`, [companyId]).catch(() => ({ rows: [{ c: 0 }] }))
     ]);
     kpis.push({ id: 'open_work_orders', key: 'open_work_orders', title: 'OS abertas', value: parseInt(openWo.rows[0]?.c || 0), color: 'blue', route: '/diagnostic', icon: 'target' });
-    kpis.push({ id: 'critical_assets', key: 'critical_assets', title: 'Ativos críticos', value: parseInt(criticalAssets.rows[0]?.c || 0), color: 'red', route: '/app/monitored-points', icon: 'alert' });
-    kpis.push({ id: 'monitored_points', key: 'monitored_points', title: 'Pontos monitorados', value: points, color: 'teal', route: '/app/monitored-points', icon: 'map' });
+    kpis.push({ id: 'critical_assets', key: 'critical_assets', title: 'Ativos críticos', value: parseInt(criticalAssets.rows[0]?.c || 0), color: 'red', route: '/diagnostic', icon: 'alert' });
   } catch (e) {
     if (!e.message?.includes('does not exist')) console.warn('[DASHBOARD_KPIS] maintenance:', e.message);
   }
@@ -192,19 +163,17 @@ async function getDashboardKPIs(user, hierarchyScope) {
         const prodKpis = await getProductionKpis(companyId);
         if (prodKpis.length) kpis.push(...prodKpis);
       }
-      const [comms, alerts, growth, proposals, points] = await Promise.all([
+      const [comms, alerts, growth, proposals] = await Promise.all([
         queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
         queryCommunications(scope, companyId, "c.ai_priority = 1"),
         getCommsGrowth(scope, companyId),
-        queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
-        queryMonitoredPoints(scope, companyId)
+        queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')")
       ]);
       kpis.push(
         { id: 'k1', title: 'Interações (semana)', value: comms, growth, color: 'blue', route: '/app/operacional', icon: 'message' },
         { id: 'k2', title: 'Alertas críticos', value: alerts, color: 'red', route: '/app/chatbot', icon: 'alert' },
         { id: 'k3', title: 'Crescimento semanal', value: `${growth}%`, color: growth >= 0 ? 'green' : 'orange', icon: 'trending' },
-        { id: 'k4', title: 'Propostas em aberto', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' },
-        { id: 'k5', title: 'Pontos monitorados', value: points, color: 'teal', route: '/app/monitored-points', icon: 'map' }
+        { id: 'k4', title: 'Propostas em aberto', value: proposals, color: 'purple', route: '/app/proacao', icon: 'target' }
       );
     } else if (level === 2) {
       // GERENTE
@@ -212,11 +181,10 @@ async function getDashboardKPIs(user, hierarchyScope) {
         const prodKpis = await getProductionKpis(companyId);
         if (prodKpis.length) kpis.push(...prodKpis);
       }
-      const [insights, proposalsAbertas, comms, points] = await Promise.all([
+      const [insights, proposalsAbertas, comms] = await Promise.all([
         queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '7 days'"),
         queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
-        queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
-        queryMonitoredPoints(scope, companyId)
+        queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'")
       ]);
       kpis.push(
         { id: 'k1', title: 'Insights prioritários', value: insights, color: 'teal', route: '/app/chatbot', icon: 'brain' },
@@ -226,7 +194,6 @@ async function getDashboardKPIs(user, hierarchyScope) {
       if (jobFocus.some(f => ['nao_conformidades', 'indicadores_qualidade', 'auditorias'].includes(f))) {
         kpis.push({ id: 'k4', title: 'Não conformidades', value: proposalsAbertas, color: 'orange', route: '/app/proacao', icon: 'alert' });
       }
-      kpis.push({ id: 'k5', title: 'Pontos monitorados', value: points, color: 'blue', route: '/app/monitored-points', icon: 'map' });
     } else if (level === 3) {
       // COORDENADOR - KPIs base + área quando aplicável
       if (['coordinator_production'].includes(profileCode) || functionalArea === 'production') {
@@ -330,7 +297,44 @@ async function getDashboardKPIs(user, hierarchyScope) {
   }
 }
 
+const EMPTY_SUMMARY = {
+  alerts: { critical: 0 },
+  operational_interactions: { total: 0, growth_percentage: 0 },
+  proposals: { total: 0 },
+  monitored_points: { total: 0 },
+  ai_insights: { total: 0 }
+};
+
+/**
+ * Resumo agregado para widgets executivos e /dashboard/summary (mesmas contagens do escopo do usuário).
+ */
+async function getDashboardSummary(user) {
+  if (!user?.company_id) return { ...EMPTY_SUMMARY };
+  const companyId = user.company_id;
+  try {
+    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
+    const [commsWeek, criticalAlerts, growth, proposals, insights] = await Promise.all([
+      queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
+      queryCommunications(scope, companyId, "c.ai_priority = 1"),
+      getCommsGrowth(scope, companyId),
+      queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
+      queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '1 week'")
+    ]);
+    return {
+      alerts: { critical: criticalAlerts },
+      operational_interactions: { total: commsWeek, growth_percentage: growth },
+      proposals: { total: proposals },
+      monitored_points: { total: 0 },
+      ai_insights: { total: insights }
+    };
+  } catch (err) {
+    console.error('[DASHBOARD_SUMMARY_ERROR]', err);
+    return { ...EMPTY_SUMMARY };
+  }
+}
+
 module.exports = {
   getDashboardKPIs,
+  getDashboardSummary,
   ICON_MAP
 };

@@ -12,16 +12,15 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_executive',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue', route: '/app/operacional' },
       { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red', route: '/app/chatbot' },
       { key: 'operational_anomalies', title: 'Anomalias operacionais', icon: 'alert', color: 'orange', route: '/app/anomalies' },
       { key: 'weekly_growth', title: 'Crescimento semanal', icon: 'trending', color: 'green' },
-      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple', route: '/app/proacao' },
-      { key: 'monitored_points', title: 'Pontos monitorados', icon: 'map', color: 'teal', route: '/app/monitored-points' }
+      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple', route: '/app/proacao' }
     ],
-    charts: ['trend', 'points_distribution'],
+    charts: ['trend'],
     alerts: ['critical', 'high'],
     widgets: ['smart_summary', 'ai_insights', 'recent_interactions', 'executive_query'],
     default_filters: {}
@@ -34,15 +33,14 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_analytical',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'hr_intelligence', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'audit', 'settings'],
     cards: [
       { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue' },
       { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red' },
       { key: 'weekly_growth', title: 'Crescimento semanal', icon: 'trending', color: 'green' },
-      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple' },
-      { key: 'monitored_points', title: 'Pontos monitorados', icon: 'map', color: 'teal' }
+      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple' }
     ],
-    charts: ['trend', 'points_distribution'],
+    charts: ['trend'],
     alerts: ['critical', 'high'],
     widgets: ['smart_summary', 'ai_insights', 'recent_interactions', 'communication_panel'],
     default_filters: {}
@@ -54,7 +52,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_analytical',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'monitored_points', 'hr_intelligence', 'anomaly_detection', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'audit', 'settings'],
     cards: [
       { key: 'production_consolidated', title: 'Produção consolidada', icon: 'trending', color: 'blue' },
       { key: 'global_efficiency', title: 'Eficiência global', icon: 'target', color: 'green' },
@@ -62,7 +60,7 @@ const DASHBOARD_PROFILES = {
       { key: 'strategic_actions', title: 'Ações estratégicas vencidas', icon: 'target', color: 'orange' },
       { key: 'sectors_alert', title: 'Setores em alerta', icon: 'alert', color: 'purple' }
     ],
-    charts: ['trend', 'points_distribution', 'sector_comparison'],
+    charts: ['trend', 'sector_comparison'],
     alerts: ['critical', 'high'],
     widgets: ['smart_summary', 'ai_insights', 'kpi_request', 'communication_panel'],
     default_filters: {}
@@ -75,7 +73,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'audit', 'settings'],
     cards: [
       { key: 'production_shift', title: 'Produção do turno', icon: 'trending', color: 'blue' },
       { key: 'meta_realizado', title: 'Meta x Realizado', icon: 'target', color: 'green' },
@@ -95,7 +93,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'audit', 'manuia', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'audit', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -115,12 +113,11 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'raw_material_lots', 'quality_intelligence', 'warehouse_intelligence', 'logistics_intelligence', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'raw_material_lots', 'quality_intelligence', 'audit', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
       { key: 'lot_alerts', title: 'Alertas de lotes', icon: 'alert', color: 'orange', route: '/app/raw-material-lots' },
       { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
-      { key: 'warehouse_dashboard', title: 'Almoxarifado Inteligente', icon: 'package', color: 'green', route: '/app/almoxarifado-inteligente' },
       { key: 'corrective_overdue', title: 'Ações corretivas vencidas', icon: 'alert', color: 'orange' },
       { key: 'pending_audits', title: 'Auditorias pendentes', icon: 'target', color: 'blue' },
       { key: 'deviation_recurrence', title: 'Reincidência de desvios', icon: 'alert', color: 'red' },
@@ -139,7 +136,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'warehouse_intelligence', 'logistics_intelligence', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'proposals_in_progress', title: 'Propostas em andamento', icon: 'target', color: 'purple' },
@@ -158,7 +155,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'operational_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'manuia', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' },
@@ -198,7 +195,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'settings'],
     cards: [
       { key: 'production_shift', title: 'Produção do turno', icon: 'trending', color: 'blue' },
       { key: 'meta_realizado', title: 'Meta x Realizado', icon: 'target', color: 'green' },
@@ -220,7 +217,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'technical_tactical',
     default_period: '7d',
     data_depth: 'operational',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'monitored_points', 'anomaly_detection', 'manuia', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'anomaly_detection', 'manuia', 'settings'],
     cards: [
       { key: 'open_work_orders', title: 'OS abertas', icon: 'target', color: 'blue' },
       { key: 'critical_assets', title: 'Ativos críticos', icon: 'alert', color: 'red' },
@@ -378,14 +375,13 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'strategic_executive',
     default_period: '7d',
     data_depth: 'consolidated',
-    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'admin', 'monitored_points', 'audit', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'admin', 'audit', 'settings'],
     cards: [
       { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue' },
       { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red' },
-      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple' },
-      { key: 'monitored_points', title: 'Pontos monitorados', icon: 'map', color: 'teal' }
+      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple' }
     ],
-    charts: ['trend', 'points_distribution'],
+    charts: ['trend'],
     alerts: ['critical', 'high', 'medium'],
     widgets: ['smart_summary', 'ai_insights', 'recent_interactions', 'kpi_request', 'communication_panel'],
     default_filters: {}

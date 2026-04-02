@@ -1,0 +1,83 @@
+.pulse-rh-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.pulse-rh-page__head h1 {
+  font-size: 1.35rem;
+  margin: 0 0 8px 0;
+}
+
+.pulse-rh-page__sub {
+  color: var(--gray-600, #4b5563);
+  font-size: 0.95rem;
+  margin: 0 0 20px 0;
+  line-height: 1.45;
+}
+
+.pulse-rh-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pulse-rh-table-wrap {
+  overflow-x: auto;
+}
+
+.pulse-rh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pulse-rh-table th,
+.pulse-rh-table td {
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.pulse-rh-code {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.pulse-rh-empty {
+  color: var(--gray-500, #6b7280);
+  margin-top: 16px;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.82rem;
+}
+
+.pulse-gestao-kpi {
+  margin-bottom: 16px;
+}
+
+.pulse-gestao-chart {
+  width: 100%;
+  min-height: 320px;
+}
+
+.pulse-gestao-h2 {
+  font-size: 1.05rem;
+  margin: 28px 0 12px 0;
+}
+
+.pulse-gestao-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--gray-700, #374151);
+  font-size: 0.92rem;
+}
+
+.pulse-gestao-list li {
+  margin-bottom: 8px;
+}

@@ -73,6 +73,16 @@ app.use(
 );
 app.use('/impetus-realtime', realtimeProxy);
 app.use('/socket.io', socketIoProxy);
+// Fotos /uploads vivem na API (:4000). Sem isto, /uploads no :3000 cai no SPA e o browser recebe HTML → avatar quebra.
+app.use(
+  '/uploads',
+  createProxyMiddleware({
+    target: API_TARGET,
+    changeOrigin: true,
+    // Com mount em /uploads, o Express entrega req.url sem o prefixo (ex.: /chat/x.jpg).
+    pathRewrite: (p) => '/uploads' + (p && p.startsWith('/') ? p : `/${p || ''}`)
+  })
+);
 
 const unityBuildBr = path.resolve(distDir, 'unity/manu-ia-viewer/Build');
 app.use((req, res, next) => {
@@ -131,7 +141,7 @@ app.use((req, res, next) => {
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`[serveDist] http://${HOST}:${PORT}/ (root=${distDir})`);
-  console.log(`[serveDist] proxy -> ${API_TARGET} (/api, /socket.io, /impetus-realtime)`);
+  console.log(`[serveDist] proxy -> ${API_TARGET} (/api, /uploads, /socket.io, /impetus-realtime)`);
 });
 
 server.on('upgrade', (req, socket, head) => {

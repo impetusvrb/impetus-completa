@@ -10,7 +10,6 @@ import {
   Zap,
   MessageSquare, 
   Brain, 
-  MapPin, 
   Settings,
   Wrench,
   Bell,
@@ -35,10 +34,11 @@ import {
   TrendingDown,
   DollarSign,
   Package,
-  Truck,
   Upload,
   Mic,
-  Smartphone
+  Smartphone,
+  Shield,
+  Activity
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -46,6 +46,10 @@ import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
 import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
 import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, isMaintenanceTechnicianMenu } from '../utils/roleUtils';
+import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
+import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
+import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
+import { useImpetusPulseSupervisor } from '../features/pulse/useImpetusPulseSupervisor';
 import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import './Layout.css';
@@ -54,6 +58,9 @@ const IA_FACE_VIDEO = '/ia-face-1.mp4';
 
 export default function Layout({ children }) {
   const { openOverlay } = useImpetusVoice();
+  const pulseUi = useImpetusPulse();
+  const pulseSup = useImpetusPulseSupervisor();
+  const [pulseSupItem, setPulseSupItem] = useState(null);
   const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
   const location = useLocation();
   const navigate = useNavigate();
@@ -154,7 +161,6 @@ export default function Layout({ children }) {
       '/app/manutencao/manuia',
       '/app/manutencao/manuia-app',
       '/app/biblioteca',
-      '/app/almoxarifado-inteligente',
       '/app/settings'
     ];
     pathOk = allowMaint.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
@@ -167,12 +173,23 @@ export default function Layout({ children }) {
   }
   if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/chatbot" replace />;
 
-  /** Diretor, gerente, coordenador, supervisor — mesmo núcleo (sem Operacional, sem base estrutural) */
+  /** Industrial / operacional — filtrado por visible_modules (operational) */
+  const MENU_BLOCO_INDUSTRIAL = [
+    { path: '/app/centro-operacoes-industrial', icon: Building2, label: 'Centro de Operações' },
+    { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro operacional' },
+    { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' }
+  ];
+
+  /** Diretor, gerente, coordenador, supervisor — núcleo + módulos operacionais (matriz de perfil no backend) */
   const MENU_LIDERANCA = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    ...MENU_BLOCO_INDUSTRIAL,
+    { path: '/app/pulse-gestao', icon: Activity, label: 'Impetus Pulse (visão coletiva)' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
     { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
+    { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
     { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+    { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação organizacional' },
     { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
     { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
     { path: '/app/settings', icon: Settings, label: 'Configurações' }
@@ -208,6 +225,7 @@ export default function Layout({ children }) {
   const MENUS = {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação organizacional' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
@@ -229,6 +247,7 @@ export default function Layout({ children }) {
     supervisor: MENU_LIDERANCA,
     operador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      ...MENU_BLOCO_INDUSTRIAL,
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
@@ -238,13 +257,24 @@ export default function Layout({ children }) {
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
     colaborador: MENU_COLABORADOR_OPERACIONAL,
+    rh: [
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/app/pulse-rh', icon: Activity, label: 'Impetus Pulse (RH)' },
+      { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
+      { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
+      { path: '/app/settings', icon: Settings, label: 'Configurações' }
+    ],
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
+      ...MENU_BLOCO_INDUSTRIAL,
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
+      { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
+      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação organizacional' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
@@ -503,6 +533,25 @@ export default function Layout({ children }) {
           </div>
         )}
 
+        {pulseUi.motivation && (
+          <div className="impetus-pulse-motivation-banner" role="status">
+            <Activity size={18} aria-hidden />
+            <span>{pulseUi.motivation}</span>
+            <button type="button" className="impetus-pulse-motivation-banner__close" onClick={pulseUi.dismissMotivation} aria-label="Fechar">
+              ×
+            </button>
+          </div>
+        )}
+
+        {pulseSup.pending?.length > 0 && (
+          <div className="impetus-pulse-sup-banner">
+            <strong>Impetus Pulse:</strong> {pulseSup.pending.length} complemento(s) de percepção pendente(s).{' '}
+            <button type="button" className="link-button" onClick={() => setPulseSupItem(pulseSup.pending[0])}>
+              Preencher agora
+            </button>
+          </div>
+        )}
+
         {/* Content */}
         <main className="content">
           {children}
@@ -518,6 +567,19 @@ export default function Layout({ children }) {
       {!onboardingState.show && (
         <DashboardOnboardingModal onComplete={() => {}} />
       )}
+
+      <ImpetusPulseModal
+        isOpen={pulseUi.promptOpen}
+        evaluation={pulseUi.evaluation}
+        onClose={pulseUi.closePrompt}
+        onSubmitted={pulseUi.onSubmitted}
+      />
+      <ImpetusPulseSupervisorModal
+        isOpen={!!pulseSupItem}
+        item={pulseSupItem}
+        onClose={() => setPulseSupItem(null)}
+        onDone={() => pulseSup.refresh()}
+      />
     </div>
   );
 }

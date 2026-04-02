@@ -25,8 +25,7 @@ const QUESTIONS = [
       { value: 'proposals', label: 'Propostas e melhorias' },
       { value: 'work_orders', label: 'Ordens de serviço' },
       { value: 'efficiency', label: 'Eficiência e metas' },
-      { value: 'alerts', label: 'Alertas e não conformidades' },
-      { value: 'monitored_points', label: 'Pontos monitorados' }
+      { value: 'alerts', label: 'Alertas e não conformidades' }
     ],
     multi: true
   },

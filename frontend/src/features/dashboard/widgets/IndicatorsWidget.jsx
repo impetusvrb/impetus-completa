@@ -63,7 +63,7 @@ export default function IndicatorsWidget() {
 
   const inter = summary?.operational_interactions || {};
   const insights = summary?.ai_insights || {};
-  const points = summary?.monitored_points?.total ?? 0;
+  const alertsCrit = summary?.alerts?.critical ?? 0;
   const proposals = summary?.proposals?.total ?? 0;
 
   return (
@@ -83,8 +83,8 @@ export default function IndicatorsWidget() {
           <span className="dashboard-widget__kpi-label">Insights IA</span>
         </div>
         <div className="dashboard-widget__kpi">
-          <span className="dashboard-widget__kpi-value">{points}</span>
-          <span className="dashboard-widget__kpi-label">Pontos</span>
+          <span className="dashboard-widget__kpi-value">{alertsCrit}</span>
+          <span className="dashboard-widget__kpi-label">Alertas crít.</span>
         </div>
         <div className="dashboard-widget__kpi">
           <span className="dashboard-widget__kpi-value">{proposals}</span>

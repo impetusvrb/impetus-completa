@@ -48,12 +48,12 @@ export default function WidgetKpiCards() {
 
   const inter = data?.operational_interactions?.total ?? 0;
   const insights = data?.ai_insights?.total ?? 0;
-  const points = data?.monitored_points?.total ?? 0;
+  const alertsCrit = data?.alerts?.critical ?? 0;
   const proposals = data?.proposals?.total ?? 0;
   const items = [
     { value: inter, label: 'Interações', icon: 0 },
     { value: insights, label: 'Insights IA', icon: 1 },
-    { value: points, label: 'Pontos', icon: 2 },
+    { value: alertsCrit, label: 'Alertas crít.', icon: 2 },
     { value: proposals, label: 'Propostas', icon: 3 }
   ];
 

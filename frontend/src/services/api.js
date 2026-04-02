@@ -247,9 +247,6 @@ export const dashboard = {
   getInsights: (limit = 10, offset = 0) =>
     api.get(`/dashboard/insights?limit=${limit}&offset=${offset}`),
   
-  getMonitoredPointsDistribution: () => 
-    api.get('/dashboard/monitored-points-distribution'),
-  
   getRecentInteractions: (limit = 10, offset = 0) =>
     api.get(`/dashboard/recent-interactions?limit=${limit}&offset=${offset}`),
 
@@ -447,6 +444,25 @@ export const tpm = {
   listIncidents: (params) => api.get('/tpm/incidents', { params }),
   createIncident: (data) => api.post('/tpm/incidents', data),
   getShiftTotals: (params) => api.get('/tpm/shift-totals', { params })
+};
+
+/** Impetus Pulse — autoavaliação, RH e agregados de gestão */
+export const pulse = {
+  getAdminSettings: () => api.get('/pulse/admin/settings'),
+  putAdminSettings: (body) => api.put('/pulse/admin/settings', body),
+  getMePrompt: () => api.get('/pulse/me/prompt'),
+  startMe: () => api.post('/pulse/me/start', {}),
+  submitMe: (body) => api.post('/pulse/me/submit', body),
+  getMotivation: () => api.get('/pulse/me/motivation'),
+  getSupervisorPending: () => api.get('/pulse/supervisor/pending'),
+  postSupervisorPerception: (evaluationId, perception) =>
+    api.post(`/pulse/supervisor/${evaluationId}/perception`, { perception }),
+  hrListEvaluations: (params) => api.get('/pulse/hr/evaluations', { params }),
+  hrTrigger: (body) => api.post('/pulse/hr/trigger', body),
+  hrReport: (evaluationId) => api.post(`/pulse/hr/report/${evaluationId}`, {}),
+  hrListCampaigns: () => api.get('/pulse/hr/campaigns'),
+  hrCreateCampaign: (body) => api.post('/pulse/hr/campaigns', body),
+  mgmtAggregates: (params) => api.get('/pulse/mgmt/aggregates', { params })
 };
 
 // ============================================================================

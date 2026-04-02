@@ -114,6 +114,10 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
         ws: true,
       },
+      '/uploads': {
+        target: process.env.VITE_API_BASE || 'http://localhost:4000',
+        changeOrigin: true,
+      },
     },
   },
   preview: {
@@ -133,6 +137,10 @@ export default defineConfig(({ mode }) => {
         target: process.env.VITE_API_BASE || 'http://localhost:4000',
         changeOrigin: true,
         ws: true,
+      },
+      '/uploads': {
+        target: process.env.VITE_API_BASE || 'http://localhost:4000',
+        changeOrigin: true,
       },
     },
   },

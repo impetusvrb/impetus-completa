@@ -157,8 +157,6 @@ function gerarConfigPorRegras(user) {
     add(WIDGET_IDS.grafico_custos_setor, 'grande', 'critica');
     add(WIDGET_IDS.desperdicio, 'grande', 'alta');
     add(WIDGET_IDS.mapa_vazamentos, 'grande', 'alta');
-    add(WIDGET_IDS.estoque, 'pequeno', 'alta');
-    add(WIDGET_IDS.logistica, 'pequeno', 'alta');
     add(WIDGET_IDS.resumo_executivo, 'grande', 'media');
     add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
     add(WIDGET_IDS.alertas, 'grande', 'media');

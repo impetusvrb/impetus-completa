@@ -27,6 +27,7 @@ export function resolveMenuRole(user) {
   const jobTitle = (user.job_title || '').toLowerCase();
 
   if (role === 'admin' || profile === 'admin_system') return 'admin';
+  if (role === 'rh') return 'rh';
   if (role === 'ceo' || profile === 'ceo_executive') return 'ceo';
   if (role.includes('diretor') || profile.includes('director')) return 'diretor';
   if (role.includes('gerente') || role.includes('manager') || profile.includes('manager_')) return 'gerente';

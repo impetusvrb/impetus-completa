@@ -16,7 +16,6 @@ const MODULE_PERMISSIONS = {
   chat: ['chat.view', 'ACCESS_AI_ANALYTICS'],
   biblioteca: ['files.view', 'VIEW_DOCUMENTS'],
   ai: ['ai.use', 'ACCESS_AI_ANALYTICS'],
-  monitored_points: ['monitored_points.view', 'VIEW_PRODUCTION'],
   audit: ['audit.view', 'VIEW_AUDIT_LOGS'],
   admin: ['admin.manage', 'MANAGE_USERS'],
   settings: ['settings.view', 'VIEW_SETTINGS']

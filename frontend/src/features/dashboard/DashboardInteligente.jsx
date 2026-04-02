@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
 import TrendChart from '../../components/TrendChart';
-import MonitoredPointsChart from '../../components/MonitoredPointsChart';
 import InsightsList from '../../components/InsightsList';
 import RecentInteractions from '../../components/RecentInteractions';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
@@ -178,11 +177,6 @@ export default function DashboardInteligente({ embed = false }) {
               <div className="block-chart">
                 <TrendChart data={trendData} />
               </div>
-              {sections.points_chart && (
-                <div className="block-chart-sm">
-                  <MonitoredPointsChart />
-                </div>
-              )}
             </section>
           )}
 

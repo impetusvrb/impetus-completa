@@ -10,12 +10,14 @@ const chatApi = {
   sendMessage: (id, content, replyTo) => http.post('/chat/conversations/'+id+'/messages', { content, replyTo }),
   uploadFile: (conversationId, file, replyTo) => { const fd = new FormData(); fd.append('file', file); fd.append('conversationId', conversationId); if (replyTo) fd.append('replyTo', replyTo); return http.post('/chat/upload', fd); },
   markAsRead: (conversationId, messageId) => http.put('/chat/messages/'+messageId+'/read', { conversationId }),
+  deleteMessage: (messageId, scope) => http.post('/chat/messages/' + messageId + '/delete', { scope }),
   getParticipants: (id) => http.get('/chat/conversations/'+id+'/participants'),
   addParticipant: (id, userId) => http.post('/chat/conversations/'+id+'/participants', { userId }),
   removeParticipant: (id, userId) => http.delete('/chat/conversations/'+id+'/participants/'+userId),
   getUsers: () => http.get('/chat/users'),
   subscribePush: (sub) => http.post('/chat/push/subscribe', sub),
-  sendAIMessage: (messages) => http.post('/dashboard/chat', { messages }),
+  /** Backend: POST /api/dashboard/chat — corpo { message: string, history: {role,content}[] } */
+  sendAIMessage: ({ message, history }) => http.post('/dashboard/chat', { message, history: history || [] }),
   submitRegistration: (text) => http.post('/intelligent-registration', { text }),
   listRegistrations: () => http.get('/intelligent-registration?limit=10'),
   updateAvatar: (file) => {

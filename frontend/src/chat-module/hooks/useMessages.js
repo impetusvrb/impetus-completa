@@ -17,6 +17,18 @@ export function useMessages(conversationId) {
     finally { setLoading(false); }
   }, [conversationId, loading, hasMore]);
   const addMessage = useCallback((msg) => setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]), []);
+  const removeMessage = useCallback((id) => setMessages(prev => prev.filter(m => String(m.id) !== String(id))), []);
+  const markDeletedEveryone = useCallback((id) => {
+    setMessages(prev => prev.map(m => (String(m.id) === String(id) ? {
+      ...m,
+      deleted_for_everyone_at: new Date().toISOString(),
+      content: '',
+      file_url: null,
+      file_name: null,
+      file_size: null,
+      message_type: 'text'
+    } : m)));
+  }, []);
   const reset = useCallback(() => { setMessages([]); setHasMore(true); oldest.current = null; }, []);
-  return { messages, loading, hasMore, loadMessages, addMessage, reset };
+  return { messages, loading, hasMore, loadMessages, addMessage, removeMessage, markDeletedEveryone, reset };
 }

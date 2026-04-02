@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ConversationList from './components/ConversationList';
 import MessageArea from './components/MessageArea';
 import MessageInput from './components/MessageInput';
@@ -14,15 +15,13 @@ function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.n
 const API_BASE = (() => {
   const api = import.meta.env.VITE_API_URL || '/api';
   if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined' && window.location.port === '3000') {
-    return `${window.location.protocol}//${window.location.hostname}:4000`;
-  }
   if (typeof window !== 'undefined') return window.location.origin;
   return '';
 })();
 function toAbs(url){ if(!url) return null; if(url.startsWith('http')) return url; return API_BASE + url; }
 
 export default function ChatApp(){
+  const navigate = useNavigate();
   const [conversations,setConversations]=useState([]);
   const [activeId,setActiveId]=useState(null);
   const [onlineUsers,setOnlineUsers]=useState(new Set());
@@ -54,20 +53,26 @@ export default function ChatApp(){
   const typingTimers=useRef({});
   const avatarInputRef = useRef(null);
   const activeConv=conversations.find(c=>c.id===activeId);
-  const {messages,loading,hasMore,loadMessages,addMessage,reset}=useMessages(activeId);
+  const {messages,loading,hasMore,loadMessages,addMessage,removeMessage,markDeletedEveryone,reset}=useMessages(activeId);
+  const loadConversations=useCallback(async ()=>{ try{ const {data}=await chatApi.getConversations(); setConversations(data); }catch(e){ console.error(e); } },[]);
 
   useEffect(()=>{
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/chat-sw.js').catch(()=>{});
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister().catch(() => {}));
+      }).catch(() => {});
+      if (window.caches && caches.keys) {
+        caches.keys().then((keys) => {
+          keys.forEach((k) => caches.delete(k).catch(() => {}));
+        }).catch(() => {});
+      }
     }
   }, []);
-  useEffect(()=>{ const s=localStorage.getItem('impetus_user'); if(s){ try{ setCurrentUser(JSON.parse(s)); }catch{} } loadConversations(); },[]);
+  useEffect(()=>{ const s=localStorage.getItem('impetus_user'); if(s){ try{ setCurrentUser(JSON.parse(s)); }catch{} } loadConversations(); },[loadConversations]);
   useEffect(()=>{ if(!activeId) return; reset(); setTypingUsers([]); },[activeId]);
   useEffect(()=>{ if(activeId) loadMessages(true); },[activeId]);
 
   useEffect(()=>()=>{ Object.values(typingTimers.current||{}).forEach(t=>clearTimeout(t)); typingTimers.current={}; },[]);
-
-  async function loadConversations(){ try{ const {data}=await chatApi.getConversations(); setConversations(data); }catch(e){ console.error(e); } }
 
   const onMessage=useCallback((msg)=>{
     addMessage(msg);
@@ -90,11 +95,27 @@ export default function ChatApp(){
       participants: (c.participants || []).map((p) => (p.id === userId ? { ...p, avatar_url } : p))
     })));
   },[]);
+  const onMessageDeleted=useCallback(({conversationId,messageId,scope})=>{
+    if (scope !== 'everyone' || String(conversationId) !== String(activeId)) return;
+    markDeletedEveryone(messageId);
+  },[activeId,markDeletedEveryone]);
 
-  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline,onProfileUpdate});
+  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline,onProfileUpdate,onMessageDeleted});
 
   async function selectConv(id){ await loadConversations(); setActiveId(id); joinConversation(id); markRead(id); if(window.innerWidth<768) setSidebarOpen(false); }
   async function handleSend({type,content}){ if(!activeId) return; try{ await sendMessage({conversationId:activeId,content,type}); }catch(e){ console.error(e); } }
+
+  const handleChatDelete=useCallback(async (msg,scope)=>{
+    try{
+      await chatApi.deleteMessage(msg.id,scope);
+      if(scope==='me') removeMessage(msg.id);
+      else markDeletedEveryone(msg.id);
+      loadConversations();
+    }catch(e){
+      console.error(e);
+      window.alert(e?.response?.data?.error||'Não foi possível apagar a mensagem.');
+    }
+  },[removeMessage,markDeletedEveryone,loadConversations]);
 
   async function handleAiSend(){
     if(!aiInput.trim()||aiLoading) return;
@@ -102,8 +123,11 @@ export default function ChatApp(){
     const userMsg={id:Date.now(),content:text,isUser:true,created_at:new Date().toISOString()};
     setAiMessages(prev=>[...prev,userMsg]);
     try{
-      const hist=[...aiMessages,userMsg].map(m=>({role:m.isUser?'user':'assistant',content:m.content}));
-      const {data}=await chatApi.sendAIMessage(hist);
+      const history = aiMessages.map(m => ({
+        role: m.isUser ? 'user' : 'assistant',
+        content: m.content || ''
+      }));
+      const { data } = await chatApi.sendAIMessage({ message: text, history });
       const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
       setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
     }catch(e){
@@ -151,6 +175,15 @@ export default function ChatApp(){
 
   return (<div className="chat-app">
     <div className="chat-header">
+      <button
+        type="button"
+        className="chat-header__back"
+        title="Voltar ao painel"
+        onClick={() => navigate('/app')}
+      >
+        <ArrowLeft size={20} strokeWidth={2.25} />
+        <span className="chat-header__back-text">Voltar</span>
+      </button>
       <button className="btn-icon chat-menu-btn" onClick={()=>setSidebarOpen(v=>!v)}><Menu size={20}/></button>
       <div className="chat-header__brand"><img src={chatBrandImg} alt="" style={{width:32,height:32,objectFit:"contain"}}/><span>IMPETUS Chat</span></div>
       {currentUser&&(
@@ -404,7 +437,7 @@ export default function ChatApp(){
               </span>
             </div>
           </div>
-          <MessageArea messages={messages} currentUserId={currentUser&&currentUser.id} loading={loading} hasMore={hasMore} onLoadMore={()=>loadMessages(false)} typingUsers={typingUsers}/>
+          <MessageArea messages={messages} currentUserId={currentUser&&currentUser.id} loading={loading} hasMore={hasMore} onLoadMore={()=>loadMessages(false)} typingUsers={typingUsers} onDeleteMessage={handleChatDelete}/>
           <MessageInput conversationId={activeId} onSend={handleSend} onTyping={()=>emitTyping(activeId)} onStopTyping={()=>emitStopTyping(activeId)}/>
         </>):(
           <div className="chat-welcome"><img src={chatBrandImg} alt="" style={{width:80,height:80,objectFit:"contain"}}/><h2>IMPETUS Chat</h2><p>Selecione uma conversa ou inicie uma nova</p></div>

@@ -125,6 +125,24 @@ router.put('/messages/:id/read', async (req, res) => {
   try { await chatService.markAsRead(req.body.conversationId, req.user.id); res.json({ ok: true }); }
   catch { res.status(500).json({ error: 'Erro' }); }
 });
+router.post('/messages/:messageId/delete', async (req, res) => {
+  try {
+    const scope = req.body && req.body.scope;
+    if (scope !== 'me' && scope !== 'everyone') return res.status(400).json({ error: 'scope deve ser "me" ou "everyone"' });
+    const result = scope === 'me'
+      ? await chatService.deleteMessageForUser(req.params.messageId, req.user.id)
+      : await chatService.deleteMessageForEveryone(req.params.messageId, req.user.id);
+    const io = getIo(req);
+    if (io && result.scope === 'everyone') {
+      io.to(result.conversationId).emit('message_deleted', {
+        conversationId: result.conversationId,
+        messageId: result.messageId,
+        scope: 'everyone'
+      });
+    }
+    res.json({ ok: true, ...result });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Erro ao apagar mensagem' }); }
+});
 router.get('/conversations/:id/participants', async (req, res) => {
   try { res.json(await chatService.getConversationParticipants(req.params.id, req.user.id)); }
   catch (e) { res.status(e.status||500).json({ error: e.message }); }

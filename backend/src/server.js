@@ -203,6 +203,7 @@ useRoute('/api/audit', './routes/audit');
 useRoute('/api/warehouse-intelligence', './routes/warehouseIntelligence');
 useRoute('/api/quality-intelligence', './routes/qualityIntelligence');
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
+useRoute('/api/pulse', './routes/pulse', requireAuth);
 useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');

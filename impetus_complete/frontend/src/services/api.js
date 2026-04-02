@@ -28,7 +28,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // FormData exige boundary automático — json default quebrava /voz/transcrever e uploads
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -43,18 +42,15 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config || {};
 
-    // Nunca fazer retry em erros de autenticação/autorização (exceto /voz: não deslogar, só falhar)
-    const isVoz = (config.url || '').includes('/voz');
+    // Nunca fazer retry em erros de autenticação/autorização
     if (error.response?.status === 401 || error.response?.status === 403) {
-      if (isVoz) return Promise.reject(error);
       return handleFinalError(error);
     }
 
     const retryCount = config.__retryCount ?? 0;
-    const isFormOrUpload =
-      config.data instanceof FormData || String(config.url || '').includes('/transcrever');
+    const noRetryBody = config.data instanceof FormData;
     const isRetryable =
-      !isFormOrUpload &&
+      !noRetryBody &&
       retryCount < MAX_RETRIES &&
       (['ECONNABORTED', 'ERR_NETWORK', 'ETIMEDOUT'].includes(error.code) ||
         [502, 503, 504].includes(error.response?.status));
@@ -71,8 +67,13 @@ api.interceptors.response.use(
 );
 
 function handleFinalError(error) {
-  const isVoz = (error.config?.url || '').includes('/voz');
-  if (error.response?.status === 401 && !isVoz) {
+  const urlPath = error.config?.url || '';
+
+  // 401 em Pró-Ação não deve derrubar toda a sessão do usuário.
+  // Mantemos o usuário logado e apenas propagamos o erro para a tela tratar.
+  const isProacaoRequest = urlPath.includes('/proacao');
+
+  if (error.response?.status === 401 && !isProacaoRequest) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     window.location.href = '/';
@@ -140,6 +141,22 @@ export const subscription = {
   getPaymentLink: () => api.get('/subscription/payment-link')
 };
 
+/** NexusIA — custos de tokens (admin da empresa); sem detalhe por API */
+export const nexusIA = {
+  getCustos: (params) => api.get('/admin/nexus-custos', { params })
+};
+
+/** NexusIA — carteira de créditos, recargas (Stripe), taxas por serviço */
+export const nexusWallet = {
+  getDashboard: (params) => api.get('/admin/nexus-wallet', { params }),
+  updateSettings: (data) => api.patch('/admin/nexus-wallet/settings', data),
+  checkoutStripe: (data) => api.post('/admin/nexus-wallet/checkout/stripe', data),
+  checkoutPagSeguro: (data) => api.post('/admin/nexus-wallet/checkout/pagseguro', data),
+  upsertRate: (servico, credits_per_unit) =>
+    api.put(`/admin/nexus-wallet/rates/${encodeURIComponent(servico)}`, { credits_per_unit }),
+  deleteRate: (servico) => api.delete(`/admin/nexus-wallet/rates/${encodeURIComponent(servico)}`)
+};
+
 // App Impetus - Canal de comunicação unificado
 export const appImpetus = {
   getStatus: () => api.get('/app-impetus/status'),
@@ -204,12 +221,19 @@ export const roleVerification = {
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
   getMe: () => api.get('/dashboard/me'),
+  /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
+  getPersonalizado: () => api.get('/dashboard/personalizado'),
   getConfig: () => api.get('/dashboard/config'),
   savePreferences: (data) => api.post('/dashboard/preferences', data),
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
+  /** Preferências de perfil / IA (próprio utilizador) */
+  patchProfileContext: (body) => api.patch('/dashboard/profile-context', body),
   getWidgets: () => api.get('/dashboard/widgets'),
+  getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
+  /** Dashboard Inteligente Dinâmico do colaborador — layout gerado por perfil */
+  getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
 
   getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
   saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),
@@ -222,9 +246,6 @@ export const dashboard = {
   
   getInsights: (limit = 10, offset = 0) =>
     api.get(`/dashboard/insights?limit=${limit}&offset=${offset}`),
-  
-  getMonitoredPointsDistribution: () => 
-    api.get('/dashboard/monitored-points-distribution'),
   
   getRecentInteractions: (limit = 10, offset = 0) =>
     api.get(`/dashboard/recent-interactions?limit=${limit}&offset=${offset}`),
@@ -241,41 +262,35 @@ export const dashboard = {
   getSmartSummary: () => 
     api.get('/dashboard/smart-summary'),
 
-  chat: (message, history = []) => 
-    api.post('/dashboard/chat', { message, history }),
-  chatWithHeader: (message, history = [], headers = {}) =>
-    api.post('/dashboard/chat', { message, history }, { headers }),
+  chat: (message, history = [], opts = {}) =>
+    api.post('/dashboard/chat', {
+      message,
+      history,
+      ...(opts.voiceMode ? { voiceMode: true } : {}),
+      ...(opts.sentimentContext ? { sentimentContext: opts.sentimentContext } : {})
+    }),
+  chatWithHeader: (message, history = [], headers = {}, opts = {}) =>
+    api.post(
+      '/dashboard/chat',
+      { message, history, ...(opts.voiceMode ? { voiceMode: true } : {}) },
+      { headers }
+    ),
   chatMultimodal: (payload) =>
     api.post('/dashboard/chat-multimodal', payload),
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
 
-  /** TTS via backend (OpenAI). Só gera áudio quando falar=true. */
+  /** Legado — preferir voz OpenAI em /dashboard/chat/voice/speak */
   gerarVoz: (texto, falar = true) =>
     api.post('/voz', { texto: texto || '', falar: !!falar }),
 
-  /** Comando de voz (regra simples) - retorna texto e opcionalmente áudio */
-  comandoVoz: (comando, falar = false) =>
-    api.post('/voz/comando', { comando: comando || '', falar: !!falar }),
-
-  /** Modo conversa Impetus IA: memória + GPT + TTS */
-  vozConversa: (message, reset = false, falar = true) =>
-    api.post('/voz/conversa', {
-      message: message || '',
-      reset: !!reset,
-      falar: !!falar
-    }),
-
-  vozConversaReset: () =>
-    api.post('/voz/conversa', { message: '', reset: true, falar: false }),
-
-  /** Gravação webm → texto (Whisper), para quando Web Speech não funciona */
-  transcreverVoz: (formData) =>
-    api.post('/voz/transcrever', formData, {
-      timeout: 90000,
-      maxContentLength: 15 * 1024 * 1024,
-      maxBodyLength: 15 * 1024 * 1024
-    }),
+  getVoicePreferences: () => api.get('/dashboard/chat/voice/preferences'),
+  putVoicePreferences: (body) => api.put('/dashboard/chat/voice/preferences', body),
+  formatVoiceAlert: (alert_data) =>
+    api.post('/dashboard/chat/voice/format-alert', { alert_data }),
+  /** TTS boas-vindas SSML (variant full|short, userDisplayName, spellName opcional) */
+  speakWelcome: (body = {}) =>
+    api.post('/dashboard/chat/voice/welcome', body, { responseType: 'arraybuffer' }),
 
   logActivity: (data) => 
     api.post('/dashboard/log-activity', data),
@@ -300,6 +315,7 @@ export const dashboard = {
     getMachinesAttention: () => api.get('/dashboard/maintenance/machines-attention'),
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
+    getPreventivesBoard: () => api.get('/dashboard/maintenance/preventives-board'),
     getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
   },
 
@@ -332,6 +348,37 @@ export const dashboard = {
     addMachine: (data) => api.post('/dashboard/industrial/machines', data),
     updateMachine: (id, data) => api.put(`/dashboard/industrial/machines/${id}`, data),
     deleteMachine: (id) => api.delete(`/dashboard/industrial/machines/${id}`)
+  },
+
+  forecasting: {
+    getProjections: (metric) => api.get('/dashboard/forecasting/projections', { params: { metric: metric || 'eficiencia' } }),
+    getAlerts: (limit) => api.get('/dashboard/forecasting/alerts', { params: { limit: limit || 15 } }),
+    getSimulation: (hours) => api.get('/dashboard/forecasting/simulation', { params: { hours: hours || 48 } }),
+    getHealth: () => api.get('/dashboard/forecasting/health'),
+    ask: (question) => api.post('/dashboard/forecasting/ask', { question }),
+    getExtendedProjections: () => api.get('/dashboard/forecasting/extended-projections'),
+    getProfitLoss: (days) => api.get('/dashboard/forecasting/profit-loss', { params: { days: days || 14 } }),
+    getCriticalFactors: () => api.get('/dashboard/forecasting/critical-factors'),
+    simulateDecision: (action, value) => api.post('/dashboard/forecasting/simulate-decision', { action, value }),
+    getConfig: () => api.get('/dashboard/forecasting/config'),
+    updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
+  },
+  costs: {
+    getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
+    getByOrigin: () => api.get('/dashboard/costs/by-origin'),
+    getTopLoss: () => api.get('/dashboard/costs/top-loss'),
+    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss'),
+    listItems: () => api.get('/dashboard/costs/items'),
+    createItem: (data) => api.post('/dashboard/costs/items', data),
+    updateItem: (id, data) => api.put(`/dashboard/costs/items/${id}`, data),
+    deleteItem: (id) => api.delete(`/dashboard/costs/items/${id}`)
+  },
+  financialLeakage: {
+    getMap: () => api.get('/dashboard/financial-leakage/map'),
+    getRanking: () => api.get('/dashboard/financial-leakage/ranking'),
+    getAlerts: () => api.get('/dashboard/financial-leakage/alerts'),
+    getReport: () => api.get('/dashboard/financial-leakage/report'),
+    getProjectedImpact: () => api.get('/dashboard/financial-leakage/projected-impact')
   }
 };
 
@@ -358,17 +405,26 @@ export const communications = {
 // ============================================================================
 
 export const proacao = {
-  list: () => 
-    api.get('/proacao'),
+  list: (params = {}) =>
+    api.get('/proacao', { params }),
   
   getById: (id) => 
     api.get(`/proacao/${id}`),
   
   create: (data) => 
     api.post('/proacao', data),
+
+  update: (id, data) =>
+    api.put(`/proacao/${id}`, data),
+
+  updateStatus: (id, status, comment) =>
+    api.patch(`/proacao/${id}/status`, { status, comment }),
   
   evaluate: (id) => 
     api.post(`/proacao/${id}/evaluate`),
+
+  enrich: (id) =>
+    api.post(`/proacao/${id}/enrich`),
   
   escalate: (id, comment, escalatedBy) => 
     api.post(`/proacao/${id}/escalate`, { comment, escalated_by: escalatedBy }),
@@ -383,19 +439,54 @@ export const proacao = {
     api.post(`/proacao/${id}/finalize`, { finalReport, closedBy })
 };
 
+/** Formulário TPM (perdas antes/durante/depois da manutenção) — Pró-Ação */
+export const tpm = {
+  listIncidents: (params) => api.get('/tpm/incidents', { params }),
+  createIncident: (data) => api.post('/tpm/incidents', data),
+  getShiftTotals: (params) => api.get('/tpm/shift-totals', { params })
+};
+
+/** Impetus Pulse — autoavaliação, RH e agregados de gestão */
+export const pulse = {
+  getAdminSettings: () => api.get('/pulse/admin/settings'),
+  putAdminSettings: (body) => api.put('/pulse/admin/settings', body),
+  getMePrompt: () => api.get('/pulse/me/prompt'),
+  startMe: () => api.post('/pulse/me/start', {}),
+  submitMe: (body) => api.post('/pulse/me/submit', body),
+  getMotivation: () => api.get('/pulse/me/motivation'),
+  getSupervisorPending: () => api.get('/pulse/supervisor/pending'),
+  postSupervisorPerception: (evaluationId, perception) =>
+    api.post(`/pulse/supervisor/${evaluationId}/perception`, { perception }),
+  hrListEvaluations: (params) => api.get('/pulse/hr/evaluations', { params }),
+  hrTrigger: (body) => api.post('/pulse/hr/trigger', body),
+  hrReport: (evaluationId) => api.post(`/pulse/hr/report/${evaluationId}`, {}),
+  hrListCampaigns: () => api.get('/pulse/hr/campaigns'),
+  hrCreateCampaign: (body) => api.post('/pulse/hr/campaigns', body),
+  mgmtAggregates: (params) => api.get('/pulse/mgmt/aggregates', { params })
+};
+
 // ============================================================================
-// DIAGNÓSTICO (MANUTENÇÃO ASSISTIDA)
+// MANUIA - Manutenção assistida por IA (perfis de manutenção)
 // ============================================================================
 
-export const diagnostic = {
-  validate: (text) => 
-    api.post('/diagnostic/validate', { text }),
-  
-  analyze: (text, reporter) => 
-    api.post('/diagnostic', { text, reporter: reporter || 'web-user' }),
-  
-  getReport: (diagId) => 
-    api.get(`/diagnostic/report/${diagId}`, { responseType: 'text' })
+export const manutencaoIa = {
+  getMachines: () => api.get('/manutencao-ia/machines'),
+  getMachine: (id) => api.get(`/manutencao-ia/machines/${id}`),
+  getDiagnostic: (id) => api.get(`/manutencao-ia/machines/${id}/diagnostic`),
+  getSensors: (machineId) =>
+    api.get('/manutencao-ia/sensors', { params: machineId ? { machine_id: machineId } : {} }),
+  getSessions: () => api.get('/manutencao-ia/sessions'),
+  createSession: (data) => api.post('/manutencao-ia/sessions', data),
+  getEmergencyEvents: () => api.get('/manutencao-ia/emergency-events'),
+  getHealth: () => api.get('/manutencao-ia/health'),
+  /** Pesquisa equipamento por texto - IA retorna JSON estruturado para render 3D */
+  researchEquipment: (query, sessionId) =>
+    api.post('/manutencao-ia/research-equipment', { query, session_id: sessionId || null }),
+  /** Últimas pesquisas para sugestões no campo de busca */
+  getRecentSearches: (limit = 10) =>
+    api.get('/manutencao-ia/research-equipment/recent', { params: { limit } }),
+  /** Concluir sessão: gera OS e opcionalmente cadastra equipamento */
+  concludeSession: (data) => api.post('/manutencao-ia/conclude-session', data)
 };
 
 /** ManuIA App de extensão (PWA / mobile) — preferências, inbox, OS, dashboard */
@@ -423,6 +514,21 @@ export const manuiaApp = {
 };
 
 // ============================================================================
+// DIAGNÓSTICO (MANUTENÇÃO ASSISTIDA)
+// ============================================================================
+
+export const diagnostic = {
+  validate: (text) => 
+    api.post('/diagnostic/validate', { text }),
+  
+  analyze: (text, reporter) => 
+    api.post('/diagnostic', { text, reporter: reporter || 'web-user' }),
+  
+  getReport: (diagId) => 
+    api.get(`/diagnostic/report/${diagId}`, { responseType: 'text' })
+};
+
+// ============================================================================
 // TAREFAS
 // ============================================================================
 
@@ -438,6 +544,23 @@ export const tasks = {
   
   delete: (id) => 
     api.delete(`/tasks/${id}`)
+};
+
+// ============================================================================
+// INTEGRAÇÕES (MES/ERP, Edge, Digital Twin)
+// ============================================================================
+
+export const integrations = {
+  listConnectors: () => api.get('/integrations/mes-erp/connectors'),
+  createConnector: (data) => api.post('/integrations/mes-erp/connectors', data),
+  updateConnector: (id, data) => api.put(`/integrations/mes-erp/connectors/${id}`, data),
+  testConnector: (id) => api.post(`/integrations/mes-erp/connectors/${id}/test`),
+  listConnectorLogs: (id, limit = 50) => api.get(`/integrations/mes-erp/connectors/${id}/logs`, { params: { limit } }),
+  registerEdge: (data) => api.post('/integrations/edge/register', data),
+  listEdgeAgents: () => api.get('/integrations/edge/agents'),
+  revokeEdgeAgent: (id) => api.post(`/integrations/edge/agents/${id}/revoke`),
+  getDigitalTwinState: () => api.get('/integrations/digital-twin/state'),
+  saveDigitalTwinLayout: (data) => api.put('/integrations/digital-twin/layout', data)
 };
 
 // ============================================================================
@@ -605,17 +728,244 @@ export const adminSettings = {
 
 export default api;
 
+const structuralProductionLinesApi = {
+  list: () => api.get('/admin/structural/production-lines'),
+  getOne: (id) => api.get(`/admin/structural/production-lines/${id}`),
+  create: (data) => api.post('/admin/structural/production-lines', data),
+  update: (id, data) => api.put(`/admin/structural/production-lines/${id}`, data),
+  delete: (id) => api.delete(`/admin/structural/production-lines/${id}`),
+  addMachine: (lineId, data) => api.post(`/admin/structural/production-lines/${lineId}/machines`, data),
+  updateMachine: (lineId, machineId, data) =>
+    api.put(`/admin/structural/production-lines/${lineId}/machines/${machineId}`, data),
+  deleteMachine: (lineId, machineId) =>
+    api.delete(`/admin/structural/production-lines/${lineId}/machines/${machineId}`)
+};
+
 export const adminStructural = {
   getReferences: () => api.get('/admin/structural/references'),
-  getAll: (module) => api.get(`/admin/structural/${module}`),
-  create: (module, data) => api.post(`/admin/structural/${module}`, data),
-  update: (module, id, data) => api.put(`/admin/structural/${module}/${id}`, data),
-  remove: (module, id) => api.delete(`/admin/structural/${module}/${id}`),
+
+  // Dados da empresa
+  getCompanyData: () => api.get('/admin/structural/company-data'),
+  updateCompanyData: (data) => api.put('/admin/structural/company-data', data),
+
+  // Demais módulos usam CRUD genérico abaixo
+  roles: {
+    list: () => api.get('/admin/structural/roles'),
+    create: (data) => api.post('/admin/structural/roles', data),
+    update: (id, data) => api.put(`/admin/structural/roles/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/roles/${id}`)
+  },
+  lines: structuralProductionLinesApi,
+  /** Alias para a UI da Base Estrutural (mesmo método que `lines`) */
+  productionLines: structuralProductionLinesApi,
+  assets: {
+    list: () => api.get('/admin/structural/assets'),
+    create: (data) => api.post('/admin/structural/assets', data),
+    update: (id, data) => api.put(`/admin/structural/assets/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/assets/${id}`)
+  },
+  processes: {
+    list: () => api.get('/admin/structural/processes'),
+    create: (data) => api.post('/admin/structural/processes', data),
+    update: (id, data) => api.put(`/admin/structural/processes/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/processes/${id}`)
+  },
+  products: {
+    list: () => api.get('/admin/structural/products'),
+    create: (data) => api.post('/admin/structural/products', data),
+    update: (id, data) => api.put(`/admin/structural/products/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/products/${id}`)
+  },
+  indicators: {
+    list: () => api.get('/admin/structural/indicators'),
+    create: (data) => api.post('/admin/structural/indicators', data),
+    update: (id, data) => api.put(`/admin/structural/indicators/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/indicators/${id}`)
+  },
+  failureRisks: {
+    list: () => api.get('/admin/structural/failure-risks'),
+    create: (data) => api.post('/admin/structural/failure-risks', data),
+    update: (id, data) => api.put(`/admin/structural/failure-risks/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/failure-risks/${id}`)
+  },
+  communicationRules: {
+    list: () => api.get('/admin/structural/communication-rules'),
+    create: (data) => api.post('/admin/structural/communication-rules', data),
+    update: (id, data) => api.put(`/admin/structural/communication-rules/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/communication-rules/${id}`)
+  },
+  routines: {
+    list: () => api.get('/admin/structural/routines'),
+    create: (data) => api.post('/admin/structural/routines', data),
+    update: (id, data) => api.put(`/admin/structural/routines/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/routines/${id}`)
+  },
+  shifts: {
+    list: () => api.get('/admin/structural/shifts'),
+    create: (data) => api.post('/admin/structural/shifts', data),
+    update: (id, data) => api.put(`/admin/structural/shifts/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/shifts/${id}`)
+  },
+  areaResponsibles: {
+    list: () => api.get('/admin/structural/area-responsibles'),
+    create: (data) => api.post('/admin/structural/area-responsibles', data),
+    update: (id, data) => api.put(`/admin/structural/area-responsibles/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/area-responsibles/${id}`)
+  },
+  aiConfig: {
+    list: () => api.get('/admin/structural/ai-config'),
+    create: (data) => api.post('/admin/structural/ai-config', data),
+    update: (id, data) => api.put(`/admin/structural/ai-config/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/ai-config/${id}`)
+  },
+  knowledgeDocuments: {
+    list: () => api.get('/admin/structural/knowledge-documents'),
+    create: (data) => api.post('/admin/structural/knowledge-documents', data),
+    update: (id, data) => api.put(`/admin/structural/knowledge-documents/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/knowledge-documents/${id}`)
+  }
 };
 
 export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
-  create: (data) => api.post('/intelligent-registration', data),
+  /** Alias de getAll */
+  list: (params) => api.get('/intelligent-registration', { params }),
+  create: (data) =>
+    api.post(
+      '/intelligent-registration',
+      typeof data === 'string' ? { text: data } : data
+    ),
+  /** Registos de toda a empresa (hierarchy ≤ 2 no backend) */
+  leadership: (params) => api.get('/intelligent-registration/leadership', { params }),
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
   remove: (id) => api.delete(`/intelligent-registration/${id}`),
+};
+
+/** Almoxarifado Inteligente — painel IA (backend: /api/admin/warehouse/intelligence/*) */
+export const warehouseIntelligence = {
+  getDashboard: () => api.get('/admin/warehouse/intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/admin/warehouse/intelligence/alerts/${id}/ack`),
+  runAlerts: () => api.post('/admin/warehouse/intelligence/run-alerts')
+};
+
+export const logisticsIntelligence = {
+  getDashboard: () => api.get('/admin/logistics/intelligence/dashboard'),
+  acknowledgeAlert: (id) => api.post(`/admin/logistics/intelligence/alerts/${id}/ack`),
+  runAlerts: () => api.post('/admin/logistics/intelligence/run-alerts')
+};
+
+/** Biblioteca técnica de equipamentos — backend exige role admin + company_id */
+export const equipmentLibraryAdmin = {
+  health: () => api.get('/admin/equipment-library/health'),
+  references: () => api.get('/admin/equipment-library/references'),
+  assets: {
+    list: () => api.get('/admin/equipment-library/assets'),
+    get: (id) => api.get(`/admin/equipment-library/assets/${id}`),
+    create: (data) => api.post('/admin/equipment-library/assets', data),
+    update: (id, data) => api.put(`/admin/equipment-library/assets/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/assets/${id}`),
+    uploadModel3d: (id, file, opts) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (opts?.is_primary) fd.append('is_primary', 'true');
+      return api.post(`/admin/equipment-library/assets/${id}/model-3d`, fd);
+    },
+    uploadManualPdf: (id, file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return api.post(`/admin/equipment-library/assets/${id}/manual-pdf`, fd);
+    }
+  },
+  knowledgeDocuments: {
+    list: () => api.get('/admin/equipment-library/knowledge-documents'),
+    create: (data) => api.post('/admin/equipment-library/knowledge-documents', data),
+    update: (id, data) => api.put(`/admin/equipment-library/knowledge-documents/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/knowledge-documents/${id}`)
+  },
+  spareParts: {
+    list: () => api.get('/admin/equipment-library/spare-parts'),
+    upsert: (data) => api.post('/admin/equipment-library/spare-parts', data),
+    updateKeywords: (id, keywords) =>
+      api.patch(`/admin/equipment-library/spare-parts/${id}/keywords`, { keywords }),
+    validateAi: (id) => api.patch(`/admin/equipment-library/spare-parts/${id}/validate-ai`),
+    importCsv: (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return api.post('/admin/equipment-library/spare-parts/import-csv', fd);
+    }
+  },
+  /** Catálogo 3D versionado (equipamento ou peça) */
+  models3d: {
+    list: (params) => api.get('/admin/equipment-library/technical-3d-models', { params }),
+    upload: (file, fields) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (fields?.asset_id) fd.append('asset_id', fields.asset_id);
+      if (fields?.spare_part_id) fd.append('spare_part_id', fields.spare_part_id);
+      if (fields?.version_label) fd.append('version_label', fields.version_label);
+      if (fields?.notes) fd.append('notes', fields.notes);
+      if (fields?.is_primary) fd.append('is_primary', 'true');
+      return api.post('/admin/equipment-library/technical-3d-models', fd);
+    },
+    update: (id, data) => api.patch(`/admin/equipment-library/technical-3d-models/${id}`, data),
+    delete: (id) => api.delete(`/admin/equipment-library/technical-3d-models/${id}`)
+  }
+};
+
+/** Biblioteca Técnica Inteligente — Central técnica de ativos 3D (ManuIA), admin + company_id */
+export const technicalLibrary = {
+  health: () => api.get('/technical-library/health'),
+  listEquipments: (params) => api.get('/technical-library/equipments', { params }),
+  getEquipment: (id) => api.get(`/technical-library/equipments/${id}`),
+  createEquipment: (data) => api.post('/technical-library/equipments', data),
+  updateEquipment: (id, data) => api.put(`/technical-library/equipments/${id}`, data),
+  deleteEquipment: (id) => api.delete(`/technical-library/equipments/${id}`),
+  postKeywords: (equipmentId, body) => api.post(`/technical-library/equipments/${equipmentId}/keywords`, body),
+  deleteKeyword: (keywordId) => api.delete(`/technical-library/keywords/${keywordId}`),
+  uploadModel: (equipmentId, file, fields) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (fields) {
+      Object.keys(fields).forEach((k) => {
+        if (fields[k] != null && fields[k] !== '') fd.append(k, fields[k]);
+      });
+    }
+    return api.post(`/technical-library/equipments/${equipmentId}/models`, fd);
+  },
+  patchModel: (modelId, data) => api.patch(`/technical-library/models/${modelId}`, data),
+  setPrimaryModel: (modelId) => api.patch(`/technical-library/models/${modelId}/set-primary`),
+  deleteModel: (modelId) => api.delete(`/technical-library/models/${modelId}`),
+  uploadDocument: (equipmentId, file, fields) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (fields) {
+      Object.keys(fields).forEach((k) => {
+        if (fields[k] != null && fields[k] !== '') fd.append(k, fields[k]);
+      });
+    }
+    return api.post(`/technical-library/equipments/${equipmentId}/documents`, fd);
+  },
+  deleteDocument: (documentId) => api.delete(`/technical-library/documents/${documentId}`),
+  createPart: (equipmentId, data) => api.post(`/technical-library/equipments/${equipmentId}/parts`, data),
+  updatePart: (partId, data) => api.put(`/technical-library/parts/${partId}`, data),
+  deletePart: (partId) => api.delete(`/technical-library/parts/${partId}`),
+  importCsv: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post('/technical-library/import/csv', fd);
+  },
+  buildUnityPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-unity-payload`),
+  buildProceduralPayload: (equipmentId) => api.post(`/technical-library/equipments/${equipmentId}/build-procedural-payload`),
+  testResolve: (body) => api.post('/technical-library/resolve/test', body),
+  listAudit: (params) => api.get('/technical-library/audit', { params }),
+  /** Análise de campo (foto/vídeo) — utilizador com empresa (não exige admin) */
+  fieldAnalysis: {
+    create: (formData) =>
+      api.post('/technical-library/field-analysis', formData, {
+        timeout: 300000
+      }),
+    get: (id) => api.get(`/technical-library/field-analysis/${id}`)
+  },
+  /** Payload visual unificado (alarme ou resultado IA) → contrato Unity */
+  buildUnityVisualPayload: (body) => api.post('/technical-library/unity/build-visual-payload', body)
 };

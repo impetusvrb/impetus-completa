@@ -277,12 +277,12 @@ export default function DashboardMecanico() {
                     className="mecanico-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate('/app/almoxarifado-inteligente')}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate('/app/almoxarifado-inteligente')}
+                    onClick={() => navigate('/diagnostic')}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate('/diagnostic')}
                   >
                     <Package size={24} />
                     <span className="mecanico-card__value">{cards.pecas_utilizadas}</span>
-                    <span className="mecanico-card__label">Peças / Almox.</span>
+                    <span className="mecanico-card__label">Peças (OS)</span>
                   </div>
                 </div>
               </section>
