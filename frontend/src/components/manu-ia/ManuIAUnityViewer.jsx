@@ -17,6 +17,7 @@ import {
   UNITY_BUILD_NAME
 } from '../../config/viewerAssetsConfig';
 import { resolveCatalogEntryFromResearch } from '../../config/machineCatalog';
+import EquipmentLibraryModel3DPreview from '../equipmentLibrary/EquipmentLibraryModel3DPreview';
 import * as bridge from '../../services/unity/unityBridge';
 import './ManuIAUnityViewer.css';
 
@@ -133,12 +134,32 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
   const [buildMissing, setBuildMissing] = useState(false);
   const [unityError, setUnityError] = useState(null);
   const [viewerStatus, setViewerStatus] = useState('inicializando');
+  const [unityIncompatible, setUnityIncompatible] = useState(false);
   const lastLoadRef = useRef('');
+  const libraryModelUrl =
+    variant === 'search' && research
+      ? (research.library_model_url || research.technical_library_resolution?.unityPayload?.modelUrl || null)
+      : null;
 
   const mountUnity = useCallback(async () => {
+    if (variant === 'search') {
+      setLoading(false);
+      setViewerStatus('Modo texto (sem modelo 3D)');
+      bridge.setUnityInstance(null);
+      bridge.clearCommandQueue();
+      return;
+    }
     const base = normalizeBasePath();
     try {
       const indexHtml = await fetchUnityViewerIndexHtml(base);
+      if ((indexHtml || '').includes('Setup Guide In-Editor Tutorial')) {
+        setUnityIncompatible(true);
+        setViewerStatus('build Unity incompatível');
+        setLoading(false);
+        bridge.setUnityInstance(null);
+        bridge.clearCommandQueue();
+        return;
+      }
       const forced =
         typeof import.meta.env.VITE_UNITY_BUILD_NAME === 'string'
           ? import.meta.env.VITE_UNITY_BUILD_NAME.trim()
@@ -181,7 +202,7 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
       bridge.setUnityInstance(null);
       bridge.clearCommandQueue();
     }
-  }, []);
+  }, [variant]);
 
   useEffect(() => {
     mountUnity();
@@ -193,7 +214,9 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
 
   /* --- Modo pesquisa: prioriza modelo da Biblioteca Técnica (URL), senão catálogo procedural --- */
   useEffect(() => {
+    if (variant === 'search') return;
     if (variant !== 'search' || !research) return;
+    const entry = resolveCatalogEntryFromResearch(research);
     const libUrl =
       research.library_model_url ||
       research.technical_library_resolution?.unityPayload?.modelUrl ||
@@ -202,11 +225,13 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
       const key = `lib:${libUrl}`;
       if (key === lastLoadRef.current) return;
       lastLoadRef.current = key;
+      // Fallback defensivo: alguns builds Unity não implementam LoadModelFromUrl.
+      // Carregamos também o modelo procedural conhecido para evitar tela escura.
+      bridge.loadMachine(entry.unityModelId);
       bridge.loadModelFromUrl(libUrl);
-      setViewerStatus('Modelo: biblioteca técnica');
+        setViewerStatus(`Modelo: biblioteca técnica (${entry.id} fallback)`);
       return;
     }
-    const entry = resolveCatalogEntryFromResearch(research);
     const key = entry.unityModelId;
     if (key === lastLoadRef.current) return;
     lastLoadRef.current = key;
@@ -269,6 +294,8 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
   const handleToolbarFocus = () => bridge.focusPart('motor');
 
   const showSearchModes = variant === 'search' && research && typeof onViewModeChange === 'function';
+  const useLibraryThreePreview = variant === 'search' && !!libraryModelUrl;
+  const useTextDiagnosisMode = variant === 'search' && !libraryModelUrl;
 
   if (variant === 'search' && !research) {
     return (
@@ -287,13 +314,13 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
         <button type="button" className="manuia-unity__btn" onClick={handleToolbarReset} title="Repor vista">
           <RotateCcw size={14} /> Reset
         </button>
-        <button type="button" className="manuia-unity__btn" onClick={handleToolbarExplode} title="Vista explodida">
+        <button type="button" className="manuia-unity__btn" onClick={handleToolbarExplode} title="Vista explodida" disabled={useLibraryThreePreview || useTextDiagnosisMode}>
           <Box size={14} /> Explodir
         </button>
-        <button type="button" className="manuia-unity__btn" onClick={handleToolbarXray} title="Raio-X">
+        <button type="button" className="manuia-unity__btn" onClick={handleToolbarXray} title="Raio-X" disabled={useLibraryThreePreview || useTextDiagnosisMode}>
           <Scan size={14} /> Raio-X
         </button>
-        <button type="button" className="manuia-unity__btn" onClick={handleToolbarFocus} title="Focar (ex.: motor)">
+        <button type="button" className="manuia-unity__btn" onClick={handleToolbarFocus} title="Focar (ex.: motor)" disabled={useLibraryThreePreview || useTextDiagnosisMode}>
           <Crosshair size={14} /> Focar
         </button>
         {showSearchModes && (
@@ -317,12 +344,25 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
       </div>
 
       <div className="manuia-unity__canvas-wrap">
-        <canvas
-          id="unity-canvas-manuia"
-          ref={canvasRef}
-          tabIndex={-1}
-          style={{ width: '100%', height: '100%', outline: 'none' }}
-        />
+        {useLibraryThreePreview ? (
+          <EquipmentLibraryModel3DPreview url={libraryModelUrl} />
+        ) : useTextDiagnosisMode ? (
+          <div className="manuia-unity__fallback">
+            <p>
+              <strong>Nao detectei o modelo na biblioteca 3D.</strong>
+            </p>
+            <p>
+              Vamos seguir com o diagnostico por texto usando os dados tecnicos disponiveis.
+            </p>
+          </div>
+        ) : (
+          <canvas
+            id="unity-canvas-manuia"
+            ref={canvasRef}
+            tabIndex={-1}
+            style={{ width: '100%', height: '100%', outline: 'none' }}
+          />
+        )}
         {loading && !buildMissing && (
           <div className="manuia-unity__loading">
             <div className="manuia-unity__loading-inner">
@@ -331,10 +371,10 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
             </div>
           </div>
         )}
-        {(buildMissing || unityError) && (
+        {(buildMissing || unityError || unityIncompatible) && !useTextDiagnosisMode && (
           <div className="manuia-unity__fallback">
             <p>
-              <strong>Build WebGL não encontrado ou incompleto.</strong>
+              <strong>Build WebGL não encontrado, incompatível ou incompleto.</strong>
             </p>
             <p>
               Exporte o projeto Unity para WebGL e copie o conteúdo para{' '}
@@ -354,7 +394,7 @@ const ManuIAUnityViewer = forwardRef(function ManuIAUnityViewer(props, ref) {
           {viewerStatus}
           {machineName ? ` · ${machineName}` : ''}
         </span>
-        <code>{buildMissing ? 'sem build' : 'unity'}</code>
+        <code>{useLibraryThreePreview ? 'three' : (useTextDiagnosisMode ? 'texto' : (buildMissing ? 'sem build' : 'unity'))}</code>
       </div>
     </div>
   );

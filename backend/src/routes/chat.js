@@ -14,6 +14,18 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
 });
 const upload = multer({ storage, limits: { fileSize: 52428800 } });
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
+  filename: (_req, file, cb) => cb(null, `avatar-${uuidv4()}${path.extname(file.originalname || '.jpg')}`)
+});
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /image\/(jpeg|jpg|png)/i.test(file.mimetype || '');
+    cb(ok ? null : new Error('Formato inválido. Use JPG ou PNG.'), ok);
+  }
+});
 const getIo = req => req.app.get('io');
 
 router.get('/conversations', async (req, res) => {
@@ -139,5 +151,18 @@ router.post('/push/subscribe', async (req, res) => {
     await chatService.savePushSubscription(req.user.id, endpoint, keys.p256dh, keys.auth);
     res.json({ ok: true });
   } catch { res.status(500).json({ error: 'Erro' }); }
+});
+
+router.put('/me/avatar', avatarUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+    const url = `/uploads/chat/${req.file.filename}`;
+    const user = await chatService.updateUserProfilePhoto(req.user.id, url);
+    const io = getIo(req);
+    if (io) io.to(`company:${req.user.company_id}`).emit('user_profile_updated', { userId: req.user.id, avatar_url: url });
+    res.json({ ok: true, avatar_url: url, user });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Erro ao atualizar foto de perfil' });
+  }
 });
 module.exports = router;

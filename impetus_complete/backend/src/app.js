@@ -47,6 +47,7 @@ function safe(file) {
 }
 app.use('/api/auth',                     safe('./routes/auth'));
 app.use('/api/chat',                     safe('./routes/chat'));
+app.use('/api/usuarios',                 safe('./routes/usuarios'));
 app.use('/api/companies',                safe('./routes/companies'));
 app.use('/api/tasks',                    safe('./routes/tasks'));
 app.use('/api/alerts',                   safe('./routes/alerts'));

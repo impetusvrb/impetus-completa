@@ -13,7 +13,18 @@ import { useNotification } from '../context/NotificationContext';
 import './Proposals.css';
 
 function getStatusLabel(status) {
-  const map = { submitted: 'Enviada', escalated: 'Escalada', assigned: 'Atribuída', done: 'Concluída' };
+  const map = {
+    nova: 'Nova',
+    analise: 'Análise',
+    aprovacao: 'Aprovação',
+    execucao: 'Execução',
+    concluida: 'Concluída',
+    rejeitada: 'Rejeitada',
+    submitted: 'Nova',
+    escalated: 'Análise',
+    assigned: 'Execução',
+    done: 'Concluída'
+  };
   return map[status] || status;
 }
 
@@ -138,8 +149,8 @@ export default function ProposalDetail() {
     );
   }
 
-  const status = proposal.status || 'submitted';
-  const canAct = !isColaborador && status !== 'done';
+  const status = proposal.status || 'nova';
+  const canAct = !isColaborador && !['concluida', 'rejeitada'].includes(status);
   const aiScore = proposal.ai_score;
 
   return (
@@ -188,8 +199,13 @@ export default function ProposalDetail() {
             </section>
 
             <section>
-              <h4>Solução proposta</h4>
-              <p className="proposal-text">{proposal.proposed_solution || '—'}</p>
+              <h4>Título</h4>
+              <p className="proposal-text">{proposal.titulo || proposal.problem_category || '—'}</p>
+            </section>
+
+            <section>
+              <h4>Descrição original</h4>
+              <p className="proposal-text">{proposal.descricao || proposal.proposed_solution || '—'}</p>
             </section>
 
             <section>
@@ -214,13 +230,15 @@ export default function ProposalDetail() {
               </section>
             )}
 
-            {aiScore && (
+            {(aiScore || proposal.descricao_enriquecida || proposal.observacoes_ia) && (
               <section className="ai-section">
                 <h4>
                   <Brain size={18} />
-                  Avaliação IA
+                  IA integrada
                 </h4>
                 <div className="ai-content">
+                  {proposal.descricao_enriquecida && <p><strong>Descrição enriquecida:</strong> {proposal.descricao_enriquecida}</p>}
+                  {proposal.observacoes_ia && <p><strong>Observações técnicas:</strong> {proposal.observacoes_ia}</p>}
                   {typeof aiScore === 'object' ? (
                     <p>{aiScore.report || aiScore.note || JSON.stringify(aiScore)}</p>
                   ) : (
@@ -252,27 +270,49 @@ export default function ProposalDetail() {
 
           {canAct && (
             <div className="proposal-detail-actions">
-              {!aiScore && status === 'submitted' && (
+              {!aiScore && status === 'nova' && (
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={handleEvaluate}
+                  onClick={async () => {
+                    setActionLoading('evaluate');
+                    try {
+                      await proacao.enrich(id);
+                      notify.success('Proposta enriquecida com IA.');
+                      fetchProposal();
+                    } catch (e) {
+                      notify.error(e.apiMessage || 'Erro no enriquecimento IA.');
+                    } finally {
+                      setActionLoading(null);
+                    }
+                  }}
                   disabled={!!actionLoading}
                 >
                   {actionLoading === 'evaluate' ? <Loader2 size={18} className="spin" /> : <Brain size={18} />}
-                  Avaliar com IA
+                  Enriquecer com IA
                 </button>
               )}
-              {status === 'submitted' && (
+              {status === 'nova' && (
                 <>
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => setShowEscalateModal(true)}
+                    onClick={async () => {
+                      setActionLoading('escalate');
+                      try {
+                        await proacao.updateStatus(id, 'analise');
+                        notify.success('Status movido para análise.');
+                        fetchProposal();
+                      } catch (e) {
+                        notify.error(e.apiMessage || 'Erro ao alterar status.');
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
                     disabled={!!actionLoading}
                   >
                     <ArrowUp size={18} />
-                    Escalar para Projetos
+                    Mover para análise
                   </button>
                   <button
                     type="button"
@@ -285,15 +325,27 @@ export default function ProposalDetail() {
                   </button>
                 </>
               )}
-              {(status === 'escalated' || status === 'assigned') && (
+              {(status === 'analise' || status === 'aprovacao' || status === 'execucao') && (
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={() => setShowFinalizeModal(true)}
+                  onClick={async () => {
+                    setActionLoading('finalize');
+                    try {
+                      const next = status === 'analise' ? 'aprovacao' : status === 'aprovacao' ? 'execucao' : 'concluida';
+                      await proacao.updateStatus(id, next);
+                      notify.success('Status atualizado.');
+                      fetchProposal();
+                    } catch (e) {
+                      notify.error(e.apiMessage || 'Erro ao atualizar status.');
+                    } finally {
+                      setActionLoading(null);
+                    }
+                  }}
                   disabled={!!actionLoading}
                 >
                   <CheckCircle size={18} />
-                  Finalizar
+                  Avançar workflow
                 </button>
               )}
             </div>

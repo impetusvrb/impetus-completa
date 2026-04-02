@@ -130,7 +130,7 @@ function ColaboradorRouteGuard({ children }) {
     }
 
     if (isMaintenanceTechnicianMenu(user)) {
-      const allow = ['/app', '/app/proacao', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/almoxarifado-inteligente', '/app/settings'];
+      const allow = ['/app', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/almoxarifado-inteligente', '/app/settings'];
       const ok = allow.includes(path) || path.startsWith('/app/proacao/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
@@ -164,7 +164,7 @@ function isCEO() {
 }
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente'];
+  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente', '/app/cadastrar-com-ia'];
   if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
@@ -260,7 +260,7 @@ export default function App() {
           <PrivateRoute><SetupGuard><CEORouteGuard><RegistroInteligente /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/cadastrar-com-ia" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><CadastrarComIA /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><ColaboradorRouteGuard><CadastrarComIA /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/biblioteca" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><BibliotecaPage /></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>

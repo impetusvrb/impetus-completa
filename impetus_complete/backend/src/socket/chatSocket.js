@@ -17,6 +17,7 @@ function initChatSocket(io) {
   io.on('connection', async (socket) => {
     const user = socket.user;
     onlineUsers.set(user.id, socket.id);
+    chatService.setUserPresence(user.id, true).catch(() => {});
     socket.join('company:' + user.company_id);
     io.to('company:' + user.company_id).emit('user_online', { userId: user.id });
     try {
@@ -51,6 +52,7 @@ function initChatSocket(io) {
     });
     socket.on('disconnect', () => {
       onlineUsers.delete(user.id);
+      chatService.setUserPresence(user.id, false).catch(() => {});
       io.to('company:' + user.company_id).emit('user_offline', { userId: user.id });
     });
   });

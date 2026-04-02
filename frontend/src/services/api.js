@@ -408,17 +408,26 @@ export const communications = {
 // ============================================================================
 
 export const proacao = {
-  list: () => 
-    api.get('/proacao'),
+  list: (params = {}) =>
+    api.get('/proacao', { params }),
   
   getById: (id) => 
     api.get(`/proacao/${id}`),
   
   create: (data) => 
     api.post('/proacao', data),
+
+  update: (id, data) =>
+    api.put(`/proacao/${id}`, data),
+
+  updateStatus: (id, status, comment) =>
+    api.patch(`/proacao/${id}/status`, { status, comment }),
   
   evaluate: (id) => 
     api.post(`/proacao/${id}/evaluate`),
+
+  enrich: (id) =>
+    api.post(`/proacao/${id}/enrich`),
   
   escalate: (id, comment, escalatedBy) => 
     api.post(`/proacao/${id}/escalate`, { comment, escalated_by: escalatedBy }),

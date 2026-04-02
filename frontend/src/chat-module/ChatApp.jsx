@@ -11,7 +11,15 @@ import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
-const API_BASE=(import.meta.env.VITE_API_URL||'/api').replace('/api','');
+const API_BASE = (() => {
+  const api = import.meta.env.VITE_API_URL || '/api';
+  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+  if (typeof window !== 'undefined' && window.location.port === '3000') {
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+})();
 function toAbs(url){ if(!url) return null; if(url.startsWith('http')) return url; return API_BASE + url; }
 
 export default function ChatApp(){
@@ -76,8 +84,14 @@ export default function ChatApp(){
   const onStopTyping=useCallback(({userId})=>{ clearTimeout(typingTimers.current[userId]); setTypingUsers(prev=>prev.filter(u=>u.userId!==userId)); },[]);
   const onOnline=useCallback(({userId})=>setOnlineUsers(prev=>new Set([...prev,userId])),[]);
   const onOffline=useCallback(({userId})=>setOnlineUsers(prev=>{ const s=new Set(prev); s.delete(userId); return s; }),[]);
+  const onProfileUpdate=useCallback(({userId,avatar_url})=>{
+    setConversations(prev => prev.map((c) => ({
+      ...c,
+      participants: (c.participants || []).map((p) => (p.id === userId ? { ...p, avatar_url } : p))
+    })));
+  },[]);
 
-  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline});
+  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline,onProfileUpdate});
 
   async function selectConv(id){ await loadConversations(); setActiveId(id); joinConversation(id); markRead(id); if(window.innerWidth<768) setSidebarOpen(false); }
   async function handleSend({type,content}){ if(!activeId) return; try{ await sendMessage({conversationId:activeId,content,type}); }catch(e){ console.error(e); } }
@@ -130,7 +144,10 @@ export default function ChatApp(){
   }
 
   const otherParticipant=activeConv&&activeConv.participants&&currentUser&&activeConv.participants.find(p=>p.id!==currentUser.id);
-  const isOtherOnline=otherParticipant&&onlineUsers.has(otherParticipant.id);
+  const isOtherOnline=otherParticipant&&(onlineUsers.has(otherParticipant.id) || otherParticipant.status_online === true);
+  const lastSeenText = otherParticipant?.ultimo_visto
+    ? new Date(otherParticipant.ultimo_visto).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+    : null;
 
   return (<div className="chat-app">
     <div className="chat-header">
@@ -380,7 +397,11 @@ export default function ChatApp(){
             <button className="btn-icon" onClick={()=>{ setActiveId(null); setSidebarOpen(true); }}><ArrowLeft size={18}/></button>
             <div className="chat-conv-info">
               <span className="chat-conv-name">{convTitle(activeConv,currentUser&&currentUser.id)}</span>
-              <span className="chat-conv-meta">{activeConv.type==='group'?((activeConv.participants&&activeConv.participants.length||0)+' participantes'):(isOtherOnline?'online':'offline')}</span>
+              <span className="chat-conv-meta">
+                {activeConv.type==='group'
+                  ? ((activeConv.participants&&activeConv.participants.length||0)+' participantes')
+                  : (isOtherOnline ? '🟢 Online' : (lastSeenText ? `Visto por último às ${lastSeenText}` : 'offline'))}
+              </span>
             </div>
           </div>
           <MessageArea messages={messages} currentUserId={currentUser&&currentUser.id} loading={loading} hasMore={hasMore} onLoadMore={()=>loadMessages(false)} typingUsers={typingUsers}/>

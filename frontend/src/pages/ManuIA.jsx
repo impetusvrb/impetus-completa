@@ -176,8 +176,11 @@ export default function ManuIA({ embedded = false }) {
         setResearch(data);
         const eqName = data.equipment?.name || q;
         const compCount = data.components?.length || 0;
+        const hasLibrary3D = !!(data.library_model_url || data?.technical_library_resolution?.unityPayload?.modelUrl);
         setCopilotMessage({
-          text: `Encontrei o **${eqName}**. Renderizei o modelo no painel com ${compCount} componentes mapeados.\n\nAgora me diga: qual problema você está enfrentando?`,
+          text: hasLibrary3D
+            ? `Encontrei o **${eqName}**. Renderizei o modelo no painel com ${compCount} componentes mapeados.\n\nAgora me diga: qual problema você está enfrentando?`
+            : `Encontrei o **${eqName}**, mas nao detectei este modelo na biblioteca 3D.\n\nVamos seguir com diagnostico por texto baseado nos dados tecnicos.\n\nAgora me diga: qual problema você está enfrentando?`,
           equipmentName: eqName
         });
         setSuggestions((prev) => {

@@ -31,7 +31,10 @@ const ROOT_CAUSE_OPTIONS = [
 ];
 
 const INITIAL_FORM = {
+  titulo: '',
+  descricao: '',
   location: '',
+  setor: '',
   equipment_id: '',
   problem_category: '',
   process_type: '',
@@ -41,8 +44,33 @@ const INITIAL_FORM = {
   proposed_solution: '',
   expected_benefits: '',
   urgency: 2,
-  notes: ''
+  notes: '',
+  prioridade: 'media',
+  responsavel_id: '',
+  prazo: '',
+  impacto_financeiro: '',
+  reducao_tempo: '',
+  reducao_perda: '',
+  custo_implementacao: '',
+  payback_meses: ''
 };
+
+const PROACAO_STATUS_OPTIONS = [
+  { value: '', label: 'Todos os status' },
+  { value: 'nova', label: 'Nova' },
+  { value: 'analise', label: 'Análise' },
+  { value: 'aprovacao', label: 'Aprovação' },
+  { value: 'execucao', label: 'Execução' },
+  { value: 'concluida', label: 'Concluída' },
+  { value: 'rejeitada', label: 'Rejeitada' }
+];
+
+const PROACAO_PRIORITY_OPTIONS = [
+  { value: '', label: 'Todas as prioridades' },
+  { value: 'baixa', label: 'Baixa' },
+  { value: 'media', label: 'Média' },
+  { value: 'alta', label: 'Alta' }
+];
 
 function getTpmInitial() {
   let user = {};
@@ -76,11 +104,21 @@ export default function Proposals() {
   const [section, setSection] = useState('proposals');
 
   const [proposals, setProposals] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [responsibles, setResponsibles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
+  const [editingProposal, setEditingProposal] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [filters, setFilters] = useState({
+    status: '',
+    setor: '',
+    prioridade: '',
+    responsavel_id: ''
+  });
 
   const [tpmIncidents, setTpmIncidents] = useState([]);
   const [tpmShiftTotals, setTpmShiftTotals] = useState([]);
@@ -96,9 +134,11 @@ export default function Proposals() {
     setLoading(true);
     setError(null);
     proacao
-      .list()
+      .list(filters)
       .then((r) => {
         setProposals(r.data?.proposals || []);
+        setSummary(r.data?.summary || null);
+        setResponsibles(r.data?.responsibles || []);
       })
       .catch((e) => {
         console.error('[PROPOSTAS]', e);
@@ -107,7 +147,7 @@ export default function Proposals() {
         setProposals([]);
       })
       .finally(() => setLoading(false));
-  }, [notify]);
+  }, [notify, filters]);
 
   /**
    * @param {{ from?: string, to?: string } | null} overrides — se definido, usa estas datas em vez do estado (ex.: limpar filtros)
@@ -203,16 +243,31 @@ export default function Proposals() {
   };
 
   const handleCreate = async () => {
-    if (!formData.proposed_solution?.trim()) {
-      notify.warning('Descreva a solução proposta.');
+    if (!formData.titulo?.trim()) {
+      notify.warning('Informe o título da proposta.');
+      return;
+    }
+    if (!(formData.descricao || formData.proposed_solution)?.trim()) {
+      notify.warning('Descreva a proposta.');
       return;
     }
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
     setSaving(true);
     try {
-      await proacao.create({
+      const created = await proacao.create({
         reporter_id: user.id || null,
         reporter_name: user.name || '',
+        titulo: formData.titulo?.trim() || null,
+        descricao: formData.descricao?.trim() || null,
+        setor: formData.setor || formData.location || null,
+        prioridade: formData.prioridade || 'media',
+        responsavel_id: formData.responsavel_id || null,
+        prazo: formData.prazo || null,
+        impacto_financeiro: Number(formData.impacto_financeiro) || null,
+        reducao_tempo: Number(formData.reducao_tempo) || null,
+        reducao_perda: Number(formData.reducao_perda) || null,
+        custo_implementacao: Number(formData.custo_implementacao) || null,
+        payback_meses: Number(formData.payback_meses) || null,
         location: formData.location || null,
         equipment_id: formData.equipment_id || null,
         problem_category: formData.problem_category || null,
@@ -225,6 +280,11 @@ export default function Proposals() {
         urgency: formData.urgency || null,
         notes: formData.notes || null
       });
+      if (created?.data?.proposal?.id) {
+        try {
+          await proacao.enrich(created.data.proposal.id);
+        } catch (_) {}
+      }
       notify.success('Proposta enviada com sucesso!');
       setShowCreateModal(false);
       setFormData(INITIAL_FORM);
@@ -282,9 +342,66 @@ export default function Proposals() {
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!editingProposal?.id) return;
+    setSaving(true);
+    try {
+      await proacao.update(editingProposal.id, {
+        titulo: editingProposal.titulo,
+        descricao: editingProposal.descricao,
+        setor: editingProposal.setor,
+        prioridade: editingProposal.prioridade,
+        responsavel_id: editingProposal.responsavel_id || null,
+        prazo: editingProposal.prazo || null,
+        impacto_financeiro: Number(editingProposal.impacto_financeiro) || null,
+        reducao_tempo: Number(editingProposal.reducao_tempo) || null,
+        reducao_perda: Number(editingProposal.reducao_perda) || null,
+        custo_implementacao: Number(editingProposal.custo_implementacao) || null,
+        payback_meses: Number(editingProposal.payback_meses) || null
+      });
+      notify.success('Proposta atualizada.');
+      setEditingProposal(null);
+      fetchList();
+    } catch (e) {
+      notify.error(e.apiMessage || 'Erro ao atualizar proposta.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openTpmModal = () => {
     setTpmForm(getTpmInitial());
     setShowTpmModal(true);
+  };
+
+  const formatMoneyBRL = (v) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
+
+  const formatPercent = (v) => `${Number(v || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+
+  const normalizeStatusLabel = (status) => {
+    const map = {
+      nova: 'Nova',
+      analise: 'Análise',
+      aprovacao: 'Aprovação',
+      execucao: 'Execução',
+      concluida: 'Concluída',
+      rejeitada: 'Rejeitada'
+    };
+    return map[String(status || '').toLowerCase()] || status || 'Nova';
+  };
+
+  const handleQuickStatusChange = async (proposalId, nextStatus) => {
+    setStatusUpdatingId(proposalId);
+    try {
+      await proacao.updateStatus(proposalId, nextStatus);
+      notify.success('Status atualizado.');
+      fetchList();
+    } catch (e) {
+      notify.error(e.apiMessage || 'Erro ao atualizar status.');
+    } finally {
+      setStatusUpdatingId(null);
+    }
   };
 
   return (
@@ -336,6 +453,46 @@ export default function Proposals() {
 
         {section === 'proposals' && (
           <>
+            <div className="proacao-summary-grid">
+              <div className="proacao-summary-card"><span>Total de propostas</span><strong>{summary?.total_propostas ?? proposals.length}</strong></div>
+              <div className="proacao-summary-card"><span>Em análise</span><strong>{summary?.em_analise ?? 0}</strong></div>
+              <div className="proacao-summary-card"><span>Em execução</span><strong>{summary?.em_execucao ?? 0}</strong></div>
+              <div className="proacao-summary-card"><span>Concluídas</span><strong>{summary?.concluidas ?? 0}</strong></div>
+              <div className="proacao-summary-card"><span>Economia potencial total</span><strong>{formatMoneyBRL(summary?.economia_potencial_total || 0)}</strong></div>
+              <div className="proacao-summary-card"><span>Economia concluída</span><strong>{formatMoneyBRL(summary?.economia_concluida || 0)}</strong></div>
+            </div>
+
+            <div className="proacao-filters">
+              <SelectField
+                label="Status"
+                name="status"
+                value={filters.status}
+                onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+                options={PROACAO_STATUS_OPTIONS}
+              />
+              <InputField
+                label="Setor"
+                name="setor"
+                value={filters.setor}
+                onChange={(e) => setFilters((f) => ({ ...f, setor: e.target.value }))}
+                placeholder="Ex: Manutenção"
+              />
+              <SelectField
+                label="Prioridade"
+                name="prioridade"
+                value={filters.prioridade}
+                onChange={(e) => setFilters((f) => ({ ...f, prioridade: e.target.value }))}
+                options={PROACAO_PRIORITY_OPTIONS}
+              />
+              <SelectField
+                label="Responsável"
+                name="responsavel_id"
+                value={filters.responsavel_id}
+                onChange={(e) => setFilters((f) => ({ ...f, responsavel_id: e.target.value }))}
+                options={[{ value: '', label: 'Todos os responsáveis' }, ...responsibles.map((u) => ({ value: u.id, label: u.name || u.role || u.id }))]}
+              />
+            </div>
+
             {loading ? (
               <div className="proposals-loading">
                 <p>Carregando...</p>
@@ -364,17 +521,40 @@ export default function Proposals() {
                   <li key={p.id} className="proposal-card">
                     <Link to={`/app/proacao/${p.id}`} className="proposal-card-link">
                       <div className="proposal-card-header">
-                        <strong>{p.reporter_name || 'Colaborador'}</strong>
-                        <span className={`proposal-status status-${(p.status || 'submitted').toLowerCase()}`}>
-                          {p.status || 'submitted'}
+                        <strong>{p.titulo || p.problem_category || 'Proposta de melhoria'}</strong>
+                        <span className={`proposal-status status-${(p.status || 'nova').toLowerCase()}`}>
+                          {normalizeStatusLabel(p.status)}
                         </span>
                       </div>
-                      <p className="proposal-location">{p.location || '—'}</p>
-                      <p className="proposal-solution">
-                        {p.proposed_solution?.slice(0, 120) || p.problem_category || 'Sem descrição'}
-                        {(p.proposed_solution?.length || 0) > 120 ? '...' : ''}
+                      <p className="proposal-location">
+                        Setor: {p.setor || p.location || '—'} | Responsável: {responsibles.find((u) => u.id === p.responsavel_id)?.name || '—'}
                       </p>
+                      <p className="proposal-solution">
+                        {(p.descricao || p.proposed_solution || 'Sem descrição').slice(0, 140)}
+                        {((p.descricao || p.proposed_solution || '').length || 0) > 140 ? '...' : ''}
+                      </p>
+                      <div className="proposal-metrics-grid">
+                        <span>Prioridade: {p.prioridade || '—'}</span>
+                        <span>Prazo: {p.prazo ? new Date(p.prazo).toLocaleDateString('pt-BR') : '—'}</span>
+                        <span>Economia: {formatMoneyBRL(p.impacto_financeiro || 0)}</span>
+                        <span>Redução perdas: {formatPercent(p.reducao_perda || 0)}</span>
+                        <span>Redução tempo: {formatPercent(p.reducao_tempo || 0)}</span>
+                        <span>Payback: {Number(p.payback_meses || 0).toLocaleString('pt-BR')} meses</span>
+                        <span>Score IA: {Number(p.score_ia || 0)}/100</span>
+                      </div>
                     </Link>
+                    <div className="proposal-card-actions">
+                      <Link to={`/app/proacao/${p.id}`} className="btn btn-secondary">Ver detalhes</Link>
+                      <button type="button" className="btn btn-secondary" onClick={() => setEditingProposal({ ...p })}>Editar</button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => handleQuickStatusChange(p.id, p.status === 'concluida' ? 'rejeitada' : 'analise')}
+                        disabled={statusUpdatingId === p.id}
+                      >
+                        Alterar status
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -561,6 +741,21 @@ export default function Proposals() {
           >
             <div className="form-grid">
               <InputField
+                label="Título"
+                name="titulo"
+                value={formData.titulo}
+                onChange={(e) => setFormData((f) => ({ ...f, titulo: e.target.value }))}
+                placeholder="Ex: Reduzir paradas na linha 2"
+                required
+              />
+              <InputField
+                label="Setor"
+                name="setor"
+                value={formData.setor}
+                onChange={(e) => setFormData((f) => ({ ...f, setor: e.target.value, location: e.target.value }))}
+                placeholder="Ex: Manutenção"
+              />
+              <InputField
                 label="Local/Setor"
                 name="location"
                 value={formData.location}
@@ -596,6 +791,27 @@ export default function Proposals() {
                 placeholder="Ex: Diária, Semanal"
               />
               <SelectField
+                label="Prioridade"
+                name="prioridade"
+                value={formData.prioridade}
+                onChange={(e) => setFormData((f) => ({ ...f, prioridade: e.target.value }))}
+                options={PROACAO_PRIORITY_OPTIONS.filter((o) => o.value)}
+              />
+              <SelectField
+                label="Responsável"
+                name="responsavel_id"
+                value={formData.responsavel_id}
+                onChange={(e) => setFormData((f) => ({ ...f, responsavel_id: e.target.value }))}
+                options={[{ value: '', label: 'Selecionar responsável' }, ...responsibles.map((u) => ({ value: u.id, label: u.name || u.id }))]}
+              />
+              <InputField
+                label="Prazo"
+                name="prazo"
+                type="date"
+                value={formData.prazo}
+                onChange={(e) => setFormData((f) => ({ ...f, prazo: e.target.value }))}
+              />
+              <SelectField
                 label="Urgência"
                 name="urgency"
                 value={formData.urgency}
@@ -603,6 +819,14 @@ export default function Proposals() {
                 options={URGENCY_OPTIONS}
               />
             </div>
+            <TextAreaField
+              label="Descrição da proposta"
+              name="descricao"
+              value={formData.descricao}
+              onChange={(e) => setFormData((f) => ({ ...f, descricao: e.target.value, proposed_solution: e.target.value }))}
+              placeholder="Detalhe a proposta de melhoria..."
+              required
+            />
             <TextAreaField
               label="Solução Proposta"
               name="proposed_solution"
@@ -639,15 +863,90 @@ export default function Proposals() {
               onChange={(e) => setFormData((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Opcional"
             />
+            <div className="form-grid">
+              <InputField
+                label="Impacto financeiro estimado (R$)"
+                name="impacto_financeiro"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.impacto_financeiro}
+                onChange={(e) => setFormData((f) => ({ ...f, impacto_financeiro: e.target.value }))}
+              />
+              <InputField
+                label="Redução de tempo (%)"
+                name="reducao_tempo"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.reducao_tempo}
+                onChange={(e) => setFormData((f) => ({ ...f, reducao_tempo: e.target.value }))}
+              />
+              <InputField
+                label="Redução de perdas (%)"
+                name="reducao_perda"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.reducao_perda}
+                onChange={(e) => setFormData((f) => ({ ...f, reducao_perda: e.target.value }))}
+              />
+              <InputField
+                label="Custo de implementação (R$)"
+                name="custo_implementacao"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.custo_implementacao}
+                onChange={(e) => setFormData((f) => ({ ...f, custo_implementacao: e.target.value }))}
+              />
+              <InputField
+                label="Payback (meses)"
+                name="payback_meses"
+                type="number"
+                min={0}
+                step="0.01"
+                value={formData.payback_meses}
+                onChange={(e) => setFormData((f) => ({ ...f, payback_meses: e.target.value }))}
+              />
+            </div>
             <ModalFooter
               onCancel={() => setShowCreateModal(false)}
               onConfirm={handleCreate}
               cancelText="Cancelar"
               confirmText="Enviar Proposta"
-              confirmDisabled={saving || !formData.proposed_solution?.trim()}
+              confirmDisabled={saving || !formData.titulo?.trim() || !(formData.descricao || formData.proposed_solution)?.trim()}
               confirmLoading={saving}
             />
           </form>
+        </Modal>
+
+        <Modal
+          isOpen={!!editingProposal}
+          onClose={() => !saving && setEditingProposal(null)}
+          title="Editar proposta"
+          size="large"
+        >
+          {editingProposal && (
+            <>
+              <div className="form-grid">
+                <InputField label="Título" name="edit_titulo" value={editingProposal.titulo || ''} onChange={(e) => setEditingProposal((v) => ({ ...v, titulo: e.target.value }))} />
+                <InputField label="Setor" name="edit_setor" value={editingProposal.setor || ''} onChange={(e) => setEditingProposal((v) => ({ ...v, setor: e.target.value }))} />
+                <SelectField label="Prioridade" name="edit_prioridade" value={editingProposal.prioridade || 'media'} onChange={(e) => setEditingProposal((v) => ({ ...v, prioridade: e.target.value }))} options={PROACAO_PRIORITY_OPTIONS.filter((o) => o.value)} />
+                <SelectField label="Responsável" name="edit_responsavel_id" value={editingProposal.responsavel_id || ''} onChange={(e) => setEditingProposal((v) => ({ ...v, responsavel_id: e.target.value }))} options={[{ value: '', label: 'Selecionar responsável' }, ...responsibles.map((u) => ({ value: u.id, label: u.name || u.id }))]} />
+                <InputField label="Prazo" name="edit_prazo" type="date" value={editingProposal.prazo ? String(editingProposal.prazo).slice(0, 10) : ''} onChange={(e) => setEditingProposal((v) => ({ ...v, prazo: e.target.value }))} />
+              </div>
+              <TextAreaField label="Descrição" name="edit_descricao" value={editingProposal.descricao || ''} onChange={(e) => setEditingProposal((v) => ({ ...v, descricao: e.target.value }))} />
+              <ModalFooter
+                onCancel={() => setEditingProposal(null)}
+                onConfirm={handleSaveEdit}
+                cancelText="Cancelar"
+                confirmText="Salvar alterações"
+                confirmDisabled={saving}
+                confirmLoading={saving}
+              />
+            </>
+          )}
         </Modal>
 
         <Modal

@@ -307,6 +307,36 @@
   color: var(--gray-700);
 }
 
+.proposal-status.status-nova {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.proposal-status.status-analise {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.proposal-status.status-aprovacao {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.proposal-status.status-execucao {
+  background: rgba(249, 115, 22, 0.2);
+  color: #f97316;
+}
+
+.proposal-status.status-concluida {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.proposal-status.status-rejeitada {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
 .proposal-status.status-escalated,
 .proposal-status.status-assigned {
   background: #dbeafe;
@@ -331,6 +361,55 @@
   line-height: 1.4;
 }
 
+.proposal-metrics-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--gray-600);
+}
+
+.proposal-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 16px;
+}
+
+.proacao-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.proacao-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.proacao-summary-card {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  padding: 12px;
+}
+
+.proacao-summary-card span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+}
+
+.proacao-summary-card strong {
+  color: var(--gray-900);
+  font-size: 1rem;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -340,6 +419,11 @@
 
 @media (max-width: 640px) {
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .proposal-metrics-grid,
+  .proacao-filters,
+  .proacao-summary-grid {
     grid-template-columns: 1fr;
   }
 }

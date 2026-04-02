@@ -36,6 +36,29 @@ function formatCredits(n) {
   return x.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
 }
 
+const IA_COST_TABLE = [
+  {
+    ia: 'ChatGPT (OpenAI)',
+    funcao: 'Conversas, atendimento, voz e interação com usuário',
+    custo: 'R$12,50 (input) / R$75,00 (output) por 1M tokens'
+  },
+  {
+    ia: 'Gemini (Google)',
+    funcao: 'Supervisão, automações e análise de dados',
+    custo: 'R$0,40 a R$15,00 por 1M tokens'
+  },
+  {
+    ia: 'Claude (Anthropic)',
+    funcao: 'Relatórios, dashboards e análises avançadas',
+    custo: 'R$25,00 (input) / R$125,00 (output) por 1M tokens'
+  },
+  {
+    ia: 'Akool',
+    funcao: 'Avatar em tempo real (vídeo com IA)',
+    custo: 'R$1,00 a R$2,00 por minuto'
+  }
+];
+
 export default function NexusIACustos() {
   const notify = useNotification();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -124,13 +147,47 @@ export default function NexusIACustos() {
     setSearchParams(next, { replace: true });
   };
 
+  const allowedRateServices = useMemo(() => new Set(['chat', 'gemini', 'claude', 'akool']), []);
+  const serviceLabel = useCallback((servico) => {
+    const s = String(servico || '').toLowerCase();
+    if (s === 'chat') return 'ChatGPT (OpenAI)';
+    if (s === 'gemini') return 'Gemini (Google)';
+    if (s === 'claude') return 'Claude (Anthropic)';
+    if (s === 'akool') return 'Akool';
+    return servico || '—';
+  }, []);
+
   const serviceChart = useMemo(() => {
     const rows = walletData?.consumptionByServiceThisMonth || [];
-    return rows.map((r) => ({
-      name: r.servico || '—',
-      credits: Number(r.credits_used) || 0
-    }));
-  }, [walletData]);
+    return rows
+      .filter((r) => allowedRateServices.has(String(r.servico || '').toLowerCase()))
+      .map((r) => ({
+        name: serviceLabel(r.servico),
+        credits: Number(r.credits_used) || 0
+      }));
+  }, [walletData, allowedRateServices, serviceLabel]);
+
+  const filteredRateOptions = useMemo(
+    () => [
+      { servico: 'chat', label: serviceLabel('chat') },
+      { servico: 'gemini', label: serviceLabel('gemini') },
+      { servico: 'claude', label: serviceLabel('claude') },
+      { servico: 'akool', label: serviceLabel('akool') }
+    ],
+    [serviceLabel]
+  );
+
+  const filteredCompanyRates = useMemo(() => {
+    const rows = walletData?.ratesCompany || [];
+    return rows.filter((r) => allowedRateServices.has(String(r.servico || '').toLowerCase()));
+  }, [walletData, allowedRateServices]);
+
+  useEffect(() => {
+    if (!filteredRateOptions.length) return;
+    if (!filteredRateOptions.some((r) => r.servico === rateServico)) {
+      setRateServico(filteredRateOptions[0].servico);
+    }
+  }, [filteredRateOptions, rateServico]);
 
   return (
     <Layout>
@@ -206,25 +263,13 @@ export default function NexusIACustos() {
             {data?.ok && (
               <>
                 <div className="nexus-custos-cards">
-                  <div className="nexus-custos-card">
-                    <span className="nexus-custos-card-label">Plano</span>
-                    <strong>{data.plano || '—'}</strong>
-                  </div>
-                  <div className="nexus-custos-card">
-                    <span className="nexus-custos-card-label">Mensalidade (referência)</span>
-                    <strong>{formatMoney(data.mensalidade)}</strong>
-                  </div>
                   <div className="nexus-custos-card nexus-custos-card--highlight">
                     <span className="nexus-custos-card-label">Tokens no período</span>
                     <strong>{formatTokens(data.totalTokens)}</strong>
                   </div>
                   <div className="nexus-custos-card nexus-custos-card--accent">
-                    <span className="nexus-custos-card-label">Estimativa tokens (R$)</span>
+                    <span className="nexus-custos-card-label">Estimativa do período (R$)</span>
                     <strong>{formatMoney(data.valorTokens)}</strong>
-                  </div>
-                  <div className="nexus-custos-card">
-                    <span className="nexus-custos-card-label">Total mensal estimado</span>
-                    <strong>{formatMoney(data.totalFatura)}</strong>
                   </div>
                 </div>
 
@@ -450,51 +495,25 @@ export default function NexusIACustos() {
                   </div>
                 )}
 
-                <h2 className="nexus-wallet-h2">Histórico (ledger)</h2>
-                <div className="nexus-wallet-table-wrap">
-                  <table className="nexus-wallet-table">
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Serviço</th>
-                        <th>Δ créditos</th>
-                        <th>Saldo após</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(walletData.ledger || []).map((row) => (
-                        <tr key={row.id}>
-                          <td>{new Date(row.created_at).toLocaleString('pt-BR')}</td>
-                          <td>{row.entry_type}</td>
-                          <td>{row.servico || '—'}</td>
-                          <td>{formatCredits(row.credits_delta)}</td>
-                          <td>{formatCredits(row.balance_after)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <h2 className="nexus-wallet-h2">Taxas globais (créditos por unidade)</h2>
+                <h2 className="nexus-wallet-h2">Tabela final de IA (função e custo)</h2>
                 <p className="nexus-wallet-hint">
-                  Sobrescreva por empresa com uma taxa personalizada (ex.: Akool mais cara que chat).
+                  Referência estratégica de uso por IA no software.
                 </p>
                 <div className="nexus-wallet-table-wrap">
                   <table className="nexus-wallet-table">
                     <thead>
                       <tr>
-                        <th>Serviço</th>
-                        <th>Créditos / unidade</th>
-                        <th>Nota</th>
+                        <th>IA</th>
+                        <th>Função no software</th>
+                        <th>Custo</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(walletData.ratesGlobal || []).map((row) => (
-                        <tr key={row.servico}>
-                          <td>{row.servico}</td>
-                          <td>{formatCredits(row.credits_per_unit)}</td>
-                          <td className="muted">{row.description || '—'}</td>
+                      {IA_COST_TABLE.map((row) => (
+                        <tr key={row.ia}>
+                          <td>{row.ia}</td>
+                          <td>{row.funcao}</td>
+                          <td className="muted">{row.custo}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -504,9 +523,9 @@ export default function NexusIACustos() {
                 <h3 className="nexus-wallet-h3">Taxas personalizadas desta empresa</h3>
                 <div className="nexus-wallet-rate-form">
                   <select value={rateServico} onChange={(e) => setRateServico(e.target.value)}>
-                    {(walletData.ratesGlobal || []).map((r) => (
+                    {filteredRateOptions.map((r) => (
                       <option key={r.servico} value={r.servico}>
-                        {r.servico}
+                        {r.label}
                       </option>
                     ))}
                   </select>
@@ -549,11 +568,11 @@ export default function NexusIACustos() {
                     Remover override
                   </button>
                 </div>
-                {(walletData.ratesCompany || []).length > 0 && (
+                {filteredCompanyRates.length > 0 && (
                   <ul className="nexus-wallet-override-list">
-                    {walletData.ratesCompany.map((r) => (
+                    {filteredCompanyRates.map((r) => (
                       <li key={r.servico}>
-                        <strong>{r.servico}</strong>: {formatCredits(r.credits_per_unit)} créditos/unidade
+                        <strong>{serviceLabel(r.servico)}</strong>: {formatCredits(r.credits_per_unit)} créditos/unidade
                       </li>
                     ))}
                   </ul>

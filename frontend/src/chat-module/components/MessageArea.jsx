@@ -2,13 +2,26 @@ import React, { useEffect, useRef } from 'react';
 import { File } from 'lucide-react';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 const AI_ID='00000000-0000-0000-0000-000000000001';
-const API_BASE=(import.meta.env.VITE_API_URL||'/api').replace('/api','');
+const API_BASE = (() => {
+  const api = import.meta.env.VITE_API_URL || '/api';
+  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+  if (typeof window !== 'undefined' && window.location.port === '3000') {
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+})();
 function initials(n){ return n?n.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase():'?'; }
 function fmtTime(d){ return d?new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''; }
 function toAbs(url){
   if(!url) return null;
-  if(url.startsWith('http')) return url;
-  return API_BASE + url;
+  const abs = url.startsWith('http') ? url : (API_BASE + url);
+  try { return encodeURI(abs); } catch { return abs; }
+}
+function AvatarOrInitial({ src, fallbackText }){
+  const [broken, setBroken] = React.useState(false);
+  if(!src || broken) return <span>{fallbackText}</span>;
+  return <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} onError={()=>setBroken(true)} />;
 }
 function Attachment({msg}){
   const url=toAbs(msg.file_url);
@@ -39,10 +52,8 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
           <div className={'msg-avatar'+(showAvatar?'':' invisible')}>
             {isAI ? (
               <img src={impetusIaAvatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
-            ) : avatarUrl ? (
-              <img src={avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
             ) : (
-              <span>{initials(name)}</span>
+              <AvatarOrInitial src={avatarUrl} fallbackText={initials(name)} />
             )}
           </div>
         )}

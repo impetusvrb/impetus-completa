@@ -18,9 +18,34 @@ router.post('/', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-router.get('/', requireHierarchyScope, async (req,res)=>{ try{ const list = await proacao.listProposals(200, req.user.company_id, req.hierarchyScope); res.json({ ok:true, proposals: list }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
+router.get('/', requireHierarchyScope, async (req,res)=>{ try{
+  const list = await proacao.listProposals(200, req.user.company_id, req.hierarchyScope, {
+    status: req.query.status,
+    setor: req.query.setor,
+    prioridade: req.query.prioridade,
+    responsavel_id: req.query.responsavel_id
+  });
+  const summary = await proacao.getProacaoSummary(req.user.company_id, req.hierarchyScope);
+  const responsibles = await proacao.getResponsibles(req.user.company_id);
+  res.json({ ok:true, proposals: list, summary, responsibles });
+}catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.get('/:id', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); const p = await proacao.getProposal(req.params.id, req.user.company_id, req.hierarchyScope); if(!p) return res.status(404).json({ ok:false, error:'not found' }); res.json({ ok:true, proposal: p }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.post('/:id/evaluate', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); const ev = await proacao.aiEvaluateProposal(req.params.id, req.user.company_id, req.hierarchyScope); res.json({ ok:true, evaluation: ev }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
+router.post('/:id/enrich', requireHierarchyScope, async (req,res)=>{ try{
+  if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+  const data = await proacao.enrichProposalWithIA(req.params.id, req.user.company_id, req.hierarchyScope);
+  res.json({ ok:true, ...data });
+}catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
+router.put('/:id', requireHierarchyScope, async (req,res)=>{ try{
+  if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+  const proposal = await proacao.updateProposal(req.params.id, req.body || {}, req.user.company_id, req.hierarchyScope);
+  res.json({ ok: true, proposal });
+}catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
+router.patch('/:id/status', requireHierarchyScope, async (req,res)=>{ try{
+  if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+  const proposal = await proacao.updateProposalStatus(req.params.id, req.body?.status, req.user.id, req.user.company_id, req.hierarchyScope, req.body?.comment || null);
+  res.json({ ok: true, proposal });
+}catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.post('/:id/escalate', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); await proacao.escalateToProjects(req.params.id, req.body.comment, req.body.escalated_by, req.user.company_id, req.hierarchyScope); res.json({ ok:true }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.post('/:id/assign', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); await proacao.assignToAdministrative(req.params.id, req.body.admin_sector, req.body.assigned_by, req.body.team, req.user.company_id, req.hierarchyScope); res.json({ ok:true }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});
 router.post('/:id/record', requireHierarchyScope, async (req,res)=>{ try{ if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' }); await proacao.recordPhaseData(req.params.id, req.body.phaseNumber, req.body.collectedData, req.body.userId, req.user.company_id, req.hierarchyScope); res.json({ ok:true }); }catch(err){ console.error(err); res.status(500).json({ ok:false, error: err.message }); }});

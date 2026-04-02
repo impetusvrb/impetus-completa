@@ -193,6 +193,7 @@ useRoute('/api/lgpd', './routes/lgpd');
 useRoute('/api/intelligent-registration', './routes/intelligentRegistration');
 useRoute('/api/internal-chat', './routes/internalChat');
 useRoute('/api/role-verification', './routes/roleVerification');
+useRoute('/api/usuarios', './routes/usuarios');
 useRoute('/api/plc-alerts', './routes/plcAlerts');
 useRoute('/api/app-impetus', './routes/app_impetus');
 useRoute('/api/subscription', './routes/subscription');

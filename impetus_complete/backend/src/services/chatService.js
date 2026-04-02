@@ -1,12 +1,35 @@
 const db = require('../db');
 const AI_USER_ID = '00000000-0000-0000-0000-000000000001';
 
+async function setUserPresence(userId, isOnline) {
+  await db.query(
+    `UPDATE users
+        SET status_online = $2,
+            ultimo_visto = CASE WHEN $2 = false THEN NOW() ELSE ultimo_visto END,
+            last_seen = CASE WHEN $2 = false THEN NOW() ELSE last_seen END
+      WHERE id = $1`,
+    [userId, !!isOnline]
+  );
+}
+
+async function updateUserProfilePhoto(userId, photoUrl) {
+  const { rows } = await db.query(
+    `UPDATE users
+        SET foto_perfil = $2,
+            avatar_url = COALESCE(avatar_url, $2)
+      WHERE id = $1
+      RETURNING id, name, role, avatar_url, foto_perfil`,
+    [userId, photoUrl]
+  );
+  return rows[0] || null;
+}
+
 async function getConversations(userId, companyId) {
   const { rows } = await db.query(`
     SELECT c.id, c.type, c.name, c.avatar_url, c.updated_at,
       (SELECT json_build_object('id',m.id,'content',m.content,'message_type',m.message_type,'created_at',m.created_at,'sender_id',m.sender_id)
        FROM chat_messages m WHERE m.conversation_id = c.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message,
-      (SELECT json_agg(json_build_object('id',u.id,'name',u.name,'email',u.email,'role',u.role,'avatar_url',u.avatar_url))
+      (SELECT json_agg(json_build_object('id',u.id,'name',u.name,'email',u.email,'role',u.role,'avatar_url',COALESCE(u.foto_perfil, u.avatar_url),'status_online',u.status_online,'ultimo_visto',COALESCE(u.ultimo_visto,u.last_seen)))
        FROM chat_participants cp2 JOIN users u ON u.id = cp2.user_id WHERE cp2.conversation_id = c.id AND cp2.user_id != $1 LIMIT 5) AS participants
     FROM chat_conversations c
     JOIN chat_participants cp ON cp.conversation_id = c.id
@@ -48,7 +71,7 @@ async function createGroup(userId, companyId, name, participantIds) {
 async function getMessages(conversationId, userId, limit = 50, before = null) {
   await verifyParticipant(conversationId, userId);
   let q = `SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.content, m.file_url, m.file_name, m.file_size, m.reply_to, m.created_at,
-    json_build_object('id',u.id,'name',u.name,'avatar_url',u.avatar_url) AS sender
+    json_build_object('id',u.id,'name',u.name,'avatar_url',COALESCE(u.foto_perfil, u.avatar_url),'status_online',u.status_online,'ultimo_visto',COALESCE(u.ultimo_visto,u.last_seen)) AS sender
     FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
     WHERE m.conversation_id = $1 AND m.deleted_at IS NULL`;
   const params = [conversationId];
@@ -65,7 +88,7 @@ async function saveMessage({ conversationId, senderId, type, content, fileUrl, f
     [conversationId, senderId, type || 'text', content, fileUrl, fileName, fileSize, replyTo]
   );
   await db.query(`UPDATE chat_conversations SET updated_at = NOW() WHERE id = $1`, [conversationId]);
-  const { rows: [sender] } = await db.query('SELECT id, name, avatar_url FROM users WHERE id = $1', [senderId]);
+  const { rows: [sender] } = await db.query('SELECT id, name, COALESCE(foto_perfil, avatar_url) AS avatar_url, status_online, COALESCE(ultimo_visto,last_seen) AS ultimo_visto FROM users WHERE id = $1', [senderId]);
   return { ...msg, sender };
 }
 
@@ -93,7 +116,7 @@ async function getConversationParticipantIds(conversationId) {
 
 async function getConversationParticipants(conversationId, userId) {
   await verifyParticipant(conversationId, userId);
-  const { rows } = await db.query(`SELECT u.id,u.name,u.email,u.role,u.avatar_url,cp.role AS chat_role FROM chat_participants cp JOIN users u ON u.id=cp.user_id WHERE cp.conversation_id=$1`, [conversationId]);
+  const { rows } = await db.query(`SELECT u.id,u.name,u.email,u.role,COALESCE(u.foto_perfil,u.avatar_url) AS avatar_url,cp.role AS chat_role FROM chat_participants cp JOIN users u ON u.id=cp.user_id WHERE cp.conversation_id=$1`, [conversationId]);
   return rows;
 }
 
@@ -108,7 +131,7 @@ async function removeParticipant(conversationId, requesterId, targetUserId) {
 }
 
 async function getCompanyUsers(companyId, excludeUserId) {
-  const { rows } = await db.query(`SELECT id,name,email,role,avatar_url FROM users WHERE company_id=$1 AND active=true AND id!=$2 AND role!='ai_system' ORDER BY name`, [companyId, excludeUserId]);
+  const { rows } = await db.query(`SELECT id,name,email,role,COALESCE(foto_perfil, avatar_url) AS avatar_url,status_online,COALESCE(ultimo_visto,last_seen) AS ultimo_visto FROM users WHERE company_id=$1 AND active=true AND id!=$2 AND role!='ai_system' ORDER BY name`, [companyId, excludeUserId]);
   return rows;
 }
 
@@ -121,4 +144,4 @@ async function getPushSubscriptions(userIds) {
   return rows;
 }
 
-module.exports = { AI_USER_ID, getConversations, getOrCreatePrivateConversation, createGroup, getMessages, saveMessage, markAsRead, addReaction, removeReaction, verifyParticipant, getConversationParticipantIds, getConversationParticipants, addParticipant, removeParticipant, getCompanyUsers, savePushSubscription, getPushSubscriptions };
+module.exports = { AI_USER_ID, getConversations, getOrCreatePrivateConversation, createGroup, getMessages, saveMessage, markAsRead, addReaction, removeReaction, verifyParticipant, getConversationParticipantIds, getConversationParticipants, addParticipant, removeParticipant, getCompanyUsers, savePushSubscription, getPushSubscriptions, setUserPresence, updateUserProfilePhoto };

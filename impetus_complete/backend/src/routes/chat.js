@@ -8,13 +8,24 @@ const chatService = require('../services/chatService');
 const { requireAuth } = require('../middleware/auth');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
 const executiveMode = require('../services/executiveMode');
-const db = require('../db');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
   filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
 });
 const upload = multer({ storage, limits: { fileSize: 52428800 } });
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
+  filename: (_req, file, cb) => cb(null, `avatar-${uuidv4()}${path.extname(file.originalname || '.jpg')}`)
+});
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /image\/(jpeg|jpg|png)/i.test(file.mimetype || '');
+    cb(ok ? null : new Error('Formato inválido. Use JPG ou PNG.'), ok);
+  }
+});
 const getIo = req => req.app.get('io');
 
 // Todas as rotas de chat exigem usuário autenticado
@@ -138,17 +149,20 @@ router.post('/push/subscribe', async (req, res) => {
   } catch { res.status(500).json({ error: 'Erro' }); }
 });
 
-// Atualizar avatar do usuário a partir do chat
-router.post('/me/avatar', upload.single('file'), async (req, res) => {
+async function updateChatAvatar(req, res) {
   try {
     if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
-    const url = '/uploads/chat/' + req.file.filename;
-    await db.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [url, req.user.id]);
-    res.json({ ok: true, avatar_url: url });
+    const url = `/uploads/chat/${req.file.filename}`;
+    const user = await chatService.updateUserProfilePhoto(req.user.id, url);
+    const io = getIo(req);
+    if (io) io.to(`company:${req.user.company_id}`).emit('user_profile_updated', { userId: req.user.id, avatar_url: url });
+    res.json({ ok: true, avatar_url: url, user });
   } catch (e) {
     console.error('[CHAT_AVATAR_UPDATE]', e.message);
-    res.status(500).json({ error: 'Erro ao atualizar avatar' });
+    res.status(400).json({ error: e.message || 'Erro ao atualizar foto de perfil' });
   }
-});
+}
+router.post('/me/avatar', avatarUpload.single('file'), updateChatAvatar);
+router.put('/me/avatar', avatarUpload.single('file'), updateChatAvatar);
 
 module.exports = router;

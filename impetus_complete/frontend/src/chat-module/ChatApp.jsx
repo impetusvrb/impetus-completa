@@ -7,8 +7,24 @@ import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
 import { useVoiceOutput } from '../hooks/useVoiceOutput';
 import { dashboard } from '../services/api';
-import { User, ArrowLeft, Menu, Bot, Send, ClipboardList, X, CheckCircle, AlertTriangle, Mic, MicOff } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, Mic, MicOff } from 'lucide-react';
+import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
+
+const API_BASE = (() => {
+  const api = import.meta.env.VITE_API_URL || '/api';
+  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
+  if (typeof window !== 'undefined' && window.location.port === '3000') {
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+})();
+function toAbs(url) {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  try { return encodeURI(API_BASE + url); } catch { return API_BASE + url; }
+}
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
 
@@ -122,8 +138,14 @@ export default function ChatApp(){
   const onStopTyping=useCallback(({userId})=>{ clearTimeout(typingTimers.current[userId]); setTypingUsers(prev=>prev.filter(u=>u.userId!==userId)); },[]);
   const onOnline=useCallback(({userId})=>setOnlineUsers(prev=>new Set([...prev,userId])),[]);
   const onOffline=useCallback(({userId})=>setOnlineUsers(prev=>{ const s=new Set(prev); s.delete(userId); return s; }),[]);
+  const onProfileUpdate=useCallback(({userId,avatar_url})=>{
+    setConversations(prev => prev.map((c) => ({
+      ...c,
+      participants: (c.participants || []).map((p) => (p.id === userId ? { ...p, avatar_url } : p))
+    })));
+  },[]);
 
-  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline});
+  const {sendMessage,emitTyping,emitStopTyping,markRead,joinConversation}=useChatSocket({onMessage,onTyping,onStopTyping,onOnline,onOffline,onProfileUpdate});
 
   async function selectConv(id){ await loadConversations(); setActiveId(id); joinConversation(id); markRead(id); if(window.innerWidth<768) setSidebarOpen(false); }
   async function handleSend({type,content}){ if(!activeId) return; try{ await sendMessage({conversationId:activeId,content,type}); }catch(e){ console.error(e); } }
@@ -160,7 +182,10 @@ export default function ChatApp(){
   }
 
   const otherParticipant=activeConv&&activeConv.participants&&currentUser&&activeConv.participants.find(p=>p.id!==currentUser.id);
-  const isOtherOnline=otherParticipant&&onlineUsers.has(otherParticipant.id);
+  const isOtherOnline=otherParticipant&&(onlineUsers.has(otherParticipant.id) || otherParticipant.status_online === true);
+  const lastSeenText = otherParticipant?.ultimo_visto
+    ? new Date(otherParticipant.ultimo_visto).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })
+    : null;
 
   return (<div className="chat-app">
     <div className="chat-header">
@@ -201,17 +226,17 @@ export default function ChatApp(){
           <div className="chat-conv-header">
             <button className="btn-icon" onClick={()=>{setActiveId(null);setSidebarOpen(true);}}><ArrowLeft size={18}/></button>
             <div className="chat-conv-info" style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{width:32,height:32,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Bot size={16} color="#fff"/></div>
+              <img src={impetusIaAvatar} alt="" style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}}/>
               <div><span className="chat-conv-name">Impetus IA</span><br/><span style={{color:'#22c55e',fontSize:11}}>online</span></div>
             </div>
             <button onClick={()=>setVoiceMode(v=>!v)} title={voiceMode?'Desativar voz':'Ativar voz (IA fala as respostas)'} style={{marginLeft:'auto',width:36,height:36,borderRadius:'50%',border:'none',background:voiceMode?'#6366f1':'#2a2a3e',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{voiceMode?<MicOff size={18}/>:<Mic size={18}/>}</button>
           </div>
           <div className="msg-area" style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
             {aiMessages.map(msg=>(<div key={msg.id} style={{display:'flex',justifyContent:msg.isUser?'flex-end':'flex-start',gap:8,alignItems:'flex-end'}}>
-              {!msg.isUser&&<div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Bot size={14} color="#fff"/></div>}
+              {!msg.isUser&&<img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}}/>}
               <div style={{maxWidth:'72%',padding:'10px 14px',borderRadius:msg.isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',background:msg.isUser?'#6366f1':'#1e1e2e',color:'#fff',fontSize:14,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{msg.content}<div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,textAlign:'right'}}>{new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
             </div>))}
-            {aiLoading&&<div style={{display:'flex',gap:8}}><div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Bot size={14} color="#fff"/></div><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}
+            {aiLoading&&<div style={{display:'flex',gap:8}}><img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}}/><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}
           </div>
           <div style={{padding:'12px 16px',borderTop:'1px solid #2a2a3e',display:'flex',gap:8,background:'#12121e'}}>
             <input value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),handleAiSend())} placeholder="Pergunte algo para a Impetus IA..." style={{flex:1,background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:12,padding:'10px 14px',color:'#fff',fontSize:14,outline:'none'}}/>
@@ -220,9 +245,18 @@ export default function ChatApp(){
         </>):activeConv?(<>
           <div className="chat-conv-header">
             <button className="btn-icon" onClick={()=>{ setActiveId(null); setSidebarOpen(true); }}><ArrowLeft size={18}/></button>
-            <div className="chat-conv-info">
-              <span className="chat-conv-name">{convTitle(activeConv,currentUser&&currentUser.id)}</span>
-              <span className="chat-conv-meta">{activeConv.type==='group'?((activeConv.participants&&activeConv.participants.length||0)+' participantes'):(isOtherOnline?'online':'offline')}</span>
+            <div className="chat-conv-info" style={activeConv.type!=='group' ? { display:'flex', alignItems:'center', gap:8 } : undefined}>
+              {activeConv.type!=='group' && otherParticipant?.avatar_url && (
+                <img src={toAbs(otherParticipant.avatar_url)} alt="" style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+              )}
+              <div>
+                <span className="chat-conv-name">{convTitle(activeConv,currentUser&&currentUser.id)}</span>
+                <span className="chat-conv-meta" style={{ display:'block' }}>
+                  {activeConv.type==='group'
+                    ? ((activeConv.participants&&activeConv.participants.length||0)+' participantes')
+                    : (isOtherOnline ? <span style={{ color:'#22c55e' }}>online</span> : (lastSeenText ? `Visto por último às ${lastSeenText}` : 'offline'))}
+                </span>
+              </div>
             </div>
           </div>
           <MessageArea messages={messages} currentUserId={currentUser&&currentUser.id} loading={loading} hasMore={hasMore} onLoadMore={()=>loadMessages(false)} typingUsers={typingUsers}/>

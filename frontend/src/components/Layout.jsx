@@ -171,6 +171,7 @@ export default function Layout({ children }) {
   const MENU_LIDERANCA = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+    { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
     { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
     { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
     { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
@@ -195,6 +196,7 @@ export default function Layout({ children }) {
     { path: '/app/manutencao/manuia-app', icon: Smartphone, label: 'ManuIA Campo' },
     { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+    { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
     { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
     { path: '/diagnostic', icon: ClipboardList, label: 'Diagnóstico / OS' },
     { path: '/app/biblioteca', icon: FolderOpen, label: 'Manuais e Biblioteca' },
@@ -241,6 +243,7 @@ export default function Layout({ children }) {
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },

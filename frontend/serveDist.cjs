@@ -10,8 +10,10 @@ const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || '0.0.0.0';
+// Não usar process.env.PORT aqui: o PM2 costuma herdar PORT=4000 do backend e o front
+// passa a escutar na mesma porta da API (EADDRINUSE + site em :3000 inacessível).
+const PORT = Number(process.env.SERVE_DIST_PORT || process.env.FRONTEND_PORT || 3000);
+const HOST = process.env.SERVE_DIST_HOST || process.env.HOST || '0.0.0.0';
 const distDir = path.join(__dirname, 'dist');
 const unitySentinel = path.resolve(distDir, 'unity', 'manu-ia-viewer');
 
