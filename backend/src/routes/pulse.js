@@ -119,6 +119,26 @@ router.post('/supervisor/:evaluationId/perception', requireAuth, jsonBody, async
   }
 });
 
+/** RH — analytics agregado (temporal, setor, status, dispersão) */
+router.get('/hr/analytics', requireAuth, requireRole('rh'), async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
+    const data = await pulseService.getHrAnalytics(companyId, {
+      from: req.query.from,
+      to: req.query.to,
+      bucket: req.query.bucket,
+      department_id: req.query.department_id,
+      shift_code: req.query.shift_code,
+      team_label: req.query.team_label
+    });
+    res.json({ ok: true, analytics: data });
+  } catch (e) {
+    console.error('[PULSE_HR_ANALYTICS]', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 /** RH — dados completos */
 router.get('/hr/evaluations', requireAuth, requireRole('rh'), async (req, res) => {
   try {
@@ -199,7 +219,8 @@ router.get('/mgmt/aggregates', requireAuth, async (req, res) => {
     const data = await pulseService.getMgmtAggregates(companyId, {
       from: req.query.from,
       to: req.query.to,
-      department_id: req.query.department_id
+      department_id: req.query.department_id,
+      bucket: req.query.bucket
     });
     res.json({ ok: true, aggregates: data });
   } catch (e) {

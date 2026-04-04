@@ -8,6 +8,7 @@ import { dashboard } from '../services/api';
 /** Mapeamento path -> module_key (visible_modules) */
 const PATH_TO_MODULE = {
   '/app': 'dashboard',
+  '/app/dashboard-vivo': 'dashboard',
   '/app/proacao': 'proaction',
   '/app/operacional': 'operational',
   '/app/registro-inteligente': 'operational',
@@ -27,6 +28,13 @@ const PATH_TO_MODULE = {
   '/chat': 'chat'
 };
 
+/** Módulos dedicados (não são o dashboard /app); não bloquear por visible_modules quando o menu do cargo os lista */
+const STANDALONE_OPERATIONAL_PATHS = new Set([
+  '/app/insights',
+  '/app/cerebro-operacional',
+  '/app/centro-operacoes-industrial'
+]);
+
 function getModuleForPath(path) {
   if (PATH_TO_MODULE[path]) return PATH_TO_MODULE[path];
   if (path.startsWith('/app/admin')) return 'admin';
@@ -41,8 +49,10 @@ export function filterMenuByModules(menuItems, visibleModules) {
   if (!visibleModules || visibleModules.length === 0) return menuItems;
   const set = new Set(visibleModules);
   return menuItems.filter((item) => {
-    // Dashboard (/app) sempre visível quando está no menu do cargo
-    if (item.path === '/app') return true;
+    const p = item.path?.replace(/\/+$/, '') || '';
+    // Dashboard e Dashboard Vivo: sempre visíveis no menu do cargo
+    if (item.path === '/app' || item.path === '/app/dashboard-vivo') return true;
+    if (STANDALONE_OPERATIONAL_PATHS.has(p)) return true;
     const mod = getModuleForPath(item.path);
     if (!mod) return true;
     return set.has(mod);
@@ -56,7 +66,9 @@ export function filterMenuByModules(menuItems, visibleModules) {
  */
 export function canAccessPath(path, visibleModules) {
   if (!visibleModules?.length) return true;
-  if (path === '/app') return true;
+  const norm = path.replace(/\/+$/, '') || '/';
+  if (norm === '/app' || norm === '/app/dashboard-vivo') return true;
+  if (STANDALONE_OPERATIONAL_PATHS.has(norm)) return true;
   const mod = getModuleForPath(path);
   if (!mod) return true;
   return visibleModules.includes(mod);

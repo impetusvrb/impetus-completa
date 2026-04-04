@@ -238,6 +238,7 @@ function requireAuth(req, res, next) {
 
     req.user = attachCompanyIdFromJwtClaims(user, token);
     req.session = { id: user.sessionId };
+    req.authRawToken = token;
     next();
   }).catch(err => {
     console.error('[AUTH_MIDDLEWARE_ERROR]', err.message);

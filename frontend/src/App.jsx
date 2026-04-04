@@ -30,7 +30,8 @@ const Diagnostic = lazy(() => import('./pages/Diagnostic'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminDepartments = lazy(() => import('./pages/AdminDepartments'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
-const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const UserSettings = lazy(() => import('./pages/UserSettings'));
+const CompanyAdminSettings = lazy(() => import('./pages/CompanyAdminSettings'));
 const AdminStructural = lazy(() => import('./pages/AdminStructural'));
 const RegistroInteligente = lazy(() => import('./pages/RegistroInteligente'));
 const Operacional = lazy(() => import('./pages/Operacional'));
@@ -248,6 +249,13 @@ export default function App() {
             </SetupGuard>
           </PrivateRoute>
         } />
+        <Route path="/app/dashboard-vivo" element={
+          <PrivateRoute>
+            <SetupGuard>
+              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <Navigate to="/app" replace />}
+            </SetupGuard>
+          </PrivateRoute>
+        } />
         <Route path="/app/ceo" element={
           <PrivateRoute><SetupGuard>{isCEO() ? <Dashboard /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
         } />
@@ -270,7 +278,7 @@ export default function App() {
         } />
         
         <Route path="/app/insights" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','gerente','coordenador','supervisor']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/pulse-rh" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['rh']}><PulseRh /></RoleGuard></SetupGuard></PrivateRoute>
@@ -279,10 +287,10 @@ export default function App() {
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><PulseGestao /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/cerebro-operacional" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-operacoes-industrial" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/monitored-points" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
         <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
@@ -303,7 +311,8 @@ export default function App() {
         <Route path="/app/mapa-vazamento-financeiro" element={
           <PrivateRoute><SetupGuard><CEORouteGuard><MapaVazamentoFinanceiro /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
-        <Route path="/app/configuracoes" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/configuracoes" element={<Navigate to="/app/admin/conteudo-empresa" replace />} />
+        <Route path="/app/admin/conteudo-empresa" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CompanyAdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         
         <Route path="/proposals" element={
           <PrivateRoute><SetupGuard><Navigate to="/app/proacao" replace /></SetupGuard></PrivateRoute>
@@ -322,8 +331,8 @@ export default function App() {
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><AdminSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><UserSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
         <Route path="/chat" element={
           <PrivateRoute>
             <ColaboradorRouteGuard>

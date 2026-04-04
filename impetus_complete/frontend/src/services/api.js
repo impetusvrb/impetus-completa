@@ -383,6 +383,17 @@ export const dashboard = {
 };
 
 // ============================================================================
+// DASHBOARD VIVO (IA + orquestração — backend valida cargo)
+// ============================================================================
+
+export const liveDashboard = {
+  getState: () => api.get('/live-dashboard/state'),
+  listSnapshots: (limit) => api.get('/live-dashboard/snapshots', { params: { limit } }),
+  getSnapshotAt: (at) => api.get('/live-dashboard/snapshot-at', { params: { at } }),
+  executeOrchestration: (body) => api.post('/live-dashboard/orchestration/execute', body)
+};
+
+// ============================================================================
 // COMUNICAÇÕES
 // ============================================================================
 

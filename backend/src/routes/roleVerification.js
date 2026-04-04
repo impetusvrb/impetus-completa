@@ -165,7 +165,7 @@ router.post('/upload-document',
 router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
   try {
     const role = (req.user.role || '').toLowerCase();
-    const allowed = ['admin', 'internal_admin', 'diretor', 'gerente', 'coordenador', 'supervisor', 'ceo'].includes(role);
+    const allowed = ['internal_admin', 'diretor', 'gerente', 'coordenador', 'supervisor', 'ceo'].includes(role);
     if (!allowed) {
       return res.status(403).json({ ok: false, error: 'Acesso restrito à liderança' });
     }

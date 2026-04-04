@@ -43,7 +43,22 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 const uploadsPath = path.join(__dirname, '../../../uploads');
 app.use('/uploads', express.static(uploadsPath, { maxAge: '1d', immutable: true }));
 function safe(file) {
-  try { return require(file); } catch(e) { console.warn('[APP] Rota ignorada:', file, '-', e.message); return require('express').Router(); }
+  try {
+    return require(file);
+  } catch (e) {
+    console.error('[APP] Rota ignorada:', file, '-', e.message);
+    if (e.stack) console.error(e.stack.split('\n').slice(0, 5).join('\n'));
+    return require('express').Router();
+  }
+}
+try {
+  const meAccountRouter = require('./routes/meAccount');
+  app.use('/api/me', meAccountRouter);
+  /* Antes de /api/usuarios: path mais específico; NÃO importar meAccount dentro de usuarios.js (safe() zera router inteiro se der erro). */
+  app.use('/api/usuarios/conta', meAccountRouter);
+} catch (e) {
+  console.error('[APP] meAccount indisponível — tela Configurações retornará 404 até corrigir:', e.message);
+  if (e.stack) console.error(e.stack.split('\n').slice(0, 10).join('\n'));
 }
 app.use('/api/auth',                     safe('./routes/auth'));
 app.use('/api/chat',                     safe('./routes/chat'));
@@ -68,6 +83,7 @@ app.use('/api/integrations',             safe('./routes/integrations'));
 app.use('/api/webhook',                  safe('./routes/webhook'));
 app.use('/api/admin',                    safe('./routes/admin'));
 app.use('/api/dashboard',                safe('./routes/dashboard'));
+app.use('/api/live-dashboard',           safe('./routes/liveDashboard'));
 app.use('/api/manutencao-ia',            safe('./routes/manutencao-ia'));
 app.use('/api/diagnostics',              safe('./routes/diagnostic'));
 app.use('/api/cadastrar-com-ia',         safe('./routes/cadastrarComIA'));
@@ -103,6 +119,18 @@ app.get('/health', async (req, res) => {
 app.get('/api/health', async (req, res) => {
   const voz = await voiceHealthProbe();
   res.json({ status: 'ok', voz });
+});
+/** Sem auth — só para confirmar que este binário inclui o módulo de Configurações (conta). */
+app.get('/api/health/settings-module', (_req, res) => {
+  res.json({
+    ok: true,
+    module: 'user-account-settings',
+    endpoints: [
+      'GET /api/usuarios/conta/account (com Bearer)',
+      'GET /api/me/account (com Bearer, alias)'
+    ],
+    note: '404 na tela de Configurações = processo Node sem este código ou proxy errado.'
+  });
 });
 app.use((err, req, res, next) => { console.error('[ERR]', err.message); res.status(500).json({ error: 'Erro interno no servidor' }); });
 module.exports = app;

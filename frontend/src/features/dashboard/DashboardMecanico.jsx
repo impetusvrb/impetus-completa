@@ -3,7 +3,7 @@
  * Acrescenta blocos técnicos ao dashboard existente sem remover funcionalidades.
  * Para perfil: mecânico, eletricista, eletromecânico, supervisor/coordenador/gerente de manutenção.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { dashboard, intelligentRegistration } from '../../services/api';
@@ -14,6 +14,8 @@ import {
   RefreshCw, HelpCircle
 } from 'lucide-react';
 import { DashboardInteligente } from './index';
+import LiveDashboardUnifiedPanel from './components/LiveDashboardUnifiedPanel';
+import { isExecutiveLeadershipRole } from '../../utils/roleUtils';
 import './DashboardMecanico.css';
 
 /** Prefixo enviado ao chat para especializar respostas em contexto de manutenção */
@@ -43,6 +45,13 @@ function formatDt(iso) {
 export default function DashboardMecanico() {
   const navigate = useNavigate();
   const notify = useNotification();
+  const sessionUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [summary, setSummary] = useState(null);
   const [cards, setCards] = useState(null);
@@ -184,6 +193,7 @@ export default function DashboardMecanico() {
   return (
     <Layout>
       <div className="dashboard-mecanico">
+        {isExecutiveLeadershipRole(sessionUser) && <LiveDashboardUnifiedPanel variant="light" />}
         {isMaintenance && (
           <>
               <div className="dashboard-mecanico__tech-header">

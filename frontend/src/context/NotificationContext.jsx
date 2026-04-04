@@ -3,7 +3,7 @@
  * Exibe Toasts para sucesso, erro, aviso
  */
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import Toast from '../components/Toast';
 
 const NotificationContext = createContext(null);
@@ -26,8 +26,13 @@ export function NotificationProvider({ children }) {
   const warning = useCallback((msg, duration) => addNotification(msg, 'warning', duration), [addNotification]);
   const info = useCallback((msg, duration) => addNotification(msg, 'info', duration), [addNotification]);
 
+  const value = useMemo(
+    () => ({ addNotification, removeNotification, success, error, warning, info }),
+    [addNotification, removeNotification, success, error, warning, info]
+  );
+
   return (
-    <NotificationContext.Provider value={{ addNotification, removeNotification, success, error, warning, info }}>
+    <NotificationContext.Provider value={value}>
       {children}
       <div className="toast-container" aria-live="polite">
         {notifications.map(n => (

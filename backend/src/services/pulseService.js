@@ -356,6 +356,8 @@ async function getMgmtAggregates(companyId, filters) {
     `
     SELECT u.department, COUNT(*)::int AS n,
       AVG((e.fixed_scores->>'efficiency')::numeric) AS avg_efficiency,
+      AVG((e.fixed_scores->>'confidence')::numeric) AS avg_confidence,
+      AVG((e.fixed_scores->>'proactivity')::numeric) AS avg_proactivity,
       AVG((e.fixed_scores->>'synergy')::numeric) AS avg_synergy
     FROM pulse_evaluations e
     JOIN users u ON u.id = e.user_id
@@ -366,9 +368,191 @@ async function getMgmtAggregates(companyId, filters) {
     params
   );
 
+  let by_period = [];
+  const bucket = String(filters.bucket || '').toLowerCase();
+  const trunc = { week: 'week', month: 'month', quarter: 'quarter' }[bucket];
+  if (trunc) {
+    const periodParams = [...params, trunc];
+    const tn = periodParams.length;
+    const pr = await db.query(
+      `
+      SELECT date_trunc($${tn}::text, e.self_completed_at AT TIME ZONE 'UTC') AS ts,
+        COUNT(*)::int AS n,
+        AVG((e.fixed_scores->>'efficiency')::numeric) AS avg_efficiency,
+        AVG((e.fixed_scores->>'confidence')::numeric) AS avg_confidence,
+        AVG((e.fixed_scores->>'proactivity')::numeric) AS avg_proactivity,
+        AVG((e.fixed_scores->>'synergy')::numeric) AS avg_synergy
+      FROM pulse_evaluations e
+      JOIN users u ON u.id = e.user_id
+      ${where}
+      GROUP BY date_trunc($${tn}::text, e.self_completed_at AT TIME ZONE 'UTC')
+      ORDER BY 1
+    `,
+      periodParams
+    );
+    by_period = (pr.rows || []).map((row) => ({
+      ...row,
+      period_start: row.ts,
+      label: row.ts ? new Date(row.ts).toISOString().slice(0, 10) : ''
+    }));
+  }
+
   return {
     summary: r.rows[0] || {},
-    by_department: byDept.rows || []
+    by_department: byDept.rows || [],
+    by_period
+  };
+}
+
+const DATE_TRUNC_WHITELIST = { week: 'week', month: 'month', quarter: 'quarter' };
+
+/**
+ * Analytics completo RH: agregados, temporal, funil, dispersão (apenas RH).
+ */
+async function getHrAnalytics(companyId, filters = {}) {
+  let { from, to, bucket, department_id, shift_code, team_label } = filters;
+  const toD = to || new Date().toISOString().slice(0, 10);
+  let fromD = from;
+  if (!fromD) {
+    const d = new Date(toD);
+    d.setDate(d.getDate() - 90);
+    fromD = d.toISOString().slice(0, 10);
+  }
+  const trunc = DATE_TRUNC_WHITELIST[String(bucket || 'month').toLowerCase()] || 'month';
+
+  const params = [companyId];
+  let whereCompleted = `WHERE e.company_id = $1 AND e.status = 'completed'
+    AND e.self_completed_at IS NOT NULL
+    AND e.self_completed_at >= $2::date
+    AND e.self_completed_at < ($3::date + interval '1 day')`;
+  params.push(fromD, toD);
+  let i = 4;
+
+  if (department_id) {
+    whereCompleted += ` AND u.department_id = $${i}`;
+    params.push(department_id);
+    i++;
+  }
+  if (shift_code) {
+    whereCompleted += ` AND COALESCE(u.pulse_shift_code, '') = $${i}`;
+    params.push(String(shift_code));
+    i++;
+  }
+  if (team_label) {
+    whereCompleted += ` AND COALESCE(u.pulse_team_label, '') ILIKE $${i}`;
+    params.push(`%${String(team_label).trim()}%`);
+    i++;
+  }
+
+  const summary = await db.query(
+    `
+    SELECT
+      COUNT(*)::int AS n,
+      AVG((e.fixed_scores->>'efficiency')::numeric) AS avg_efficiency,
+      AVG((e.fixed_scores->>'confidence')::numeric) AS avg_confidence,
+      AVG((e.fixed_scores->>'proactivity')::numeric) AS avg_proactivity,
+      AVG((e.fixed_scores->>'synergy')::numeric) AS avg_synergy
+    FROM pulse_evaluations e
+    JOIN users u ON u.id = e.user_id
+    ${whereCompleted}
+  `,
+    params
+  );
+
+  const byDept = await db.query(
+    `
+    SELECT COALESCE(u.department, 'Sem setor') AS department, COUNT(*)::int AS n,
+      AVG((e.fixed_scores->>'efficiency')::numeric) AS avg_efficiency,
+      AVG((e.fixed_scores->>'confidence')::numeric) AS avg_confidence,
+      AVG((e.fixed_scores->>'proactivity')::numeric) AS avg_proactivity,
+      AVG((e.fixed_scores->>'synergy')::numeric) AS avg_synergy
+    FROM pulse_evaluations e
+    JOIN users u ON u.id = e.user_id
+    ${whereCompleted}
+    GROUP BY COALESCE(u.department, 'Sem setor')
+    ORDER BY n DESC
+  `,
+    params
+  );
+
+  const periodParams = [...params, trunc];
+  const tn = periodParams.length;
+  const byPeriod = await db.query(
+    `
+    SELECT date_trunc($${tn}::text, e.self_completed_at AT TIME ZONE 'UTC') AS ts,
+      COUNT(*)::int AS n,
+      AVG((e.fixed_scores->>'efficiency')::numeric) AS avg_efficiency,
+      AVG((e.fixed_scores->>'confidence')::numeric) AS avg_confidence,
+      AVG((e.fixed_scores->>'proactivity')::numeric) AS avg_proactivity,
+      AVG((e.fixed_scores->>'synergy')::numeric) AS avg_synergy
+    FROM pulse_evaluations e
+    JOIN users u ON u.id = e.user_id
+    ${whereCompleted}
+    GROUP BY date_trunc($${tn}::text, e.self_completed_at AT TIME ZONE 'UTC')
+    ORDER BY 1
+  `,
+    periodParams
+  );
+
+  const statusParams = [companyId, fromD, toD];
+  let whereStatus = `WHERE e.company_id = $1 AND e.created_at >= $2::date AND e.created_at < ($3::date + interval '1 day')`;
+  let j = 4;
+  if (department_id) {
+    whereStatus += ` AND u.department_id = $${j}`;
+    statusParams.push(department_id);
+    j++;
+  }
+  if (shift_code) {
+    whereStatus += ` AND COALESCE(u.pulse_shift_code, '') = $${j}`;
+    statusParams.push(String(shift_code));
+    j++;
+  }
+  if (team_label) {
+    whereStatus += ` AND COALESCE(u.pulse_team_label, '') ILIKE $${j}`;
+    statusParams.push(`%${String(team_label).trim()}%`);
+    j++;
+  }
+
+  const byStatus = await db.query(
+    `
+    SELECT e.status, COUNT(*)::int AS n
+    FROM pulse_evaluations e
+    JOIN users u ON u.id = e.user_id
+    ${whereStatus}
+    GROUP BY e.status
+    ORDER BY n DESC
+  `,
+    statusParams
+  );
+
+  const scatterParams = [...params];
+  const scatter = await db.query(
+    `
+    SELECT e.user_id, u.name AS user_name,
+      (e.fixed_scores->>'efficiency')::numeric AS efficiency,
+      (e.fixed_scores->>'synergy')::numeric AS synergy,
+      (e.fixed_scores->>'confidence')::numeric AS confidence,
+      (e.fixed_scores->>'proactivity')::numeric AS proactivity
+    FROM pulse_evaluations e
+    JOIN users u ON u.id = e.user_id
+    ${whereCompleted}
+    ORDER BY e.self_completed_at DESC
+    LIMIT 200
+  `,
+    scatterParams
+  );
+
+  return {
+    filters: { from: fromD, to: toD, bucket: trunc, department_id: department_id || null, shift_code: shift_code || null, team_label: team_label || null },
+    summary: summary.rows[0] || {},
+    by_department: byDept.rows || [],
+    by_period: (byPeriod.rows || []).map((row) => ({
+      ...row,
+      period_start: row.ts,
+      label: row.ts ? new Date(row.ts).toISOString().slice(0, 10) : ''
+    })),
+    by_status: byStatus.rows || [],
+    scatter_points: scatter.rows || []
   };
 }
 
@@ -445,13 +629,19 @@ async function triggerCampaignForUsers(companyId, userIds, opts = {}) {
   const ids = Array.isArray(userIds) ? userIds : [];
   let targets = ids;
   if (opts.all_eligible) {
-    const r = await db.query(
-      `
-      SELECT id FROM users
+    const targetRoles = Array.isArray(opts.target_roles) && opts.target_roles.length
+      ? opts.target_roles.map((r) => String(r).toLowerCase())
+      : null;
+    let sql = `
+      SELECT id, role FROM users
       WHERE company_id = $1 AND active = true AND deleted_at IS NULL
-    `,
-      [companyId]
-    );
+    `;
+    const params = [companyId];
+    if (targetRoles) {
+      sql += ` AND lower(coalesce(role, '')) = ANY($2::text[])`;
+      params.push(targetRoles);
+    }
+    const r = await db.query(sql, params);
     targets = (r.rows || []).map((x) => x.id);
   }
 
@@ -535,6 +725,7 @@ module.exports = {
   listSupervisorBlindPending,
   listHrEvaluations,
   getMgmtAggregates,
+  getHrAnalytics,
   generateHrReport,
   getMotivationPillForUser,
   getPendingPromptForUser,

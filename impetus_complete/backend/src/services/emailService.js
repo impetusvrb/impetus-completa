@@ -184,9 +184,53 @@ async function sendPasswordResetEmail({ to, name, resetUrl }) {
   return { sent: false, resetUrl };
 }
 
+async function sendAccountVerificationCode({ to, name, code }) {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Código de segurança - IMPETUS</title></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2563eb;">Código de verificação</h2>
+    <p>Olá, ${name || 'usuário'}!</p>
+    <p>Use o código abaixo apenas para <strong>confirmar acesso e segurança da conta</strong> no IMPETUS (não compartilhe):</p>
+    <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 28px; letter-spacing: 0.2em; font-weight: bold;">${code}</div>
+    <p style="color: #64748b; font-size: 0.9em;">Válido por 15 minutos. Se você não solicitou, ignore este e-mail.</p>
+  </div>
+</body>
+</html>`;
+  const text = `Código IMPETUS: ${code}\n\nVálido por 15 minutos. Uso exclusivo para verificação de segurança da conta.`;
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject: '[IMPETUS] Código de verificação de segurança',
+        text,
+        html
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error('[VERIFY_EMAIL_ERROR]', err.message);
+      return { sent: false };
+    }
+  }
+  console.log('[VERIFY_EMAIL_NO_SMTP]', { to, code });
+  return { sent: false };
+}
+
 module.exports = {
   generateSecurePassword,
   sendActivationEmail,
   sendOverdueNotificationEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendAccountVerificationCode
 };

@@ -16,6 +16,7 @@ import {
   User,
   Users,
   Building2,
+  ScrollText,
   FileText,
   FolderOpen,
   HelpCircle,
@@ -38,7 +39,11 @@ import {
   Mic,
   Smartphone,
   Shield,
-  Activity
+  Activity,
+  ChevronLeft,
+  KeyRound,
+  Palette,
+  Monitor
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -55,6 +60,16 @@ import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import './Layout.css';
 
 const IA_FACE_VIDEO = '/ia-face-1.mp4';
+
+/** Na tela de configurações do usuário, sidebar mostra só navegação da conta (sem admin/IA/conteúdo institucional). */
+const USER_SETTINGS_FOCUS_NAV = [
+  { hash: 'us-perfil', label: 'Perfil', icon: User },
+  { hash: 'us-seguranca', label: 'Segurança', icon: Shield },
+  { hash: 'us-notificacoes', label: 'Notificações', icon: Bell },
+  { hash: 'us-canais', label: 'Canais de acesso', icon: KeyRound },
+  { hash: 'us-preferencias', label: 'Preferências', icon: Palette },
+  { hash: 'us-dispositivos', label: 'Dispositivos', icon: Monitor }
+];
 
 export default function Layout({ children }) {
   const { openOverlay } = useImpetusVoice();
@@ -75,6 +90,18 @@ export default function Layout({ children }) {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   });
   const headerDropdownRef = useRef(null);
+
+  const pathNormRoot = (location.pathname || '').replace(/\/+$/, '') || '/';
+  const isUserSettingsFocus = pathNormRoot === '/app/settings';
+  const [settingsNavHash, setSettingsNavHash] = useState('us-perfil');
+
+  useEffect(() => {
+    if (!isUserSettingsFocus) return;
+    const sync = () => setSettingsNavHash((window.location.hash || '').replace(/^#/, '') || 'us-perfil');
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [isUserSettingsFocus, location.pathname]);
 
   useEffect(() => {
     const tick = () => {
@@ -182,7 +209,7 @@ export default function Layout({ children }) {
 
   /** Diretor, gerente, coordenador, supervisor — núcleo + módulos operacionais (matriz de perfil no backend) */
   const MENU_LIDERANCA = [
-    { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/app', icon: LayoutDashboard, label: 'Dashboard · IA integrada' },
     ...MENU_BLOCO_INDUSTRIAL,
     { path: '/app/pulse-gestao', icon: Activity, label: 'Impetus Pulse (visão coletiva)' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
@@ -225,13 +252,13 @@ export default function Layout({ children }) {
   const MENUS = {
     admin: [
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
-      { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação organizacional' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/admin/centro-custos', icon: DollarSign, label: 'Centro de Custos (Config)' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
+      { path: '/app/admin/conteudo-empresa', icon: ScrollText, label: 'Conteúdo da empresa' },
       { path: '/app/admin/equipment-library', icon: Package, label: 'Biblioteca técnica' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
@@ -266,7 +293,7 @@ export default function Layout({ children }) {
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
     ceo: [
-      { path: '/app', icon: LayoutDashboard, label: 'Visão Executiva' },
+      { path: '/app', icon: LayoutDashboard, label: 'Dashboard · IA integrada' },
       ...MENU_BLOCO_INDUSTRIAL,
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
@@ -289,6 +316,22 @@ export default function Layout({ children }) {
   }
 
   let menuItems = filterMenu(baseMenuItems);
+
+  if (isUserSettingsFocus) {
+    menuItems = [
+      { path: '/app', icon: ChevronLeft, label: 'Voltar ao painel', settingsBack: true },
+      ...USER_SETTINGS_FOCUS_NAV.map((item) => ({ ...item, settingsAnchor: true }))
+    ];
+  }
+
+  const scrollToSettingsSection = (hash) => {
+    const el = document.getElementById(hash);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.history.replaceState(null, '', `#${hash}`);
+      setSettingsNavHash(hash);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('impetus_token');
@@ -356,8 +399,43 @@ export default function Layout({ children }) {
 
         <nav className="sidebar-nav">
           {menuItems.map((item) => {
-            const Icon = item.icon;
             const pathNorm = location.pathname.replace(/\/+$/, '') || '/';
+            if (item.settingsBack) {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key="settings-back"
+                  to={item.path}
+                  className="nav-item nav-item--settings-back"
+                  title={item.label}
+                >
+                  <span className="nav-dot" />
+                  <Icon size={18} />
+                  {sidebarOpen && <span>{item.label}</span>}
+                </Link>
+              );
+            }
+            if (item.settingsAnchor) {
+              const Icon = item.icon;
+              const isActive = settingsNavHash === item.hash;
+              return (
+                <a
+                  key={item.hash}
+                  href={`#${item.hash}`}
+                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  title={item.label}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSettingsSection(item.hash);
+                  }}
+                >
+                  <span className="nav-dot" />
+                  <Icon size={18} />
+                  {sidebarOpen && <span>{item.label}</span>}
+                </a>
+              );
+            }
+            const Icon = item.icon;
             const itemNorm = item.path.replace(/\/+$/, '') || '/';
             const isActive = pathNorm === itemNorm;
             return (
@@ -383,7 +461,9 @@ export default function Layout({ children }) {
                   )
                   : item.chatIcon
                   ? <img src={chatSidebarIcon} alt="Chat" className="nav-item-chat-icon" />
-                  : <Icon size={18} />}
+                  : Icon
+                  ? <Icon size={18} />
+                  : null}
                 {sidebarOpen && <span>{item.label}</span>}
               </Link>
             );

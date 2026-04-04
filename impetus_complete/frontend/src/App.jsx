@@ -60,6 +60,7 @@ const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'))
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
+const LiveIntelligentDashboard = lazy(() => import('./pages/LiveIntelligentDashboard'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -115,6 +116,7 @@ function ColaboradorRouteGuard({ children }) {
     if (isColaboradorSimples(user)) {
       const allowOp = [
         '/app',
+        '/app/dashboard-vivo',
         '/app/proacao',
         '/app/cadastrar-com-ia',
         '/app/biblioteca',
@@ -129,7 +131,7 @@ function ColaboradorRouteGuard({ children }) {
     }
 
     if (isMaintenanceTechnicianMenu(user)) {
-      const allow = ['/app', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
+      const allow = ['/app', '/app/dashboard-vivo', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
       const ok = allow.includes(path) || path.startsWith('/app/proacao/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
@@ -195,6 +197,12 @@ function StrictAdminRouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+/** Dashboard Vivo: indisponível só para admin técnico */
+function LiveDashboardVivoGuard({ children }) {
+  if (isStrictAdmin()) return <Navigate to="/app/chatbot" replace />;
+  return children;
+}
+
 // Logs de Áudio: acesso exclusivo CEO e diretoria (conteúdo sensível)
 function isDirectorOrCEO() {
   try {
@@ -245,6 +253,19 @@ export default function App() {
           <PrivateRoute>
             <SetupGuard>
               {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <DashboardRouteEntry />}
+            </SetupGuard>
+          </PrivateRoute>
+        } />
+        <Route path="/app/dashboard-vivo" element={
+          <PrivateRoute>
+            <SetupGuard>
+              <LiveDashboardVivoGuard>
+                <CEORouteGuard>
+                  <ColaboradorRouteGuard>
+                    <LiveIntelligentDashboard />
+                  </ColaboradorRouteGuard>
+                </CEORouteGuard>
+              </LiveDashboardVivoGuard>
             </SetupGuard>
           </PrivateRoute>
         } />
@@ -322,7 +343,7 @@ export default function App() {
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['admin','internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><AdminSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
         <Route path="/chat" element={
           <PrivateRoute>

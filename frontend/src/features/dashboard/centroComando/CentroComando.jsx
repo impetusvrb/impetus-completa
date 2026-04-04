@@ -33,6 +33,8 @@ import WidgetOperacoes from './WidgetOperacoes';
 import WidgetEnergia from './WidgetEnergia';
 import WidgetRastreabilidade from './WidgetRastreabilidade';
 import WidgetReceitas from './WidgetReceitas';
+import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
+import { isExecutiveLeadershipRole } from '../../../utils/roleUtils';
 import './CentroComando.css';
 
 const WIDGET_COMPONENTS = {
@@ -115,9 +117,12 @@ export default function CentroComando() {
     ? personalizado.perfil.subtitulo
     : `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
 
+  const showUnifiedLive = isExecutiveLeadershipRole(user);
+
   return (
     <Layout>
       <div className="cc">
+        {showUnifiedLive && <LiveDashboardUnifiedPanel variant="exec" />}
         <header className="cc__header">
           <h1 className="cc__title">{titulo}</h1>
           <p className="cc__subtitle">{subtitulo}</p>

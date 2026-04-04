@@ -51,3 +51,27 @@ export function isColaboradorSimples(user) {
 export function isMaintenanceTechnicianMenu(user) {
   return isMaintenanceProfile(user) && resolveMenuRole(user) === 'colaborador';
 }
+
+/** Dashboard Vivo: todos exceto admin técnico */
+export function canAccessLiveDashboardUser(user) {
+  return (user?.role || '').toLowerCase() !== 'admin';
+}
+
+/** Orquestração IA: supervisor, coordenador, gerente, diretor, CEO (incl. aliases EN) */
+export function canUseTaskOrchestrationUser(user) {
+  let r = (user?.role || '').toLowerCase();
+  if (r === 'coordinator') r = 'coordenador';
+  if (r === 'director') r = 'diretor';
+  if (r === 'manager') r = 'gerente';
+  return ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(r);
+}
+
+/**
+ * Visão unificada (Centro de Comando + Dashboard Vivo / IA): CEO, diretor, gerente, coordenador, supervisor.
+ * Usa a mesma chave de menu que resolveMenuRole (cargos compostos, ex. diretor industrial).
+ */
+export function isExecutiveLeadershipRole(user) {
+  if (!user) return false;
+  const key = resolveMenuRole(user);
+  return ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(key);
+}

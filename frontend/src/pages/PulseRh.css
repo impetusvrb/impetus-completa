@@ -81,3 +81,86 @@
 .pulse-gestao-list li {
   margin-bottom: 8px;
 }
+
+.pulse-rh-toolbar__short {
+  width: 5rem;
+}
+
+.pulse-rh-toolbar__med {
+  width: 8rem;
+}
+
+.pulse-rh-analytics {
+  margin-bottom: 32px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.pulse-rh-analytics__title {
+  font-size: 1.1rem;
+  margin: 0 0 12px 0;
+}
+
+.pulse-rh-analytics-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pulse-rh-analytics-tab {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg, #fff);
+  color: var(--text, #111);
+  cursor: pointer;
+}
+
+.pulse-rh-analytics-tab.is-active {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  font-weight: 600;
+}
+
+.pulse-rh-analytics__loading {
+  color: var(--gray-600, #4b5563);
+}
+
+.pulse-rh-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.pulse-rh-chart-card {
+  margin-bottom: 8px;
+}
+
+.pulse-rh-chart-card h3 {
+  font-size: 0.98rem;
+  margin: 0 0 8px 0;
+}
+
+.pulse-rh-kpi {
+  font-size: 0.88rem;
+  color: var(--gray-600, #4b5563);
+  margin: 0 0 8px 0;
+}
+
+.pulse-rh-radar .recharts-wrapper {
+  margin: 0 auto;
+}
+
+.pulse-rh-hint {
+  font-size: 0.82rem;
+  color: var(--gray-500, #6b7280);
+  margin-top: 8px;
+}
+
+.pulse-rh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

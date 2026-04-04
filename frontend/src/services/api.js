@@ -6,8 +6,20 @@
 
 import axios from 'axios';
 
-// Em dev: use /api para o proxy do Vite redirecionar ao backend. Em prod: use URL completa.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+/**
+ * Base da API. O Express monta rotas em /api/... — se VITE_API_URL for absoluto sem /api
+ * (ex.: http://72.61.221.152:4000), todas as chamadas viram 404.
+ */
+function normalizeApiBase(raw) {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return '/api';
+  const t = String(raw).trim().replace(/\/$/, '');
+  if (t === '/api') return '/api';
+  if (t.endsWith('/api')) return t;
+  if (/^https?:\/\//i.test(t)) return `${t}/api`;
+  return t;
+}
+
+const API_URL = normalizeApiBase(import.meta.env.VITE_API_URL);
 const REQUEST_TIMEOUT_MS = 60000; // 60 segundos - evita requisições penduradas
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
@@ -383,6 +395,17 @@ export const dashboard = {
 };
 
 // ============================================================================
+// DASHBOARD VIVO (IA + orquestração — backend valida cargo)
+// ============================================================================
+
+export const liveDashboard = {
+  getState: () => api.get('/live-dashboard/state'),
+  listSnapshots: (limit) => api.get('/live-dashboard/snapshots', { params: { limit } }),
+  getSnapshotAt: (at) => api.get('/live-dashboard/snapshot-at', { params: { at } }),
+  executeOrchestration: (body) => api.post('/live-dashboard/orchestration/execute', body)
+};
+
+// ============================================================================
 // COMUNICAÇÕES
 // ============================================================================
 
@@ -457,6 +480,7 @@ export const pulse = {
   getSupervisorPending: () => api.get('/pulse/supervisor/pending'),
   postSupervisorPerception: (evaluationId, perception) =>
     api.post(`/pulse/supervisor/${evaluationId}/perception`, { perception }),
+  hrAnalytics: (params) => api.get('/pulse/hr/analytics', { params }),
   hrListEvaluations: (params) => api.get('/pulse/hr/evaluations', { params }),
   hrTrigger: (body) => api.post('/pulse/hr/trigger', body),
   hrReport: (evaluationId) => api.post(`/pulse/hr/report/${evaluationId}`, {}),
@@ -669,6 +693,32 @@ export const adminLogs = {
   
   exportLogs: (type, format, filters) => 
     api.post('/admin/logs/export', { type, format, filters })
+};
+
+// ============================================================================
+// CONTA DO USUÁRIO (perfil, segurança, notificações do app, sessões)
+// ============================================================================
+
+/** Base da API de conta: sob /api/usuarios (sempre montada) — evita 404 se /api/me não estiver no app.js em produção. */
+const ACCT = '/usuarios/conta';
+
+export const meAccount = {
+  get: () => api.get(`${ACCT}/account`),
+  patchProfile: (body) => api.patch(`${ACCT}/account/profile`, body),
+  deleteAvatar: () => api.delete(`${ACCT}/account/avatar`),
+  uploadPhoto: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.put('/usuarios/foto', fd);
+  },
+  changePassword: (body) => api.post(`${ACCT}/account/password`, body),
+  sendVerifyCode: (channel) => api.post(`${ACCT}/account/verify/send`, { channel }),
+  confirmVerifyCode: (channel, code) => api.post(`${ACCT}/account/verify/confirm`, { channel, code }),
+  patchNotifications: (body) => api.patch(`${ACCT}/account/notifications`, body),
+  patchUi: (body) => api.patch(`${ACCT}/account/ui`, body),
+  getSessions: () => api.get(`${ACCT}/account/sessions`),
+  deleteSession: (sessionId) => api.delete(`${ACCT}/account/sessions/${sessionId}`),
+  revokeOtherSessions: () => api.post(`${ACCT}/account/sessions/revoke-others`)
 };
 
 // ============================================================================

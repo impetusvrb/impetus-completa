@@ -165,13 +165,33 @@ router.post('/upload-document',
 router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
   try {
     const role = (req.user.role || '').toLowerCase();
-    const allowed = ['admin', 'internal_admin', 'diretor', 'gerente', 'coordenador', 'supervisor', 'ceo'].includes(role);
+    const allowed = ['internal_admin', 'diretor', 'gerente', 'coordenador', 'supervisor', 'ceo'].includes(role);
     if (!allowed) {
       return res.status(403).json({ ok: false, error: 'Acesso restrito à liderança' });
     }
-    const list = await roleVerification.getVerificationPanel(req.user.company_id);
-    const suspicious = await roleVerification.detectSuspiciousPatterns(req.user.company_id);
-    res.json({ ok: true, users: list, suspicious_alerts: suspicious });
+    let companyId = req.user.company_id;
+    if (!companyId) {
+      const ur = await db.query(
+        `SELECT company_id FROM users WHERE id = $1 AND deleted_at IS NULL`,
+        [req.user.id]
+      );
+      companyId = ur.rows[0]?.company_id || null;
+    }
+    if (!companyId) {
+      return res.json({
+        ok: true,
+        users: [],
+        suspicious_alerts: [],
+        meta: {
+          empty_reason: 'no_company',
+          message:
+            'Nenhuma empresa vinculada a este usuário. O painel lista a equipe da sua empresa; conclua o setup ou peça ao administrador para associar sua conta a uma empresa.'
+        }
+      });
+    }
+    const list = await roleVerification.getVerificationPanel(companyId);
+    const suspicious = await roleVerification.detectSuspiciousPatterns(companyId);
+    res.json({ ok: true, users: list, suspicious_alerts: suspicious, meta: { company_id: companyId } });
   } catch (e) {
     console.error('[ROLE_VERIFICATION_PANEL]', e);
     res.status(500).json({ ok: false, error: 'Erro ao carregar painel' });

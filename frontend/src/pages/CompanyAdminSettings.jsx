@@ -1,6 +1,6 @@
 /**
- * CONFIGURAÇÕES DO SISTEMA
- * Comunicação (App Impetus), POPs, Manuais, Notificações
+ * Gestão de conteúdo e políticas da empresa (administração)
+ * POPs, manuais, política, contatos operacionais — não confundir com Configurações do usuário (/app/settings)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -35,7 +35,7 @@ const HIERARCHY_LABELS = {
 const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility', 'pulse'];
 const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
-export default function AdminSettings() {
+export default function CompanyAdminSettings() {
   const notify = useNotification();
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
@@ -258,8 +258,8 @@ export default function AdminSettings() {
           <div className="header-left">
             <div className="page-icon"><Settings size={24} /></div>
             <div>
-              <h1 className="page-title">Configurações</h1>
-              <p className="page-subtitle">Comunicação, Documentos, POPs, Manuais e Notificações</p>
+              <h1 className="page-title">Conteúdo da empresa</h1>
+              <p className="page-subtitle">Política, POPs, manuais, notificações operacionais e visibilidade do dashboard</p>
             </div>
           </div>
         </div>

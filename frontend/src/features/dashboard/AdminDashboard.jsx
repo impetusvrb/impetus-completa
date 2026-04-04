@@ -13,10 +13,10 @@ import { useActivityLog } from '../../hooks/useActivityLog';
 import './AdminDashboard.css';
 
 const DOC_CARDS = [
-  { id: 'policy', icon: Shield, title: 'Política da Empresa', desc: 'Normas, POPs gerais e diretrizes para a IA', tab: 'policy', path: '/app/settings' },
-  { id: 'pops', icon: FileText, title: 'POPs', desc: 'Procedimentos Operacionais Padrão', tab: 'pops', path: '/app/settings' },
-  { id: 'manuals', icon: BookOpen, title: 'Manuais Técnicos', desc: 'Manuais operacionais e de máquinas', tab: 'manuals', path: '/app/settings' },
-  { id: 'notification-contacts', icon: Phone, title: 'Contatos para Notificações', desc: 'Contatos para a IA e notificações TPM', tab: 'notification-contacts', path: '/app/settings' },
+  { id: 'policy', icon: Shield, title: 'Política da Empresa', desc: 'Normas, POPs gerais e diretrizes para a IA', tab: 'policy', path: '/app/admin/conteudo-empresa?tab=policy' },
+  { id: 'pops', icon: FileText, title: 'POPs', desc: 'Procedimentos Operacionais Padrão', tab: 'pops', path: '/app/admin/conteudo-empresa?tab=pops' },
+  { id: 'manuals', icon: BookOpen, title: 'Manuais Técnicos', desc: 'Manuais operacionais e de máquinas', tab: 'manuals', path: '/app/admin/conteudo-empresa?tab=manuals' },
+  { id: 'notification-contacts', icon: Phone, title: 'Contatos para Notificações', desc: 'Contatos para a IA e notificações TPM', tab: 'notification-contacts', path: '/app/admin/conteudo-empresa?tab=notification-contacts' },
 ];
 
 export default function AdminDashboard() {
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
             <h1>Dashboard Administrativo</h1>
             <p>Carregar documentos internos e configurar o sistema</p>
           </div>
-          <Link to="/app/settings" className="admin-dashboard__settings-link">
+          <Link to="/app/admin/conteudo-empresa" className="admin-dashboard__settings-link">
             <Settings size={20} />
             Configurações completas
           </Link>
