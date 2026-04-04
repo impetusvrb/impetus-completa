@@ -1,6 +1,6 @@
 .plc-alerts-panel {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
+  background: rgba(232, 168, 56, 0.1);
+  border: 1px solid rgba(232, 168, 56, 0.35);
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -19,7 +19,7 @@
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
-  color: #92400e;
+  color: var(--impetus-amber);
 }
 
 .plc-alerts-list {
@@ -33,7 +33,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: white;
+  background: var(--surface-card);
   border-radius: 8px;
   margin-bottom: 8px;
   border-left: 4px solid #f59e0b;
@@ -66,8 +66,8 @@
 
 .plc-alert__ack {
   padding: 8px;
-  background: var(--color-success);
-  color: white;
+  background: var(--impetus-success);
+  color: var(--impetus-bg-deep);
   border: none;
   border-radius: 6px;
   cursor: pointer;

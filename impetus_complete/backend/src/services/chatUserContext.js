@@ -19,6 +19,10 @@ async function buildChatUserContext(user) {
   const hierarchyLevel = user?.hierarchy_level ?? 5;
   const jobTitle = user?.job_title || '';
   const area = user?.area || '';
+  const hrResp = (user?.hr_responsibilities || '').trim();
+  const respLine = hrResp
+    ? `\n- **O que faz / contexto operacional:** ${hrResp.slice(0, 1200)}${hrResp.length > 1200 ? '…' : ''}`
+    : '';
 
   let userName = baseName;
   let identityBlock = '';
@@ -32,7 +36,7 @@ async function buildChatUserContext(user) {
 - **Nome:** ${activationCtx.fullName}
 - **Cargo:** ${activationCtx.jobTitle || jobTitle || role}
 - **Setor:** ${activationCtx.department || area}
-${activationCtx.dailyActivities ? `- **Atividades:** ${activationCtx.dailyActivities}` : ''}
+${activationCtx.dailyActivities ? `- **Atividades:** ${activationCtx.dailyActivities}` : ''}${respLine}
 
 A identidade foi validada. Trate o usuário pelo nome. Quando perguntarem como você sabe quem são, responda que o Impetus valida identidade via ativação inicial e verificação diária (nome + PIN).`;
   } else {
@@ -41,7 +45,7 @@ A identidade foi validada. Trate o usuário pelo nome. Quando perguntarem como v
 - **Nome:** ${userName}
 - **Cargo/Função:** ${jobTitle || role}
 - **Área:** ${area || '(não informada)'}
-- **Nível hierárquico:** ${hierarchyLevel}
+- **Nível hierárquico:** ${hierarchyLevel}${respLine}
 
 Trate o usuário pelo nome e respeite seu nível hierárquico.`;
   }

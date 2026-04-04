@@ -111,6 +111,23 @@
   isolation: isolate;
 }
 
+.impetus-voice-overlay__avatar-trigger {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 0;
+}
+
+.impetus-voice-overlay__avatar-trigger:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.95);
+  outline-offset: 8px;
+}
+
 .impetus-voice-overlay__avatar-decor {
   position: absolute;
   left: 50%;
@@ -205,6 +222,17 @@
   margin-top: auto;
 }
 
+.impetus-voice-overlay__alert {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #ffb4a8;
+  background: rgba(180, 40, 40, 0.2);
+  border: 1px solid rgba(255, 120, 100, 0.35);
+}
+
 .impetus-voice-overlay__listening-bar {
   border: 1px solid #1a4a7a;
   border-radius: 999px;
@@ -245,6 +273,44 @@
   background: linear-gradient(180deg, #9ee8ff, #00aaff);
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.45);
   height: 30%;
+}
+
+.impetus-voice-overlay__presence {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: rgba(180, 220, 255, 0.85);
+  line-height: 1.4;
+}
+
+.impetus-voice-overlay__presence-label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+  margin-right: 4px;
+}
+
+.impetus-voice-overlay__presence-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 170, 255, 0.35);
+  background: rgba(0, 40, 80, 0.45);
+  font-size: 0.7rem;
+}
+
+.impetus-voice-overlay__presence-chip--expr {
+  border-color: rgba(120, 200, 255, 0.45);
+  color: #b8e8ff;
+}
+
+.impetus-voice-overlay__presence-akool {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: rgba(160, 255, 200, 0.85);
+  border-bottom: 1px dotted rgba(160, 255, 200, 0.4);
 }
 
 .impetus-voice-overlay__right {

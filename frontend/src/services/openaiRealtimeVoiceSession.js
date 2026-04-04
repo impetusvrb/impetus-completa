@@ -62,7 +62,6 @@ export function buildImpetusRealtimeSessionUpdate(envInstructions = '') {
   return {
     type: 'session.update',
     session: {
-      type: 'realtime',
       instructions,
       input_audio_format: 'pcm16',
       output_audio_format: 'pcm16',
@@ -478,6 +477,16 @@ export class OpenaiRealtimeVoiceSession {
     } catch (_) {}
     try {
       this.player?.resetSchedule();
+    } catch (_) {}
+  }
+
+  /** Corta fila PCM local (evita «duas vozes» sobrepostas). */
+  stopAssistantPlayback() {
+    try {
+      this.player?.stopAllQueued?.();
+    } catch (_) {}
+    try {
+      this.player?.resetSchedule?.();
     } catch (_) {}
   }
 

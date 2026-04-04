@@ -1,12 +1,13 @@
 /**
- * TABLE STYLES
+ * TABLE — premium industrial
  */
 
 .table-wrapper {
-  background: var(--bg-primary);
+  background: var(--surface-card);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
 }
 
 .table {
@@ -15,28 +16,32 @@
   font-size: 0.875rem;
 }
 
-/* Header */
 .table thead {
-  background: var(--bg-secondary);
-  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(180deg, var(--impetus-surface-2) 0%, var(--impetus-surface-1) 100%);
+  border-bottom: 1px solid var(--border-accent);
 }
 
 .table thead th {
   padding: 14px 16px;
   text-align: left;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .table thead th.sortable {
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .table thead th.sortable:hover {
-  background: var(--bg-hover);
+  background: rgba(77, 200, 255, 0.06);
+  color: var(--text-primary);
 }
 
 .th-content {
@@ -47,13 +52,16 @@
 
 .sort-icon-inactive {
   color: var(--text-tertiary);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
-/* Body */
 .table tbody tr {
-  border-bottom: 1px solid var(--border-color);
-  transition: background 0.2s;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(6, 18, 34, 0.35);
 }
 
 .table tbody tr:last-child {
@@ -61,7 +69,7 @@
 }
 
 .table tbody tr:hover {
-  background: var(--bg-hover);
+  background: rgba(26, 111, 255, 0.07);
 }
 
 .table tbody tr.clickable {
@@ -73,7 +81,6 @@
   color: var(--text-secondary);
 }
 
-/* Loading skeleton */
 .skeleton-row {
   pointer-events: none;
 }
@@ -82,9 +89,9 @@
   height: 16px;
   background: linear-gradient(
     90deg,
-    var(--bg-secondary) 25%,
-    var(--bg-tertiary) 50%,
-    var(--bg-secondary) 75%
+    var(--impetus-surface-1) 25%,
+    var(--impetus-surface-2) 50%,
+    var(--impetus-surface-1) 75%
   );
   background-size: 200% 100%;
   animation: skeleton 1.5s ease-in-out infinite;
@@ -96,7 +103,6 @@
   100% { background-position: -200% 0; }
 }
 
-/* Empty state */
 .table-empty {
   padding: 60px 20px;
   text-align: center;
@@ -107,19 +113,18 @@
   font-size: 0.95rem;
 }
 
-/* Pagination */
 .table-pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(4, 13, 24, 0.75);
 }
 
 .pagination-info {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
 }
 
 .pagination-controls {
@@ -134,30 +139,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  background: var(--surface-input);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+  background: rgba(26, 111, 255, 0.15);
+  color: var(--cyan);
+  border-color: var(--border-accent);
 }
 
 .pagination-btn.active {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+  background: linear-gradient(180deg, var(--impetus-blue), var(--impetus-blue-deep));
+  color: var(--impetus-text-strong);
+  border-color: rgba(26, 111, 255, 0.45);
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .pagination-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -166,7 +172,6 @@
   color: var(--text-tertiary);
 }
 
-/* Responsive */
 @media (max-width: 1024px) {
   .table-wrapper {
     overflow-x: auto;

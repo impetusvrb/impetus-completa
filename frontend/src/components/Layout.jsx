@@ -72,7 +72,16 @@ const USER_SETTINGS_FOCUS_NAV = [
 ];
 
 export default function Layout({ children }) {
-  const { openOverlay } = useImpetusVoice();
+  const { openOverlay, voiceEnabled: voiceUiEnabled, wakePhraseIssue } = useImpetusVoice();
+  const [wakeHttpBannerDismissed, setWakeHttpBannerDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('impetus_wake_http_dismiss') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const showWakeHttpBanner =
+    voiceUiEnabled && wakePhraseIssue === 'insecure' && !wakeHttpBannerDismissed;
   const pulseUi = useImpetusPulse();
   const pulseSup = useImpetusPulseSupervisor();
   const [pulseSupItem, setPulseSupItem] = useState(null);
@@ -181,6 +190,7 @@ export default function Layout({ children }) {
     const allowMaint = [
       '/app',
       '/app/proacao',
+      '/app/cadastrar-com-ia',
       '/app/registro-inteligente',
       '/app/chatbot',
       '/chat',
@@ -351,8 +361,28 @@ export default function Layout({ children }) {
     return `${dayName}, ${day} de ${month}`;
   };
 
+  const dismissWakeHttpBanner = () => {
+    try {
+      sessionStorage.setItem('impetus_wake_http_dismiss', '1');
+    } catch (_) {}
+    setWakeHttpBannerDismissed(true);
+  };
+
   return (
-    <div className="layout">
+    <div className={`layout${showWakeHttpBanner ? ' layout--wake-hint' : ''}`}>
+      {showWakeHttpBanner && (
+        <div className="layout-wake-banner" role="status">
+          <Mic size={16} aria-hidden />
+          <span>
+            Comando «Ok Impetus» não está disponível neste endereço (HTTP). Use{' '}
+            <strong>HTTPS</strong>, ou abra a IA pelo vídeo no menu, pelo botão de microfone ao lado, ou{' '}
+            <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>.
+          </span>
+          <button type="button" className="layout-wake-banner__close" onClick={dismissWakeHttpBanner} aria-label="Fechar aviso">
+            <X size={16} />
+          </button>
+        </div>
+      )}
       {/* Sidebar - Redesign IMPETUS */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="logo-area">
@@ -501,6 +531,17 @@ export default function Layout({ children }) {
               <span className="pulse" />
               SISTEMA ATIVO
             </div>
+            {voiceUiEnabled && (
+              <button
+                type="button"
+                className="icon-btn header-icon-btn header-icon-btn--mic"
+                title="IA operacional ao vivo — Alt+Shift+V"
+                aria-label="Abrir IA operacional ao vivo"
+                onClick={() => void openOverlay()}
+              >
+                <Mic size={20} />
+              </button>
+            )}
             <div className="header-dropdown-wrapper">
               <button
                 className={`icon-btn header-icon-btn ${showNotifications ? 'active' : ''} ${notificationCount > 0 ? 'has-alert' : ''}`}

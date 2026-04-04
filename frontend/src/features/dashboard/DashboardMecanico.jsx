@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { DashboardInteligente } from './index';
 import LiveDashboardUnifiedPanel from './components/LiveDashboardUnifiedPanel';
-import { isExecutiveLeadershipRole } from '../../utils/roleUtils';
+import { isExecutiveLeadershipRole, canUseTaskOrchestrationUser } from '../../utils/roleUtils';
 import './DashboardMecanico.css';
 
 /** Prefixo enviado ao chat para especializar respostas em contexto de manutenção */
@@ -547,9 +547,12 @@ export default function DashboardMecanico() {
           </>
         )}
 
-        <div className="dashboard-mecanico__base">
-          <DashboardInteligente embed />
-        </div>
+        {/* Dashboard embutido: só cargo real supervisor+ (user.role). Perfil tipo supervisor_maintenance em colaborador NÃO conta — evita resolveMenuRole enganar. */}
+        {canUseTaskOrchestrationUser(sessionUser) && (
+          <div className="dashboard-mecanico__base">
+            <DashboardInteligente embed />
+          </div>
+        )}
       </div>
     </Layout>
   );

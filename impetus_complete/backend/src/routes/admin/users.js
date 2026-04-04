@@ -41,7 +41,8 @@ const createUserSchema = z.object({
     z.number().int().min(0).max(5)
   ),
   permissions: z.array(z.string()).optional(),
-  functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional()
+  functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional(),
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -74,7 +75,7 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
   dashboard_profile: z.string().max(64).nullable().optional(),
-  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(500).nullable().optional())
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
 });
 
 /**
@@ -145,6 +146,7 @@ router.get('/',
           u.avatar_url, u.hierarchy_level, u.area, u.job_title, u.department,
           u.functional_area, u.dashboard_profile,
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
+          u.hr_responsibilities,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
@@ -272,14 +274,24 @@ router.post('/',
       const area = validatedData.area || null;
       const hierarchyLevel = validatedData.role === 'ceo' ? 0 : (area ? AREA_TO_LEVEL[area] : (validatedData.hierarchy_level ?? 5));
 
+      let hrResponsibilitiesParsed = [];
+      const hrText = validatedData.hr_responsibilities || '';
+      if (hrText) {
+        try {
+          const hrService = require('../../services/hrIntelligenceService');
+          hrResponsibilitiesParsed = hrService.parseResponsibilities(hrText);
+        } catch (_) {}
+      }
+
       // Criar usuário (CEO: executive_verified = false até verificação via WhatsApp)
       const result = await db.query(`
         INSERT INTO users (
           company_id, name, email, password_hash, role,
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
-          hierarchy_level, permissions, active, executive_verified, functional_area
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, created_at
+          hierarchy_level, permissions, active, executive_verified, functional_area,
+          hr_responsibilities, hr_responsibilities_parsed
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -296,7 +308,9 @@ router.post('/',
         validatedData.role === 'ceo' ? 0 : hierarchyLevel,
         JSON.stringify(validatedData.permissions || []),
         false,
-        validatedData.functional_area || null
+        validatedData.functional_area || null,
+        hrText || null,
+        JSON.stringify(hrResponsibilitiesParsed)
       ]);
 
       // Log de auditoria

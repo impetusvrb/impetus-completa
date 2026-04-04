@@ -3,27 +3,30 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: var(--space-xl);
   text-align: center;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  margin: 16px 0;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin: var(--space-md) 0;
+  box-shadow: var(--shadow-md);
 }
 
 .module-error-boundary svg {
-  color: #f59e0b;
+  color: var(--impetus-amber);
   margin-bottom: 12px;
 }
 
 .module-error-boundary h3 {
   margin: 0 0 8px;
   font-size: 1.1rem;
+  font-family: var(--font-display);
+  color: var(--text-primary);
 }
 
 .module-error-boundary p {
   margin: 0 0 16px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
 }
 
@@ -32,14 +35,16 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #1e40af;
-  color: #fff;
+  background: linear-gradient(180deg, var(--impetus-blue), var(--impetus-blue-deep));
+  color: var(--impetus-text-strong);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(26, 111, 255, 0.35);
 }
 
 .module-error-boundary__btn:hover {
-  background: #1d4ed8;
+  filter: brightness(1.08);
 }

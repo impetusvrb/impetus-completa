@@ -785,6 +785,9 @@ export function useVoiceEngine(options = {}) {
     speakAbortedRef.current = true;
     if (isVoiceRealtimeEnabled()) {
       try {
+        realtimeSessionRef.current?.stopAssistantPlayback?.();
+      } catch (_) {}
+      try {
         realtimeSessionRef.current?.cancelResponse();
       } catch (_) {}
     }
@@ -1441,6 +1444,10 @@ export function useVoiceEngine(options = {}) {
     failStreakRef.current = 0;
 
     if (isVoiceRealtimeEnabled()) {
+      try {
+        realtimeSessionRef.current?.disconnect();
+      } catch (_) {}
+      realtimeSessionRef.current = null;
       realtimeAsstTranscriptRef.current = '';
       realtimeUserTranscriptRef.current = '';
       setVoiceState((s) => ({
@@ -1668,6 +1675,13 @@ export function useVoiceEngine(options = {}) {
     runContinuousLoop();
   }, [runContinuousLoop, stopSpeaking, showBadge, resetVideoLipSync]);
 
+  /** Refs para o wake word poder chamar toggleVoice / reiniciar escuta sem dependências cíclicas */
+  const toggleVoiceRef = useRef(toggleVoice);
+  useEffect(() => {
+    toggleVoiceRef.current = toggleVoice;
+  }, [toggleVoice]);
+  const startWakeWordRef = useRef(() => {});
+
   const startListening = useCallback(() => {
     if (!continuousRef.current) toggleVoice();
   }, [toggleVoice]);
@@ -1702,51 +1716,39 @@ export function useVoiceEngine(options = {}) {
   }, []);
 
   const startWakeWord = useCallback(() => {
-    if (wakeRef.current || !localStorage.getItem('impetus_mic_granted')) return;
+    /* Nunca escutar «Ok Impetus» em paralelo ao modo contínuo / Realtime — causa 2 fluxos de áudio e trava o microfone. */
+    if (continuousRef.current) return;
+    if (wakeRef.current) return;
+    /* Web Speech API para o wake word exige contexto seguro (HTTPS ou localhost). Em http://IP não há deteção. */
+    if (typeof window !== 'undefined' && !window.isSecureContext) return;
+    const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SR) return;
     let w;
     w = new WakeWordDetector(() => {
       stopSpeaking();
       speakAbortedRef.current = false;
-      w.stop();
+      try {
+        w.stop();
+      } catch (_) {}
+      wakeRef.current = null;
+      wakeActiveRef.current = false;
+      setIsWakeWordActive(false);
       playBeep();
       window.dispatchEvent(new CustomEvent('impetus-wake-toast', { detail: { text: 'Oi, pode falar.' } }));
-      (async () => {
-        if (continuousRef.current) {
-          w.start();
-          return;
-        }
-        await speakActivationReply();
-        let text = '';
+      void (async () => {
+        if (continuousRef.current) return;
         try {
-          const useWhisper = import.meta.env.VITE_USE_WHISPER_STT === 'true';
-          if (useWhisper) {
-            const blob = await recordUntilSilence(null, () => false);
-            if (blob) text = await postTranscribe(blob);
+          await toggleVoiceRef.current?.();
+        } catch (_) {
+          /* toggleVoice já trata permissão de microfone */
+        } finally {
+          if (!continuousRef.current) {
+            setTimeout(() => {
+              try {
+                startWakeWordRef.current?.();
+              } catch (_) {}
+            }, 900);
           }
-          if (!text) {
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SR) {
-              text = await captureWebSpeechUntilPause(null, () => false, { silenceMs: 1600 });
-            }
-          }
-        } catch (_) {}
-        text = (text || '').trim();
-        const fn = chatRoundRef.current;
-        if (text && !STOP_WORDS.test(text) && fn && !isOnlyActivationPhrase(text)) {
-          await speakText(pickThinkingPhrase());
-          const chatRes = await fn(text).catch(() => null);
-          const reply =
-            typeof chatRes === 'string' ? chatRes : chatRes?.reply || '';
-          const sentimentContext =
-            typeof chatRes === 'string' ? null : (chatRes?.sentimentContext || chatRes?.sentiment || null);
-          if (reply)
-            await speakNaturalReply(
-              reply,
-              sentimentContext ? { sentimentContext, userText: text } : { userText: text }
-            );
-        }
-        if (!continuousRef.current && localStorage.getItem('impetus_mic_granted')) {
-          w.start();
         }
       })();
     });
@@ -1754,7 +1756,11 @@ export function useVoiceEngine(options = {}) {
     wakeActiveRef.current = true;
     setIsWakeWordActive(true);
     w.start();
-  }, [stopSpeaking, speakText, speakNaturalReply, speakActivationReply]);
+  }, [stopSpeaking]);
+
+  useEffect(() => {
+    startWakeWordRef.current = startWakeWord;
+  }, [startWakeWord]);
 
   const stopWakeWord = useCallback(() => {
     wakeRef.current?.stop();

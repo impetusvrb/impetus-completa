@@ -13,6 +13,7 @@ import { dashboard } from '../services/api';
 import { handleVoiceAlert } from '../services/voiceAlertManager';
 import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
+import { useRealtimePresenceBridge } from '../realtimePresence/useRealtimePresenceBridge';
 
 export default function ImpetusVoiceProvider({ children }) {
   const location = useLocation();
@@ -25,11 +26,24 @@ export default function ImpetusVoiceProvider({ children }) {
     () => !!localStorage.getItem('impetus_token'),
     [location.pathname, location.key]
   );
-  const isVoiceRoute =
-    location.pathname.startsWith('/app') ||
-    location.pathname.startsWith('/chat') ||
-    location.pathname.startsWith('/m');
-  const voiceEnabled = hasToken && isVoiceRoute;
+  /** Com token: «Ok Impetus» em todo o software, exceto login/recuperação de senha e telas de licença. */
+  const voiceExcludedPath = (p) => {
+    const path = String(p || '');
+    if (path === '/' || path === '') return true;
+    if (path.startsWith('/forgot-password') || path.startsWith('/reset-password')) return true;
+    if (path === '/license-expired' || path === '/subscription-expired') return true;
+    return false;
+  };
+  const voiceEnabled = hasToken && !voiceExcludedPath(location.pathname);
+
+  /** «Ok Impetus» depende da Web Speech API → só em HTTPS ou localhost. */
+  const wakePhraseIssue = useMemo(() => {
+    if (typeof window === 'undefined') return 'no-speech-api';
+    if (!window.isSecureContext) return 'insecure';
+    if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) return 'no-speech-api';
+    return null;
+  }, []);
+  const wakePhraseAvailable = wakePhraseIssue === null;
 
   const chatRound = useCallback(async (text) => {
     const history = voiceHistoryRef.current.slice(-12);
@@ -70,19 +84,43 @@ export default function ImpetusVoiceProvider({ children }) {
     voiceBadge,
     ttsUi,
     videoLipSyncRef,
-    toggleVoice,
+    toggleVoice: engineToggleVoice,
     speakText,
     speakNaturalReply,
     stopSpeaking,
     stopVoiceCapture,
     setAlertsEnabled,
     setVoicePrefs,
-    startWakeWord
+    startWakeWord,
+    stopWakeWord
   } = useVoiceEngine({
     chatRound,
     onSensitiveBlock: () => {
       setOverlayOpen(true);
     }
+  });
+
+  const voiceStateRef = useRef(voiceState);
+  useEffect(() => {
+    voiceStateRef.current = voiceState;
+  }, [voiceState]);
+
+  const startWakeWordRef = useRef(startWakeWord);
+  const stopWakeWordRef = useRef(stopWakeWord);
+  useEffect(() => {
+    startWakeWordRef.current = startWakeWord;
+    stopWakeWordRef.current = stopWakeWord;
+  }, [startWakeWord, stopWakeWord]);
+
+  const presenceBridgeEnabled =
+    voiceEnabled && (overlayOpen || voiceState.isContinuous || voiceState.status !== 'idle');
+
+  const presenceBridge = useRealtimePresenceBridge({
+    voiceStatus: voiceState.status,
+    pathname: location.pathname,
+    currentTranscript: voiceState.currentTranscript || '',
+    debounceMs: 240,
+    enabled: presenceBridgeEnabled
   });
 
   // Preferências (voz/velocidade + alertas)
@@ -115,17 +153,76 @@ export default function ImpetusVoiceProvider({ children }) {
     return () => window.removeEventListener('impetus-wake-toast', onWake);
   }, [voiceEnabled]);
 
+  // Escuta «Ok Impetus» — só em contexto seguro; deps estáveis para não conflitar com Realtime.
+  useEffect(() => {
+    if (!voiceEnabled || !wakePhraseAvailable) {
+      stopWakeWordRef.current();
+      return;
+    }
+    const t = setTimeout(() => startWakeWordRef.current(), 500);
+    return () => {
+      clearTimeout(t);
+      stopWakeWordRef.current();
+    };
+  }, [voiceEnabled, wakePhraseAvailable]);
+
   // Wake word volta após sair do contínuo
   const prevContinuousRef = useRef(false);
   useEffect(() => {
-    if (!voiceEnabled) return;
-    if (prevContinuousRef.current && !voiceState.isContinuous && localStorage.getItem('impetus_mic_granted')) {
-      const t = setTimeout(() => startWakeWord(), 800);
+    if (!voiceEnabled || !wakePhraseAvailable) return;
+    if (prevContinuousRef.current && !voiceState.isContinuous) {
+      const t = setTimeout(() => startWakeWordRef.current(), 800);
       prevContinuousRef.current = voiceState.isContinuous;
       return () => clearTimeout(t);
     }
     prevContinuousRef.current = voiceState.isContinuous;
-  }, [voiceState.isContinuous, startWakeWord, voiceEnabled]);
+  }, [voiceEnabled, wakePhraseAvailable, voiceState.isContinuous]);
+
+  // Ao voltar ao separador, o browser costuma parar o SpeechRecognition — religa o wake se não estiver em modo contínuo.
+  useEffect(() => {
+    if (!voiceEnabled || !wakePhraseAvailable) return;
+    let t = null;
+    const onVis = () => {
+      if (document.hidden) return;
+      if (voiceStateRef.current.isContinuous) return;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        t = null;
+        try {
+          startWakeWordRef.current();
+        } catch (_) {}
+      }, 450);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      if (t) clearTimeout(t);
+    };
+  }, [voiceEnabled, wakePhraseAvailable]);
+
+  const openOverlayActionRef = useRef(async () => {});
+  useEffect(() => {
+    openOverlayActionRef.current = async () => {
+      setOverlayOpen(true);
+      if (!voiceStateRef.current.isContinuous) {
+        await engineToggleVoice();
+      }
+    };
+  }, [engineToggleVoice]);
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+    const onKey = (e) => {
+      if (!e.altKey || !e.shiftKey) return;
+      if (String(e.key).toLowerCase() !== 'v') return;
+      const el = e.target;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      e.preventDefault();
+      void openOverlayActionRef.current();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [voiceEnabled]);
 
   // Alertas por voz global (em qualquer módulo)
   useEffect(() => {
@@ -207,11 +304,20 @@ export default function ImpetusVoiceProvider({ children }) {
       voiceBadge,
       ttsUi,
       overlayOpen,
-      openOverlay: () => setOverlayOpen(true),
+      voiceEnabled,
+      wakePhraseAvailable,
+      wakePhraseIssue,
+      /** Abre o painel e liga microfone/Realtime se ainda não estiver em modo contínuo (sidebar / atalhos). */
+      openOverlay: async () => {
+        setOverlayOpen(true);
+        if (!voiceStateRef.current.isContinuous) {
+          await engineToggleVoice();
+        }
+      },
       closeOverlay: () => setOverlayOpen(false),
       toggleVoice: async () => {
         setOverlayOpen(true);
-        return toggleVoice();
+        return engineToggleVoice();
       },
       speakNaturalReply,
       speakText,
@@ -237,7 +343,8 @@ export default function ImpetusVoiceProvider({ children }) {
         try {
           await dashboard.putVoicePreferences({ alerts_enabled: !!v });
         } catch (_) {}
-      }
+      },
+      realtimePresence: presenceBridge
     }),
     [
       alertMinPriority,
@@ -248,10 +355,14 @@ export default function ImpetusVoiceProvider({ children }) {
       speakText,
       stopSpeaking,
       stopVoiceCapture,
-      toggleVoice,
+      engineToggleVoice,
       ttsUi,
       voiceBadge,
-      voiceState
+      voiceState,
+      voiceEnabled,
+      wakePhraseAvailable,
+      wakePhraseIssue,
+      presenceBridge
     ]
   );
 
@@ -268,13 +379,16 @@ export default function ImpetusVoiceProvider({ children }) {
         didAvatarReplay={voiceState.didAvatarReplay}
         liveCaption={voiceState.currentTranscript}
         realtimeMode={voiceState.isRealtimeMode}
+        presenceExpression={presenceBridge.enabled ? presenceBridge.expressionLabel : null}
+        presencePerceptionState={presenceBridge.enabled ? presenceBridge.perception?.perception_state : null}
+        presenceAkoolReady={presenceBridge.enabled ? presenceBridge.akoolConfigured : false}
         onClose={() => {
           try {
             stopSpeaking();
           } catch (_) {}
           // Desliga o modo contínuo antes de stopVoiceCapture para toggleVoice ver continuousRef === true
           try {
-            if (voiceState.isContinuous) toggleVoice();
+            if (voiceState.isContinuous) engineToggleVoice();
           } catch (_) {}
           try {
             stopVoiceCapture();

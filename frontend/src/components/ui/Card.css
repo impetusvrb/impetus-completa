@@ -1,9 +1,9 @@
 .ui-card {
-  background: var(--bg-primary);
+  background: var(--surface-card);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .ui-card--padding-sm { padding: 12px; }
@@ -11,15 +11,15 @@
 .ui-card--padding-lg { padding: 24px; }
 
 .ui-card--hoverable:hover {
-  border-color: var(--color-primary-light);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-cyan);
+  transform: translateY(-1px);
 }
 
 .ui-card--active {
-  border-color: var(--color-primary);
-  background: var(--bg-active);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(77, 200, 255, 0.35);
+  background: var(--impetus-surface-2);
+  box-shadow: var(--shadow-lg);
 }
 
 .ui-card--interactive {

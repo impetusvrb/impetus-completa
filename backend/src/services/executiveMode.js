@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const { encrypt, decrypt } = require('../utils/crypto');
 const ai = require('./ai');
 const appImpetusService = require('./appImpetusService');
+const { IMPETUS_IA_GOVERNANCE_SYSTEM } = require('./impetusAIGovernancePolicy');
 const { cached } = require('../utils/cache');
 
 const EXECUTIVE_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutos de inatividade
@@ -285,7 +286,11 @@ async function processExecutiveQuery(companyId, userId, query, modoApresentacao 
     ? '\nMODO APRESENTAÇÃO ATIVO: Oculte valores financeiros detalhados. Mostre apenas KPIs consolidados. Nunca exponha dados sensíveis.'
     : '';
 
-  const prompt = `Você é o assistente estratégico do CEO de uma indústria. Analise os dados e responda com insights executivos.
+  const prompt = `${IMPETUS_IA_GOVERNANCE_SYSTEM}
+
+---
+
+Você é o assistente estratégico do CEO de uma indústria. Analise os dados e responda com insights executivos.
 
 DADOS DO SISTEMA (JSON):
 ${dataContext}
@@ -298,7 +303,8 @@ REGRAS:
 - Responda em linguagem executiva: objetivo, estratégico, acionável.
 - Inclua sugestões quando relevante (ex: "Sugestão: revisão preventiva em 72h").
 - Se não houver dados suficientes, informe e sugira o que verificar.
-- Máximo 3-5 parágrafos curtos.`;
+- Máximo 3-5 parágrafos curtos.
+- Aplique a constituição Impetus IA: para CEO, omita microtarefas, checklists técnicos locais e ruído operacional sem impacto estratégico.`;
 
   const response = await ai.chatCompletion(prompt, { max_tokens: 600 });
   return (response || 'Não foi possível processar a consulta no momento.').trim();

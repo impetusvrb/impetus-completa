@@ -56,6 +56,7 @@ async function validateSession(token) {
       SELECT s.id as session_id, s.user_id, s.expires_at,
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
+             u.hr_responsibilities,
              u.functional_area, u.dashboard_profile,
              u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
@@ -96,6 +97,7 @@ async function validateSession(token) {
       area: session.area,
       job_title: session.job_title,
       department: session.department,
+      hr_responsibilities: session.hr_responsibilities || null,
       functional_area: session.functional_area || null,
       dashboard_profile: session.dashboard_profile || null,
       preferred_kpis: session.preferred_kpis,
@@ -143,7 +145,7 @@ async function validateJWTAndLoadUser(token) {
 
     const r = await db.query(`
       SELECT id, name, email, role, company_id, department_id, hierarchy_level,
-             supervisor_id, area, job_title, department, functional_area, dashboard_profile,
+             supervisor_id, area, job_title, department, hr_responsibilities, functional_area, dashboard_profile,
              preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
              permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
@@ -166,6 +168,7 @@ async function validateJWTAndLoadUser(token) {
       area: u.area,
       job_title: u.job_title,
       department: u.department,
+      hr_responsibilities: u.hr_responsibilities || null,
       functional_area: u.functional_area || null,
       dashboard_profile: u.dashboard_profile || null,
       preferred_kpis: u.preferred_kpis,

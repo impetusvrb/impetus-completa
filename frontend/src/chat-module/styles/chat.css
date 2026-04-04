@@ -10,7 +10,8 @@
   .chat-header__back{padding:6px 8px;}
   .chat-header__back-text{display:none;}
 }
-.chat-header__brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--chat-accent);flex:1;}
+.chat-header__brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--chat-accent);flex:1;min-width:0;}
+.chat-header__actions{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;position:relative;z-index:2;}
 .chat-header__user{display:flex;align-items:center;gap:6px;color:var(--chat-dim);font-size:13px;}
 .chat-body{display:flex;flex:1;overflow:hidden;}
 .chat-sidebar{width:300px;min-width:300px;display:flex;flex-direction:column;background:var(--chat-sb);border-right:1px solid var(--chat-br);transition:width .2s,min-width .2s;overflow:hidden;}
@@ -114,3 +115,84 @@
 .modal-input:focus{border-color:var(--chat-accent);}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
 @media(max-width:767px){.chat-sidebar{position:absolute;z-index:20;height:100%;width:100% !important;min-width:100% !important;}.chat-sidebar.closed{display:none;}.msg-row{max-width:90%;}}
+
+/* Rótulos dos atalhos do header (Registro, Cadastrar, Pró-Ação, TPM) — em ecrãs estreitos só o ícone */
+.chat-header__quick-label{display:none;}
+@media (min-width:640px){
+  .chat-header__quick-label{display:inline;}
+}
+
+/* Pró-Ação + TPM embutidos (mesmo conteúdo da página /app/proacao) */
+.chat-proacao-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  background: var(--chat-bg, #0d0f14);
+}
+.chat-proacao-overlay__topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--chat-hd, #13161d);
+  border-bottom: 1px solid var(--chat-br, #1e2130);
+}
+.chat-proacao-overlay__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--chat-txt, #e2e8f0);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+.chat-proacao-overlay__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--chat-br, #1e2130);
+  background: var(--chat-input, #1a1d26);
+  color: var(--chat-txt, #e2e8f0);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+}
+.chat-proacao-overlay__back:hover {
+  border-color: var(--chat-accent, #6366f1);
+  color: var(--chat-accent, #6366f1);
+}
+.chat-proacao-overlay__fullpage {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--chat-accent, #6366f1);
+  background: transparent;
+  color: var(--chat-accent, #6366f1);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+}
+.chat-proacao-overlay__fullpage:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+.chat-proacao-overlay__back-text {
+  line-height: 1;
+}
+@media (max-width: 420px) {
+  .chat-proacao-overlay__back-text {
+    display: none;
+  }
+}
+.chat-proacao-overlay__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--chat-bg, #0d0f14);
+  -webkit-overflow-scrolling: touch;
+}

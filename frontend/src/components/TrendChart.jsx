@@ -7,6 +7,16 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './TrendChart.css';
 
+/** Cores alinhadas a styles/tokens.css (--chart-*) para evitar grid/tooltip claros */
+const CHART = {
+  grid: 'rgba(14, 40, 72, 0.45)',
+  axis: '#7a9ab8',
+  series: '#1a6fff',
+  tooltipBg: '#050d1a',
+  tooltipBorder: '#0e2848',
+  tooltipLabel: '#b8cce0'
+};
+
 export default function TrendChart({ data = [], loading = false }) {
   // Dados de exemplo se não houver dados
   const defaultData = [
@@ -53,35 +63,29 @@ export default function TrendChart({ data = [], loading = false }) {
         <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorInteractions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              <stop offset="5%" stopColor={CHART.series} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={CHART.series} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis 
-            dataKey="month" 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
-          />
-          <YAxis 
-            stroke="#6b7280"
-            style={{ fontSize: '12px' }}
-          />
-          <Tooltip 
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+          <XAxis dataKey="month" stroke={CHART.axis} tick={{ fill: CHART.axis, fontSize: 11 }} />
+          <YAxis stroke={CHART.axis} tick={{ fill: CHART.axis, fontSize: 11 }} />
+          <Tooltip
             contentStyle={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
+              background: CHART.tooltipBg,
+              border: `1px solid ${CHART.tooltipBorder}`,
               borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              boxShadow: '0 12px 40px rgba(0,0,0,0.55)'
             }}
-            labelStyle={{ color: '#374151', fontWeight: 600 }}
+            labelStyle={{ color: CHART.tooltipLabel, fontWeight: 600 }}
+            itemStyle={{ color: CHART.series }}
           />
-          <Area 
-            type="monotone" 
-            dataKey="interactions" 
-            stroke="#3b82f6" 
+          <Area
+            type="monotone"
+            dataKey="interactions"
+            stroke={CHART.series}
             strokeWidth={2}
-            fill="url(#colorInteractions)" 
+            fill="url(#colorInteractions)"
           />
         </AreaChart>
       </ResponsiveContainer>

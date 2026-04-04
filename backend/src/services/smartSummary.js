@@ -9,6 +9,7 @@ const documentContext = require('./documentContext');
 const userContext = require('./userContext');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const personalizedInsights = require('./personalizedInsightsService');
+const { IMPETUS_IA_GOVERNANCE_SYSTEM } = require('./impetusAIGovernancePolicy');
 const { cached } = require('../utils/cache');
 
 const isFriday = () => new Date().getDay() === 5;
@@ -107,6 +108,8 @@ async function generateSummary(opts) {
     commSummary,
     openComms,
     openProposals,
+    userCtx,
+    user,
   } = opts;
 
   const periodo = isWeekly ? 'últimos 7 dias' : 'ontem';
@@ -145,9 +148,9 @@ async function generateSummary(opts) {
 
   const langInstruction = userCtx ? userContext.getLanguageInstructions(userCtx) : '';
   const focusHint = userCtx?.area_focus?.length ? ` Priorize para área ${userCtx.area}: ${(userCtx.area_focus || []).slice(0, 3).join(', ')}.` : '';
-  const profileInstructions = opts.user ? personalizedInsights.getInsightsInstructions(
-    dashboardProfileResolver.resolveDashboardProfile(opts.user),
-    opts.user
+  const profileInstructions = user ? personalizedInsights.getInsightsInstructions(
+    dashboardProfileResolver.resolveDashboardProfile(user),
+    user
   ) : '';
 
   const prompt = `Você é o Impetus, assistente de inteligência operacional industrial. Crie um ${tipoRelatorio} para ${userName}. Ao se identificar nas respostas, use apenas o nome "Impetus".
@@ -187,9 +190,8 @@ Seja conciso e acionável. Máximo 600 palavras.`;
     forDiagnostic: false,
     user: opts.user || null
   });
-  const fullPrompt = docContext
-    ? `${prompt}\n\n${docContext}`
-    : prompt;
+  const body = docContext ? `${prompt}\n\n${docContext}` : prompt;
+  const fullPrompt = `${IMPETUS_IA_GOVERNANCE_SYSTEM}\n\n---\n\n${body}`;
 
   return await ai.chatCompletion(fullPrompt, { max_tokens: 1000 });
 }

@@ -112,6 +112,11 @@ app.use(
       const norm = rel.replace(/\\/g, '/');
       if (norm.startsWith('unity/manu-ia-viewer/Build/')) {
         setUnityBuildHeaders(res, filePath);
+        return;
+      }
+      /* Após deploy, forçar revalidação de JS/CSS (hashes mudam; evita ficar preso a bundle antigo) */
+      if (/\.(js|css)$/i.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       }
     }
   })

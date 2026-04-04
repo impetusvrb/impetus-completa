@@ -1,3 +1,8 @@
+/**
+ * Dashboard vivo / painel unificado — tema premium industrial (sem cartões brancos)
+ * Tokens: src/styles/tokens.css
+ */
+
 .live-intelligent-dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -20,21 +25,24 @@
 }
 
 .live-dash-title-icon {
-  color: #c9a227;
+  color: var(--impetus-amber);
   flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(232, 168, 56, 0.35));
 }
 
 .live-dash-title h1 {
   margin: 0;
   font-size: 1.35rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
 }
 
 .live-dash-sub {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-tertiary);
 }
 
 .live-dash-actions {
@@ -47,17 +55,19 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  background: var(--card-bg, #fff);
-  color: inherit;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .live-dash-btn:hover:not(:disabled) {
-  border-color: #c9a227;
-  color: #1a1a1a;
+  border-color: var(--border-accent);
+  color: var(--cyan);
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .live-dash-btn:disabled {
@@ -66,7 +76,7 @@
 }
 
 .live-dash-btn--ghost {
-  background: transparent;
+  background: rgba(6, 18, 34, 0.5);
 }
 
 .live-dash-btn--small {
@@ -75,9 +85,13 @@
 }
 
 .live-dash-btn--primary {
-  background: linear-gradient(135deg, #1e3a5f, #0f172a);
-  color: #fff;
-  border-color: transparent;
+  background: linear-gradient(180deg, var(--impetus-blue), var(--impetus-blue-deep));
+  color: var(--impetus-text-strong);
+  border-color: rgba(26, 111, 255, 0.4);
+}
+
+.live-dash-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
 }
 
 .live-dash-spin {
@@ -96,23 +110,36 @@
   align-items: center;
   gap: 0.5rem 0.75rem;
   padding: 0.65rem 1rem;
-  border-radius: 10px;
-  background: var(--card-bg-elevated, #f8fafc);
-  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg);
+  background: var(--impetus-surface-1);
+  border: 1px solid var(--border-subtle);
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-inset-subtle);
 }
 
 .live-dash-timebar-label {
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-display);
   font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   margin-right: 0.25rem;
 }
 
 .live-dash-dt {
   padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
   font-size: 0.85rem;
+  background: var(--surface-input);
+  color: var(--text-primary);
+}
+
+.live-dash-dt:focus {
+  outline: none;
+  border-color: rgba(77, 200, 255, 0.45);
+  box-shadow: var(--focus-ring);
 }
 
 .live-dash-banner {
@@ -120,36 +147,133 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.65rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
 
 .live-dash-banner--historical {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  background: rgba(26, 111, 255, 0.1);
+  border: 1px solid rgba(77, 200, 255, 0.25);
+  color: var(--cyan);
 }
 
 .live-dash-banner--error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background: var(--impetus-danger-soft);
+  border: 1px solid rgba(232, 93, 106, 0.35);
+  color: #f0a8ae;
+}
+
+/* Cartão de personalização — era o “bloco branco”; agora marinho premium */
+.live-dash-personalization {
+  margin-bottom: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-accent);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.live-dash-personalization::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), rgba(99, 102, 241, 0.4), transparent 72%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.live-dash-personalization--partial {
+  border-color: rgba(232, 168, 56, 0.35);
+  background: linear-gradient(165deg, rgba(232, 168, 56, 0.08), var(--surface-card));
+}
+
+.live-dash-personalization--minimal {
+  border-color: rgba(232, 93, 106, 0.35);
+  background: linear-gradient(165deg, rgba(232, 93, 106, 0.08), var(--surface-card));
+}
+
+.live-dash-personalization-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.live-dash-pers-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--impetus-blue), var(--impetus-blue-deep));
+  color: var(--impetus-text-strong);
+  box-shadow: 0 0 12px rgba(26, 111, 255, 0.25);
+}
+
+.live-dash-pers-meta {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.live-dash-pers-message {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.live-dash-pers-gaps {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.live-dash-pers-gaps strong {
+  color: var(--impetus-amber);
+}
+
+.live-dash-pers-gaps ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.live-dash-widgets-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  max-width: 52rem;
+}
+
+.live-dash-widget-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .live-dash-loading {
   padding: 2rem;
   text-align: center;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-tertiary);
 }
 
 .live-dash-summary {
-  padding: 1.1rem 1.25rem;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
-  color: #f1f5f9;
+  padding: 1.15rem 1.35rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, var(--impetus-surface-2) 0%, var(--impetus-navy-card) 45%, var(--impetus-bg-root) 100%);
+  color: var(--text-primary);
   margin-bottom: 1.25rem;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
 }
 
 .live-dash-summary p {
@@ -158,29 +282,55 @@
   line-height: 1.5;
 }
 
+.live-dash-summary-formatted {
+  margin: 0 0 0.75rem;
+}
+
+.live-dash-summary-para {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.live-dash-summary-para:last-child {
+  margin-bottom: 0;
+}
+
+.live-dash-summary-para strong {
+  color: var(--impetus-amber);
+  font-weight: 700;
+}
+
 .live-dash-signals {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1.25rem;
   font-size: 0.8rem;
-  opacity: 0.92;
+  color: var(--text-tertiary);
+}
+
+.live-dash-signals strong {
+  color: var(--cyan);
+  font-weight: 600;
 }
 
 .live-dash-sources {
   margin: 0 0 1.25rem;
   padding: 0.85rem 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
-  background: var(--card-bg-elevated, rgba(30, 41, 59, 0.45));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--impetus-surface-1);
 }
 
 .live-dash-sources-title {
   margin: 0 0 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-display);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted, #94a3b8);
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
 .live-dash-sources-list {
@@ -188,14 +338,14 @@
   padding-left: 1.1rem;
   font-size: 0.8rem;
   line-height: 1.55;
-  color: var(--text-secondary, #cbd5e1);
+  color: var(--text-secondary);
 }
 
 .live-dash-plan-source {
   display: inline-block;
   margin-bottom: 0.25rem;
   font-size: 0.78rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
 }
 
 .live-dash-visually-hidden {
@@ -220,19 +370,22 @@
 .live-dash-snapshots-list h3 {
   font-size: 0.95rem;
   margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  color: var(--text-primary);
 }
 
 .live-dash-alerts-preview ul {
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .live-dash-sev {
   font-size: 0.7rem;
   text-transform: uppercase;
   font-weight: 700;
-  color: #b45309;
+  color: var(--impetus-amber);
   margin-right: 0.35rem;
 }
 
@@ -243,34 +396,40 @@
 }
 
 .live-dash-widget-card {
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 0.85rem 1rem;
-  background: var(--card-bg, #fff);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.live-dash-widget-card:hover {
+  border-color: var(--border-accent);
 }
 
 .live-dash-widget-card--alert {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2);
+  border-color: rgba(232, 168, 56, 0.45);
+  box-shadow: 0 0 0 1px rgba(232, 168, 56, 0.15);
 }
 
 .live-dash-widget-card--pulse-critical {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35), 0 10px 28px rgba(239, 68, 68, 0.12);
-  background: linear-gradient(165deg, rgba(239, 68, 68, 0.1), transparent);
+  border-color: var(--impetus-danger) !important;
+  box-shadow: 0 0 0 2px rgba(232, 93, 106, 0.25), var(--shadow-md);
+  background: linear-gradient(165deg, rgba(232, 93, 106, 0.12), var(--surface-card));
 }
 
 .live-dash-widget-card--pulse-high {
-  border-color: #f97316 !important;
-  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.45);
+  border-color: rgba(249, 115, 22, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.2);
 }
 
 .live-dash-events-strip {
   margin-bottom: 1.1rem;
   padding: 0.85rem 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
-  background: var(--card-bg-elevated, rgba(15, 23, 42, 0.35));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--impetus-surface-1);
 }
 
 .live-dash-events-list {
@@ -288,7 +447,8 @@
   flex-direction: column;
   gap: 0.12rem;
   padding: 0.4rem 0 0.4rem 0.5rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .live-dash-event:last-child {
@@ -296,7 +456,7 @@
 }
 
 .live-dash-event--critical {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--impetus-danger);
 }
 
 .live-dash-event--high {
@@ -304,16 +464,17 @@
 }
 
 .live-dash-event--medium {
-  border-left: 3px solid #eab308;
+  border-left: 3px solid var(--impetus-amber);
 }
 
 .live-dash-event-title {
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .live-dash-event-detail {
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
 }
 
 .live-dash-plan-group {
@@ -327,8 +488,9 @@
 .live-dash-plan-group-title {
   margin: 0 0 0.5rem;
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 800;
   letter-spacing: 0.02em;
+  font-family: var(--font-display);
 }
 
 .live-dash-plan-group-title--alta {
@@ -340,37 +502,40 @@
 }
 
 .live-dash-plan-group-title--baixa {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .live-dash-widget-card h4 {
   margin: 0 0 0.25rem;
   font-size: 0.9rem;
+  color: var(--text-primary);
 }
 
 .live-dash-widget-meta {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-tertiary);
   text-transform: capitalize;
 }
 
 .live-dash-metric {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
+  color: var(--cyan);
 }
 
 .live-dash-orchestration {
   margin-top: 1.5rem;
   padding: 1rem 1.15rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  background: var(--card-bg, #fff);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-md);
 }
 
 .live-dash-orchestration-hint {
   font-size: 0.8rem;
-  color: var(--text-muted, #6b7280);
+  color: var(--text-tertiary);
   margin: 0 0 1rem;
 }
 
@@ -385,9 +550,10 @@
 
 .live-dash-plan-item {
   padding: 0.75rem 0.85rem;
-  border-radius: 8px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  background: var(--impetus-surface-1);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
 }
 
 .live-dash-plan-head {
@@ -399,7 +565,7 @@
 
 .live-dash-order {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .live-dash-priority {
@@ -411,23 +577,26 @@
 }
 
 .live-dash-priority--high {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(232, 93, 106, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(232, 93, 106, 0.35);
 }
 
 .live-dash-priority--mid {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(232, 168, 56, 0.15);
+  color: var(--impetus-amber);
+  border: 1px solid rgba(232, 168, 56, 0.3);
 }
 
 .live-dash-priority--low {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: rgba(77, 200, 255, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(77, 200, 255, 0.22);
 }
 
 .live-dash-plan-meta {
   font-size: 0.78rem;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0.35rem 0 0.5rem;
 }
 
@@ -441,6 +610,7 @@
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .live-dash-note {
@@ -449,10 +619,11 @@
   align-items: flex-start;
   margin-top: 1.25rem;
   padding: 0.85rem 1rem;
-  border-radius: 8px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-md);
+  background: rgba(46, 229, 157, 0.08);
+  border: 1px solid rgba(46, 229, 157, 0.28);
   font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .live-dash-note p {
@@ -462,6 +633,7 @@
 .live-dash-snapshots-list {
   margin-top: 1.5rem;
   font-size: 0.85rem;
+  color: var(--text-tertiary);
 }
 
 .live-dash-snapshots-list ul {
@@ -474,20 +646,25 @@
   background: none;
   border: none;
   padding: 0;
-  color: #2563eb;
+  color: var(--cyan);
   cursor: pointer;
   text-decoration: underline;
   font-size: inherit;
 }
 
+.live-dash-linkish:hover {
+  color: var(--impetus-text-strong);
+}
+
 .live-dash-snap-hint {
-  color: var(--text-muted, #6b7280);
+  color: var(--text-muted);
 }
 
 .live-dash-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(2, 6, 12, 0.75);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -498,20 +675,23 @@
 .live-dash-modal {
   max-width: 420px;
   width: 100%;
-  background: var(--card-bg, #fff);
-  border-radius: 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-xl);
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
+  color: var(--text-primary);
 }
 
 .live-dash-modal h2 {
   margin: 0 0 0.5rem;
   font-size: 1.1rem;
+  font-family: var(--font-display);
 }
 
 .live-dash-modal-warn {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin: 0.75rem 0 1rem;
 }
 
@@ -521,12 +701,12 @@
   gap: 0.5rem;
 }
 
-/* Painel unificado embutido na Visão Executiva (fundo escuro do exec-dash) */
+/* Variante embutida executiva — reforço de contraste no fundo do dashboard */
 .live-dash-unified--exec {
   max-width: none;
   margin: 0 0 1.25rem;
   padding: 0 0 1.25rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .live-dash-unified--exec .live-dash-title h1 {
@@ -534,42 +714,47 @@
 }
 
 .live-dash-unified--exec .live-dash-sub {
-  color: #94a3b8;
+  color: var(--text-tertiary);
+}
+
+.live-dash-unified--exec .live-dash-personalization {
+  background: var(--surface-card);
+  border-color: var(--border-accent);
 }
 
 .live-dash-unified--exec .live-dash-widget-card,
 .live-dash-unified--exec .live-dash-orchestration {
-  background: rgba(15, 23, 42, 0.55);
-  border-color: rgba(148, 163, 184, 0.22);
-  color: #e2e8f0;
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .live-dash-unified--exec .live-dash-widget-meta,
 .live-dash-unified--exec .live-dash-orchestration-hint,
 .live-dash-unified--exec .live-dash-plan-meta {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .live-dash-unified--exec .live-dash-plan-item {
-  background: rgba(30, 41, 59, 0.75);
-  border-color: rgba(148, 163, 184, 0.18);
-  color: #e2e8f0;
+  background: var(--impetus-surface-1);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 
 .live-dash-unified--exec .live-dash-timebar {
-  background: rgba(15, 23, 42, 0.45);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: var(--impetus-surface-1);
+  border-color: var(--border-subtle);
 }
 
 .live-dash-unified--exec .live-dash-widgets h3,
 .live-dash-unified--exec .live-dash-alerts-preview h3,
 .live-dash-unified--exec .live-dash-snapshots-list h3 {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .live-dash-unified--exec .live-dash-alerts-preview ul,
 .live-dash-unified--exec .live-dash-snapshots-list {
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .live-dash-unified--light {

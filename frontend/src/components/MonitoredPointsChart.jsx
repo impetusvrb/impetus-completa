@@ -49,12 +49,15 @@ export default function MonitoredPointsChart({ data = [], loading = false }) {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip 
+            <Tooltip
               contentStyle={{
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
+                background: '#050d1a',
+                border: '1px solid #0e2848',
+                borderRadius: '8px',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.55)'
               }}
+              labelStyle={{ color: '#b8cce0' }}
+              itemStyle={{ color: '#4dc8ff' }}
             />
           </PieChart>
         </ResponsiveContainer>

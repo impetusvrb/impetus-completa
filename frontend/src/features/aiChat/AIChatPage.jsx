@@ -37,11 +37,17 @@ export default function AIChatPage() {
   const {
     voiceState,
     voiceBadge,
-    toggleVoice,
     speakNaturalReply,
     stopSpeaking,
-    setAlertsEnabled
+    setAlertsEnabled,
+    toggleVoice
   } = useImpetusVoice();
+
+  /** idle | recording | transcribing — microfone só envia áudio transcrito, sem modo voz contínua / overlay */
+  const [voiceNoteState, setVoiceNoteState] = useState('idle');
+  const voiceRecorderRef = useRef(null);
+  const voiceStreamRef = useRef(null);
+  const voiceChunksRef = useRef([]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -111,6 +117,69 @@ export default function AIChatPage() {
   const hasMultimodalContent = pendingImage || pendingFileContext;
   const canSend = (input.trim() || hasMultimodalContent) && !sending;
 
+  const stopVoiceNoteStream = useCallback(() => {
+    voiceStreamRef.current?.getTracks().forEach((t) => t.stop());
+    voiceStreamRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      try {
+        voiceRecorderRef.current?.stop();
+      } catch (_) {}
+      stopVoiceNoteStream();
+    };
+  }, [stopVoiceNoteStream]);
+
+  /** Após o utilizador já estar na lista de mensagens. multimodalPayload = null para texto só. */
+  const runChatRequest = useCallback(
+    async (textForApi, historyBeforeUser, multimodalPayload) => {
+      setSending(true);
+      if (voiceState.isContinuous) stopSpeaking();
+      try {
+        let r;
+        if (multimodalPayload) {
+          r = await dashboard.chatMultimodal(multimodalPayload);
+        } else {
+          r = await dashboard.chat(textForApi, historyBeforeUser, {
+            voiceMode: voiceState.isContinuous
+          });
+        }
+        const reply =
+          r.data?.ok && r.data?.reply
+            ? r.data.reply
+            : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
+        setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
+        if (autoSpeakResponses && voiceState.isContinuous) {
+          await speakNaturalReply(reply);
+        }
+      } catch (e) {
+        if (!multimodalPayload && e.response?.data?.code === 'SENSITIVE_CONTENT') {
+          setPendingMessage({ text: textForApi, history: historyBeforeUser });
+          setSensitiveModal(true);
+          setMessages((m) => m.slice(0, -1));
+          setInput(textForApi);
+          return;
+        }
+        const errMsg =
+          e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
+        setMessages((m) => [
+          ...m,
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            content:
+              errMsg ||
+              'Parece que houve um problema de conexão. Verifique sua rede e tente novamente.'
+          }
+        ]);
+      } finally {
+        setSending(false);
+      }
+    },
+    [autoSpeakResponses, speakNaturalReply, stopSpeaking, voiceState.isContinuous]
+  );
+
   const handleSend = async () => {
     const text = input.trim();
     if ((!text && !hasMultimodalContent) || sending) return;
@@ -124,55 +193,113 @@ export default function AIChatPage() {
     const fileCtxToSend = pendingFileContext;
     setPendingImage(null);
     setPendingFileContext(null);
-    setSending(true);
 
-    if (voiceState.isContinuous) stopSpeaking();
+    if (imgToSend || fileCtxToSend) {
+      await runChatRequest(null, historyBeforeUser, {
+        message: text || 'Analise o conteúdo anexado.',
+        history: historyBeforeUser,
+        imageBase64: imgToSend || undefined,
+        fileContext: fileCtxToSend || undefined
+      });
+    } else {
+      await runChatRequest(text, historyBeforeUser, null);
+    }
+  };
+
+  const handleVoiceNoteClick = async () => {
+    if (sending || voiceNoteState === 'transcribing') return;
+
+    if (voiceNoteState === 'recording') {
+      voiceRecorderRef.current?.stop();
+      return;
+    }
 
     try {
-      let r;
-      if (imgToSend || fileCtxToSend) {
-        r = await dashboard.chatMultimodal({
-          message: text || 'Analise o conteúdo anexado.',
-          history: historyBeforeUser,
-          imageBase64: imgToSend || undefined,
-          fileContext: fileCtxToSend || undefined
-        });
-      } else {
-        r = await dashboard.chat(text, historyBeforeUser, {
-          voiceMode: voiceState.isContinuous
-        });
-      }
-      const reply =
-        r.data?.ok && r.data?.reply
-          ? r.data.reply
-          : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
-      if (autoSpeakResponses && voiceState.isContinuous) {
-        await speakNaturalReply(reply);
-      }
-    } catch (e) {
-      if (e.response?.data?.code === 'SENSITIVE_CONTENT') {
-        setPendingMessage({ text, history: historyBeforeUser });
-        setSensitiveModal(true);
-        setMessages((m) => m.slice(0, -1));
-        setInput(text);
-        setSending(false);
-        return;
-      }
-      const errMsg =
-        e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+      });
+      voiceStreamRef.current = stream;
+      voiceChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const rec = new MediaRecorder(stream, { mimeType });
+      voiceRecorderRef.current = rec;
+
+      rec.ondataavailable = (e) => {
+        if (e.data.size) voiceChunksRef.current.push(e.data);
+      };
+
+      rec.onstop = async () => {
+        stopVoiceNoteStream();
+        voiceRecorderRef.current = null;
+        const baseType = mimeType.split(';')[0] || 'audio/webm';
+        const blob = new Blob(voiceChunksRef.current, { type: baseType });
+        voiceChunksRef.current = [];
+        setVoiceNoteState('transcribing');
+        try {
+          if (blob.size < 900) {
+            setMessages((m) => [
+              ...m,
+              {
+                id: Date.now(),
+                role: 'assistant',
+                content: 'Gravação muito curta. Segure o microfone e fale um pouco mais.'
+              }
+            ]);
+            return;
+          }
+          const r = await dashboard.transcribeChatAudio(blob, {
+            prompt:
+              'sistema industrial, manutenção, alertas, produção, linha, máquina, Impetus'
+          });
+          const transcript = String(r.data?.transcript || '').trim();
+          if (!transcript) {
+            setMessages((m) => [
+              ...m,
+              {
+                id: Date.now(),
+                role: 'assistant',
+                content: 'Não consegui transcrever o áudio. Tente falar mais perto do microfone.'
+              }
+            ]);
+            return;
+          }
+          const historyBeforeUser = messagesRef.current.map((m) => ({
+            role: m.role,
+            content: m.content
+          }));
+          setMessages((m) => [
+            ...m,
+            { id: Date.now(), role: 'user', content: transcript }
+          ]);
+          await runChatRequest(transcript, historyBeforeUser, null);
+        } catch (e) {
+          const msg =
+            e?.response?.data?.error ||
+            e?.message ||
+            'Não foi possível transcrever o áudio.';
+          setMessages((m) => [
+            ...m,
+            { id: Date.now(), role: 'assistant', content: msg }
+          ]);
+        } finally {
+          setVoiceNoteState('idle');
+        }
+      };
+
+      rec.start(200);
+      setVoiceNoteState('recording');
+    } catch (_) {
+      stopVoiceNoteStream();
       setMessages((m) => [
         ...m,
         {
-          id: Date.now() + 1,
+          id: Date.now(),
           role: 'assistant',
-          content:
-            errMsg ||
-            'Parece que houve um problema de conexão. Verifique sua rede e tente novamente.'
+          content: 'Não foi possível usar o microfone. Verifique a permissão do navegador.'
         }
       ]);
-    } finally {
-      setSending(false);
     }
   };
 
@@ -244,30 +371,36 @@ export default function AIChatPage() {
   };
 
   const micStatusClass =
-    voiceState.status === 'listening'
+    voiceNoteState === 'recording'
       ? 'ai-chat-mic-icon--listening'
-      : voiceState.status === 'processing'
+      : voiceNoteState === 'transcribing'
         ? 'ai-chat-mic-icon--processing'
-        : voiceState.status === 'speaking'
-          ? 'ai-chat-mic-icon--speaking'
-          : 'ai-chat-mic-icon--idle';
+        : 'ai-chat-mic-icon--idle';
 
   return (
     <Layout>
       <div className="ai-chat-page">
         <header className="ai-chat-header">
-          <img
-            src={impetusIaAvatar}
-            alt="Impetus IA"
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '2px solid #1E90FF',
-              boxShadow: '0 0 12px rgba(30,144,255,0.4)'
-            }}
-          />
+          <button
+            type="button"
+            className="ai-chat-header-avatar-btn"
+            onClick={() => void toggleVoice()}
+            title="Abrir IA operacional ao vivo e ativar escuta (como «Ok Impetus»)"
+          >
+            <img
+              src={impetusIaAvatar}
+              alt="Impetus IA"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #1E90FF',
+                boxShadow: '0 0 12px rgba(30,144,255,0.4)',
+                display: 'block'
+              }}
+            />
+          </button>
           <div style={{ flex: 1 }}>
             <h1>Impetus</h1>
             <p className="ai-chat-header-tag">Assistente industrial • Multimodal</p>
@@ -393,24 +526,28 @@ export default function AIChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder={hasMultimodalContent ? 'Adicione pergunta (opcional)...' : 'Digite ou fale...'}
+                placeholder={
+                  hasMultimodalContent
+                    ? 'Adicione pergunta (opcional)...'
+                    : voiceState.isContinuous
+                      ? 'Ouvindo……'
+                      : 'Digite ou use o microfone para gravar...'
+                }
                 disabled={sending}
               />
-              {voiceState.currentTranscript && voiceState.isContinuous && (
-                <span className="ai-chat-input-partial" aria-live="polite">
-                  {voiceState.currentTranscript}
-                </span>
-              )}
               <button
                 type="button"
                 className={`ai-chat-mic-icon ${micStatusClass}`}
-                onClick={toggleVoice}
+                onClick={handleVoiceNoteClick}
+                disabled={sending || voiceNoteState === 'transcribing'}
                 title={
-                  voiceState.isContinuous
-                    ? 'Modo voz ativo — clique para parar'
-                    : 'Clique para conversa por voz contínua'
+                  voiceNoteState === 'recording'
+                    ? 'Clique para parar e enviar o áudio'
+                    : voiceNoteState === 'transcribing'
+                      ? 'A transcrever…'
+                      : 'Gravar mensagem de voz — clique de novo para parar e enviar'
                 }
-                aria-pressed={voiceState.isContinuous}
+                aria-pressed={voiceNoteState === 'recording'}
               >
                 <Mic size={16} strokeWidth={2} />
               </button>
@@ -420,13 +557,6 @@ export default function AIChatPage() {
             <Send size={20} />
           </button>
         </div>
-
-        {voiceState.isContinuous && (
-          <div
-            className="ai-chat-voice-dot"
-            title="Modo voz ativo — clique no microfone para parar"
-          />
-        )}
 
         {sensitiveModal && (
           <div

@@ -13,6 +13,26 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.ai-chat-header-avatar-btn {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.ai-chat-header-avatar-btn:hover img {
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.45) !important;
+}
+
+.ai-chat-header-avatar-btn:focus-visible {
+  outline: 2px solid var(--cyan, #00d4ff);
+  outline-offset: 3px;
+}
+
 .ai-chat-toolbar {
   display: flex;
   gap: 6px;

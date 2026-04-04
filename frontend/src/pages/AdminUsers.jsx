@@ -11,7 +11,7 @@ import {
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
-import { InputField, SelectField, CheckboxField } from '../components/FormField';
+import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
 import { adminUsers, adminDepartments } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminUsers.css';
@@ -50,6 +50,7 @@ export default function AdminUsers() {
     department: '',
     department_id: '',
     supervisor_id: '',
+    hr_responsibilities: '',
     phone: '',
     whatsapp_number: '',
     hierarchy_level: 5,
@@ -127,6 +128,7 @@ export default function AdminUsers() {
         phone: formData.phone || undefined,
         whatsapp_number: formData.whatsapp_number || undefined,
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
+        hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
       };
 
       await adminUsers.create(payload);
@@ -168,6 +170,7 @@ export default function AdminUsers() {
         hierarchy_level: formData.hierarchy_level !== undefined && formData.hierarchy_level !== ''
           ? Number(formData.hierarchy_level)
           : undefined,
+        hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
       };
       delete updateData.password; // Não atualizar senha aqui
 
@@ -251,6 +254,7 @@ export default function AdminUsers() {
       department: user.department || '',
       department_id: user.department_id || '',
       supervisor_id: user.supervisor_id || '',
+      hr_responsibilities: user.hr_responsibilities || '',
       phone: user.phone || '',
       whatsapp_number: user.whatsapp_number || '',
       hierarchy_level: user.hierarchy_level,
@@ -283,6 +287,8 @@ export default function AdminUsers() {
       job_title: '',
       department: '',
       department_id: '',
+      supervisor_id: '',
+      hr_responsibilities: '',
       phone: '',
       whatsapp_number: '',
       hierarchy_level: 5,
@@ -688,6 +694,17 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
           />
         )}
       </div>
+
+      <TextAreaField
+        label="O que faz / descrição do papel"
+        name="hr_responsibilities"
+        value={formData.hr_responsibilities || ''}
+        onChange={onChange}
+        placeholder="Ex: Mecânico de manutenção na linha 2 — corrige paradas, lubrificação e PMOs; reporta ao supervisor de manutenção."
+        rows={4}
+        error={formErrors.hr_responsibilities}
+        helperText="Descreva setor, função e atividades principais. A IA usa isso para personalizar linguagem, prioridades e escopo (até 2000 caracteres)."
+      />
 
       <div className="form-grid-2">
         <InputField

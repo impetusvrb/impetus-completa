@@ -5,6 +5,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import ImpetusAvatarLive from './ImpetusAvatarLive';
+import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import './ImpetusVoiceOverlay.css';
 
 function statusLabel(status, realtimeMode) {
@@ -28,9 +29,30 @@ export default function ImpetusVoiceOverlay({
   realtimeMode = false,
   onClose,
   voiceAvatarAnimationEnabled = true,
-  voiceAvatarControlRef = null
+  voiceAvatarControlRef = null,
+  /** Realtime Presence Engine — estado de expressão decidido pelo IMPETUS (Akool só executa) */
+  presenceExpression = null,
+  presencePerceptionState = null,
+  presenceAkoolReady = false
 }) {
   const passLipSync = videoLipSyncRef;
+  const { toggleVoice, voiceState, wakePhraseIssue } = useImpetusVoice();
+
+  const liveHint = () => {
+    if (!voiceState.isContinuous) {
+      if (wakePhraseIssue === 'insecure') {
+        return 'Em HTTP o «Ok Impetus» não funciona. Toque na avatar, use Alt+Shift+V ou HTTPS.';
+      }
+      if (wakePhraseIssue === 'no-speech-api') {
+        return 'Comando por voz indisponível neste navegador. Toque na avatar para ativar o microfone.';
+      }
+      return 'Toque na avatar para ATIVAR o microfone (ou diga «Ok Impetus» fora deste painel)';
+    }
+    const lab = statusLabel(status, realtimeMode);
+    if (lab === 'PRONTA') return 'A ligar escuta…';
+    if (lab === 'OUVINDO…' || (realtimeMode && status === 'listening')) return 'OUVINDO COMANDO……';
+    return lab;
+  };
 
   if (!open) return null;
 
@@ -52,6 +74,8 @@ export default function ImpetusVoiceOverlay({
           : 'impetus-voice-overlay--idle';
   const flashClass = bargeInFlash ? ' impetus-voice-overlay--listening-flash' : '';
   const bars = Array.from({ length: 28 }, (_, i) => i);
+
+  const commandHint = liveHint();
 
   return (
     <div className={`impetus-voice-overlay ${modeClass}${flashClass}`} role="dialog" aria-modal="true">
@@ -78,24 +102,41 @@ export default function ImpetusVoiceOverlay({
                 <div className="impetus-voice-overlay__orbit impetus-voice-overlay__orbit--d" />
               </div>
               <div className="impetus-voice-overlay__avatar-ring" aria-hidden="true" />
-              <ImpetusAvatarLive
-                state={avatarState}
-                mouthState={mouthState}
-                size={344}
-                immersiveVoice
-                videoLipSyncRef={passLipSync}
-                didVideoUrl={didAvatarVideoUrl}
-                didReplayOverlay={didAvatarReplay}
-                didPrimarySpeaking={false}
-                voiceAvatarAnimationEnabled={voiceAvatarAnimationEnabled}
-                voiceAvatarControlRef={voiceAvatarControlRef}
-              />
+              <button
+                type="button"
+                className="impetus-voice-overlay__avatar-trigger"
+                onClick={() => void toggleVoice()}
+                title={
+                  voiceState.isContinuous
+                    ? 'Desativar escuta contínua'
+                    : 'Ativar escuta — microfone (mesmo efeito que «Ok Impetus»)'
+                }
+                aria-pressed={voiceState.isContinuous}
+              >
+                <ImpetusAvatarLive
+                  state={avatarState}
+                  mouthState={mouthState}
+                  size={344}
+                  immersiveVoice
+                  videoLipSyncRef={passLipSync}
+                  didVideoUrl={didAvatarVideoUrl}
+                  didReplayOverlay={didAvatarReplay}
+                  didPrimarySpeaking={false}
+                  voiceAvatarAnimationEnabled={voiceAvatarAnimationEnabled}
+                  voiceAvatarControlRef={voiceAvatarControlRef}
+                />
+              </button>
             </div>
 
             <div className="impetus-voice-overlay__command-card">
+              {voiceState.lastAlert && (
+                <p className="impetus-voice-overlay__alert" role="alert">
+                  {voiceState.lastAlert}
+                </p>
+              )}
               <div className="impetus-voice-overlay__listening-bar">
                 <span className="impetus-voice-overlay__dot" />
-                <span>{statusLabel(status, realtimeMode) === 'PRONTA' ? 'OUVINDO COMANDO...' : statusLabel(status, realtimeMode)}</span>
+                <span>{commandHint}</span>
                 <div className="impetus-voice-overlay__wave" aria-hidden="true">
                   {bars.map((i) => (
                     <span
@@ -109,6 +150,24 @@ export default function ImpetusVoiceOverlay({
                   ))}
                 </div>
               </div>
+              {(presenceExpression || presencePerceptionState) && (
+                <p className="impetus-voice-overlay__presence" aria-live="polite">
+                  <span className="impetus-voice-overlay__presence-label">Presença</span>
+                  {presencePerceptionState && (
+                    <span className="impetus-voice-overlay__presence-chip">{presencePerceptionState}</span>
+                  )}
+                  {presenceExpression && (
+                    <span className="impetus-voice-overlay__presence-chip impetus-voice-overlay__presence-chip--expr">
+                      {presenceExpression}
+                    </span>
+                  )}
+                  {presenceAkoolReady && (
+                    <span className="impetus-voice-overlay__presence-akool" title="Motor Akool configurado no servidor">
+                      Akool
+                    </span>
+                  )}
+                </p>
+              )}
 
             </div>
           </section>

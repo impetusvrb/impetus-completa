@@ -5,6 +5,12 @@
   padding: 24px;
 }
 
+/* Variante embutida no Chat Impetus (painel sobre fundo escuro) */
+.proacao-workspace--embedded.proacoes-content {
+  padding: 16px 16px 32px;
+  max-width: 100%;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

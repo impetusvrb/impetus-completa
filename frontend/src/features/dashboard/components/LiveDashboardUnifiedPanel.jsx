@@ -22,6 +22,30 @@ function groupPlanItems(items) {
   return g;
 }
 
+/** Resumo com blocos (\\n\\n) e **negrito** simples — alinhado ao motor executivo do backend. */
+function FormattedIntelligentSummary({ text }) {
+  if (!text || typeof text !== 'string') return null;
+  const blocks = text.split(/\n\n+/).filter(Boolean);
+  return (
+    <div className="live-dash-summary-formatted">
+      {blocks.map((block, i) => {
+        const parts = block.split(/(\*\*[^*]+\*\*)/g);
+        return (
+          <p key={i} className="live-dash-summary-para">
+            {parts.map((p, j) =>
+              p.startsWith('**') && p.endsWith('**') ? (
+                <strong key={j}>{p.slice(2, -2)}</strong>
+              ) : (
+                <span key={j}>{p}</span>
+              )
+            )}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = false }) {
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -152,8 +176,8 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             <h1>{variant === 'exec' ? 'Operação em tempo real · IA & orquestração' : 'Dashboard vivo integrado'}</h1>
             <p className="live-dash-sub">
               {variant === 'exec'
-                ? 'Integrado ao dashboard (CEO, diretor, gerente, coordenador, supervisor) — grid abaixo segue o perfil e /dashboard/personalizado'
-                : 'Adaptativo · histórico · tarefas (liderança)'}
+                ? 'Cartões e métricas vêm do seu perfil Impetus (cargo + setor + hierarquia). Sem cadastro completo, o painel deixa isso explícito.'
+                : 'Personalizado por perfil e escopo; atualização automática a cada ~20 s.'}
             </p>
           </div>
         </div>
@@ -212,9 +236,40 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
 
       {display && (
         <>
+          {display.personalization && (
+            <section
+              className={`live-dash-personalization live-dash-personalization--${display.personalization.data_sufficiency || 'full'}`}
+              aria-label="Contexto do seu perfil"
+            >
+              <div className="live-dash-personalization-head">
+                <span className="live-dash-pers-badge">{display.personalization.profile_label || display.personalization.profile_code}</span>
+                {display.personalization.functional_area_label && (
+                  <span className="live-dash-pers-meta">Setor funcional: {display.personalization.functional_area_label}</span>
+                )}
+                {display.personalization.department_name && (
+                  <span className="live-dash-pers-meta">Departamento: {display.personalization.department_name}</span>
+                )}
+                {display.personalization.job_title && (
+                  <span className="live-dash-pers-meta">Função: {display.personalization.job_title}</span>
+                )}
+              </div>
+              <p className="live-dash-pers-message">{display.personalization.user_message}</p>
+              {Array.isArray(display.personalization.gaps) && display.personalization.gaps.length > 0 && (
+                <div className="live-dash-pers-gaps">
+                  <strong>Dados em falta ou genéricos:</strong>
+                  <ul>
+                    {display.personalization.gaps.map((g) => (
+                      <li key={g}>{g}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
           <section className="live-dash-summary" aria-live="polite">
             <h2 className="live-dash-visually-hidden">Resumo inteligente</h2>
-            <p>{display.intelligent_summary}</p>
+            <FormattedIntelligentSummary text={display.intelligent_summary} />
             <div className="live-dash-signals">
               <span>
                 Tarefas abertas: <strong>{display.signals?.tasks?.open ?? '—'}</strong>
@@ -275,6 +330,12 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                 <li>
                   Logs / auditoria (24h): {display.data_sources.audit_logs?.severe_or_failed_24h ?? 0} evento(s) relevante(s)
                 </li>
+                {display.data_sources.communications_open_in_scope != null && (
+                  <li>
+                    Comunicações em aberto (no seu escopo):{' '}
+                    <strong>{display.data_sources.communications_open_in_scope}</strong>
+                  </li>
+                )}
               </ul>
             </section>
           )}
@@ -307,7 +368,10 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
           )}
 
           <section className="live-dash-widgets" aria-label="Widgets do perfil">
-            <h3>Widgets adaptativos (prioridade pelo seu setor no cadastro)</h3>
+            <h3>Cartões do seu perfil Impetus</h3>
+            <p className="live-dash-widgets-hint">
+              Cada card vem da matriz cargo + setor. Se não houver número, o backend indica o motivo no próprio card.
+            </p>
             <div className="live-dash-widget-grid">
               {sortedWidgets.map((w) => (
                 <article
@@ -332,6 +396,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                       {w.live_metric.label}: <strong>{w.live_metric.value}</strong>
                     </p>
                   )}
+                  {w.personalization_note && <p className="live-dash-widget-note">{w.personalization_note}</p>}
                 </article>
               ))}
             </div>
@@ -340,9 +405,10 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
           {orch && (
             <>
               <section className="live-dash-orchestration">
-                <h3>Plano do dia · orquestração (supervisor a CEO)</h3>
+                <h3>{display.orchestration?.plan_title || 'Plano do dia — orquestração'}</h3>
                 <p className="live-dash-orchestration-hint">
-                  Prioridades a partir de dados reais. Ações críticas só após sua confirmação.
+                  {display.orchestration?.plan_hint ||
+                    'Prioridades a partir de dados reais e do seu nível hierárquico. Ações só após sua confirmação.'}
                 </p>
                 {['alta', 'media', 'baixa'].map((pri) => {
                   const list = planByPriority?.[pri] || [];
@@ -419,7 +485,9 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             <section className="live-dash-note">
               <CheckCircle2 size={18} />
               <p>
-                Visão de execução: orquestração de tarefas fica com supervisor, coordenador, gerente, diretor e CEO.
+                O <strong>plano do dia com orquestração</strong> aparece apenas para <strong>supervisor</strong>,{' '}
+                <strong>coordenador</strong>, <strong>gerente</strong>, <strong>diretor</strong> e <strong>CEO</strong>. Operadores
+                e técnicos de chão de fábrica não veem este bloco — o conteúdo muda por nível (estratégico, tático ou supervisão).
               </p>
             </section>
           )}

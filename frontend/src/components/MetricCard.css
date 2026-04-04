@@ -1,66 +1,68 @@
 /**
- * ESTILOS DO METRIC CARD
+ * METRIC CARD — hierarquia e superfície premium
  */
 
 .metric-card {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  gap: var(--space-md);
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .metric-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-cyan);
 }
 
 .metric-card--clickable {
   cursor: pointer;
-  border: none;
-  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
   text-align: left;
   font: inherit;
   width: 100%;
 }
 
 .metric-card--clickable:hover {
-  border-color: var(--color-primary);
+  border-color: rgba(77, 200, 255, 0.35);
 }
 
-/* Ícone */
 .metric-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: white;
+  color: var(--impetus-text-strong);
 }
 
 .metric-blue .metric-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  background: linear-gradient(135deg, rgba(26, 111, 255, 0.95), rgba(13, 79, 204, 0.9));
+  box-shadow: 0 0 20px rgba(26, 111, 255, 0.2);
 }
 
 .metric-teal .metric-icon {
-  background: linear-gradient(135deg, #14b8a6 0%, #0891b2 100%);
+  background: linear-gradient(135deg, rgba(46, 229, 157, 0.35), rgba(31, 168, 118, 0.5));
+  color: var(--impetus-success);
 }
 
 .metric-purple .metric-icon {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(79, 70, 229, 0.55));
 }
 
 .metric-orange .metric-icon {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: linear-gradient(135deg, rgba(232, 168, 56, 0.35), rgba(200, 120, 40, 0.45));
+  color: var(--impetus-amber);
 }
 
-/* Conteúdo */
 .metric-content {
   flex: 1;
   display: flex;
@@ -69,37 +71,41 @@
 }
 
 .metric-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--gray-600);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
 .metric-value {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--gray-900);
-  line-height: 1;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
 }
 
 .metric-growth {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   margin-top: 4px;
 }
 
 .metric-growth.positive {
-  color: var(--status-low);
+  color: var(--impetus-success);
 }
 
 .metric-growth.negative {
-  color: var(--status-critical);
+  color: var(--impetus-danger);
 }
 
-/* Loading State */
 .metric-card.loading {
   pointer-events: none;
 }
@@ -107,8 +113,8 @@
 .skeleton-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--impetus-surface-1) 25%, var(--impetus-surface-2) 50%, var(--impetus-surface-1) 75%);
   background-size: 200% 100%;
   animation: loading 1.5s ease-in-out infinite;
 }
@@ -124,8 +130,8 @@
 .skeleton-value,
 .skeleton-growth {
   height: 16px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--impetus-surface-1) 25%, var(--impetus-surface-2) 50%, var(--impetus-surface-1) 75%);
   background-size: 200% 100%;
   animation: loading 1.5s ease-in-out infinite;
 }
@@ -146,18 +152,13 @@
 }
 
 @keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
   .metric-card {
-    padding: 16px;
+    padding: var(--space-md);
   }
 
   .metric-icon {
@@ -166,6 +167,6 @@
   }
 
   .metric-value {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
 }

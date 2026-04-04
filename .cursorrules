@@ -1,0 +1,7 @@
+# IMPETUS — Design System Industrial 4.0
+
+Toda UI nova ou alterada deve seguir o DS Industrial 4.0. Regra detalhada: `.cursor/rules/design-system-industrial-4.mdc` (always apply).
+
+Resumo: fundos `--bg-primary` … `--bg-tertiary`; acentos `--cyan`, `--green`, `--amber`, `--red`; texto `--text-primary`…; sem branco/cinza claro de fundo; fontes **Rajdhani** + **Share Tech Mono** apenas; `border-radius` ≤ 8px; botão primário translúcido cyan; grade técnica no root.
+
+Tokens: `frontend/src/styles/tokens.css`. Globais: `frontend/src/styles.css`.

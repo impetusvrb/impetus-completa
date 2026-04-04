@@ -1,8 +1,9 @@
 /**
- * IMPETUS COMUNICA IA - ESTILOS GLOBAIS
- * Redesign Visual Completo - Dashboard Industrial High-Tech
+ * IMPETUS — estilos globais
+ * Tokens de design: src/styles/tokens.css (fonte única: cores, superfícies, sombras, gráficos).
+ * Utilitários: .card, .impetus-card, .btn, .btn-ghost, .btn-danger, badges, inputs globais, Recharts.
  */
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
 @import './styles/tokens.css';
 
 * {
@@ -11,95 +12,19 @@
   box-sizing: border-box;
 }
 
-:root {
-  /* Design tokens redesign (IMPETUS Prompt) */
-  --bg0: #03080f;
-  --bg1: #050d1a;
-  --bg2: #081525;
-  --bg3: #0b1c30;
-  --line: #0e2440;
-  --line2: #071830;
-  --blue: #1a6fff;
-  --blue2: #0d4fcc;
-  --blue3: #051a44;
-  --cyan: #4dc8ff;
-  --amber: #ffaa00;
-  --green: #00ff88;
-  --red: #ff4455;
-  --text1: #e4f0ff;
-  --text2: #7aabcc;
-  --text3: #2d5570;
-  --font-display: 'Rajdhani', sans-serif;
-  --font-mono: 'Share Tech Mono', monospace;
-  --font-body: 'Inter', sans-serif;
-
-  /* Cores Principais (legado) */
-  --primary-blue: #1a6fff;
-  --primary-blue-light: #4dc8ff;
-  --primary-blue-dark: #0d4fcc;
-  --secondary-teal: #00ff88;
-  --accent-orange: #ffaa00;
-  --accent-green: #00ff88;
-
-  /* Status */
-  --status-critical: #ff4455;
-  --status-high: #ffaa00;
-  --status-medium: #ffaa00;
-  --status-low: #00ff88;
-  --status-info: #4dc8ff;
-
-  /* Escala de cinzas industriais */
-  --gray-50: #050d1a;
-  --gray-100: #081525;
-  --gray-200: #0b1c30;
-  --gray-300: #0e2440;
-  --gray-400: #2d5570;
-  --gray-500: #7aabcc;
-  --gray-600: #7aabcc;
-  --gray-700: #e4f0ff;
-  --gray-800: #e4f0ff;
-  --gray-900: #e4f0ff;
-
-  /* Backgrounds */
-  --bg-primary: var(--bg2);
-  --bg-secondary: var(--bg1);
-  --bg-tertiary: var(--bg3);
-  --bg-hover: #0b1c30;
-  --bg-active: #0e2440;
-  --bg-dark: var(--bg0);
-
-  /* Sidebar */
-  --sidebar-bg: var(--bg0);
-  --sidebar-hover: rgba(26, 111, 255, 0.06);
-  --sidebar-active: rgba(26, 111, 255, 0.1);
-  --sidebar-text: var(--text2);
-  --sidebar-icon: var(--text2);
-
-  /* Tipografia */
-  --font-family: var(--font-body);
-
-  /* Sombras técnicas */
-  --shadow-sm: 0 0 0 1px var(--line);
-  --shadow-md: 0 0 0 1px var(--line), 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.5);
-  --shadow-xl: 0 0 0 1px var(--line), 0 16px 32px rgba(0,0,0,0.6);
-
-  /* Bordas */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 8px;
-
-  /* Transições */
-  --transition-fast: 150ms ease-in-out;
-  --transition-normal: 200ms ease-in-out;
-  --transition-slow: 300ms ease-in-out;
+#root {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
 body {
-  background: var(--bg0);
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(0, 212, 255, 0.07), transparent 55%),
+    var(--surface-page);
   color: var(--text1);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 400;
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.6;
@@ -107,18 +32,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Grade de linhas de fundo */
+/* Grade técnica Industrial 4.0 (40px, cyan sutil) */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(var(--line2) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line2) 1px, transparent 1px);
-  background-size: 48px 48px;
-  opacity: 0.5;
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
+}
+
+.mono,
+.data,
+.code,
+.timestamp,
+.sensor-value {
+  font-family: var(--font-mono);
 }
 
 /* Glow âmbar no rodapé (identidade visual) */
@@ -158,94 +90,150 @@ body::after {
   padding: 0 20px;
 }
 
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--line);
+/* Cartão premium industrial (padrão global) */
+.card,
+.impetus-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: var(--space-lg);
   position: relative;
   overflow: hidden;
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
-.card::before {
+.card::before,
+.impetus-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 1px;
-  background: linear-gradient(90deg, var(--blue), var(--amber), transparent 70%);
-  opacity: 0.4;
+  background: linear-gradient(90deg, var(--cyan), rgba(99, 102, 241, 0.5), transparent 72%);
+  opacity: 0.45;
+  pointer-events: none;
 }
-.card:hover {
-  box-shadow: 0 0 0 1px var(--blue), 0 4px 16px rgba(26, 111, 255, 0.15);
+.card:hover,
+.impetus-card:hover {
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-cyan);
+}
+
+.card::after,
+.impetus-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  pointer-events: none;
 }
 
 .btn {
-  padding: 9px 18px;
-  border: none;
+  padding: 8px 18px;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  letter-spacing: 0.02em;
 }
 
 .btn-primary {
-  background: var(--blue);
-  color: var(--text1);
-  box-shadow: 0 0 0 1px var(--blue2);
+  background: rgba(0, 212, 255, 0.12);
+  border-color: var(--border-active);
+  color: var(--cyan);
+  box-shadow: none;
 }
 
 .btn-primary:hover {
-  background: var(--cyan);
-  box-shadow: 0 0 8px rgba(26, 111, 255, 0.4);
+  background: rgba(0, 212, 255, 0.2);
+  box-shadow: var(--glow-cyan);
+  color: var(--text-primary);
 }
 
 .btn-secondary {
-  background: var(--bg2);
-  color: var(--text2);
-  box-shadow: 0 0 0 1px var(--line);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  box-shadow: none;
 }
 
 .btn-secondary:hover {
-  background: var(--bg3);
-  color: var(--text1);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+.btn-ghost:hover {
+  background: rgba(0, 212, 255, 0.06);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn-danger {
+  background: rgba(255, 64, 64, 0.1);
+  border: 1px solid rgba(255, 64, 64, 0.4);
+  color: var(--red);
+  box-shadow: none;
+}
+.btn-danger:hover {
+  filter: brightness(1.08);
+  box-shadow: var(--glow-red);
 }
 
 .badge {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
   line-height: 1.4;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
-.badge-critical { background: rgba(214,40,40,0.2); color: #FF6B6B; border: 1px solid rgba(214,40,40,0.4); }
-.badge-high     { background: rgba(244,162,97,0.2); color: #F4A261; border: 1px solid rgba(244,162,97,0.4); }
-.badge-medium   { background: rgba(233,196,106,0.2); color: #E9C46A; border: 1px solid rgba(233,196,106,0.4); }
-.badge-low      { background: rgba(42,157,143,0.2); color: #2A9D8F; border: 1px solid rgba(42,157,143,0.4); }
-.badge-info     { background: rgba(30,144,255,0.2); color: #3AA0FF; border: 1px solid rgba(30,144,255,0.4); }
+.badge-critical { background: rgba(255, 64, 64, 0.1); color: var(--red); border: 1px solid rgba(255, 64, 64, 0.28); }
+.badge-high     { background: rgba(255, 170, 0, 0.1); color: var(--amber); border: 1px solid rgba(255, 170, 0, 0.28); }
+.badge-medium   { background: rgba(255, 170, 0, 0.08); color: var(--amber-dim); border: 1px solid rgba(255, 170, 0, 0.22); }
+.badge-low      { background: rgba(0, 255, 136, 0.1); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.28); }
+.badge-info     { background: rgba(0, 212, 255, 0.1); color: var(--cyan); border: 1px solid rgba(0, 212, 255, 0.28); }
 
-/* Inputs */
+/* Inputs nativos (fallback global — sem branco) */
 input, textarea, select {
-  background: var(--bg1) !important;
+  background: var(--surface-input) !important;
   color: var(--text1) !important;
-  border: 1px solid var(--line) !important;
+  border: 1px solid var(--border-default) !important;
   border-radius: var(--radius-md) !important;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--blue) !important;
+  border-color: var(--cyan) !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px rgba(26, 111, 255, 0.2) !important;
+  box-shadow: var(--focus-ring) !important;
 }
 input::placeholder, textarea::placeholder {
-  color: var(--text3) !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.85;
+}
+select option {
+  background: var(--impetus-bg-root);
+  color: var(--text1);
 }
 
 /* Animações */
@@ -293,20 +281,34 @@ button[class*="chip"]:hover, button[class*="tag"]:hover, button[class*="example"
   background: var(--bg3) !important;
 }
 
-/* ── Recharts / Chart tooltip dark ──────────────── */
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: var(--bg1) !important;
-  border: 1px solid var(--line) !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+/* ── Recharts — tema industrial premium (global) ──────────────── */
+.recharts-wrapper,
+.recharts-surface {
+  background: transparent !important;
 }
-.recharts-tooltip-label { color: var(--text2) !important; }
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--chart-tooltip-bg) !important;
+  border: 1px solid var(--chart-tooltip-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.recharts-tooltip-label { color: var(--text-secondary) !important; }
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-separator { color: var(--text-tertiary) !important; }
+.recharts-tooltip-item-value,
 .recharts-tooltip-item  { color: var(--cyan) !important; }
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: var(--line) !important;
+  stroke: var(--chart-grid) !important;
+  stroke-opacity: 0.9;
 }
-.recharts-text { fill: var(--text2) !important; }
+.recharts-text,
+.recharts-label,
+.recharts-legend-item-text { fill: var(--chart-axis) !important; }
+.recharts-default-legend .recharts-legend-item-text { color: var(--text-secondary) !important; }
+.recharts-curve.recharts-area-curve,
+.recharts-line-curve { filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.35)); }
+.recharts-dot { stroke: var(--bg-secondary); stroke-width: 1px; }
 
 /* ── Página principal content area ──────────────── */
 .page-content, .dashboard-content, .content-scroll, main {

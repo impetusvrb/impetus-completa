@@ -1,0 +1,39 @@
+---
+description: Design System Industrial 4.0 — UI Impetus (cores, tipografia, layout, componentes)
+alwaysApply: true
+---
+
+# Design System Industrial 4.0 (IMPETUS)
+
+Engenharia de UI para sistemas industriais de missão crítica (IIoT, SCADA, MES). **Implementação canônica:** `frontend/src/styles/tokens.css` + `frontend/src/styles.css`.
+
+## Paleta (variáveis CSS — não hardcodar hex fora dos tokens)
+
+- Fundos: `--bg-primary` (#070c14) → `--bg-secondary` (#0d1520) → `--bg-panel` (#0f1a28) → `--bg-tertiary` (#111d2e)
+- Acentos: `--cyan` (#00d4ff), `--green` (#00ff88), `--amber` (#ffaa00), `--red` (#ff4040), `--orange` (#ff6b00)
+- Texto: `--text-primary`, `--text-secondary`, `--text-tertiary`, `--text-accent`
+- Bordas: `--border-subtle` / `--border-default` / `--border-active` / `--border-focus` (base cyan translúcido)
+- Glows: `--glow-cyan`, `--glow-green`, `--glow-amber`, `--glow-red`
+
+## Regras invioláveis
+
+1. **Nunca** fundo branco (`#fff`), cinza claro dominante ou tema “Material azul royal + branco”.
+2. **Sempre** dark base com acentos cyan / green / amber / red; profundidade com transparências.
+3. **Tipografia:** Rajdhani (UI) + Share Tech Mono (labels, dados, timestamps). **Proibido** como fonte principal: Inter, Roboto, Arial, system-ui genérico.
+4. **`border-radius` máximo 8px** em novos componentes; painéis industriais preferem 3–4px.
+5. **Grade técnica** no viewport raiz (`body` / `#root`): grid cyan sutil — já aplicada em `styles.css`.
+6. Botões primários: **transparência sobre fundo escuro** + borda cyan, não sólido “flat”.
+7. Labels / títulos de painel: `uppercase`, `letter-spacing` (1–3px), mono onde for dado técnico.
+8. Status ao vivo: dot com animação `blink` quando aplicável; timestamps em mono.
+
+## Componentes
+
+Preferir classes globais existentes (`.impetus-card`, `.btn`, `.btn-ghost`, `.btn-danger`, `.badge-*`) e tokens semânticos (`--surface-card`, `--surface-input`). Novos painéis: padrão “panel” com borda inferior em gradiente cyan (ver exemplos em `styles.css` / tokens).
+
+## Gráficos (Recharts / Chart.js)
+
+Cores de série alinhadas a `--chart-series-*` e eixos `--chart-axis` / grid `--chart-grid` nos tokens; tooltips escuros, borda cyan suave.
+
+## Referência estendida
+
+Detalhes de KPI card, tabelas `.data-table`, `screen-header`, animações `fadeSlideIn` / `criticalPulse` — replicar padrões do documento de design do produto ou expandir `styles.css` de forma consistente com os tokens acima.

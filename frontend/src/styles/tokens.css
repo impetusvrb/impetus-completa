@@ -1,29 +1,203 @@
 /**
- * DESIGN TOKENS - Impetus Comunica IA - Industrial Dark Theme
+ * IMPETUS — Design System Industrial 4.0 (canônico)
+ * Paleta e hierarquia conforme especificação produto; aliases legados abaixo.
  */
 :root {
-  --color-primary: #1E90FF;
-  --color-primary-light: #3AA0FF;
-  --color-primary-dark: #1470CC;
-  --color-secondary: #2A9D8F;
-  --color-accent: #F4A261;
-  --color-success: #2A9D8F;
-  --color-warning: #F4A261;
-  --color-error: #D62828;
-  --text-primary: #E6EDF3;
-  --text-secondary: #9FB3C8;
-  --text-muted: #8aa3b8;
-  --bg-primary: #162A3A;
-  --bg-secondary: #0F1E2E;
-  --bg-tertiary: #1B3447;
-  --bg-hover: #1E3A50;
-  --bg-active: #1A3A5C;
-  --border-color: #243848;
-  --shadow-sm: 0 0 0 1px #243848;
-  --shadow-md: 0 0 0 1px #243848, 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 0 0 1px #243848, 0 8px 24px rgba(0,0,0,0.5);
-  --radius-sm: 4px;
-  --radius-md: 6px;
+  /* ── Industrial 4.0 — fundos ───────────────────────────────── */
+  --bg-primary: #070c14;
+  --bg-secondary: #0d1520;
+  --bg-tertiary: #111d2e;
+  --bg-panel: #0f1a28;
+  --bg-overlay: rgba(0, 212, 255, 0.04);
+
+  /* ── Bordas (cyan elétrico) ─────────────────────────────────── */
+  --border-subtle: rgba(0, 212, 255, 0.12);
+  --border-default: rgba(0, 212, 255, 0.22);
+  --border-active: rgba(0, 212, 255, 0.45);
+  --border-focus: rgba(0, 212, 255, 0.7);
+  --border-accent: var(--border-active);
+  --border-color: var(--border-default);
+
+  /* ── Acentos ───────────────────────────────────────────────── */
+  --cyan: #00d4ff;
+  --cyan-dim: #00a8cc;
+  --cyan-glow: rgba(0, 212, 255, 0.25);
+
+  --green: #00ff88;
+  --green-dim: #00cc6a;
+  --green-glow: rgba(0, 255, 136, 0.25);
+
+  --amber: #ffaa00;
+  --amber-dim: #cc8800;
+  --amber-glow: rgba(255, 170, 0, 0.25);
+
+  --red: #ff4040;
+  --red-dim: #cc2828;
+  --red-glow: rgba(255, 64, 64, 0.25);
+
+  --orange: #ff6b00;
+
+  /* ── Texto ─────────────────────────────────────────────────── */
+  --text-primary: #c8e0f0;
+  --text-secondary: #7a9bb5;
+  --text-tertiary: #4a6a82;
+  --text-accent: #00d4ff;
+  --text-muted: var(--text-tertiary);
+
+  /* ── Glows (box-shadow) ───────────────────────────────────── */
+  --glow-cyan: 0 0 20px rgba(0, 212, 255, 0.35);
+  --glow-green: 0 0 20px rgba(0, 255, 136, 0.35);
+  --glow-amber: 0 0 20px rgba(255, 170, 0, 0.35);
+  --glow-red: 0 0 20px rgba(255, 64, 64, 0.35);
+
+  /* ── Tipografia ────────────────────────────────────────────── */
+  --font-display: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-body: var(--font-display);
+  --font-family: var(--font-body);
+
+  /* ── Aliases legado IMPETUS (mapeiam para I4.0) ─────────────── */
+  --impetus-void: #02060c;
+  --impetus-bg-deep: var(--bg-primary);
+  --impetus-bg-root: var(--bg-secondary);
+  --impetus-surface-0: var(--bg-secondary);
+  --impetus-surface-1: var(--bg-tertiary);
+  --impetus-surface-2: #152538;
+  --impetus-surface-3: #1a2d45;
+  --impetus-navy-card: var(--bg-panel);
+  --impetus-graphite: #152538;
+
+  --impetus-line: rgba(0, 212, 255, 0.15);
+  --impetus-line-strong: rgba(0, 212, 255, 0.32);
+  --impetus-line-subtle: rgba(0, 212, 255, 0.06);
+  --impetus-edge-glow: rgba(0, 212, 255, 0.14);
+  --impetus-violet-tech: rgba(0, 212, 255, 0.12);
+
+  --impetus-blue: var(--cyan);
+  --impetus-blue-deep: var(--cyan-dim);
+  --impetus-blue-mid: #00b8e0;
+  --impetus-cyan: var(--cyan);
+  --impetus-cyan-dim: var(--cyan-dim);
+
+  --impetus-success: var(--green);
+  --impetus-success-dim: var(--green-dim);
+  --impetus-amber: var(--amber);
+  --impetus-amber-soft: rgba(255, 170, 0, 0.18);
+  --impetus-danger: var(--red);
+  --impetus-danger-dim: var(--red-dim);
+  --impetus-danger-soft: rgba(255, 64, 64, 0.14);
+  --impetus-orange: var(--orange);
+
+  --impetus-text-strong: var(--text-primary);
+  --impetus-text-body: var(--text-secondary);
+  --impetus-text-muted: var(--text-secondary);
+  --impetus-text-dim: var(--text-tertiary);
+
+  --bg0: var(--bg-primary);
+  --bg1: var(--bg-secondary);
+  --bg2: var(--bg-panel);
+  --bg3: var(--bg-tertiary);
+  --bg-hover: var(--impetus-surface-2);
+  --bg-active: var(--impetus-surface-3);
+  --bg-dark: var(--bg-primary);
+
+  --text1: var(--text-primary);
+  --text2: var(--text-secondary);
+  --text3: var(--text-tertiary);
+
+  --line: var(--border-default);
+  --line2: rgba(0, 212, 255, 0.04);
+
+  --blue: var(--cyan);
+  --blue2: var(--cyan-dim);
+  --blue3: rgba(0, 212, 255, 0.08);
+
+  /* Superfícies semânticas */
+  --surface-page: var(--bg-primary);
+  --surface-panel: var(--bg-secondary);
+  --surface-card: var(--bg-panel);
+  --surface-elevated: var(--impetus-surface-2);
+  --surface-input: var(--bg-tertiary);
+
+  /* Primárias (componentes legados) */
+  --color-primary: var(--cyan);
+  --color-primary-light: var(--cyan);
+  --color-primary-dark: var(--cyan-dim);
+  --color-secondary: var(--green-dim);
+  --color-success: var(--green);
+  --color-success-dark: var(--green-dim);
+  --color-warning: var(--amber);
+  --color-error: var(--red);
+  --color-error-dark: var(--red-dim);
+  --color-accent: var(--amber);
+
+  --primary-blue: var(--cyan);
+  --primary-blue-light: var(--cyan);
+  --primary-blue-dark: var(--cyan-dim);
+  --secondary-teal: var(--green);
+  --accent-orange: var(--amber);
+  --accent-green: var(--green);
+
+  --status-critical: var(--red);
+  --status-high: var(--amber);
+  --status-medium: var(--amber);
+  --status-low: var(--green);
+  --status-info: var(--cyan);
+
+  /* Escala “gray” = tons escuros (sem cinza claro) */
+  --gray-50: var(--bg-primary);
+  --gray-100: var(--bg-secondary);
+  --gray-200: var(--bg-panel);
+  --gray-300: var(--border-subtle);
+  --gray-400: var(--text-tertiary);
+  --gray-500: var(--text-secondary);
+  --gray-600: var(--text-secondary);
+  --gray-700: var(--text-primary);
+  --gray-800: var(--text-primary);
+  --gray-900: var(--text-primary);
+
+  /* Sidebar */
+  --sidebar-bg: var(--bg-primary);
+  --sidebar-hover: rgba(0, 212, 255, 0.08);
+  --sidebar-active: rgba(0, 212, 255, 0.14);
+  --sidebar-text: var(--text-secondary);
+  --sidebar-icon: var(--text-tertiary);
+
+  /* Elevação */
+  --shadow-sm: 0 0 0 1px var(--border-subtle), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 0 0 1px var(--border-default), 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 0 0 1px var(--border-active), 0 12px 40px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 0 0 1px var(--border-active), 0 24px 56px rgba(0, 0, 0, 0.6);
+  --shadow-glow-cyan: var(--glow-cyan);
+  --shadow-inset-subtle: inset 0 1px 0 rgba(0, 212, 255, 0.06);
+
+  /* Raios — identidade industrial (máx. 8px) */
+  --radius-sm: 3px;
+  --radius-md: 4px;
   --radius-lg: 8px;
-  --transition-fast: 150ms ease-in-out;
+  --radius-xl: 8px;
+  --radius-2xl: 8px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px rgba(0, 212, 255, 0.35);
+
+  /* Gráficos */
+  --chart-bg: transparent;
+  --chart-grid: rgba(255, 255, 255, 0.04);
+  --chart-axis: #7a9bb5;
+  --chart-tooltip-bg: var(--bg-secondary);
+  --chart-tooltip-border: rgba(0, 212, 255, 0.3);
+  --chart-series-primary: #00d4ff;
+  --chart-series-secondary: #00ff88;
+  --chart-fill-opacity-strong: 0.28;
+  --chart-fill-opacity-fade: 0;
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 320ms cubic-bezier(0.4, 0, 0.2, 1);
 }

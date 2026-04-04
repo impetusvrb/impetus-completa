@@ -1,49 +1,69 @@
 .trend-chart-card {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: var(--shadow-md);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md), var(--shadow-inset-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.trend-chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), transparent 65%);
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-md);
 }
 
 .chart-header h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--gray-900);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .chart-legend {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: var(--gray-600);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--chart-series-primary);
+  box-shadow: 0 0 10px rgba(26, 111, 255, 0.45);
 }
 
 .chart-value {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: var(--gray-900);
+  font-family: var(--font-mono);
+  color: var(--cyan);
 }
 
 .chart-loading {
@@ -52,14 +72,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--gray-200);
-  border-top-color: var(--primary-blue);
+  border: 3px solid var(--impetus-line);
+  border-top-color: var(--impetus-cyan);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -69,6 +89,6 @@
 }
 
 .chart-loading p {
-  color: var(--gray-500);
-  font-size: 14px;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
 }

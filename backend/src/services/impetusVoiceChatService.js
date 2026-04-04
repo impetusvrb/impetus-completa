@@ -4,6 +4,7 @@
 const ai = require('./ai');
 const chatUserContext = require('./chatUserContext');
 const documentContext = require('./documentContext');
+const { IMPETUS_IA_GOVERNANCE_SYSTEM } = require('./impetusAIGovernancePolicy');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const voiceSession = require('./impetusVoiceSession');
 
@@ -38,7 +39,8 @@ async function buildSystemPrompt(user, message) {
     ? `## Perfil manutenção\nRespostas técnicas, objetivas, foco em diagnóstico e ação.\n`
     : '';
 
-  const system = `Você é o **Impetus**, assistente de inteligência operacional industrial.
+  const system = `${IMPETUS_IA_GOVERNANCE_SYSTEM}
+
 ${LGPD_BLOCK}
 ${identityBlock || ''}
 ${memoriaBlock || ''}

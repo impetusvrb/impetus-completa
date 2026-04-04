@@ -227,6 +227,16 @@ export const roleVerification = {
 };
 
 // ============================================================================
+// REALTIME PRESENCE ENGINE (percepção + comando de render Akool)
+// ============================================================================
+
+export const realtimePresence = {
+  perceive: (body) => api.post('/realtime-presence/perceive', body),
+  render: (body) => api.post('/realtime-presence/render', body),
+  session: (body) => api.post('/realtime-presence/session', body)
+};
+
+// ============================================================================
 // DASHBOARD
 // ============================================================================
 
@@ -291,6 +301,15 @@ export const dashboard = {
     api.post('/dashboard/chat-multimodal', payload),
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
+
+  /** STT — gravar áudio no cliente e enviar; retorna { ok, transcript } */
+  transcribeChatAudio: (audioBlob, opts = {}) => {
+    const fd = new FormData();
+    fd.append('audio', audioBlob, opts.filename || 'voice.webm');
+    fd.append('language', opts.language || 'pt');
+    if (opts.prompt) fd.append('prompt', opts.prompt);
+    return api.post('/dashboard/chat/voice/transcribe', fd);
+  },
 
   /** Legado — preferir voz OpenAI em /dashboard/chat/voice/speak */
   gerarVoz: (texto, falar = true) =>
