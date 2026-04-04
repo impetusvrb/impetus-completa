@@ -377,7 +377,6 @@ export default function ImpetusVoiceProvider({ children }) {
         videoLipSyncRef={videoLipSyncRef}
         didAvatarVideoUrl={voiceState.didAvatarVideoUrl}
         didAvatarReplay={voiceState.didAvatarReplay}
-        liveCaption={voiceState.currentTranscript}
         realtimeMode={voiceState.isRealtimeMode}
         presenceExpression={presenceBridge.enabled ? presenceBridge.expressionLabel : null}
         presencePerceptionState={presenceBridge.enabled ? presenceBridge.perception?.perception_state : null}

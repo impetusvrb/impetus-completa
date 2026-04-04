@@ -89,11 +89,15 @@ async function chatCompletionMessages(messages, opts = {}) {
     if (blocked) return blocked;
 
     const timeoutMs = opts.timeout || 45000;
-    const completionPromise = client.chat.completions.create({
+    const completionBody = {
       model: opts.model || 'gpt-4o-mini',
       messages: Array.isArray(messages) ? messages : [],
       max_tokens: maxTok
-    });
+    };
+    if (opts.response_format) {
+      completionBody.response_format = opts.response_format;
+    }
+    const completionPromise = client.chat.completions.create(completionBody);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
     );

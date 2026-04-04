@@ -268,6 +268,7 @@ router.get('/emergency-events', manuiaGuard, async (req, res) => {
 // ---- Pesquisa de equipamento por texto (IA) ----
 
 const equipmentResearchService = require('../services/equipmentResearchService');
+const manuiaLiveAssistanceService = require('../services/manuiaLiveAssistanceService');
 
 function manuiaPublicBaseUrl(req) {
   const env = process.env.PUBLIC_APP_URL;
@@ -321,6 +322,91 @@ router.get('/research-equipment/recent', manuiaGuard, async (req, res) => {
   } catch (err) {
     console.warn('[MANUIA_RECENT]', err?.message);
     res.json({ ok: true, items: [] });
+  }
+});
+
+/**
+ * POST /api/manutencao-ia/live-assistance/analyze-frame
+ * Body: { imageBase64, machineId?, sessionId? } — visão + dossiê técnico (Gemini + pesquisa interna)
+ */
+router.post('/live-assistance/analyze-frame', manuiaGuard, async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    const userId = req.user.id;
+    const { imageBase64, machineId, sessionId } = req.body || {};
+    const b64 = String(imageBase64 || '').replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    if (!b64 || b64.length < 80) {
+      return res.status(400).json({ ok: false, error: 'Imagem inválida ou muito pequena' });
+    }
+    const vision = await manuiaLiveAssistanceService.identifyPartFromImageWithGemini(b64);
+    if (!vision.ok) {
+      return res.status(503).json({ ok: false, error: vision.error || 'Análise indisponível' });
+    }
+    const dossier = await manuiaLiveAssistanceService.buildTechnicalDossier({
+      companyId,
+      userId,
+      sessionId: sessionId || null,
+      publicBaseUrl: manuiaPublicBaseUrl(req),
+      machineId: machineId || null,
+      detection: vision.detection
+    });
+    res.json({
+      ok: true,
+      detection: vision.detection,
+      dossier
+    });
+  } catch (err) {
+    console.warn('[MANUIA_LIVE_ANALYZE]', err?.message);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro na análise ao vivo' });
+  }
+});
+
+/**
+ * POST /api/manutencao-ia/live-assistance/chat
+ * Body: { messages: [{role, content}], dossier? }
+ */
+router.post('/live-assistance/chat', manuiaGuard, async (req, res) => {
+  try {
+    const { messages, dossier } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ ok: false, error: 'messages obrigatório' });
+    }
+    const billing = { companyId: req.user.company_id, userId: req.user.id };
+    const reply = await manuiaLiveAssistanceService.generateCopilotReply({
+      messages: messages.slice(-12),
+      dossier: dossier || {},
+      billing
+    });
+    res.json({ ok: true, reply });
+  } catch (err) {
+    console.warn('[MANUIA_LIVE_CHAT]', err?.message);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro no copiloto' });
+  }
+});
+
+/**
+ * POST /api/manutencao-ia/live-assistance/save-session
+ * Body: { sessionId, dossier?, summaryText? }
+ */
+router.post('/live-assistance/save-session', manuiaGuard, async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    const userId = req.user.id;
+    const { sessionId, dossier, summaryText } = req.body || {};
+    if (!sessionId) {
+      return res.status(400).json({ ok: false, error: 'sessionId obrigatório' });
+    }
+    const out = await manuiaLiveAssistanceService.saveDiagnosisSession({
+      sessionId,
+      companyId,
+      userId,
+      dossier: dossier || {},
+      summaryText: summaryText || null
+    });
+    res.json({ ok: !!out.ok, ...out });
+  } catch (err) {
+    console.warn('[MANUIA_LIVE_SAVE]', err?.message);
+    res.status(500).json({ ok: false, error: err?.message });
   }
 });
 

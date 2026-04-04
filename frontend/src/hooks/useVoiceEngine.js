@@ -17,6 +17,7 @@ import {
 } from '../constants/voiceResponses';
 import { applyPronunciation } from '../constants/pronunciationMap';
 import { calcPcmChunkVolumeNorm } from '../utils/pcmChunkVolume';
+import { dispatchSmartPanelVoiceCommand } from '../features/smartPanel/smartPanelEvents';
 import {
   isDidAvatarEnabled,
   isDidAvatarConfigured,
@@ -555,6 +556,12 @@ export function useVoiceEngine(options = {}) {
     isContinuous: false,
     isRealtimeMode: false,
     currentTranscript: '',
+    /** Painel dinâmico do overlay: último comando falado (Realtime ou modo contínuo). */
+    voicePanelUserText: '',
+    /** Painel dinâmico: última resposta da IA (texto). */
+    voicePanelAssistantText: '',
+    /** Gráfico / tabela / export gerados a partir do comando de voz. */
+    voicePanelVisual: null,
     lastAlert: null,
     alertsEnabled: true,
     audioBlocked: false,
@@ -676,6 +683,7 @@ export function useVoiceEngine(options = {}) {
   const realtimeAsstTranscriptRef = useRef('');
   const didAvatarDispatchedForResponseRef = useRef(false);
   const realtimeUserTranscriptRef = useRef('');
+  const lastCompletedUserPhraseRef = useRef('');
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
@@ -1223,6 +1231,9 @@ export function useVoiceEngine(options = {}) {
         isActive: false,
         status: 'idle',
         currentTranscript: '',
+        voicePanelUserText: '',
+        voicePanelAssistantText: '',
+        voicePanelVisual: null,
         didAvatarVideoUrl: null,
         didAvatarPending: false,
         didAvatarReplay: false
@@ -1326,7 +1337,12 @@ export function useVoiceEngine(options = {}) {
         continue;
       }
       failStreakRef.current = 0;
-      setVoiceState((s) => ({ ...s, currentTranscript: '', status: 'processing' }));
+      setVoiceState((s) => ({
+        ...s,
+        currentTranscript: '',
+        voicePanelUserText: String(text || '').trim(),
+        status: 'processing'
+      }));
       showBadge(pickProcessingPhrase());
       // Pequena pausa depois que o usuário terminou de falar.
       // Ajuda a reduzir eco/ruído residual e melhora a sensação de "turn-taking".
@@ -1365,6 +1381,12 @@ export function useVoiceEngine(options = {}) {
       }
 
       if (!continuousRef.current) break;
+      lastCompletedUserPhraseRef.current = String(text || '').trim();
+      setVoiceState((s) => ({
+        ...s,
+        voicePanelAssistantText: String(reply || '').trim().slice(0, 8000)
+      }));
+      dispatchSmartPanelVoiceCommand(lastCompletedUserPhraseRef.current);
       await speakNaturalReply(
         reply,
         sentimentContext ? { sentimentContext, userText: text } : { userText: text }
@@ -1392,6 +1414,9 @@ export function useVoiceEngine(options = {}) {
       isActive: false,
       isContinuous: false,
       currentTranscript: '',
+      voicePanelUserText: '',
+      voicePanelAssistantText: '',
+      voicePanelVisual: null,
       didAvatarVideoUrl: null,
       didAvatarPending: false,
       didAvatarReplay: false
@@ -1421,6 +1446,9 @@ export function useVoiceEngine(options = {}) {
         isContinuous: false,
         isRealtimeMode: false,
         currentTranscript: '',
+        voicePanelUserText: '',
+        voicePanelAssistantText: '',
+        voicePanelVisual: null,
         didAvatarVideoUrl: null,
         didAvatarPending: false,
         didAvatarReplay: false
@@ -1457,7 +1485,10 @@ export function useVoiceEngine(options = {}) {
         isRealtimeMode: true,
         status: 'processing',
         lastAlert: null,
-        currentTranscript: ''
+        currentTranscript: '',
+        voicePanelUserText: '',
+        voicePanelAssistantText: '',
+        voicePanelVisual: null
       }));
       showBadge('Conectando voz Realtime…');
 
@@ -1479,6 +1510,9 @@ export function useVoiceEngine(options = {}) {
             isContinuous: false,
             isRealtimeMode: false,
             currentTranscript: '',
+            voicePanelUserText: '',
+            voicePanelAssistantText: '',
+            voicePanelVisual: null,
             didAvatarVideoUrl: null,
             didAvatarPending: false,
             didAvatarReplay: false
@@ -1524,12 +1558,17 @@ export function useVoiceEngine(options = {}) {
             setVoiceState((s) => ({
               ...s,
               status: 'speaking',
-              currentTranscript: realtimeAsstTranscriptRef.current
+              currentTranscript: realtimeAsstTranscriptRef.current,
+              voicePanelAssistantText: realtimeAsstTranscriptRef.current
             }));
             setTtsUi((u) => ({ ...u, mouthState: 'open' }));
           }
-          if (String(t).includes('input_audio_transcription') && String(t).includes('delta') && ev.delta) {
-            realtimeUserTranscriptRef.current += ev.delta;
+          const userTxDelta =
+            String(t).includes('input_audio_transcription') &&
+            (String(t).includes('.delta') || t.endsWith('delta'));
+          const chunk = ev.delta ?? ev.text ?? '';
+          if (userTxDelta && chunk) {
+            realtimeUserTranscriptRef.current += String(chunk);
             setVoiceState((s) => ({
               ...s,
               status: 'listening',
@@ -1538,15 +1577,38 @@ export function useVoiceEngine(options = {}) {
           }
           if (
             String(t).includes('input_audio_transcription') &&
-            (String(t).includes('completed') || String(t).includes('done')) &&
-            ev.transcript
+            String(t).includes('segment') &&
+            ev.text
           ) {
-            realtimeUserTranscriptRef.current = String(ev.transcript);
+            const piece = String(ev.text).trim();
+            if (piece) {
+              realtimeUserTranscriptRef.current = realtimeUserTranscriptRef.current
+                ? `${realtimeUserTranscriptRef.current} ${piece}`.trim()
+                : piece;
+              setVoiceState((s) => ({
+                ...s,
+                status: 'listening',
+                currentTranscript: realtimeUserTranscriptRef.current
+              }));
+            }
+          }
+          const userTxFinal =
+            String(t).includes('input_audio_transcription') &&
+            (String(t).includes('completed') || String(t).includes('.done') || t.endsWith('.done'));
+          const finalUser = ev.transcript ?? ev.text ?? '';
+          if (userTxFinal && finalUser) {
+            realtimeUserTranscriptRef.current = String(finalUser);
+            lastCompletedUserPhraseRef.current = String(finalUser).trim();
             setVoiceState((s) => ({
               ...s,
               status: 'processing',
-              currentTranscript: realtimeUserTranscriptRef.current
+              currentTranscript: '',
+              voicePanelUserText: String(finalUser).trim()
             }));
+          }
+          if (String(t).includes('input_audio_transcription') && String(t).includes('failed')) {
+            const em = ev.error?.message || ev.error?.code || ev.message || 'Falha na transcrição do microfone';
+            setVoiceState((s) => ({ ...s, lastAlert: String(em) }));
           }
           if (t === 'response.output_audio.delta' || t === 'response.audio.delta') {
             const b64 = ev.delta;
@@ -1567,7 +1629,7 @@ export function useVoiceEngine(options = {}) {
               mouthState: 'open'
             }));
           }
-          if (t === 'response.output_audio_transcript.done') {
+          if (t === 'response.output_audio_transcript.done' || String(t).endsWith('output_audio_transcript.done')) {
             // Não mudar para "listening" nem cortar lipsync aqui: o áudio PCM ainda pode estar a tocar.
             // O estado visual segue em "speaking" até o player local esvaziar (onPhaseChange → listening).
             const snapEarly = String(realtimeAsstTranscriptRef.current || '').trim();
@@ -1581,12 +1643,25 @@ export function useVoiceEngine(options = {}) {
                 triggerDidAvatarRef.current?.(snapEarly);
               } catch (_) {}
             }
-            setVoiceState((s) => ({ ...s, currentTranscript: '' }));
+            setVoiceState((s) => ({
+              ...s,
+              currentTranscript: '',
+              voicePanelAssistantText: snapEarly || s.voicePanelAssistantText
+            }));
           }
           if (t === 'response.done') {
             const snapForDid = String(realtimeAsstTranscriptRef.current || '').trim();
             realtimeAsstTranscriptRef.current = '';
-            setVoiceState((s) => ({ ...s, currentTranscript: '' }));
+            const phraseSnap =
+              String(lastCompletedUserPhraseRef.current || '').trim() ||
+              String(realtimeUserTranscriptRef.current || '').trim();
+            setVoiceState((s) => ({
+              ...s,
+              currentTranscript: '',
+              voicePanelAssistantText: snapForDid || s.voicePanelAssistantText
+            }));
+
+            dispatchSmartPanelVoiceCommand(phraseSnap);
 
             // Sempre esperar o PCM local acabar antes de cortar lipsync (D-ID ou não).
             // Com D-ID, transcript.done já pode ter disparado o pedido; aqui só fallback + fechar boca.
@@ -1705,6 +1780,9 @@ export function useVoiceEngine(options = {}) {
       isRealtimeMode: false,
       bargeInFlash: false,
       currentTranscript: '',
+      voicePanelUserText: '',
+      voicePanelAssistantText: '',
+      voicePanelVisual: null,
       didAvatarVideoUrl: null,
       didAvatarPending: false,
       didAvatarReplay: false

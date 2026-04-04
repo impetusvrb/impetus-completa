@@ -9,7 +9,7 @@ const documentContext = require('./documentContext');
 const userContext = require('./userContext');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const personalizedInsights = require('./personalizedInsightsService');
-const { IMPETUS_IA_GOVERNANCE_SYSTEM } = require('./impetusAIGovernancePolicy');
+const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const { cached } = require('../utils/cache');
 
 const isFriday = () => new Date().getDay() === 5;
@@ -191,7 +191,7 @@ Seja conciso e acionável. Máximo 600 palavras.`;
     user: opts.user || null
   });
   const body = docContext ? `${prompt}\n\n${docContext}` : prompt;
-  const fullPrompt = `${IMPETUS_IA_GOVERNANCE_SYSTEM}\n\n---\n\n${body}`;
+  const fullPrompt = `${IMPETUS_IA_SYSTEM_PROMPT_FULL}\n\n---\n\n${body}`;
 
   return await ai.chatCompletion(fullPrompt, { max_tokens: 1000 });
 }

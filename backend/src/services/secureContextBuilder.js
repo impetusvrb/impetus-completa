@@ -4,7 +4,7 @@
  * Nunca envia banco inteiro. Nunca envia dados sensíveis sem permissão.
  */
 const documentContext = require('./documentContext');
-const { IMPETUS_IA_GOVERNANCE_SYSTEM } = require('./impetusAIGovernancePolicy');
+const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const { getUserPermissions } = require('../middleware/authorize');
 
 async function buildContext(user, opts) {
@@ -31,7 +31,7 @@ async function buildContext(user, opts) {
     forDiagnostic
   });
 
-  const parts = [IMPETUS_IA_GOVERNANCE_SYSTEM, baseContext];
+  const parts = [IMPETUS_IA_SYSTEM_PROMPT_FULL, baseContext];
   if (!hasFinancial) {
     parts.push('\nRestrição: usuário sem VIEW_FINANCIAL. Não mencione dados financeiros.');
   }

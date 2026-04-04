@@ -1,0 +1,308 @@
+/* Assistência Técnica ao Vivo — ManuIA */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 520px;
+  padding: 0 16px;
+  color: var(--text-primary, #e8eef5);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 32, 48, 0.85);
+  color: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(30, 48, 72, 0.95);
+  border-color: rgba(62, 207, 142, 0.45);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #0d8a5b 0%, #0a6b47 100%);
+  border-color: rgba(62, 207, 142, 0.5);
+  font-weight: 600;
+}
+
+.btnDanger {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.btnActive {
+  box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.35);
+}
+
+.inputInterval {
+  width: 72px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 18, 28, 0.9);
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(12, 22, 34, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+}
+
+.statusAnalyzing .statusDot {
+  background: #38bdf8;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.statusReady .statusDot {
+  background: #3ecf8e;
+}
+
+.statusError .statusDot {
+  background: #f87171;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 0.95fr);
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cameraCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.videoWrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a1018;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  aspect-ratio: 4 / 3;
+  max-height: 420px;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoHidden {
+  display: none;
+}
+
+.overlayBox {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid rgba(62, 207, 142, 0.35);
+  border-radius: 8px;
+  margin: 8%;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.overlayBox.visible {
+  opacity: 1;
+}
+
+.sideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.panel {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(14, 24, 36, 0.82);
+  padding: 14px 16px;
+}
+
+.panel h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8c9dc;
+}
+
+.panelScroll {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.chatScroll {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.msg {
+  padding: 8px 11px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.msgUser {
+  align-self: flex-end;
+  background: rgba(13, 138, 91, 0.25);
+  border: 1px solid rgba(62, 207, 142, 0.25);
+}
+
+.msgAi {
+  align-self: flex-start;
+  background: rgba(30, 48, 72, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chatInputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 14, 22, 0.9);
+  color: inherit;
+  font-size: 0.85rem;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 0.8rem;
+}
+
+.kv dt {
+  color: #8b9aab;
+  margin: 0;
+}
+
+.kv dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tag {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.actionsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actionsGrid .btn {
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
+.unityPanel {
+  margin-top: 8px;
+  min-height: 280px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.guidanceStep {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(20, 36, 52, 0.65);
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  border-left: 3px solid #3ecf8e;
+}
+
+.hiddenFile {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.micListening {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.listMuted {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  padding-left: 1rem;
+  margin: 4px 0;
+}

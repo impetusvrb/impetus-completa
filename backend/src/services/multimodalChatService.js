@@ -9,6 +9,7 @@ const path = require('path');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
 const mediaProcessor = require('./mediaProcessorService');
+const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/chat-multimodal');
 const MAX_FILE_MB = 15;
@@ -94,9 +95,12 @@ async function processMultimodalChat(opts) {
   } = opts;
 
   const messages = [];
-  const systemContent = `Você é o **Impetus**, assistente de inteligência operacional industrial.
+  const systemContent = `${IMPETUS_IA_SYSTEM_PROMPT_FULL}
+
+## Multimodal
+Você responde como IMPETUS IA (única interface). Não invente dados além do contexto e dos anexos.
 ${systemPromptExtra}
-Responda de forma natural, direta e técnica quando apropriado. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português.`;
+Responda de forma natural, direta e técnica quando apropriado. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português do Brasil.`;
 
   messages.push({ role: 'system', content: systemContent });
 

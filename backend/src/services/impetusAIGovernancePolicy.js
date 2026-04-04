@@ -12,4 +12,19 @@ const IMPETUS_IA_GOVERNANCE_SYSTEM = fs.readFileSync(
   'utf8'
 );
 
-module.exports = { IMPETUS_IA_GOVERNANCE_SYSTEM };
+/**
+ * Protocolo de orquestração central (única interface, fluxo cognitivo, consolidação, sem atribuir fontes a “modelos”).
+ * Texto em impetusCentralOrchestratorProtocol.txt
+ */
+const IMPETUS_IA_CENTRAL_ORCHESTRATOR_PROTOCOL = fs.readFileSync(
+  path.join(__dirname, 'impetusCentralOrchestratorProtocol.txt'),
+  'utf8'
+);
+
+const IMPETUS_IA_SYSTEM_PROMPT_FULL = `${IMPETUS_IA_GOVERNANCE_SYSTEM}\n\n---\n\n${IMPETUS_IA_CENTRAL_ORCHESTRATOR_PROTOCOL}`;
+
+module.exports = {
+  IMPETUS_IA_GOVERNANCE_SYSTEM,
+  IMPETUS_IA_CENTRAL_ORCHESTRATOR_PROTOCOL,
+  IMPETUS_IA_SYSTEM_PROMPT_FULL
+};

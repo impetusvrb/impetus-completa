@@ -250,6 +250,8 @@ export const dashboard = {
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
   trackInteraction: (event_type, entity_type, entity_id, context) =>
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
+  /** Painel de comando visual (IA + dados reais, permissões no servidor) */
+  runPanelCommand: (command) => api.post('/dashboard/panel-command', { command }),
   /** Preferências de perfil / IA (próprio utilizador) */
   patchProfileContext: (body) => api.patch('/dashboard/profile-context', body),
   getWidgets: () => api.get('/dashboard/widgets'),
@@ -529,7 +531,11 @@ export const manutencaoIa = {
   getRecentSearches: (limit = 10) =>
     api.get('/manutencao-ia/research-equipment/recent', { params: { limit } }),
   /** Concluir sessão: gera OS e opcionalmente cadastra equipamento */
-  concludeSession: (data) => api.post('/manutencao-ia/conclude-session', data)
+  concludeSession: (data) => api.post('/manutencao-ia/conclude-session', data),
+  /** Assistência técnica ao vivo (câmera + dossiê + copiloto) */
+  liveAnalyzeFrame: (body) => api.post('/manutencao-ia/live-assistance/analyze-frame', body),
+  liveChat: (body) => api.post('/manutencao-ia/live-assistance/chat', body),
+  liveSaveSession: (body) => api.post('/manutencao-ia/live-assistance/save-session', body)
 };
 
 /** ManuIA App de extensão (PWA / mobile) — preferências, inbox, OS, dashboard */

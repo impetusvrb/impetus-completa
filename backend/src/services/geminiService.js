@@ -47,20 +47,21 @@ async function generateText(prompt, opts = {}) {
   }
 }
 
-async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.') {
+async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.', mimeType = 'image/jpeg') {
   const client = getClient();
   if (!client) return null;
   try {
-    const data = String(imageBase64 || '')
-      .replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
-      .trim();
+    const raw = String(imageBase64 || '');
+    const fromDataUrl = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+    const resolvedMime = fromDataUrl ? fromDataUrl[1] : mimeType;
+    const data = raw.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '').trim();
     const response = await client.models.generateContent({
       model: DEFAULT_MODEL,
       contents: [{
         role: 'user',
         parts: [
           { text: prompt },
-          { inlineData: { mimeType: 'image/jpeg', data } }
+          { inlineData: { mimeType: resolvedMime || 'image/jpeg', data } }
         ]
       }]
     });

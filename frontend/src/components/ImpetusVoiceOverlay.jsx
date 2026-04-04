@@ -5,6 +5,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import ImpetusAvatarLive from './ImpetusAvatarLive';
+import SmartPanel from '../features/smartPanel/SmartPanel';
 import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import './ImpetusVoiceOverlay.css';
 
@@ -37,6 +38,25 @@ export default function ImpetusVoiceOverlay({
 }) {
   const passLipSync = videoLipSyncRef;
   const { toggleVoice, voiceState, wakePhraseIssue } = useImpetusVoice();
+
+  const userLine = String(voiceState.voicePanelUserText || '').trim();
+  const assistLine = String(voiceState.voicePanelAssistantText || '').trim();
+  const liveLine = String(voiceState.currentTranscript || '').trim();
+  const listeningLike =
+    (voiceState.isContinuous && voiceState.isRealtimeMode && (status === 'listening' || status === 'processing')) ||
+    (voiceState.isContinuous && !voiceState.isRealtimeMode && status === 'listening');
+  /** Comando fixo: só o texto já confirmado; o rascunho ao ouvir vai à linha «A reconhecer». */
+  const userDisplay = userLine || (listeningLike ? liveLine : '');
+  const userDraft =
+    listeningLike && liveLine && userLine && liveLine.trim() !== userLine.trim() ? liveLine : '';
+  const assistDisplay =
+    assistLine ||
+    (voiceState.isContinuous && voiceState.isRealtimeMode && status === 'speaking' ? liveLine : '');
+  const hasVoiceStream = !!(
+    String(userDisplay).trim() ||
+    String(userDraft).trim() ||
+    String(assistDisplay).trim()
+  );
 
   const liveHint = () => {
     if (!voiceState.isContinuous) {
@@ -174,15 +194,43 @@ export default function ImpetusVoiceOverlay({
 
           <section className="impetus-voice-overlay__right">
             <div className="impetus-voice-overlay__right-header">
-              <h3>PAINEL DINÂMICO EM TEMPO REAL</h3>
+              <h3>PAINEL DE COMANDO VISUAL</h3>
               <span>···</span>
             </div>
-            <div className="impetus-voice-overlay__dynamic-empty">
-              <div className="impetus-voice-overlay__empty-inner">
-                <strong>ÁREA DE RESULTADOS</strong>
-                <p>
-                  Este painel ficará vazio até receber comandos como:
-                  &quot;gere um gráfico da linha A&quot;, &quot;crie relatório&quot; ou &quot;mostrar indicadores&quot;.
+            <div className="impetus-voice-overlay__dynamic-body">
+              <div className="impetus-voice-overlay__stream-wrap">
+                <SmartPanel
+                  className="impetus-voice-overlay__smart-panel"
+                  voiceOnly
+                  voiceStatus={status}
+                  voiceRealtime={realtimeMode}
+                  micActive={voiceState.isContinuous}
+                />
+                {hasVoiceStream && (
+                  <>
+                    {(userDisplay || userDraft) && (
+                      <div className="impetus-voice-overlay__stream-block impetus-voice-overlay__stream-block--voice">
+                        <span className="impetus-voice-overlay__stream-label">Comando por voz</span>
+                        {userDisplay && <p className="impetus-voice-overlay__stream-text">{userDisplay}</p>}
+                        {userDraft && (
+                          <p className="impetus-voice-overlay__stream-draft" aria-live="polite">
+                            <span className="impetus-voice-overlay__stream-draft-label">A reconhecer</span>
+                            {userDraft}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {assistDisplay && (
+                      <div className="impetus-voice-overlay__stream-block impetus-voice-overlay__stream-block--reply">
+                        <span className="impetus-voice-overlay__stream-label">Resposta da IA (voz)</span>
+                        <p className="impetus-voice-overlay__stream-text">{assistDisplay}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+                <p className="impetus-voice-overlay__stream-footnote" role="note">
+                  Tudo por voz: após a IA responder, o painel atualiza com gráficos e tabelas. Diga «limpar painel» para
+                  esvaziar o output. Se aparecer «modo compatível», atualize o backend com a rota /dashboard/panel-command.
                 </p>
               </div>
             </div>

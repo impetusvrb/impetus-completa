@@ -105,8 +105,20 @@
 
 .manuia-block--vision3d {
   min-height: 480px;
-  padding: 0;
+  padding: 0 0 16px;
   overflow: hidden;
+}
+
+.manuia-block--vision3d .manuia-live-assistance-title {
+  margin: 0;
+  padding: 16px 16px 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary, #e8eef5);
+}
+
+.manuia-block--vision3d > .manuia-block__desc {
+  padding: 0 16px;
 }
 
 .manuia-block--asset-management {

@@ -16,6 +16,8 @@ const userContext = require('../services/userContext');
 const hierarchicalFilter = require('../services/hierarchicalFilter');
 const dashboardComposerService = require('../services/dashboardComposerService');
 const personalizedInsightsService = require('../services/personalizedInsightsService');
+const smartPanelCommandService = require('../services/smartPanelCommandService');
+const { userRateLimit } = require('../middleware/userRateLimit');
 
 router.use('/maintenance', dashboardMaintenanceRouter);
 
@@ -343,6 +345,24 @@ router.post('/invalidar-cache', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_INVALIDAR]', err);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+/**
+ * POST /dashboard/panel-command
+ * Painel de comando visual: interpretação (IA) + dados reais hidratados no servidor.
+ */
+router.post('/panel-command', requireAuth, userRateLimit('executive_query'), async (req, res) => {
+  try {
+    const cmd = String(req.body?.command ?? '').trim();
+    if (!cmd || cmd.length > 4000) {
+      return res.status(400).json({ ok: false, error: 'Comando vazio ou demasiado longo.' });
+    }
+    const output = await smartPanelCommandService.processPanelCommand(req.user, cmd);
+    res.json({ ok: true, output });
+  } catch (err) {
+    console.error('[PANEL_COMMAND]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao processar o painel.' });
   }
 });
 

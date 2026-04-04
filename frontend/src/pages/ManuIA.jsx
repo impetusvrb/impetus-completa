@@ -1,7 +1,7 @@
 /**
  * IMPETUS - ManuIA - Manutenção assistida por IA
  * Pesquisa e renderização de qualquer equipamento por texto
- * Abas: Pesquisa por texto | Diagnóstico 3D (câmera + visão computacional)
+ * Abas: Pesquisa por texto | Assistência Técnica ao Vivo (câmera + IA + dossiê)
  * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado → Concluir sessão
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -11,7 +11,7 @@ import { manutencaoIa } from '../services/api';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import ManuIAUnityViewer from '../components/manu-ia/ManuIAUnityViewer';
 import { getDiagnosisComponent } from '../features/manutencao-ia/diagnosisMapping';
-import Vision3DModule from '../modules/vision-3d/Vision3DModule';
+import LiveTechnicalAssistanceModule from '../modules/live-assistance/LiveTechnicalAssistanceModule';
 import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
 import TechnicalLibraryInteligenteModule from '../features/technical-library/TechnicalLibraryInteligenteModule';
 import TechnicalFieldAnalysisModule from '../features/technical-library/TechnicalFieldAnalysisModule';
@@ -74,7 +74,7 @@ export default function ManuIA({ embedded = false }) {
   const [concluding, setConcluding] = useState(false);
   const [machines, setMachines] = useState([]);
   const [emergencyEvents, setEmergencyEvents] = useState([]);
-  /** UUID de manuia_machines vindo de Gestão de Ativos (?mid=) — liga Diagnóstico 3D e sessão */
+  /** UUID de manuia_machines vindo de Gestão de Ativos (?mid=) — liga Assistência ao Vivo e sessão */
   const [linkedMachineId, setLinkedMachineId] = useState(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -307,7 +307,7 @@ export default function ManuIA({ embedded = false }) {
             className={`manuia-tab ${activeTab === 'vision3d' ? 'manuia-tab--active' : ''}`}
             onClick={() => setActiveTab('vision3d')}
           >
-            <Camera size={18} /> Diagnóstico 3D
+            <Camera size={18} /> Assistência Técnica ao Vivo
           </button>
           <button
             type="button"
@@ -356,7 +356,11 @@ export default function ManuIA({ embedded = false }) {
           </section>
         ) : activeTab === 'vision3d' ? (
           <section className="manuia-block manuia-block--vision3d">
-            <Vision3DModule
+            <h2 className="manuia-live-assistance-title">Assistência Técnica ao Vivo</h2>
+            <p className="manuia-block__desc" style={{ marginBottom: 16 }}>
+              Copiloto com câmera, voz e dossiê técnico: identificação assistida, biblioteca 3D/manuais e orientação passo a passo.
+            </p>
+            <LiveTechnicalAssistanceModule
               machineId={research?.machine_id || linkedMachineId}
               machineName={research?.equipment?.name}
               onDiagnosisComplete={(result) => setDiagnosisData({ visionResult: result })}
@@ -575,7 +579,7 @@ export default function ManuIA({ embedded = false }) {
       {showOSModal && osModalData && (
         <div className="manuia-modal-overlay" onClick={() => setShowOSModal(false)}>
           <div className="manuia-modal manuia-modal--os" onClick={(e) => e.stopPropagation()}>
-            <h3>Ordem de Serviço — Diagnóstico 3D</h3>
+            <h3>Ordem de Serviço — Assistência Técnica ao Vivo</h3>
             <div className="manuia-os-summary">
               <p><strong>Equipamento:</strong> {osModalData.equipment || 'N/A'}</p>
               <p><strong>Fabricante:</strong> {osModalData.manufacturer || 'N/A'}</p>
