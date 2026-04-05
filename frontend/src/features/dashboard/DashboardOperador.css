@@ -324,14 +324,31 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 900px) {
-  .dop__grid {
-    grid-template-columns: 1fr 1fr;
+@media (max-width: 1023px) {
+  .dop {
+    padding: 0 1rem 1.5rem;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1023px) and (min-width: 768px) {
   .dop__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .dop {
+    padding: 0 12px 1.25rem;
+  }
+
+  .dop__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dop-meta-grid,
+  .dop-ciclo-grid {
     grid-template-columns: 1fr;
   }
 }

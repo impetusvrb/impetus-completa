@@ -19,7 +19,8 @@ export default function Table({
   sortable = false,
   sortBy,
   sortOrder = 'asc',
-  onSort
+  onSort,
+  mobileCardLayout = true
 }) {
   const handleSort = (column) => {
     if (!sortable || !column.sortable) return;
@@ -40,10 +41,26 @@ export default function Table({
     return <ChevronsUpDown size={16} className="sort-icon-inactive" />;
   };
 
+  const cardColumns = (() => {
+    const vis = columns.filter((c) => !c.hideInCard);
+    return vis.length ? vis : columns;
+  })();
+
+  const wrapperClassName = [
+    'table-wrapper',
+    mobileCardLayout && 'table-wrapper--responsive-cards',
+    !loading && data.length === 0 && 'table-wrapper--empty'
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const renderCellValue = (col, row) =>
+    col.render ? col.render(row[col.key], row) : row[col.key];
+
   // Loading skeleton
   if (loading) {
     return (
-      <div className="table-wrapper">
+      <div className={wrapperClassName}>
         <table className="table">
           <thead>
             <tr>
@@ -66,6 +83,20 @@ export default function Table({
             ))}
           </tbody>
         </table>
+        {mobileCardLayout && (
+          <div className="table-cards table-cards--skeleton" aria-hidden="true">
+            {[...Array(5)].map((_, idx) => (
+              <div key={idx} className="table-card table-card--skeleton">
+                {[...Array(Math.min(4, Math.max(1, cardColumns.length || 3)))].map((__, i) => (
+                  <div key={i} className="table-card__row">
+                    <div className="skeleton-cell table-card__skeleton-label" />
+                    <div className="skeleton-cell table-card__skeleton-value" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -73,7 +104,7 @@ export default function Table({
   // Empty state
   if (data.length === 0) {
     return (
-      <div className="table-wrapper">
+      <div className={wrapperClassName}>
         <table className="table">
           <thead>
             <tr>
@@ -93,7 +124,7 @@ export default function Table({
   }
 
   return (
-    <div className="table-wrapper">
+    <div className={wrapperClassName}>
       <table className="table">
         <thead>
           <tr>
@@ -123,13 +154,47 @@ export default function Table({
             >
               {columns.map((col) => (
                 <td key={col.key}>
-                  {col.render ? col.render(row[col.key], row) : row[col.key]}
+                  {renderCellValue(col, row)}
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {mobileCardLayout && (
+        <div className="table-cards" role="list">
+          {data.map((row, rowIdx) => {
+            const rowKey = row.id ?? rowIdx;
+            const rowClass = [onRowClick ? 'table-card--clickable' : '', getRowClassName ? getRowClassName(row) : '']
+              .filter(Boolean)
+              .join(' ');
+            return (
+              <div
+                key={rowKey}
+                role="listitem"
+                className={`table-card ${rowClass}`.trim()}
+                onClick={() => onRowClick && onRowClick(row)}
+                onKeyDown={(e) => {
+                  if (!onRowClick) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onRowClick(row);
+                  }
+                }}
+                tabIndex={onRowClick ? 0 : undefined}
+              >
+                {cardColumns.map((col) => (
+                  <div key={col.key} className="table-card__row">
+                    <span className="table-card__label">{col.label}</span>
+                    <div className="table-card__value">{renderCellValue(col, row)}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {pagination && (
         <TablePagination 

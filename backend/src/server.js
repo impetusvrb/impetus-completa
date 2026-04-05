@@ -71,7 +71,8 @@ function needsLargeBodyParser(url) {
     p.startsWith('/api/intelligent-registration') ||
     p.startsWith('/api/asset-management') ||
     p.startsWith('/api/admin/equipment-library') ||
-    p.startsWith('/api/technical-library')
+    p.startsWith('/api/technical-library') ||
+    p.startsWith('/api/manutencao-ia')
   );
 }
 

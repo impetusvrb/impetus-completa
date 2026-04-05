@@ -14,6 +14,7 @@ const STRATEGIC_PATHS = [
   '/dashboard/executive',
   '/dashboard/executive-query',
   '/dashboard/panel-command',
+  '/dashboard/claude-panel',
   '/dashboard/smart-summary',
   '/dashboard/visibility',
   '/dashboard/operational-brain',

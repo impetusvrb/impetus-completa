@@ -382,3 +382,48 @@
   background: rgba(148, 163, 184, 0.2);
   color: #cbd5e1;
 }
+
+/* Responsividade — tablet 2 colunas onde faz sentido · mobile 1 coluna */
+@media (max-width: 1023px) {
+  .dashboard-mecanico {
+    gap: 16px;
+  }
+
+  .dashboard-mecanico__block {
+    padding: 16px;
+  }
+
+  .mecanico-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr));
+  }
+
+  .mecanico-preventive-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-mecanico__tech-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mecanico-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mecanico-preventive-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .mecanico-passagem-actions,
+  .mecanico-manual-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mecanico-passagem-actions .btn-ghost,
+  .mecanico-manual-actions .btn-ghost {
+    justify-content: center;
+  }
+}

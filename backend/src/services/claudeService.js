@@ -4,28 +4,134 @@
  * Não substitui o ChatGPT (conversação) - Claude atua em bastidor.
  */
 const Anthropic = require('@anthropic-ai/sdk');
+const nexusWalletService = require('./nexusWalletService');
+const billingTokenService = require('./billingTokenService');
 
 const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
-// Circuit Breaker: após 5 falhas consecutivas, pausa 60s
-let failures = 0;
-let lastFailureTime = 0;
+const WALLET_FALLBACK_MSG =
+  'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';
+
+// Circuit breakers separados: falhas no chat/análise não bloqueiam o painel pós-voz (e vice-versa).
+let panelFailures = 0;
+let panelLastFailureTime = 0;
+let analyzeFailures = 0;
+let analyzeLastFailureTime = 0;
 const CIRCUIT_THRESHOLD = 5;
 const CIRCUIT_RESET_MS = 60000;
 
-function isCircuitOpen() {
-  if (failures < CIRCUIT_THRESHOLD) return false;
-  if (Date.now() - lastFailureTime > CIRCUIT_RESET_MS) {
-    failures = 0;
+function isPanelCircuitOpen() {
+  if (panelFailures < CIRCUIT_THRESHOLD) return false;
+  if (Date.now() - panelLastFailureTime > CIRCUIT_RESET_MS) {
+    panelFailures = 0;
     return false;
   }
   return true;
 }
 
+function isAnalyzeCircuitOpen() {
+  if (analyzeFailures < CIRCUIT_THRESHOLD) return false;
+  if (Date.now() - analyzeLastFailureTime > CIRCUIT_RESET_MS) {
+    analyzeFailures = 0;
+    return false;
+  }
+  return true;
+}
+
+/** Painel Claude pós-voz: API key + circuito só do painel */
 function isAvailable() {
-  return !!client && !isCircuitOpen();
+  return !!client && !isPanelCircuitOpen();
+}
+
+function getPanelUnavailableReason() {
+  if (!client) return 'Claude não configurado (ANTHROPIC_API_KEY).';
+  if (isPanelCircuitOpen()) {
+    return 'API Claude instável (várias falhas seguidas). Tente de novo dentro de 1 minuto.';
+  }
+  return '';
+}
+
+async function nexusWalletPrecheckPanel(billing, estimatedUnits) {
+  if (!billing?.companyId) return null;
+  const r = await nexusWalletService.canConsumeEstimate(billing.companyId, 'claude', estimatedUnits);
+  if (r.skipped || r.ok) return null;
+  return WALLET_FALLBACK_MSG;
+}
+
+/**
+ * Compatível com o formato de mensagens do painel (system + user), usando a API Messages da Anthropic.
+ * @param {Array<{ role: string, content: string }>} messages
+ * @param {{ max_tokens?: number, timeout?: number, billing?: { companyId: string, userId: string }, model?: string }} opts
+ * @returns {Promise<string|null>} Texto (JSON) ou null em falha; string FALLBACK: se carteira bloquear.
+ */
+async function completeOpenAIStyleMessages(messages, opts = {}) {
+  if (!client) return null;
+  if (isPanelCircuitOpen()) return null;
+
+  const maxTok = opts.max_tokens || 1200;
+  const blocked = await nexusWalletPrecheckPanel(opts.billing, maxTok);
+  if (blocked) return blocked;
+
+  const arr = Array.isArray(messages) ? messages : [];
+  const systemParts = [];
+  const anthropicMessages = [];
+  for (const m of arr) {
+    const role = m.role;
+    const text = String(m.content ?? '').trim();
+    if (!text) continue;
+    if (role === 'system') {
+      systemParts.push(text);
+    } else if (role === 'user' || role === 'assistant') {
+      anthropicMessages.push({ role, content: text });
+    }
+  }
+  if (!anthropicMessages.length) return null;
+
+  const system = systemParts.length ? systemParts.join('\n\n') : undefined;
+  const timeoutMs = opts.timeout || 45000;
+  const model =
+    opts.model ||
+    process.env.SMART_PANEL_CLAUDE_MODEL ||
+    process.env.ANTHROPIC_PANEL_MODEL ||
+    'claude-sonnet-4-20250514';
+
+  try {
+    /* A API Messages não aceita `signal` no body (400: Extra inputs are not permitted). */
+    const createPromise = client.messages.create({
+      model,
+      max_tokens: maxTok,
+      ...(system ? { system } : {}),
+      messages: anthropicMessages
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const message = await Promise.race([createPromise, timeoutPromise]);
+    panelFailures = 0;
+
+    const usage = message.usage;
+    if (opts.billing?.companyId && usage) {
+      const total = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+      if (total > 0) {
+        billingTokenService.registrarUsoSafe(
+          opts.billing.companyId,
+          opts.billing.userId,
+          'claude',
+          total
+        );
+      }
+    }
+
+    const textBlock = message.content?.find((b) => b.type === 'text');
+    return textBlock?.text?.trim() || null;
+  } catch (err) {
+    panelFailures++;
+    panelLastFailureTime = Date.now();
+    console.warn('[CLAUDE_PANEL]', (err.message || String(err)).slice(0, 160));
+    return null;
+  }
 }
 
 /**
@@ -40,8 +146,8 @@ async function analyze(systemPrompt, userContent, opts = {}) {
     console.warn('[CLAUDE] API não configurada (ANTHROPIC_API_KEY)');
     return null;
   }
-  if (isCircuitOpen()) {
-    console.warn('[CLAUDE] Circuit breaker aberto, pausando chamadas');
+  if (isAnalyzeCircuitOpen()) {
+    console.warn('[CLAUDE] Circuit breaker (análise) aberto, pausando chamadas');
     return null;
   }
 
@@ -50,27 +156,25 @@ async function analyze(systemPrompt, userContent, opts = {}) {
   const model = opts.model || 'claude-sonnet-4-20250514';
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const message = await client.messages.create({
+    const createPromise = client.messages.create({
       model,
       max_tokens: maxTokens,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
-      signal: controller.signal
+      messages: [{ role: 'user', content: userContent }]
     });
-
-    clearTimeout(timeoutId);
-    failures = 0;
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const message = await Promise.race([createPromise, timeoutPromise]);
+    analyzeFailures = 0;
 
     const textBlock = message.content?.find((b) => b.type === 'text');
     return textBlock?.text?.trim() || null;
   } catch (err) {
-    failures++;
-    lastFailureTime = Date.now();
+    analyzeFailures++;
+    analyzeLastFailureTime = Date.now();
     const msg = err.message || String(err);
-    console.warn('[CLAUDE_ERROR]', msg.slice(0, 150), '| failures:', failures);
+    console.warn('[CLAUDE_ERROR]', msg.slice(0, 150), '| failures:', analyzeFailures);
     return null;
   }
 }
@@ -139,7 +243,7 @@ Inclua corporate_events APENAS quando houver evidência clara. Se não houver, r
  */
 async function buildMemoryContextForChat(query, memoryFacts) {
   if (!memoryFacts || memoryFacts.length === 0) return null;
-  if (!client || isCircuitOpen()) {
+  if (!client || isAnalyzeCircuitOpen()) {
     // Fallback: montar bloco simples sem Claude
     const lines = memoryFacts.slice(0, 15).map((f) => `- [${f.fact_type}] ${f.content}`);
     return `## Memória operacional (contexto recente):\n${lines.join('\n')}`;
@@ -185,5 +289,7 @@ module.exports = {
   generate,
   extractOperationalFacts,
   buildMemoryContextForChat,
-  isAvailable
+  completeOpenAIStyleMessages,
+  isAvailable,
+  getPanelUnavailableReason
 };

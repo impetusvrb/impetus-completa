@@ -1,4 +1,5 @@
 import React from 'react';
+import { ShieldAlert } from 'lucide-react';
 import VoicePanelVisualRenderer from '../../components/VoicePanelVisualRenderer';
 import ChartRenderer from './renderers/ChartRenderer';
 import TableRenderer from './renderers/TableRenderer';
@@ -9,28 +10,44 @@ import ComparisonRenderer from './renderers/ComparisonRenderer';
 import IndicatorRenderer from './renderers/IndicatorRenderer';
 
 /**
- * @param {{ output: object, className?: string }} props
+ * @param {{ output: object, className?: string, visualOnly?: boolean }} props
  */
-export default function DynamicPanelRenderer({ output, className = '' }) {
+export default function DynamicPanelRenderer({ output, className = '', visualOnly = false }) {
   if (!output) return null;
+
+  const bare = visualOnly ? 'smart-panel-visual--bare' : '';
 
   if (output.legacyVisual) {
     return (
-      <div className={`smart-panel-visual smart-panel-visual--legacy ${className}`}>
-        {output.title && <h4 className="smart-panel-visual__title">{output.title}</h4>}
-        <p className="smart-panel-visual__meta">
-          Modo compatível: o servidor ainda não expõe /dashboard/panel-command. A usar o motor de voz clássico.
-        </p>
-        <VoicePanelVisualRenderer visual={output.legacyVisual} />
+      <div className={`smart-panel-visual smart-panel-visual--legacy ${bare} ${className}`}>
+        {!visualOnly && output.title && <h4 className="smart-panel-visual__title">{output.title}</h4>}
+        {!visualOnly && (
+          <p className="smart-panel-visual__meta">
+            Modo compatível: servidor sem /dashboard/panel-command.
+          </p>
+        )}
+        <VoicePanelVisualRenderer visual={output.legacyVisual} visualOnly={visualOnly} />
       </div>
     );
   }
 
   if (output.permissionGranted === false) {
+    const deniedMsg = output.denialReason || output.reportContent || 'Sem permissão.';
     return (
-      <div className={`smart-panel-visual smart-panel-visual--denied ${className}`}>
-        <h4 className="smart-panel-visual__title">{output.title || 'Acesso'}</h4>
-        <p className="smart-panel-visual__denied">{output.denialReason || output.reportContent || 'Sem permissão.'}</p>
+      <div className={`smart-panel-visual smart-panel-visual--denied ${bare} ${className}`}>
+        {visualOnly ? (
+          <>
+            <div className="smart-panel-visual__denied-icon" aria-hidden>
+              <ShieldAlert size={48} strokeWidth={1.25} />
+            </div>
+            <p className="smart-panel-visual__denied-msg">{deniedMsg}</p>
+          </>
+        ) : (
+          <>
+            <h4 className="smart-panel-visual__title">{output.title || 'Acesso'}</h4>
+            <p className="smart-panel-visual__denied">{deniedMsg}</p>
+          </>
+        )}
       </div>
     );
   }
@@ -42,39 +59,46 @@ export default function DynamicPanelRenderer({ output, className = '' }) {
   const chartSeries = output.chartData?.length ? output.chartData : output.barData;
   const showTrend = (type === 'chart' || type === 'mixed') && output.trendData?.length > 0;
   const showKpi = type === 'kpi_cards' || type === 'mixed';
-  const showReport = type === 'report' || (type === 'mixed' && output.reportContent);
+  const showReport = !visualOnly && (type === 'report' || (type === 'mixed' && output.reportContent));
   const showAlerts = type === 'alert' || type === 'mixed';
   const showComparison = type === 'comparison' || type === 'mixed';
   const showIndicators = type === 'indicator' || type === 'mixed';
 
   return (
-    <div className={`smart-panel-visual ${className}`}>
-      {output.title && <h4 className="smart-panel-visual__title">{output.title}</h4>}
-      {output.hydratedDatasets?.length > 0 && (
+    <div className={`smart-panel-visual ${bare} ${className}`}>
+      {!visualOnly && output.title && <h4 className="smart-panel-visual__title">{output.title}</h4>}
+      {!visualOnly && output.hydratedDatasets?.length > 0 && (
         <p className="smart-panel-visual__meta">
           Dados: {output.hydratedDatasets.join(', ')}
           {output.userContextHint?.iaDepth ? ` · profundidade IA: ${output.userContextHint.iaDepth}` : ''}
         </p>
       )}
 
-      {showAlerts && output.alerts?.length > 0 && <AlertRenderer alerts={output.alerts} />}
+      {showAlerts && output.alerts?.length > 0 && <AlertRenderer alerts={output.alerts} visualOnly={visualOnly} />}
 
       {showChart && (
-        <ChartRenderer chartType={output.chartType || 'bar'} data={chartSeries} title="Visualização principal" />
+        <ChartRenderer
+          chartType={output.chartType || 'bar'}
+          data={chartSeries}
+          title={visualOnly ? null : 'Visualização principal'}
+          visualOnly={visualOnly}
+        />
       )}
       {showTrend && (
-        <ChartRenderer chartType="area" data={output.trendData} title="Série / tendência" />
+        <ChartRenderer chartType="area" data={output.trendData} title={visualOnly ? null : 'Tendência'} visualOnly={visualOnly} />
       )}
 
       {showKpi && output.kpiCards?.length > 0 && <KPICardsRenderer cards={output.kpiCards} />}
 
-      {showIndicators && output.indicators?.length > 0 && <IndicatorRenderer indicators={output.indicators} />}
+      {showIndicators && output.indicators?.length > 0 && (
+        <IndicatorRenderer indicators={output.indicators} visualOnly={visualOnly} />
+      )}
 
-      {showComparison && <ComparisonRenderer comparison={output.comparison} />}
+      {showComparison && <ComparisonRenderer comparison={output.comparison} hideTableTitle={visualOnly} />}
 
       {output.table?.rows?.length > 0 && (
         <TableRenderer
-          title={output.table.title}
+          title={visualOnly ? null : output.table.title}
           columns={output.table.columns}
           rows={output.table.rows}
         />
@@ -84,7 +108,7 @@ export default function DynamicPanelRenderer({ output, className = '' }) {
         tb.rows?.length > 0 ? (
           <TableRenderer
             key={idx}
-            title={tb.title}
+            title={visualOnly ? null : tb.title}
             columns={tb.columns}
             rows={tb.rows}
             className="smart-panel-visual__extra"
@@ -94,7 +118,7 @@ export default function DynamicPanelRenderer({ output, className = '' }) {
 
       {type === 'table' && !output.table?.rows?.length && output.extraTables?.[0] && (
         <TableRenderer
-          title={output.extraTables[0].title}
+          title={visualOnly ? null : output.extraTables[0].title}
           columns={output.extraTables[0].columns}
           rows={output.extraTables[0].rows}
         />

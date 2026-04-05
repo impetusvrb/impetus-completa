@@ -18,7 +18,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-export default function VoicePanelVisualRenderer({ visual, className = '' }) {
+export default function VoicePanelVisualRenderer({ visual, className = '', visualOnly = false }) {
   const printRef = useRef(null);
 
   const downloadXlsx = useCallback(() => {
@@ -106,6 +106,13 @@ export default function VoicePanelVisualRenderer({ visual, className = '' }) {
   if (!visual || visual.kind === 'clear') return null;
 
   if (visual.kind === 'error' || visual.kind === 'empty') {
+    if (visualOnly) {
+      return (
+        <div className={`voice-panel-visual voice-panel-visual--muted voice-panel-visual--bare ${className}`} aria-hidden>
+          <span className="sr-only">{visual.title}. {visual.hint || 'Sem visualização.'}</span>
+        </div>
+      );
+    }
     return (
       <div className={`voice-panel-visual voice-panel-visual--muted ${className}`}>
         <strong>{visual.title}</strong>
@@ -117,31 +124,51 @@ export default function VoicePanelVisualRenderer({ visual, className = '' }) {
   const showExport = visual.kind === 'chart' || visual.kind === 'table' || visual.kind === 'mixed';
 
   return (
-    <div ref={printRef} className={`voice-panel-visual ${className}`}>
-      <div className="voice-panel-visual__head">
-        <div>
-          <h4 className="voice-panel-visual__title">{visual.title}</h4>
-          {visual.subtitle && <p className="voice-panel-visual__sub">{visual.subtitle}</p>}
-        </div>
-        {showExport && (
-          <div className="voice-panel-visual__actions">
-            <button type="button" className="voice-panel-visual__btn" onClick={downloadXlsx} title="Excel">
-              <FileSpreadsheet size={16} /> Excel
-            </button>
-            <button type="button" className="voice-panel-visual__btn" onClick={downloadPdf} title="PDF">
-              <Download size={16} /> PDF
-            </button>
-            <button type="button" className="voice-panel-visual__btn" onClick={doPrint} title="Imprimir">
-              <Printer size={16} /> Imprimir
-            </button>
-            {typeof navigator !== 'undefined' && (navigator.share || navigator.clipboard?.writeText) && (
-              <button type="button" className="voice-panel-visual__btn" onClick={() => void doShare()} title="Partilhar">
-                <Share2 size={16} /> Partilhar
-              </button>
-            )}
+    <div ref={printRef} className={`voice-panel-visual ${visualOnly ? 'voice-panel-visual--bare' : ''} ${className}`}>
+      {!visualOnly && (
+        <div className="voice-panel-visual__head">
+          <div>
+            <h4 className="voice-panel-visual__title">{visual.title}</h4>
+            {visual.subtitle && <p className="voice-panel-visual__sub">{visual.subtitle}</p>}
           </div>
-        )}
-      </div>
+          {showExport && (
+            <div className="voice-panel-visual__actions">
+              <button type="button" className="voice-panel-visual__btn" onClick={downloadXlsx} title="Excel">
+                <FileSpreadsheet size={16} /> Excel
+              </button>
+              <button type="button" className="voice-panel-visual__btn" onClick={downloadPdf} title="PDF">
+                <Download size={16} /> PDF
+              </button>
+              <button type="button" className="voice-panel-visual__btn" onClick={doPrint} title="Imprimir">
+                <Printer size={16} /> Imprimir
+              </button>
+              {typeof navigator !== 'undefined' && (navigator.share || navigator.clipboard?.writeText) && (
+                <button type="button" className="voice-panel-visual__btn" onClick={() => void doShare()} title="Partilhar">
+                  <Share2 size={16} /> Partilhar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {visualOnly && showExport && (
+        <div className="voice-panel-visual__actions voice-panel-visual__actions--icons-only">
+          <button type="button" className="voice-panel-visual__icon-btn" onClick={downloadXlsx} title="Excel" aria-label="Exportar Excel">
+            <FileSpreadsheet size={18} />
+          </button>
+          <button type="button" className="voice-panel-visual__icon-btn" onClick={downloadPdf} title="PDF" aria-label="Exportar PDF">
+            <Download size={18} />
+          </button>
+          <button type="button" className="voice-panel-visual__icon-btn" onClick={doPrint} title="Imprimir" aria-label="Imprimir">
+            <Printer size={18} />
+          </button>
+          {typeof navigator !== 'undefined' && (navigator.share || navigator.clipboard?.writeText) && (
+            <button type="button" className="voice-panel-visual__icon-btn" onClick={() => void doShare()} title="Partilhar" aria-label="Partilhar">
+              <Share2 size={18} />
+            </button>
+          )}
+        </div>
+      )}
 
       {visual.kind === 'chart' && visual.data?.length > 0 && (
         <div className="voice-panel-visual__chart">
@@ -203,7 +230,7 @@ export default function VoicePanelVisualRenderer({ visual, className = '' }) {
         <>
           {visual.barData?.length > 0 && (
             <div className="voice-panel-visual__chart">
-              <h5 className="voice-panel-visual__section-label">Indicadores (barras)</h5>
+              {!visualOnly && <h5 className="voice-panel-visual__section-label">Indicadores (barras)</h5>}
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={visual.barData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,170,255,0.15)" />
@@ -220,7 +247,7 @@ export default function VoicePanelVisualRenderer({ visual, className = '' }) {
           )}
           {visual.trendData?.length > 0 && (
             <div className="voice-panel-visual__chart voice-panel-visual__chart--second">
-              <h5 className="voice-panel-visual__section-label">Tendência temporal</h5>
+              {!visualOnly && <h5 className="voice-panel-visual__section-label">Tendência temporal</h5>}
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={visual.trendData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,170,255,0.15)" />
@@ -241,7 +268,7 @@ export default function VoicePanelVisualRenderer({ visual, className = '' }) {
           {(visual.extraTables || []).map((tb, idx) =>
             tb.rows?.length > 0 ? (
               <div key={idx} className="voice-panel-visual__extra-table">
-                <h5 className="voice-panel-visual__extra-title">{tb.title}</h5>
+                {!visualOnly && tb.title && <h5 className="voice-panel-visual__extra-title">{tb.title}</h5>}
                 <div className="voice-panel-visual__table-wrap">
                   <table className="voice-panel-visual__table voice-panel-visual__table--compact">
                     <thead>

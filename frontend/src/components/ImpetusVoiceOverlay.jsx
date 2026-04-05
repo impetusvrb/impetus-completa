@@ -39,25 +39,6 @@ export default function ImpetusVoiceOverlay({
   const passLipSync = videoLipSyncRef;
   const { toggleVoice, voiceState, wakePhraseIssue } = useImpetusVoice();
 
-  const userLine = String(voiceState.voicePanelUserText || '').trim();
-  const assistLine = String(voiceState.voicePanelAssistantText || '').trim();
-  const liveLine = String(voiceState.currentTranscript || '').trim();
-  const listeningLike =
-    (voiceState.isContinuous && voiceState.isRealtimeMode && (status === 'listening' || status === 'processing')) ||
-    (voiceState.isContinuous && !voiceState.isRealtimeMode && status === 'listening');
-  /** Comando fixo: só o texto já confirmado; o rascunho ao ouvir vai à linha «A reconhecer». */
-  const userDisplay = userLine || (listeningLike ? liveLine : '');
-  const userDraft =
-    listeningLike && liveLine && userLine && liveLine.trim() !== userLine.trim() ? liveLine : '';
-  const assistDisplay =
-    assistLine ||
-    (voiceState.isContinuous && voiceState.isRealtimeMode && status === 'speaking' ? liveLine : '');
-  const hasVoiceStream = !!(
-    String(userDisplay).trim() ||
-    String(userDraft).trim() ||
-    String(assistDisplay).trim()
-  );
-
   const liveHint = () => {
     if (!voiceState.isContinuous) {
       if (wakePhraseIssue === 'insecure') {
@@ -156,7 +137,7 @@ export default function ImpetusVoiceOverlay({
               )}
               <div className="impetus-voice-overlay__listening-bar">
                 <span className="impetus-voice-overlay__dot" />
-                <span>{commandHint}</span>
+                <span className="sr-only">{commandHint}</span>
                 <div className="impetus-voice-overlay__wave" aria-hidden="true">
                   {bars.map((i) => (
                     <span
@@ -170,6 +151,9 @@ export default function ImpetusVoiceOverlay({
                   ))}
                 </div>
               </div>
+              {status === 'listening' && (
+                <p className="impetus-voice-overlay__listening-caption">ouvindo</p>
+              )}
               {(presenceExpression || presencePerceptionState) && (
                 <p className="impetus-voice-overlay__presence" aria-live="polite">
                   <span className="impetus-voice-overlay__presence-label">Presença</span>
@@ -193,11 +177,7 @@ export default function ImpetusVoiceOverlay({
           </section>
 
           <section className="impetus-voice-overlay__right">
-            <div className="impetus-voice-overlay__right-header">
-              <h3>PAINEL DE COMANDO VISUAL</h3>
-              <span>···</span>
-            </div>
-            <div className="impetus-voice-overlay__dynamic-body">
+            <div className="impetus-voice-overlay__dynamic-body impetus-voice-overlay__dynamic-body--visual-only">
               <div className="impetus-voice-overlay__stream-wrap">
                 <SmartPanel
                   className="impetus-voice-overlay__smart-panel"
@@ -206,32 +186,6 @@ export default function ImpetusVoiceOverlay({
                   voiceRealtime={realtimeMode}
                   micActive={voiceState.isContinuous}
                 />
-                {hasVoiceStream && (
-                  <>
-                    {(userDisplay || userDraft) && (
-                      <div className="impetus-voice-overlay__stream-block impetus-voice-overlay__stream-block--voice">
-                        <span className="impetus-voice-overlay__stream-label">Comando por voz</span>
-                        {userDisplay && <p className="impetus-voice-overlay__stream-text">{userDisplay}</p>}
-                        {userDraft && (
-                          <p className="impetus-voice-overlay__stream-draft" aria-live="polite">
-                            <span className="impetus-voice-overlay__stream-draft-label">A reconhecer</span>
-                            {userDraft}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {assistDisplay && (
-                      <div className="impetus-voice-overlay__stream-block impetus-voice-overlay__stream-block--reply">
-                        <span className="impetus-voice-overlay__stream-label">Resposta da IA (voz)</span>
-                        <p className="impetus-voice-overlay__stream-text">{assistDisplay}</p>
-                      </div>
-                    )}
-                  </>
-                )}
-                <p className="impetus-voice-overlay__stream-footnote" role="note">
-                  Tudo por voz: após a IA responder, o painel atualiza com gráficos e tabelas. Diga «limpar painel» para
-                  esvaziar o output. Se aparecer «modo compatível», atualize o backend com a rota /dashboard/panel-command.
-                </p>
               </div>
             </div>
           </section>

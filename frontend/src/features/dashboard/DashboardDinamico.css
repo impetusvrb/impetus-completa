@@ -409,3 +409,36 @@
 .dashboard-widget--error .btn-retry {
   margin-top: 0.5rem;
 }
+
+/* Responsividade — mobile ≤767 · tablet 768–1023 · desktop ≥1024 */
+@media (max-width: 1023px) {
+  .dashboard-dinamico {
+    padding: 0 1rem 1.5rem;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+  .dashboard-dinamico__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-dinamico__cell[data-span="2"] {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-dinamico__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-dinamico__cell[data-span="2"] {
+    grid-column: span 1;
+  }
+
+  .dashboard-widget__kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

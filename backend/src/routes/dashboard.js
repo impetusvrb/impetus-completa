@@ -17,6 +17,7 @@ const hierarchicalFilter = require('../services/hierarchicalFilter');
 const dashboardComposerService = require('../services/dashboardComposerService');
 const personalizedInsightsService = require('../services/personalizedInsightsService');
 const smartPanelCommandService = require('../services/smartPanelCommandService');
+const claudePanelService = require('../services/claudePanelService');
 const { userRateLimit } = require('../middleware/userRateLimit');
 
 router.use('/maintenance', dashboardMaintenanceRouter);
@@ -363,6 +364,29 @@ router.post('/panel-command', requireAuth, userRateLimit('executive_query'), asy
   } catch (err) {
     console.error('[PANEL_COMMAND]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao processar o painel.' });
+  }
+});
+
+/**
+ * POST /dashboard/claude-panel
+ * Painel visual pós-conversa (Claude): JSON com gráfico, tabela, KPI, relatório ou alertas.
+ * A voz continua na OpenAI; esta rota só alimenta o painel direito.
+ */
+router.post('/claude-panel', requireAuth, userRateLimit('executive_query'), async (req, res) => {
+  try {
+    const userTranscript = String(req.body?.userTranscript ?? '').trim();
+    const assistantResponse = String(req.body?.assistantResponse ?? '').trim();
+    if (userTranscript.length > 8000 || assistantResponse.length > 8000) {
+      return res.status(400).json({ ok: false, error: 'Texto demasiado longo.' });
+    }
+    const result = await claudePanelService.generateVisualPanel(req.user, {
+      userTranscript,
+      assistantResponse
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[CLAUDE_PANEL]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro no painel Claude.', shouldRender: false });
   }
 });
 

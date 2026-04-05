@@ -1,10 +1,10 @@
 import React from 'react';
 
-export default function IndicatorRenderer({ indicators = [] }) {
+export default function IndicatorRenderer({ indicators = [], visualOnly = false }) {
   if (!indicators?.length) return null;
   return (
     <div className="smart-panel-visual__indicators">
-      <h5 className="smart-panel-visual__block-title">Indicadores</h5>
+      {!visualOnly && <h5 className="smart-panel-visual__block-title">Indicadores</h5>}
       <ul className="smart-panel-visual__indicator-list">
         {indicators.map((ind, i) => (
           <li key={i} className={`smart-panel-visual__indicator smart-panel-visual__indicator--${ind.level || 'ok'}`}>

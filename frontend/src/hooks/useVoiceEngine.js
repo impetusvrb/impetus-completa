@@ -17,7 +17,11 @@ import {
 } from '../constants/voiceResponses';
 import { applyPronunciation } from '../constants/pronunciationMap';
 import { calcPcmChunkVolumeNorm } from '../utils/pcmChunkVolume';
-import { dispatchSmartPanelVoiceCommand } from '../features/smartPanel/smartPanelEvents';
+import {
+  dispatchClaudePanelBridge,
+  runVoicePanelMetaIfHandled
+} from '../features/smartPanel/smartPanelEvents';
+import { parsePanelVoiceMetaCommand } from '../features/smartPanel/panelVoiceMetaCommands';
 import {
   isDidAvatarEnabled,
   isDidAvatarConfigured,
@@ -48,6 +52,20 @@ function voiceIoBase() {
 }
 
 const STOP_WORDS = /^(parar|para|desligar|sair|stop)\b/i;
+
+/** Transcrição final do utilizador (Realtime) — vários formatos de evento da API. */
+function extractRealtimeUserTranscriptFinal(ev) {
+  const d = ev?.transcript ?? ev?.text;
+  if (d != null && String(d).trim()) return String(d).trim();
+  const item = ev?.item;
+  if (item?.content && Array.isArray(item.content)) {
+    for (const block of item.content) {
+      const tx = block?.transcript ?? block?.text;
+      if (tx != null && String(tx).trim()) return String(tx).trim();
+    }
+  }
+  return '';
+}
 
 function getStoredUserDisplayName() {
   try {
@@ -683,7 +701,11 @@ export function useVoiceEngine(options = {}) {
   const realtimeAsstTranscriptRef = useRef('');
   const didAvatarDispatchedForResponseRef = useRef(false);
   const realtimeUserTranscriptRef = useRef('');
+  /** Comando de painel (imprimir/enviar chat) tratado no modo Realtime — evita bridge Claude indevido. */
+  const realtimeMetaHandledRef = useRef(false);
   const lastCompletedUserPhraseRef = useRef('');
+  /** Capturado em response.created — sobrevive a speech_started limpar o buffer ao vivo. */
+  const responseTurnUserPhraseRef = useRef('');
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
@@ -1337,6 +1359,18 @@ export function useVoiceEngine(options = {}) {
         continue;
       }
       failStreakRef.current = 0;
+
+      if (await runVoicePanelMetaIfHandled(text)) {
+        setVoiceState((s) => ({
+          ...s,
+          currentTranscript: '',
+          voicePanelUserText: String(text || '').trim(),
+          status: 'listening'
+        }));
+        showBadge(pickListeningPhrase());
+        continue;
+      }
+
       setVoiceState((s) => ({
         ...s,
         currentTranscript: '',
@@ -1386,7 +1420,10 @@ export function useVoiceEngine(options = {}) {
         ...s,
         voicePanelAssistantText: String(reply || '').trim().slice(0, 8000)
       }));
-      dispatchSmartPanelVoiceCommand(lastCompletedUserPhraseRef.current);
+      dispatchClaudePanelBridge({
+        userTranscript: lastCompletedUserPhraseRef.current,
+        assistantResponse: String(reply || '').trim()
+      });
       await speakNaturalReply(
         reply,
         sentimentContext ? { sentimentContext, userText: text } : { userText: text }
@@ -1532,6 +1569,7 @@ export function useVoiceEngine(options = {}) {
         onEvent: (ev) => {
           const t = ev.type || '';
           if (t === 'input_audio_buffer.speech_started') {
+            realtimeMetaHandledRef.current = false;
             realtimeAsstTranscriptRef.current = '';
             didAvatarDispatchedForResponseRef.current = false;
             realtimeUserTranscriptRef.current = '';
@@ -1548,6 +1586,12 @@ export function useVoiceEngine(options = {}) {
               ...u,
               mouthState: 'closed'
             }));
+          }
+          if (t === 'response.created') {
+            const u = String(lastCompletedUserPhraseRef.current || '').trim();
+            const live = String(realtimeUserTranscriptRef.current || '').trim();
+            responseTurnUserPhraseRef.current =
+              u.length >= 4 ? u : live.length >= 4 ? live : u || live;
           }
           if (
             (t === 'response.output_audio_transcript.delta' ||
@@ -1593,9 +1637,12 @@ export function useVoiceEngine(options = {}) {
             }
           }
           const userTxFinal =
-            String(t).includes('input_audio_transcription') &&
-            (String(t).includes('completed') || String(t).includes('.done') || t.endsWith('.done'));
-          const finalUser = ev.transcript ?? ev.text ?? '';
+            (String(t).includes('input_audio_transcription') &&
+              (String(t).includes('completed') ||
+                String(t).includes('.done') ||
+                t.endsWith('.done'))) ||
+            t === 'conversation.item.input_audio_transcription.completed';
+          const finalUser = extractRealtimeUserTranscriptFinal(ev);
           if (userTxFinal && finalUser) {
             realtimeUserTranscriptRef.current = String(finalUser);
             lastCompletedUserPhraseRef.current = String(finalUser).trim();
@@ -1605,6 +1652,18 @@ export function useVoiceEngine(options = {}) {
               currentTranscript: '',
               voicePanelUserText: String(finalUser).trim()
             }));
+            const phraseForMeta = String(finalUser).trim();
+            if (phraseForMeta) {
+              // Deteção síncrona: se esperarmos só pelo handler async, o modelo Realtime já
+              // começa a responder e o painel deixa de obedecer à voz.
+              if (parsePanelVoiceMetaCommand(phraseForMeta)) {
+                realtimeMetaHandledRef.current = true;
+                try {
+                  realtimeSessionRef.current?.cancelResponse?.();
+                } catch (_) {}
+              }
+              void runVoicePanelMetaIfHandled(phraseForMeta);
+            }
           }
           if (String(t).includes('input_audio_transcription') && String(t).includes('failed')) {
             const em = ev.error?.message || ev.error?.code || ev.message || 'Falha na transcrição do microfone';
@@ -1650,18 +1709,27 @@ export function useVoiceEngine(options = {}) {
             }));
           }
           if (t === 'response.done') {
+            const skipBridge = realtimeMetaHandledRef.current;
+            if (skipBridge) realtimeMetaHandledRef.current = false;
             const snapForDid = String(realtimeAsstTranscriptRef.current || '').trim();
             realtimeAsstTranscriptRef.current = '';
             const phraseSnap =
               String(lastCompletedUserPhraseRef.current || '').trim() ||
+              String(responseTurnUserPhraseRef.current || '').trim() ||
               String(realtimeUserTranscriptRef.current || '').trim();
+            responseTurnUserPhraseRef.current = '';
             setVoiceState((s) => ({
               ...s,
               currentTranscript: '',
               voicePanelAssistantText: snapForDid || s.voicePanelAssistantText
             }));
 
-            dispatchSmartPanelVoiceCommand(phraseSnap);
+            if (!skipBridge) {
+              dispatchClaudePanelBridge({
+                userTranscript: phraseSnap,
+                assistantResponse: snapForDid
+              });
+            }
 
             // Sempre esperar o PCM local acabar antes de cortar lipsync (D-ID ou não).
             // Com D-ID, transcript.done já pode ter disparado o pedido; aqui só fallback + fechar boca.

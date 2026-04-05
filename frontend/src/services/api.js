@@ -252,6 +252,12 @@ export const dashboard = {
     api.post('/dashboard/track-interaction', { event_type, entity_type, entity_id, context }),
   /** Painel de comando visual (IA + dados reais, permissões no servidor) */
   runPanelCommand: (command) => api.post('/dashboard/panel-command', { command }),
+  /** Painel visual pós-voz (Claude): transcrição utilizador + resposta assistente */
+  runClaudePanel: (body) =>
+    api.post('/dashboard/claude-panel', {
+      userTranscript: String(body?.userTranscript ?? '').slice(0, 8000),
+      assistantResponse: String(body?.assistantResponse ?? '').slice(0, 8000)
+    }),
   /** Preferências de perfil / IA (próprio utilizador) */
   patchProfileContext: (body) => api.patch('/dashboard/profile-context', body),
   getWidgets: () => api.get('/dashboard/widgets'),

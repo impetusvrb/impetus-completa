@@ -2200,4 +2200,27 @@ router.delete('/industrial/machines/:id', requireAuth, requireCompanyActive, req
   }
 });
 
+const claudePanelService = require('../services/claudePanelService');
+
+/**
+ * POST /api/dashboard/claude-panel — painel visual após voz (Claude JSON).
+ */
+router.post('/claude-panel', requireAuth, userRateLimit('executive_query'), async (req, res) => {
+  try {
+    const userTranscript = String(req.body?.userTranscript ?? '').trim();
+    const assistantResponse = String(req.body?.assistantResponse ?? '').trim();
+    if (userTranscript.length > 8000 || assistantResponse.length > 8000) {
+      return res.status(400).json({ ok: false, error: 'Texto demasiado longo.' });
+    }
+    const result = await claudePanelService.generateVisualPanel(req.user, {
+      userTranscript,
+      assistantResponse
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('[CLAUDE_PANEL]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro no painel Claude.', shouldRender: false });
+  }
+});
+
 module.exports = router;

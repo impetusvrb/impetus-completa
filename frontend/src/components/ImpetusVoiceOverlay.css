@@ -244,8 +244,19 @@
   font-weight: 600;
   font-size: 0.85rem;
   letter-spacing: 0.06em;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   background: rgba(8, 18, 34, 0.9);
+}
+
+.impetus-voice-overlay__listening-caption {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-indent: 0.35em;
+  text-transform: lowercase;
+  color: rgba(0, 212, 255, 0.92);
 }
 
 .impetus-voice-overlay__dot {
@@ -320,6 +331,8 @@
   padding: 12px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .impetus-voice-overlay__right-header {
@@ -354,6 +367,30 @@
   padding: 14px;
   overflow: auto;
   box-shadow: inset 0 0 45px rgba(0, 170, 255, 0.06);
+}
+
+.impetus-voice-overlay__dynamic-body--visual-only {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.impetus-voice-overlay__dynamic-body--visual-only .impetus-voice-overlay__stream-wrap {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.impetus-voice-overlay__dynamic-body--visual-only .impetus-voice-overlay__smart-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .impetus-voice-overlay__stream-wrap {
@@ -561,6 +598,34 @@
   flex-shrink: 0;
 }
 
+.voice-panel-visual__actions--icons-only {
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.voice-panel-visual--bare.voice-panel-visual {
+  padding-top: 8px;
+}
+
+.voice-panel-visual__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 170, 255, 0.4);
+  background: rgba(0, 40, 72, 0.55);
+  color: #9dd4ff;
+  cursor: pointer;
+}
+
+.voice-panel-visual__icon-btn:hover {
+  background: rgba(0, 80, 120, 0.45);
+  color: #dff4ff;
+}
+
 .voice-panel-visual__btn {
   display: inline-flex;
   align-items: center;
@@ -647,7 +712,8 @@
   .impetus-voice-overlay__left,
   .impetus-voice-overlay__topbar,
   .impetus-voice-overlay__command-card .impetus-voice-overlay__listening-bar,
-  .voice-panel-visual__actions {
+  .voice-panel-visual__actions,
+  .voice-panel-visual__actions--icons-only {
     display: none !important;
   }
 

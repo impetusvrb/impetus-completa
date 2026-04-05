@@ -23,18 +23,24 @@
   font-size: 0.95rem;
 }
 
-/* Grid de Métricas KPI */
+/* Grid de Métricas KPI — fluido; 1 coluna no mobile via minmax */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Grid de Gráficos */
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr minmax(280px, 380px);
   gap: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chart-large {
@@ -48,8 +54,10 @@
 /* Grid Inferior (Insights + Interações) */
 .bottom-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .insights-section,
@@ -57,7 +65,7 @@
   min-height: 300px;
 }
 
-/* Responsividade */
+/* Responsividade — Desktop ≥1024 · Tablet 768–1023 (2 col) · Mobile ≤767 (1 col) */
 @media (max-width: 1400px) {
   .charts-grid {
     grid-template-columns: 1fr;
@@ -66,17 +74,26 @@
   .chart-small {
     max-width: 600px;
     margin: 0 auto;
+    width: 100%;
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1023px) and (min-width: 768px) {
   .bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .metrics-grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 768px) {
-  .metrics-grid {
+  .bottom-grid {
     grid-template-columns: 1fr;
   }
 

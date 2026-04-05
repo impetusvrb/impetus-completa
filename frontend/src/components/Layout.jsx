@@ -3,7 +3,7 @@
  * Sidebar + Header + Conteúdo
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -61,6 +61,24 @@ import './Layout.css';
 
 const IA_FACE_VIDEO = '/ia-face-1.mp4';
 
+/** max-width: 1023px — sidebar em overlay/drawer (tablet + mobile). */
+const MQ_NAV_DRAWER = '(max-width: 1023px)';
+
+function useMatchMedia(query) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(query).matches;
+  });
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = () => setMatches(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, [query]);
+  return matches;
+}
+
 /** Na tela de configurações do usuário, sidebar mostra só navegação da conta (sem admin/IA/conteúdo institucional). */
 const USER_SETTINGS_FOCUS_NAV = [
   { hash: 'us-perfil', label: 'Perfil', icon: User },
@@ -88,7 +106,11 @@ export default function Layout({ children }) {
   const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isNarrowViewport = useMatchMedia(MQ_NAV_DRAWER);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia(MQ_NAV_DRAWER).matches;
+  });
   const [notificationCount] = useState(0);
   const [subscriptionOverdue, setSubscriptionOverdue] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -125,6 +147,34 @@ export default function Layout({ children }) {
   const iaVideoSrc = IA_FACE_VIDEO;
 
   useEffect(() => {
+    if (isNarrowViewport) {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
+  }, [isNarrowViewport]);
+
+  useEffect(() => {
+    if (!isNarrowViewport || !sidebarOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isNarrowViewport, sidebarOpen]);
+
+  useEffect(() => {
+    if (!isNarrowViewport || !sidebarOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isNarrowViewport, sidebarOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (e) => {
       if (headerDropdownRef.current && !headerDropdownRef.current.contains(e.target)) {
         setShowNotifications(false);
@@ -134,6 +184,12 @@ export default function Layout({ children }) {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const closeSidebarAfterNav = useCallback(() => {
+    if (window.matchMedia(MQ_NAV_DRAWER).matches) {
+      setSidebarOpen(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -370,6 +426,14 @@ export default function Layout({ children }) {
 
   return (
     <div className={`layout${showWakeHttpBanner ? ' layout--wake-hint' : ''}`}>
+      {isNarrowViewport && sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Fechar menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       {showWakeHttpBanner && (
         <div className="layout-wake-banner" role="status">
           <Mic size={16} aria-hidden />
@@ -438,6 +502,7 @@ export default function Layout({ children }) {
                   to={item.path}
                   className="nav-item nav-item--settings-back"
                   title={item.label}
+                  onClick={closeSidebarAfterNav}
                 >
                   <span className="nav-dot" />
                   <Icon size={18} />
@@ -457,6 +522,7 @@ export default function Layout({ children }) {
                   onClick={(e) => {
                     e.preventDefault();
                     scrollToSettingsSection(item.hash);
+                    closeSidebarAfterNav();
                   }}
                 >
                   <span className="nav-dot" />
@@ -475,6 +541,7 @@ export default function Layout({ children }) {
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}
                 onMouseEnter={() => prefetchRoute(item.path)}
+                onClick={closeSidebarAfterNav}
               >
                 <span className="nav-dot" />
                 {item.aiIcon
@@ -512,6 +579,15 @@ export default function Layout({ children }) {
       <div className="main-content">
         {/* Topbar - Redesign IMPETUS */}
         <header className="topbar header">
+          <button
+            type="button"
+            className="topbar-nav-toggle"
+            aria-label={sidebarOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((o) => !o)}
+          >
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
           <div className="header-left">
             <div className="welcome greeting">
               Bem-vindo, <span>{user.name}</span>

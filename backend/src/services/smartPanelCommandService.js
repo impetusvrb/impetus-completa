@@ -3,6 +3,7 @@
  * A IA escolhe tipo e datasets; números vêm sempre das APIs do dashboard (sem inventar métricas).
  */
 const ai = require('./ai');
+const claudeService = require('./claudeService');
 const dashboardKPIs = require('./dashboardKPIs');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardComposerService = require('./dashboardComposerService');
@@ -74,6 +75,46 @@ function parseAiJson(raw) {
   }
 }
 
+/**
+ * Quando a IA devolve "chart" ou "mixed" por hábito, alinha o tipo ao pedido em português.
+ * @returns {string | null}
+ */
+function inferPanelTypeFromUserText(raw) {
+  const t = String(raw || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '');
+  if (!t.trim()) return null;
+
+  if (/\b(relatorio|relatório|narrativ|texto|descrev|explic|sumario escrito|por escrito)\b/.test(t)) {
+    return 'report';
+  }
+  if (/\b(tabela|lista\s+em\s+tabela|tabular|linhas?\s+e\s+colunas?|folha\s+de\s+dados|lista\s+detalhada)\b/.test(t)) {
+    return 'table';
+  }
+  if (/\bresumo\s+dos?\s+(meus\s+)?(indicadores?|kpis?|metricas?)\b/.test(t)) {
+    return 'kpi_cards';
+  }
+  if (/\b(alerta|avisos?|criticos?|críticos?|prioridade\s+maxima)\b/.test(t)) {
+    return 'alert';
+  }
+  if (/\b(comparar|comparativo|versus|\bvs\b|lado\s+a\s+lado)\b/.test(t)) {
+    return 'comparison';
+  }
+  if (/\b(cartoes|cartões|cards?\s+de\s+kpi|kpi\s+cards?|painel\s+numerico|metricas\s+principais)\b/.test(t)) {
+    return 'kpi_cards';
+  }
+  if (/\b(indicadores?\s+com|barras?\s+de\s+progresso|sem\s+grafico|sem\s+gráfico)\b/.test(t)) {
+    return 'indicator';
+  }
+  if (
+    /\b(grafico|gráfico|barras?|pizza|donut|circular|evolucao|evolução|tendencia|tendência|linha\s+temporal|chart)\b/.test(t)
+  ) {
+    return 'chart';
+  }
+  return null;
+}
+
 function normalizeAiPlan(parsed, rawInput) {
   const allowedTypes = new Set([
     'chart',
@@ -85,7 +126,11 @@ function normalizeAiPlan(parsed, rawInput) {
     'indicator',
     'mixed'
   ]);
-  const type = allowedTypes.has(parsed?.type) ? parsed.type : 'mixed';
+  let type = allowedTypes.has(parsed?.type) ? parsed.type : 'mixed';
+  const inferred = inferPanelTypeFromUserText(rawInput);
+  if (inferred && (type === 'mixed' || type === 'chart')) {
+    type = inferred;
+  }
   const title =
     String(parsed?.title || '').trim().slice(0, 120) ||
     `Análise — ${String(rawInput || '').slice(0, 48)}`;
@@ -213,12 +258,14 @@ async function hydrate(user, plan) {
 
   const summaryBars = summaryToBars(summary);
   let barData = kpiToBarData(kpis);
-  if (!barData.some((x) => x.valor !== 0)) barData = summaryBars;
+  /* Só usa o resumo fixo (Interações / Insights IA / …) quando não há KPIs para mostrar.
+     Se existirem KPIs ainda que zerados, mantém os respetivos nomes — evita o mesmo gráfico genérico sempre. */
+  if (!barData.length) {
+    barData = summaryBars;
+  }
 
   const lineData =
-    barData.length > 0
-      ? barData.map((b) => ({ name: b.name, valor: b.valor }))
-      : summaryBars;
+    barData.length > 0 ? barData.map((b) => ({ name: b.name, valor: b.valor })) : summaryBars;
 
   const extraTables = [];
   if (insightRows.length) {
@@ -291,10 +338,7 @@ async function hydrate(user, plan) {
     });
   }
 
-  let type = plan.type;
-  if (type === 'mixed') {
-    type = extraTables.length ? 'mixed' : 'chart';
-  }
+  const type = plan.type;
 
   return {
     permissionGranted: true,
@@ -348,18 +392,64 @@ Recebes o comando do utilizador em português, o perfil (JSON) e a lista de font
 Regras:
 1. Se o pedido pedir dados que o perfil NÃO cobre (ex.: financeiro sem permissão), responde permissionGranted: false e denialReason curto e amigável em português.
 2. Caso contrário permissionGranted: true.
-3. Escolhe type entre: chart, table, kpi_cards, report, alert, comparison, indicator, mixed.
-4. chartType: bar | line | area | pie | donut (quando type chart ou mixed).
+3. Escolhe UM type principal (não uses "chart" nem "mixed" por defeito):
+   - chart → só quando pedirem gráfico, barras, pizza, evolução, tendência ou visualização comparativa por eixos.
+   - table → listas, tabelas, dados em linhas/colunas, "mostra numa tabela".
+   - kpi_cards → cartões de KPI, números grandes, painel de métricas principais, "resumo em números" sem pedir gráfico.
+   - report → relatório narrativo, texto, explicação por escrito, sumário descritivo.
+   - alert → foco em alertas, avisos, prioridade crítica.
+   - comparison → comparar períodos, áreas, ou métricas lado a lado (tabela comparativa).
+   - indicator → indicadores com estado/progresso (sem pedir gráfico de barras).
+   - mixed → APENAS se o pedido for explicitamente "dashboard completo", "mostra tudo", ou várias visualizações ao mesmo tempo.
+4. chartType: bar | line | area | pie | donut — só quando type for chart ou mixed com gráfico.
 5. datasets: lista de ids entre: kpis, summary, insights, maintenance, manutencao, operational, cerebro, financeiro, strategic, comparativo
    — usa só o que faz sentido ao pedido. Por omissão ["kpis","summary"].
 6. Não inventes números em narrative/reportContent — descreve o que vais pedir ao sistema; os números serão preenchidos no servidor.
 7. exportOptions: ["excel","pdf","print"].
+
+Exemplos (type correto):
+- "Quero um gráfico de propostas" → type chart, chartType bar
+- "Mostra numa tabela os insights" → type table
+- "Relatório textual da semana" → type report
+- "Só os KPIs principais" → type kpi_cards
+- "Alertas críticos agora" → type alert
 
 Responde APENAS um JSON válido com as chaves:
 permissionGranted, denialReason (ou null), type, title, chartType, datasets, exportOptions, narrative (opcional), reportContent (opcional)
 
 Perfil e fontes:
 ${JSON.stringify(userCtxPayload)}`;
+}
+
+/**
+ * Interpretação do pedido do painel: Claude (Anthropic) por defeito se existir ANTHROPIC_API_KEY;
+ * SMART_PANEL_AI_PROVIDER=openai força GPT; claude|anthropic força Claude mesmo sem outras chaves (falha se não houver key).
+ */
+function smartPanelInterpreterProvider() {
+  const ex = (process.env.SMART_PANEL_AI_PROVIDER || '').toLowerCase().trim();
+  if (ex === 'openai') return 'openai';
+  if (ex === 'claude' || ex === 'anthropic') return 'claude';
+  if (process.env.ANTHROPIC_API_KEY) return 'claude';
+  return 'openai';
+}
+
+async function runPanelInterpreter(messages, billing) {
+  const wantClaude = smartPanelInterpreterProvider() === 'claude';
+  if (wantClaude && claudeService.isAvailable()) {
+    const c = await claudeService.completeOpenAIStyleMessages(messages, {
+      max_tokens: 1200,
+      billing,
+      timeout: 45000
+    });
+    if (typeof c === 'string' && c.startsWith('FALLBACK:')) return c;
+    if (typeof c === 'string' && c.trim().length > 0) return c;
+  }
+  return ai.chatCompletionMessages(messages, {
+    max_tokens: 1200,
+    billing,
+    response_format: { type: 'json_object' },
+    timeout: 45000
+  });
 }
 
 /**
@@ -389,12 +479,7 @@ async function processPanelCommand(user, rawInput) {
     { role: 'user', content: String(rawInput || '').trim().slice(0, 4000) }
   ];
 
-  let content = await ai.chatCompletionMessages(messages, {
-    max_tokens: 1200,
-    billing,
-    response_format: { type: 'json_object' },
-    timeout: 45000
-  });
+  let content = await runPanelInterpreter(messages, billing);
 
   if (typeof content !== 'string' || content.startsWith('FALLBACK:')) {
     const plan = normalizeAiPlan(

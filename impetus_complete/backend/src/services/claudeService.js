@@ -4,10 +4,15 @@
  * Não substitui o ChatGPT (conversação) - Claude atua em bastidor.
  */
 const Anthropic = require('@anthropic-ai/sdk');
+const nexusWalletService = require('./nexusWalletService');
+const billingTokenService = require('./billingTokenService');
 
 const client = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
+
+const WALLET_FALLBACK_MSG =
+  'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';
 
 // Circuit Breaker: após 5 falhas consecutivas, pausa 60s
 let failures = 0;
@@ -26,6 +31,85 @@ function isCircuitOpen() {
 
 function isAvailable() {
   return !!client && !isCircuitOpen();
+}
+
+async function nexusWalletPrecheckPanel(billing, estimatedUnits) {
+  if (!billing?.companyId) return null;
+  const r = await nexusWalletService.canConsumeEstimate(billing.companyId, 'claude', estimatedUnits);
+  if (r.skipped || r.ok) return null;
+  return WALLET_FALLBACK_MSG;
+}
+
+/**
+ * Mensagens estilo OpenAI (system + user) para painel Claude pós-voz.
+ * @returns {Promise<string|null>}
+ */
+async function completeOpenAIStyleMessages(messages, opts = {}) {
+  if (!client) return null;
+  if (isCircuitOpen()) return null;
+
+  const maxTok = opts.max_tokens || 1200;
+  const blocked = await nexusWalletPrecheckPanel(opts.billing, maxTok);
+  if (blocked) return blocked;
+
+  const arr = Array.isArray(messages) ? messages : [];
+  const systemParts = [];
+  const anthropicMessages = [];
+  for (const m of arr) {
+    const role = m.role;
+    const text = String(m.content ?? '').trim();
+    if (!text) continue;
+    if (role === 'system') {
+      systemParts.push(text);
+    } else if (role === 'user' || role === 'assistant') {
+      anthropicMessages.push({ role, content: text });
+    }
+  }
+  if (!anthropicMessages.length) return null;
+
+  const system = systemParts.length ? systemParts.join('\n\n') : undefined;
+  const timeoutMs = opts.timeout || 45000;
+  const model =
+    opts.model ||
+    process.env.SMART_PANEL_CLAUDE_MODEL ||
+    process.env.ANTHROPIC_PANEL_MODEL ||
+    process.env.CLAUDE_PANEL_MODEL ||
+    'claude-sonnet-4-20250514';
+
+  try {
+    const createPromise = client.messages.create({
+      model,
+      max_tokens: maxTok,
+      ...(system ? { system } : {}),
+      messages: anthropicMessages
+    });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const message = await Promise.race([createPromise, timeoutPromise]);
+    failures = 0;
+
+    const usage = message.usage;
+    if (opts.billing?.companyId && usage) {
+      const total = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+      if (total > 0) {
+        billingTokenService.registrarUsoSafe(
+          opts.billing.companyId,
+          opts.billing.userId,
+          'claude',
+          total
+        );
+      }
+    }
+
+    const textBlock = message.content?.find((b) => b.type === 'text');
+    return textBlock?.text?.trim() || null;
+  } catch (err) {
+    failures++;
+    lastFailureTime = Date.now();
+    console.warn('[CLAUDE_PANEL]', (err.message || String(err)).slice(0, 160));
+    return null;
+  }
 }
 
 /**
@@ -50,18 +134,16 @@ async function analyze(systemPrompt, userContent, opts = {}) {
   const model = opts.model || 'claude-sonnet-4-20250514';
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const message = await client.messages.create({
+    const createPromise = client.messages.create({
       model,
       max_tokens: maxTokens,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
-      signal: controller.signal
+      messages: [{ role: 'user', content: userContent }]
     });
-
-    clearTimeout(timeoutId);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+    );
+    const message = await Promise.race([createPromise, timeoutPromise]);
     failures = 0;
 
     const textBlock = message.content?.find((b) => b.type === 'text');
@@ -168,5 +250,6 @@ module.exports = {
   analyze,
   extractOperationalFacts,
   buildMemoryContextForChat,
+  completeOpenAIStyleMessages,
   isAvailable
 };
