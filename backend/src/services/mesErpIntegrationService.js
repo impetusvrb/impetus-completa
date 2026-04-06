@@ -10,16 +10,20 @@ const crypto = require('crypto');
  * Registra um conector MES/ERP
  */
 async function createConnector(companyId, { name, endpoint_url, auth_type, auth_config, mapping_config }) {
+  const authCfg = { ...(auth_config || {}) };
+  if (!authCfg.webhook_secret && !authCfg.api_key) {
+    authCfg.webhook_secret = crypto.randomBytes(32).toString('hex');
+  }
   const r = await db.query(`
     INSERT INTO integration_connectors (company_id, connector_type, name, endpoint_url, auth_type, auth_config, mapping_config)
     VALUES ($1, 'mes_erp', $2, $3, $4, $5, $6)
-    RETURNING id, name, connector_type, enabled, created_at
+    RETURNING id, name, connector_type, enabled, created_at, auth_config
   `, [
     companyId,
     name || 'MES/ERP',
     endpoint_url || null,
     auth_type || 'api_key',
-    JSON.stringify(auth_config || {}),
+    JSON.stringify(authCfg),
     JSON.stringify(mapping_config || {})
   ]);
   return r.rows[0];
@@ -98,16 +102,76 @@ async function processPush(companyId, connectorId, payload) {
   }
 }
 
+function safeEqualToken(a, b) {
+  const x = crypto.createHash('sha256').update(String(a ?? ''), 'utf8').digest();
+  const y = crypto.createHash('sha256').update(String(b ?? ''), 'utf8').digest();
+  return crypto.timingSafeEqual(x, y);
+}
+
 /**
- * Valida token de integração (por connector)
+ * Push MES/ERP: obriga conector + segredo em auth_config (webhook_secret, api_key ou push_token).
+ * Token: header X-Integration-Token ou body.token
  */
-function validateToken(connectorId, token) {
-  // Implementação simplificada: token pode ser o connector_id ou hash no auth_config
-  return Boolean(connectorId && token);
+async function assertMesErpPushAuthorized(companyId, connectorId, presentedToken) {
+  if (!companyId) {
+    const err = new Error('company_id obrigatório');
+    err.status = 400;
+    throw err;
+  }
+  if (!connectorId) {
+    const err = new Error('connector_id obrigatório no push MES/ERP');
+    err.status = 400;
+    throw err;
+  }
+  const token = String(presentedToken || '').trim();
+  if (!token) {
+    const err = new Error('X-Integration-Token ou token no body obrigatório');
+    err.status = 401;
+    throw err;
+  }
+
+  const r = await db.query(
+    `SELECT id, auth_config FROM integration_connectors
+     WHERE id = $1 AND company_id = $2 AND enabled = true AND connector_type = 'mes_erp'`,
+    [connectorId, companyId]
+  );
+  if (!r.rows?.length) {
+    const err = new Error('Conector inválido ou desativado');
+    err.status = 403;
+    throw err;
+  }
+  let cfg = r.rows[0].auth_config || {};
+  if (typeof cfg === 'string') {
+    try {
+      cfg = JSON.parse(cfg);
+    } catch {
+      cfg = {};
+    }
+  }
+  const expected =
+    cfg.webhook_secret ||
+    cfg.api_key ||
+    cfg.push_token ||
+    cfg.token ||
+    null;
+  if (!expected) {
+    const err = new Error(
+      'Configure auth_config.webhook_secret ou api_key no conector MES/ERP antes de receber push.'
+    );
+    err.status = 403;
+    throw err;
+  }
+  if (!safeEqualToken(token, expected)) {
+    const err = new Error('Token de integração inválido');
+    err.status = 403;
+    throw err;
+  }
+  return r.rows[0].id;
 }
 
 module.exports = {
   createConnector,
   listConnectors,
-  processPush
+  processPush,
+  assertMesErpPushAuthorized
 };

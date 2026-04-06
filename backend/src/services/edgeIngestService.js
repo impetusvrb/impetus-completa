@@ -1,7 +1,7 @@
 /**
  * IMPETUS - Ingest de dados do Edge
  * Recebe leituras de agentes edge e persiste em plc_collected_data
- * Autenticação: edge_id + company_id + token (opcional, validado contra edge_agents)
+ * Autenticação: edge_id + company_id + token obrigatórios; agente registado em edge_agents com token_hash.
  */
 const db = require('../db');
 const plcData = require('./plcDataService');
@@ -9,7 +9,7 @@ const crypto = require('crypto');
 
 /**
  * Processa payload do edge agent
- * Payload: { edge_id, company_id, token?, readings: [{ machine_identifier, temperature, vibration, status, ... }] }
+ * Payload: { edge_id, company_id, token, readings: [{ machine_identifier, temperature, vibration, status, ... }] }
  */
 async function ingest(payload) {
   const { edge_id, company_id, token, readings } = payload || {};
@@ -22,32 +22,45 @@ async function ingest(payload) {
     throw new Error('readings obrigatório (array de leituras)');
   }
 
-  // Validação: se edge_agents tem token_hash, token é obrigatório e deve conferir
+  let r;
   try {
-    const r = await db.query(
+    r = await db.query(
       'SELECT id, token_hash FROM edge_agents WHERE company_id = $1 AND edge_id = $2 AND enabled = true',
       [company_id, edge_id]
     );
-    if (r.rows?.length) {
-      const row = r.rows[0];
-      if (row.token_hash) {
-        if (!token || typeof token !== 'string') {
-          throw new Error('token obrigatório para este edge (registre em /api/integrations/edge/register)');
-        }
-        const inputHash = crypto.createHash('sha256').update(String(token).trim()).digest('hex');
-        if (inputHash !== row.token_hash) {
-          throw new Error('token inválido');
-        }
-      }
-      await db.query(
-        'UPDATE edge_agents SET last_seen_at = now() WHERE company_id = $1 AND edge_id = $2',
-        [company_id, edge_id]
+  } catch (e) {
+    const msg = e.message || '';
+    if (msg.includes('edge_agents') && msg.includes('does not exist')) {
+      throw new Error(
+        'Tabela edge_agents inexistente. Execute backend/src/models/lacunas_ind4_migration.sql (secção edge_agents).'
       );
     }
-  } catch (e) {
-    if (e.message?.includes('token')) throw e;
-    // Tabela edge_agents pode não existir - continuar sem validação
+    throw e;
   }
+
+  const agentRow = r.rows?.[0];
+  if (!agentRow) {
+    throw new Error(
+      'Edge não registado ou desativado. Registe o agente em POST /api/integrations/edge/register'
+    );
+  }
+  if (!agentRow.token_hash) {
+    throw new Error(
+      'Edge sem token configurado. Registe novamente em POST /api/integrations/edge/register'
+    );
+  }
+  if (!token || typeof token !== 'string') {
+    throw new Error('token obrigatório no corpo (mesmo valor devolvido no registo do edge)');
+  }
+  const inputHash = crypto.createHash('sha256').update(String(token).trim()).digest('hex');
+  if (inputHash !== agentRow.token_hash) {
+    throw new Error('token inválido');
+  }
+
+  await db.query(
+    'UPDATE edge_agents SET last_seen_at = now() WHERE company_id = $1 AND edge_id = $2',
+    [company_id, edge_id]
+  );
 
   let processed = 0;
   for (const rd of list) {

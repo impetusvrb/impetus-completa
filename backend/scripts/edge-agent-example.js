@@ -11,7 +11,8 @@ const axios = require('axios');
 const EDGE_ID = process.env.EDGE_ID || 'edge-fabrica-01';
 const IMPETUS_URL = process.env.IMPETUS_URL || process.env.API_URL || 'http://localhost:3000';
 const COMPANY_ID = process.env.EDGE_COMPANY_ID || process.env.COMPANY_ID;
-const TOKEN = process.env.EDGE_TOKEN; // opcional; validação contra edge_agents
+/** Obrigatório após registo em POST /api/integrations/edge/register (mesmo valor devolvido). */
+const TOKEN = process.env.EDGE_TOKEN;
 
 if (!COMPANY_ID) {
   console.warn('[EDGE_AGENT] EDGE_COMPANY_ID ou COMPANY_ID não definido. Use como exemplo.');

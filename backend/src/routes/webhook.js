@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const ai = require('../services/ai');
 const db = require('../db');
+const { requireWebhookAuth } = require('../middleware/incomingWebhookAuth');
 
-router.post('/', async (req, res) => {
+router.post('/', requireWebhookAuth, async (req, res) => {
   try {
     const payload = req.body;
     const msg = {

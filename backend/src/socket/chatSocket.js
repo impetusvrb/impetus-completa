@@ -29,7 +29,19 @@ function initChatSocket(io) {
     socket.on('join_conversations', async () => {
       try { const convs = await chatService.getConversations(user.id, user.company_id); for (const c of convs) socket.join(c.id); } catch {}
     });
-    socket.on('join_conversation', (id) => socket.join(id));
+    socket.on('join_conversation', async (id, ack) => {
+      try {
+        if (!id) {
+          if (ack) ack({ ok: false, error: 'conversationId obrigatório' });
+          return;
+        }
+        await chatService.verifyParticipant(id, user.id);
+        socket.join(id);
+        if (ack) ack({ ok: true });
+      } catch (e) {
+        if (ack) ack({ ok: false, error: e.message || 'Acesso negado' });
+      }
+    });
 
     socket.on('send_message', async (data, ack) => {
       try {

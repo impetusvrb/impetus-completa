@@ -40,7 +40,17 @@ app.use(
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'X-Webhook-Secret',
+      'X-Impetus-Webhook-Secret',
+      'X-Hub-Signature-256',
+      'X-Integration-Token'
+    ],
     exposedHeaders: [
       'Content-Type',
       'X-TTS-Engine',
@@ -76,18 +86,38 @@ function needsLargeBodyParser(url) {
   );
 }
 
+/** POST /api/webhook — corpo bruto para HMAC Meta (X-Hub-Signature-256). */
+function isWebhookPost(req) {
+  const p = String(req.originalUrl || req.url || '').split('?')[0];
+  return req.method === 'POST' && p === '/api/webhook';
+}
+
 const jsonParserDefault = bodyParser.json({ limit: '20mb' });
 const jsonParserLarge = bodyParser.json({ limit: '50mb' });
 const urlEncDefault = bodyParser.urlencoded({ extended: true, limit: '20mb' });
 const urlEncLarge = bodyParser.urlencoded({ extended: true, limit: '50mb' });
 
 app.use((req, res, next) => {
+  if (isWebhookPost(req)) {
+    return bodyParser.raw({ type: '*/*', limit: '20mb' })(req, res, (err) => {
+      if (err) return next(err);
+      req.rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
+      try {
+        const s = req.rawBody.length ? req.rawBody.toString('utf8') : '{}';
+        req.body = s ? JSON.parse(s) : {};
+      } catch {
+        req.body = {};
+      }
+      next();
+    });
+  }
   if (needsLargeBodyParser(req.originalUrl || req.url)) {
     return jsonParserLarge(req, res, next);
   }
   return jsonParserDefault(req, res, next);
 });
 app.use((req, res, next) => {
+  if (isWebhookPost(req)) return next();
   if (needsLargeBodyParser(req.originalUrl || req.url)) {
     return urlEncLarge(req, res, next);
   }
@@ -160,6 +190,7 @@ useRoute('/api/onboarding', './routes/onboarding', requireAuth);
 useRoute('/api/dashboard', './routes/dashboard');
 useRoute('/api/live-dashboard', './routes/liveDashboard', requireAuth);
 useRoute('/api/communications', './routes/communications');
+useRoute('/api/impetus-admin', './routes/impetusAdmin');
 useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');

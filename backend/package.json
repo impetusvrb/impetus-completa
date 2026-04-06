@@ -23,6 +23,7 @@
     "migrate": "node scripts/run-all-migrations.js",
     "nexus-token-billing": "node scripts/nexusTokenMonthlyBilling.js",
     "seed": "node scripts/seed-initial.js",
+    "seed:admin-portal": "node scripts/seed-admin-portal.js",
     "setup:ativacao": "node scripts/setup-ativacao.js",
     "lint": "eslint src --ext .js",
     "lint:fix": "eslint src --ext .js --fix",

@@ -3,7 +3,6 @@
  * Endpoints para sistemas externos e webhooks
  */
 const router = require('express').Router();
-const db = require('../db');
 const mesErp = require('../services/mesErpIntegrationService');
 const edgeIngest = require('../services/edgeIngestService');
 const productionRealtime = require('../services/productionRealtimeService');
@@ -17,35 +16,48 @@ const { requireIndustrialAdmin } = require('../middleware/industrialIntegrationA
 /**
  * POST /api/integrations/mes-erp/push
  * Webhook para MES/ERP enviar dados de produção
- * Auth: X-Integration-Token + company_id no body, ou connector_id
+ * Auth obrigatória: company_id + connector_id + X-Integration-Token (ou body.token)
+ * igual a auth_config.webhook_secret ou api_key do conector (criação gera webhook_secret).
  */
+function logMesErpAuthFailure(status, req, message) {
+  if (status !== 401 && status !== 403) return;
+  try {
+    console.warn(
+      '[MES_ERP_AUTH]',
+      JSON.stringify({
+        status,
+        path: req.originalUrl || req.url,
+        method: req.method,
+        ip: req.ip,
+        error: message
+      })
+    );
+  } catch (_) {
+    /* no-op */
+  }
+}
+
 router.post('/mes-erp/push', async (req, res) => {
   try {
     const { company_id, connector_id, token } = req.body;
     const apiToken = req.headers['x-integration-token'] || token;
     const companyId = company_id || req.body.companyId;
+    const connectorId = connector_id || req.body.connectorId;
 
     if (!companyId) {
       return res.status(400).json({ ok: false, error: 'company_id obrigatório' });
     }
 
-    // Validação simplificada: token pode ser validado contra connector
-    const connectorId = connector_id || req.body.connectorId;
-    if (connectorId) {
-      const r = await db.query(
-        'SELECT id FROM integration_connectors WHERE id = $1 AND company_id = $2 AND enabled = true',
-        [connectorId, companyId]
-      );
-      if (!r.rows?.length) {
-        return res.status(403).json({ ok: false, error: 'Conector inválido ou desativado' });
-      }
-    }
-
-    const result = await mesErp.processPush(companyId, connectorId || null, req.body);
+    await mesErp.assertMesErpPushAuthorized(companyId, connectorId, apiToken);
+    const result = await mesErp.processPush(companyId, connectorId, req.body);
     res.json({ ok: true, recordsCount: result.recordsCount });
   } catch (err) {
-    console.warn('[MES_ERP_PUSH]', err?.message);
-    res.status(500).json({ ok: false, error: err?.message || 'Erro ao processar push' });
+    const status = Number(err.status) >= 400 && Number(err.status) < 600 ? err.status : 500;
+    logMesErpAuthFailure(status, req, err?.message);
+    if (status !== 401 && status !== 403) {
+      console.warn('[MES_ERP_PUSH]', err?.message);
+    }
+    res.status(status).json({ ok: false, error: err?.message || 'Erro ao processar push' });
   }
 });
 

@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../db');
-const { hashPassword } = require('../../middleware/auth');
+const { hashPassword, requireAuth, requireRole } = require('../../middleware/auth');
 const { logAction } = require('../../middleware/audit');
 const { generateSecurePassword, sendActivationEmail } = require('../../services/emailService');
 const { activateCompanySubscription } = require('../../services/asaasService');
@@ -19,6 +19,8 @@ const activateSchema = z.object({
   contact_email: z.string().email(),
   plan_type: z.enum(['essencial', 'profissional', 'estratégico', 'enterprise']).default('essencial')
 });
+
+router.use(requireAuth, requireRole('internal_admin'));
 
 /**
  * POST /api/internal/sales/activate-client
