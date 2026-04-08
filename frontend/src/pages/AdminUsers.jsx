@@ -19,6 +19,7 @@ import './AdminUsers.css';
 export default function AdminUsers() {
   const notify = useNotification();
   const [users, setUsers] = useState([]);
+  const [supervisors, setSupervisors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 });
@@ -66,6 +67,7 @@ export default function AdminUsers() {
   useEffect(() => {
     loadUsers();
     loadDepartments();
+    loadSupervisors();
   }, [pagination.offset, filters]);
 
   const loadUsers = async () => {
@@ -94,6 +96,23 @@ export default function AdminUsers() {
       setDepartments(response.data?.departments ?? []);
     } catch (error) {
       console.error('Erro ao carregar departamentos:', error);
+    }
+  };
+
+  const loadSupervisors = async () => {
+    try {
+      // Lista dedicada para o select de "Supervisor Imediato"
+      const response = await adminUsers.list({
+        limit: 500,
+        offset: 0,
+        active: true
+      });
+      const all = response.data?.users ?? [];
+      const leaders = all.filter((u) => (u.hierarchy_level ?? 5) <= 4 && u.active !== false);
+      setSupervisors(leaders);
+    } catch (error) {
+      console.error('Erro ao carregar supervisores:', error);
+      setSupervisors([]);
     }
   };
 
@@ -363,7 +382,7 @@ export default function AdminUsers() {
     {
       key: 'department_name',
       label: 'Departamento',
-      render: (value) => value || '-'
+      render: (value, row) => value || row.department || '-'
     },
     {
       key: 'hierarchy_level',
@@ -497,7 +516,7 @@ export default function AdminUsers() {
             formData={formData}
             formErrors={formErrors}
             departments={departments}
-            users={users}
+            users={supervisors}
             onChange={handleFormChange}
             isCreate={true}
           />
@@ -521,7 +540,7 @@ export default function AdminUsers() {
             formData={formData}
             formErrors={formErrors}
             departments={departments}
-            users={users}
+            users={supervisors}
             selectedUserId={selectedUser?.id}
             onChange={handleFormChange}
             isCreate={false}
@@ -732,7 +751,6 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
           name="supervisor_id"
           value={formData.supervisor_id}
           onChange={onChange}
-          placeholder="Nenhum"
           options={[{ value: '', label: 'Nenhum' }, ...supervisorOptions]}
           helperText="Define vínculo hierárquico para filtro de dados"
         />

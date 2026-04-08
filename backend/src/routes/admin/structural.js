@@ -19,6 +19,22 @@ function getCompanyId(req) {
   return req.user?.company_id;
 }
 
+/** Campos text[] da base estrutural: garante array (evita falha do PG se vier string/objeto). */
+function asPgTextArray(v) {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.map((x) => String(x));
+  if (typeof v === 'string') {
+    return v.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+/** Para UPDATE com COALESCE: `undefined` preserva coluna; demais valores viram text[]. */
+function asPgTextArrayForUpdate(v) {
+  if (v === undefined) return null;
+  return asPgTextArray(v);
+}
+
 function selectCompanyFields() {
   return `
     id, name, trade_name, cnpj, industry_segment, subsegment, address, city, state, country,
@@ -169,7 +185,14 @@ router.get('/roles', ...adminMw, async (req, res) => {
 router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
   try {
     const cid = getCompanyId(req);
+    if (!cid) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.' });
+    }
     const b = req.body;
+    let superiorId = b.direct_superior_role_id || null;
+    if (superiorId && !isValidUUID(String(superiorId))) {
+      return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
+    }
     const r = await db.query(`
       INSERT INTO company_roles (company_id, name, description, hierarchy_level, work_area,
         main_responsibilities, critical_responsibilities, recommended_permissions,
@@ -180,14 +203,29 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
       RETURNING *
     `, [
       cid, b.name || '', b.description, b.hierarchy_level, b.work_area,
-      b.main_responsibilities || [], b.critical_responsibilities || [], b.recommended_permissions || [],
-      b.sectors_involved || [], b.leadership_type, b.communication_profile, b.direct_superior_role_id || null,
-      b.expected_subordinates || [], b.decision_level, b.visible_themes || [], b.hidden_themes || [],
+      asPgTextArray(b.main_responsibilities), asPgTextArray(b.critical_responsibilities), asPgTextArray(b.recommended_permissions),
+      asPgTextArray(b.sectors_involved), b.leadership_type, b.communication_profile, superiorId,
+      asPgTextArray(b.expected_subordinates), b.decision_level, asPgTextArray(b.visible_themes), asPgTextArray(b.hidden_themes),
       b.escalation_role, b.operation_role, b.approval_role, b.notes
     ]);
     res.status(201).json({ ok: true, data: r.rows[0] });
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_CREATE]', err);
+    if (err.code === '23503') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.'
+      });
+    }
+    if (err.code === '23502') {
+      return res.status(400).json({ ok: false, error: 'Dados obrigatórios ausentes (empresa ou nome do cargo).' });
+    }
+    if (err.code === '42P01') {
+      return res.status(500).json({
+        ok: false,
+        error: 'Tabela de cargos não encontrada no banco. Execute a migração da base estrutural no servidor.'
+      });
+    }
     res.status(500).json({ ok: false, error: 'Erro ao criar cargo' });
   }
 });
@@ -195,8 +233,15 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
 router.put('/roles/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
+    if (!cid) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada para o usuário.' });
+    }
     if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
     const b = req.body;
+    let superiorIdPut = b.direct_superior_role_id;
+    if (superiorIdPut && !isValidUUID(String(superiorIdPut))) {
+      return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
+    }
     const r = await db.query(`
       UPDATE company_roles SET
         name = COALESCE($3, name), description = COALESCE($4, description),
@@ -220,16 +265,22 @@ router.put('/roles/:id', ...adminMw, async (req, res) => {
       RETURNING *
     `, [
       cid, req.params.id, b.name, b.description, b.hierarchy_level, b.work_area,
-      b.main_responsibilities, b.critical_responsibilities, b.recommended_permissions,
-      b.sectors_involved, b.leadership_type, b.communication_profile,
-      b.direct_superior_role_id, b.expected_subordinates, b.decision_level,
-      b.visible_themes, b.hidden_themes, b.escalation_role, b.operation_role,
+      asPgTextArrayForUpdate(b.main_responsibilities), asPgTextArrayForUpdate(b.critical_responsibilities), asPgTextArrayForUpdate(b.recommended_permissions),
+      asPgTextArrayForUpdate(b.sectors_involved), b.leadership_type, b.communication_profile,
+      superiorIdPut, asPgTextArrayForUpdate(b.expected_subordinates), b.decision_level,
+      asPgTextArrayForUpdate(b.visible_themes), asPgTextArrayForUpdate(b.hidden_themes), b.escalation_role, b.operation_role,
       b.approval_role, b.notes
     ]);
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
     res.json({ ok: true, data: r.rows[0] });
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_UPDATE]', err);
+    if (err.code === '23503') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.'
+      });
+    }
     res.status(500).json({ ok: false, error: 'Erro ao atualizar cargo' });
   }
 });

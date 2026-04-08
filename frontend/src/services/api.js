@@ -246,6 +246,8 @@ export const dashboard = {
   getMe: () => api.get('/dashboard/me'),
   /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
   getPersonalizado: () => api.get('/dashboard/personalizado'),
+  /** Painel vivo dinamico orientado a eventos */
+  getLiveSurface: () => api.get('/dashboard/live-surface'),
   getConfig: () => api.get('/dashboard/config'),
   savePreferences: (data) => api.post('/dashboard/preferences', data),
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),

@@ -49,7 +49,7 @@ import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
-import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, isMaintenanceTechnicianMenu } from '../utils/roleUtils';
+import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
 import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
@@ -218,8 +218,25 @@ export default function Layout({ children }) {
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
   const role = resolveMenuRole(user);
-  const maintenanceProfile = isMaintenanceProfile(user);
-  const { filterMenu, canAccessPath, loading: modulesLoading } = useVisibleModules();
+  const dashboardProfile = String(user?.dashboard_profile || '').toLowerCase();
+  const functionalArea = String(user?.functional_area || user?.area || '').toLowerCase();
+  const canAccessIndustrialCoreModules =
+    role === 'ceo' ||
+    (role === 'diretor' && (
+      dashboardProfile === 'director_industrial' ||
+      dashboardProfile === 'director_operations' ||
+      functionalArea.includes('industrial') ||
+      functionalArea.includes('operations') ||
+      functionalArea.includes('operacoes')
+    ));
+  const INDUSTRIAL_CORE_PATHS = new Set([
+    '/app/centro-operacoes-industrial',
+    '/app/cerebro-operacional',
+    '/app/insights'
+  ]);
+  const { filterMenu, canAccessPath, loading: modulesLoading, maintenanceFromProfile } = useVisibleModules();
+  const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
+  const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
 
   const rawPath = location.pathname || '/';
   const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
@@ -241,7 +258,7 @@ export default function Layout({ children }) {
     ];
     pathOk =
       allowedOperacional.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
-  } else if (isMaintenanceTechnicianMenu(user)) {
+  } else if (maintenanceTechnicianMenu) {
     const allowMaint = [
       '/app',
       '/app/proacao',
@@ -272,10 +289,9 @@ export default function Layout({ children }) {
     { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' }
   ];
 
-  /** Diretor, gerente, coordenador, supervisor — núcleo + módulos operacionais (matriz de perfil no backend) */
+  /** Liderança — núcleo industrial liberado apenas para CEO/Diretor industrial-operações. */
   const MENU_LIDERANCA = [
     { path: '/app', icon: LayoutDashboard, label: 'Dashboard · IA integrada' },
-    ...MENU_BLOCO_INDUSTRIAL,
     { path: '/app/pulse-gestao', icon: Activity, label: 'Impetus Pulse (visão coletiva)' },
     { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
     { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
@@ -313,6 +329,10 @@ export default function Layout({ children }) {
     { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
     { path: '/app/settings', icon: Settings, label: 'Configurações' }
   ];
+  const MENU_MANUTENCAO_MODULOS = [
+    { path: '/app/manutencao/manuia-app', icon: Smartphone, label: 'ManuIA Campo' },
+    { path: '/app/manutencao/manuia', icon: Wrench, label: 'ManuIA' }
+  ];
 
   const MENUS = {
     admin: [
@@ -340,7 +360,6 @@ export default function Layout({ children }) {
     supervisor: MENU_LIDERANCA,
     operador: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-      ...MENU_BLOCO_INDUSTRIAL,
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Instruções e Procedimentos' },
@@ -375,13 +394,35 @@ export default function Layout({ children }) {
   };
 
   let baseMenuItems;
-  if (isMaintenanceTechnicianMenu(user)) {
+  if (maintenanceTechnicianMenu) {
     baseMenuItems = MENU_MANUTENCAO_TECNICO;
   } else {
     baseMenuItems = MENUS[role] || MENU_COLABORADOR_OPERACIONAL;
   }
 
+  // Regra: manutenção (supervisor e técnicos do depto de manutenção) sempre vê ManuIA e ManuIA Campo.
+  if (maintenanceProfile && !maintenanceTechnicianMenu) {
+    const cloned = [...baseMenuItems];
+    const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
+    const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
+    const alreadyHasManuia = cloned.some((item) => item.path === '/app/manutencao/manuia');
+    if (!alreadyHasManuia) cloned.splice(insertAt, 0, ...MENU_MANUTENCAO_MODULOS);
+    baseMenuItems = cloned;
+  }
+
+  if (canAccessIndustrialCoreModules) {
+    const cloned = [...baseMenuItems];
+    const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
+    const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
+    cloned.splice(insertAt, 0, ...MENU_BLOCO_INDUSTRIAL);
+    baseMenuItems = cloned;
+  }
+
   let menuItems = filterMenu(baseMenuItems);
+  menuItems = menuItems.filter((item) => {
+    if (!INDUSTRIAL_CORE_PATHS.has(item.path)) return true;
+    return canAccessIndustrialCoreModules;
+  });
 
   if (isUserSettingsFocus) {
     menuItems = [

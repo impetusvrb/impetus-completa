@@ -35,6 +35,7 @@ import WidgetRastreabilidade from './WidgetRastreabilidade';
 import WidgetReceitas from './WidgetReceitas';
 import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
 import { isExecutiveLeadershipRole } from '../../../utils/roleUtils';
+import LiveSurfacePanel from './LiveSurfacePanel';
 import './CentroComando.css';
 
 const WIDGET_COMPONENTS = {
@@ -78,6 +79,7 @@ export default function CentroComando() {
   const dashboardProfile = user?.dashboard_profile ?? '';
 
   const [personalizado, setPersonalizado] = useState(null);
+  const [liveSurface, setLiveSurface] = useState(null);
   const layoutTrackSig = useRef('');
 
   useEffect(() => {
@@ -93,6 +95,39 @@ export default function CentroComando() {
       .catch((err) => {
         if (import.meta.env.DEV) console.warn('[CentroComando] /dashboard/personalizado falhou:', err?.response?.status ?? err?.message);
       });
+  }, []);
+
+  useEffect(() => {
+    dashboard.getLiveSurface()
+      .then((r) => {
+        if (r?.data?.ok && r?.data?.surface) setLiveSurface(r.data.surface);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('impetus_token');
+    if (!token) return undefined;
+
+    const streamUrl = `/api/dashboard/live-surface/stream?token=${encodeURIComponent(token)}`;
+    const sse = new EventSource(streamUrl);
+
+    sse.addEventListener('surface', (evt) => {
+      try {
+        const parsed = JSON.parse(evt.data || '{}');
+        if (parsed?.ok && parsed?.surface) setLiveSurface(parsed.surface);
+      } catch {
+        // ignora payload invalido
+      }
+    });
+
+    sse.onerror = () => {
+      sse.close();
+    };
+
+    return () => {
+      sse.close();
+    };
   }, []);
 
   const widgets = useMemo(() => {
@@ -116,6 +151,8 @@ export default function CentroComando() {
   const subtitulo = personalizado?.perfil?.subtitulo
     ? personalizado.perfil.subtitulo
     : `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
+  const smartQuestions = personalizado?.assistente_ia?.exemplos_perguntas || [];
+  const fallbackMessages = personalizado?.assistente_ia?.mensagens_fallback || [];
 
   const showUnifiedLive = isExecutiveLeadershipRole(user);
 
@@ -126,23 +163,41 @@ export default function CentroComando() {
         <header className="cc__header">
           <h1 className="cc__title">{titulo}</h1>
           <p className="cc__subtitle">{subtitulo}</p>
+          {(smartQuestions.length > 0 || fallbackMessages.length > 0) && (
+            <div className="cc__context-panel">
+              {smartQuestions.length > 0 && (
+                <p className="cc__context-line">
+                  Perguntas inteligentes: {smartQuestions.slice(0, 2).join(' | ')}
+                </p>
+              )}
+              {fallbackMessages.length > 0 && (
+                <p className="cc__context-line cc__context-line--muted">
+                  {fallbackMessages[0]}
+                </p>
+              )}
+            </div>
+          )}
         </header>
-        <div className="cc__grid">
-          {widgets.map((w) => {
-            const Component = getWidgetComponent(w.id);
-            if (!Component) return null;
-            const span = w.position?.width === 2 ? 2 : 1;
-            return (
-              <div
-                key={w.id}
-                className="cc__cell"
-                style={{ gridColumn: `span ${span}` }}
-              >
-                <Component />
-              </div>
-            );
-          })}
-        </div>
+        {liveSurface?.blocks?.length ? (
+          <LiveSurfacePanel surface={liveSurface} />
+        ) : (
+          <div className="cc__grid">
+            {widgets.map((w) => {
+              const Component = getWidgetComponent(w.id);
+              if (!Component) return null;
+              const span = w.position?.width === 2 ? 2 : 1;
+              return (
+                <div
+                  key={w.id}
+                  className="cc__cell"
+                  style={{ gridColumn: `span ${span}` }}
+                >
+                  <Component />
+                </div>
+              );
+            })}
+          </div>
+        )}
         <footer className="ticker">
           <div className="ticker-label">// LIVE</div>
           <div className="ticker-items">

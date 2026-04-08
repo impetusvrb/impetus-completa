@@ -11,6 +11,28 @@ const {
   getProfile
 } = require('../config/dashboardProfiles');
 
+function normalizeText(v) {
+  return String(v || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function inferAreaFromFreeText(text) {
+  const t = normalizeText(text);
+  if (!t) return null;
+  if (/(recursos humanos|gestao de pessoas|rh\b|absenteismo|turnover|treinamento|clima organizacional)/.test(t)) return 'hr';
+  if (/(finance|custo|despesa|margem|fluxo de caixa|inadimplencia)/.test(t)) return 'finance';
+  if (/(manutenc|pcm|mttr|mtbf|ordem de servico|mecanic|eletric)/.test(t)) return 'maintenance';
+  if (/(qualidade|nao conform|inspec|laboratorio|microbio|desvio)/.test(t)) return 'quality';
+  if (/\bpcp\b|planejamento/.test(t)) return 'pcp';
+  if (/(operac|industrial|diretoria|executiv)/.test(t)) return 'operations';
+  if (/(produc|linha|turno|refugo|eficiencia)/.test(t)) return 'production';
+  if (/(administra|administrativo)/.test(t)) return 'admin';
+  return null;
+}
+
 /** Perfis válidos (whitelist) */
 const VALID_PROFILES = new Set([
   'ceo_executive', 'director_operations', 'director_industrial',
@@ -26,13 +48,20 @@ const VALID_PROFILES = new Set([
  * Prioridade: functional_area > inferência de job_title > role default
  */
 function resolveFunctionalArea(user) {
-  const fa = (user.functional_area || '').toLowerCase().trim();
+  const fa = normalizeText(user.functional_area);
   if (fa && ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'].includes(fa)) {
+    // Se texto livre de setor/departamento conflitar com functional_area antigo, prioriza o texto novo.
+    const freeFromDept = inferAreaFromFreeText(user.department || user.area || '');
+    if (freeFromDept && freeFromDept !== fa) return freeFromDept;
     return fa;
   }
-  const inferred = inferAreaFromJobTitle(user.job_title);
+  const inferredByDept = inferAreaFromFreeText(user.department || user.area || '');
+  if (inferredByDept) return inferredByDept;
+  const inferredByDescription = inferAreaFromFreeText(user.hr_responsibilities || user.descricao || user.descricao_funcional || '');
+  if (inferredByDescription) return inferredByDescription;
+  const inferred = inferAreaFromJobTitle(user.job_title) || inferAreaFromFreeText(user.job_title);
   if (inferred) return inferred;
-  const role = (user.role || '').toLowerCase();
+  const role = normalizeText(user.role);
   if (role === 'ceo' || role === 'diretor') return 'operations';
   if (role === 'admin') return 'admin';
   if (role === 'rh') return 'hr';

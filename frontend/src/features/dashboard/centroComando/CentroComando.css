@@ -27,6 +27,30 @@
   margin: 0;
 }
 
+.cc__context-panel {
+  margin-top: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--bg3);
+  border-left: 2px solid var(--cyan);
+  padding: 0.55rem 0.7rem;
+}
+
+.cc__context-line {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text2);
+  letter-spacing: 0.4px;
+}
+
+.cc__context-line + .cc__context-line {
+  margin-top: 0.35rem;
+}
+
+.cc__context-line--muted {
+  color: var(--text3);
+}
+
 .cc__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -36,6 +60,78 @@
 
 .cc__cell {
   min-height: 140px;
+}
+
+.live-surface {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.live-surface-card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  padding: 0.85rem;
+}
+
+.live-surface-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.live-surface-card__header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: 0.5px;
+  color: var(--text1);
+}
+
+.live-surface-card__tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  color: var(--text3);
+}
+
+.live-surface-card__tag--alert { border-color: var(--red); color: var(--red); }
+.live-surface-card__tag--kpi { border-color: var(--cyan); color: var(--cyan); }
+.live-surface-card__tag--fallback { border-color: var(--amber); color: var(--amber); }
+
+.live-surface-card__subtitle {
+  margin: 0.45rem 0 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+
+.live-surface-card__kpi strong {
+  display: block;
+  color: var(--cyan);
+  font-size: 1.45rem;
+}
+
+.live-surface-card__kpi span,
+.live-surface-card__insight,
+.live-surface-card__alert,
+.live-surface-card__fallback {
+  color: var(--text2);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.live-surface-card__action {
+  display: inline-block;
+  margin-top: 0.6rem;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 0.65rem;
 }
 
 /* Card base - Redesign (Parte 6) */
@@ -750,6 +846,10 @@
   .cc-kpi__grid--3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .live-surface {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 767px) {
@@ -780,6 +880,10 @@
   }
 
   .cc-kpi__grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .live-surface {
     grid-template-columns: 1fr;
   }
 

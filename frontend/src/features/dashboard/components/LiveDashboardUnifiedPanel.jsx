@@ -60,9 +60,26 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
   const isHistorical = !!historical;
   const orch = display?.capabilities?.task_orchestration && display?.orchestration && !isHistorical;
   const planByPriority = orch ? groupPlanItems(display.orchestration?.items || []) : null;
-  const sortedWidgets = [...(display?.layout?.widgets || [])].sort(
-    (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-  );
+  const dynamicSurface = display?.dynamic_surface || null;
+
+  const renderDynamicBody = (block) => {
+    const viz = block?.visualization;
+    const data = block?.data || {};
+    if (viz === 'alert') return <p className="live-dash-dyn-body live-dash-dyn-body--alert">{data.message || 'Ação imediata recomendada.'}</p>;
+    if (viz === 'kpi') return <p className="live-dash-dyn-body live-dash-dyn-body--kpi">{data.value ?? 'Sem volume suficiente'}{data.growth_label ? ` · ${data.growth_label}` : ''}</p>;
+    if (viz === 'line' || viz === 'bar' || viz === 'pie') return <p className="live-dash-dyn-body live-dash-dyn-body--chart">{data.message || 'Tendência detectada para acompanhamento.'}</p>;
+    if (viz === 'table') return <p className="live-dash-dyn-body live-dash-dyn-body--table">{data.message || 'Itens múltiplos detectados para análise.'}</p>;
+    if (viz === 'fallback') return <p className="live-dash-dyn-body live-dash-dyn-body--fallback">{data.message || 'Nenhum evento relevante detectado.'}</p>;
+    return <p className="live-dash-dyn-body">{data.message || 'Insight contextual gerado para o seu perfil.'}</p>;
+  };
+
+  const groupTitleMap = {
+    problemas_criticos: 'Problemas críticos',
+    atencoes: 'Atenções',
+    tendencias: 'Tendências',
+    recomendacoes: 'Recomendações',
+    acoes: 'Ações'
+  };
 
   const loadLive = useCallback(async () => {
     setErr(null);
@@ -353,54 +370,54 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             </section>
           )}
 
-          {display.operational_events?.length > 0 && (
-            <section className="live-dash-events-strip" aria-label="Eventos do motor operacional">
-              <h3 className="live-dash-sources-title">Eventos detectados nesta leitura</h3>
-              <ul className="live-dash-events-list">
-                {display.operational_events.slice(0, 6).map((ev) => (
-                  <li key={ev.id} className={`live-dash-event live-dash-event--${ev.severity || 'medium'}`}>
-                    <span className="live-dash-event-title">{ev.title}</span>
-                    {ev.detail ? <span className="live-dash-event-detail">{ev.detail}</span> : null}
-                  </li>
+          {display.focus_moment && (
+            <section className={`live-dash-focus live-dash-focus--${display.focus_moment.status || 'estavel'}`} aria-label="Foco do momento">
+              <h3>{display.focus_moment.title}</h3>
+              <p>{display.focus_moment.message}</p>
+              {Array.isArray(display.focus_moment.cta) && display.focus_moment.cta.length > 0 && (
+                <div className="live-dash-focus-cta">
+                  {display.focus_moment.cta.slice(0, 3).map((cta) => (
+                    <button key={cta} type="button" className="live-dash-btn live-dash-btn--small">{cta}</button>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {dynamicSurface?.groups && (
+            <section className="live-dash-dynamic" aria-label="Blocos dinâmicos por relevância">
+              {Object.entries(dynamicSurface.groups)
+                .filter(([, blocks]) => Array.isArray(blocks) && blocks.length > 0)
+                .map(([groupKey, blocks]) => (
+                  <div key={groupKey} className="live-dash-dynamic-group">
+                    <h3>{groupTitleMap[groupKey] || groupKey}</h3>
+                    <div className="live-dash-dynamic-grid">
+                      {blocks.map((block) => (
+                        <article key={block.id} className={`live-dash-dynamic-card live-dash-dynamic-card--${block.severity || 'baixa'}`}>
+                          <div className="live-dash-dynamic-head">
+                            <h4>{block.title}</h4>
+                            {block.requires_action && <span className="live-dash-dynamic-action-tag">Ação sugerida</span>}
+                          </div>
+                          <p className="live-dash-dynamic-sub">{block.subtitle}</p>
+                          {renderDynamicBody(block)}
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </section>
+          )}
+
+          {Array.isArray(display.smart_questions) && display.smart_questions.length > 0 && (
+            <section className="live-dash-suggestions">
+              <h3>Perguntas inteligentes do seu perfil</h3>
+              <ul>
+                {display.smart_questions.map((q) => (
+                  <li key={q}>{q}</li>
                 ))}
               </ul>
             </section>
           )}
-
-          <section className="live-dash-widgets" aria-label="Widgets do perfil">
-            <h3>Cartões do seu perfil Impetus</h3>
-            <p className="live-dash-widgets-hint">
-              Cada card vem da matriz cargo + setor. Se não houver número, o backend indica o motivo no próprio card.
-            </p>
-            <div className="live-dash-widget-grid">
-              {sortedWidgets.map((w) => (
-                <article
-                  key={w.id}
-                  className={[
-                    'live-dash-widget-card',
-                    w.highlight ? 'live-dash-widget-card--alert' : '',
-                    w.pulse_level && w.pulse_level !== 'calm' ? `live-dash-widget-card--pulse-${w.pulse_level}` : ''
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  style={
-                    w.pulse_scale && w.pulse_scale !== 1
-                      ? { transform: `scale(${w.pulse_scale})`, zIndex: w.pulse_level === 'critical' ? 2 : 1 }
-                      : undefined
-                  }
-                >
-                  <h4>{w.label}</h4>
-                  <p className="live-dash-widget-meta">{w.type}</p>
-                  {w.live_metric != null && w.live_metric.value != null && (
-                    <p className="live-dash-metric">
-                      {w.live_metric.label}: <strong>{w.live_metric.value}</strong>
-                    </p>
-                  )}
-                  {w.personalization_note && <p className="live-dash-widget-note">{w.personalization_note}</p>}
-                </article>
-              ))}
-            </div>
-          </section>
 
           {orch && (
             <>

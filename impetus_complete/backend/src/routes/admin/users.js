@@ -19,13 +19,28 @@ const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisã
 /** Área funcional para dashboard inteligente: production, maintenance, quality, etc. */
 const FUNCTIONAL_AREA_OPTIONS = ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'];
 
+function normalizeAreaLabel(value) {
+  const v = String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  if (!v) return null;
+  if (v === 'direcao') return 'Direção';
+  if (v === 'gerencia') return 'Gerência';
+  if (v === 'coordenacao') return 'Coordenação';
+  if (v === 'supervisao') return 'Supervisão';
+  if (v === 'colaborador') return 'Colaborador';
+  return String(value).trim();
+}
+
 const createUserSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Senha deve conter maiúscula, minúscula e número'),
   role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']),
-  area: z.enum(AREA_OPTIONS).optional(),
+  area: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().min(2).max(80).optional()),
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().optional()),
@@ -55,7 +70,7 @@ const updateUserSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   email: z.string().email().optional(),
   role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']).optional(),
-  area: z.enum(AREA_OPTIONS).nullable().optional(),
+  area: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().min(2).max(80).nullable().optional()),
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).nullable().optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).nullable().optional()),
   department_id: z.preprocess(v => v === '' ? undefined : v, z.string().uuid().nullable().optional()),
@@ -271,8 +286,10 @@ router.post('/',
       // Hash da senha
       const passwordHash = hashPassword(validatedData.password);
 
-      const area = validatedData.area || null;
-      const hierarchyLevel = validatedData.role === 'ceo' ? 0 : (area ? AREA_TO_LEVEL[area] : (validatedData.hierarchy_level ?? 5));
+      const area = validatedData.area ? normalizeAreaLabel(validatedData.area) : null;
+      const hierarchyLevel = validatedData.role === 'ceo'
+        ? 0
+        : (area && AREA_TO_LEVEL[area] ? AREA_TO_LEVEL[area] : (validatedData.hierarchy_level ?? 5));
 
       let hrResponsibilitiesParsed = [];
       const hrText = validatedData.hr_responsibilities || '';
@@ -403,7 +420,9 @@ router.put('/:id',
 
       // Sincronizar hierarchy_level quando area muda
       if (validatedData.area) {
-        validatedData.hierarchy_level = validatedData.area === 'Direção' ? 1 : AREA_TO_LEVEL[validatedData.area] ?? validatedData.hierarchy_level;
+        const normalizedArea = normalizeAreaLabel(validatedData.area);
+        validatedData.area = normalizedArea;
+        validatedData.hierarchy_level = normalizedArea === 'Direção' ? 1 : AREA_TO_LEVEL[normalizedArea] ?? validatedData.hierarchy_level;
       }
 
       // Construir query de update

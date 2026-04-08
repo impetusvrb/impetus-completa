@@ -74,6 +74,7 @@ const operationalForecastingAdvanced = require('../services/operationalForecasti
 const industrialCost = require('../services/industrialCostService');
 const financialLeakage = require('../services/financialLeakageDetectorService');
 const dashboardPersonalizadoService = require('../services/dashboardPersonalizadoService');
+const { composeLiveDashboardSurface } = require('../services/dashboardComposer');
 const { requireIndustrialView, requireIndustrialAdmin, canConfigureIndustrial } = require('../middleware/industrialIntegrationAccess');
 
 function requireIndustrialCostAdmin(req, res, next) {
@@ -156,6 +157,46 @@ router.get('/personalizado', requireAuth, async (req, res) => {
     console.error('[DASHBOARD_PERSONALIZADO_ERROR]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar dashboard personalizado' });
   }
+});
+
+router.get('/live-surface', requireAuth, async (req, res) => {
+  try {
+    const surface = await composeLiveDashboardSurface(req.user);
+    res.json({ ok: true, surface });
+  } catch (err) {
+    console.error('[DASHBOARD_LIVE_SURFACE_ERROR]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao montar painel vivo' });
+  }
+});
+
+router.get('/live-surface/stream', requireAuth, async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  let closed = false;
+  const user = req.user;
+  const sendSurface = async () => {
+    if (closed) return;
+    try {
+      const surface = await composeLiveDashboardSurface(user);
+      res.write('event: surface\n');
+      res.write(`data: ${JSON.stringify({ ok: true, surface })}\n\n`);
+    } catch (err) {
+      res.write('event: error\n');
+      res.write(`data: ${JSON.stringify({ ok: false, error: err?.message || 'erro' })}\n\n`);
+    }
+  };
+  await sendSurface();
+  const tickId = setInterval(sendSurface, 15000);
+  const keepAliveId = setInterval(() => { if (!closed) res.write(`: keepalive ${Date.now()}\n\n`); }, 25000);
+  req.on('close', () => {
+    closed = true;
+    clearInterval(tickId);
+    clearInterval(keepAliveId);
+    res.end();
+  });
 });
 
 /**

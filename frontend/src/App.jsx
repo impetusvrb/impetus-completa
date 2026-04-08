@@ -86,6 +86,27 @@ function getUserRole() {
   try { return (JSON.parse(localStorage.getItem('impetus_user') || '{}').role || 'colaborador').toLowerCase(); } catch { return 'colaborador'; }
 }
 
+function canAccessIndustrialCore() {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    const role = String(user.role || '').toLowerCase();
+    if (role === 'ceo') return true;
+    if (role !== 'diretor') return false;
+
+    const profile = String(user.dashboard_profile || '').toLowerCase();
+    const area = String(user.functional_area || user.area || '').toLowerCase();
+    return (
+      profile === 'director_industrial' ||
+      profile === 'director_operations' ||
+      area.includes('industrial') ||
+      area.includes('operations') ||
+      area.includes('operacoes')
+    );
+  } catch {
+    return false;
+  }
+}
+
 function PulseRhRouteGuard({ children }) {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -289,7 +310,7 @@ export default function App() {
         } />
         
         <Route path="/app/insights" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','gerente','coordenador','supervisor']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard>{canAccessIndustrialCore() ? <InsightsPage /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
         } />
         <Route path="/app/pulse-rh" element={
           <PrivateRoute><SetupGuard><PulseRhRouteGuard><PulseRh /></PulseRhRouteGuard></SetupGuard></PrivateRoute>
@@ -298,10 +319,10 @@ export default function App() {
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><PulseGestao /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/cerebro-operacional" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','gerente','coordenador','supervisor']}><OperationalIntelligencePanel /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard>{canAccessIndustrialCore() ? <OperationalIntelligencePanel /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-operacoes-industrial" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','admin','diretor','gerente','coordenador','supervisor']}><IndustrialOperationsCenter /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard>{canAccessIndustrialCore() ? <IndustrialOperationsCenter /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
         } />
         <Route path="/app/monitored-points" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
         <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />

@@ -3,7 +3,7 @@
  * Normaliza roles do backend (PT/EN, compostos) para chaves de menu/layout.
  */
 
-const MAINTENANCE_PATTERN = /maintenance|manuten|mecan|eletric|technician_maintenance|manager_maintenance|coordinator_maintenance|supervisor_maintenance/i;
+const MAINTENANCE_PATTERN = /maintenance|manuten|mecan|eletric|eletromecan|soldad|tecnic|technician_maintenance|manager_maintenance|coordinator_maintenance|supervisor_maintenance/i;
 
 /**
  * Verifica se o usuário tem perfil de manutenção
@@ -11,9 +11,15 @@ const MAINTENANCE_PATTERN = /maintenance|manuten|mecan|eletric|technician_mainte
 export function isMaintenanceProfile(user) {
   if (!user) return false;
   const role = (user.role || '').toLowerCase();
-  const area = (user.functional_area || user.area || '').toLowerCase();
+  const area = (user.functional_area || user.area || user.department || '').toLowerCase();
+  const jobTitle = (user.job_title || user.cargo || '').toLowerCase();
   const profile = (user.dashboard_profile || '').toLowerCase();
-  return MAINTENANCE_PATTERN.test(role) || MAINTENANCE_PATTERN.test(area) || MAINTENANCE_PATTERN.test(profile);
+  return (
+    MAINTENANCE_PATTERN.test(role) ||
+    MAINTENANCE_PATTERN.test(area) ||
+    MAINTENANCE_PATTERN.test(jobTitle) ||
+    MAINTENANCE_PATTERN.test(profile)
+  );
 }
 
 /**

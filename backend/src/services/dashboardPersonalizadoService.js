@@ -7,9 +7,10 @@
 
 const db = require('../db');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
+const { buildPersonalizedConfig } = require('./dashboardPersonalizationEngine');
 
 /** Versão das regras de layout — incrementar para invalidar cache em `dashboard_configs`. */
-const LAYOUT_RULES_VERSION = 2;
+const LAYOUT_RULES_VERSION = 4;
 
 /** Mapeamento tamanho doc → width no grid (1 ou 2) */
 const TAMANHO_TO_SPAN = { pequeno: 1, medio: 1, grande: 2, full: 2 };
@@ -282,6 +283,20 @@ function configParaLayout(config) {
  */
 async function getConfigPersonalizado(user) {
   if (!user || !user.id) return null;
+  let enrichedUser = { ...user };
+
+  try {
+    const extra = await db.query(
+      `SELECT functional_area, department, job_title, role, hr_responsibilities, descricao, descricao_funcional
+       FROM users WHERE id = $1`,
+      [user.id]
+    );
+    if (extra.rows?.length) {
+      enrichedUser = { ...extra.rows[0], ...enrichedUser };
+    }
+  } catch (_) {
+    // segue com dados da sessao
+  }
 
   let config = null;
 
@@ -301,7 +316,13 @@ async function getConfigPersonalizado(user) {
   }
 
   if (!config) {
-    config = gerarConfigPorRegras(user);
+    try {
+      config = { ...buildPersonalizedConfig(enrichedUser), layout_rules_version: LAYOUT_RULES_VERSION };
+    } catch (engineError) {
+      console.warn('[DASHBOARD_ENGINE] fallback para regras legadas:', engineError?.message || engineError);
+      config = gerarConfigPorRegras(enrichedUser);
+      config.layout_rules_version = LAYOUT_RULES_VERSION;
+    }
     try {
       await db.query(
         `INSERT INTO dashboard_configs (user_id, company_id, config_json, expira_em)
@@ -320,6 +341,7 @@ async function getConfigPersonalizado(user) {
     perfil: config.perfil,
     modulos: config.modulos,
     assistente_ia: config.assistente_ia,
+    explainability: config.explainability || null,
     layout,
     /** Versão das regras de montagem do grid (telemetria, suporte, debugging). */
     layout_rules_version: Number.isFinite(version) && version > 0 ? version : LAYOUT_RULES_VERSION
