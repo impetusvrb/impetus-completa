@@ -119,6 +119,7 @@ export default function AdminStructural() {
                   { key: 'work_area', label: 'Área' }
                 ]}
                 loadRefs={loadReferences}
+                extraDescription="Em Gestão de Utilizadores, associe cada pessoa ao cargo formal correspondente para a IA e os insights usarem estas descrições com segurança."
               />
             )}
             {activeModule === 'lines' && <LinesModule refs={references} loadRefs={loadReferences} />}
@@ -490,7 +491,7 @@ function CompanyDataModule({ loadRefs }) {
 // MÓDULO CRUD GENÉRICO
 // ============================================================================
 
-function CrudModule({ refs, module, entityLabel, api, columns, loadRefs }) {
+function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDescription }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -605,7 +606,10 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs }) {
   return (
     <div className="crud-module">
       <div className="module-header">
-        <p className="module-desc">Cadastre {entityLabel.toLowerCase()}s para a Impetus IA contextualizar melhor.</p>
+        <div>
+          <p className="module-desc">Cadastre {entityLabel.toLowerCase()}s para a Impetus IA contextualizar melhor.</p>
+          {extraDescription ? <p className="module-desc structural-extra-hint">{extraDescription}</p> : null}
+        </div>
         <button type="button" className="btn btn-primary" onClick={openCreate}>
           <Plus size={16} /> Novo {entityLabel}
         </button>

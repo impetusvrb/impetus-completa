@@ -5,6 +5,7 @@
  */
 const userIdentification = require('./userIdentificationService');
 const onboardingService = require('./onboardingService');
+const structuralOrgContextService = require('./structuralOrgContextService');
 
 /**
  * Monta contexto completo para o chat da IA
@@ -75,12 +76,21 @@ Trate o usuário pelo nome e respeite seu nível hierárquico.`;
     console.warn('[CHAT_CONTEXT] getMemoryContext:', err.message);
   }
 
+  let structuralBlock = '';
+  try {
+    structuralBlock = await structuralOrgContextService.getChatStructuralBlock(user);
+  } catch (err) {
+    console.warn('[CHAT_CONTEXT] structural:', err.message);
+  }
+
+  const memoriaBlockMerged = [memoriaBlock, structuralBlock].filter(Boolean).join('\n');
+
   return {
     userName,
     role,
     hierarchyLevel,
     identityBlock,
-    memoriaBlock
+    memoriaBlock: memoriaBlockMerged
   };
 }
 

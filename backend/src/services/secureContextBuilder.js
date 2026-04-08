@@ -28,7 +28,8 @@ async function buildContext(user, opts) {
   const baseContext = await documentContext.buildAIContext({
     companyId,
     queryText,
-    forDiagnostic
+    forDiagnostic,
+    user: options.user || user || null
   });
 
   const parts = [IMPETUS_IA_SYSTEM_PROMPT_FULL, baseContext];

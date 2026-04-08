@@ -161,6 +161,19 @@ async function buildAIContext(opts = {}) {
       parts.push(`## POPs da empresa\n${popsText}`);
     }
 
+    // 3b. Base Estrutural (empresa + cargo formal do utilizador) — complementa política/POPs; não substitui
+    if (user) {
+      try {
+        const structuralOrg = require('./structuralOrgContextService');
+        const structuralAppend = await structuralOrg.getDocumentContextAppend(companyId, user);
+        if (structuralAppend && structuralAppend.trim()) {
+          parts.push(structuralAppend.trim());
+        }
+      } catch (e) {
+        console.warn('[DOCUMENT_CONTEXT] structural:', e?.message);
+      }
+    }
+
     // 4. Logs de áudio (apenas CEO/diretoria, quando solicitado - auditoria)
     if (user) {
       try {

@@ -148,10 +148,12 @@ async function generateSummary(opts) {
 
   const langInstruction = userCtx ? userContext.getLanguageInstructions(userCtx) : '';
   const focusHint = userCtx?.area_focus?.length ? ` Priorize para área ${userCtx.area}: ${(userCtx.area_focus || []).slice(0, 3).join(', ')}.` : '';
-  const profileInstructions = user ? personalizedInsights.getInsightsInstructions(
-    dashboardProfileResolver.resolveDashboardProfile(user),
-    user
-  ) : '';
+  const profileInstructions = user
+    ? await personalizedInsights.getInsightsInstructions(
+        dashboardProfileResolver.resolveDashboardProfile(user),
+        user
+      )
+    : '';
 
   const prompt = `Você é o Impetus, assistente de inteligência operacional industrial. Crie um ${tipoRelatorio} para ${userName}. Ao se identificar nas respostas, use apenas o nome "Impetus".
 ${langInstruction ? `${langInstruction} ` : ''}${focusHint}

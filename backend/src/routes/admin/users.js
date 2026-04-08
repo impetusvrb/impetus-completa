@@ -13,6 +13,16 @@ const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
 const { z } = require('zod');
 
+async function assertStructuralRoleForCompany(companyId, roleId) {
+  if (!roleId) return null;
+  try {
+    const svc = require('../../services/structuralOrgContextService');
+    return svc.assertCompanyRoleBelongsToCompany(companyId, roleId);
+  } catch {
+    return null;
+  }
+}
+
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
 const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
@@ -61,7 +71,11 @@ const createUserSchema = z.object({
   ),
   permissions: z.array(z.string()).optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional(),
-  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  company_role_id: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().uuid().optional()
+  )
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -94,7 +108,11 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
   dashboard_profile: z.string().max(64).nullable().optional(),
-  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  company_role_id: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v),
+    z.union([z.string().uuid(), z.null()]).optional()
+  )
 });
 
 /**
@@ -166,13 +184,16 @@ router.get('/',
           u.functional_area, u.dashboard_profile,
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.hr_responsibilities,
+          u.company_role_id,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
           d.id as department_id,
+          cr.name as structural_role_name,
           (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now()) as active_sessions
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN company_roles cr ON cr.id = u.company_role_id
         WHERE ${whereClause} AND u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -279,6 +300,18 @@ router.post('/',
       // Validar dados
       const validatedData = createUserSchema.parse(req.body);
 
+      let companyRoleId = null;
+      if (validatedData.company_role_id) {
+        companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, validatedData.company_role_id);
+        if (!companyRoleId) {
+          return res.status(400).json({
+            ok: false,
+            error: 'Cargo estrutural inválido ou inativo.',
+            code: 'INVALID_STRUCTURAL_ROLE'
+          });
+        }
+      }
+
       // Verificar se email já existe
       const existingUser = await db.query(
         'SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL',
@@ -316,9 +349,9 @@ router.post('/',
           company_id, name, email, password_hash, role,
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
           hierarchy_level, permissions, active, executive_verified, functional_area,
-          hr_responsibilities, hr_responsibilities_parsed
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, created_at
+          hr_responsibilities, hr_responsibilities_parsed, company_role_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, company_role_id, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -337,7 +370,8 @@ router.post('/',
         false,
         functionalArea,
         hrText || null,
-        JSON.stringify(hrResponsibilitiesParsed)
+        JSON.stringify(hrResponsibilitiesParsed),
+        companyRoleId
       ]);
 
       // Log de auditoria
@@ -354,6 +388,13 @@ router.post('/',
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
+
+      if (companyRoleId) {
+        try {
+          const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
+          invalidateCompanyCache(req.user.company_id);
+        } catch (_) {}
+      }
 
       res.status(201).json({
         ok: true,
@@ -398,6 +439,22 @@ router.put('/:id',
 
       // Validar dados
       const validatedData = updateUserSchema.parse(req.body);
+
+      if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
+        const cr = validatedData.company_role_id;
+        if (cr === null || cr === '') {
+          validatedData.company_role_id = null;
+        } else {
+          const ok = await assertStructuralRoleForCompany(req.user.company_id, cr);
+          if (!ok) {
+            return res.status(400).json({
+              ok: false,
+              error: 'Cargo estrutural inválido ou inativo.',
+              code: 'INVALID_STRUCTURAL_ROLE'
+            });
+          }
+        }
+      }
 
       // Verificar se usuário existe
       const existingUser = await db.query(
@@ -483,6 +540,13 @@ router.put('/:id',
       `, params);
 
       invalidateScopeCache(req.params.id);
+
+      if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
+        try {
+          const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
+          invalidateCompanyCache(req.user.company_id);
+        } catch (_) {}
+      }
 
       // Log de auditoria
       await logAction({

@@ -214,10 +214,11 @@ router.get('/insights', requireAuth, async (req, res) => {
       severity: personalizedInsightsService.severityFromKpi(k)
     }));
     const insights = personalizedInsightsService.adaptInsightsToProfile(user, raw);
-    res.json({ ok: true, insights, insights_instructions: personalizedInsightsService.getInsightsInstructions(
+    const insights_instructions = await personalizedInsightsService.getInsightsInstructions(
       dashboardProfileResolver.resolveDashboardProfile(user),
       user
-    ) });
+    );
+    res.json({ ok: true, insights, insights_instructions });
   } catch (err) {
     console.error('[DASHBOARD_INSIGHTS]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro' });

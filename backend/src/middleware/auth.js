@@ -60,7 +60,8 @@ async function validateSession(token) {
              u.functional_area, u.dashboard_profile,
              u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
-             u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
+             u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root,
+             u.company_role_id
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.token = $1 
@@ -112,7 +113,8 @@ async function validateSession(token) {
       temporary_password_expires_at: session.temporary_password_expires_at,
       role_verified: session.role_verified === true,
       role_verification_status: session.role_verification_status || 'pending',
-      is_company_root: session.is_company_root === true
+      is_company_root: session.is_company_root === true,
+      company_role_id: session.company_role_id || null
     };
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
@@ -149,7 +151,7 @@ async function validateJWTAndLoadUser(token) {
              preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
              permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
-             role_verified, role_verification_status, is_company_root
+             role_verified, role_verification_status, is_company_root, company_role_id
       FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
     `, [decoded.id]);
 
@@ -183,7 +185,8 @@ async function validateJWTAndLoadUser(token) {
       temporary_password_expires_at: u.temporary_password_expires_at,
       role_verified: u.role_verified === true,
       role_verification_status: u.role_verification_status || 'pending',
-      is_company_root: u.is_company_root === true
+      is_company_root: u.is_company_root === true,
+      company_role_id: u.company_role_id || null
     };
   } catch {
     return null;

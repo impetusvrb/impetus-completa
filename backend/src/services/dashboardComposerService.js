@@ -170,7 +170,7 @@ async function buildDashboardPayload(user) {
   const usageWeights = await getUsageWeights(user.id, 30);
   u._usage_weights = usageWeights;
 
-  const insightsInstructions = personalizedInsightsService.getInsightsInstructions(config.profile_code, u);
+  const insightsInstructions = await personalizedInsightsService.getInsightsInstructions(config.profile_code, u);
   const prefs = u.dashboard_preferences || {};
   const cardsOrder = Array.isArray(prefs.cards_order) ? prefs.cards_order : [];
 

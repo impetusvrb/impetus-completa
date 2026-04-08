@@ -56,9 +56,9 @@ const INSIGHTS_MODES = {
  * Retorna instruções de prompt para a IA gerar insights personalizados
  * @param {string} profileCode
  * @param {Object} user
- * @returns {string}
+ * @returns {Promise<string>}
  */
-function getInsightsInstructions(profileCode, user) {
+async function getInsightsInstructions(profileCode, user) {
   const profile = getProfile(profileCode);
   const modeKey = profile.insights_mode || 'objective_practical';
   const mode = INSIGHTS_MODES[modeKey] || INSIGHTS_MODES.objective_practical;
@@ -75,6 +75,16 @@ function getInsightsInstructions(profileCode, user) {
   if (customFocus.length) {
     instructions += `Foco personalizado: ${customFocus.join(', ')}. `;
   }
+  let structuralHint = '';
+  try {
+    const structuralOrgContext = require('./structuralOrgContextService');
+    structuralHint = await structuralOrgContext.getInsightsInstructionSuffix(user);
+  } catch (_) {
+    /* opcional */
+  }
+  if (structuralHint) {
+    instructions += `Reforço (Base Estrutural / cargo formal): ${structuralHint}. `;
+  }
   instructions += `Seja objetivo. Exemplo de estilo: "${mode.example}"`;
   return instructions;
 }
@@ -83,7 +93,7 @@ function getInsightsInstructions(profileCode, user) {
  * Gera contexto para o smartSummary adaptar ao perfil
  * Usado pelo smartSummary.buildSmartSummary
  */
-function getSmartSummaryContext(user) {
+async function getSmartSummaryContext(user) {
   const dashboardProfileResolver = require('./dashboardProfileResolver');
   const config = dashboardProfileResolver.getDashboardConfigForUser(user);
   const profileCode = config.profile_code;

@@ -12,7 +12,7 @@ import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
 import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
-import { adminUsers, adminDepartments } from '../services/api';
+import { adminUsers, adminDepartments, adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminUsers.css';
 
@@ -21,6 +21,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [structuralRoles, setStructuralRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 });
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +58,8 @@ export default function AdminUsers() {
     hierarchy_level: 5,
     permissions: [],
     active: true,
-    executive_verified: false
+    executive_verified: false,
+    company_role_id: ''
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -68,7 +70,18 @@ export default function AdminUsers() {
     loadUsers();
     loadDepartments();
     loadSupervisors();
+    loadStructuralRoles();
   }, [pagination.offset, filters]);
+
+  const loadStructuralRoles = async () => {
+    try {
+      const r = await adminStructural.roles.list();
+      setStructuralRoles(r.data?.data ?? []);
+    } catch (e) {
+      console.warn('Cargos estruturais indisponíveis:', e);
+      setStructuralRoles([]);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -148,6 +161,7 @@ export default function AdminUsers() {
         whatsapp_number: formData.whatsapp_number || undefined,
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
+        company_role_id: formData.company_role_id || undefined
       };
 
       await adminUsers.create(payload);
@@ -190,6 +204,7 @@ export default function AdminUsers() {
           ? Number(formData.hierarchy_level)
           : undefined,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
+        company_role_id: formData.company_role_id ? formData.company_role_id : null
       };
       delete updateData.password; // Não atualizar senha aqui
 
@@ -279,7 +294,8 @@ export default function AdminUsers() {
       hierarchy_level: user.hierarchy_level,
       permissions: user.permissions || [],
       active: user.active,
-      executive_verified: user.executive_verified ?? false
+      executive_verified: user.executive_verified ?? false,
+      company_role_id: user.company_role_id || ''
     });
     setShowEditModal(true);
   };
@@ -313,7 +329,8 @@ export default function AdminUsers() {
       hierarchy_level: 5,
       permissions: [],
       active: true,
-      executive_verified: false
+      executive_verified: false,
+      company_role_id: ''
     });
     setFormErrors({});
   };
@@ -383,6 +400,11 @@ export default function AdminUsers() {
       key: 'department_name',
       label: 'Departamento',
       render: (value, row) => value || row.department || '-'
+    },
+    {
+      key: 'structural_role_name',
+      label: 'Cargo (estrutural)',
+      render: (value) => value || '—'
     },
     {
       key: 'hierarchy_level',
@@ -517,6 +539,7 @@ export default function AdminUsers() {
             formErrors={formErrors}
             departments={departments}
             users={supervisors}
+            structuralRoles={structuralRoles}
             onChange={handleFormChange}
             isCreate={true}
           />
@@ -541,6 +564,7 @@ export default function AdminUsers() {
             formErrors={formErrors}
             departments={departments}
             users={supervisors}
+            structuralRoles={structuralRoles}
             selectedUserId={selectedUser?.id}
             onChange={handleFormChange}
             isCreate={false}
@@ -615,10 +639,17 @@ export default function AdminUsers() {
 /**
  * USER FORM COMPONENT
  */
-function UserForm({ formData, formErrors, departments, users = [], selectedUserId, onChange, isCreate }) {
+function UserForm({ formData, formErrors, departments, users = [], structuralRoles = [], selectedUserId, onChange, isCreate }) {
   const supervisorOptions = (users || [])
     .filter(u => u.active !== false && (u.hierarchy_level ?? 5) <= 4 && u.id !== selectedUserId)
     .map(u => ({ value: u.id, label: `${u.name} (${getHierarchyLabel(u.hierarchy_level)})` }));
+  const structuralRoleOptions = [
+    { value: '', label: 'Não associar à Base Estrutural' },
+    ...(structuralRoles || []).map((r) => ({
+      value: r.id,
+      label: `${r.name}${r.work_area ? ` — ${r.work_area}` : ''}`
+    }))
+  ];
   return (
     <div className="user-form">
       <div className="form-grid-2">
@@ -727,12 +758,12 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
 
       <div className="form-grid-2">
         <InputField
-          label="Cargo"
+          label="Cargo (texto livre)"
           name="job_title"
           value={formData.job_title}
           onChange={onChange}
           placeholder="Ex: Diretor Financeiro, Gerente Industrial"
-          helperText="Campo livre - a IA usa para priorizar indicadores"
+          helperText="Rótulo exibido no sistema; pode coincidir com o cargo da Base Estrutural"
         />
 
         <InputField
@@ -744,6 +775,16 @@ function UserForm({ formData, formErrors, departments, users = [], selectedUserI
           helperText="Texto livre (normalizado internamente)"
         />
       </div>
+
+      <SelectField
+        label="Cargo formal (Base Estrutural)"
+        name="company_role_id"
+        value={formData.company_role_id || ''}
+        onChange={onChange}
+        options={structuralRoleOptions}
+        placeholder="Opcional"
+        helperText="Associa este utilizador a um cargo cadastrado em Base Estrutural — a IA e o dashboard usam responsabilidades e contexto da empresa."
+      />
 
       <div className="form-grid-2">
         <SelectField

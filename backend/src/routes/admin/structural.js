@@ -15,6 +15,16 @@ const { isValidUUID } = require('../../utils/security');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
 
+function invalidateStructuralOrgCache(companyId) {
+  if (!companyId) return;
+  try {
+    const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
+    invalidateCompanyCache(companyId);
+  } catch (_) {
+    /* opcional */
+  }
+}
+
 function getCompanyId(req) {
   return req.user?.company_id;
 }
@@ -155,6 +165,7 @@ router.put('/company-data', ...adminMw, auditMiddleware({ action: 'company_data_
       strategic_notes
     ]);
 
+    invalidateStructuralOrgCache(cid);
     res.json({ ok: true });
   } catch (err) {
     console.error('[STRUCTURAL_COMPANY_UPDATE]', err);
@@ -208,6 +219,7 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
       asPgTextArray(b.expected_subordinates), b.decision_level, asPgTextArray(b.visible_themes), asPgTextArray(b.hidden_themes),
       b.escalation_role, b.operation_role, b.approval_role, b.notes
     ]);
+    invalidateStructuralOrgCache(cid);
     res.status(201).json({ ok: true, data: r.rows[0] });
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_CREATE]', err);
@@ -272,6 +284,7 @@ router.put('/roles/:id', ...adminMw, async (req, res) => {
       b.approval_role, b.notes
     ]);
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
+    invalidateStructuralOrgCache(cid);
     res.json({ ok: true, data: r.rows[0] });
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_UPDATE]', err);
@@ -294,6 +307,7 @@ router.delete('/roles/:id', ...adminMw, async (req, res) => {
       [req.params.id, cid]
     );
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
+    invalidateStructuralOrgCache(cid);
     res.json({ ok: true });
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_DELETE]', err);
