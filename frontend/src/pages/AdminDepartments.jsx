@@ -9,14 +9,13 @@ import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
 import { InputField, SelectField, TextAreaField } from '../components/FormField';
-import { adminDepartments, adminUsers } from '../services/api';
+import { adminDepartments } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminDepartments.css';
 
 export default function AdminDepartments() {
   const notify = useNotification();
   const [departments, setDepartments] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -27,10 +26,9 @@ export default function AdminDepartments() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    parent_department_id: '',
+    parent_department_ids: [],
     level: 1,
-    type: 'producao',
-    manager_id: ''
+    type: 'producao'
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -38,7 +36,6 @@ export default function AdminDepartments() {
 
   useEffect(() => {
     loadDepartments();
-    loadUsers();
   }, []);
 
   const loadDepartments = async () => {
@@ -53,15 +50,6 @@ export default function AdminDepartments() {
     }
   };
 
-  const loadUsers = async () => {
-    try {
-      const response = await adminUsers.list({ limit: 500 });
-      setUsers(response.data.users);
-    } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
-    }
-  };
-
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -70,14 +58,30 @@ export default function AdminDepartments() {
     }));
   };
 
+  const handleParentDepartmentsChange = (e) => {
+    const values = Array.from(e.target.selectedOptions || [])
+      .map((opt) => opt.value)
+      .filter(Boolean);
+    setFormData((prev) => ({ ...prev, parent_department_ids: values }));
+  };
+
+  const handleParentDepartmentToggle = (departmentId) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev.parent_department_ids) ? prev.parent_department_ids : [];
+      const next = current.includes(departmentId)
+        ? current.filter((id) => id !== departmentId)
+        : [...current, departmentId];
+      return { ...prev, parent_department_ids: next };
+    });
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
       description: '',
-      parent_department_id: '',
+      parent_department_ids: [],
       level: 1,
-      type: 'producao',
-      manager_id: ''
+      type: 'producao'
     });
     setFormErrors({});
   };
@@ -88,8 +92,7 @@ export default function AdminDepartments() {
       setFormErrors({});
       await adminDepartments.create({
         ...formData,
-        parent_department_id: formData.parent_department_id || null,
-        manager_id: formData.manager_id || null
+        parent_department_ids: formData.parent_department_ids || []
       });
       notify.success('Departamento criado com sucesso!');
       setShowCreateModal(false);
@@ -108,8 +111,7 @@ export default function AdminDepartments() {
       setFormErrors({});
       await adminDepartments.update(selectedDept.id, {
         ...formData,
-        parent_department_id: formData.parent_department_id || null,
-        manager_id: formData.manager_id || null,
+        parent_department_ids: formData.parent_department_ids || [],
         active: selectedDept?.active ?? true
       });
       notify.success('Departamento atualizado!');
@@ -143,10 +145,11 @@ export default function AdminDepartments() {
     setFormData({
       name: dept.name,
       description: dept.description || '',
-      parent_department_id: dept.parent_department_id || '',
+      parent_department_ids: Array.isArray(dept.parent_department_ids)
+        ? dept.parent_department_ids
+        : (dept.parent_department_id ? [dept.parent_department_id] : []),
       level: dept.level,
-      type: dept.type || 'producao',
-      manager_id: dept.manager_id || ''
+      type: dept.type || 'producao'
     });
     setShowEditModal(true);
   };
@@ -172,7 +175,6 @@ export default function AdminDepartments() {
     },
     { key: 'level', label: 'Nível', render: (v) => `Nível ${v}` },
     { key: 'type', label: 'Tipo', render: (v) => getTypeLabel(v) },
-    { key: 'manager_name', label: 'Gestor', render: (v) => v || '-' },
     { key: 'users_count', label: 'Usuários', render: (v) => v || 0 },
     {
       key: 'active',
@@ -198,8 +200,6 @@ export default function AdminDepartments() {
       )
     }
   ];
-
-  const managerOptions = users.map(u => ({ value: u.id, label: u.name }));
 
   return (
     <Layout>
@@ -247,13 +247,28 @@ export default function AdminDepartments() {
         )}
 
         <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Novo Departamento" size="medium">
-          <DepartmentForm formData={formData} formErrors={formErrors} departments={departments} users={managerOptions} onChange={handleFormChange} />
+          <DepartmentForm
+            formData={formData}
+            formErrors={formErrors}
+            departments={departments}
+            onChange={handleFormChange}
+            onParentChange={handleParentDepartmentsChange}
+            onParentToggle={handleParentDepartmentToggle}
+          />
           {formErrors.submit && <p className="form-error-msg">{formErrors.submit}</p>}
           <ModalFooter onCancel={() => setShowCreateModal(false)} onConfirm={handleCreate} confirmText="Criar Departamento" confirmLoading={saving} confirmDisabled={!formData.name} />
         </Modal>
 
         <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Editar Departamento" size="medium">
-          <DepartmentForm formData={formData} formErrors={formErrors} departments={departments} users={managerOptions} onChange={handleFormChange} excludeId={selectedDept?.id} />
+          <DepartmentForm
+            formData={formData}
+            formErrors={formErrors}
+            departments={departments}
+            onChange={handleFormChange}
+            onParentChange={handleParentDepartmentsChange}
+            onParentToggle={handleParentDepartmentToggle}
+            excludeId={selectedDept?.id}
+          />
           {formErrors.submit && <p className="form-error-msg">{formErrors.submit}</p>}
           <ModalFooter onCancel={() => setShowEditModal(false)} onConfirm={handleUpdate} confirmText="Salvar" confirmLoading={saving} confirmDisabled={!formData.name} />
         </Modal>
@@ -271,19 +286,43 @@ export default function AdminDepartments() {
   );
 }
 
-function DepartmentForm({ formData, formErrors, departments, users, onChange, excludeId }) {
+function DepartmentForm({ formData, formErrors, departments, onChange, onParentToggle, excludeId }) {
   const parentOptions = (departments || []).filter(d => d.id !== excludeId).map(d => ({ value: d.id, label: d.name }));
+  const selectedParents = Array.isArray(formData.parent_department_ids) ? formData.parent_department_ids : [];
   return (
     <div className="department-form">
       <InputField label="Nome" name="name" value={formData.name} onChange={onChange} required error={formErrors.name} />
       <TextAreaField label="Descrição" name="description" value={formData.description} onChange={onChange} rows={3} />
       <div className="form-grid-2">
-        <SelectField label="Departamento Pai" name="parent_department_id" value={formData.parent_department_id} onChange={onChange} placeholder="Nenhum" options={parentOptions} />
+        <div className="form-field">
+          <label className="form-label">Departamento Pai</label>
+          <div className="parent-departments-picker">
+            {parentOptions.length === 0 ? (
+              <div className="parent-departments-empty">Nenhum departamento disponível.</div>
+            ) : (
+              parentOptions.map((option) => {
+                const active = selectedParents.includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`parent-department-chip ${active ? 'active' : ''}`}
+                    onClick={() => onParentToggle(option.value)}
+                  >
+                    <span className="parent-department-chip__check">{active ? '✓' : '+'}</span>
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <span className="form-helper">Clique para marcar/desmarcar quantos pais quiser.</span>
+        </div>
         <SelectField label="Tipo" name="type" value={formData.type} onChange={onChange} options={[{ value: 'producao', label: 'Produção' }, { value: 'manutencao', label: 'Manutenção' }, { value: 'qualidade', label: 'Qualidade' }, { value: 'logistica', label: 'Logística' }, { value: 'administrativo', label: 'Administrativo' }, { value: 'outro', label: 'Outro' }]} />
       </div>
       <div className="form-grid-2">
-        <SelectField label="Nível" name="level" value={formData.level} onChange={onChange} options={[{ value: 1, label: '1 - Diretoria' }, { value: 2, label: '2 - Gerência' }, { value: 3, label: '3 - Supervisão' }, { value: 4, label: '4 - Operacional' }]} />
-        <SelectField label="Gestor" name="manager_id" value={formData.manager_id} onChange={onChange} placeholder="Selecione..." options={users} />
+        <SelectField label="Nível" name="level" value={formData.level} onChange={onChange} options={[{ value: 1, label: '1 - Diretoria' }, { value: 2, label: '2 - Gerência' }, { value: 3, label: '3 - Coordenação' }, { value: 4, label: '4 - Supervisão' }, { value: 5, label: '5 - Operacional' }]} />
+        <div />
       </div>
     </div>
   );

@@ -40,12 +40,32 @@ export default function PulseRh() {
   const [rows, setRows] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pulseEnabled, setPulseEnabled] = useState(true);
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignForm, setCampaignForm] = useState({
+    title: '',
+    frequency: 'monthly',
+    next_run_at: ''
+  });
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [bucket, setBucket] = useState('month');
   const [shiftCode, setShiftCode] = useState('');
   const [teamLabel, setTeamLabel] = useState('');
   const [analyticsTab, setAnalyticsTab] = useState('overview');
+
+  const loadAux = useCallback(async () => {
+    try {
+      const [setRes, campRes] = await Promise.all([
+        pulse.hrCompanySettings(),
+        pulse.hrListCampaigns()
+      ]);
+      setPulseEnabled(!!setRes.data?.settings?.pulse_enabled);
+      setCampaigns(campRes.data?.campaigns || []);
+    } catch (e) {
+      notify.error(e.apiMessage || 'Erro ao carregar estado Pulse ou campanhas.');
+    }
+  }, [notify]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,16 +90,46 @@ export default function PulseRh() {
   }, [from, to, bucket, shiftCode, teamLabel, notify]);
 
   useEffect(() => {
+    loadAux();
+  }, [loadAux]);
+
+  useEffect(() => {
     load();
   }, [load]);
 
   const triggerAll = async () => {
+    if (!pulseEnabled) {
+      notify.error('Ative o Impetus Pulse nas configurações da empresa (administrador).');
+      return;
+    }
     try {
       const r = await pulse.hrTrigger({ all_eligible: true });
-      notify.success(`Ciclo disparado: ${r.data?.created || 0} avaliação(ões) criada(s).`);
+      const n = r?.data?.created;
+      notify.success(`Ciclo disparado: ${n ?? 0} avaliação(ões) criada(s).`);
       load();
     } catch (e) {
       notify.error(e.apiMessage || e.message || 'Erro ao disparar.');
+    }
+  };
+
+  const createCampaign = async (e) => {
+    e.preventDefault();
+    const title = campaignForm.title.trim();
+    if (!title) {
+      notify.error('Indique um título para a campanha.');
+      return;
+    }
+    try {
+      await pulse.hrCreateCampaign({
+        title,
+        frequency: campaignForm.frequency,
+        next_run_at: campaignForm.next_run_at || null
+      });
+      notify.success('Campanha registada.');
+      setCampaignForm({ title: '', frequency: 'monthly', next_run_at: '' });
+      loadAux();
+    } catch (e2) {
+      notify.error(e2.apiMessage || e2.message || 'Erro ao criar campanha.');
     }
   };
 
@@ -179,6 +229,79 @@ export default function PulseRh() {
           </p>
         </header>
 
+        {!pulseEnabled && (
+          <div className="pulse-rh-banner pulse-rh-banner--warn" role="status">
+            O <strong>Impetus Pulse</strong> está desativado para esta empresa. Peça a um administrador para ativar em{' '}
+            <strong>Configurações da empresa → Impetus Pulse</strong>. Enquanto estiver desligado, o disparo de ciclos não
+            cria avaliações; pode continuar a consultar histórico e a registar campanhas para quando o módulo for ativado.
+          </div>
+        )}
+
+        <section className="pulse-rh-campaigns" aria-label="Campanhas Pulse">
+          <h2>Campanhas</h2>
+          <form className="pulse-rh-campaigns__form" onSubmit={createCampaign}>
+            <label>
+              Título
+              <input
+                className="form-input"
+                value={campaignForm.title}
+                onChange={(e) => setCampaignForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Ex.: Ciclo trimestral Q1"
+                style={{ minWidth: 220 }}
+              />
+            </label>
+            <label>
+              Frequência
+              <select
+                className="form-input"
+                value={campaignForm.frequency}
+                onChange={(e) => setCampaignForm((f) => ({ ...f, frequency: e.target.value }))}
+              >
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensal</option>
+                <option value="quarterly">Trimestral</option>
+              </select>
+            </label>
+            <label>
+              Próxima execução (opcional)
+              <input
+                type="datetime-local"
+                className="form-input"
+                value={campaignForm.next_run_at}
+                onChange={(e) => setCampaignForm((f) => ({ ...f, next_run_at: e.target.value }))}
+              />
+            </label>
+            <button type="submit" className="btn btn-primary">
+              Registar campanha
+            </button>
+          </form>
+          <div className="pulse-rh-table-wrap">
+            <table className="pulse-rh-table">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Frequência</th>
+                  <th>Ativa</th>
+                  <th>Próxima</th>
+                  <th>Criada em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaigns.map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.title || '—'}</td>
+                    <td>{c.frequency || '—'}</td>
+                    <td>{c.is_active ? 'sim' : 'não'}</td>
+                    <td>{c.next_run_at ? new Date(c.next_run_at).toLocaleString('pt-BR') : '—'}</td>
+                    <td>{c.created_at ? new Date(c.created_at).toLocaleString('pt-BR') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {campaigns.length === 0 && <p className="pulse-rh-empty">Nenhuma campanha registada.</p>}
+          </div>
+        </section>
+
         <div className="pulse-rh-toolbar">
           <label>
             De{' '}
@@ -219,7 +342,13 @@ export default function PulseRh() {
           <button type="button" className="btn btn-secondary" onClick={load} disabled={loading}>
             Aplicar filtro
           </button>
-          <button type="button" className="btn btn-primary" onClick={triggerAll}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={triggerAll}
+            disabled={!pulseEnabled}
+            title={!pulseEnabled ? 'Ative o Pulse nas configurações da empresa' : undefined}
+          >
             Disparar ciclo (todos elegíveis)
           </button>
         </div>

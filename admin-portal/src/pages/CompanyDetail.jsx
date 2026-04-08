@@ -8,6 +8,9 @@ export default function CompanyDetail() {
   const { user } = useAuth();
   const [c, setC] = useState(null);
   const [err, setErr] = useState('');
+  const [inviteMsg, setInviteMsg] = useState('');
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [debugActivationUrl, setDebugActivationUrl] = useState('');
 
   useEffect(() => {
     api(`/companies/${id}`)
@@ -30,6 +33,32 @@ export default function CompanyDetail() {
       setC(r.company);
     } catch (e) {
       alert(e.message);
+    }
+  };
+
+  const resendAdminInvite = async () => {
+    if (!window.confirm('Reenviar e-mail com link seguro para o administrador criar a senha? (válido 24 h)')) return;
+    setInviteMsg('');
+    setDebugActivationUrl('');
+    setInviteBusy(true);
+    try {
+      const r = await api(`/companies/${id}/resend-admin-invite`, { method: 'POST' });
+      if (r.debug_activation_url) {
+        setDebugActivationUrl(r.debug_activation_url);
+      }
+      if (r.invite_email_sent) {
+        setInviteMsg(`Convite enviado para ${r.to}.`);
+      } else {
+        setInviteMsg(
+          r.debug_activation_url
+            ? `E-mail não enviado (sem SMTP). Link de desenvolvimento abaixo — defina ADMIN_PORTAL_DEBUG_INVITE_LINK=false em produção. Destino: ${r.to}.`
+            : `Token renovado, mas o e-mail não foi enviado — configure SMTP no servidor (SMTP_HOST, SMTP_USER, SMTP_PASS) ou ative ADMIN_PORTAL_DEBUG_INVITE_LINK=true só em dev. Destino: ${r.to}.`
+        );
+      }
+    } catch (e) {
+      setInviteMsg(e.message || 'Erro ao reenviar.');
+    } finally {
+      setInviteBusy(false);
     }
   };
 
@@ -66,11 +95,8 @@ export default function CompanyDetail() {
         <p>
           <strong>Status:</strong> {c.tenant_status}
         </p>
-        <p>
-          <strong>Plano:</strong> {c.plano}
-        </p>
-        <p>
-          <strong>Usuários contratados:</strong> {c.quantidade_usuarios_contratados ?? '—'}
+        <p className="muted" style={{ fontSize: '0.9rem' }}>
+          <strong>Licença:</strong> nível enterprise · usuários ilimitados
         </p>
         <p>
           <strong>CNPJ:</strong> {c.cnpj || '—'}
@@ -88,6 +114,62 @@ export default function CompanyDetail() {
         <p className="muted" style={{ fontSize: '0.85rem' }}>
           Criada em: {c.created_at ? new Date(c.created_at).toLocaleString('pt-BR') : '—'}
         </p>
+        {canManage && c.email_responsavel && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle, rgba(0,212,255,0.15))' }}>
+            <p className="muted" style={{ fontSize: '0.85rem', marginTop: 0 }}>
+              Primeiro acesso: reenviar o e-mail com o link para <strong>criar senha</strong> (só funciona se o admin ainda não tiver senha).
+            </p>
+            <button type="button" className="btn btn--primary" disabled={inviteBusy} onClick={resendAdminInvite}>
+              {inviteBusy ? 'A enviar…' : 'Reenviar convite ao admin'}
+            </button>
+            {inviteMsg && (
+              <p
+                style={{
+                  marginTop: 10,
+                  fontSize: '0.88rem',
+                  color: inviteMsg.startsWith('Convite enviado')
+                    ? 'var(--green)'
+                    : inviteMsg.startsWith('Token renovado') || inviteMsg.startsWith('E-mail não enviado')
+                      ? 'var(--amber)'
+                      : 'var(--red)'
+                }}
+              >
+                {inviteMsg}
+              </p>
+            )}
+            {debugActivationUrl && (
+              <div style={{ marginTop: 12 }}>
+                {debugActivationUrl.includes(':5174') && (
+                  <p style={{ color: 'var(--red)', fontSize: '0.82rem', margin: '0 0 8px' }}>
+                    Este link usa a porta <strong>5174</strong> (painel admin). Abra na <strong>app cliente</strong> (geralmente{' '}
+                    <strong>3000</strong> com PM2/serveDist) ou defina <code>IMPETUS_CLIENT_APP_URL</code> no .env do backend e reenvie.
+                  </p>
+                )}
+                <p className="muted" style={{ fontSize: '0.78rem', margin: '0 0 6px' }}>
+                  Link de ativação (dev) — não partilhe
+                </p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input
+                    readOnly
+                    className="input"
+                    style={{ flex: '1 1 240px', fontSize: '0.75rem' }}
+                    value={debugActivationUrl}
+                  />
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(debugActivationUrl);
+                      alert('Link copiado.');
+                    }}
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {canManage && (

@@ -82,6 +82,7 @@ app.use('/api/plc-alerts',              safe('./routes/plcAlerts'));
 app.use('/api/integrations',             safe('./routes/integrations'));
 app.use('/api/webhook',                  safe('./routes/webhook'));
 app.use('/api/admin',                    safe('./routes/admin'));
+app.use('/api/impetus-admin',            safe('./routes/impetusAdmin'));
 app.use('/api/dashboard',                safe('./routes/dashboard'));
 app.use('/api/live-dashboard',           safe('./routes/liveDashboard'));
 app.use('/api/manutencao-ia',            safe('./routes/manutencao-ia'));

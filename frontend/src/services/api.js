@@ -81,11 +81,12 @@ api.interceptors.response.use(
 function handleFinalError(error) {
   const urlPath = error.config?.url || '';
 
-  // 401 em Pró-Ação não deve derrubar toda a sessão do usuário.
-  // Mantemos o usuário logado e apenas propagamos o erro para a tela tratar.
+  // 401 em Pró-Ação/login não deve derrubar toda a sessão do usuário.
+  // Em /auth/login precisamos devolver a mensagem de erro na própria tela.
   const isProacaoRequest = urlPath.includes('/proacao');
+  const isLoginRequest = urlPath.includes('/auth/login');
 
-  if (error.response?.status === 401 && !isProacaoRequest) {
+  if (error.response?.status === 401 && !isProacaoRequest && !isLoginRequest) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     window.location.href = '/';
@@ -264,9 +265,6 @@ export const dashboard = {
   getDynamicLayout: () => api.get('/dashboard/dynamic-layout'),
   /** Dashboard Inteligente Dinâmico do colaborador — layout gerado por perfil */
   getColaboradorDynamicLayout: () => api.get('/dashboard/colaborador/dynamic-layout'),
-
-  getOnboardingStatus: () => api.get('/dashboard/onboarding-status'),
-  saveOnboarding: (answers) => api.post('/dashboard/onboarding', { answers }),
 
   getSummary: () => 
     api.get('/dashboard/summary'),
@@ -508,6 +506,7 @@ export const pulse = {
   postSupervisorPerception: (evaluationId, perception) =>
     api.post(`/pulse/supervisor/${evaluationId}/perception`, { perception }),
   hrAnalytics: (params) => api.get('/pulse/hr/analytics', { params }),
+  hrCompanySettings: () => api.get('/pulse/hr/company-settings'),
   hrListEvaluations: (params) => api.get('/pulse/hr/evaluations', { params }),
   hrTrigger: (body) => api.post('/pulse/hr/trigger', body),
   hrReport: (evaluationId) => api.post(`/pulse/hr/report/${evaluationId}`, {}),

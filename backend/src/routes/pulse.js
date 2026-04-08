@@ -183,6 +183,19 @@ router.post('/hr/report/:evaluationId', requireAuth, requireRole('rh'), async (r
   }
 });
 
+/** Estado do módulo na empresa (RH não usa /pulse/admin/settings — exige role admin). */
+router.get('/hr/company-settings', requireAuth, requireRole('rh'), async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
+    const s = await pulseService.getCompanySettings(companyId);
+    res.json({ ok: true, settings: { pulse_enabled: !!s.pulse_enabled } });
+  } catch (e) {
+    console.error('[PULSE_HR_COMPANY_SETTINGS]', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 router.get('/hr/campaigns', requireAuth, requireRole('rh'), async (req, res) => {
   try {
     const companyId = req.user.company_id;

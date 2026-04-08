@@ -1,9 +1,12 @@
 const express = require('express');
+const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
 const roleVerification = require('../services/roleVerificationService');
+const { sendPasswordResetEmail } = require('../services/emailService');
+const { getPublicAppBaseUrl } = require('../utils/publicAppUrl');
 
 const router = express.Router();
 
@@ -17,7 +20,7 @@ router.post('/login', async (req, res) => {
     }
 
     const result = await db.query(
-      'SELECT * FROM users WHERE email = $1 AND active = true',
+      'SELECT * FROM users WHERE lower(trim(email)) = lower(trim($1)) AND active = true',
       [email]
     );
 
@@ -27,9 +30,11 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // 🔥 IMPORTANTE: usar password_hash
     if (!user.password_hash) {
-      return res.status(401).json({ error: 'Senha não cadastrada para este usuário' });
+      return res.status(401).json({
+        error:
+          'Senha ainda não definida. Utilize o link de primeiro acesso enviado por e-mail ou peça uma nova redefinição de senha.'
+      });
     }
 
     const validPassword = await bcrypt.compare(password, user.password_hash);
@@ -57,7 +62,9 @@ router.post('/login', async (req, res) => {
         'INSERT INTO sessions (user_id, token, expires_at) VALUES ($1, $2, $3)',
         [user.id, token, expiresAt]
       );
-    } catch (e) { console.error('[SESSION_INSERT_ERROR]', e.message); }
+    } catch (e) {
+      console.error('[SESSION_INSERT_ERROR]', e.message);
+    }
 
     const needsVerification = roleVerification.needsVerification({
       ...user,
@@ -85,45 +92,43 @@ router.post('/login', async (req, res) => {
         dashboard_profile: user.dashboard_profile || null
       }
     });
-
   } catch (err) {
     console.error('[LOGIN_ERROR]', err);
     return res.status(500).json({ error: 'Erro interno no servidor' });
   }
 });
 
-module.exports = router;
-const crypto = require('crypto');
-const { sendPasswordResetEmail } = require('../services/emailService');
-
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
-  if (!email) return res.json({ ok: true }); // Não revelar se email existe
+  if (!email) return res.json({ ok: true });
 
   try {
-    const db = require('../db');
-    const r = await db.query('SELECT id, name, email FROM users WHERE email = $1 AND active = true', [email.toLowerCase().trim()]);
+    const normalized = email.toLowerCase().trim();
+    const r = await db.query(
+      'SELECT id, name, email FROM users WHERE lower(trim(email)) = $1 AND active = true',
+      [normalized]
+    );
     if (!r.rows.length) return res.json({ ok: true });
 
     const user = r.rows[0];
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expires = new Date(Date.now() + 60 * 60 * 1000);
 
     await db.query(
       'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
       [user.id, token, expires]
     );
 
-    const baseUrl = (process.env.FRONTEND_URL || process.env.BASE_URL || `http://${req.headers.host}`).replace(/\/$/, '');
-    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+    const baseUrl = getPublicAppBaseUrl();
+    const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
     await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl });
 
     res.json({ ok: true });
   } catch (err) {
     console.error('[FORGOT_PASSWORD]', err.message);
-    res.json({ ok: true }); // Nunca revelar erro
+    res.json({ ok: true });
   }
 });
 
@@ -135,9 +140,6 @@ router.post('/reset-password', async (req, res) => {
   }
 
   try {
-    const db = require('../db');
-    const bcrypt = require('bcrypt');
-
     const r = await db.query(
       'SELECT * FROM password_reset_tokens WHERE token = $1 AND used = false AND expires_at > NOW()',
       [token]
@@ -157,20 +159,17 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-module.exports = router;
-// POST /api/auth/verify-password - Verifica senha do usuário logado
+// POST /api/auth/verify-password
 router.post('/verify-password', async (req, res) => {
   const { password } = req.body;
   const authHeader = req.headers.authorization;
   if (!authHeader || !password) return res.status(400).json({ ok: false });
 
   try {
-    const db = require('../db');
-    const jwt = require('jsonwebtoken');
-    const bcrypt = require('bcrypt');
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const r = await db.query('SELECT password_hash FROM users WHERE id = $1 AND active = true', [decoded.id || decoded.userId]);
+    const authToken = authHeader.split(' ')[1];
+    const decoded = jwt.verify(authToken, JWT_SECRET);
+    const uid = decoded.id || decoded.userId;
+    const r = await db.query('SELECT password_hash FROM users WHERE id = $1 AND active = true', [uid]);
     if (!r.rows.length) return res.json({ ok: false });
     const valid = await bcrypt.compare(password, r.rows[0].password_hash);
     res.json({ ok: valid });

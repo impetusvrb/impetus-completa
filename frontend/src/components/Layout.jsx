@@ -49,7 +49,6 @@ import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
-import DashboardOnboardingModal from '../features/dashboard/components/DashboardOnboardingModal';
 import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, isMaintenanceTechnicianMenu } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
@@ -260,11 +259,11 @@ export default function Layout({ children }) {
   }
 
   if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
-    if ((user.role || '').toLowerCase() === 'admin') return <Navigate to="/app/chatbot" replace state={{ from: location }} />;
+    if ((user.role || '').toLowerCase() === 'admin') return <Navigate to="/app/admin/implantacao-guia" replace state={{ from: location }} />;
     if (isColaboradorSimples(user)) return <Navigate to="/app" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
-  if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/chatbot" replace />;
+  if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/admin/implantacao-guia" replace />;
 
   /** Industrial / operacional — filtrado por visible_modules (operational) */
   const MENU_BLOCO_INDUSTRIAL = [
@@ -317,6 +316,7 @@ export default function Layout({ children }) {
 
   const MENUS = {
     admin: [
+      { path: '/app/admin/implantacao-guia', icon: ClipboardList, label: 'Guia de Implantação' },
       { path: '/app/admin/users', icon: Users, label: 'Gestão de Usuários' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
@@ -761,9 +761,6 @@ export default function Layout({ children }) {
           onComplete={handleMainOnboardingComplete}
         />
       ) : null}
-      {!onboardingState.show && (
-        <DashboardOnboardingModal onComplete={() => {}} />
-      )}
 
       <ImpetusPulseModal
         isOpen={pulseUi.promptOpen}

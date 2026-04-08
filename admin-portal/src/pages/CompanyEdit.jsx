@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/http';
 
-const PLANS = ['essencial', 'profissional', 'estratégico', 'enterprise'];
 const STATUSES = ['teste', 'ativo', 'suspenso', 'cancelado'];
 
 export default function CompanyEdit() {
@@ -22,8 +21,6 @@ export default function CompanyEdit() {
           email_responsavel: c.email_responsavel || '',
           telefone_responsavel: c.telefone_responsavel || '',
           nome_responsavel: c.nome_responsavel || '',
-          plano: c.plano || 'essencial',
-          quantidade_usuarios_contratados: c.quantidade_usuarios_contratados || 10,
           tenant_status: c.tenant_status || 'ativo',
           data_inicio_contrato: c.data_inicio_contrato ? String(c.data_inicio_contrato).slice(0, 10) : '',
           data_fim_contrato: c.data_fim_contrato ? String(c.data_fim_contrato).slice(0, 10) : '',
@@ -89,28 +86,6 @@ export default function CompanyEdit() {
         <div>
           <label className="label">Telefone</label>
           <input className="input" value={form.telefone_responsavel} onChange={set('telefone_responsavel')} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label className="label">Plano</label>
-            <select className="input" value={form.plano} onChange={set('plano')}>
-              {PLANS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Qtd. usuários</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              value={form.quantidade_usuarios_contratados}
-              onChange={set('quantidade_usuarios_contratados')}
-            />
-          </div>
         </div>
         <div>
           <label className="label">Status</label>

@@ -16,7 +16,8 @@ const createDepartmentSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   description: z.string().optional(),
   parent_department_id: z.string().uuid().nullable().optional(),
-  level: z.number().int().min(1).max(4),
+  parent_department_ids: z.array(z.string().uuid()).max(10).optional(),
+  level: z.number().int().min(1).max(5),
   type: z.enum(['producao', 'manutencao', 'qualidade', 'logistica', 'administrativo', 'outro']).optional(),
   manager_id: z.string().uuid().nullable().optional()
 });
@@ -25,11 +26,19 @@ const updateDepartmentSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   description: z.string().nullable().optional(),
   parent_department_id: z.string().uuid().nullable().optional(),
-  level: z.number().int().min(1).max(4).optional(),
+  parent_department_ids: z.array(z.string().uuid()).max(10).optional(),
+  level: z.number().int().min(1).max(5).optional(),
   type: z.enum(['producao', 'manutencao', 'qualidade', 'logistica', 'administrativo', 'outro']).optional(),
   manager_id: z.string().uuid().nullable().optional(),
   active: z.boolean().optional()
 });
+
+function normalizeParentIds(parent_department_ids, parent_department_id) {
+  const raw = Array.isArray(parent_department_ids)
+    ? parent_department_ids
+    : (parent_department_id ? [parent_department_id] : []);
+  return [...new Set(raw.filter(Boolean))];
+}
 
 /**
  * GET /api/admin/departments
@@ -47,6 +56,17 @@ router.get('/',
           d.id, d.name, d.description, d.level, d.type, d.active,
           d.parent_department_id, d.created_at, d.updated_at,
           pd.name as parent_department_name,
+          COALESCE((
+            SELECT array_agg(dpl.parent_department_id ORDER BY dpl.is_primary DESC, dpl.created_at ASC)
+            FROM department_parent_links dpl
+            WHERE dpl.department_id = d.id
+          ), ARRAY[]::uuid[]) AS parent_department_ids,
+          COALESCE((
+            SELECT array_agg(dp.name ORDER BY dpl.is_primary DESC, dpl.created_at ASC)
+            FROM department_parent_links dpl
+            JOIN departments dp ON dp.id = dpl.parent_department_id
+            WHERE dpl.department_id = d.id
+          ), ARRAY[]::text[]) AS parent_department_names,
           u.id as manager_id, u.name as manager_name,
           (SELECT COUNT(*) FROM users WHERE department_id = d.id AND deleted_at IS NULL) as users_count,
           (SELECT COUNT(*) FROM departments WHERE parent_department_id = d.id) as subdepartments_count
@@ -150,6 +170,17 @@ router.get('/:id',
         SELECT 
           d.*,
           pd.name as parent_department_name,
+          COALESCE((
+            SELECT array_agg(dpl.parent_department_id ORDER BY dpl.is_primary DESC, dpl.created_at ASC)
+            FROM department_parent_links dpl
+            WHERE dpl.department_id = d.id
+          ), ARRAY[]::uuid[]) AS parent_department_ids,
+          COALESCE((
+            SELECT array_agg(dp.name ORDER BY dpl.is_primary DESC, dpl.created_at ASC)
+            FROM department_parent_links dpl
+            JOIN departments dp ON dp.id = dpl.parent_department_id
+            WHERE dpl.department_id = d.id
+          ), ARRAY[]::text[]) AS parent_department_names,
           u.id as manager_id, u.name as manager_name, u.email as manager_email,
           (SELECT json_agg(json_build_object('id', id, 'name', name, 'role', role))
            FROM users WHERE department_id = d.id AND deleted_at IS NULL) as users,
@@ -198,15 +229,17 @@ router.post('/',
     try {
       // Validar dados
       const validatedData = createDepartmentSchema.parse(req.body);
+      const parentIds = normalizeParentIds(validatedData.parent_department_ids, validatedData.parent_department_id);
+      const primaryParentId = parentIds[0] || null;
 
       // Se tem departamento pai, verificar se existe
-      if (validatedData.parent_department_id) {
+      if (parentIds.length) {
         const parentExists = await db.query(
-          'SELECT id FROM departments WHERE id = $1 AND company_id = $2',
-          [validatedData.parent_department_id, req.user.company_id]
+          'SELECT id FROM departments WHERE id = ANY($1::uuid[]) AND company_id = $2',
+          [parentIds, req.user.company_id]
         );
 
-        if (parentExists.rows.length === 0) {
+        if (parentExists.rows.length !== parentIds.length) {
           return res.status(404).json({
             ok: false,
             error: 'Departamento pai não encontrado'
@@ -240,11 +273,21 @@ router.post('/',
         req.user.company_id,
         validatedData.name,
         validatedData.description || null,
-        validatedData.parent_department_id || null,
+        primaryParentId,
         validatedData.level,
         validatedData.type || null,
         validatedData.manager_id || null
       ]);
+
+      await db.query('DELETE FROM department_parent_links WHERE department_id = $1', [result.rows[0].id]);
+      if (parentIds.length) {
+        await db.query(
+          `INSERT INTO department_parent_links (department_id, parent_department_id, is_primary)
+           SELECT $1, x.parent_id, (x.ord = 1)
+           FROM unnest($2::uuid[]) WITH ORDINALITY AS x(parent_id, ord)`,
+          [result.rows[0].id, parentIds]
+        );
+      }
 
       // Log de auditoria
       await logAction({
@@ -302,6 +345,15 @@ router.put('/:id',
 
       // Validar dados
       const validatedData = updateDepartmentSchema.parse(req.body);
+      const parentIdsSpecified =
+        Object.prototype.hasOwnProperty.call(validatedData, 'parent_department_ids') ||
+        Object.prototype.hasOwnProperty.call(validatedData, 'parent_department_id');
+      const parentIds = parentIdsSpecified
+        ? normalizeParentIds(validatedData.parent_department_ids, validatedData.parent_department_id)
+        : null;
+      if (parentIdsSpecified) {
+        validatedData.parent_department_id = parentIds[0] || null;
+      }
 
       // Verificar se departamento existe
       const existingDept = await db.query(
@@ -355,6 +407,7 @@ router.put('/:id',
       let paramCount = 0;
 
       Object.keys(validatedData).forEach(key => {
+        if (key === 'parent_department_ids') return;
         if (validatedData[key] !== undefined) {
           paramCount++;
           updateFields.push(`${key} = $${paramCount}`);
@@ -371,6 +424,18 @@ router.put('/:id',
         WHERE id = $${paramCount + 1} AND company_id = $${paramCount + 2}
         RETURNING id, name, level, active, updated_at
       `, params);
+
+      if (parentIdsSpecified) {
+        await db.query('DELETE FROM department_parent_links WHERE department_id = $1', [req.params.id]);
+        if (parentIds.length) {
+          await db.query(
+            `INSERT INTO department_parent_links (department_id, parent_department_id, is_primary)
+             SELECT $1, x.parent_id, (x.ord = 1)
+             FROM unnest($2::uuid[]) WITH ORDINALITY AS x(parent_id, ord)`,
+            [req.params.id, parentIds]
+          );
+        }
+      }
 
       // Log de auditoria
       await logAction({
@@ -439,7 +504,10 @@ router.delete('/:id',
 
       // Verificar se departamento tem subdepartamentos
       const hasSubdepartments = await db.query(
-        'SELECT COUNT(*) as count FROM departments WHERE parent_department_id = $1 AND active = true',
+        `SELECT COUNT(*) as count
+         FROM department_parent_links dpl
+         JOIN departments d ON d.id = dpl.department_id
+         WHERE dpl.parent_department_id = $1 AND d.active = true`,
         [req.params.id]
       );
 
@@ -510,7 +578,8 @@ router.get('/stats/summary',
           COUNT(*) FILTER (WHERE level = 1) as level_1_depts,
           COUNT(*) FILTER (WHERE level = 2) as level_2_depts,
           COUNT(*) FILTER (WHERE level = 3) as level_3_depts,
-          COUNT(*) FILTER (WHERE level = 4) as level_4_depts
+          COUNT(*) FILTER (WHERE level = 4) as level_4_depts,
+          COUNT(*) FILTER (WHERE level = 5) as level_5_depts
         FROM departments
         WHERE company_id = $1
       `, [req.user.company_id]);

@@ -16,7 +16,7 @@ const createDepartmentSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   description: z.string().optional(),
   parent_department_id: z.string().uuid().nullable().optional(),
-  level: z.number().int().min(1).max(4),
+  level: z.number().int().min(1).max(5),
   type: z.enum(['producao', 'manutencao', 'qualidade', 'logistica', 'administrativo', 'outro']).optional(),
   manager_id: z.string().uuid().nullable().optional()
 });
@@ -25,7 +25,7 @@ const updateDepartmentSchema = z.object({
   name: z.string().min(3).max(100).optional(),
   description: z.string().nullable().optional(),
   parent_department_id: z.string().uuid().nullable().optional(),
-  level: z.number().int().min(1).max(4).optional(),
+  level: z.number().int().min(1).max(5).optional(),
   type: z.enum(['producao', 'manutencao', 'qualidade', 'logistica', 'administrativo', 'outro']).optional(),
   manager_id: z.string().uuid().nullable().optional(),
   active: z.boolean().optional()
@@ -510,7 +510,8 @@ router.get('/stats/summary',
           COUNT(*) FILTER (WHERE level = 1) as level_1_depts,
           COUNT(*) FILTER (WHERE level = 2) as level_2_depts,
           COUNT(*) FILTER (WHERE level = 3) as level_3_depts,
-          COUNT(*) FILTER (WHERE level = 4) as level_4_depts
+          COUNT(*) FILTER (WHERE level = 4) as level_4_depts,
+          COUNT(*) FILTER (WHERE level = 5) as level_5_depts
         FROM departments
         WHERE company_id = $1
       `, [req.user.company_id]);

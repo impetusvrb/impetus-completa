@@ -42,6 +42,8 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS cor_tema TEXT;
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS created_by_admin_id UUID REFERENCES admin_users(id) ON DELETE SET NULL;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contract_start_date TIMESTAMPTZ;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contract_end_date TIMESTAMPTZ;
 
 UPDATE companies SET tenant_status = CASE WHEN active IS true THEN 'ativo' ELSE 'suspenso' END
 WHERE tenant_status IS NULL;
@@ -51,3 +53,21 @@ UPDATE companies SET tenant_status = 'ativo' WHERE tenant_status IS NOT NULL AND
 UPDATE companies SET razao_social = COALESCE(razao_social, name) WHERE razao_social IS NULL AND name IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_slug_unique ON companies (slug) WHERE slug IS NOT NULL AND length(trim(slug)) > 0;
+
+
+CREATE TABLE IF NOT EXISTS department_parent_links (
+  department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+  parent_department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (department_id, parent_department_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_department_parent_links_parent ON department_parent_links (parent_department_id);
+CREATE INDEX IF NOT EXISTS idx_department_parent_links_department ON department_parent_links (department_id);
+
+INSERT INTO department_parent_links (department_id, parent_department_id, is_primary)
+SELECT id, parent_department_id, true
+FROM departments
+WHERE parent_department_id IS NOT NULL
+ON CONFLICT (department_id, parent_department_id) DO NOTHING;

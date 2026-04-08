@@ -28,11 +28,16 @@ const PATH_TO_MODULE = {
   '/chat': 'chat'
 };
 
-/** Módulos dedicados (não são o dashboard /app); não bloquear por visible_modules quando o menu do cargo os lista */
+/**
+ * Rotas que não devem depender de `operational` em visible_modules (evita esconder Pulse quando o perfil RH
+ * tem lista de módulos personalizada sem essa chave).
+ */
 const STANDALONE_OPERATIONAL_PATHS = new Set([
   '/app/insights',
   '/app/cerebro-operacional',
-  '/app/centro-operacoes-industrial'
+  '/app/centro-operacoes-industrial',
+  '/app/pulse-rh',
+  '/app/pulse-gestao'
 ]);
 
 function getModuleForPath(path) {

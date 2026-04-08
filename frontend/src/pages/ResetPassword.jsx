@@ -55,7 +55,9 @@ export default function ResetPassword() {
             <div className="login-logo-wrapper">
               <img src="/logo-impetus.jpg" alt="Impetus" className="login-logo-img" />
             </div>
-            <p className="login-subtitle">{done ? 'Senha redefinida!' : 'Nova senha'}</p>
+            <p className="login-subtitle">
+              {done ? 'Senha definida!' : 'Primeiro acesso ou nova senha'}
+            </p>
           </div>
 
           {done ? (
@@ -75,7 +77,7 @@ export default function ResetPassword() {
                 <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repita a senha" required disabled={loading}/>
               </div>
               <button type="submit" className="btn-login" disabled={loading}>
-                {loading ? 'Salvando...' : 'Redefinir senha'}
+                {loading ? 'Salvando...' : 'Definir senha'}
               </button>
             </form>
           )}

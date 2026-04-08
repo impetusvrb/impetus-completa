@@ -16,6 +16,49 @@
   line-height: 1.45;
 }
 
+.pulse-rh-banner {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.pulse-rh-banner--warn {
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: var(--gray-800, #1f2937);
+}
+
+.pulse-rh-campaigns {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid var(--gray-100, #f3f4f6);
+  border-radius: 8px;
+  background: var(--gray-50, #f9fafb);
+}
+
+.pulse-rh-campaigns h2 {
+  margin: 0 0 12px 0;
+  font-size: 1.05rem;
+}
+
+.pulse-rh-campaigns__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.pulse-rh-campaigns__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--gray-600, #4b5563);
+}
+
 .pulse-rh-toolbar {
   display: flex;
   flex-wrap: wrap;

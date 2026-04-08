@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { z } = require('zod');
 const db = require('../../db');
@@ -9,16 +10,30 @@ const {
   requireCommercialOrSuper
 } = require('../../middleware/adminPortalAuth');
 const { logAdminAction } = require('../../services/adminPortalLogService');
+const roleVerification = require('../../services/roleVerificationService');
+const { sendTenantAdminActivationEmail } = require('../../services/emailService');
+const { getPublicAppBaseUrl } = require('../../utils/publicAppUrl');
 
 const router = express.Router();
 
 const TENANT_STATUSES = ['teste', 'ativo', 'suspenso', 'cancelado'];
-const PLAN_TYPES = ['essencial', 'profissional', 'estratégico', 'enterprise'];
+/** Licença comercial única: nível máximo, sem limite de usuários contratados (NULL na BD). */
+const DEFAULT_COMMERCIAL_PLAN = 'enterprise';
 
 function sanitizeCnpj(v) {
   if (v == null || v === '') return null;
   const d = String(v).replace(/\D/g, '');
   return d.length === 14 ? d : null;
+}
+
+/** Só quando SMTP falha: devolve URL na API para copiar localmente (nunca ativar em produção). */
+function maybeDebugInviteLink(inviteSent, activateUrl) {
+  if (inviteSent || !activateUrl) return {};
+  const on = String(process.env.ADMIN_PORTAL_DEBUG_INVITE_LINK || '').toLowerCase();
+  if (on === 'true' || on === '1') {
+    return { debug_activation_url: activateUrl };
+  }
+  return {};
 }
 
 function mapCompany(row) {
@@ -55,11 +70,12 @@ const createSchema = z.object({
   razao_social: z.string().min(2).max(300),
   nome_fantasia: z.string().max(300).optional().nullable(),
   cnpj: z.string().optional().nullable(),
-  email_responsavel: z.string().email().optional().nullable(),
+  email_responsavel: z
+    .string()
+    .min(3)
+    .email('E-mail do responsável obrigatório e válido para enviar o convite de primeiro acesso'),
   telefone_responsavel: z.string().max(40).optional().nullable(),
   nome_responsavel: z.string().max(200).optional().nullable(),
-  plano: z.enum(PLAN_TYPES).optional().default('essencial'),
-  quantidade_usuarios_contratados: z.coerce.number().int().min(1).max(100000).optional().default(10),
   tenant_status: z.enum(TENANT_STATUSES).optional().default('teste'),
   data_inicio_contrato: z.string().optional().nullable(),
   data_fim_contrato: z.string().optional().nullable(),
@@ -140,11 +156,47 @@ router.get('/:id', requireAdminAuth, async (req, res) => {
 });
 
 router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) => {
+  let client;
   try {
     const body = createSchema.parse(req.body);
     const cnpj = sanitizeCnpj(body.cnpj);
     if (body.cnpj && !cnpj) {
       return res.status(400).json({ ok: false, error: 'CNPJ inválido (use 14 dígitos)' });
+    }
+
+    const adminEmail = String(body.email_responsavel || '')
+      .trim()
+      .toLowerCase();
+    const dupQ = await db.query(
+      `SELECT u.id, u.company_id, u.password_hash IS NOT NULL AS has_password, c.name AS company_name
+       FROM users u
+       LEFT JOIN companies c ON c.id = u.company_id
+       WHERE lower(trim(u.email)) = $1 AND u.deleted_at IS NULL
+       LIMIT 1`,
+      [adminEmail]
+    );
+    if (dupQ.rows.length) {
+      const du = dupQ.rows[0];
+      let errMsg =
+        'Este e-mail já está registado no IMPETUS. Cada acesso de cliente usa um e-mail único — não é possível criar um segundo utilizador com o mesmo endereço.';
+      if (du.company_id && du.has_password) {
+        const at = adminEmail.indexOf('@');
+        const aliasHint =
+          at > 0
+            ? `${adminEmail.slice(0, at)}+novaempresa${adminEmail.slice(at)}`
+            : 'nome+empresa@seudominio.com';
+        errMsg = `Este e-mail já tem conta ativa${
+          du.company_name ? ` na empresa «${du.company_name}»` : ''
+        }. Utilize outro e-mail para o responsável desta empresa, ou um alias (ex.: ${aliasHint}).`;
+      } else if (du.company_id && !du.has_password) {
+        errMsg =
+          'Este e-mail já está associado a um convite ou empresa pendente. Utilize outro e-mail ou peça ao suporte para regularizar o utilizador existente.';
+      }
+      return res.status(409).json({
+        ok: false,
+        error: errMsg,
+        code: 'TENANT_ADMIN_EMAIL_TAKEN'
+      });
     }
 
     if (cnpj) {
@@ -158,11 +210,19 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
     }
 
     const name = body.razao_social.trim();
-    const plan = body.plano;
+    const plan = DEFAULT_COMMERCIAL_PLAN;
     const tenantStatus = body.tenant_status;
     const active = ['teste', 'ativo'].includes(tenantStatus);
+    const adminName = (body.nome_responsavel || '').trim() || 'Administrador(a)';
+    const phoneRaw = body.telefone_responsavel || null;
+    const whatsDigits = phoneRaw ? String(phoneRaw).replace(/\D/g, '') : '';
+    const whatsapp_number = whatsDigits.length >= 10 ? whatsDigits : null;
+    const emailDisplay = String(body.email_responsavel || '').trim();
 
-    const ins = await db.query(
+    client = await db.pool.connect();
+    await client.query('BEGIN');
+
+    const ins = await client.query(
       `INSERT INTO companies (
         name, razao_social, nome_fantasia, cnpj,
         email_responsavel, telefone_responsavel, nome_responsavel,
@@ -182,12 +242,12 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
         name,
         body.nome_fantasia || null,
         cnpj,
-        body.email_responsavel || null,
-        body.telefone_responsavel || null,
+        emailDisplay || null,
+        phoneRaw,
         body.nome_responsavel || null,
         plan,
         plan,
-        body.quantidade_usuarios_contratados,
+        null,
         tenantStatus,
         body.observacoes || null,
         (body.slug && String(body.slug).trim()) || null,
@@ -201,17 +261,94 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
     );
 
     const row = ins.rows[0];
+
+    const userIns = await client.query(
+      `INSERT INTO users (
+        company_id, name, email, password_hash, role,
+        area, hierarchy_level, active, is_first_access, must_change_password,
+        is_company_root, role_verified, role_verification_status,
+        phone, whatsapp_number
+      ) VALUES (
+        $1, $2, $3, NULL, 'admin',
+        'Administração', 1, true, false, false,
+        true, true, 'verified',
+        $4, $5
+      )
+      RETURNING id`,
+      [row.id, adminName, adminEmail, phoneRaw, whatsapp_number]
+    );
+
+    const newUserId = userIns.rows[0].id;
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await client.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+      [newUserId, token, expiresAt]
+    );
+
+    await client.query('COMMIT');
+
+    try {
+      await roleVerification.markCompanyRoot(newUserId, row.id);
+    } catch (e) {
+      console.error('[impetusAdmin/companies markCompanyRoot]', e.message);
+    }
+
+    const baseUrl = getPublicAppBaseUrl();
+    const activateUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+
+    let inviteSent = false;
+    try {
+      const mailRes = await sendTenantAdminActivationEmail({
+        to: adminEmail,
+        name: adminName,
+        companyName: name,
+        activateUrl,
+        validHours: 24
+      });
+      inviteSent = mailRes.sent === true;
+    } catch (e) {
+      console.error('[impetusAdmin/companies invite email]', e.message);
+    }
+
+    if (!inviteSent) {
+      console.warn(
+        '[impetusAdmin/companies] Convite por e-mail não enviado — verifique SMTP_HOST / SMTP_USER no .env do backend.'
+      );
+    }
+
     await logAdminAction({
       adminUserId: req.adminUser.id,
       acao: 'empresa_criada',
       entidade: 'company',
       entidadeId: row.id,
       ip: req.ip,
-      detalhes: { company_id: row.id, razao_social: name }
+      detalhes: {
+        company_id: row.id,
+        razao_social: name,
+        tenant_admin_user_id: newUserId,
+        tenant_admin_email: adminEmail,
+        convite_email_enviado: inviteSent
+      }
     });
 
-    res.status(201).json({ ok: true, company: mapCompany(row) });
+    res.status(201).json({
+      ok: true,
+      company: mapCompany(row),
+      tenant_admin: {
+        email: adminEmail,
+        role: 'admin',
+        invite_email_sent: inviteSent,
+        ...maybeDebugInviteLink(inviteSent, activateUrl)
+      }
+    });
   } catch (e) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (_) {}
+    }
     if (e instanceof z.ZodError) {
       return res.status(400).json({ ok: false, error: 'Validação', details: e.errors });
     }
@@ -220,6 +357,133 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
     }
     console.error('[impetusAdmin/companies create]', e);
     res.status(500).json({ ok: false, error: 'Erro ao criar empresa' });
+  } finally {
+    if (client) {
+      try {
+        client.release();
+      } catch (_) {}
+    }
+  }
+});
+
+/**
+ * Reenvia e-mail de primeiro acesso (token 24h) para o admin da empresa.
+ * Só enquanto password_hash estiver vazio.
+ */
+router.post('/:id/resend-admin-invite', requireAdminAuth, requireCommercialOrSuper, async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const cr = await db.query(
+      `SELECT id, name, razao_social, founder_id, email_responsavel FROM companies WHERE id = $1`,
+      [companyId]
+    );
+    if (!cr.rows.length) {
+      return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
+    }
+    const comp = cr.rows[0];
+
+    let userRow;
+    if (comp.founder_id) {
+      const ur = await db.query(
+        `SELECT * FROM users WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL`,
+        [comp.founder_id, companyId]
+      );
+      if (ur.rows.length) userRow = ur.rows[0];
+    }
+    if (!userRow) {
+      const ur = await db.query(
+        `SELECT * FROM users u
+         WHERE u.company_id = $1 AND u.deleted_at IS NULL AND lower(coalesce(u.role, '')) = 'admin'
+         ORDER BY u.is_company_root DESC NULLS LAST, u.created_at ASC
+         LIMIT 1`,
+        [companyId]
+      );
+      if (ur.rows.length) userRow = ur.rows[0];
+    }
+    if (!userRow && comp.email_responsavel) {
+      const em = String(comp.email_responsavel).trim().toLowerCase();
+      const ur = await db.query(
+        `SELECT * FROM users
+         WHERE company_id = $1 AND deleted_at IS NULL AND lower(trim(email)) = $2
+         ORDER BY created_at ASC
+         LIMIT 1`,
+        [companyId, em]
+      );
+      if (ur.rows.length) userRow = ur.rows[0];
+    }
+
+    if (!userRow) {
+      return res.status(404).json({
+        ok: false,
+        error:
+          'Não foi encontrado o utilizador admin desta empresa. Verifique se a empresa foi criada com o fluxo atual ou contacte o suporte.'
+      });
+    }
+
+    if (userRow.password_hash) {
+      return res.status(409).json({
+        ok: false,
+        error:
+          'Este utilizador já definiu senha. Peça para usar «Esqueci a senha» na aplicação IMPETUS ou redefina pelo fluxo interno.',
+        code: 'ADMIN_ALREADY_ACTIVATED'
+      });
+    }
+
+    await db.query(`UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false`, [
+      userRow.id
+    ]);
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.query(`INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`, [
+      userRow.id,
+      token,
+      expiresAt
+    ]);
+
+    const baseUrl = getPublicAppBaseUrl();
+    const activateUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+
+    const adminName = userRow.name || 'Administrador(a)';
+    const companyName = comp.razao_social || comp.name;
+    let inviteSent = false;
+    try {
+      const mailRes = await sendTenantAdminActivationEmail({
+        to: userRow.email,
+        name: adminName,
+        companyName,
+        activateUrl,
+        validHours: 24
+      });
+      inviteSent = mailRes.sent === true;
+    } catch (e) {
+      console.error('[impetusAdmin/companies resend invite email]', e.message);
+    }
+
+    if (!inviteSent) {
+      console.warn(
+        '[impetusAdmin/companies] Reenvio: e-mail não enviado — configure SMTP no .env do backend.'
+      );
+    }
+
+    await logAdminAction({
+      adminUserId: req.adminUser.id,
+      acao: 'convite_admin_reenviado',
+      entidade: 'company',
+      entidadeId: companyId,
+      ip: req.ip,
+      detalhes: { user_id: userRow.id, email: userRow.email, convite_email_enviado: inviteSent }
+    });
+
+    res.json({
+      ok: true,
+      invite_email_sent: inviteSent,
+      to: userRow.email,
+      ...maybeDebugInviteLink(inviteSent, activateUrl)
+    });
+  } catch (e) {
+    console.error('[impetusAdmin/companies resend-admin-invite]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao reenviar convite' });
   }
 });
 
@@ -254,7 +518,7 @@ router.put('/:id', requireAdminAuth, requireCommercialOrSuper, async (req, res) 
     }
 
     const razao = body.razao_social != null ? body.razao_social.trim() : cur.razao_social || cur.name;
-    const plan = body.plano != null ? body.plano : cur.plan_type;
+    const plan = DEFAULT_COMMERCIAL_PLAN;
     const tenantStatus =
       body.tenant_status != null ? body.tenant_status : cur.tenant_status || (cur.active ? 'ativo' : 'suspenso');
     const active = ['teste', 'ativo'].includes(tenantStatus);
@@ -291,7 +555,7 @@ router.put('/:id', requireAdminAuth, requireCommercialOrSuper, async (req, res) 
         body.telefone_responsavel !== undefined ? body.telefone_responsavel : cur.telefone_responsavel,
         body.nome_responsavel !== undefined ? body.nome_responsavel : cur.nome_responsavel,
         plan,
-        body.quantidade_usuarios_contratados != null ? body.quantidade_usuarios_contratados : cur.quantidade_usuarios_contratados,
+        null,
         tenantStatus,
         body.observacoes !== undefined ? body.observacoes : cur.observacoes_comercial,
         body.slug !== undefined ? body.slug : cur.slug,

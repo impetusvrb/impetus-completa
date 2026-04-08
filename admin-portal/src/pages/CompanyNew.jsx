@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/http';
 
-const PLANS = ['essencial', 'profissional', 'estratégico', 'enterprise'];
 const STATUSES = ['teste', 'ativo', 'suspenso', 'cancelado'];
 
 export default function CompanyNew() {
@@ -15,8 +14,6 @@ export default function CompanyNew() {
     email_responsavel: '',
     telefone_responsavel: '',
     nome_responsavel: '',
-    plano: 'essencial',
-    quantidade_usuarios_contratados: 10,
     tenant_status: 'teste',
     data_inicio_contrato: '',
     data_fim_contrato: '',
@@ -39,6 +36,24 @@ export default function CompanyNew() {
           observacoes: form.observacoes || null
         })
       });
+      if (r.tenant_admin?.invite_email_sent === false) {
+        if (r.tenant_admin.debug_activation_url) {
+          try {
+            await navigator.clipboard.writeText(r.tenant_admin.debug_activation_url);
+            window.alert(
+              'Empresa criada. SMTP não configurado — o link de primeiro acesso foi copiado. Cole no browser da app cliente (ex.: porta 3000 com PM2), não no painel admin.'
+            );
+          } catch {
+            window.alert(
+              `Empresa criada. Copie o link manualmente:\n\n${r.tenant_admin.debug_activation_url}`
+            );
+          }
+        } else {
+          window.alert(
+            'Empresa e administrador criados, mas o e-mail não foi enviado. Configure SMTP (SMTP_*) no backend ou defina ADMIN_PORTAL_DEBUG_INVITE_LINK=true só em desenvolvimento.'
+          );
+        }
+      }
       navigate(`/empresas/${r.company.company_id}`);
     } catch (e2) {
       setErr(e2.data?.error || e2.message);
@@ -66,34 +81,22 @@ export default function CompanyNew() {
           <input className="input" value={form.nome_responsavel} onChange={set('nome_responsavel')} />
         </div>
         <div>
-          <label className="label">E-mail do responsável</label>
-          <input className="input" type="email" value={form.email_responsavel} onChange={set('email_responsavel')} />
+          <label className="label">E-mail do responsável *</label>
+          <input
+            className="input"
+            type="email"
+            value={form.email_responsavel}
+            onChange={set('email_responsavel')}
+            required
+            autoComplete="email"
+          />
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+            Será criado o utilizador <strong>admin</strong> da empresa (acesso administrativo) e enviado um link seguro para definir a senha — sem senha em texto no e-mail. Depois, esse admin pode cadastrar CEO, diretores e demais cargos.
+          </p>
         </div>
         <div>
           <label className="label">Telefone</label>
           <input className="input" value={form.telefone_responsavel} onChange={set('telefone_responsavel')} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label className="label">Plano</label>
-            <select className="input" value={form.plano} onChange={set('plano')}>
-              {PLANS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Qtd. usuários contratados</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              value={form.quantidade_usuarios_contratados}
-              onChange={set('quantidade_usuarios_contratados')}
-            />
-          </div>
         </div>
         <div>
           <label className="label">Status inicial</label>

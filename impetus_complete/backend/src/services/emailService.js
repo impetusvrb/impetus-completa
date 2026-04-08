@@ -184,6 +184,70 @@ async function sendPasswordResetEmail({ to, name, resetUrl }) {
   return { sent: false, resetUrl };
 }
 
+/**
+ * Primeiro acesso do administrador da empresa (painel master criou o tenant).
+ * Sem senha em texto — só link com token (tabela password_reset_tokens).
+ */
+async function sendTenantAdminActivationEmail({
+  to,
+  name,
+  companyName,
+  activateUrl,
+  validHours = 24
+}) {
+  const h = validHours || 24;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Acesso inicial - IMPETUS</title></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2563eb;">Seu acesso inicial ao IMPETUS</h2>
+    <p>Olá, ${name || 'Administrador(a)'}!</p>
+    <p>A empresa <strong>${companyName || 'sua organização'}</strong> foi cadastrada na plataforma IMPETUS.</p>
+    <p>Você foi definido(a) como <strong>administrador</strong> da conta nesta plataforma. Utilize o mesmo e-mail abaixo para entrar após criar sua senha:</p>
+    <div style="background: #f1f5f9; padding: 14px 16px; border-radius: 8px; margin: 16px 0;">
+      <p style="margin:0;"><strong>E-mail de acesso:</strong> ${to}</p>
+    </div>
+    <p>Clique no botão para <strong>criar sua senha</strong> (não compartilhe este link):</p>
+    <p style="margin: 28px 0;">
+      <a href="${activateUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px;">Criar minha senha</a>
+    </p>
+    <p style="color: #dc2626;">⏱ Este link expira em <strong>${h} horas</strong>.</p>
+    <p>Depois de definir a senha, faça login na plataforma e poderá cadastrar os demais utilizadores da empresa.</p>
+    <p style="font-size: 0.85em; color: #64748b; margin-top: 24px;">Se você não reconhece este cadastro, ignore este e-mail.</p>
+  </div>
+</body>
+</html>`;
+
+  const text = `IMPETUS — Acesso inicial\n\nEmpresa: ${companyName}\nE-mail de login: ${to}\n\nCrie sua senha (válido ${h}h): ${activateUrl}\n`;
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject: `[IMPETUS] Acesso inicial — ${companyName || 'sua empresa'}`,
+        text,
+        html
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error('[TENANT_ACTIVATION_EMAIL_ERROR]', err.message);
+      return { sent: false };
+    }
+  }
+  console.log('[TENANT_ACTIVATION_NO_SMTP] SMTP não configurado — convite não enviado para', to);
+  return { sent: false };
+}
+
 async function sendAccountVerificationCode({ to, name, code }) {
   const html = `
 <!DOCTYPE html>
@@ -232,5 +296,6 @@ module.exports = {
   sendActivationEmail,
   sendOverdueNotificationEmail,
   sendPasswordResetEmail,
+  sendTenantAdminActivationEmail,
   sendAccountVerificationCode
 };

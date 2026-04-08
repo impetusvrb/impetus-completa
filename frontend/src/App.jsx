@@ -14,7 +14,7 @@ import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
 import ImpetusVoiceProvider from './voice/ImpetusVoiceProvider';
-import { isColaboradorSimples, isMaintenanceTechnicianMenu } from './utils/roleUtils';
+import { isColaboradorSimples, isMaintenanceTechnicianMenu, canAccessPulseRhRoute } from './utils/roleUtils';
 
 // Tela inicial — carregamento imediato
 import Login from './pages/Login';
@@ -52,6 +52,7 @@ const OrganizationalValidationPanel = lazy(() => import('./pages/OrganizationalV
 const AppMobile = lazy(() => import('./pages/AppMobile'));
 const CadastrarComIA = lazy(() => import('./pages/CadastrarComIA'));
 const CentroCustosAdmin = lazy(() => import('./pages/CentroCustosAdmin'));
+const ImplementationGuide = lazy(() => import('./pages/ImplementationGuide'));
 const AdminAudioLogs = lazy(() => import('./pages/AdminAudioLogs'));
 const AdminIntegrations = lazy(() => import('./pages/AdminIntegrations'));
 const NexusIACustos = lazy(() => import('./pages/NexusIACustos'));
@@ -85,11 +86,21 @@ function getUserRole() {
   try { return (JSON.parse(localStorage.getItem('impetus_user') || '{}').role || 'colaborador').toLowerCase(); } catch { return 'colaborador'; }
 }
 
+function PulseRhRouteGuard({ children }) {
+  try {
+    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    if (canAccessPulseRhRoute(user)) return children;
+  } catch {
+    /* ignore */
+  }
+  return <Navigate to="/app" replace />;
+}
+
 function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !allowedRoles.includes(role)) {
     // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
-    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
+    const defaults = { admin: '/app/admin/implantacao-guia', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
     return <Navigate to={defaults[role] || '/app'} replace />;
   }
   return children;
@@ -245,14 +256,14 @@ export default function App() {
         <Route path="/app" element={
           <PrivateRoute>
             <SetupGuard>
-              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <DashboardRouteEntry />}
+              {isStrictAdmin() ? <Navigate to="/app/admin/implantacao-guia" replace /> : <DashboardRouteEntry />}
             </SetupGuard>
           </PrivateRoute>
         } />
         <Route path="/app/dashboard-vivo" element={
           <PrivateRoute>
             <SetupGuard>
-              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <Navigate to="/app" replace />}
+              {isStrictAdmin() ? <Navigate to="/app/admin/implantacao-guia" replace /> : <Navigate to="/app" replace />}
             </SetupGuard>
           </PrivateRoute>
         } />
@@ -281,7 +292,7 @@ export default function App() {
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['ceo','diretor','gerente','coordenador','supervisor']}><InsightsPage /></RoleGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/pulse-rh" element={
-          <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['rh']}><PulseRh /></RoleGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><PulseRhRouteGuard><PulseRh /></PulseRhRouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/pulse-gestao" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><PulseGestao /></RoleGuard></SetupGuard></PrivateRoute>
@@ -323,6 +334,7 @@ export default function App() {
         } />
 
         <Route path="/app/admin/users" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminUsers /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/implantacao-guia" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><ImplementationGuide /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/departments" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminDepartments /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminAuditLogs /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
