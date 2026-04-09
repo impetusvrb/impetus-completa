@@ -80,7 +80,7 @@ export function SelectField({
       <select
         id={name}
         name={name}
-        value={value}
+        value={value ?? ''}
         onChange={onChange}
         required={required}
         disabled={disabled}

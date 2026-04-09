@@ -700,17 +700,32 @@ export const adminOperationalTeams = {
       params: { days, ...(teamId ? { team_id: teamId } : {}) }
     }),
   downloadMemberEventsCsv: async (days = 30) => {
-    const res = await api.get('/admin/operational-teams/exports/member-events.csv', {
-      params: { days },
-      responseType: 'blob'
-    });
-    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `impetus-equipes-eventos-${days}d.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const downloadBlob = (res) => {
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `impetus-equipes-eventos-${days}d.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    };
+    try {
+      const res = await api.get('/admin/operational-teams/exports/member-events.csv', {
+        params: { days },
+        responseType: 'blob'
+      });
+      downloadBlob(res);
+    } catch (e) {
+      if (e.response?.status === 404) {
+        const res = await api.get('/admin/operational-teams/exports/member-events', {
+          params: { days },
+          responseType: 'blob'
+        });
+        downloadBlob(res);
+        return;
+      }
+      throw e;
+    }
   }
 };
 

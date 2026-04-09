@@ -331,14 +331,47 @@ export function structuralSerializePayload(module, form) {
   }
 }
 
-export function StructuralGenericForm({ module, form, refs, onChange }) {
+function buildSuperiorRoleOptions(refsRoles, listItems, excludeRoleId) {
+  const map = new Map();
+  for (const r of refsRoles || []) {
+    if (r?.id && r.id !== excludeRoleId) {
+      map.set(r.id, { value: r.id, label: r.name || String(r.id) });
+    }
+  }
+  for (const row of listItems || []) {
+    if (row?.id && row.id !== excludeRoleId) {
+      map.set(row.id, { value: row.id, label: row.name || String(row.id) });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    String(a.label).localeCompare(String(b.label), 'pt-BR')
+  );
+}
+
+export function StructuralGenericForm({
+  module,
+  form,
+  refs,
+  onChange,
+  editingRoleId,
+  roleListItems
+}) {
   const deptOpts = (refs?.departments || []).map((d) => ({ value: d.id, label: d.name }));
   const lineOpts = (refs?.productionLines || []).map((l) => ({ value: l.id, label: l.name }));
   const processOpts = (refs?.processes || []).map((p) => ({ value: p.id, label: p.name }));
   const productOpts = (refs?.products || []).map((p) => ({ value: p.id, label: p.name || p.code }));
   const userOpts = (refs?.users || []).map((u) => ({ value: u.id, label: u.name }));
   const assetOpts = (refs?.assets || []).map((a) => ({ value: a.id, label: a.name }));
-  const roleOpts = (refs?.roles || []).map((r) => ({ value: r.id, label: r.name }));
+  const superiorDirectRoleOpts =
+    module === 'roles'
+      ? buildSuperiorRoleOptions(refs?.roles, roleListItems, editingRoleId)
+      : [];
+  const superiorDirectHelper =
+    module === 'roles' && superiorDirectRoleOpts.length === 0
+      ? 'Ainda não há outros cargos na lista. Cadastre outro cargo primeiro ou deixe em branco.'
+      : module === 'roles'
+        ? 'Cargo hierárquico imediatamente acima (opcional).'
+        : undefined;
   const checklistOpts = (refs?.checklists || []).map((c) => ({ value: c.id, label: c.name }));
 
   const g = {
@@ -351,7 +384,15 @@ export function StructuralGenericForm({ module, form, refs, onChange }) {
         </div>
         <TextAreaField label="Descrição" name="description" value={form.description} onChange={onChange} rows={2} />
         <InputField label="Área de atuação" name="work_area" value={form.work_area} onChange={onChange} />
-        <SelectField label="Superior direto (cargo)" name="direct_superior_role_id" value={form.direct_superior_role_id} onChange={onChange} options={roleOpts} placeholder="Opcional" />
+        <SelectField
+          label="Superior direto (cargo)"
+          name="direct_superior_role_id"
+          value={form.direct_superior_role_id}
+          onChange={onChange}
+          options={superiorDirectRoleOpts}
+          placeholder="Opcional"
+          helperText={superiorDirectHelper}
+        />
         <h4 className="structural-form-section-title">Responsabilidades e permissões</h4>
         <TextAreaField label="Responsabilidades principais (uma por linha)" name="main_responsibilities" value={form.main_responsibilities} onChange={onChange} rows={3} />
         <TextAreaField label="Responsabilidades críticas" name="critical_responsibilities" value={form.critical_responsibilities} onChange={onChange} rows={2} />

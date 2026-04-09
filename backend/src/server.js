@@ -196,6 +196,8 @@ useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
 useRoute('/api/admin/departments', './routes/admin/departments');
+/** Métricas/relatórios primeiro (router leve); CRUD em operationalTeams pode depender de bcrypt. */
+useRoute('/api/admin/operational-teams', './routes/admin/operationalTeamsMetrics');
 useRoute('/api/admin/operational-teams', './routes/admin/operationalTeams');
 useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');

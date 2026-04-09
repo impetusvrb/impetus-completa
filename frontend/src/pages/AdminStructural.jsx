@@ -662,7 +662,14 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
         title={editing ? `Editar ${entityLabel}` : `Novo ${entityLabel}`}
         size="large"
       >
-        <StructuralGenericForm module={module} form={form} refs={refs} onChange={handleChange} />
+        <StructuralGenericForm
+          module={module}
+          form={form}
+          refs={refs}
+          onChange={handleChange}
+          editingRoleId={module === 'roles' ? editing?.id : undefined}
+          roleListItems={module === 'roles' ? items : undefined}
+        />
         <ModalFooter
           onCancel={() => {
             setShowModal(false);
