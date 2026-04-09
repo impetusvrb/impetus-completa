@@ -68,6 +68,15 @@
   margin-left: auto;
 }
 
+.select-team-quick {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.select-team-quick .btn-primary {
+  margin-left: auto;
+}
+
 .select-team-list {
   list-style: none;
   margin: 0;

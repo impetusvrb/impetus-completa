@@ -693,13 +693,32 @@ export const adminOperationalTeams = {
   createCollectiveUser: (teamId, data) =>
     api.post(`/admin/operational-teams/${teamId}/collective-user`, data),
   memberActivityReport: (days = 30) =>
-    api.get('/admin/operational-teams/reports/member-activity', { params: { days } })
+    api.get('/admin/operational-teams/reports/member-activity', { params: { days } }),
+  healthAlerts: () => api.get('/admin/operational-teams/health/alerts'),
+  teamActivityReport: (days = 30, teamId = null) =>
+    api.get('/admin/operational-teams/reports/team-activity', {
+      params: { days, ...(teamId ? { team_id: teamId } : {}) }
+    }),
+  downloadMemberEventsCsv: async (days = 30) => {
+    const res = await api.get('/admin/operational-teams/exports/member-events.csv', {
+      params: { days },
+      responseType: 'blob'
+    });
+    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `impetus-equipes-eventos-${days}d.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
 };
 
 export const factoryTeam = {
   getContext: () => api.get('/factory-team/context'),
   setMember: (memberId) => api.post('/factory-team/session/member', { member_id: memberId }),
-  useSuggested: () => api.post('/factory-team/session/member/suggested')
+  useSuggested: () => api.post('/factory-team/session/member/suggested'),
+  confirmContinue: () => api.post('/factory-team/session/member/confirm-continue')
 };
 
 export const adminDepartments = {

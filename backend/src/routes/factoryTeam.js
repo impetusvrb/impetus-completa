@@ -19,7 +19,8 @@ router.get('/context', requireAuth, async (req, res) => {
       return res.json({
         ok: true,
         is_factory_team: false,
-        needs_selection: false
+        needs_selection: false,
+        revalidation_hours: factoryTeam.REVALIDATION_HOURS
       });
     }
 
@@ -39,10 +40,29 @@ router.get('/context', requireAuth, async (req, res) => {
       activeMember = am.rows[0] || null;
     }
 
+    let confirmedAt = u.factory_member_confirmed_at || null;
+    if (u.sessionId && activeMember && !confirmedAt) {
+      await db.query(`UPDATE sessions SET factory_member_confirmed_at = now() WHERE id = $1`, [u.sessionId]);
+      const fr = await db.query(`SELECT factory_member_confirmed_at FROM sessions WHERE id = $1`, [u.sessionId]);
+      confirmedAt = fr.rows[0]?.factory_member_confirmed_at || null;
+    }
+
+    const rev = factoryTeam.computeRevalidationState({
+      activeMember,
+      suggested,
+      confirmedAt
+    });
+
+    const needs_selection = !activeMember || rev.needs_revalidation;
+
     res.json({
       ok: true,
       is_factory_team: true,
-      needs_selection: !activeMember,
+      needs_selection,
+      needs_revalidation: rev.needs_revalidation,
+      revalidation_reason: rev.reason,
+      quick_confirm_eligible: rev.quick_confirm_eligible,
+      revalidation_hours: factoryTeam.REVALIDATION_HOURS,
       team: { id: ctx.team.id, name: ctx.team.name, main_shift_label: ctx.team.main_shift_label },
       members: (ctx.members || []).filter((m) => m.active),
       suggested_member: suggested,
@@ -74,7 +94,7 @@ router.post('/session/member', requireAuth, async (req, res) => {
     await factoryTeam.logMemberEvent(u.company_id, u.id, mid, 'member_selected', { source: 'manual' });
 
     const mr = await db.query(`SELECT * FROM operational_team_members WHERE id = $1`, [mid]);
-    res.json({ ok: true, active_member: mr.rows[0] });
+    res.json({ ok: true, active_member: mr.rows[0], factory_member_confirmed_at: new Date().toISOString() });
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ ok: false, error: 'Dados inválidos' });
     console.error('[FACTORY_TEAM_SET_MEMBER]', e);
@@ -96,10 +116,31 @@ router.post('/session/member/suggested', requireAuth, async (req, res) => {
     }
     await factoryTeam.setSessionActiveMember(u.sessionId, suggested.id);
     await factoryTeam.logMemberEvent(u.company_id, u.id, suggested.id, 'member_selected', { source: 'schedule_suggestion' });
-    res.json({ ok: true, active_member: suggested });
+    res.json({ ok: true, active_member: suggested, factory_member_confirmed_at: new Date().toISOString() });
   } catch (e) {
     console.error('[FACTORY_TEAM_SUGGESTED]', e);
     res.status(500).json({ ok: false, error: 'Erro ao aplicar sugestão' });
+  }
+});
+
+/** Confirma continuidade do mesmo membro (revalidação por intervalo sem trocar pessoa) */
+router.post('/session/member/confirm-continue', requireAuth, async (req, res) => {
+  try {
+    const u = req.user;
+    if (!u.is_factory_team_account || !u.operational_team_id || !u.sessionId) {
+      return res.status(400).json({ ok: false, error: 'Conta não é de equipe operacional' });
+    }
+    if (!u.active_operational_team_member_id) {
+      return res.status(400).json({ ok: false, error: 'Nenhum membro ativo para confirmar' });
+    }
+    await factoryTeam.confirmSessionMemberContinuation(u.sessionId);
+    await factoryTeam.logMemberEvent(u.company_id, u.id, u.active_operational_team_member_id, 'member_revalidated', {
+      source: 'confirm_continue'
+    });
+    res.json({ ok: true, factory_member_confirmed_at: new Date().toISOString() });
+  } catch (e) {
+    console.error('[FACTORY_TEAM_CONFIRM_CONTINUE]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao confirmar continuidade' });
   }
 });
 

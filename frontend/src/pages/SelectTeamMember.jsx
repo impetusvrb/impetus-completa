@@ -7,6 +7,15 @@ import { Users, Clock, CheckCircle } from 'lucide-react';
 import { factoryTeam } from '../services/api';
 import './SelectTeamMember.css';
 
+function mergeUserStorage(partial) {
+  try {
+    const raw = localStorage.getItem('impetus_user');
+    const u = raw ? JSON.parse(raw) : {};
+    Object.assign(u, partial);
+    localStorage.setItem('impetus_user', JSON.stringify(u));
+  } catch (_) {}
+}
+
 export default function SelectTeamMember() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -24,6 +33,12 @@ export default function SelectTeamMember() {
         return;
       }
       setCtx(d);
+      if (d.active_member && d.team?.name) {
+        mergeUserStorage({
+          factory_active_member: { id: d.active_member.id, display_name: d.active_member.display_name },
+          factory_team_name: d.team.name
+        });
+      }
       if (!d.needs_selection && d.active_member) {
         navigate('/app', { replace: true });
       }
@@ -42,13 +57,17 @@ export default function SelectTeamMember() {
     try {
       setSubmitting(true);
       setError('');
-      await factoryTeam.setMember(memberId);
-      try {
-        const raw = localStorage.getItem('impetus_user');
-        const u = raw ? JSON.parse(raw) : {};
-        u.needs_factory_member_selection = false;
-        localStorage.setItem('impetus_user', JSON.stringify(u));
-      } catch (_) {}
+      const r = await factoryTeam.setMember(memberId);
+      const am = r.data?.active_member;
+      if (am && ctx?.team?.name) {
+        mergeUserStorage({
+          needs_factory_member_selection: false,
+          factory_active_member: { id: am.id, display_name: am.display_name },
+          factory_team_name: ctx.team.name
+        });
+      } else {
+        mergeUserStorage({ needs_factory_member_selection: false });
+      }
       navigate('/app', { replace: true });
     } catch (e) {
       setError(e.apiMessage || 'Não foi possível confirmar o membro');
@@ -61,16 +80,34 @@ export default function SelectTeamMember() {
     try {
       setSubmitting(true);
       setError('');
-      await factoryTeam.useSuggested();
-      try {
-        const raw = localStorage.getItem('impetus_user');
-        const u = raw ? JSON.parse(raw) : {};
-        u.needs_factory_member_selection = false;
-        localStorage.setItem('impetus_user', JSON.stringify(u));
-      } catch (_) {}
+      const r = await factoryTeam.useSuggested();
+      const am = r.data?.active_member;
+      if (am && ctx?.team?.name) {
+        mergeUserStorage({
+          needs_factory_member_selection: false,
+          factory_active_member: { id: am.id, display_name: am.display_name },
+          factory_team_name: ctx.team.name
+        });
+      } else {
+        mergeUserStorage({ needs_factory_member_selection: false });
+      }
       navigate('/app', { replace: true });
     } catch (e) {
       setError(e.apiMessage || 'Sem sugestão automática para este horário');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const confirmContinue = async () => {
+    try {
+      setSubmitting(true);
+      setError('');
+      await factoryTeam.confirmContinue();
+      mergeUserStorage({ needs_factory_member_selection: false });
+      navigate('/app', { replace: true });
+    } catch (e) {
+      setError(e.apiMessage || 'Não foi possível confirmar');
     } finally {
       setSubmitting(false);
     }
@@ -88,32 +125,44 @@ export default function SelectTeamMember() {
 
   const members = ctx.members || [];
   const suggested = ctx.suggested_member;
+  const rev = ctx.needs_revalidation;
+  const quick = ctx.quick_confirm_eligible;
 
   return (
     <div className="select-team-member-page">
       <div className="select-team-card">
         <div className="select-team-header">
           <Users size={40} className="select-team-icon" />
-          <h1>Quem está operando agora?</h1>
+          <h1>{rev ? 'Reconfirmar quem está operando' : 'Quem está operando agora?'}</h1>
           <p className="select-team-sub">
-            Conta da equipe <strong>{ctx.team?.name}</strong>. Selecione o membro para registrar ações e relatórios em seu nome.
+            Conta da equipe <strong>{ctx.team?.name}</strong>.{' '}
+            {rev
+              ? 'Por política de segurança ou mudança de turno, confirme o operador ativo.'
+              : 'Selecione o membro para registrar ações e relatórios em seu nome.'}
           </p>
         </div>
 
         {error && <div className="select-team-error">{error}</div>}
 
-        {suggested && (
+        {quick && ctx.active_member && (
+          <div className="select-team-suggested select-team-quick">
+            <CheckCircle size={18} />
+            <span>
+              Continuar como <strong>{ctx.active_member.display_name}</strong> (revalidação após {ctx.revalidation_hours || 4}h)
+            </span>
+            <button type="button" className="btn btn-primary" disabled={submitting} onClick={confirmContinue}>
+              Continuar
+            </button>
+          </div>
+        )}
+
+        {suggested && !quick && (
           <div className="select-team-suggested">
             <Clock size={18} />
             <span>
               Sugestão pelo horário: <strong>{suggested.display_name}</strong>
             </span>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={submitting}
-              onClick={useSuggested}
-            >
+            <button type="button" className="btn btn-secondary" disabled={submitting} onClick={useSuggested}>
               Usar sugestão
             </button>
           </div>

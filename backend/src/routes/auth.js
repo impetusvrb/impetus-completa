@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, destroySession } = require('../middleware/auth');
 const roleVerification = require('../services/roleVerificationService');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { getPublicAppBaseUrl } = require('../utils/publicAppUrl');
@@ -160,6 +160,19 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('[RESET_PASSWORD]', err.message);
     res.status(500).json({ ok: false, error: 'Erro ao redefinir senha.' });
+  }
+});
+
+// POST /api/auth/logout — remove sessão (incl. membro operacional ativo)
+router.post('/logout', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace(/^Bearer\s+/i, '')?.trim() || req.body?.token;
+    if (token) await destroySession(token);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[LOGOUT]', err.message);
+    res.json({ ok: true });
   }
 });
 

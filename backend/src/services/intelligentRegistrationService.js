@@ -41,6 +41,12 @@ function isMissingAiMetadataColumnError(e) {
   return /column\s+"ai_metadata"/i.test(String(e.message || '')) || /ai_metadata.*does not exist/i.test(String(e.message || ''));
 }
 
+function isMissingOperationalTeamMemberColumnError(e) {
+  if (!e) return false;
+  if (e.code === '42703') return /operational_team_member_id/i.test(String(e.message || ''));
+  return /operational_team_member_id.*does not exist/i.test(String(e.message || ''));
+}
+
 function parseJsonFromText(text) {
   if (!text || typeof text !== 'string') return null;
   try {
@@ -183,7 +189,7 @@ Responda APENAS com um JSON válido (sem markdown, sem texto extra), no formato:
 /**
  * Cria registro inteligente (texto + processamento IA + persistência)
  */
-async function createRegistration(companyId, userId, originalText, shiftName = null) {
+async function createRegistration(companyId, userId, originalText, shiftName = null, operationalTeamMemberId = null) {
   if (!originalText || typeof originalText !== 'string' || originalText.trim().length < 3) {
     throw new Error('Texto muito curto. Descreva o que aconteceu no seu dia de trabalho.');
   }
@@ -205,9 +211,9 @@ async function createRegistration(companyId, userId, originalText, shiftName = n
         sector_identified, department_identified, line_identified, machine_identified,
         process_identified, product_identified,
         activities_detected, problems_detected, pendencies_detected, suggestions_detected,
-        shift_name, ai_metadata
+        shift_name, ai_metadata, operational_team_member_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb, $22)
       RETURNING *
     `,
       [
@@ -231,11 +237,50 @@ async function createRegistration(companyId, userId, originalText, shiftName = n
         processed.pendencies_detected,
         processed.suggestions_detected,
         shiftName,
-        metaJson
+        metaJson,
+        operationalTeamMemberId || null
       ]
     );
   } catch (e) {
-    if (isMissingAiMetadataColumnError(e)) {
+    if (isMissingOperationalTeamMemberColumnError(e)) {
+      r = await db.query(
+        `
+      INSERT INTO intelligent_registrations (
+        company_id, user_id, original_text, ai_summary, main_category, subcategories,
+        priority, needs_followup, needs_escalation,
+        sector_identified, department_identified, line_identified, machine_identified,
+        process_identified, product_identified,
+        activities_detected, problems_detected, pendencies_detected, suggestions_detected,
+        shift_name, ai_metadata
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb)
+      RETURNING *
+    `,
+        [
+          companyId,
+          userId,
+          originalText.trim(),
+          processed.summary,
+          processed.main_category,
+          processed.subcategories,
+          processed.priority,
+          processed.needs_followup,
+          processed.needs_escalation,
+          processed.sector_identified,
+          processed.department_identified,
+          processed.line_identified,
+          processed.machine_identified,
+          processed.process_identified,
+          processed.product_identified,
+          processed.activities_detected,
+          processed.problems_detected,
+          processed.pendencies_detected,
+          processed.suggestions_detected,
+          shiftName,
+          metaJson
+        ]
+      );
+    } else if (isMissingAiMetadataColumnError(e)) {
       if (!warnedMissingAiMetadataColumn) {
         warnedMissingAiMetadataColumn = true;
         console.warn(

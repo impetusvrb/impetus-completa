@@ -46,7 +46,8 @@ import {
   Monitor,
   UsersRound
 } from 'lucide-react';
-import { companies, onboarding } from '../services/api';
+import { companies, onboarding, auth } from '../services/api';
+import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
@@ -442,7 +443,12 @@ export default function Layout({ children }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await auth.logout();
+    } catch (_) {
+      /* sessão já pode estar inválida */
+    }
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     navigate('/');
@@ -490,6 +496,7 @@ export default function Layout({ children }) {
           </button>
         </div>
       )}
+      <FactoryTeamOperatorBar />
       {/* Sidebar - Redesign IMPETUS */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="logo-area">

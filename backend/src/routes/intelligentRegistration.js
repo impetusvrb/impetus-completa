@@ -4,7 +4,8 @@
  */
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireFactoryOperationalMember } = require('../middleware/auth');
+const { logAction } = require('../middleware/audit');
 const intelligentRegistrationService = require('../services/intelligentRegistrationService');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
 
@@ -14,7 +15,7 @@ const protected = [requireAuth];
  * POST /api/intelligent-registration
  * Registrar texto com processamento por IA
  */
-router.post('/', ...protected, async (req, res) => {
+router.post('/', ...protected, requireFactoryOperationalMember, async (req, res) => {
   try {
     const companyId = req.user?.company_id;
     const userId = req.user?.id;
@@ -28,8 +29,30 @@ router.post('/', ...protected, async (req, res) => {
     }
 
     const registration = await intelligentRegistrationService.createRegistration(
-      companyId, userId, text, shift_name
+      companyId,
+      userId,
+      text,
+      shift_name,
+      req.user?.active_operational_team_member_id || null
     );
+
+    if (req.user?.is_factory_team_account && req.user?.active_operational_team_member_id) {
+      logAction({
+        companyId: req.user.company_id,
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'intelligent_registration_created',
+        entityType: 'intelligent_registration',
+        entityId: registration?.id,
+        description: 'Registro inteligente criado (login coletivo; rastreio por membro da equipe)',
+        changes: { operational_team_member_id: req.user.active_operational_team_member_id },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        sessionId: req.user.sessionId || null,
+        severity: 'info'
+      }).catch(() => {});
+    }
 
     claudeAnalytics.ingestRegistroInteligente(registration, companyId);
 

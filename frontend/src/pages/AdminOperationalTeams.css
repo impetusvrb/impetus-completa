@@ -9,6 +9,51 @@
   justify-content: flex-end;
 }
 
+.admin-op-teams-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-op-teams-alert {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.admin-op-teams-alert strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.admin-op-teams-alert-msg {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.admin-op-teams-alert-meta {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.admin-op-teams-alert--warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #78350f;
+}
+
+.admin-op-teams-alert--info {
+  background: #e0f2fe;
+  border: 1px solid #7dd3fc;
+  color: #0c4a6e;
+}
+
 .admin-op-teams .page-header {
   display: flex;
   flex-wrap: wrap;

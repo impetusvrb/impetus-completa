@@ -92,9 +92,9 @@ async function createProposal(payload){
     probable_causes, consequences, proposed_solution, expected_benefits, urgency, attachments, notes, lot_code,
     supplier_name, material_name, machine_used, operator_id, setor, prioridade, responsavel_id, impacto_financeiro,
     reducao_tempo, reducao_perda, custo_implementacao, payback_meses, score_ia, ia_sugerida, prazo, data_aprovacao,
-    data_conclusao, anexos, status, titulo, descricao, descricao_enriquecida, observacoes_ia
+    data_conclusao, anexos, status, titulo, descricao, descricao_enriquecida, observacoes_ia, operational_team_member_id
   ) VALUES(
-    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40
   ) RETURNING *`;
   const params = [
     payload.company_id, payload.reporter_id||null, payload.reporter_name||null, payload.location||null,
@@ -106,7 +106,8 @@ async function createProposal(payload){
     toNullableNumber(payload.reducao_tempo), toNullableNumber(payload.reducao_perda), toNullableNumber(payload.custo_implementacao),
     toNullableNumber(payload.payback_meses), toNullableNumber(payload.score_ia), payload.ia_sugerida === true,
     payload.prazo || null, payload.data_aprovacao || null, payload.data_conclusao || null, payload.anexos || null,
-    status, title, description, iaData?.descricao_melhorada || null, iaData?.observacoes || null
+    status, title, description, iaData?.descricao_melhorada || null, iaData?.observacoes || null,
+    payload.operational_team_member_id || null
   ];
   const r = await db.query(q, params);
   const proposal = mapProposal(r.rows[0]);

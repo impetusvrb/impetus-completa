@@ -6,7 +6,7 @@
  * Rotas com lazy loading para desempenho e Indústria 4.0
  */
 
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -16,6 +16,7 @@ import './styles.css';
 import ImpetusVoiceProvider from './voice/ImpetusVoiceProvider';
 import { isColaboradorSimples, isMaintenanceTechnicianMenu, canAccessPulseRhRoute } from './utils/roleUtils';
 import { factoryTeam } from './services/api';
+import './components/FactoryTeamOperatorBar.css';
 
 // Tela inicial — carregamento imediato
 import Login from './pages/Login';
@@ -188,33 +189,48 @@ function FactoryTeamMemberGate({ children }) {
       return true;
     }
   });
+  const [gateError, setGateError] = useState(null);
 
-  useEffect(() => {
+  const runCheck = useCallback(async () => {
     let u;
     try {
       u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
     } catch {
       u = {};
     }
-    if (!u.is_factory_team_account) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await factoryTeam.getContext();
-        if (cancelled) return;
-        if (r.data?.needs_selection) {
-          navigate('/app/equipe-operacional', { replace: true });
-          return;
-        }
-      } catch {
-        /* falha na API: não bloquear o dashboard */
+    if (!u.is_factory_team_account) {
+      setReady(true);
+      setGateError(null);
+      return;
+    }
+    setGateError(null);
+    setReady(false);
+    try {
+      const r = await factoryTeam.getContext();
+      if (r.data?.needs_selection) {
+        navigate('/app/equipe-operacional', { replace: true });
+        return;
       }
-      if (!cancelled) setReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setReady(true);
+    } catch (e) {
+      setGateError(e.apiMessage || e.response?.data?.error || 'Não foi possível validar a sessão da equipe');
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    runCheck();
+  }, [runCheck]);
+
+  if (gateError) {
+    return (
+      <div className="factory-gate-error">
+        <p>{gateError}</p>
+        <button type="button" className="btn btn-primary" onClick={() => runCheck()}>
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
 
   if (!ready) return <PageLoader />;
   return children;

@@ -3,15 +3,37 @@ const router = express.Router();
 const proacao = require('../services/proacao');
 const { isValidUUID } = require('../utils/security');
 const { requireHierarchyScope } = require('../middleware/hierarchyScope');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireFactoryOperationalMember } = require('../middleware/auth');
+const { logAction } = require('../middleware/audit');
 
 // Autenticação obrigatória para todas as rotas (evita 401 quando app não aplica auth globalmente)
 router.use(requireAuth);
 
-router.post('/', async (req, res) => {
+router.post('/', requireFactoryOperationalMember, async (req, res) => {
   try {
-    const payload = { ...req.body, company_id: req.user.company_id };
+    const payload = {
+      ...req.body,
+      company_id: req.user.company_id,
+      operational_team_member_id: req.user.active_operational_team_member_id || null
+    };
     const p = await proacao.createProposal(payload);
+    if (req.user?.is_factory_team_account && req.user?.active_operational_team_member_id) {
+      logAction({
+        companyId: req.user.company_id,
+        userId: req.user.id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'proposal_created',
+        entityType: 'proposal',
+        entityId: p.id,
+        description: 'Pró-Ação criada (login coletivo; rastreio por membro da equipe)',
+        changes: { operational_team_member_id: req.user.active_operational_team_member_id },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        sessionId: req.user.sessionId || null,
+        severity: 'info'
+      }).catch(() => {});
+    }
     res.json({ ok: true, proposal: p });
   } catch (err) {
     console.error(err);

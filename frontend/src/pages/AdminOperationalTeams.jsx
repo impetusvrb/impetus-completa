@@ -2,7 +2,7 @@
  * Gestão de Equipes Operacionais (chão de fábrica — login coletivo)
  */
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, UserPlus, BarChart3 } from 'lucide-react';
+import { Users, Plus, Edit, UserPlus, BarChart3, AlertTriangle, Download, Building2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
@@ -49,6 +49,18 @@ export default function AdminOperationalTeams() {
 
   const [report, setReport] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [alerts, setAlerts] = useState([]);
+  const [teamReport, setTeamReport] = useState([]);
+  const [showTeamReport, setShowTeamReport] = useState(false);
+
+  const loadAlerts = async () => {
+    try {
+      const r = await adminOperationalTeams.healthAlerts();
+      setAlerts(r.data?.alerts || []);
+    } catch (_) {
+      setAlerts([]);
+    }
+  };
 
   const load = async () => {
     try {
@@ -64,6 +76,7 @@ export default function AdminOperationalTeams() {
 
   useEffect(() => {
     load();
+    loadAlerts();
     (async () => {
       try {
         const [d, ro] = await Promise.all([adminDepartments.list(), adminStructural.roles.list()]);
@@ -111,6 +124,7 @@ export default function AdminOperationalTeams() {
       }
       setShowTeamModal(false);
       load();
+      loadAlerts();
     } catch (e) {
       notify.error(e.apiMessage || 'Erro ao salvar');
     } finally {
@@ -164,6 +178,7 @@ export default function AdminOperationalTeams() {
       }
       setShowMemberModal(false);
       openDetail(detailTeam);
+      loadAlerts();
     } catch (e) {
       notify.error(e.apiMessage || 'Erro ao salvar membro');
     } finally {
@@ -177,6 +192,7 @@ export default function AdminOperationalTeams() {
       await adminOperationalTeams.deleteMember(detailTeam.id, m.id);
       notify.success('Membro removido');
       openDetail(detailTeam);
+      loadAlerts();
     } catch (e) {
       notify.error(e.apiMessage || 'Erro');
     }
@@ -190,6 +206,7 @@ export default function AdminOperationalTeams() {
       notify.success('Conta de login coletivo criada. Use o email e senha no login da equipe.');
       setShowCollectiveModal(false);
       setCollectiveForm({ name: '', email: '', password: '' });
+      loadAlerts();
     } catch (e) {
       notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao criar conta');
     } finally {
@@ -204,6 +221,25 @@ export default function AdminOperationalTeams() {
       setShowReport(true);
     } catch (e) {
       notify.error(e.apiMessage || 'Erro no relatório');
+    }
+  };
+
+  const loadTeamReport = async () => {
+    try {
+      const r = await adminOperationalTeams.teamActivityReport(30);
+      setTeamReport(r.data?.data || []);
+      setShowTeamReport(true);
+    } catch (e) {
+      notify.error(e.apiMessage || 'Erro no relatório por equipe');
+    }
+  };
+
+  const downloadCsv = async () => {
+    try {
+      await adminOperationalTeams.downloadMemberEventsCsv(30);
+      notify.success('Ficheiro CSV gerado');
+    } catch (e) {
+      notify.error(e.apiMessage || 'Erro ao exportar CSV');
     }
   };
 
@@ -244,13 +280,39 @@ export default function AdminOperationalTeams() {
           </div>
           <div className="header-actions">
             <button type="button" className="btn btn-secondary" onClick={loadReport}>
-              <BarChart3 size={16} /> Atividade por membro (30d)
+              <BarChart3 size={16} /> Por membro (30d)
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={loadTeamReport}>
+              <Building2 size={16} /> Por equipe (30d)
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={downloadCsv}>
+              <Download size={16} /> CSV eventos
             </button>
             <button type="button" className="btn btn-primary" onClick={openCreateTeam}>
               <Plus size={16} /> Nova equipe
             </button>
           </div>
         </div>
+
+        {alerts.length > 0 && (
+          <div className="admin-op-teams-alerts" role="region" aria-label="Alertas de configuração">
+            {alerts.map((a, i) => (
+              <div
+                key={`${a.type}-${a.team_id}-${i}`}
+                className={`admin-op-teams-alert admin-op-teams-alert--${a.severity === 'warning' ? 'warning' : 'info'}`}
+              >
+                <AlertTriangle size={18} aria-hidden />
+                <div>
+                  <strong>{a.team_name}</strong>
+                  <span className="admin-op-teams-alert-msg">{a.message}</span>
+                  {a.members?.length ? (
+                    <span className="admin-op-teams-alert-meta">{a.members.join(', ')}</span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Table columns={columns} data={teams} loading={loading} emptyMessage="Nenhuma equipe cadastrada" />
 
@@ -351,6 +413,22 @@ export default function AdminOperationalTeams() {
           />
           <div className="admin-op-teams-report-footer">
             <button type="button" className="btn btn-primary" onClick={() => setShowReport(false)}>
+              Fechar
+            </button>
+          </div>
+        </Modal>
+
+        <Modal isOpen={showTeamReport} onClose={() => setShowTeamReport(false)} title="Eventos por equipe (30 dias)" size="large">
+          <Table
+            columns={[
+              { key: 'team_name', label: 'Equipe' },
+              { key: 'event_count', label: 'Eventos' }
+            ]}
+            data={teamReport || []}
+            loading={false}
+          />
+          <div className="admin-op-teams-report-footer">
+            <button type="button" className="btn btn-primary" onClick={() => setShowTeamReport(false)}>
               Fechar
             </button>
           </div>

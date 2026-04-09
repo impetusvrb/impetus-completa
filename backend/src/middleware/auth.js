@@ -53,7 +53,7 @@ async function createSession(userId, ipAddress, userAgent, expiresInHours = 24) 
 async function validateSession(token) {
   try {
     const result = await db.query(`
-      SELECT s.id as session_id, s.user_id, s.expires_at, s.active_operational_team_member_id,
+      SELECT s.id as session_id, s.user_id, s.expires_at, s.active_operational_team_member_id, s.factory_member_confirmed_at,
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.hr_responsibilities,
@@ -117,7 +117,8 @@ async function validateSession(token) {
       company_role_id: session.company_role_id || null,
       is_factory_team_account: session.is_factory_team_account === true,
       operational_team_id: session.operational_team_id || null,
-      active_operational_team_member_id: session.active_operational_team_member_id || null
+      active_operational_team_member_id: session.active_operational_team_member_id || null,
+      factory_member_confirmed_at: session.factory_member_confirmed_at || null
     };
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
@@ -193,6 +194,7 @@ async function validateJWTAndLoadUser(token) {
       is_factory_team_account: u.is_factory_team_account === true,
       operational_team_id: u.operational_team_id || null,
       active_operational_team_member_id: null,
+      factory_member_confirmed_at: null,
       sessionId: null
     };
   } catch {
@@ -207,7 +209,7 @@ async function attachSessionOperationalMember(user, rawToken) {
   if (!user || !rawToken) return user;
   try {
     const r = await db.query(
-      `SELECT s.id as session_id, s.active_operational_team_member_id
+      `SELECT s.id as session_id, s.active_operational_team_member_id, s.factory_member_confirmed_at
        FROM sessions s
        WHERE s.token = $1 AND s.expires_at > now() AND s.user_id = $2
        LIMIT 1`,
@@ -217,7 +219,8 @@ async function attachSessionOperationalMember(user, rawToken) {
       return {
         ...user,
         sessionId: r.rows[0].session_id,
-        active_operational_team_member_id: r.rows[0].active_operational_team_member_id || null
+        active_operational_team_member_id: r.rows[0].active_operational_team_member_id || null,
+        factory_member_confirmed_at: r.rows[0].factory_member_confirmed_at || null
       };
     }
   } catch (_) {
@@ -439,6 +442,22 @@ function requireCompanyId(req, res, next) {
 /**
  * Middleware que verifica se usuário pertence à mesma empresa
  */
+/**
+ * Contas de equipe (login coletivo): exige membro operacional selecionado na sessão para rastreabilidade.
+ */
+function requireFactoryOperationalMember(req, res, next) {
+  const u = req.user;
+  if (!u || !u.is_factory_team_account) return next();
+  if (!u.active_operational_team_member_id) {
+    return res.status(403).json({
+      ok: false,
+      error: 'Identifique quem está operando na equipe antes de registrar esta ação.',
+      code: 'FACTORY_MEMBER_REQUIRED'
+    });
+  }
+  next();
+}
+
 function sameCompanyOnly(req, res, next) {
   const user = req.user;
   const requestedCompanyId = req.params.companyId || req.body.company_id || req.query.company_id;
@@ -494,6 +513,7 @@ module.exports = {
   requireRole,
   requireCompanyId,
   requirePermission,
+  requireFactoryOperationalMember,
   sameCompanyOnly,
   hashPassword,
   verifyPassword
