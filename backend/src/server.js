@@ -185,6 +185,7 @@ function useRoute(mountPath, modulePath, ...middlewares) {
 
 /* --- API (cada bloco isolado: dependência em falta não derruba o servidor) --- */
 useRoute('/api/auth', './routes/auth');
+useRoute('/api/factory-team', './routes/factoryTeam');
 useRoute('/api/companies', './routes/companies');
 useRoute('/api/onboarding', './routes/onboarding', requireAuth);
 useRoute('/api/dashboard', './routes/dashboard');
@@ -195,6 +196,7 @@ useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
 useRoute('/api/admin/departments', './routes/admin/departments');
+useRoute('/api/admin/operational-teams', './routes/admin/operationalTeams');
 useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');

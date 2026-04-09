@@ -17,6 +17,27 @@
   padding: 18px;
 }
 
+.impl-guide-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-active);
+  border-radius: 6px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--text-accent);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.74rem;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.impl-guide-back-btn:hover {
+  background: rgba(0, 212, 255, 0.16);
+}
+
 .impl-guide-hero__title-row {
   display: flex;
   align-items: center;

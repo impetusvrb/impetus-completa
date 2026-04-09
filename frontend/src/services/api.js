@@ -680,6 +680,28 @@ export const adminUsers = {
 // ADMINISTRAÇÃO - DEPARTAMENTOS
 // ============================================================================
 
+export const adminOperationalTeams = {
+  list: () => api.get('/admin/operational-teams'),
+  get: (id) => api.get(`/admin/operational-teams/${id}`),
+  create: (data) => api.post('/admin/operational-teams', data),
+  update: (id, data) => api.put(`/admin/operational-teams/${id}`, data),
+  createMember: (teamId, data) => api.post(`/admin/operational-teams/${teamId}/members`, data),
+  updateMember: (teamId, memberId, data) =>
+    api.put(`/admin/operational-teams/${teamId}/members/${memberId}`, data),
+  deleteMember: (teamId, memberId) =>
+    api.delete(`/admin/operational-teams/${teamId}/members/${memberId}`),
+  createCollectiveUser: (teamId, data) =>
+    api.post(`/admin/operational-teams/${teamId}/collective-user`, data),
+  memberActivityReport: (days = 30) =>
+    api.get('/admin/operational-teams/reports/member-activity', { params: { days } })
+};
+
+export const factoryTeam = {
+  getContext: () => api.get('/factory-team/context'),
+  setMember: (memberId) => api.post('/factory-team/session/member', { member_id: memberId }),
+  useSuggested: () => api.post('/factory-team/session/member/suggested')
+};
+
 export const adminDepartments = {
   list: (includeInactive = false) => 
     api.get('/admin/departments', { params: { include_inactive: includeInactive } }),

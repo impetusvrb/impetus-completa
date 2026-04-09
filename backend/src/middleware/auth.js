@@ -53,7 +53,7 @@ async function createSession(userId, ipAddress, userAgent, expiresInHours = 24) 
 async function validateSession(token) {
   try {
     const result = await db.query(`
-      SELECT s.id as session_id, s.user_id, s.expires_at,
+      SELECT s.id as session_id, s.user_id, s.expires_at, s.active_operational_team_member_id,
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.hr_responsibilities,
@@ -61,7 +61,7 @@ async function validateSession(token) {
              u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root,
-             u.company_role_id
+             u.company_role_id, u.is_factory_team_account, u.operational_team_id
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.token = $1 
@@ -114,7 +114,10 @@ async function validateSession(token) {
       role_verified: session.role_verified === true,
       role_verification_status: session.role_verification_status || 'pending',
       is_company_root: session.is_company_root === true,
-      company_role_id: session.company_role_id || null
+      company_role_id: session.company_role_id || null,
+      is_factory_team_account: session.is_factory_team_account === true,
+      operational_team_id: session.operational_team_id || null,
+      active_operational_team_member_id: session.active_operational_team_member_id || null
     };
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
@@ -151,7 +154,8 @@ async function validateJWTAndLoadUser(token) {
              preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
              permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
-             role_verified, role_verification_status, is_company_root, company_role_id
+             role_verified, role_verification_status, is_company_root, company_role_id,
+             is_factory_team_account, operational_team_id
       FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
     `, [decoded.id]);
 
@@ -179,18 +183,47 @@ async function validateJWTAndLoadUser(token) {
       onboarding_completed: u.onboarding_completed === true,
       ai_profile_context: u.ai_profile_context,
       permissions: u.permissions || [],
-      sessionId: null,
       is_first_access: u.is_first_access || false,
       must_change_password: u.must_change_password || false,
       temporary_password_expires_at: u.temporary_password_expires_at,
       role_verified: u.role_verified === true,
       role_verification_status: u.role_verification_status || 'pending',
       is_company_root: u.is_company_root === true,
-      company_role_id: u.company_role_id || null
+      company_role_id: u.company_role_id || null,
+      is_factory_team_account: u.is_factory_team_account === true,
+      operational_team_id: u.operational_team_id || null,
+      active_operational_team_member_id: null,
+      sessionId: null
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Enriquece utilizador JWT com dados da sessão (membro ativo da equipe operacional).
+ */
+async function attachSessionOperationalMember(user, rawToken) {
+  if (!user || !rawToken) return user;
+  try {
+    const r = await db.query(
+      `SELECT s.id as session_id, s.active_operational_team_member_id
+       FROM sessions s
+       WHERE s.token = $1 AND s.expires_at > now() AND s.user_id = $2
+       LIMIT 1`,
+      [rawToken, user.id]
+    );
+    if (r.rows?.length) {
+      return {
+        ...user,
+        sessionId: r.rows[0].session_id,
+        active_operational_team_member_id: r.rows[0].active_operational_team_member_id || null
+      };
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return user;
 }
 
 /**
@@ -233,6 +266,7 @@ function requireAuth(req, res, next) {
   validateSession(token).then(async (user) => {
     if (!user) {
       user = await validateJWTAndLoadUser(token);
+      if (user) user = await attachSessionOperationalMember(user, token);
     }
     if (!user) {
       return res.status(401).json({

@@ -394,6 +394,16 @@ const ROLE_AREA_TO_PROFILE = {
   diretor: {
     operations: 'director_operations',
     industrial: 'director_industrial',
+    production: 'director_industrial',
+    producao: 'director_industrial',
+    maintenance: 'director_industrial',
+    manutencao: 'director_industrial',
+    quality: 'director_industrial',
+    qualidade: 'director_industrial',
+    hr: 'hr_management',
+    recursos_humanos: 'hr_management',
+    finance: 'finance_management',
+    financeiro: 'finance_management',
     operacoes: 'director_operations',
     _default: 'director_operations'
   },

@@ -1,0 +1,133 @@
+.admin-op-teams {
+  padding: 1rem 1.5rem 2rem;
+  max-width: 1200px;
+}
+
+.admin-op-teams-report-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-op-teams .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-op-teams .header-left {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.admin-op-teams .header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-op-teams .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.op-team-detail {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 12px;
+  background: var(--surface-elevated, #f8fafc);
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.detail-meta {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.m-name {
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.m-meta {
+  color: #64748b;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-link.danger {
+  color: #dc2626;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.modal-hint {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

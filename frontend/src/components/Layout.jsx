@@ -43,7 +43,8 @@ import {
   ChevronLeft,
   KeyRound,
   Palette,
-  Monitor
+  Monitor,
+  UsersRound
 } from 'lucide-react';
 import { companies, onboarding } from '../services/api';
 import { useVisibleModules } from '../hooks/useVisibleModules';
@@ -343,6 +344,7 @@ export default function Layout({ children }) {
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/admin/centro-custos', icon: DollarSign, label: 'Centro de Custos (Config)' },
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
+      { path: '/app/admin/equipes-operacionais', icon: UsersRound, label: 'Equipes operacionais' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
       { path: '/app/admin/conteudo-empresa', icon: ScrollText, label: 'Conteúdo da empresa' },
       { path: '/app/admin/equipment-library', icon: Package, label: 'Biblioteca técnica' },

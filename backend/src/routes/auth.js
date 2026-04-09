@@ -74,6 +74,7 @@ router.post('/login', async (req, res) => {
     });
 
     const roleNormalized = (user.role || 'colaborador').toString().toLowerCase();
+    const isFactoryTeam = user.is_factory_team_account === true;
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -89,7 +90,10 @@ router.post('/login', async (req, res) => {
         is_company_root: user.is_company_root === true,
         needs_role_verification: needsVerification,
         functional_area: user.functional_area || null,
-        dashboard_profile: user.dashboard_profile || null
+        dashboard_profile: user.dashboard_profile || null,
+        is_factory_team_account: isFactoryTeam,
+        operational_team_id: user.operational_team_id || null,
+        needs_factory_member_selection: isFactoryTeam
       }
     });
   } catch (err) {

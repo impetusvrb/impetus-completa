@@ -45,16 +45,6 @@ function asPgTextArrayForUpdate(v) {
   return asPgTextArray(v);
 }
 
-function selectCompanyFields() {
-  return `
-    id, name, trade_name, cnpj, industry_segment, subsegment, address, city, state, country,
-    main_unit, other_units, employee_count, shift_count, operating_hours, operation_type,
-    production_type, products_manufactured, market, company_description, mission, vision,
-    values_text, internal_policy, operation_rules, organizational_culture, strategic_notes,
-    company_policy_text, config, active, created_at, updated_at
-  `;
-}
-
 // ============================================================================
 // 1. DADOS DA EMPRESA
 // ============================================================================
@@ -63,9 +53,48 @@ router.get('/company-data', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
     if (!cid) return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
-    const r = await db.query(`SELECT ${selectCompanyFields()} FROM companies WHERE id = $1`, [cid]);
+    // Compatibilidade entre ambientes: evita quebrar quando alguma coluna opcional ainda
+    // não existe na tabela companies do banco em produção.
+    const r = await db.query('SELECT * FROM companies WHERE id = $1', [cid]);
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    const row = r.rows[0];
+    res.json({
+      ok: true,
+      data: {
+        id: row.id,
+        name: row.name || '',
+        trade_name: row.trade_name || '',
+        cnpj: row.cnpj || '',
+        industry_segment: row.industry_segment || '',
+        subsegment: row.subsegment || '',
+        address: row.address || '',
+        city: row.city || '',
+        state: row.state || '',
+        country: row.country || '',
+        main_unit: row.main_unit || '',
+        other_units: row.other_units || null,
+        employee_count: row.employee_count ?? null,
+        shift_count: row.shift_count ?? null,
+        operating_hours: row.operating_hours || '',
+        operation_type: row.operation_type || '',
+        production_type: row.production_type || '',
+        products_manufactured: row.products_manufactured || null,
+        market: row.market || '',
+        company_description: row.company_description || '',
+        mission: row.mission || '',
+        vision: row.vision || '',
+        values_text: row.values_text || '',
+        internal_policy: row.internal_policy || '',
+        operation_rules: row.operation_rules || '',
+        organizational_culture: row.organizational_culture || '',
+        strategic_notes: row.strategic_notes || '',
+        company_policy_text: row.company_policy_text || '',
+        config: row.config || null,
+        active: row.active !== false,
+        created_at: row.created_at || null,
+        updated_at: row.updated_at || null
+      }
+    });
   } catch (err) {
     console.error('[STRUCTURAL_COMPANY_DATA]', err);
     res.status(500).json({ ok: false, error: 'Erro ao buscar dados da empresa' });
@@ -541,7 +570,7 @@ router.post('/assets', ...adminMw, auditMiddleware({ action: 'asset_created', en
         year, installation_date, current_state, operational_status, criticality,
         main_components, power_source, recurrent_failures, frequent_symptoms, associated_risks,
         downtime_impact, technical_responsible_id, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *
     `, [
       cid, b.name || '', b.code_patrimonial, b.operational_nickname, b.asset_category,

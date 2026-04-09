@@ -78,9 +78,14 @@ function resolveFunctionalArea(user) {
 function resolveDashboardProfile(user) {
   if (!user) return 'operator_floor';
 
-  // Override administrativo (se válido)
+  // Override só é respeitado quando não há contexto funcional suficiente.
+  // Isso evita perfil "travado" antigo que diverge do cargo/função atual.
   const override = (user.dashboard_profile || '').trim();
-  if (override && VALID_PROFILES.has(override)) {
+  const hasStrongContext =
+    String(user.job_title || '').trim().length > 1 ||
+    String(user.functional_area || '').trim().length > 0 ||
+    String(user.department || user.area || '').trim().length > 1;
+  if (!hasStrongContext && override && VALID_PROFILES.has(override)) {
     return override;
   }
 

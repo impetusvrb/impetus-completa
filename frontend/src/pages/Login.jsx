@@ -42,6 +42,10 @@ export default function Login() {
         navigate(redirect);
         return;
       }
+      if (data.user?.needs_factory_member_selection) {
+        navigate('/app/equipe-operacional');
+        return;
+      }
       const userRole = (data.user?.role || '').toLowerCase();
       const rolesComDashboard = ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'];
       const temDashboard = rolesComDashboard.includes(userRole);
