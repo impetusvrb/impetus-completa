@@ -1,16 +1,26 @@
 /**
- * Sessão de equipe operacional — seleção do membro ativo (login coletivo)
+ * Sessão de equipe operacional — verificação secundária (matrícula + senha individual)
  */
 const express = require('express');
+const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { logAction } = require('../middleware/audit');
 const { z } = require('zod');
 const factoryTeam = require('../services/factoryTeamService');
+const pulseService = require('../services/pulseService');
 
-const selectMemberSchema = z.object({
-  member_id: z.string().uuid()
+const verifyOperatorSchema = z.object({
+  matricula: z.string().min(1).max(64),
+  access_password: z.string().min(1).max(128)
 });
+
+function publicMemberRow(row) {
+  if (!row) return null;
+  const { access_password_hash: _h, ...rest } = row;
+  return rest;
+}
 
 router.get('/context', requireAuth, async (req, res) => {
   try {
@@ -61,12 +71,12 @@ router.get('/context', requireAuth, async (req, res) => {
       needs_selection,
       needs_revalidation: rev.needs_revalidation,
       revalidation_reason: rev.reason,
-      quick_confirm_eligible: rev.quick_confirm_eligible,
+      quick_confirm_eligible: false,
       revalidation_hours: factoryTeam.REVALIDATION_HOURS,
       team: { id: ctx.team.id, name: ctx.team.name, main_shift_label: ctx.team.main_shift_label },
-      members: (ctx.members || []).filter((m) => m.active),
-      suggested_member: suggested,
-      active_member: activeMember
+      members: [],
+      suggested_member: null,
+      active_member: activeMember ? publicMemberRow(activeMember) : null
     });
   } catch (e) {
     console.error('[FACTORY_TEAM_CONTEXT]', e);
@@ -74,74 +84,85 @@ router.get('/context', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/session/member', requireAuth, async (req, res) => {
+router.post('/session/clear-active-member', requireAuth, async (req, res) => {
   try {
     const u = req.user;
-    if (!u.is_factory_team_account || !u.operational_team_id) {
-      return res.status(400).json({ ok: false, error: 'Conta não é de equipe operacional' });
+    if (!u.is_factory_team_account || !u.sessionId) {
+      return res.status(400).json({ ok: false, error: 'Operação só se aplica à conta de equipe operacional' });
     }
-    if (!u.sessionId) {
-      return res.status(400).json({ ok: false, error: 'Sessão inválida para definir membro' });
+    await factoryTeam.clearSessionActiveMember(u.sessionId);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[FACTORY_TEAM_CLEAR_MEMBER]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao limpar operador da sessão' });
+  }
+});
+
+router.post('/session/verify-operator', requireAuth, async (req, res) => {
+  try {
+    const u = req.user;
+    if (!u.is_factory_team_account || !u.operational_team_id || !u.sessionId) {
+      return res.status(400).json({ ok: false, error: 'Conta não é de equipe operacional ou sessão inválida' });
     }
 
-    const b = selectMemberSchema.parse(req.body);
-    const mid = await factoryTeam.assertMemberBelongsToTeam(u.company_id, u.operational_team_id, b.member_id);
-    if (!mid) {
-      return res.status(400).json({ ok: false, error: 'Membro inválido para esta equipe' });
+    const b = verifyOperatorSchema.parse(req.body);
+    const member = await factoryTeam.findActiveMemberByMatricula(u.company_id, u.operational_team_id, b.matricula);
+    if (!member || !member.access_password_hash) {
+      return res.status(401).json({ ok: false, error: 'Matrícula ou senha de acesso inválida' });
+    }
+    const okPw = await bcrypt.compare(b.access_password, member.access_password_hash);
+    if (!okPw) {
+      return res.status(401).json({ ok: false, error: 'Matrícula ou senha de acesso inválida' });
     }
 
-    await factoryTeam.setSessionActiveMember(u.sessionId, mid);
-    await factoryTeam.logMemberEvent(u.company_id, u.id, mid, 'member_selected', { source: 'manual' });
+    await factoryTeam.setSessionActiveMember(u.sessionId, member.id);
+    await factoryTeam.logMemberEvent(u.company_id, u.id, member.id, 'operator_verified', { matricula: member.matricula });
 
-    const mr = await db.query(`SELECT * FROM operational_team_members WHERE id = $1`, [mid]);
-    res.json({ ok: true, active_member: mr.rows[0], factory_member_confirmed_at: new Date().toISOString() });
+    const ts = new Date().toISOString();
+    await logAction({
+      companyId: u.company_id,
+      userId: u.id,
+      userName: u.name,
+      userRole: u.role,
+      action: 'factory_team_operator_verified',
+      entityType: 'operational_team',
+      entityId: u.operational_team_id,
+      description: `${ts} - ${u.operational_team_id} - ${member.display_name} - ${member.matricula} - Acesso ao Dashboard Coletivo`,
+      ipAddress: req.ip || req.connection?.remoteAddress,
+      userAgent: req.get('user-agent'),
+      sessionId: u.sessionId,
+      severity: 'info',
+      success: true
+    });
+
+    const pulsePeek = await pulseService.getPendingPromptForTeamMember(u.company_id, member.id);
+    const pub = publicMemberRow(member);
+    res.json({
+      ok: true,
+      active_member: pub,
+      factory_member_confirmed_at: new Date().toISOString(),
+      pulse: {
+        require_completion: !!(pulsePeek.show && pulsePeek.evaluation?.id),
+        evaluation: pulsePeek.evaluation || null
+      }
+    });
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ ok: false, error: 'Dados inválidos' });
-    console.error('[FACTORY_TEAM_SET_MEMBER]', e);
-    res.status(500).json({ ok: false, error: 'Erro ao definir membro' });
+    console.error('[FACTORY_TEAM_VERIFY]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao verificar operador' });
   }
+});
+
+router.post('/session/member', requireAuth, async (req, res) => {
+  return res.status(400).json({ ok: false, error: 'Utilize a verificação por matrícula e senha individual (verify-operator).' });
 });
 
 router.post('/session/member/suggested', requireAuth, async (req, res) => {
-  try {
-    const u = req.user;
-    if (!u.is_factory_team_account || !u.operational_team_id || !u.sessionId) {
-      return res.status(400).json({ ok: false, error: 'Conta não é de equipe operacional' });
-    }
-    const ctx = await factoryTeam.getTeamWithMembers(u.company_id, u.operational_team_id);
-    if (!ctx) return res.status(400).json({ ok: false, error: 'Equipe não encontrada' });
-    const suggested = factoryTeam.suggestMemberBySchedule(ctx.members);
-    if (!suggested) {
-      return res.status(400).json({ ok: false, error: 'Nenhum membro disponível para sugestão automática' });
-    }
-    await factoryTeam.setSessionActiveMember(u.sessionId, suggested.id);
-    await factoryTeam.logMemberEvent(u.company_id, u.id, suggested.id, 'member_selected', { source: 'schedule_suggestion' });
-    res.json({ ok: true, active_member: suggested, factory_member_confirmed_at: new Date().toISOString() });
-  } catch (e) {
-    console.error('[FACTORY_TEAM_SUGGESTED]', e);
-    res.status(500).json({ ok: false, error: 'Erro ao aplicar sugestão' });
-  }
+  return res.status(400).json({ ok: false, error: 'Utilize a verificação por matrícula e senha individual (verify-operator).' });
 });
 
-/** Confirma continuidade do mesmo membro (revalidação por intervalo sem trocar pessoa) */
 router.post('/session/member/confirm-continue', requireAuth, async (req, res) => {
-  try {
-    const u = req.user;
-    if (!u.is_factory_team_account || !u.operational_team_id || !u.sessionId) {
-      return res.status(400).json({ ok: false, error: 'Conta não é de equipe operacional' });
-    }
-    if (!u.active_operational_team_member_id) {
-      return res.status(400).json({ ok: false, error: 'Nenhum membro ativo para confirmar' });
-    }
-    await factoryTeam.confirmSessionMemberContinuation(u.sessionId);
-    await factoryTeam.logMemberEvent(u.company_id, u.id, u.active_operational_team_member_id, 'member_revalidated', {
-      source: 'confirm_continue'
-    });
-    res.json({ ok: true, factory_member_confirmed_at: new Date().toISOString() });
-  } catch (e) {
-    console.error('[FACTORY_TEAM_CONFIRM_CONTINUE]', e);
-    res.status(500).json({ ok: false, error: 'Erro ao confirmar continuidade' });
-  }
+  return res.status(400).json({ ok: false, error: 'Utilize a verificação por matrícula e senha individual (verify-operator).' });
 });
 
 module.exports = router;

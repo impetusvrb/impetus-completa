@@ -6,7 +6,7 @@ import { Users, Plus, Edit, UserPlus, BarChart3, AlertTriangle, Download, Buildi
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
-import { InputField, SelectField, TextAreaField } from '../components/FormField';
+import { InputField, SelectField, TextAreaField, CheckboxField } from '../components/FormField';
 import { adminOperationalTeams, adminDepartments, adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminOperationalTeams.css';
@@ -21,11 +21,22 @@ const emptyTeam = () => ({
 
 const emptyMember = () => ({
   display_name: '',
+  matricula: '',
+  sector: '',
+  operator_kind: '',
   shift_label: '',
   schedule_start: '',
   schedule_end: '',
-  sort_order: 0
+  sort_order: 0,
+  manual_access_password: '',
+  regenerate_access_password: false
 });
+
+const operatorKindOpts = [
+  { value: '', label: '—' },
+  { value: 'auxiliar', label: 'Auxiliar' },
+  { value: 'operador', label: 'Operador' }
+];
 
 export default function AdminOperationalTeams() {
   const notify = useNotification();
@@ -52,6 +63,7 @@ export default function AdminOperationalTeams() {
   const [alerts, setAlerts] = useState([]);
   const [teamReport, setTeamReport] = useState([]);
   const [showTeamReport, setShowTeamReport] = useState(false);
+  const [plainPasswordModal, setPlainPasswordModal] = useState(null);
 
   const loadAlerts = async () => {
     try {
@@ -152,29 +164,56 @@ export default function AdminOperationalTeams() {
     setEditingMember(m);
     setMemberForm({
       display_name: m.display_name || '',
+      matricula: m.matricula || '',
+      sector: m.sector || '',
+      operator_kind: m.operator_kind || '',
       shift_label: m.shift_label || '',
       schedule_start: m.schedule_start ? String(m.schedule_start).slice(0, 5) : '',
       schedule_end: m.schedule_end ? String(m.schedule_end).slice(0, 5) : '',
-      sort_order: m.sort_order ?? 0
+      sort_order: m.sort_order ?? 0,
+      manual_access_password: '',
+      regenerate_access_password: false
     });
     setShowMemberModal(true);
   };
 
   const saveMember = async () => {
     if (!detailTeam) return;
+    if (!editingMember && !String(memberForm.matricula || '').trim()) {
+      notify.error('Informe a matrícula.');
+      return;
+    }
     try {
       setSaving(true);
       const payload = {
-        ...memberForm,
+        display_name: memberForm.display_name,
+        matricula: String(memberForm.matricula || '').trim(),
+        sector: memberForm.sector || null,
+        operator_kind: memberForm.operator_kind || null,
+        shift_label: memberForm.shift_label || null,
         schedule_start: memberForm.schedule_start || null,
-        schedule_end: memberForm.schedule_end || null
+        schedule_end: memberForm.schedule_end || null,
+        sort_order: memberForm.sort_order ?? 0
       };
+      const manual = String(memberForm.manual_access_password || '').trim();
+      if (manual.length >= 6) {
+        payload.access_password = manual;
+      }
       if (editingMember) {
-        await adminOperationalTeams.updateMember(detailTeam.id, editingMember.id, payload);
+        if (memberForm.regenerate_access_password) {
+          payload.regenerate_access_password = true;
+        }
+        const r = await adminOperationalTeams.updateMember(detailTeam.id, editingMember.id, payload);
         notify.success('Membro atualizado');
+        if (r.data?.generated_access_password) {
+          setPlainPasswordModal(r.data.generated_access_password);
+        }
       } else {
-        await adminOperationalTeams.createMember(detailTeam.id, payload);
+        const r = await adminOperationalTeams.createMember(detailTeam.id, payload);
         notify.success('Membro adicionado');
+        if (r.data?.generated_access_password) {
+          setPlainPasswordModal(r.data.generated_access_password);
+        }
       }
       setShowMemberModal(false);
       openDetail(detailTeam);
@@ -274,7 +313,8 @@ export default function AdminOperationalTeams() {
             <div>
               <h1 className="page-title">Equipes operacionais</h1>
               <p className="page-subtitle">
-                Cadastre equipes do chão de fábrica e gere um login coletivo. Os operadores identificam quem está atuando na sessão.
+                Cadastre equipes do chão de fábrica, auxiliares e operadores (matrícula e senha individual), e o login coletivo.
+                Cada acesso ao painel exige verificação por matrícula após o login da equipe.
               </p>
             </div>
           </div>
@@ -349,7 +389,10 @@ export default function AdminOperationalTeams() {
                   <li key={m.id}>
                     <span className="m-name">{m.display_name}</span>
                     <span className="m-meta">
-                      {m.shift_label}
+                      {m.matricula ? `Mat. ${m.matricula}` : 'Sem matrícula'}
+                      {m.operator_kind ? ` · ${m.operator_kind}` : ''}
+                      {m.sector ? ` · ${m.sector}` : ''}
+                      {m.shift_label ? ` · ${m.shift_label}` : ''}
                       {m.schedule_start && m.schedule_end && (
                         <span>
                           {' '}
@@ -380,20 +423,73 @@ export default function AdminOperationalTeams() {
           <ModalFooter onCancel={() => setShowTeamModal(false)} onConfirm={saveTeam} confirmText="Salvar" confirmLoading={saving} />
         </Modal>
 
-        <Modal isOpen={showMemberModal} onClose={() => setShowMemberModal(false)} title={editingMember ? 'Editar membro' : 'Novo membro'}>
-          <InputField label="Nome" name="display_name" value={memberForm.display_name} onChange={(e) => setMemberForm({ ...memberForm, display_name: e.target.value })} required />
-          <InputField label="Turno / etiqueta" name="shift_label" value={memberForm.shift_label} onChange={(e) => setMemberForm({ ...memberForm, shift_label: e.target.value })} />
+        <Modal isOpen={showMemberModal} onClose={() => setShowMemberModal(false)} title={editingMember ? 'Editar membro' : 'Novo auxiliar / operador'} size="large">
+          <InputField
+            label="Nome completo"
+            name="display_name"
+            value={memberForm.display_name}
+            onChange={(e) => setMemberForm({ ...memberForm, display_name: e.target.value })}
+            required
+          />
           <div className="form-grid-2">
-            <InputField label="Início" name="schedule_start" type="time" value={memberForm.schedule_start} onChange={(e) => setMemberForm({ ...memberForm, schedule_start: e.target.value })} />
-            <InputField label="Fim" name="schedule_end" type="time" value={memberForm.schedule_end} onChange={(e) => setMemberForm({ ...memberForm, schedule_end: e.target.value })} />
+            <InputField
+              label="Matrícula (única na equipe)"
+              name="matricula"
+              value={memberForm.matricula}
+              onChange={(e) => setMemberForm({ ...memberForm, matricula: e.target.value })}
+                           required={!editingMember}
+              disabled={!!editingMember && String(editingMember?.matricula || '').trim() !== ''}
+            />
+            <SelectField
+              label="Perfil"
+              name="operator_kind"
+              value={memberForm.operator_kind}
+              onChange={(e) => setMemberForm({ ...memberForm, operator_kind: e.target.value })}
+              options={operatorKindOpts}
+              placeholder="Selecione"
+            />
           </div>
-          <InputField label="Ordem" name="sort_order" type="number" value={memberForm.sort_order} onChange={(e) => setMemberForm({ ...memberForm, sort_order: parseInt(e.target.value, 10) || 0 })} />
+          <div className="form-grid-2">
+            <InputField label="Turno / etiqueta" name="shift_label" value={memberForm.shift_label} onChange={(e) => setMemberForm({ ...memberForm, shift_label: e.target.value })} />
+            <InputField label="Setor" name="sector" value={memberForm.sector} onChange={(e) => setMemberForm({ ...memberForm, sector: e.target.value })} />
+          </div>
+          <div className="form-grid-2">
+            <InputField label="Início (opcional)" name="schedule_start" type="time" value={memberForm.schedule_start} onChange={(e) => setMemberForm({ ...memberForm, schedule_start: e.target.value })} />
+            <InputField label="Fim (opcional)" name="schedule_end" type="time" value={memberForm.schedule_end} onChange={(e) => setMemberForm({ ...memberForm, schedule_end: e.target.value })} />
+          </div>
+          <InputField label="Ordem na lista" name="sort_order" type="number" value={memberForm.sort_order} onChange={(e) => setMemberForm({ ...memberForm, sort_order: parseInt(e.target.value, 10) || 0 })} />
+          {!editingMember ? (
+            <InputField
+              label="Senha de acesso manual (opcional, mín. 6 caracteres)"
+              name="manual_access_password"
+              type="password"
+              value={memberForm.manual_access_password}
+              onChange={(e) => setMemberForm({ ...memberForm, manual_access_password: e.target.value })}
+              helperText="Se vazio, será gerada automaticamente: matrícula + 3 caracteres aleatórios."
+            />
+          ) : (
+            <>
+              <InputField
+                label="Nova senha de acesso (opcional)"
+                name="manual_access_password"
+                type="password"
+                value={memberForm.manual_access_password}
+                onChange={(e) => setMemberForm({ ...memberForm, manual_access_password: e.target.value })}
+              />
+              <CheckboxField
+                label="Gerar nova senha automaticamente (matrícula + 3 caracteres)"
+                name="regenerate_access_password"
+                checked={memberForm.regenerate_access_password}
+                onChange={(e) => setMemberForm({ ...memberForm, regenerate_access_password: e.target.checked })}
+              />
+            </>
+          )}
           <ModalFooter onCancel={() => setShowMemberModal(false)} onConfirm={saveMember} confirmText="Salvar" confirmLoading={saving} />
         </Modal>
 
         <Modal isOpen={showCollectiveModal} onClose={() => setShowCollectiveModal(false)} title="Login coletivo da equipe" size="small">
           <p className="modal-hint">
-            Será criado um utilizador <strong>colaborador</strong> exclusivo para esta equipe. Após o primeiro login, a equipe deve escolher quem está operando.
+            Será criado um utilizador <strong>colaborador</strong> exclusivo para esta equipe. Após o login com este email, cada operador confirma a identidade com matrícula e senha individual cadastradas nos membros.
           </p>
           <InputField label="Nome exibido" name="name" value={collectiveForm.name} onChange={(e) => setCollectiveForm({ ...collectiveForm, name: e.target.value })} required />
           <InputField label="Email (login)" name="email" type="email" value={collectiveForm.email} onChange={(e) => setCollectiveForm({ ...collectiveForm, email: e.target.value })} required />
@@ -416,6 +512,26 @@ export default function AdminOperationalTeams() {
               Fechar
             </button>
           </div>
+        </Modal>
+
+        <Modal isOpen={!!plainPasswordModal} onClose={() => setPlainPasswordModal(null)} title="Senha de acesso individual" size="small">
+          <p className="modal-hint">Guarde e transmita ao colaborador por um canal seguro. Esta senha não será exibida novamente.</p>
+          <pre
+            style={{
+              background: 'var(--bg-secondary, #1e293b)',
+              padding: '1rem',
+              borderRadius: 8,
+              wordBreak: 'break-all',
+              fontSize: '1rem'
+            }}
+          >
+            {plainPasswordModal}
+          </pre>
+          <ModalFooter
+            onCancel={() => setPlainPasswordModal(null)}
+            onConfirm={() => setPlainPasswordModal(null)}
+            confirmText="Fechar"
+          />
         </Modal>
 
         <Modal isOpen={showTeamReport} onClose={() => setShowTeamReport(false)} title="Eventos por equipe (30 dias)" size="large">

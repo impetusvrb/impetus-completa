@@ -2,6 +2,7 @@
  * ADMIN — Gestão de Equipes Operacionais (chão de fábrica)
  */
 const express = require('express');
+const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require('../../db');
 const { requireAuth, requireHierarchy } = require('../../middleware/auth');
@@ -20,14 +21,36 @@ const teamCreateSchema = z.object({
 
 const teamUpdateSchema = teamCreateSchema.partial().extend({ active: z.boolean().optional() });
 
-const memberSchema = z.object({
+const memberCreateSchema = z.object({
   display_name: z.string().min(1).max(120),
+  matricula: z.string().min(1).max(64).transform((s) => String(s).trim()),
+  sector: z.string().max(120).nullable().optional(),
+  operator_kind: z.enum(['auxiliar', 'operador']).nullable().optional(),
   shift_label: z.string().max(80).nullable().optional(),
   schedule_start: z.string().max(8).nullable().optional(),
   schedule_end: z.string().max(8).nullable().optional(),
   active: z.boolean().optional(),
-  sort_order: z.number().int().min(0).max(9999).optional()
+  sort_order: z.number().int().min(0).max(9999).optional(),
+  access_password: z.string().min(6).max(128).optional()
 });
+
+const memberUpdateSchema = memberCreateSchema.partial().extend({
+  regenerate_access_password: z.boolean().optional()
+});
+
+function generateOperatorAccessPassword(matricula) {
+  const base = String(matricula || '').trim();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let suf = '';
+  for (let i = 0; i < 3; i++) suf += chars[Math.floor(Math.random() * chars.length)];
+  return base + suf;
+}
+
+function stripMemberSecrets(row) {
+  if (!row) return row;
+  const { access_password_hash: _h, ...rest } = row;
+  return { ...rest, has_operator_password: !!row.access_password_hash };
+}
 
 const collectiveUserSchema = z.object({
   name: z.string().min(3).max(100),
@@ -79,7 +102,7 @@ router.get('/:id', ...adminMw, async (req, res) => {
       `SELECT * FROM operational_team_members WHERE team_id = $1 ORDER BY sort_order, display_name`,
       [req.params.id]
     );
-    res.json({ ok: true, team: t.rows[0], members: members.rows });
+    res.json({ ok: true, team: t.rows[0], members: (members.rows || []).map(stripMemberSecrets) });
   } catch (e) {
     console.error('[OP_TEAMS_GET]', e);
     res.status(500).json({ ok: false, error: 'Erro ao carregar equipe' });
@@ -155,24 +178,40 @@ router.post('/:id/members', ...adminMw, async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
     const companyId = cid(req);
-    const b = memberSchema.parse(req.body);
+    const b = memberCreateSchema.parse(req.body);
     const ok = await db.query(`SELECT id FROM operational_teams WHERE id = $1 AND company_id = $2 AND active`, [req.params.id, companyId]);
     if (!ok.rows.length) return res.status(404).json({ ok: false, error: 'Equipe não encontrada' });
+
+    const plain = b.access_password || generateOperatorAccessPassword(b.matricula);
+    const access_password_hash = await bcrypt.hash(plain, 10);
+
     const ins = await db.query(
-      `INSERT INTO operational_team_members (team_id, display_name, shift_label, schedule_start, schedule_end, sort_order)
-       VALUES ($1,$2,$3,$4::time,$5::time,$6) RETURNING *`,
+      `INSERT INTO operational_team_members (
+        team_id, display_name, matricula, sector, operator_kind, shift_label, schedule_start, schedule_end, sort_order, access_password_hash
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7::time,$8::time,$9,$10) RETURNING *`,
       [
         req.params.id,
         b.display_name,
+        b.matricula,
+        b.sector || null,
+        b.operator_kind || null,
         b.shift_label || null,
         b.schedule_start || null,
         b.schedule_end || null,
-        b.sort_order ?? 0
+        b.sort_order ?? 0,
+        access_password_hash
       ]
     );
-    res.status(201).json({ ok: true, member: ins.rows[0] });
+    res.status(201).json({
+      ok: true,
+      member: stripMemberSecrets(ins.rows[0]),
+      generated_access_password: b.access_password ? undefined : plain
+    });
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ ok: false, error: 'Dados inválidos', details: e.errors });
+    if (e.code === '23505') {
+      return res.status(409).json({ ok: false, error: 'Matrícula já utilizada nesta equipe' });
+    }
     console.error('[OP_TEAM_MEMBER_CREATE]', e);
     res.status(500).json({ ok: false, error: 'Erro ao cadastrar membro' });
   }
@@ -184,7 +223,7 @@ router.put('/:id/members/:memberId', ...adminMw, async (req, res) => {
       return res.status(400).json({ ok: false, error: 'ID inválido' });
     }
     const companyId = cid(req);
-    const b = memberSchema.partial().parse(req.body);
+    const b = memberUpdateSchema.parse(req.body);
     const chk = await db.query(
       `SELECT m.id FROM operational_team_members m
        JOIN operational_teams t ON t.id = m.team_id AND t.company_id = $1 AND t.id = $2
@@ -196,23 +235,64 @@ router.put('/:id/members/:memberId', ...adminMw, async (req, res) => {
     const cur = await db.query(`SELECT * FROM operational_team_members WHERE id = $1`, [req.params.memberId]);
     const row = cur.rows[0];
     const display_name = b.display_name !== undefined ? b.display_name : row.display_name;
+    const matricula = b.matricula !== undefined ? String(b.matricula).trim() : row.matricula;
+    const sector = b.sector !== undefined ? b.sector : row.sector;
+    const operator_kind = b.operator_kind !== undefined ? b.operator_kind : row.operator_kind;
     const shift_label = b.shift_label !== undefined ? b.shift_label : row.shift_label;
     const schedule_start = b.schedule_start !== undefined ? b.schedule_start : row.schedule_start;
     const schedule_end = b.schedule_end !== undefined ? b.schedule_end : row.schedule_end;
     const active = b.active !== undefined ? b.active : row.active;
     const sort_order = b.sort_order !== undefined ? b.sort_order : row.sort_order;
 
+    let access_password_hash = row.access_password_hash;
+    let generated_access_password;
+    if (b.access_password) {
+      access_password_hash = await bcrypt.hash(b.access_password, 10);
+    } else if (b.regenerate_access_password) {
+      const base = matricula || row.matricula || 'OP';
+      generated_access_password = generateOperatorAccessPassword(base);
+      access_password_hash = await bcrypt.hash(generated_access_password, 10);
+    }
+
     const r = await db.query(
       `UPDATE operational_team_members SET
-        display_name = $1, shift_label = $2, schedule_start = $3::time, schedule_end = $4::time,
-        active = $5, sort_order = $6, updated_at = now()
-       WHERE id = $7
+        display_name = $1,
+        matricula = $2,
+        sector = $3,
+        operator_kind = $4,
+        shift_label = $5,
+        schedule_start = $6::time,
+        schedule_end = $7::time,
+        active = $8,
+        sort_order = $9,
+        access_password_hash = $10,
+        updated_at = now()
+       WHERE id = $11
        RETURNING *`,
-      [display_name, shift_label, schedule_start, schedule_end, active, sort_order, req.params.memberId]
+      [
+        display_name,
+        matricula,
+        sector,
+        operator_kind,
+        shift_label,
+        schedule_start,
+        schedule_end,
+        active,
+        sort_order,
+        access_password_hash,
+        req.params.memberId
+      ]
     );
-    res.json({ ok: true, member: r.rows[0] });
+    res.json({
+      ok: true,
+      member: stripMemberSecrets(r.rows[0]),
+      generated_access_password: generated_access_password || undefined
+    });
   } catch (e) {
     if (e instanceof z.ZodError) return res.status(400).json({ ok: false, error: 'Dados inválidos', details: e.errors });
+    if (e.code === '23505') {
+      return res.status(409).json({ ok: false, error: 'Matrícula já utilizada nesta equipe' });
+    }
     console.error('[OP_TEAM_MEMBER_UPDATE]', e);
     res.status(500).json({ ok: false, error: 'Erro ao atualizar membro' });
   }

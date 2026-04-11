@@ -1,11 +1,14 @@
 /**
- * Seleção do operador ativo (login coletivo — chão de fábrica)
+ * Verificação do operador (login coletivo — matrícula + senha individual)
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Clock, CheckCircle } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { factoryTeam } from '../services/api';
+import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import './SelectTeamMember.css';
+
+const GATE_KEY = 'impetus_factory_operator_gate';
 
 function mergeUserStorage(partial) {
   try {
@@ -22,10 +25,21 @@ export default function SelectTeamMember() {
   const [ctx, setCtx] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [matricula, setMatricula] = useState('');
+  const [accessPassword, setAccessPassword] = useState('');
+  const [pulseEval, setPulseEval] = useState(null);
+  const [pulseBlocking, setPulseBlocking] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
+      try {
+        if (!sessionStorage.getItem(GATE_KEY)) {
+          await factoryTeam.clearActiveMember();
+        }
+      } catch (_) {
+        /* continua — contexto ainda pode pedir seleção */
+      }
       const r = await factoryTeam.getContext();
       const d = r.data;
       if (!d.is_factory_team) {
@@ -35,11 +49,15 @@ export default function SelectTeamMember() {
       setCtx(d);
       if (d.active_member && d.team?.name) {
         mergeUserStorage({
-          factory_active_member: { id: d.active_member.id, display_name: d.active_member.display_name },
+          factory_active_member: {
+            id: d.active_member.id,
+            display_name: d.active_member.display_name,
+            matricula: d.active_member.matricula
+          },
           factory_team_name: d.team.name
         });
       }
-      if (!d.needs_selection && d.active_member) {
+      if (!d.needs_selection && d.active_member && sessionStorage.getItem(GATE_KEY)) {
         navigate('/app', { replace: true });
       }
     } catch (e) {
@@ -53,61 +71,42 @@ export default function SelectTeamMember() {
     load();
   }, []);
 
-  const pickMember = async (memberId) => {
+  const goDashboardAfterGate = () => {
+    sessionStorage.setItem(GATE_KEY, '1');
+    mergeUserStorage({ needs_factory_member_selection: false });
+    navigate('/app', { replace: true });
+  };
+
+  const verify = async (e) => {
+    e?.preventDefault();
     try {
       setSubmitting(true);
       setError('');
-      const r = await factoryTeam.setMember(memberId);
+      const r = await factoryTeam.verifyOperator({
+        matricula: matricula.trim(),
+        access_password: accessPassword
+      });
       const am = r.data?.active_member;
       if (am && ctx?.team?.name) {
         mergeUserStorage({
           needs_factory_member_selection: false,
-          factory_active_member: { id: am.id, display_name: am.display_name },
+          factory_active_member: {
+            id: am.id,
+            display_name: am.display_name,
+            matricula: am.matricula
+          },
           factory_team_name: ctx.team.name
         });
-      } else {
-        mergeUserStorage({ needs_factory_member_selection: false });
       }
-      navigate('/app', { replace: true });
-    } catch (e) {
-      setError(e.apiMessage || 'Não foi possível confirmar o membro');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const useSuggested = async () => {
-    try {
-      setSubmitting(true);
-      setError('');
-      const r = await factoryTeam.useSuggested();
-      const am = r.data?.active_member;
-      if (am && ctx?.team?.name) {
-        mergeUserStorage({
-          needs_factory_member_selection: false,
-          factory_active_member: { id: am.id, display_name: am.display_name },
-          factory_team_name: ctx.team.name
-        });
-      } else {
-        mergeUserStorage({ needs_factory_member_selection: false });
+      const pulse = r.data?.pulse;
+      if (pulse?.require_completion && pulse.evaluation?.id) {
+        setPulseEval(pulse.evaluation);
+        setPulseBlocking(true);
+ return;
       }
-      navigate('/app', { replace: true });
-    } catch (e) {
-      setError(e.apiMessage || 'Sem sugestão automática para este horário');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const confirmContinue = async () => {
-    try {
-      setSubmitting(true);
-      setError('');
-      await factoryTeam.confirmContinue();
-      mergeUserStorage({ needs_factory_member_selection: false });
-      navigate('/app', { replace: true });
-    } catch (e) {
-      setError(e.apiMessage || 'Não foi possível confirmar');
+      goDashboardAfterGate();
+    } catch (err) {
+      setError(err.apiMessage || err.response?.data?.error || 'Não foi possível verificar');
     } finally {
       setSubmitting(false);
     }
@@ -123,83 +122,65 @@ export default function SelectTeamMember() {
 
   if (!ctx?.is_factory_team) return null;
 
-  const members = ctx.members || [];
-  const suggested = ctx.suggested_member;
-  const rev = ctx.needs_revalidation;
-  const quick = ctx.quick_confirm_eligible;
-
   return (
     <div className="select-team-member-page">
+      <ImpetusPulseModal
+        evaluation={pulseEval}
+        isOpen={pulseBlocking && !!pulseEval?.id}
+        onClose={() => {}}
+        onSubmitted={() => {
+          setPulseBlocking(false);
+          setPulseEval(null);
+          goDashboardAfterGate();
+        }}
+        blocking
+      />
       <div className="select-team-card">
         <div className="select-team-header">
           <Users size={40} className="select-team-icon" />
-          <h1>{rev ? 'Reconfirmar quem está operando' : 'Quem está operando agora?'}</h1>
+          <h1>Verificação de operador</h1>
           <p className="select-team-sub">
-            Conta da equipe <strong>{ctx.team?.name}</strong>.{' '}
-            {rev
-              ? 'Por política de segurança ou mudança de turno, confirme o operador ativo.'
-              : 'Selecione o membro para registrar ações e relatórios em seu nome.'}
+            Conta da equipe <strong>{ctx.team?.name}</strong>. Informe a matrícula e a senha de acesso individual
+            fornecidas pelo administrador para registrar seu acesso ao painel coletivo.
           </p>
         </div>
 
         {error && <div className="select-team-error">{error}</div>}
 
-        {quick && ctx.active_member && (
-          <div className="select-team-suggested select-team-quick">
-            <CheckCircle size={18} />
-            <span>
-              Continuar como <strong>{ctx.active_member.display_name}</strong> (revalidação após {ctx.revalidation_hours || 4}h)
-            </span>
-            <button type="button" className="btn btn-primary" disabled={submitting} onClick={confirmContinue}>
-              Continuar
-            </button>
-          </div>
-        )}
+        <form className="select-team-verify-form" onSubmit={verify}>
+          <label className="select-team-field">
+            <span>Matrícula</span>
+            <input
+              type="text"
+              name="matricula"
+              autoComplete="username"
+              value={matricula}
+              onChange={(ev) => setMatricula(ev.target.value)}
+              disabled={submitting}
+              required
+            />
+          </label>
+          <label className="select-team-field">
+            <span>Senha de acesso individual</span>
+            <input
+              type="password"
+              name="access_password"
+              autoComplete="current-password"
+              value={accessPassword}
+              onChange={(ev) => setAccessPassword(ev.target.value)}
+              disabled={submitting}
+              required
+            />
+          </label>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Verificando…' : 'Confirmar e continuar'}
+          </button>
+        </form>
 
-        {suggested && !quick && (
-          <div className="select-team-suggested">
-            <Clock size={18} />
-            <span>
-              Sugestão pelo horário: <strong>{suggested.display_name}</strong>
-            </span>
-            <button type="button" className="btn btn-secondary" disabled={submitting} onClick={useSuggested}>
-              Usar sugestão
-            </button>
-          </div>
-        )}
-
-        <ul className="select-team-list">
-          {members.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                className="select-team-item"
-                disabled={submitting}
-                onClick={() => pickMember(m.id)}
-              >
-                <CheckCircle size={18} className="select-team-check" />
-                <div>
-                  <div className="select-team-name">{m.display_name}</div>
-                  {(m.shift_label || m.schedule_start) && (
-                    <div className="select-team-meta">
-                      {m.shift_label}
-                      {m.schedule_start && m.schedule_end && (
-                        <span>
-                          {' '}
-                          · {String(m.schedule_start).slice(0, 5)}–{String(m.schedule_end).slice(0, 5)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        {members.length === 0 && (
-          <p className="select-team-empty">Nenhum membro ativo cadastrado. Peça ao administrador para cadastrar a equipe.</p>
-        )}
+        <p className="select-team-hint">
+          Ao fechar o separador do navegador, será necessário autenticar novamente com matrícula e senha antes de ver o
+          painel.
+        </p>
       </div>
     </div>
   );

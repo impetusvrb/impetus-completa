@@ -112,6 +112,23 @@ export default function PulseRh() {
     }
   };
 
+  const triggerFactoryOperators = async () => {
+    if (!pulseEnabled) {
+      notify.error('Ative o Impetus Pulse nas configurações da empresa (administrador).');
+      return;
+    }
+    try {
+      const r = await pulse.hrTrigger({ all_factory_operators: true });
+      const n = r?.data?.created;
+      notify.success(
+        `Avaliações para auxiliares/operadores (equipes com login coletivo): ${n ?? 0} criada(s).`
+      );
+      load();
+    } catch (e) {
+      notify.error(e.apiMessage || e.message || 'Erro ao disparar.');
+    }
+  };
+
   const createCampaign = async (e) => {
     e.preventDefault();
     const title = campaignForm.title.trim();
@@ -350,6 +367,15 @@ export default function PulseRh() {
             title={!pulseEnabled ? 'Ative o Pulse nas configurações da empresa' : undefined}
           >
             Disparar ciclo (todos elegíveis)
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={triggerFactoryOperators}
+            disabled={!pulseEnabled}
+            title="Membros de equipes operacionais com matrícula e senha individual cadastradas"
+          >
+            Incluir auxiliares/operadores (equipes)
           </button>
         </div>
 

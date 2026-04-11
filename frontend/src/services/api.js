@@ -681,24 +681,75 @@ export const adminUsers = {
 // ============================================================================
 
 export const adminOperationalTeams = {
-  list: () => api.get('/admin/operational-teams'),
-  get: (id) => api.get(`/admin/operational-teams/${id}`),
-  create: (data) => api.post('/admin/operational-teams', data),
-  update: (id, data) => api.put(`/admin/operational-teams/${id}`, data),
-  createMember: (teamId, data) => api.post(`/admin/operational-teams/${teamId}/members`, data),
+  _withFallback: async (requestPrimary, requestFallback) => {
+    try {
+      return await requestPrimary();
+    } catch (e) {
+      if (e?.response?.status !== 404 || !requestFallback) throw e;
+      return requestFallback();
+    }
+  },
+  list: () =>
+    adminOperationalTeams._withFallback(
+      () => api.get('/admin/operational-teams'),
+      () => api.get('/admin/equipes-operacionais')
+    ),
+  get: (id) =>
+    adminOperationalTeams._withFallback(
+      () => api.get(`/admin/operational-teams/${id}`),
+      () => api.get(`/admin/equipes-operacionais/${id}`)
+    ),
+  create: (data) =>
+    adminOperationalTeams._withFallback(
+      () => api.post('/admin/operational-teams', data),
+      () => api.post('/admin/equipes-operacionais', data)
+    ),
+  update: (id, data) =>
+    adminOperationalTeams._withFallback(
+      () => api.put(`/admin/operational-teams/${id}`, data),
+      () => api.put(`/admin/equipes-operacionais/${id}`, data)
+    ),
+  createMember: (teamId, data) =>
+    adminOperationalTeams._withFallback(
+      () => api.post(`/admin/operational-teams/${teamId}/members`, data),
+      () => api.post(`/admin/equipes-operacionais/${teamId}/members`, data)
+    ),
   updateMember: (teamId, memberId, data) =>
-    api.put(`/admin/operational-teams/${teamId}/members/${memberId}`, data),
+    adminOperationalTeams._withFallback(
+      () => api.put(`/admin/operational-teams/${teamId}/members/${memberId}`, data),
+      () => api.put(`/admin/equipes-operacionais/${teamId}/members/${memberId}`, data)
+    ),
   deleteMember: (teamId, memberId) =>
-    api.delete(`/admin/operational-teams/${teamId}/members/${memberId}`),
+    adminOperationalTeams._withFallback(
+      () => api.delete(`/admin/operational-teams/${teamId}/members/${memberId}`),
+      () => api.delete(`/admin/equipes-operacionais/${teamId}/members/${memberId}`)
+    ),
   createCollectiveUser: (teamId, data) =>
-    api.post(`/admin/operational-teams/${teamId}/collective-user`, data),
+    adminOperationalTeams._withFallback(
+      () => api.post(`/admin/operational-teams/${teamId}/collective-user`, data),
+      () => api.post(`/admin/equipes-operacionais/${teamId}/collective-user`, data)
+    ),
   memberActivityReport: (days = 30) =>
-    api.get('/admin/operational-teams/reports/member-activity', { params: { days } }),
-  healthAlerts: () => api.get('/admin/operational-teams/health/alerts'),
+    adminOperationalTeams._withFallback(
+      () => api.get('/admin/operational-teams/reports/member-activity', { params: { days } }),
+      () => api.get('/admin/equipes-operacionais/reports/member-activity', { params: { days } })
+    ),
+  healthAlerts: () =>
+    adminOperationalTeams._withFallback(
+      () => api.get('/admin/operational-teams/health/alerts'),
+      () => api.get('/admin/equipes-operacionais/health/alerts')
+    ),
   teamActivityReport: (days = 30, teamId = null) =>
-    api.get('/admin/operational-teams/reports/team-activity', {
-      params: { days, ...(teamId ? { team_id: teamId } : {}) }
-    }),
+    adminOperationalTeams._withFallback(
+      () =>
+        api.get('/admin/operational-teams/reports/team-activity', {
+          params: { days, ...(teamId ? { team_id: teamId } : {}) }
+        }),
+      () =>
+        api.get('/admin/equipes-operacionais/reports/team-activity', {
+          params: { days, ...(teamId ? { team_id: teamId } : {}) }
+        })
+    ),
   downloadMemberEventsCsv: async (days = 30) => {
     const downloadBlob = (res) => {
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
@@ -710,17 +761,33 @@ export const adminOperationalTeams = {
       window.URL.revokeObjectURL(url);
     };
     try {
-      const res = await api.get('/admin/operational-teams/exports/member-events.csv', {
-        params: { days },
-        responseType: 'blob'
-      });
+      const res = await adminOperationalTeams._withFallback(
+        () =>
+          api.get('/admin/operational-teams/exports/member-events.csv', {
+            params: { days },
+            responseType: 'blob'
+          }),
+        () =>
+          api.get('/admin/equipes-operacionais/exports/member-events.csv', {
+            params: { days },
+            responseType: 'blob'
+          })
+      );
       downloadBlob(res);
     } catch (e) {
       if (e.response?.status === 404) {
-        const res = await api.get('/admin/operational-teams/exports/member-events', {
-          params: { days },
-          responseType: 'blob'
-        });
+        const res = await adminOperationalTeams._withFallback(
+          () =>
+            api.get('/admin/operational-teams/exports/member-events', {
+              params: { days },
+              responseType: 'blob'
+            }),
+          () =>
+            api.get('/admin/equipes-operacionais/exports/member-events', {
+              params: { days },
+              responseType: 'blob'
+            })
+        );
         downloadBlob(res);
         return;
       }
@@ -731,9 +798,8 @@ export const adminOperationalTeams = {
 
 export const factoryTeam = {
   getContext: () => api.get('/factory-team/context'),
-  setMember: (memberId) => api.post('/factory-team/session/member', { member_id: memberId }),
-  useSuggested: () => api.post('/factory-team/session/member/suggested'),
-  confirmContinue: () => api.post('/factory-team/session/member/confirm-continue')
+  clearActiveMember: () => api.post('/factory-team/session/clear-active-member', {}),
+  verifyOperator: (body) => api.post('/factory-team/session/verify-operator', body)
 };
 
 export const adminDepartments = {

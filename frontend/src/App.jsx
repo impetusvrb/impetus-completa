@@ -178,7 +178,9 @@ function ColaboradorRouteGuard({ children }) {
   return children;
 }
 
-/** Contas de equipe (login coletivo): exige membro ativo na sessão antes do dashboard */
+const FACTORY_OPERATOR_GATE_KEY = 'impetus_factory_operator_gate';
+
+/** Contas de equipe (login coletivo): verificação secundária + membro ativo na sessão */
 function FactoryTeamMemberGate({ children }) {
   const navigate = useNavigate();
   const [ready, setReady] = useState(() => {
@@ -206,8 +208,15 @@ function FactoryTeamMemberGate({ children }) {
     setGateError(null);
     setReady(false);
     try {
+      try {
+        if (!sessionStorage.getItem(FACTORY_OPERATOR_GATE_KEY)) {
+          await factoryTeam.clearActiveMember();
+        }
+      } catch (_) {
+        /* segue para contexto */
+      }
       const r = await factoryTeam.getContext();
-      if (r.data?.needs_selection) {
+      if (r.data?.needs_selection || !sessionStorage.getItem(FACTORY_OPERATOR_GATE_KEY)) {
         navigate('/app/equipe-operacional', { replace: true });
         return;
       }

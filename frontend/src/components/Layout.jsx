@@ -451,6 +451,9 @@ export default function Layout({ children }) {
     }
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
+    try {
+      sessionStorage.removeItem('impetus_factory_operator_gate');
+    } catch (_) {}
     navigate('/');
   };
 

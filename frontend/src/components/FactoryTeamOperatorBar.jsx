@@ -12,7 +12,11 @@ function mergeFactoryMemberStorage(activeMember, teamName) {
     const raw = localStorage.getItem('impetus_user');
     const u = raw ? JSON.parse(raw) : {};
     if (activeMember) {
-      u.factory_active_member = { id: activeMember.id, display_name: activeMember.display_name };
+      u.factory_active_member = {
+        id: activeMember.id,
+        display_name: activeMember.display_name,
+        matricula: activeMember.matricula || null
+      };
     } else {
       delete u.factory_active_member;
     }
@@ -77,7 +81,15 @@ export default function FactoryTeamOperatorBar() {
           </>
         ) : null}
       </span>
-      <Link to="/app/equipe-operacional" className="factory-operator-bar__link">
+      <Link
+        to="/app/equipe-operacional"
+        className="factory-operator-bar__link"
+        onClick={() => {
+          try {
+            sessionStorage.removeItem('impetus_factory_operator_gate');
+          } catch (_) {}
+        }}
+      >
         <RefreshCw size={14} aria-hidden />
         Trocar operador
       </Link>

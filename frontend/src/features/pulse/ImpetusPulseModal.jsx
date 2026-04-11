@@ -34,7 +34,13 @@ function StarRow({ label, value, onChange }) {
   );
 }
 
-export default function ImpetusPulseModal({ evaluation: initial, isOpen, onClose, onSubmitted }) {
+export default function ImpetusPulseModal({
+  evaluation: initial,
+  isOpen,
+  onClose,
+  onSubmitted,
+  blocking = false
+}) {
   const [evaluation, setEvaluation] = useState(initial);
   const [fixedScores, setFixedScores] = useState({
     efficiency: null,
@@ -98,6 +104,9 @@ export default function ImpetusPulseModal({ evaluation: initial, isOpen, onClose
       onClose={onClose}
       title="Autoavaliação do Nosso Desempenho"
       size="large"
+      showCloseButton={!blocking}
+      closeOnOverlayClick={!blocking}
+      closeOnEscape={!blocking}
     >
       <div className="pulse-modal">
         <p className="pulse-modal__intro">

@@ -115,6 +115,22 @@ async function assertMemberBelongsToTeam(companyId, teamId, memberId) {
   return r.rows?.[0]?.id || null;
 }
 
+async function findActiveMemberByMatricula(companyId, teamId, matriculaRaw) {
+  const mat = String(matriculaRaw || '').trim().toLowerCase();
+  if (!mat) return null;
+  const r = await db.query(
+    `SELECT m.*
+     FROM operational_team_members m
+     INNER JOIN operational_teams t ON t.id = m.team_id AND t.company_id = $1 AND t.id = $2 AND t.active
+     WHERE m.active
+       AND m.matricula IS NOT NULL
+       AND btrim(m.matricula) <> ''
+       AND lower(trim(m.matricula)) = $3`,
+    [companyId, teamId, mat]
+  );
+  return r.rows[0] || null;
+}
+
 async function setSessionActiveMember(sessionId, memberId) {
   await db.query(
     `UPDATE sessions SET active_operational_team_member_id = $2, factory_member_confirmed_at = now() WHERE id = $1`,
@@ -157,6 +173,7 @@ module.exports = {
   suggestMemberBySchedule,
   computeRevalidationState,
   assertMemberBelongsToTeam,
+  findActiveMemberByMatricula,
   setSessionActiveMember,
   confirmSessionMemberContinuation,
   clearSessionActiveMember,

@@ -20,6 +20,7 @@ export function useImpetusPulse() {
       const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
       const role = (user.role || '').toLowerCase();
       if (['ceo', 'diretor', 'admin', 'rh'].includes(role)) return;
+      if (user.is_factory_team_account && !user.factory_active_member?.id) return;
 
       const r = await pulse.getMePrompt();
       const ev = r.data?.evaluation;
@@ -45,6 +46,8 @@ export function useImpetusPulse() {
     try {
       const token = localStorage.getItem('impetus_token');
       if (!token) return;
+      const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+      if (user.is_factory_team_account && !user.factory_active_member?.id) return;
       const d = new Date().getDay();
       if (d !== 1 && d !== 2) return;
       const wk = new Date().toISOString().slice(0, 10);

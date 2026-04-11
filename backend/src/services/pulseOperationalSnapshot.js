@@ -80,4 +80,37 @@ async function buildOperationalSnapshot(companyId, userId, days = 30) {
   };
 }
 
-module.exports = { buildOperationalSnapshot };
+/**
+ * Snapshot para auxiliar/operador (login coletivo): métricas atribuíveis ao membro quando existirem.
+ */
+async function buildTeamMemberOperationalSnapshot(companyId, collectiveUserId, teamMemberId, days = 30) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  let proposalsCount = 0;
+  try {
+    const pr = await db.query(
+      `
+      SELECT COUNT(*)::int AS c FROM proposals
+      WHERE company_id = $1
+        AND reporter_id = $2
+        AND operational_team_member_id = $3
+        AND (created_at IS NULL OR created_at >= ($4::date)::timestamptz)
+    `,
+      [companyId, collectiveUserId, teamMemberId, since]
+    );
+    proposalsCount = pr.rows?.[0]?.c ?? 0;
+  } catch (_) {
+    proposalsCount = 0;
+  }
+  return {
+    period_days: days,
+    since,
+    context: 'operational_team_member',
+    operational_team_member_id: teamMemberId,
+    proacao_proposals_submitted: proposalsCount,
+    hints: {
+      improvement_signal: proposalsCount > 0 ? 'Contribuições no Pró-Ação registradas neste período.' : null
+    }
+  };
+}
+
+module.exports = { buildOperationalSnapshot, buildTeamMemberOperationalSnapshot };

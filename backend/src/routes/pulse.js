@@ -43,7 +43,11 @@ router.get('/me/prompt', requireAuth, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
-    const out = await pulseService.getPendingPromptForUser(companyId, req.user.id);
+    const memberId = req.user.active_operational_team_member_id;
+    const out =
+      req.user.is_factory_team_account && memberId
+        ? await pulseService.getPendingPromptForTeamMember(companyId, memberId)
+        : await pulseService.getPendingPromptForUser(companyId, req.user.id);
     res.json({ ok: true, ...out });
   } catch (e) {
     console.error('[PULSE_ME_PROMPT]', e);
@@ -55,7 +59,11 @@ router.post('/me/start', requireAuth, jsonBody, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
-    const evaluation = await pulseService.startEvaluation(companyId, req.user.id, billingFromReq(req));
+    const memberId = req.user.active_operational_team_member_id;
+    const evaluation =
+      req.user.is_factory_team_account && memberId
+        ? await pulseService.startEvaluationForTeamMember(companyId, memberId, billingFromReq(req))
+        : await pulseService.startEvaluation(companyId, req.user.id, billingFromReq(req));
     res.json({ ok: true, evaluation });
   } catch (e) {
     console.error('[PULSE_ME_START]', e);
@@ -69,7 +77,17 @@ router.post('/me/submit', requireAuth, jsonBody, async (req, res) => {
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
     const evaluationId = req.body?.evaluation_id;
     if (!evaluationId) return res.status(400).json({ ok: false, error: 'evaluation_id obrigatório' });
-    const result = await pulseService.submitSelfEvaluation(companyId, req.user.id, evaluationId, req.body, billingFromReq(req));
+    const memberId = req.user.active_operational_team_member_id;
+    const result =
+      req.user.is_factory_team_account && memberId
+        ? await pulseService.submitSelfEvaluationForTeamMember(
+            companyId,
+            memberId,
+            evaluationId,
+            req.body,
+            billingFromReq(req)
+          )
+        : await pulseService.submitSelfEvaluation(companyId, req.user.id, evaluationId, req.body, billingFromReq(req));
     res.json({ ok: true, ...result });
   } catch (e) {
     console.error('[PULSE_ME_SUBMIT]', e);
@@ -81,7 +99,11 @@ router.get('/me/motivation', requireAuth, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
-    const row = await pulseService.getMotivationPillForUser(companyId, req.user.id);
+    const memberId = req.user.active_operational_team_member_id;
+    const row =
+      req.user.is_factory_team_account && memberId
+        ? await pulseService.getMotivationPillForTeamMember(companyId, memberId)
+        : await pulseService.getMotivationPillForUser(companyId, req.user.id);
     res.json({ ok: true, pill: row });
   } catch (e) {
     console.error('[PULSE_ME_MOTIVATION]', e);

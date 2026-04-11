@@ -14,10 +14,12 @@ export default function Modal({
   children, 
   size = 'medium', // small, medium, large, full
   showCloseButton = true,
-  closeOnOverlayClick = true
+  closeOnOverlayClick = true,
+  closeOnEscape = true
 }) {
   // Fechar modal com ESC
   useEffect(() => {
+    if (!closeOnEscape) return undefined;
     const handleEsc = (e) => {
       if (e.key === 'Escape' && isOpen) {
         onClose();
@@ -26,7 +28,7 @@ export default function Modal({
 
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closeOnEscape]);
 
   // Prevenir scroll do body quando modal está aberto
   useEffect(() => {

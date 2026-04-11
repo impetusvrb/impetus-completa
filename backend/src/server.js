@@ -199,6 +199,9 @@ useRoute('/api/admin/departments', './routes/admin/departments');
 /** Métricas/relatórios primeiro (router leve); CRUD em operationalTeams pode depender de bcrypt. */
 useRoute('/api/admin/operational-teams', './routes/admin/operationalTeamsMetrics');
 useRoute('/api/admin/operational-teams', './routes/admin/operationalTeams');
+// Alias PT-BR para builds/frontend antigos que ainda usam "equipes-operacionais".
+useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeamsMetrics');
+useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeams');
 useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');

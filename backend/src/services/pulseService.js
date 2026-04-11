@@ -2,7 +2,7 @@
  * Impetus Pulse — serviço principal (autoavaliação blind, campanhas, analytics).
  */
 const db = require('../db');
-const { buildOperationalSnapshot } = require('./pulseOperationalSnapshot');
+const { buildOperationalSnapshot, buildTeamMemberOperationalSnapshot } = require('./pulseOperationalSnapshot');
 const pulseAI = require('./pulseAI');
 
 const EXCLUDED_FROM_EVALUATION = new Set(['ceo', 'diretor', 'admin', 'rh', 'internal_admin']);
@@ -53,11 +53,25 @@ async function setCompanyPulseEnabled(companyId, enabled) {
 async function loadUser(companyId, userId) {
   const r = await db.query(
     `
-    SELECT id, name, email, role, company_id, supervisor_id, department, department_id, job_title
+    SELECT id, name, email, role, company_id, supervisor_id, department, department_id, job_title,
+ COALESCE(is_factory_team_account, false) AS is_factory_team_account
     FROM users
     WHERE id = $1 AND company_id = $2 AND active = true AND deleted_at IS NULL
   `,
     [userId, companyId]
+  );
+  return r.rows[0] || null;
+}
+
+async function loadOperationalTeamMember(companyId, teamMemberId) {
+  const r = await db.query(
+    `
+    SELECT m.*, t.company_id, t.name AS team_name, t.id AS team_table_id
+    FROM operational_team_members m
+    INNER JOIN operational_teams t ON t.id = m.team_id AND t.company_id = $1 AND t.active
+    WHERE m.id = $2 AND m.active
+  `,
+    [companyId, teamMemberId]
   );
   return r.rows[0] || null;
 }
@@ -238,6 +252,176 @@ async function submitSelfEvaluation(companyId, userId, evaluationId, body, billi
   return { ok: true, status: nextStatus, ai_feedback_message: feedback, motivation_pill: pill };
 }
 
+async function getEvaluationForTeamMember(companyId, teamMemberId, evaluationId) {
+  const r = await db.query(
+    `
+    SELECT * FROM pulse_evaluations
+    WHERE id = $1 AND company_id = $2 AND operational_team_member_id = $3
+  `,
+    [evaluationId, companyId, teamMemberId]
+  );
+  if (!r.rows.length) return null;
+  return sanitizeEvaluationForSubject(r.rows[0]);
+}
+
+async function getPendingPromptForTeamMember(companyId, teamMemberId) {
+  const settings = await getCompanySettings(companyId);
+  if (!settings.pulse_enabled) return { show: false };
+  const m = await loadOperationalTeamMember(companyId, teamMemberId);
+  if (!m) return { show: false };
+  const r = await db.query(
+    `
+    SELECT id FROM pulse_evaluations
+    WHERE company_id = $1 AND operational_team_member_id = $2 AND status = 'pending_user'
+      AND scheduled_for <= now()
+    ORDER BY scheduled_for ASC
+    LIMIT 1
+  `,
+    [companyId, teamMemberId]
+  );
+  if (!r.rows.length) return { show: false };
+  const ev = await getEvaluationForTeamMember(companyId, teamMemberId, r.rows[0].id);
+  return { show: true, evaluation: ev };
+}
+
+async function startEvaluationForTeamMember(companyId, teamMemberId, billing) {
+  const settings = await getCompanySettings(companyId);
+  if (!settings.pulse_enabled) {
+    throw new Error('Impetus Pulse está desativado para esta empresa.');
+  }
+  const m = await loadOperationalTeamMember(companyId, teamMemberId);
+  if (!m) throw new Error('Colaborador não encontrado.');
+
+  const open = await db.query(
+    `
+    SELECT id FROM pulse_evaluations
+    WHERE company_id = $1 AND operational_team_member_id = $2 AND status = 'pending_user'
+    LIMIT 1
+  `,
+    [companyId, teamMemberId]
+  );
+  if (open.rows.length) {
+    return getEvaluationForTeamMember(companyId, teamMemberId, open.rows[0].id);
+  }
+
+  const collectiveUserId = billing?.userId || null;
+  const snapshot = await buildTeamMemberOperationalSnapshot(companyId, collectiveUserId, teamMemberId, 30);
+  const questions = pulseAI.templateQuestions(snapshot, m.display_name || 'Operador');
+  const aiPayload = questions.map((q) => ({
+    qid: q.qid,
+    text: q.text,
+    focus: q.focus || null,
+    answer: null,
+    score: null
+  }));
+
+  const ins = await db.query(
+    `
+    INSERT INTO pulse_evaluations (
+      company_id, user_id, operational_team_member_id, supervisor_id, fixed_scores, ai_custom_questions,
+      ai_operational_snapshot, status, scheduled_for, updated_at
+    ) VALUES ($1, NULL, $2, NULL, $3, $4, $5, 'pending_user', now(), now())
+    RETURNING *
+  `,
+    [
+      companyId,
+      teamMemberId,
+      JSON.stringify({ efficiency: null, confidence: null, proactivity: null, synergy: null }),
+      JSON.stringify(aiPayload),
+      JSON.stringify(snapshot)
+    ]
+  );
+
+  return sanitizeEvaluationForSubject(ins.rows[0]);
+}
+
+async function submitSelfEvaluationForTeamMember(companyId, teamMemberId, evaluationId, body, billing) {
+  const collectiveUserId = billing?.userId;
+  if (!collectiveUserId) throw new Error('Sessão inválida para envio da avaliação.');
+
+  const fixed = body.fixed_scores || {};
+  const scores = {
+    efficiency: Math.min(5, Math.max(1, parseInt(fixed.efficiency, 10) || 0)),
+    confidence: Math.min(5, Math.max(1, parseInt(fixed.confidence, 10) || 0)),
+    proactivity: Math.min(5, Math.max(1, parseInt(fixed.proactivity, 10) || 0)),
+    synergy: Math.min(5, Math.max(1, parseInt(fixed.synergy, 10) || 0))
+  };
+  if ([scores.efficiency, scores.confidence, scores.proactivity, scores.synergy].some((x) => x < 1)) {
+    throw new Error('Informe todas as notas de 1 a 5 nas quatro dimensões fixas.');
+  }
+
+  const r = await db.query(
+    `
+    SELECT * FROM pulse_evaluations
+    WHERE id = $1 AND company_id = $2 AND operational_team_member_id = $3 AND status = 'pending_user'
+  `,
+    [evaluationId, companyId, teamMemberId]
+  );
+  if (!r.rows.length) throw new Error('Avaliação não encontrada ou já concluída.');
+
+  const row = r.rows[0];
+  let aiQuestions = row.ai_custom_questions;
+  if (typeof aiQuestions === 'string') aiQuestions = JSON.parse(aiQuestions);
+  const answers = body.ai_answers || {};
+  aiQuestions = (aiQuestions || []).map((q) => ({
+    ...q,
+    score: Math.min(5, Math.max(1, parseInt(answers[q.qid] ?? answers[q.qid?.toLowerCase()], 10) || 0)) || q.score
+  }));
+  for (const q of aiQuestions) {
+    if (!q.score || q.score < 1) throw new Error('Responda todas as perguntas dinâmicas (1 a 5).');
+  }
+
+  const snapshot =
+    typeof row.ai_operational_snapshot === 'string'
+      ? JSON.parse(row.ai_operational_snapshot)
+      : row.ai_operational_snapshot;
+
+  const feedback = await pulseAI.generateSelfFeedbackMessage(
+    companyId,
+    collectiveUserId,
+    scores,
+    snapshot,
+    billing
+  );
+
+  const nextStatus = row.supervisor_id ? 'pending_supervisor' : 'completed';
+  const pill = await pulseAI.generateMotivationPill(
+    companyId,
+    collectiveUserId,
+    { scores, snapshot_summary: snapshot },
+    billing
+  );
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+  const motivationWeek = weekStart.toISOString().slice(0, 10);
+
+  await db.query(
+    `
+    UPDATE pulse_evaluations SET
+      fixed_scores = $1,
+      ai_custom_questions = $2,
+      ai_feedback_message = $3,
+      status = $4,
+      self_completed_at = now(),
+      motivation_pill = $5,
+      motivation_pill_for_week = $6::date,
+      updated_at = now()
+    WHERE id = $7
+  `,
+    [
+      JSON.stringify(scores),
+      JSON.stringify(aiQuestions),
+      feedback,
+      nextStatus,
+      pill,
+      motivationWeek,
+      evaluationId
+    ]
+  );
+
+  return { ok: true, status: nextStatus, ai_feedback_message: feedback, motivation_pill: pill };
+}
+
 async function submitSupervisorPerception(companyId, supervisorId, evaluationId, text) {
   const t = String(text || '').trim();
   if (t.length < 10) throw new Error('Descreva sua percepção com pelo menos 10 caracteres.');
@@ -286,10 +470,15 @@ async function listHrEvaluations(companyId, filters) {
   const { from, to, status, limit = 200 } = filters;
   const params = [companyId];
   let sql = `
-    SELECT e.*, u.name AS user_name, u.job_title, u.department,
-           s.name AS supervisor_name
+    SELECT e.*,
+      COALESCE(u.name, m.display_name) AS user_name,
+      COALESCE(u.job_title, m.operator_kind, m.shift_label) AS job_title,
+      COALESCE(u.department, m.sector) AS department,
+      s.name AS supervisor_name,
+      m.matricula AS operator_matricula
     FROM pulse_evaluations e
-    JOIN users u ON u.id = e.user_id
+    LEFT JOIN users u ON u.id = e.user_id
+    LEFT JOIN operational_team_members m ON m.id = e.operational_team_member_id
     LEFT JOIN users s ON s.id = e.supervisor_id
     WHERE e.company_id = $1
   `;
@@ -586,6 +775,20 @@ async function getMotivationPillForUser(companyId, userId) {
   return r.rows[0] || null;
 }
 
+async function getMotivationPillForTeamMember(companyId, teamMemberId) {
+  const r = await db.query(
+    `
+    SELECT motivation_pill, motivation_pill_for_week, self_completed_at
+    FROM pulse_evaluations
+    WHERE company_id = $1 AND operational_team_member_id = $2 AND motivation_pill IS NOT NULL
+    ORDER BY self_completed_at DESC NULLS LAST
+    LIMIT 1
+  `,
+    [companyId, teamMemberId]
+  );
+  return r.rows[0] || null;
+}
+
 /** Verifica se deve exibir prompt (pop-up) — há avaliação pending_user agendada. */
 async function getPendingPromptForUser(companyId, userId) {
   const settings = await getCompanySettings(companyId);
@@ -593,6 +796,7 @@ async function getPendingPromptForUser(companyId, userId) {
 
   const user = await loadUser(companyId, userId);
   if (!user || !isSubjectToPulse(user.role)) return { show: false };
+  if (user.is_factory_team_account) return { show: false };
 
   const r = await db.query(
     `
@@ -635,6 +839,7 @@ async function triggerCampaignForUsers(companyId, userIds, opts = {}) {
     let sql = `
       SELECT id, role FROM users
       WHERE company_id = $1 AND active = true AND deleted_at IS NULL
+        AND COALESCE(is_factory_team_account, false) = false
     `;
     const params = [companyId];
     if (targetRoles) {
@@ -643,6 +848,23 @@ async function triggerCampaignForUsers(companyId, userIds, opts = {}) {
     }
     const r = await db.query(sql, params);
     targets = (r.rows || []).map((x) => x.id);
+  }
+
+  let memberTargets = Array.isArray(opts.operational_team_member_ids) ? opts.operational_team_member_ids : [];
+  if (opts.all_factory_operators) {
+    const mr = await db.query(
+      `
+      SELECT m.id
+      FROM operational_team_members m
+      INNER JOIN operational_teams t ON t.id = m.team_id AND t.company_id = $1 AND t.active
+      WHERE m.active
+        AND m.access_password_hash IS NOT NULL
+        AND m.matricula IS NOT NULL
+        AND btrim(m.matricula) <> ''
+    `,
+      [companyId]
+    );
+    memberTargets = (mr.rows || []).map((x) => x.id);
   }
 
   let created = 0;
@@ -683,6 +905,49 @@ async function triggerCampaignForUsers(companyId, userIds, opts = {}) {
     );
     created++;
   }
+
+  for (const mid of memberTargets) {
+    const m = await loadOperationalTeamMember(companyId, mid);
+    if (!m) continue;
+    const ex = await db.query(
+      `SELECT id FROM pulse_evaluations WHERE company_id = $1 AND operational_team_member_id = $2 AND status = 'pending_user'`,
+      [companyId, mid]
+    );
+    if (ex.rows.length) continue;
+
+    const collective = await db.query(
+      `SELECT id FROM users WHERE company_id = $1 AND operational_team_id = $2 AND is_factory_team_account AND active AND deleted_at IS NULL LIMIT 1`,
+      [companyId, m.team_id]
+    );
+    const collectiveUserId = collective.rows[0]?.id || null;
+    const snapshot = await buildTeamMemberOperationalSnapshot(companyId, collectiveUserId, mid, 30);
+    const questions = pulseAI.templateQuestions(snapshot, m.display_name || 'Operador');
+    const aiPayload = questions.map((q) => ({
+      qid: q.qid,
+      text: q.text,
+      focus: q.focus || null,
+      answer: null,
+      score: null
+    }));
+
+    await db.query(
+      `
+      INSERT INTO pulse_evaluations (
+        company_id, user_id, operational_team_member_id, supervisor_id, fixed_scores, ai_custom_questions,
+        ai_operational_snapshot, status, scheduled_for, updated_at
+      ) VALUES ($1, NULL, $2, NULL, $3, $4, $5, 'pending_user', now(), now())
+    `,
+      [
+        companyId,
+        mid,
+        JSON.stringify({ efficiency: null, confidence: null, proactivity: null, synergy: null }),
+        JSON.stringify(aiPayload),
+        JSON.stringify(snapshot)
+      ]
+    );
+    created++;
+  }
+
   return { created };
 }
 
@@ -728,10 +993,16 @@ module.exports = {
   getHrAnalytics,
   generateHrReport,
   getMotivationPillForUser,
+  getMotivationPillForTeamMember,
   getPendingPromptForUser,
+  getPendingPromptForTeamMember,
   getEvaluationForUser,
+  getEvaluationForTeamMember,
+  startEvaluationForTeamMember,
+  submitSelfEvaluationForTeamMember,
   triggerCampaignForUsers,
   listCampaigns,
   createCampaign,
-  loadUser
+  loadUser,
+  loadOperationalTeamMember
 };
