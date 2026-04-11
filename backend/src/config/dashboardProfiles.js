@@ -340,8 +340,8 @@ const DASHBOARD_PROFILES = {
     data_depth: 'detailed',
     visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'hr_intelligence', 'settings'],
     cards: [
-      { key: 'team_indicators', title: 'Indicadores da equipe', icon: 'users', color: 'blue', route: '/app/hr-intelligence' },
-      { key: 'hr_alerts', title: 'Alertas de RH', icon: 'alert', color: 'orange', route: '/app/hr-intelligence' },
+      { key: 'team_indicators', title: 'Indicadores da equipe', icon: 'users', color: 'blue', route: '/app/pulse-rh' },
+      { key: 'hr_alerts', title: 'Alertas de RH', icon: 'alert', color: 'orange', route: '/app/pulse-rh' },
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' }
     ],
