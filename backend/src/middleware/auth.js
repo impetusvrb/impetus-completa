@@ -423,6 +423,43 @@ function requireRole(...allowedRoles) {
 }
 
 /**
+ * Rotas /pulse/hr/* — papel RH ou perfil de dashboard de gestão de pessoas (diretor/gerente de RH).
+ */
+function requireRhManagementAccess(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      ok: false,
+      error: AUTH.NOT_AUTHENTICATED,
+      code: 'AUTH_REQUIRED'
+    });
+  }
+  const role = String(req.user.role || '').toLowerCase();
+  const prof = String(req.user.dashboard_profile || '').toLowerCase();
+  if (role === 'rh' || prof === 'hr_management') {
+    return next();
+  }
+  logAction({
+    companyId: req.user.company_id,
+    userId: req.user.id,
+    userName: req.user.name,
+    userRole: req.user.role,
+    action: 'access_denied',
+    entityType: 'role',
+    description: `Acesso negado: Impetus Pulse RH requer role rh ou dashboard_profile hr_management (atual role=${role}, profile=${prof || 'n/d'})`,
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+    severity: 'warning',
+    success: false
+  }).catch(() => {});
+  return res.status(403).json({
+    ok: false,
+    error: AUTH.ACCESS_DENIED_ROLE,
+    code: 'AUTH_ROLE_DENIED',
+    required_roles: ['rh', 'dashboard_profile:hr_management']
+  });
+}
+
+/**
  * Exige company_id no utilizador autenticado (cadastros multi-tenant).
  */
 function requireCompanyId(req, res, next) {
@@ -511,6 +548,7 @@ module.exports = {
   requireAuth,
   requireHierarchy,
   requireRole,
+  requireRhManagementAccess,
   requireCompanyId,
   requirePermission,
   requireFactoryOperationalMember,

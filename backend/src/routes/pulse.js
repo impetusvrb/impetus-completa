@@ -3,7 +3,7 @@
  */
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireRhManagementAccess } = require('../middleware/auth');
 const pulseService = require('../services/pulseService');
 
 const jsonBody = express.json({ limit: '256kb' });
@@ -142,7 +142,7 @@ router.post('/supervisor/:evaluationId/perception', requireAuth, jsonBody, async
 });
 
 /** RH — analytics agregado (temporal, setor, status, dispersão) */
-router.get('/hr/analytics', requireAuth, requireRole('rh'), async (req, res) => {
+router.get('/hr/analytics', requireAuth, requireRhManagementAccess, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -162,7 +162,7 @@ router.get('/hr/analytics', requireAuth, requireRole('rh'), async (req, res) => 
 });
 
 /** RH — dados completos */
-router.get('/hr/evaluations', requireAuth, requireRole('rh'), async (req, res) => {
+router.get('/hr/evaluations', requireAuth, requireRhManagementAccess, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -179,7 +179,7 @@ router.get('/hr/evaluations', requireAuth, requireRole('rh'), async (req, res) =
   }
 });
 
-router.post('/hr/trigger', requireAuth, requireRole('rh'), jsonBody, async (req, res) => {
+router.post('/hr/trigger', requireAuth, requireRhManagementAccess, jsonBody, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -193,7 +193,7 @@ router.post('/hr/trigger', requireAuth, requireRole('rh'), jsonBody, async (req,
   }
 });
 
-router.post('/hr/report/:evaluationId', requireAuth, requireRole('rh'), async (req, res) => {
+router.post('/hr/report/:evaluationId', requireAuth, requireRhManagementAccess, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -206,7 +206,7 @@ router.post('/hr/report/:evaluationId', requireAuth, requireRole('rh'), async (r
 });
 
 /** Estado do módulo na empresa (RH não usa /pulse/admin/settings — exige role admin). */
-router.get('/hr/company-settings', requireAuth, requireRole('rh'), async (req, res) => {
+router.get('/hr/company-settings', requireAuth, requireRhManagementAccess, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -218,7 +218,7 @@ router.get('/hr/company-settings', requireAuth, requireRole('rh'), async (req, r
   }
 });
 
-router.get('/hr/campaigns', requireAuth, requireRole('rh'), async (req, res) => {
+router.get('/hr/campaigns', requireAuth, requireRhManagementAccess, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -230,7 +230,7 @@ router.get('/hr/campaigns', requireAuth, requireRole('rh'), async (req, res) => 
   }
 });
 
-router.post('/hr/campaigns', requireAuth, requireRole('rh'), jsonBody, async (req, res) => {
+router.post('/hr/campaigns', requireAuth, requireRhManagementAccess, jsonBody, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });

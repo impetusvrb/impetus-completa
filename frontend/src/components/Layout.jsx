@@ -403,6 +403,22 @@ export default function Layout({ children }) {
     baseMenuItems = MENUS[role] || MENU_COLABORADOR_OPERACIONAL;
   }
 
+  /** Diretor/Gerente (etc.) com perfil hr_management: mesmo item que role rh, para Impetus Pulse completo. */
+  if (
+    dashboardProfile === 'hr_management' &&
+    !baseMenuItems.some((item) => item.path === '/app/pulse-rh')
+  ) {
+    const cloned = [...baseMenuItems];
+    const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
+    const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
+    cloned.splice(insertAt, 0, {
+      path: '/app/pulse-rh',
+      icon: Activity,
+      label: 'Impetus Pulse (RH)'
+    });
+    baseMenuItems = cloned;
+  }
+
   // Regra: manutenção (supervisor e técnicos do depto de manutenção) sempre vê ManuIA e ManuIA Campo.
   if (maintenanceProfile && !maintenanceTechnicianMenu) {
     const cloned = [...baseMenuItems];

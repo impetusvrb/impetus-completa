@@ -26,13 +26,14 @@ export function isMaintenanceProfile(user) {
  * Mapeia role/profile para chave de menu do Layout (admin, diretor, gerente, coordenador, supervisor, colaborador, ceo)
  * Auxiliar de produção = colaborador (mesmo menu e painel)
  */
-/** Papéis com acesso à rota /app/pulse-rh (alinhado a requireRole('rh') no backend). */
+/** Papéis com acesso à rota /app/pulse-rh (backend: role rh ou dashboard_profile hr_management). */
 export const PULSE_RH_ROLE_KEYS = ['rh'];
 
 export function canAccessPulseRhRoute(user) {
   if (!user) return false;
   const r = (user.role || '').toLowerCase();
-  return PULSE_RH_ROLE_KEYS.includes(r);
+  const p = String(user.dashboard_profile || '').toLowerCase();
+  return PULSE_RH_ROLE_KEYS.includes(r) || p === 'hr_management';
 }
 
 export function resolveMenuRole(user) {
