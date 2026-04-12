@@ -494,6 +494,7 @@ export default function AdminUsers() {
             name="role"
             value={filters.role}
             onChange={(e) => handleFilterChange('role', e.target.value)}
+            placeholder=""
             options={[
               { value: '', label: 'Todas as funções' },
               { value: 'ceo', label: 'CEO' },
@@ -509,6 +510,7 @@ export default function AdminUsers() {
             name="active"
             value={filters.active}
             onChange={(e) => handleFilterChange('active', e.target.value)}
+            placeholder=""
             options={[
               { value: '', label: 'Todos os status' },
               { value: 'true', label: 'Ativos' },
@@ -787,6 +789,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
           name="department_id"
           value={formData.department_id || ''}
           onChange={onChange}
+          placeholder=""
           options={[
             { value: '', label: 'Nenhum' },
             ...(departments || []).map((d) => ({ value: d.id, label: d.name }))
@@ -799,6 +802,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
           name="functional_area"
           value={formData.functional_area || ''}
           onChange={onChange}
+          placeholder=""
           options={[
             { value: '', label: 'Automático (inferir pelo cargo, departamento e descrição)' },
             { value: 'production', label: 'Produção' },
@@ -820,7 +824,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
         value={formData.company_role_id || ''}
         onChange={onChange}
         options={structuralRoleOptions}
-        placeholder="Opcional"
+        placeholder=""
         helperText="Associa este utilizador a um cargo cadastrado em Base Estrutural — a IA e o dashboard usam responsabilidades e contexto da empresa."
       />
 
@@ -830,6 +834,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
           name="supervisor_id"
           value={formData.supervisor_id}
           onChange={onChange}
+          placeholder=""
           options={[{ value: '', label: 'Nenhum' }, ...supervisorOptions]}
           helperText="Define vínculo hierárquico para filtro de dados"
         />

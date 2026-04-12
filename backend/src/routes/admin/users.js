@@ -72,10 +72,11 @@ const createUserSchema = z.object({
   permissions: z.array(z.string()).optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional(),
   hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
-  company_role_id: z.preprocess(
-    (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.string().uuid().optional()
-  )
+  company_role_id: z.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const s = typeof v === 'string' ? v.trim() : String(v).trim();
+    return s === '' ? undefined : s;
+  }, z.string().uuid().optional())
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -109,10 +110,12 @@ const updateUserSchema = z.object({
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
   dashboard_profile: z.string().max(64).nullable().optional(),
   hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
-  company_role_id: z.preprocess(
-    (v) => (v === '' || v === undefined ? undefined : v),
-    z.union([z.string().uuid(), z.null()]).optional()
-  )
+  company_role_id: z.preprocess((v) => {
+    if (v === null) return null;
+    if (v === '' || v === undefined) return undefined;
+    const s = typeof v === 'string' ? v.trim() : String(v).trim();
+    return s === '' ? undefined : s;
+  }, z.union([z.string().uuid(), z.null()]).optional())
 });
 
 /**
@@ -185,10 +188,10 @@ router.get('/',
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.hr_responsibilities,
           u.company_role_id,
+          u.department_id,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
-          d.id as department_id,
           cr.name as structural_role_name,
           (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now()) as active_sessions
         FROM users u

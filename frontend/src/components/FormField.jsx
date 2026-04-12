@@ -86,9 +86,12 @@ export function SelectField({
         disabled={disabled}
         className={`form-select ${error ? 'error' : ''}`}
       >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
+        {placeholder ? <option value="">{placeholder}</option> : null}
+        {options.map((option, idx) => (
+          <option
+            key={option.value !== '' && option.value != null ? String(option.value) : `empty-${idx}`}
+            value={option.value}
+          >
             {option.label}
           </option>
         ))}
