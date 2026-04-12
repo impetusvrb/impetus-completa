@@ -19,10 +19,24 @@ function normalizeText(v) {
     .trim();
 }
 
+/** Texto agregado para inferência (inclui nome do departamento quando só há department_id). */
+function contextualTextForInference(user) {
+  if (!user) return '';
+  return [user.department, user.area, user.department_resolved_name]
+    .filter((x) => x && String(x).trim())
+    .join(' ');
+}
+
 function inferAreaFromFreeText(text) {
   const t = normalizeText(text);
   if (!t) return null;
-  if (/(recursos humanos|gestao de pessoas|rh\b|absenteismo|turnover|treinamento|clima organizacional)/.test(t)) return 'hr';
+  if (
+    /(recursos humanos|gestao de pessoas|human resources|people operations|people and culture|people & culture|hrbp|rh\b|absenteismo|turnover|treinamento|clima organizacional)/.test(
+      t
+    )
+  ) {
+    return 'hr';
+  }
   if (/(finance|custo|despesa|margem|fluxo de caixa|inadimplencia)/.test(t)) return 'finance';
   if (/(manutenc|pcm|mttr|mtbf|ordem de servico|mecanic|eletric)/.test(t)) return 'maintenance';
   if (/(qualidade|nao conform|inspec|laboratorio|microbio|desvio)/.test(t)) return 'quality';
@@ -31,6 +45,17 @@ function inferAreaFromFreeText(text) {
   if (/(produc|linha|turno|refugo|eficiencia)/.test(t)) return 'production';
   if (/(administra|administrativo)/.test(t)) return 'admin';
   return null;
+}
+
+/** Roles em inglês na BD → chaves de ROLE_AREA_TO_PROFILE (PT). */
+function normalizeRoleForDashboardProfile(roleRaw) {
+  const r = String(roleRaw || '')
+    .toLowerCase()
+    .trim();
+  if (r === 'director' || r === 'directora') return 'diretor';
+  if (r === 'manager') return 'gerente';
+  if (r === 'coordinator' || r === 'coordinador') return 'coordenador';
+  return r;
 }
 
 /** Perfis válidos (whitelist) */
@@ -48,13 +73,18 @@ const VALID_PROFILES = new Set([
  * Prioridade: functional_area > inferência de job_title > role default
  */
 function resolveFunctionalArea(user) {
-  const fa = normalizeText(user.functional_area);
-  if (fa && ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'].includes(fa)) {
-    const freeFromDept = inferAreaFromFreeText(user.department || user.area || '');
+  const faRaw = user.functional_area || user.company_role_dashboard_hint;
+  const fa = normalizeText(faRaw);
+  const ctxText = contextualTextForInference(user);
+  if (
+    fa &&
+    ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'rh', 'recursos_humanos', 'finance', 'admin'].includes(fa)
+  ) {
+    const freeFromDept = inferAreaFromFreeText(ctxText);
     if (freeFromDept && freeFromDept !== fa) return freeFromDept;
     return fa;
   }
-  const inferredByDept = inferAreaFromFreeText(user.department || user.area || '');
+  const inferredByDept = inferAreaFromFreeText(ctxText);
   if (inferredByDept) return inferredByDept;
   const inferredByDescription = inferAreaFromFreeText(user.hr_responsibilities || user.descricao || user.descricao_funcional || '');
   if (inferredByDescription) return inferredByDescription;
@@ -82,13 +112,13 @@ function resolveDashboardProfile(user) {
   const override = (user.dashboard_profile || '').trim();
   const hasStrongContext =
     String(user.job_title || '').trim().length > 1 ||
-    String(user.functional_area || '').trim().length > 0 ||
-    String(user.department || user.area || '').trim().length > 1;
+    String(user.functional_area || user.company_role_dashboard_hint || '').trim().length > 0 ||
+    String(user.department || user.area || user.department_resolved_name || '').trim().length > 1;
   if (!hasStrongContext && override && VALID_PROFILES.has(override)) {
     return override;
   }
 
-  const role = (user.role || '').toLowerCase();
+  const role = normalizeRoleForDashboardProfile(user.role);
   const area = resolveFunctionalArea(user);
 
   const roleMap = ROLE_AREA_TO_PROFILE[role];
@@ -140,5 +170,6 @@ module.exports = {
   resolveDashboardProfile,
   resolveAndPersistProfile,
   getDashboardConfigForUser,
-  VALID_PROFILES
+  VALID_PROFILES,
+  contextualTextForInference
 };

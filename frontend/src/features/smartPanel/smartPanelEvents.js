@@ -1,4 +1,7 @@
-import { inferVoiceVisualIntent } from '../../voice/voiceVisualPanelService';
+import {
+  inferVoiceVisualIntent,
+  resolveClaudePanelVisualIntent
+} from '../../voice/voiceVisualPanelService';
 import { parsePanelVoiceMetaCommand } from './panelVoiceMetaCommands';
 
 /** Evento global: frase final do utilizador no modo voz → painel inteligente (teclado / legado). */
@@ -53,9 +56,13 @@ export function dispatchClaudePanelBridge(detail) {
     return;
   }
 
-  // Sem filtro de «palavras-chave»: o Claude devolve shouldRender:false em cumprimentos;
-  // bloquear aqui fazia o painel nunca atualizar (erro ou vazio permanente).
-  if (userTranscript.length < 1 && assistantResponse.length < 8) return;
+  /* Só monta painel quando o utilizador pediu algo visual explícito ou confirmou oferta (ex. relatório/PDF).
+   * Conversa casual não dispara API. */
+  const visualIntent = resolveClaudePanelVisualIntent(
+    userTranscript,
+    assistantResponse
+  );
+  if (!visualIntent) return;
 
   window.dispatchEvent(
     new CustomEvent(CLAUDE_PANEL_BRIDGE_EVENT, {

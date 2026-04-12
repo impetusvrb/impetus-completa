@@ -43,8 +43,13 @@ export function useRealtimePresenceBridge({
   const sync = useCallback(async () => {
     if (!isPresenceEnabled() || !enabled) return;
     const voice_phase = mapVoiceStatusToPhase(voiceStatus);
+    /* Só após o utilizador terminar o turno (antes da resposta). Evita perceive/render
+     * a cada delta de transcrição em «listening» / «speaking» — menos carga e menos 404. */
+    if (voice_phase !== 'processing') return;
+
     const screen_path = String(pathname || '');
     const message = String(currentTranscript || '').slice(0, 2000);
+    if (message.trim().length < 3) return;
 
     try {
       const pr = await realtimePresence.perceive({ message, screen_path });

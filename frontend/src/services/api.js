@@ -244,6 +244,8 @@ export const realtimePresence = {
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
   getMe: () => api.get('/dashboard/me'),
+  /** Contexto interno + regras de acesso para o system prompt da voz OpenAI Realtime */
+  getVoiceRealtimeContext: () => api.get('/dashboard/voice-realtime-context'),
   /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
   getPersonalizado: () => api.get('/dashboard/personalizado'),
   /** Painel vivo dinamico orientado a eventos */

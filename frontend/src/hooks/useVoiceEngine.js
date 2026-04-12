@@ -21,6 +21,7 @@ import {
   dispatchClaudePanelBridge,
   runVoicePanelMetaIfHandled
 } from '../features/smartPanel/smartPanelEvents';
+import { dashboard } from '../services/api';
 import { parsePanelVoiceMetaCommand } from '../features/smartPanel/panelVoiceMetaCommands';
 import {
   isDidAvatarEnabled,
@@ -37,9 +38,17 @@ function isVoiceRealtimeEnabled() {
   return v === 'true' || v === '1';
 }
 
-function buildRealtimeSessionUpdate() {
+async function buildRealtimeSessionUpdate() {
   const envInstr = String(import.meta.env.VITE_REALTIME_INSTRUCTIONS || '').trim();
-  return buildImpetusRealtimeSessionUpdate(envInstr);
+  let append = '';
+  try {
+    const res = await dashboard.getVoiceRealtimeContext();
+    const d = res?.data;
+    if (d && d.instructions_append) append = String(d.instructions_append);
+  } catch (_) {
+    /* Sem contexto: mantém só instruções locais (governança ainda no prompt base). */
+  }
+  return buildImpetusRealtimeSessionUpdate(envInstr, append);
 }
 
 /** Base HTTP do backend (sem /api) para Socket.IO */
@@ -1768,7 +1777,7 @@ export function useVoiceEngine(options = {}) {
       });
 
       try {
-        await sess.connect({ sessionUpdate: buildRealtimeSessionUpdate() });
+        await sess.connect({ sessionUpdate: await buildRealtimeSessionUpdate() });
         if (!continuousRef.current) {
           sess.disconnect();
           return;

@@ -6,6 +6,7 @@
 const db = require('../db');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
 
@@ -61,9 +62,13 @@ async function validateSession(token) {
              u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root,
-             u.company_role_id, u.is_factory_team_account, u.operational_team_id
+             u.company_role_id, u.is_factory_team_account, u.operational_team_id,
+             d.name AS department_resolved_name,
+             cr.dashboard_functional_hint AS company_role_dashboard_hint
       FROM sessions s
       JOIN users u ON s.user_id = u.id
+      LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
+      LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
       WHERE s.token = $1 
         AND s.expires_at > now()
         AND u.active = true
@@ -118,7 +123,9 @@ async function validateSession(token) {
       is_factory_team_account: session.is_factory_team_account === true,
       operational_team_id: session.operational_team_id || null,
       active_operational_team_member_id: session.active_operational_team_member_id || null,
-      factory_member_confirmed_at: session.factory_member_confirmed_at || null
+      factory_member_confirmed_at: session.factory_member_confirmed_at || null,
+      department_resolved_name: session.department_resolved_name || null,
+      company_role_dashboard_hint: session.company_role_dashboard_hint || null
     };
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
@@ -150,14 +157,19 @@ async function validateJWTAndLoadUser(token) {
     if (!decoded?.id) return null;
 
     const r = await db.query(`
-      SELECT id, name, email, role, company_id, department_id, hierarchy_level,
-             supervisor_id, area, job_title, department, hr_responsibilities, functional_area, dashboard_profile,
-             preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
-             permissions, active,
-             is_first_access, must_change_password, temporary_password_expires_at,
-             role_verified, role_verification_status, is_company_root, company_role_id,
-             is_factory_team_account, operational_team_id
-      FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
+      SELECT u.id, u.name, u.email, u.role, u.company_id, u.department_id, u.hierarchy_level,
+             u.supervisor_id, u.area, u.job_title, u.department, u.hr_responsibilities, u.functional_area, u.dashboard_profile,
+             u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
+             u.permissions, u.active,
+             u.is_first_access, u.must_change_password, u.temporary_password_expires_at,
+             u.role_verified, u.role_verification_status, u.is_company_root, u.company_role_id,
+             u.is_factory_team_account, u.operational_team_id,
+             d.name AS department_resolved_name,
+             cr.dashboard_functional_hint AS company_role_dashboard_hint
+      FROM users u
+      LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
+      LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
+      WHERE u.id = $1 AND u.active = true AND u.deleted_at IS NULL
     `, [decoded.id]);
 
     if (r.rows.length === 0) return null;
@@ -195,7 +207,9 @@ async function validateJWTAndLoadUser(token) {
       operational_team_id: u.operational_team_id || null,
       active_operational_team_member_id: null,
       factory_member_confirmed_at: null,
-      sessionId: null
+      sessionId: null,
+      department_resolved_name: u.department_resolved_name || null,
+      company_role_dashboard_hint: u.company_role_dashboard_hint || null
     };
   } catch {
     return null;
@@ -422,6 +436,75 @@ function requireRole(...allowedRoles) {
   };
 }
 
+function normRhTxt(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+/** Mesma ideia do frontend: liderança + setor/cargo RH quando o perfil gravado ainda não é hr_management. */
+function userHasRhManagementScope(user) {
+  if (!user) return false;
+  const role = String(user.role || '').toLowerCase();
+  const prof = String(user.dashboard_profile || '').toLowerCase();
+  if (role === 'rh' || prof === 'hr_management') return true;
+
+  // Motor de perfil (área + cargo na BD) — evita 403 quando a coluna dashboard_profile está desatualizada.
+  try {
+    if (dashboardProfileResolver.resolveDashboardProfile(user) === 'hr_management') {
+      return true;
+    }
+  } catch (_) {
+    /* ignore */
+  }
+
+  let hrCtx = false;
+  for (const raw of [
+    user.functional_area,
+    user.area,
+    user.department,
+    user.department_resolved_name,
+    user.hr_responsibilities
+  ]) {
+    const x = normRhTxt(raw);
+    if (!x) continue;
+    if (x === 'hr' || x === 'rh') hrCtx = true;
+    if (x.includes('recursos humanos') || x.includes('recursos_humanos')) hrCtx = true;
+    if (x.includes('gestao de pessoas')) hrCtx = true;
+    if (x.includes('human resources')) hrCtx = true;
+    if (x.includes('people operations') || x.includes('people and culture') || x.includes('people & culture')) hrCtx = true;
+    if (/\bhrbp\b/.test(x)) hrCtx = true;
+  }
+  const job = `${normRhTxt(user.job_title)} ${normRhTxt(user.cargo)}`;
+  if (!hrCtx && job.trim()) {
+    if (
+      /\brecursos humanos\b/.test(job) ||
+      /\bgestao de pessoas\b/.test(job) ||
+      /\brh\b/.test(job) ||
+      /human resources/.test(job) ||
+      /\bhrbp\b/.test(job) ||
+      /people operations/.test(job) ||
+      /people (and|&) culture/.test(job)
+    ) {
+      hrCtx = true;
+    }
+  }
+  if (!hrCtx) return false;
+
+  return (
+    role === 'ceo' ||
+    role.includes('diretor') ||
+    role.includes('gerente') ||
+    role.includes('coordenador') ||
+    role.includes('supervisor') ||
+    role.includes('director') ||
+    role.includes('manager') ||
+    role.includes('coordinator')
+  );
+}
+
 /**
  * Rotas /pulse/hr/* — papel RH ou perfil de dashboard de gestão de pessoas (diretor/gerente de RH).
  */
@@ -435,7 +518,7 @@ function requireRhManagementAccess(req, res, next) {
   }
   const role = String(req.user.role || '').toLowerCase();
   const prof = String(req.user.dashboard_profile || '').toLowerCase();
-  if (role === 'rh' || prof === 'hr_management') {
+  if (userHasRhManagementScope(req.user)) {
     return next();
   }
   logAction({
@@ -445,7 +528,7 @@ function requireRhManagementAccess(req, res, next) {
     userRole: req.user.role,
     action: 'access_denied',
     entityType: 'role',
-    description: `Acesso negado: Impetus Pulse RH requer role rh ou dashboard_profile hr_management (atual role=${role}, profile=${prof || 'n/d'})`,
+    description: `Acesso negado: Impetus Pulse RH requer role rh, dashboard_profile hr_management ou liderança com contexto RH (atual role=${role}, profile=${prof || 'n/d'})`,
     ipAddress: req.ip,
     userAgent: req.get('user-agent'),
     severity: 'warning',

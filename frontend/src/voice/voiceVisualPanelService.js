@@ -23,23 +23,84 @@ export function inferVoiceVisualIntent(text) {
     /\b(painel completo|tudo no painel|mostra tudo|mostrar tudo|visao geral|visão geral|dashboard completo|o que acontece|situacao|situação)\b/.test(t)
   )
     return 'full_panel';
-  if (/\b(relatorio|relatório|gera\b|gerar|exportar|excel|planilha|pdf|imprimir)\b/.test(t)) return 'export_pack';
+  /* Relatório / export — imperativos PT (gere, crie, faça) + formatos de ficheiro */
+  if (
+    /\b(relatorios?|sumarios?|sumários?|resumo executivo)\b/.test(t) ||
+    /\b(exportar|excel|planilha|pdf|imprimir|emitir|elaborar|baixar|download|docx|xlsx|csv)\b/.test(t) ||
+    /\b(gera|gerar|gere|gerem|cria|crie|criar|monta|monte|faca|faça|faz|fazer|emite|emitir|manda|mande|envia|envie)\b/.test(t) ||
+    /\b(quero|preciso)\b/.test(t)
+  ) {
+    if (
+      /\b(relatorios?|sumarios?|sumários?|pdf|excel|planilha|export|documento|arquivo|ficheiro|download|csv|xlsx|docx)\b/.test(t)
+    ) {
+      return 'export_pack';
+    }
+  }
   if (/\b(grafico|gráfico|chart|diagrama|tendencia|tendência|evolucao|evolução|linha temporal|historico|histórico)\b/.test(t))
     return 'trend';
   if (/\b(manutencao|manutenção|ordem de servico|ordem de serviço|\bos\b|maquinas|máquinas|equipamento)\b/.test(t))
     return 'maintenance';
   if (/\b(cerebro|cérebro|inteligencia operacional|operacional brain|brain)\b/.test(t)) return 'operational_brain';
   if (/\b(indicador|kpi|kpis|painel|numeros|números|metricas|métricas)\b/.test(t)) return 'summary_bar';
-  if (/\b(mostrar|exibir|ver |quero ver|preciso ver)\b/.test(t) && t.length > 12) return 'summary_bar';
+  if (
+    /\b(mostrar|exibir)\b/.test(t) &&
+    t.length > 14 &&
+    /\b(painel|dashboard|grafico|gráfico|kpi|indicador|metricas|métricas|dados|relatorio|relatório|numeros|números)\b/.test(t)
+  ) {
+    return 'summary_bar';
+  }
+  if (/\b(quero ver|preciso ver)\b/.test(t) && /\b(painel|dashboard|grafico|gráfico|dados|kpi|indicadores)\b/.test(t)) {
+    return 'summary_bar';
+  }
   if (/\b(politica|política|procedimento|norma|documento da empresa)\b/.test(t))
     return 'policy_hint';
-  /* Pedido genérico mas claramente operacional: painel completo (gráficos + tabelas). */
+  /* Evitar full_panel em frases longas só com «quero/ver» — exige vocabulário de painel/dados. */
   if (
-    t.length >= 20 &&
-    /\b(quero|preciso|mostrar|exibir|ver|dados|inform|resumo|status|lista|painel|dashboard|operac|operacional|tudo sobre)\b/.test(t)
-  )
+    t.length >= 18 &&
+    /\b(quero|preciso)\b/.test(t) &&
+    /\b(painel|dashboard|grafico|gráfico|relatorio|relatório|kpi|indicador|metricas|métricas|exportar|planilha|pdf)\b/.test(t)
+  ) {
     return 'full_panel';
+  }
   return null;
+}
+
+/** Confirmação curta pós-oferta da assistente (ex.: «sim» depois de «quer o PDF?»). */
+function isShortExportConfirmation(tNorm) {
+  const s = String(tNorm || '').trim();
+  if (s.length < 2 || s.length > 40) return false;
+  return /\b(sim|si|ok|certo|pode|isso|confirmo|claro|gera|gere|manda|mande|envia|envie|faca|faça|por favor)\b/.test(
+    s
+  );
+}
+
+function assistantSuggestsExportPack(aNorm) {
+  const a = String(aNorm || '').trim();
+  if (a.length < 18) return false;
+  const hasFormat = /\b(relatorios?|pdf|excel|planilha|xlsx|docx|csv|export|sumarios?|report|spreadsheet|workbook)\b/.test(
+    a
+  );
+  if (!hasFormat) return false;
+  return /\b(gerar|gera|gere|criar|crie|quer|queres|gostaria|posso|pode|prepare|elaborar|enviar|mando|mandar|emito|emitir|generate|creating|create|would you|shall i|can i)\b/.test(
+    a
+  );
+}
+
+/**
+ * Intenção para o bridge Claude: texto do utilizador ou confirmação + contexto na última resposta da IA.
+ * @param {string} userText
+ * @param {string} assistantText
+ * @returns {string|null}
+ */
+export function resolveClaudePanelVisualIntent(userText, assistantText) {
+  const direct = inferVoiceVisualIntent(userText);
+  if (direct) return direct;
+
+  const u = norm(userText).trim();
+  const a = norm(assistantText).trim();
+  if (!assistantSuggestsExportPack(a)) return null;
+  if (!isShortExportConfirmation(u)) return null;
+  return 'export_pack';
 }
 
 function trendToChartData(raw) {

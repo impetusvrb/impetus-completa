@@ -108,6 +108,23 @@ export function useVisibleModules() {
   const fetchModules = useCallback(async () => {
     try {
       const r = await dashboard.getMe();
+      // Alinhar localStorage ao perfil resolvido no servidor (evita menu sem Pulse RH após mudança de cargo/área).
+      try {
+        const raw = localStorage.getItem('impetus_user');
+        if (raw && r?.data) {
+          const u = JSON.parse(raw);
+          const pc = r.data.profile_code;
+          const fa = r.data.functional_area;
+          const uc = r.data.user_context;
+          if (pc) u.dashboard_profile = pc;
+          if (fa) u.functional_area = fa;
+          if (uc?.job_title && !u.job_title) u.job_title = uc.job_title;
+          if (uc?.department && !u.department) u.department = uc.department;
+          localStorage.setItem('impetus_user', JSON.stringify(u));
+        }
+      } catch {
+        /* ignore */
+      }
       const mods = r?.data?.visible_modules ?? r?.data?.profile_config?.visible_modules;
       setVisibleModules(Array.isArray(mods) ? mods : []);
       const profileCode = String(r?.data?.profile_code || '').toLowerCase();

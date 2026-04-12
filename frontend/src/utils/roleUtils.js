@@ -29,25 +29,92 @@ export function isMaintenanceProfile(user) {
 /** Papéis com acesso à rota /app/pulse-rh (backend: role rh ou dashboard_profile hr_management). */
 export const PULSE_RH_ROLE_KEYS = ['rh'];
 
+function normTxt(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+/**
+ * Área / cargo claramente de RH (mesmo quando dashboard_profile ainda não foi gravado como hr_management).
+ */
+export function isHrFunctionalContext(user) {
+  if (!user) return false;
+  for (const raw of [
+    user.functional_area,
+    user.area,
+    user.department,
+    user.hr_responsibilities
+  ]) {
+    const x = normTxt(raw);
+    if (!x) continue;
+    if (x === 'hr' || x === 'rh') return true;
+    if (x.includes('recursos humanos') || x.includes('recursos_humanos')) return true;
+    if (x.includes('gestao de pessoas')) return true;
+    if (x.includes('human resources')) return true;
+    if (x.includes('people operations') || x.includes('people and culture') || x.includes('people & culture')) return true;
+    if (/\bhrbp\b/.test(x)) return true;
+  }
+  const job = `${normTxt(user.job_title)} ${normTxt(user.cargo)}`;
+  if (!job.trim()) return false;
+  return (
+    /\brecursos humanos\b/.test(job) ||
+    /\bgestao de pessoas\b/.test(job) ||
+    /\brh\b/.test(job) ||
+    /human resources/.test(job) ||
+    /\bhrbp\b/.test(job) ||
+    /people (management|ops)\b/.test(job) ||
+    /people operations/.test(job) ||
+    /people (and|&) culture/.test(job)
+  );
+}
+
+/**
+ * Menu lateral + rota /app/pulse-rh: papel rh, perfil hr_management, ou liderança com contexto RH (ex.: diretor com setor RH).
+ */
+export function shouldOfferPulseRhMenu(user) {
+  if (!user) return false;
+  const p = String(user.dashboard_profile || '').toLowerCase();
+  if (p === 'hr_management') return true;
+  const r = (user.role || '').toLowerCase();
+  if (PULSE_RH_ROLE_KEYS.includes(r)) return true;
+  if (!isHrFunctionalContext(user)) return false;
+  return isLeadershipMenuKey(resolveMenuRole(user));
+}
+
+/** Liderança para regras de menu (PT + EN). */
+export function isLeadershipMenuKey(menuKey) {
+  return ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(menuKey);
+}
+
 export function canAccessPulseRhRoute(user) {
   if (!user) return false;
-  const r = (user.role || '').toLowerCase();
-  const p = String(user.dashboard_profile || '').toLowerCase();
-  return PULSE_RH_ROLE_KEYS.includes(r) || p === 'hr_management';
+  return shouldOfferPulseRhMenu(user);
 }
 
 export function resolveMenuRole(user) {
   if (!user) return 'colaborador';
-  const role = (user.role || '').toLowerCase();
+  let role = (user.role || '').toLowerCase();
   const profile = (user.dashboard_profile || '').toLowerCase();
   const jobTitle = (user.job_title || '').toLowerCase();
+
+  // Papéis em inglês (BD/API) → mesma chave que PT para menu e regras
+  if (role === 'director' || role === 'diretora') role = 'diretor';
+  if (role === 'manager') role = 'gerente';
+  if (role === 'coordinator') role = 'coordenador';
 
   if (role === 'admin' || profile === 'admin_system') return 'admin';
   if (role === 'rh') return 'rh';
   if (role === 'ceo' || profile === 'ceo_executive') return 'ceo';
-  if (role.includes('diretor') || profile.includes('director')) return 'diretor';
-  if (role.includes('gerente') || role.includes('manager') || profile.includes('manager_')) return 'gerente';
-  if (role.includes('coordenador') || role.includes('coordinator') || profile.includes('coordinator_')) return 'coordenador';
+  if (role === 'diretor' || role.includes('diretor') || profile.includes('director')) return 'diretor';
+  if (role === 'gerente' || role.includes('gerente') || role.includes('manager') || profile.includes('manager_')) {
+    return 'gerente';
+  }
+  if (role === 'coordenador' || role.includes('coordenador') || role.includes('coordinator') || profile.includes('coordinator_')) {
+    return 'coordenador';
+  }
   if (role.includes('supervisor') || profile.includes('supervisor_')) return 'supervisor';
   if (role === 'operador' || profile.includes('operator_floor')) return 'operador';
   if (role.includes('auxiliar') || jobTitle.includes('auxiliar') || jobTitle.includes('aux. produ')) return 'colaborador';

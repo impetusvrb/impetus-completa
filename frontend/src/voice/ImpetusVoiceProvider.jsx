@@ -115,11 +115,17 @@ export default function ImpetusVoiceProvider({ children }) {
   const presenceBridgeEnabled =
     voiceEnabled && (overlayOpen || voiceState.isContinuous || voiceState.status !== 'idle');
 
+  /** Presença Realtime: só frase final do utilizador (fase processing), não parciais em tempo real. */
+  const presenceTranscript =
+    voiceState.status === 'processing'
+      ? String(voiceState.voicePanelUserText || '').trim()
+      : '';
+
   const presenceBridge = useRealtimePresenceBridge({
     voiceStatus: voiceState.status,
     pathname: location.pathname,
-    currentTranscript: voiceState.currentTranscript || '',
-    debounceMs: 240,
+    currentTranscript: presenceTranscript,
+    debounceMs: 320,
     enabled: presenceBridgeEnabled
   });
 

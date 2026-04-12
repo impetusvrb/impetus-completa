@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { JWT_SECRET, destroySession } = require('../middleware/auth');
 const roleVerification = require('../services/roleVerificationService');
+const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { getPublicAppBaseUrl } = require('../utils/publicAppUrl');
 
@@ -20,7 +21,13 @@ router.post('/login', async (req, res) => {
     }
 
     const result = await db.query(
-      'SELECT * FROM users WHERE lower(trim(email)) = lower(trim($1)) AND active = true',
+      `SELECT u.*,
+              d.name AS department_resolved_name,
+              cr.dashboard_functional_hint AS company_role_dashboard_hint
+       FROM users u
+       LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
+       LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
+       WHERE lower(trim(u.email)) = lower(trim($1)) AND u.active = true`,
       [email]
     );
 
@@ -73,6 +80,14 @@ router.post('/login', async (req, res) => {
       is_company_root: user.is_company_root
     });
 
+    let dashboardProfile = user.dashboard_profile || null;
+    try {
+      const { profile } = await dashboardProfileResolver.resolveAndPersistProfile(user);
+      if (profile) dashboardProfile = profile;
+    } catch (e) {
+      console.warn('[LOGIN] resolveAndPersistProfile:', e.message);
+    }
+
     const roleNormalized = (user.role || 'colaborador').toString().toLowerCase();
     const isFactoryTeam = user.is_factory_team_account === true;
     return res.json({
@@ -90,10 +105,17 @@ router.post('/login', async (req, res) => {
         is_company_root: user.is_company_root === true,
         needs_role_verification: needsVerification,
         functional_area: user.functional_area || null,
-        dashboard_profile: user.dashboard_profile || null,
+        dashboard_profile: dashboardProfile || null,
+        job_title: user.job_title || null,
+        department: user.department || null,
+        area: user.area || null,
+        hr_responsibilities: user.hr_responsibilities || null,
+        hierarchy_level: user.hierarchy_level ?? null,
         is_factory_team_account: isFactoryTeam,
         operational_team_id: user.operational_team_id || null,
-        needs_factory_member_selection: isFactoryTeam
+        needs_factory_member_selection: isFactoryTeam,
+        department_resolved_name: user.department_resolved_name || null,
+        company_role_dashboard_hint: user.company_role_dashboard_hint || null
       }
     });
   } catch (err) {

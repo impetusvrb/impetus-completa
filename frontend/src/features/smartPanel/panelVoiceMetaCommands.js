@@ -28,6 +28,52 @@ export function stripCourtesyPrefixes(text) {
   return t.trim();
 }
 
+/** Remove cortesia no fim («por favor», «obrigado») para comandos curtos funcionarem com STT. */
+export function stripCourtesySuffixes(text) {
+  let t = String(text || '').trim();
+  for (let i = 0; i < 8; i++) {
+    const next = t
+      .replace(/[,.\s]+(?:por\s+favor|por\s+gentileza|obrigad[oa]|valeu|brigad[oa])\s*$/i, '')
+      .replace(/\s+(?:por\s+favor|por\s+gentileza|obrigad[oa]|valeu|brigad[oa])\s*$/i, '')
+      .replace(/[.!?…]+\s*$/g, '')
+      .trim();
+    if (next === t) break;
+    t = next;
+  }
+  return t.trim();
+}
+
+/** Verbos de envio (voz/STT) — inclui imperativo «envie». */
+const SEND_VERB_RE =
+  '(?:enviar|envia|envie|mande|manda|mandar)';
+
+/**
+ * «Enviar para Fulano» sem «no chat» só se a frase for claramente um comando curto,
+ * não uma descrição («o sistema manda alertas para o gestor» → não é meta).
+ */
+function looksLikeImplicitChatCommand(rawTrim) {
+  const t = String(rawTrim || '').trim();
+  const afterCourtesy = t.replace(/^(?:por\s+favor|por\s+gentileza)\s+/i, '').trim();
+  const afterSubject = afterCourtesy.replace(/^(?:eu|n[oó]s)\s+/i, '').trim();
+  const lead = new RegExp(
+    `^(?:${SEND_VERB_RE}|(?:quero|preciso)\\s+${SEND_VERB_RE})\\b`,
+    'i'
+  );
+  return lead.test(afterCourtesy) || lead.test(afterSubject);
+}
+
+/** Destinatários que são fase/processo, não conversa Impetus («para revisão», «para produção»). */
+const WORKFLOW_RECIPIENT_BLOCK =
+  /^(?:revis[aã]o|produ[cç][aã]o|fabrica|f[aá]brica|sistema|homolog|staging|an[aá]lise|aprova[cç][aã]o|qualidade)$/i;
+
+function chatTargetsSanity(chat) {
+  if (!chat) return false;
+  if (chat.groupQuery && String(chat.groupQuery).trim().length >= 2) return true;
+  const uq = chat.userQueries || [];
+  if (!uq.length) return false;
+  return uq.some((q) => !WORKFLOW_RECIPIENT_BLOCK.test(norm(String(q).trim())));
+}
+
 /**
  * Parte lista de nomes após "para": "joão, wellington e maria" → três entradas.
  */
@@ -56,7 +102,7 @@ function splitRecipientList(frag) {
 function parseChatTargets(t) {
   const rawTrim = String(t || '').trim();
   const n = norm(rawTrim);
-  if (!/\b(enviar|envia|mande|manda|mandar)\b/.test(n)) return null;
+  if (!new RegExp(`\\b${SEND_VERB_RE}\\b`).test(n)) return null;
 
   const hasChatCtx =
     /\bno\s+chat\b/.test(n) ||
@@ -66,7 +112,10 @@ function parseChatTargets(t) {
     /\bno\s+impetus\b/.test(n);
 
   // Grupo existente: "para o grupo Operações no chat", "enviar para o grupo Vendas no impetus"
-  const groupRe = /\b(?:para|pr[oa]|no|ao)\s+(?:o\s+|a\s+)?grupo\s+(.+?)(?:\s+no\s+chat|\s+no\s+impetus|\s+do\s+chat|\.?\s*$)/i;
+  const groupRe = new RegExp(
+    `\\b(?:para|pr[oa]|no|ao)\\s+(?:o\\s+|a\\s+)?grupo\\s+(.+?)(?:\\s+no\\s+chat|\\s+no\\s+impetus|\\s+do\\s+chat|\\.?\\s*$)`,
+    'i'
+  );
   const gm = rawTrim.match(groupRe);
   if (gm) {
     let gname = gm[1].trim().replace(/\s+no\s+(?:chat|impetus).*$/i, '').trim();
@@ -76,7 +125,10 @@ function parseChatTargets(t) {
 
   // "enviar no chat interno para o João" (para vem DEPOIS do marcador — antes falhava)
   const directNoChatPara = rawTrim.match(
-    /\b(?:enviar|envia|mande|manda|mandar)\s+no\s+chat(?:\s+interno)?\s+para\s+(.+?)\s*$/i
+    new RegExp(
+      `\\b${SEND_VERB_RE}\\s+no\\s+chat(?:\\s+interno)?\\s+para\\s+(.+?)\\s*$`,
+      'i'
+    )
   );
   if (directNoChatPara) {
     let frag = directNoChatPara[1].trim();
@@ -89,7 +141,7 @@ function parseChatTargets(t) {
     if (userQueries.length) return { userQueries, groupQuery: null };
   }
   const directImpPara = rawTrim.match(
-    /\b(?:enviar|envia|mande|manda|mandar)\s+no\s+impetus\s+para\s+(.+?)\s*$/i
+    new RegExp(`\\b${SEND_VERB_RE}\\s+no\\s+impetus\\s+para\\s+(.+?)\\s*$`, 'i')
   );
   if (directImpPara) {
     let frag = directImpPara[1].trim();
@@ -148,6 +200,7 @@ function parseChatTargets(t) {
         n
       );
     if (blockedImplicit) return null;
+    if (!looksLikeImplicitChatCommand(rawTrim)) return null;
     before = rawTrim;
   }
 
@@ -181,7 +234,7 @@ function parseShareIntent(stripped) {
   const n = norm(sn);
   if (!sn || sn.length > 88) return null;
 
-  if (/\b(enviar|envia|manda|mande|mandar)\s+para\s+/i.test(sn)) return null;
+  if (new RegExp(`\\b${SEND_VERB_RE}\\s+para\\s+`, 'i').test(sn)) return null;
 
   const looksConversational =
     /\b(como|quando|onde|por\s+que|porque|qual|quais|o\s+que|que\s|sera|será|pode\s|podia|d[aá]\s+para|explica|mostra|quero\s+saber|devo|deveria|achas|acha|n[aã]o\s+sei|seria\s+poss|gostaria|d[uú]vida)\b/i.test(
@@ -206,14 +259,30 @@ function parseShareIntent(stripped) {
     return { kind: 'share' };
   }
 
-  if (/\b(?:enviar|manda)\s+no\s+chat\s*$/i.test(sn) || /\b(?:enviar|manda)\s+ao\s+chat\s*$/i.test(sn)) {
+  const sendNoChatBare = new RegExp(
+    `\\b${SEND_VERB_RE}\\s+no\\s+chat\\s*$`,
+    'i'
+  );
+  const sendAoChatBare = new RegExp(`\\b${SEND_VERB_RE}\\s+ao\\s+chat\\s*$`, 'i');
+  const sendProChat = new RegExp(
+    `\\b${SEND_VERB_RE}\\s+(?:pro|pr[oó])\\s+chat\\s*$`,
+    'i'
+  );
+  if (sendNoChatBare.test(sn) || sendAoChatBare.test(sn) || sendProChat.test(sn)) {
     return { kind: 'share' };
   }
 
+  const sendObjNoChat = new RegExp(
+    `^${SEND_VERB_RE}(\\s+(?:isso|isto|isso\\s+a[ií]|aquilo|o\\s+painel|agora|o\\s+relat[oó]rio|este\\s+painel|esse\\s+painel|tudo|o\\s+resumo))?\\s+no\\s+chat\\s*$`,
+    'i'
+  );
+  if (sendObjNoChat.test(sn)) return { kind: 'share' };
+
   if (
-    /^(?:enviar|envia|manda|mande|mandar)(\s+(?:isso|isto|o\s+painel|agora|o\s+relat[oó]rio|este\s+painel|esse\s+painel|tudo|o\s+resumo))?\s*$/i.test(
-      sn
-    )
+    new RegExp(
+      `^${SEND_VERB_RE}(\\s+(?:isso|isto|o\\s+painel|agora|o\\s+relat[oó]rio|este\\s+painel|esse\\s+painel|tudo|o\\s+resumo))?\\s*$`,
+      'i'
+    ).test(sn)
   ) {
     return { kind: 'share' };
   }
@@ -221,10 +290,35 @@ function parseShareIntent(stripped) {
   return null;
 }
 
+/** Remove sufixos educados após o verbo de impressão («para mim», «me») para casar com regex curtos. */
+function softenPrintTail(soft) {
+  let s = String(soft || '').trim();
+  for (let j = 0; j < 6; j++) {
+    const next = s
+      .replace(/\s+para\s+mim\s*$/i, '')
+      .replace(/\s+pra\s+mim\s*$/i, '')
+      .replace(/\s+para\s+si\s*$/i, '')
+      .replace(/\s+para\s+voc[eê]\s*$/i, '')
+      .replace(/\s+me\s*$/i, '')
+      .trim();
+    if (next === s) break;
+    s = next;
+  }
+  return s;
+}
+
+function normalizeHyphenImperatives(s) {
+  return String(s || '')
+    .replace(/\bimprima-me\b/gi, 'imprima me')
+    .replace(/\bimprime-me\b/gi, 'imprime me')
+    .replace(/\bimprimir-me\b/gi, 'imprimir me');
+}
+
 function parseExportMeta(stripped) {
-  const sn = stripped.trim();
+  const sn = normalizeHyphenImperatives(stripped.trim());
   const n = norm(sn.replace(/[,;.]+/g, ' '));
   const soft = n.replace(/\b(por|favor|gentileza|ia|ei|ol[áa]|oi)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  const printSoft = softenPrintTail(soft);
 
   if (
     /\bcomo\b/i.test(n) &&
@@ -245,13 +339,19 @@ function parseExportMeta(stripped) {
   if (blocked && sn.length > 40) return null;
 
   const printOk =
-    /^(?:imprimir|imprime|imprima|print)(\s+painel|\s+isto|\s+isso|\s+agora|\s+o\s+painel|\s+este|\s+esse|\s+tudo|\s+o\s+relat[oó]rio|\s+o\s+resumo|\s+por\s+gentileza|\s+por\s+favor)*\s*$/i.test(soft) ||
-    /^(?:imprimir|imprime|imprima|print)$/i.test(soft) ||
-    /^(?:faz|fa[çc]a|fazer)\s+(?:a\s+)?impress[aã]o\b/i.test(sn) ||
-    /\b(?:imprimir|imprime)\s+(?:este|esse|o)\s+(?:painel|relat)\w*/i.test(sn) ||
+    /^(?:imprimir|imprime|imprima|print)(\s+painel|\s+isto|\s+isso|\s+agora|\s+o\s+painel|\s+este|\s+esse|\s+tudo|\s+o\s+relat[oó]rio|\s+o\s+resumo|\s+para\s+mim|\s+pra\s+mim|\s+para\s+si|\s+para\s+voc[eê]|\s+me|\s+por\s+gentileza|\s+por\s+favor)*\s*$/i.test(
+      printSoft
+    ) ||
+    /^(?:imprimir|imprime|imprima|print)$/i.test(printSoft) ||
+    /^(?:faz|fa[çc]a|fazer)\s+(?:a\s+)?impress[aã]o(?:\s+para\s+mim|\s+pra\s+mim)?\b/i.test(sn) ||
+    /\b(?:imprimir|imprime|imprima)\s+(?:este|esse|o|esta|essa)\s+(?:painel|relat)\w*/i.test(sn) ||
     (/^(?:por\s+favor\s+|por\s+gentileza\s+)*(imprimir|imprime|imprima|print)\b/i.test(sn) && sn.length <= 120) ||
     (/^(?:imprimir|imprime|imprima)\b/i.test(sn) && /\b(por\s+favor|por\s+gentileza)\b/i.test(sn) && sn.length <= 120) ||
-    (/^(?:quero|preciso)\s+(?:imprimir|imprima|fazer\s+impress)/i.test(sn) && sn.length <= 100);
+    (/^(?:quero|preciso)\s+(?:imprimir|imprima|fazer\s+impress)/i.test(sn) && sn.length <= 100) ||
+    (/\b(?:imprimir|imprime|imprima)\s+para\s+mim\b/i.test(sn) && sn.length <= 100) ||
+    (/\b(?:imprimir|imprime|imprima)\s+pra\s+mim\b/i.test(sn) && sn.length <= 100) ||
+    (/\b(?:imprimir|imprime|imprima)\s+para\s+si\b/i.test(sn) && sn.length <= 100) ||
+    (/^(?:imprimir|imprime|imprima|print)\s+me\b/i.test(n) && sn.length <= 100);
 
   if (printOk) return { kind: 'print' };
 
@@ -295,11 +395,15 @@ export function parsePanelVoiceMetaCommand(text) {
   const raw = String(text || '').trim();
   if (!raw) return null;
 
-  const stripped = stripCourtesyPrefixes(raw);
+  const stripped = stripCourtesySuffixes(stripCourtesyPrefixes(raw));
 
   if (stripped.length <= 420) {
     const chat = parseChatTargets(stripped);
-    if (chat && (chat.groupQuery || (chat.userQueries && chat.userQueries.length)))
+    if (
+      chat &&
+      chatTargetsSanity(chat) &&
+      (chat.groupQuery || (chat.userQueries && chat.userQueries.length))
+    )
       return { kind: 'chat', userQueries: chat.userQueries, groupQuery: chat.groupQuery };
   }
 

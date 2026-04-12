@@ -18,6 +18,7 @@ const dashboardComposerService = require('../services/dashboardComposerService')
 const personalizedInsightsService = require('../services/personalizedInsightsService');
 const smartPanelCommandService = require('../services/smartPanelCommandService');
 const claudePanelService = require('../services/claudePanelService');
+const voiceRealtimeContextService = require('../services/voiceRealtimeContextService');
 const { composeLiveDashboardSurface } = require('../services/dashboardComposer');
 const { userRateLimit } = require('../middleware/userRateLimit');
 
@@ -63,6 +64,20 @@ const profileContextSelfSchema = z.object({
  * GET /dashboard/me
  * Payload completo: perfil + KPIs ordenados por preferências/uso + bloco personalization
  */
+/**
+ * GET /dashboard/voice-realtime-context
+ * Texto para anexar ao system prompt da sessão OpenAI Realtime (dados internos + regras de acesso).
+ */
+router.get('/voice-realtime-context', requireAuth, async (req, res) => {
+  try {
+    const payload = await voiceRealtimeContextService.buildVoiceRealtimeContext(req.user);
+    res.json(payload);
+  } catch (err) {
+    console.error('[VOICE_REALTIME_CONTEXT]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao montar contexto de voz' });
+  }
+});
+
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = req.user;

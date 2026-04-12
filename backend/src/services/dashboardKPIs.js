@@ -7,6 +7,7 @@ const db = require('../db');
 const userContext = require('./userContext');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
+const dashboardAccessService = require('./dashboardAccessService');
 const productionRealtime = require('./productionRealtimeService');
 
 const ICON_MAP = {
@@ -140,6 +141,75 @@ async function getQualityKpis(scope, companyId) {
 }
 
 /**
+ * KPIs do perfil RH (hr_management / role rh) — alinhados aos cards do dashboardProfiles
+ * e com contagens reais quando as tabelas existem.
+ */
+async function getHrManagementKpis(user, scope, companyId, profileConfig) {
+  const cards = dashboardAccessService.getAllowedCards(user, profileConfig?.cards || []);
+  let pulseTotal = 0;
+  let hrAlertsOpen = 0;
+  try {
+    const r = await db.query(
+      `SELECT COUNT(*)::int AS c FROM pulse_evaluations WHERE company_id = $1`,
+      [companyId]
+    );
+    pulseTotal = parseInt(r.rows[0]?.c || 0, 10);
+  } catch {
+    pulseTotal = 0;
+  }
+  try {
+    const r = await db.query(
+      `SELECT COUNT(*)::int AS c FROM hr_alerts WHERE company_id = $1 AND COALESCE(acknowledged, false) = false`,
+      [companyId]
+    );
+    hrAlertsOpen = parseInt(r.rows[0]?.c || 0, 10);
+  } catch {
+    hrAlertsOpen = 0;
+  }
+
+  const [comms, insights] = await Promise.all([
+    queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '7 days'"),
+    queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '7 days'")
+  ]);
+
+  const kpis = [];
+  for (const c of cards) {
+    const key = c.key || String(c.title || '').replace(/\s+/g, '_').toLowerCase();
+    let value;
+    if (c.key === 'team_indicators') value = pulseTotal;
+    else if (c.key === 'hr_alerts') value = hrAlertsOpen;
+    else if (c.key === 'department_interactions') value = comms;
+    else if (c.key === 'operational_insights') value = insights;
+    else value = c.route ? 'Ver' : '-';
+
+    const row = {
+      id: key || `hr_${kpis.length}`,
+      key,
+      title: c.title,
+      value,
+      color: c.color || 'blue',
+      icon: c.icon || 'activity',
+      ...(c.route ? { route: c.route } : {})
+    };
+    kpis.push(row);
+  }
+
+  if (kpis.length === 0) {
+    kpis.push({
+      id: 'impetus_pulse_rh',
+      key: 'impetus_pulse_rh',
+      title: 'Impetus Pulse (RH)',
+      value: 'Abrir',
+      color: 'teal',
+      route: '/app/pulse-rh',
+      icon: 'activity'
+    });
+  }
+
+  return kpis;
+}
+
+/**
  * Gera KPIs dinâmicos baseados em user + scope + profile
  */
 async function getDashboardKPIs(user, hierarchyScope) {
@@ -157,6 +227,11 @@ async function getDashboardKPIs(user, hierarchyScope) {
   const kpis = [];
 
   try {
+    if (profileCode === 'hr_management' || role === 'rh') {
+      const hrKpis = await getHrManagementKpis(user, scope, companyId, config.profile_config || {});
+      return hrKpis.map((k) => ({ ...k, icon_key: k.icon, growth: k.growth ?? null }));
+    }
+
     if (level <= 1) {
       // DIRETOR / CEO: Indicadores estratégicos
       if (['director_industrial', 'director_operations'].includes(profileCode) || functionalArea === 'production') {

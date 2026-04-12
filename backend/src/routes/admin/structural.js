@@ -233,20 +233,23 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
     if (superiorId && !isValidUUID(String(superiorId))) {
       return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
     }
+    const hint = b.dashboard_functional_hint != null && String(b.dashboard_functional_hint).trim() !== ''
+      ? String(b.dashboard_functional_hint).trim().slice(0, 32)
+      : null;
     const r = await db.query(`
       INSERT INTO company_roles (company_id, name, description, hierarchy_level, work_area,
         main_responsibilities, critical_responsibilities, recommended_permissions,
         sectors_involved, leadership_type, communication_profile, direct_superior_role_id,
         expected_subordinates, decision_level, visible_themes, hidden_themes, escalation_role,
-        operation_role, approval_role, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        operation_role, approval_role, notes, dashboard_functional_hint)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING *
     `, [
       cid, b.name || '', b.description, b.hierarchy_level, b.work_area,
       asPgTextArray(b.main_responsibilities), asPgTextArray(b.critical_responsibilities), asPgTextArray(b.recommended_permissions),
       asPgTextArray(b.sectors_involved), b.leadership_type, b.communication_profile, superiorId,
       asPgTextArray(b.expected_subordinates), b.decision_level, asPgTextArray(b.visible_themes), asPgTextArray(b.hidden_themes),
-      b.escalation_role, b.operation_role, b.approval_role, b.notes
+      b.escalation_role, b.operation_role, b.approval_role, b.notes, hint
     ]);
     invalidateStructuralOrgCache(cid);
     res.status(201).json({ ok: true, data: r.rows[0] });
@@ -283,6 +286,21 @@ router.put('/roles/:id', ...adminMw, async (req, res) => {
     if (superiorIdPut && !isValidUUID(String(superiorIdPut))) {
       return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
     }
+    const hintUpdate = Object.prototype.hasOwnProperty.call(b, 'dashboard_functional_hint')
+      ? ', dashboard_functional_hint = NULLIF(TRIM($22::text), \'\')'
+      : '';
+    const paramsPut = [
+      cid, req.params.id, b.name, b.description, b.hierarchy_level, b.work_area,
+      asPgTextArrayForUpdate(b.main_responsibilities), asPgTextArrayForUpdate(b.critical_responsibilities), asPgTextArrayForUpdate(b.recommended_permissions),
+      asPgTextArrayForUpdate(b.sectors_involved), b.leadership_type, b.communication_profile,
+      superiorIdPut, asPgTextArrayForUpdate(b.expected_subordinates), b.decision_level,
+      asPgTextArrayForUpdate(b.visible_themes), asPgTextArrayForUpdate(b.hidden_themes), b.escalation_role, b.operation_role,
+      b.approval_role, b.notes
+    ];
+    if (hintUpdate) {
+      const hv = b.dashboard_functional_hint;
+      paramsPut.push(hv == null ? '' : String(hv));
+    }
     const r = await db.query(`
       UPDATE company_roles SET
         name = COALESCE($3, name), description = COALESCE($4, description),
@@ -301,17 +319,10 @@ router.put('/roles/:id', ...adminMw, async (req, res) => {
         escalation_role = COALESCE($18, escalation_role),
         operation_role = COALESCE($19, operation_role),
         approval_role = COALESCE($20, approval_role),
-        notes = COALESCE($21, notes), updated_at = now()
+        notes = COALESCE($21, notes)${hintUpdate}, updated_at = now()
       WHERE id = $2 AND company_id = $1
       RETURNING *
-    `, [
-      cid, req.params.id, b.name, b.description, b.hierarchy_level, b.work_area,
-      asPgTextArrayForUpdate(b.main_responsibilities), asPgTextArrayForUpdate(b.critical_responsibilities), asPgTextArrayForUpdate(b.recommended_permissions),
-      asPgTextArrayForUpdate(b.sectors_involved), b.leadership_type, b.communication_profile,
-      superiorIdPut, asPgTextArrayForUpdate(b.expected_subordinates), b.decision_level,
-      asPgTextArrayForUpdate(b.visible_themes), asPgTextArrayForUpdate(b.hidden_themes), b.escalation_role, b.operation_role,
-      b.approval_role, b.notes
-    ]);
+    `, paramsPut);
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
     invalidateStructuralOrgCache(cid);
     res.json({ ok: true, data: r.rows[0] });

@@ -51,7 +51,7 @@ import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
-import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples } from '../utils/roleUtils';
+import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
 import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
@@ -61,6 +61,23 @@ import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import './Layout.css';
 
 const IA_FACE_VIDEO = '/ia-face-1.mp4';
+
+/** Garante no máximo um item por rota (evita duplicatas no menu lateral). */
+function dedupeMenuItemsByPath(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    if (item.settingsBack || item.settingsAnchor) {
+      out.push(item);
+      continue;
+    }
+    const p = (item.path || '').replace(/\/+$/, '') || '/';
+    if (seen.has(p)) continue;
+    seen.add(p);
+    out.push(item);
+  }
+  return out;
+}
 
 /** max-width: 1023px — sidebar em overlay/drawer (tablet + mobile). */
 const MQ_NAV_DRAWER = '(max-width: 1023px)';
@@ -380,9 +397,10 @@ export default function Layout({ children }) {
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
+    // Núcleo industrial (Centro de Operações, Cérebro, Insights) entra só via canAccessIndustrialCoreModules
+    // abaixo — evita duplicar com o mesmo bloco no array estático.
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard · IA integrada' },
-      ...MENU_BLOCO_INDUSTRIAL,
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
@@ -403,9 +421,9 @@ export default function Layout({ children }) {
     baseMenuItems = MENUS[role] || MENU_COLABORADOR_OPERACIONAL;
   }
 
-  /** Diretor/Gerente (etc.) com perfil hr_management: mesmo item que role rh, para Impetus Pulse completo. */
+  /** RH explícito, perfil hr_management ou liderança com setor/cargo de RH (dashboard_profile por vezes não vem no token). */
   if (
-    dashboardProfile === 'hr_management' &&
+    shouldOfferPulseRhMenu(user) &&
     !baseMenuItems.some((item) => item.path === '/app/pulse-rh')
   ) {
     const cloned = [...baseMenuItems];
@@ -429,19 +447,29 @@ export default function Layout({ children }) {
     baseMenuItems = cloned;
   }
 
+  // CEO, diretor industrial/operações: bloco industrial uma vez, logo após o Dashboard.
   if (canAccessIndustrialCoreModules) {
     const cloned = [...baseMenuItems];
-    const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
-    const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
-    cloned.splice(insertAt, 0, ...MENU_BLOCO_INDUSTRIAL);
-    baseMenuItems = cloned;
+    const existing = new Set(cloned.map((item) => (item.path || '').replace(/\/+$/, '') || '/'));
+    const missingIndustrial = MENU_BLOCO_INDUSTRIAL.filter((item) => {
+      const p = (item.path || '').replace(/\/+$/, '') || '/';
+      return !existing.has(p);
+    });
+    if (missingIndustrial.length > 0) {
+      const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
+      const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
+      cloned.splice(insertAt, 0, ...missingIndustrial);
+      baseMenuItems = cloned;
+    }
   }
 
   let menuItems = filterMenu(baseMenuItems);
   menuItems = menuItems.filter((item) => {
-    if (!INDUSTRIAL_CORE_PATHS.has(item.path)) return true;
+    const p = (item.path || '').replace(/\/+$/, '') || '/';
+    if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
     return canAccessIndustrialCoreModules;
   });
+  menuItems = dedupeMenuItemsByPath(menuItems);
 
   if (isUserSettingsFocus) {
     menuItems = [

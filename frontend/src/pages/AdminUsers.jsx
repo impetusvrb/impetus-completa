@@ -59,7 +59,8 @@ export default function AdminUsers() {
     permissions: [],
     active: true,
     executive_verified: false,
-    company_role_id: ''
+    company_role_id: '',
+    functional_area: ''
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -161,7 +162,8 @@ export default function AdminUsers() {
         whatsapp_number: formData.whatsapp_number || undefined,
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        company_role_id: formData.company_role_id || undefined
+        company_role_id: formData.company_role_id || undefined,
+        functional_area: formData.functional_area || undefined
       };
 
       await adminUsers.create(payload);
@@ -204,7 +206,8 @@ export default function AdminUsers() {
           ? Number(formData.hierarchy_level)
           : undefined,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        company_role_id: formData.company_role_id ? formData.company_role_id : null
+        company_role_id: formData.company_role_id ? formData.company_role_id : null,
+        functional_area: formData.functional_area || null
       };
       delete updateData.password; // Não atualizar senha aqui
 
@@ -295,7 +298,8 @@ export default function AdminUsers() {
       permissions: user.permissions || [],
       active: user.active,
       executive_verified: user.executive_verified ?? false,
-      company_role_id: user.company_role_id || ''
+      company_role_id: user.company_role_id || '',
+      functional_area: user.functional_area || ''
     });
     setShowEditModal(true);
   };
@@ -330,7 +334,8 @@ export default function AdminUsers() {
       permissions: [],
       active: true,
       executive_verified: false,
-      company_role_id: ''
+      company_role_id: '',
+      functional_area: ''
     });
     setFormErrors({});
   };
@@ -773,6 +778,39 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
           onChange={onChange}
           placeholder="Ex: Financeiro, Produção, Manutenção"
           helperText="Texto livre (normalizado internamente)"
+        />
+      </div>
+
+      <div className="form-grid-2">
+        <SelectField
+          label="Departamento (cadastro)"
+          name="department_id"
+          value={formData.department_id || ''}
+          onChange={onChange}
+          options={[
+            { value: '', label: 'Nenhum' },
+            ...(departments || []).map((d) => ({ value: d.id, label: d.name }))
+          ]}
+          helperText="Vincula ao departamento da empresa; o nome alimenta o perfil do dashboard quando o texto livre estiver vazio."
+        />
+
+        <SelectField
+          label="Área funcional (dashboard / IA)"
+          name="functional_area"
+          value={formData.functional_area || ''}
+          onChange={onChange}
+          options={[
+            { value: '', label: 'Automático (inferir pelo cargo, departamento e descrição)' },
+            { value: 'production', label: 'Produção' },
+            { value: 'maintenance', label: 'Manutenção' },
+            { value: 'quality', label: 'Qualidade' },
+            { value: 'operations', label: 'Operações' },
+            { value: 'pcp', label: 'PCP' },
+            { value: 'hr', label: 'RH / Recursos humanos' },
+            { value: 'finance', label: 'Finanças' },
+            { value: 'admin', label: 'Administração' }
+          ]}
+          helperText="Para colaboradores de RH ou finanças, escolha a área correspondente para alinhar o Centro de Comando e os módulos. Deixe em automático só se a inferência pelo departamento/cargo já for suficiente."
         />
       </div>
 
