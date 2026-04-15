@@ -68,22 +68,27 @@ const VALID_PROFILES = new Set([
   'hr_management', 'finance_management', 'admin_system'
 ]);
 
+const KNOWN_FUNCTIONAL_AREAS = [
+  'production', 'maintenance', 'quality', 'operations', 'pcp',
+  'hr', 'rh', 'recursos_humanos', 'finance', 'admin'
+];
+
 /**
  * Resolve functional_area do usuário
- * Prioridade: functional_area > inferência de job_title > role default
+ * Prioridade: functional_area explícita > metadado do cargo estrutural > texto (dept, descrição, job) > role default
  */
 function resolveFunctionalArea(user) {
-  const faRaw = user.functional_area || user.company_role_dashboard_hint;
-  const fa = normalizeText(faRaw);
-  const ctxText = contextualTextForInference(user);
-  if (
-    fa &&
-    ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'rh', 'recursos_humanos', 'finance', 'admin'].includes(fa)
-  ) {
-    const freeFromDept = inferAreaFromFreeText(ctxText);
-    if (freeFromDept && freeFromDept !== fa) return freeFromDept;
-    return fa;
+  const explicitNorm = normalizeText(user.functional_area);
+  if (explicitNorm && KNOWN_FUNCTIONAL_AREAS.includes(explicitNorm)) {
+    return explicitNorm;
   }
+
+  const hintNorm = normalizeText(user.company_role_dashboard_hint);
+  if (hintNorm && KNOWN_FUNCTIONAL_AREAS.includes(hintNorm)) {
+    return hintNorm;
+  }
+
+  const ctxText = contextualTextForInference(user);
   const inferredByDept = inferAreaFromFreeText(ctxText);
   if (inferredByDept) return inferredByDept;
   const inferredByDescription = inferAreaFromFreeText(user.hr_responsibilities || user.descricao || user.descricao_funcional || '');

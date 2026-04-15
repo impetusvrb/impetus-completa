@@ -415,10 +415,10 @@ export default function AdminOperationalTeams() {
         <Modal isOpen={showTeamModal} onClose={() => setShowTeamModal(false)} title={editingTeam ? 'Editar equipe' : 'Nova equipe'} size="large">
           <div className="form-grid-2">
             <InputField label="Nome da equipe" name="name" value={teamForm.name} onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })} required />
-            <SelectField label="Turno principal" name="main_shift_label" value={teamForm.main_shift_label} onChange={(e) => setTeamForm({ ...teamForm, main_shift_label: e.target.value })} options={[{ value: '', label: '—' }, { value: 'Turno A', label: 'Turno A' }, { value: 'Turno B', label: 'Turno B' }, { value: 'Turno C', label: 'Turno C' }]} />
+            <SelectField label="Turno principal" name="main_shift_label" value={teamForm.main_shift_label} onChange={(e) => setTeamForm({ ...teamForm, main_shift_label: e.target.value })} placeholder="" options={[{ value: '', label: '—' }, { value: 'Turno A', label: 'Turno A' }, { value: 'Turno B', label: 'Turno B' }, { value: 'Turno C', label: 'Turno C' }]} />
           </div>
-          <SelectField label="Setor" name="department_id" value={teamForm.department_id} onChange={(e) => setTeamForm({ ...teamForm, department_id: e.target.value })} options={deptOpts} />
-          <SelectField label="Cargo (Base Estrutural)" name="company_role_id" value={teamForm.company_role_id} onChange={(e) => setTeamForm({ ...teamForm, company_role_id: e.target.value })} options={roleOpts} />
+          <SelectField label="Setor" name="department_id" value={teamForm.department_id} onChange={(e) => setTeamForm({ ...teamForm, department_id: e.target.value })} options={deptOpts} placeholder="" />
+          <SelectField label="Cargo (Base Estrutural)" name="company_role_id" value={teamForm.company_role_id} onChange={(e) => setTeamForm({ ...teamForm, company_role_id: e.target.value })} options={roleOpts} placeholder="" />
           <TextAreaField label="Observações" name="description" value={teamForm.description} onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })} rows={2} />
           <ModalFooter onCancel={() => setShowTeamModal(false)} onConfirm={saveTeam} confirmText="Salvar" confirmLoading={saving} />
         </Modal>
@@ -446,7 +446,7 @@ export default function AdminOperationalTeams() {
               value={memberForm.operator_kind}
               onChange={(e) => setMemberForm({ ...memberForm, operator_kind: e.target.value })}
               options={operatorKindOpts}
-              placeholder="Selecione"
+              placeholder=""
             />
           </div>
           <div className="form-grid-2">
