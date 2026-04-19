@@ -932,6 +932,17 @@ export const adminSettings = {
     api.put(`/admin/settings/dashboard-visibility/${level}`, { sections })
 };
 
+export const adminHelpManual = {
+  getOverview: () => api.get('/admin/help-manual'),
+  search: (query, limit = 20) =>
+    api.get('/admin/help-manual/search', {
+      params: {
+        q: query || '',
+        limit
+      }
+    })
+};
+
 export default api;
 
 const structuralProductionLinesApi = {

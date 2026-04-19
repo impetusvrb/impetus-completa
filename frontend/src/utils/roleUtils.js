@@ -94,6 +94,12 @@ export function canAccessPulseRhRoute(user) {
   return shouldOfferPulseRhMenu(user);
 }
 
+/** Conta técnica com `role === 'admin'` (não diretor/gerente/coordenador). */
+export function isStrictAdminRole(user) {
+  if (!user) return false;
+  return String(user.role || '').toLowerCase() === 'admin';
+}
+
 export function resolveMenuRole(user) {
   if (!user) return 'colaborador';
   let role = (user.role || '').toLowerCase();

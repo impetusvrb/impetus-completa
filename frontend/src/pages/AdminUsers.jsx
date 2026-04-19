@@ -12,9 +12,18 @@ import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
 import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
+import FieldHelpHint from '../components/FieldHelpHint';
 import { adminUsers, adminDepartments, adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminUsers.css';
+
+/** UUID / id vindo da API ou do driver pg (string ou outro tipo serializável). */
+function uuidFieldToString(raw) {
+  if (raw == null || raw === '') return '';
+  const s = typeof raw === 'string' ? raw.trim() : String(raw).trim();
+  if (!s || s === 'undefined' || s === 'null') return '';
+  return s;
+}
 
 export default function AdminUsers() {
   const notify = useNotification();
@@ -151,20 +160,29 @@ export default function AdminUsers() {
       setFormErrors({});
 
       const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
+      const deptId = uuidFieldToString(formData.department_id);
+      const supId = uuidFieldToString(formData.supervisor_id);
+      const companyRoleId = uuidFieldToString(formData.company_role_id);
+      const fa = String(formData.functional_area || '').trim();
+
       const payload = {
-        ...formData,
+        name: String(formData.name || '').trim(),
+        email: String(formData.email || '').trim(),
+        password: formData.password,
+        role: formData.role,
         area: areaVal,
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
-        department_id: formData.department_id || undefined,
-        supervisor_id: formData.supervisor_id || null,
-        phone: formData.phone || undefined,
-        whatsapp_number: formData.whatsapp_number || undefined,
+        department_id: deptId || undefined,
+        supervisor_id: supId || null,
+        phone: formData.phone?.trim() || undefined,
+        whatsapp_number: formData.whatsapp_number?.trim() || undefined,
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
+        permissions: Array.isArray(formData.permissions) ? formData.permissions : [],
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        company_role_id: formData.company_role_id || undefined,
-        functional_area: formData.functional_area || undefined
+        functional_area: fa || undefined
       };
+      if (companyRoleId) payload.company_role_id = companyRoleId;
 
       await adminUsers.create(payload);
       
@@ -193,23 +211,32 @@ export default function AdminUsers() {
       setFormErrors({});
 
       const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
+      const deptId = uuidFieldToString(formData.department_id);
+      const supId = uuidFieldToString(formData.supervisor_id);
+      const companyRoleId = uuidFieldToString(formData.company_role_id);
+      const fa = String(formData.functional_area || '').trim();
+
       const updateData = {
-        ...formData,
+        name: String(formData.name || '').trim(),
+        email: String(formData.email || '').trim(),
+        role: formData.role,
         area: areaVal,
         job_title: formData.job_title?.trim() || undefined,
         department: formData.department?.trim() || undefined,
-        department_id: formData.department_id || undefined,
-        supervisor_id: formData.supervisor_id || null,
-        phone: formData.phone || undefined,
-        whatsapp_number: formData.whatsapp_number || undefined,
+        department_id: deptId || undefined,
+        supervisor_id: supId || null,
+        phone: formData.phone?.trim() || undefined,
+        whatsapp_number: formData.whatsapp_number?.trim() || undefined,
         hierarchy_level: formData.hierarchy_level !== undefined && formData.hierarchy_level !== ''
           ? Number(formData.hierarchy_level)
           : undefined,
+        permissions: Array.isArray(formData.permissions) ? formData.permissions : [],
+        active: formData.active,
+        executive_verified: formData.executive_verified ?? false,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        company_role_id: formData.company_role_id ? formData.company_role_id : null,
-        functional_area: formData.functional_area || null
+        company_role_id: companyRoleId || null,
+        functional_area: fa || null
       };
-      delete updateData.password; // Não atualizar senha aqui
 
       await adminUsers.update(selectedUser.id, updateData);
       
@@ -298,7 +325,7 @@ export default function AdminUsers() {
       permissions: user.permissions || [],
       active: user.active,
       executive_verified: user.executive_verified ?? false,
-      company_role_id: user.company_role_id || '',
+      company_role_id: uuidFieldToString(user.company_role_id),
       functional_area: user.functional_area || ''
     });
     setShowEditModal(true);
@@ -652,16 +679,18 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
     .map(u => ({ value: u.id, label: `${u.name} (${getHierarchyLabel(u.hierarchy_level)})` }));
   const structuralRoleOptions = [
     { value: '', label: 'Não associar à Base Estrutural' },
-    ...(structuralRoles || []).map((r) => ({
-      value: r.id,
-      label: `${r.name}${r.work_area ? ` — ${r.work_area}` : ''}`
-    }))
+    ...(structuralRoles || [])
+      .filter((r) => r && r.id != null && uuidFieldToString(r.id))
+      .map((r) => ({
+        value: uuidFieldToString(r.id),
+        label: `${r.name || ''}${r.work_area ? ` — ${r.work_area}` : ''}`
+      }))
   ];
   return (
     <div className="user-form">
       <div className="form-grid-2">
         <InputField
-          label="Nome Completo"
+          label={<span>Nome Completo<FieldHelpHint term="nome completo usuario" /></span>}
           name="name"
           value={formData.name}
           onChange={onChange}
@@ -671,7 +700,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
         />
 
         <InputField
-          label="Email"
+          label={<span>Email<FieldHelpHint term="email usuario admin" /></span>}
           name="email"
           type="email"
           value={formData.email}
@@ -684,7 +713,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
 
       {isCreate && (
         <InputField
-          label="Senha"
+          label={<span>Senha<FieldHelpHint term="senha usuario requisitos" /></span>}
           name="password"
           type="password"
           value={formData.password}
@@ -698,7 +727,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
 
       <div className="form-grid-2">
         <SelectField
-          label="Função"
+          label={<span>Função<FieldHelpHint term="funcao hierarquica role" /></span>}
           name="role"
           value={formData.role}
           onChange={onChange}
@@ -714,7 +743,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
         />
 
         <SelectField
-          label="Área"
+          label={<span>Área<FieldHelpHint term="area funcional usuario" /></span>}
           name="area"
           value={formData.area || ''}
           onChange={onChange}
@@ -753,7 +782,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
       </div>
 
       <TextAreaField
-        label="O que faz / descrição do papel"
+        label={<span>O que faz / descrição do papel<FieldHelpHint term="descricao do papel hr_responsibilities" /></span>}
         name="hr_responsibilities"
         value={formData.hr_responsibilities || ''}
         onChange={onChange}
@@ -830,7 +859,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
 
       <div className="form-grid-2">
         <SelectField
-          label="Supervisor Imediato"
+          label={<span>Supervisor Imediato<FieldHelpHint term="supervisor imediato" /></span>}
           name="supervisor_id"
           value={formData.supervisor_id}
           onChange={onChange}
@@ -851,7 +880,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
         />
 
         <InputField
-          label="WhatsApp"
+          label={<span>WhatsApp<FieldHelpHint term="whatsapp ceo" /></span>}
           name="whatsapp_number"
           type="tel"
           value={formData.whatsapp_number}

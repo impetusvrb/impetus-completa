@@ -82,7 +82,8 @@ function needsLargeBodyParser(url) {
     p.startsWith('/api/asset-management') ||
     p.startsWith('/api/admin/equipment-library') ||
     p.startsWith('/api/technical-library') ||
-    p.startsWith('/api/manutencao-ia')
+    p.startsWith('/api/manutencao-ia') ||
+    p.startsWith('/api/cognitive-council')
   );
 }
 
@@ -195,6 +196,7 @@ useRoute('/api/impetus-admin', './routes/impetusAdmin');
 useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
+useRoute('/api/admin/help-manual', './routes/admin/helpManual');
 useRoute('/api/admin/departments', './routes/admin/departments');
 /** Métricas/relatórios primeiro (router leve); CRUD em operationalTeams pode depender de bcrypt. */
 useRoute('/api/admin/operational-teams', './routes/admin/operationalTeamsMetrics');
@@ -245,6 +247,7 @@ useRoute('/api/warehouse-intelligence', './routes/warehouseIntelligence');
 useRoute('/api/quality-intelligence', './routes/qualityIntelligence');
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
 useRoute('/api/pulse', './routes/pulse', requireAuth);
+useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth);
 useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');

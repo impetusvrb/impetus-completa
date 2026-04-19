@@ -112,12 +112,12 @@ async function completeFirstAccess(user, payload, auditContext = {}) {
   if (await tableExists('user_activation_profiles')) {
     await db.query(
       `INSERT INTO user_activation_profiles (user_id, company_id, full_name, department, job_title, daily_activities_description)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (user_id) DO UPDATE SET
-         full_name = EXCLUDED.full_name,
-         department = EXCLUDED.department,
-         job_title = EXCLUDED.job_title,
-         daily_activities_description = EXCLUDED.daily_activities_description,
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (user_id) DO UPDATE SET
+      full_name = EXCLUDED.full_name,
+      department = EXCLUDED.department,
+      job_title = EXCLUDED.job_title,
+      daily_activities_description = EXCLUDED.daily_activities_description,
          updated_at = now()`,
       [userId, companyId, fullName, department, jobTitle, dailyActivities]
     );
@@ -187,12 +187,12 @@ async function logAudit(userId, companyId, eventType, details, auditContext = {}
       `INSERT INTO user_identification_audit (user_id, company_id, event_type, details, ip_address, user_agent)
        VALUES ($1, $2, $3, $4::jsonb, $5::inet, $6)`,
       [
-        userId,
-        companyId,
-        eventType,
-        JSON.stringify(details || {}),
+      userId,
+      companyId,
+      eventType,
+      JSON.stringify(details || {}),
         auditContext.ip || null,
-        auditContext.userAgent || null
+      auditContext.userAgent || null
       ]
     );
   } catch (e) {

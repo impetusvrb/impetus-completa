@@ -385,7 +385,7 @@ function CompanyDataModule({ loadRefs }) {
         });
         notify.warning('Base estrutural carregada em modo de compatibilidade.');
       } catch {
-        notify.error(e.apiMessage || 'Erro ao carregar dados');
+      notify.error(e.apiMessage || 'Erro ao carregar dados');
       }
     } finally {
       setLoading(false);
@@ -644,7 +644,7 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
     <div className="crud-module">
       <div className="module-header">
         <div>
-          <p className="module-desc">Cadastre {entityLabel.toLowerCase()}s para a Impetus IA contextualizar melhor.</p>
+        <p className="module-desc">Cadastre {entityLabel.toLowerCase()}s para a Impetus IA contextualizar melhor.</p>
           {extraDescription ? <p className="module-desc structural-extra-hint">{extraDescription}</p> : null}
         </div>
         <button type="button" className="btn btn-primary" onClick={openCreate}>
@@ -894,7 +894,7 @@ function LinesModule({ refs, loadRefs }) {
         notify.success('Máquina atualizada!');
       } else {
         await adminStructural.productionLines.addMachine(selectedLine.id, payload);
-        notify.success('Máquina adicionada!');
+      notify.success('Máquina adicionada!');
       }
       setShowMachineModal(false);
       setEditingMachine(null);
@@ -985,7 +985,7 @@ function LinesModule({ refs, loadRefs }) {
         <div className="generic-form">
           <div className="form-grid-2">
             <InputField label="Nome da linha" name="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} required />
-            <InputField label="Código" name="code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
+          <InputField label="Código" name="code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
           </div>
           <div className="form-grid-2">
             <SelectField label="Setor / Departamento" name="department_id" value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} options={deptOpts} placeholder="Selecione" />
@@ -996,7 +996,7 @@ function LinesModule({ refs, loadRefs }) {
             <InputField label="Capacidade produtiva" name="productive_capacity" value={form.productive_capacity} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
           </div>
           <div className="form-grid-2">
-            <SelectField label="Status" name="status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} options={[{ value: 'active', label: 'Ativa' }, { value: 'inactive', label: 'Inativa' }]} />
+          <SelectField label="Status" name="status" value={form.status} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} options={[{ value: 'active', label: 'Ativa' }, { value: 'inactive', label: 'Inativa' }]} />
             <SelectField label="Responsável pela linha" name="responsible_id" value={form.responsible_id} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} options={userOpts} placeholder="Opcional" />
           </div>
           <SelectField label="Produto principal fabricado" name="main_product_id" value={form.main_product_id} onChange={(e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))} options={productOpts} placeholder="Opcional" />
@@ -1055,7 +1055,7 @@ function LinesModule({ refs, loadRefs }) {
       <Modal isOpen={showMachineModal} onClose={() => setShowMachineModal(false)} title={editingMachine ? 'Editar máquina' : `Nova máquina — ${selectedLine?.name || ''}`} size="large">
         <div className="generic-form">
           <div className="form-grid-2">
-            <InputField label="Nome da máquina" name="name" value={machineForm.name} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} required />
+          <InputField label="Nome da máquina" name="name" value={machineForm.name} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} required />
             <InputField label="Apelido / nome popular" name="nickname" value={machineForm.nickname} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
           </div>
           <div className="form-grid-2">
@@ -1064,8 +1064,8 @@ function LinesModule({ refs, loadRefs }) {
           </div>
           <div className="form-grid-3">
             <InputField label="Tipo da máquina" name="machine_type" value={machineForm.machine_type} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
-            <InputField label="Fabricante" name="manufacturer" value={machineForm.manufacturer} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
-            <InputField label="Modelo" name="model" value={machineForm.model} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
+          <InputField label="Fabricante" name="manufacturer" value={machineForm.manufacturer} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
+          <InputField label="Modelo" name="model" value={machineForm.model} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />
           </div>
           <div className="form-grid-3">
             <InputField label="Nº série" name="serial_number" value={machineForm.serial_number} onChange={(e) => setMachineForm((f) => ({ ...f, [e.target.name]: e.target.value }))} />

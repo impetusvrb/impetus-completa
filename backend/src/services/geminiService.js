@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { GoogleGenAI } = require('@google/genai');
+    const { GoogleGenAI } = require('@google/genai');
 const db = require('../db');
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -243,8 +243,8 @@ ${String(pergunta || '').slice(0, 2000)}`;
 
 function extractJson(raw) {
   if (!raw || typeof raw !== 'string') return null;
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
   try {
     return JSON.parse(match[0]);
   } catch {

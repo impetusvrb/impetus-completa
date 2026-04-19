@@ -1,0 +1,74 @@
+.admin-help-page {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-help-header,
+.admin-help-search,
+.admin-help-ask,
+.admin-help-card {
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.admin-help-header__title,
+.admin-help-ask__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-help-header h1 {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.admin-help-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-secondary);
+}
+
+.admin-help-search__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-help-search input,
+.admin-help-ask input {
+  background: var(--surface-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.admin-help-ask__answer {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-help-results {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-help-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-help-card p {
+  margin: 8px 0 0;
+}
+
+.admin-help-empty {
+  color: var(--text-secondary);
+}

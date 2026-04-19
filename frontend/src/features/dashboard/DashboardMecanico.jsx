@@ -549,9 +549,9 @@ export default function DashboardMecanico() {
 
         {/* Dashboard embutido: só cargo real supervisor+ (user.role). Perfil tipo supervisor_maintenance em colaborador NÃO conta — evita resolveMenuRole enganar. */}
         {canUseTaskOrchestrationUser(sessionUser) && (
-          <div className="dashboard-mecanico__base">
-            <DashboardInteligente embed />
-          </div>
+        <div className="dashboard-mecanico__base">
+          <DashboardInteligente embed />
+        </div>
         )}
       </div>
     </Layout>

@@ -51,7 +51,7 @@ import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import OnboardingModal from './OnboardingModal';
-import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu } from '../utils/roleUtils';
+import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu, isStrictAdminRole } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
 import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
@@ -299,7 +299,7 @@ export default function Layout({ children }) {
     if (isColaboradorSimples(user)) return <Navigate to="/app" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
-  if (!modulesLoading && location.pathname === '/app' && role === 'admin') return <Navigate to="/app/admin/implantacao-guia" replace />;
+  if (!modulesLoading && location.pathname === '/app' && isStrictAdminRole(user)) return <Navigate to="/app/admin/implantacao-guia" replace />;
 
   /** Industrial / operacional — filtrado por visible_modules (operational) */
   const MENU_BLOCO_INDUSTRIAL = [
@@ -372,6 +372,7 @@ export default function Layout({ children }) {
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
+      { path: '/app/admin/help-center', icon: HelpCircle, label: 'Central de Ajuda do Admin' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
     ],
     diretor: MENU_LIDERANCA,
@@ -470,6 +471,12 @@ export default function Layout({ children }) {
     return canAccessIndustrialCoreModules;
   });
   menuItems = dedupeMenuItemsByPath(menuItems);
+
+  if (!isStrictAdminRole(user)) {
+    menuItems = menuItems.filter(
+      (item) => (item.path || '').replace(/\/+$/, '') !== '/app/admin/implantacao-guia'
+    );
+  }
 
   if (isUserSettingsFocus) {
     menuItems = [
@@ -798,13 +805,13 @@ export default function Layout({ children }) {
                   >
                     <Mail size={16} /> Contato por e-mail
                   </a>
-                  <a
-                    href="#"
+                  <Link
+                    to="/app/admin/help-center"
                     className="header-dropdown__link"
-                    onClick={(e) => { e.preventDefault(); setShowHelp(false); }}
+                    onClick={() => setShowHelp(false)}
                   >
                     <ExternalLink size={16} /> Documentação
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

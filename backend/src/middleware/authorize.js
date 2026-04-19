@@ -20,9 +20,9 @@ async function getUserPermissions(user) {
   if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
     const vals = Object.values(direct).filter((v) => typeof v === 'string');
     if (vals.length) return { permissions: vals };
-  }
+    }
 
-  try {
+    try {
     const r = await db.query(
       `SELECT permissions FROM users WHERE id = $1 AND deleted_at IS NULL AND active = true`,
       [user.id]

@@ -1239,10 +1239,10 @@ router.get('/smart-summary', requireAuth, async (req, res) => {
     const timeoutMs = 8000;
     const result = await Promise.race([
       smartSummary.buildSmartSummary(
-        req.user.id,
-        req.user.name,
-        req.user.company_id,
-        req.user
+      req.user.id,
+      req.user.name,
+      req.user.company_id,
+      req.user
       ),
       new Promise((_, reject) => setTimeout(() => reject(new Error('SMART_SUMMARY_TIMEOUT')), timeoutMs)),
     ]);

@@ -9,6 +9,7 @@ import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
 import { InputField, SelectField, TextAreaField } from '../components/FormField';
+import FieldHelpHint from '../components/FieldHelpHint';
 import { adminDepartments } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './AdminDepartments.css';
@@ -291,7 +292,7 @@ function DepartmentForm({ formData, formErrors, departments, onChange, onParentT
   const selectedParents = Array.isArray(formData.parent_department_ids) ? formData.parent_department_ids : [];
   return (
     <div className="department-form">
-      <InputField label="Nome" name="name" value={formData.name} onChange={onChange} required error={formErrors.name} />
+      <InputField label={<span>Nome<FieldHelpHint term="nome departamento" /></span>} name="name" value={formData.name} onChange={onChange} required error={formErrors.name} />
       <TextAreaField label="Descrição" name="description" value={formData.description} onChange={onChange} rows={3} />
       <div className="form-grid-2">
         <div className="form-field">
@@ -318,10 +319,10 @@ function DepartmentForm({ formData, formErrors, departments, onChange, onParentT
           </div>
           <span className="form-helper">Clique para marcar/desmarcar quantos pais quiser.</span>
         </div>
-        <SelectField label="Tipo" name="type" value={formData.type} onChange={onChange} options={[{ value: 'producao', label: 'Produção' }, { value: 'manutencao', label: 'Manutenção' }, { value: 'qualidade', label: 'Qualidade' }, { value: 'logistica', label: 'Logística' }, { value: 'administrativo', label: 'Administrativo' }, { value: 'outro', label: 'Outro' }]} />
+        <SelectField label={<span>Tipo<FieldHelpHint term="tipo departamento" /></span>} name="type" value={formData.type} onChange={onChange} options={[{ value: 'producao', label: 'Produção' }, { value: 'manutencao', label: 'Manutenção' }, { value: 'qualidade', label: 'Qualidade' }, { value: 'logistica', label: 'Logística' }, { value: 'administrativo', label: 'Administrativo' }, { value: 'outro', label: 'Outro' }]} />
       </div>
       <div className="form-grid-2">
-        <SelectField label="Nível" name="level" value={formData.level} onChange={onChange} options={[{ value: 1, label: '1 - Diretoria' }, { value: 2, label: '2 - Gerência' }, { value: 3, label: '3 - Coordenação' }, { value: 4, label: '4 - Supervisão' }, { value: 5, label: '5 - Operacional' }]} />
+        <SelectField label={<span>Nível<FieldHelpHint term="nivel departamento" /></span>} name="level" value={formData.level} onChange={onChange} options={[{ value: 1, label: '1 - Diretoria' }, { value: 2, label: '2 - Gerência' }, { value: 3, label: '3 - Coordenação' }, { value: 4, label: '4 - Supervisão' }, { value: 5, label: '5 - Operacional' }]} />
         <div />
       </div>
     </div>

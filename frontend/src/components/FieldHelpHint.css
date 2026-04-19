@@ -1,0 +1,19 @@
+.field-help-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  color: var(--text-accent);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.field-help-hint:hover {
+  border-color: var(--border-active);
+  color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}

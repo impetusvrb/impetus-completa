@@ -30,7 +30,8 @@ const MIGRATIONS_ORDER = [
   'equipment_library_admin_migration.sql',
   'equipment_technical_3d_models_migration.sql',
   'technical_library_inteligente_migration.sql',
-  'technical_library_field_analysis_migration.sql'
+  'technical_library_field_analysis_migration.sql',
+  'cognitive_council_migration.sql'
 ];
 
 async function runMigration(fileName) {

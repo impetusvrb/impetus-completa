@@ -305,7 +305,8 @@ router.post('/',
 
       let companyRoleId = null;
       if (validatedData.company_role_id) {
-        companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, validatedData.company_role_id);
+        const roleIdStr = String(validatedData.company_role_id).trim();
+        companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, roleIdStr);
         if (!companyRoleId) {
           return res.status(400).json({
             ok: false,
@@ -448,7 +449,8 @@ router.put('/:id',
         if (cr === null || cr === '') {
           validatedData.company_role_id = null;
         } else {
-          const ok = await assertStructuralRoleForCompany(req.user.company_id, cr);
+          const crTrim = String(cr).trim();
+          const ok = await assertStructuralRoleForCompany(req.user.company_id, crTrim);
           if (!ok) {
             return res.status(400).json({
               ok: false,
@@ -456,6 +458,7 @@ router.put('/:id',
               code: 'INVALID_STRUCTURAL_ROLE'
             });
           }
+          validatedData.company_role_id = ok;
         }
       }
 

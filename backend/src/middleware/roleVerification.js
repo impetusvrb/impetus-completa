@@ -25,7 +25,8 @@ const STRATEGIC_PATHS = [
   '/admin/audit-logs',
   '/admin/users',
   // '/plc-alerts' removido: alertas operacionais de manutenção, não exige verificação de cargo
-  '/communications'
+  '/communications',
+  '/cognitive-council'
 ];
 
 function isStrategicPath(path) {
