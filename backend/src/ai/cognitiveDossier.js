@@ -100,9 +100,15 @@ function recordStage(dossier, { stage, provider, model_hint, summary }) {
   });
 }
 
-/** Evita gravar base64 gigante em auditoria */
+/** Evita gravar base64 gigante em auditoria + rascunho interno sensível */
 function redactForPersistence(dossier) {
   const clone = JSON.parse(JSON.stringify(dossier));
+  if (clone.analysis?.draft_recommendation && typeof clone.analysis.draft_recommendation === 'object') {
+    clone.analysis.draft_recommendation = { _redacted: true, stage: 'draft_recommendation' };
+  }
+  if (clone.layers?.draft && Object.keys(clone.layers.draft).length) {
+    clone.layers.draft = { _redacted: true, stage: 'draft' };
+  }
   if (clone.data?.images?.length) {
     clone.data.images = clone.data.images.map((img, i) => {
       if (typeof img === 'string') {
@@ -123,9 +129,62 @@ function redactForPersistence(dossier) {
   return clone;
 }
 
+function seedLayerInput(dossier) {
+  if (!dossier.layers) dossier.layers = {};
+  dossier.layers.input = {
+    pedido_texto: String(dossier.context?.request || '').slice(0, 64000),
+    intencao: dossier.context?.intent || null,
+    modulo: dossier.context?.module || null,
+    industrial: {
+      sensores: dossier.data?.sensors || {},
+      dashboards: dossier.data?.extras?.dashboards ?? null,
+      chat_interno: dossier.data?.extras?.chat_interno ?? null,
+      manuais: dossier.data?.extras?.manuais ?? null,
+      historico: dossier.data?.extras?.historico ?? null,
+      kpis: dossier.data?.kpis || [],
+      eventos: dossier.data?.events || [],
+      ativos: dossier.data?.assets || [],
+      documentos: dossier.data?.documents || [],
+      imagens_presentes: Array.isArray(dossier.data?.images) ? dossier.data.images.length : 0
+    }
+  };
+}
+
+function finalizeLayerFinal(dossier, { synthesis, finalText }) {
+  if (!dossier.layers) dossier.layers = {};
+  dossier.layers.final = {
+    texto_resposta: synthesis?.answer != null ? String(synthesis.answer) : String(finalText || '').trim(),
+    confianca: synthesis?.confidence != null ? synthesis.confidence : null,
+    requer_acao_humana: !!synthesis?.requires_action,
+    trace_id: dossier.trace_id,
+    baseado_em: synthesis?.based_on || [],
+    avisos: synthesis?.warnings || []
+  };
+}
+
+/**
+ * Resposta HTTP: não expor JSON interno do rascunho GPT nem prompts.
+ */
+function sanitizeLayersForHttpResponse(dossier) {
+  const L = dossier.layers || {};
+  return {
+    input: L.input || {},
+    perception: L.perception || {},
+    technical: L.technical || {},
+    draft: Object.keys(L.draft || {}).length
+      ? { internal_only: true, stage_completed: true, not_exposed_to_user: true }
+      : {},
+    validation: L.validation || {},
+    final: L.final || {}
+  };
+}
+
 module.exports = {
   createEmptyDossier,
   appendLog,
   recordStage,
-  redactForPersistence
+  redactForPersistence,
+  seedLayerInput,
+  finalizeLayerFinal,
+  sanitizeLayersForHttpResponse
 };

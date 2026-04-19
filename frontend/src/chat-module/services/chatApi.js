@@ -18,6 +18,8 @@ const chatApi = {
   subscribePush: (sub) => http.post('/chat/push/subscribe', sub),
   /** Backend: POST /api/dashboard/chat — corpo { message: string, history: {role,content}[] } */
   sendAIMessage: ({ message, history }) => http.post('/dashboard/chat', { message, history: history || [] }),
+  /** Conselho Cognitivo — pipeline Gemini → Claude → GPT (sem chat entre modelos). */
+  executeCognitiveCouncil: (body) => http.post('/cognitive-council/execute', body),
   submitRegistration: (text) => http.post('/intelligent-registration', { text }),
   listRegistrations: () => http.get('/intelligent-registration?limit=10'),
   updateAvatar: (file) => {

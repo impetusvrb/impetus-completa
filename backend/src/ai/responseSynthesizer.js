@@ -44,6 +44,11 @@ function synthesize({
     if (Array.isArray(validation.gaps)) {
       validation.gaps.slice(0, 5).forEach((g) => warnings.push(`Gap: ${g}`));
     }
+    if (Array.isArray(validation.inconsistencias)) {
+      validation.inconsistencias.slice(0, 5).forEach((g) =>
+        warnings.push(`Inconsistência: ${g}`)
+      );
+    }
   }
   if (degraded) {
     warnings.push('Execução em modo degradado: um ou mais motores não estiveram disponíveis.');

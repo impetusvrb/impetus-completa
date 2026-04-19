@@ -7,7 +7,7 @@ import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
 import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
-import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic, Target, AlertCircle } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic, Target, AlertCircle, Brain } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
@@ -32,6 +32,8 @@ export default function ChatApp(){
   const [aiMessages,setAiMessages]=useState([{id:'init',content:'Ola! Sou a Impetus IA. Como posso ajudar?',isUser:false,created_at:new Date().toISOString()}]);
   const [aiInput,setAiInput]=useState('');
   const [aiLoading,setAiLoading]=useState(false);
+  /** Modo Conselho Cognitivo: pipeline multi-modelo controlado pelo backend (não substitui o chat simples). */
+  const [advancedCouncilMode,setAdvancedCouncilMode]=useState(false);
   const [showRegistro,setShowRegistro]=useState(false);
   const [registroText,setRegistroText]=useState('');
   const [registroLoading,setRegistroLoading]=useState(false);
@@ -128,13 +130,37 @@ export default function ChatApp(){
     const userMsg={id:Date.now(),content:text,isUser:true,created_at:new Date().toISOString()};
     setAiMessages(prev=>[...prev,userMsg]);
     try{
-      const history = aiMessages.map(m => ({
-        role: m.isUser ? 'user' : 'assistant',
-        content: m.content || ''
-      }));
-      const { data } = await chatApi.sendAIMessage({ message: text, history });
-      const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
-      setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
+      if (advancedCouncilMode) {
+        const { data } = await chatApi.executeCognitiveCouncil({
+          input: { text },
+          context: {},
+          module: 'chat_impetus'
+        });
+        const reply =
+          (data && (data.result?.answer || data.synthesis?.answer)) ||
+          'Sem resposta';
+        const trace = data?.traceId || data?.trace_id;
+        const stages = Array.isArray(data?.stages) ? data.stages : [];
+        const confidence = data?.result?.confidence;
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            content: reply,
+            isUser: false,
+            created_at: new Date().toISOString(),
+            cognitiveMeta: { trace, stages, confidence }
+          }
+        ]);
+      } else {
+        const history = aiMessages.map(m => ({
+          role: m.isUser ? 'user' : 'assistant',
+          content: m.content || ''
+        }));
+        const { data } = await chatApi.sendAIMessage({ message: text, history });
+        const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
+        setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
+      }
     }catch(e){
       setAiMessages(prev=>[...prev,{id:Date.now()+1,content:'Erro ao conectar com a IA.',isUser:false,created_at:new Date().toISOString()}]);
     } finally{ setAiLoading(false); }
@@ -399,13 +425,36 @@ export default function ChatApp(){
           <div className="msg-area" style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:12}}>
             {aiMessages.map(msg=>(<div key={msg.id} style={{display:'flex',justifyContent:msg.isUser?'flex-end':'flex-start',gap:8,alignItems:'flex-end'}}>
               {!msg.isUser&&<img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}}/>}
-              <div style={{maxWidth:'72%',padding:'10px 14px',borderRadius:msg.isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',background:msg.isUser?'#6366f1':'#1e1e2e',color:'#fff',fontSize:14,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{msg.content}<div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,textAlign:'right'}}>{new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+              <div style={{maxWidth:'72%',padding:'10px 14px',borderRadius:msg.isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',background:msg.isUser?'#6366f1':'#1e1e2e',color:'#fff',fontSize:14,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{msg.content}
+              {msg.cognitiveMeta?.trace && (
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.45)',marginTop:6}}>
+                  Conselho Cognitivo · confiança {msg.cognitiveMeta.confidence != null ? Number(msg.cognitiveMeta.confidence).toFixed(2) : '—'} · trace {msg.cognitiveMeta.trace}
+                </div>
+              )}
+              {msg.cognitiveMeta?.stages?.length > 0 && (
+                <details style={{fontSize:11,color:'rgba(255,255,255,0.55)',marginTop:8,lineHeight:1.4}}>
+                  <summary style={{cursor:'pointer',userSelect:'none'}}>Resumo das etapas</summary>
+                  <ul style={{margin:'6px 0 0',paddingLeft:18}}>
+                    {msg.cognitiveMeta.stages.map((s,i)=>(
+                      <li key={i}><strong>{s.name}</strong>{s.summary ? ` — ${s.summary}` : ''}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,textAlign:'right'}}>{new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
             </div>))}
             {aiLoading&&<div style={{display:'flex',gap:8}}><img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}}/><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}
           </div>
-          <div style={{padding:'12px 16px',borderTop:'1px solid #2a2a3e',display:'flex',gap:8,background:'#12121e'}}>
-            <input value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),handleAiSend())} placeholder="Pergunte algo para a Impetus IA..." style={{flex:1,background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:12,padding:'10px 14px',color:'#fff',fontSize:14,outline:'none'}}/>
-            <button onClick={handleAiSend} disabled={aiLoading||!aiInput.trim()} style={{width:40,height:40,borderRadius:'50%',background:aiLoading||!aiInput.trim()?'#2a2a3e':'#6366f1',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Send size={16} color="#fff"/></button>
+          <div style={{padding:'10px 16px 12px',borderTop:'1px solid #2a2a3e',background:'#12121e'}}>
+            <label style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,color:'#9ca3af',fontSize:12,cursor:'pointer',userSelect:'none'}} title="Usa o pipeline Conselho Cognitivo (Gemini → Claude → GPT). O chat simples continua disponível sem marcar esta opção.">
+              <input type="checkbox" checked={advancedCouncilMode} onChange={e=>setAdvancedCouncilMode(e.target.checked)} style={{accentColor:'#6366f1'}} />
+              <Brain size={14} strokeWidth={2} aria-hidden />
+              <span>Análise avançada (Conselho Cognitivo)</span>
+            </label>
+            <div style={{display:'flex',gap:8}}>
+            <input value={aiInput} onChange={e=>setAiInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),handleAiSend())} placeholder={advancedCouncilMode ? 'Descreva a situação para análise multi-etapa…' : 'Pergunte algo para a Impetus IA...'} style={{flex:1,background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:12,padding:'10px 14px',color:'#fff',fontSize:14,outline:'none'}}/>
+            <button onClick={handleAiSend} disabled={aiLoading||!aiInput.trim()} style={{width:40,height:40,borderRadius:'50%',background:aiLoading||!aiInput.trim()?'#2a2a3e':advancedCouncilMode?'#7c3aed':'#6366f1',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} title={advancedCouncilMode ? 'Enviar ao Conselho Cognitivo' : 'Enviar'}><Send size={16} color="#fff"/></button>
+            </div>
           </div>
         </>):activeConv?(<>
           <div className="chat-conv-header">
