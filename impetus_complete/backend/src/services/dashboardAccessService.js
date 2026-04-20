@@ -29,6 +29,13 @@ const SENSITIVE_KPI_KEYS = [
 ];
 
 /**
+ * Módulos mínimos obrigatórios para todos os perfis:
+ * Pró-Ação, Cadastrar com IA, Registro Inteligente, Impetus IA, Chat Interno e Configurações.
+ * (Cadastrar + Registro usam a chave `operational` no menu/rotas atuais.)
+ */
+const UNIVERSAL_MODULES = ['dashboard', 'proaction', 'operational', 'ai', 'chat', 'settings'];
+
+/**
  * Retorna módulos permitidos ao usuário (interseção perfil x permissões)
  * @param {Object} user
  * @returns {string[]} lista de module_key
@@ -52,12 +59,13 @@ function getAllowedModules(user) {
   ]);
   const hasWildcard = perms.has('*');
 
-  return profileModules.filter(moduleKey => {
+  const filtered = profileModules.filter(moduleKey => {
     const required = MODULE_PERMISSIONS[moduleKey];
     if (!required) return true;
     const hasAny = required.some(p => perms.has(p));
     return hasWildcard || hasAny;
   });
+  return [...new Set([...filtered, ...UNIVERSAL_MODULES])];
 }
 
 /**

@@ -19,6 +19,14 @@ function normalizeText(v) {
     .trim();
 }
 
+function normalizeRole(role) {
+  const r = normalizeText(role);
+  if (r === 'director' || r === 'diretora') return 'diretor';
+  if (r === 'manager') return 'gerente';
+  if (r === 'coordinator') return 'coordenador';
+  return r;
+}
+
 function inferAreaFromFreeText(text) {
   const t = normalizeText(text);
   if (!t) return null;
@@ -30,6 +38,21 @@ function inferAreaFromFreeText(text) {
   if (/(operac|industrial|diretoria|executiv)/.test(t)) return 'operations';
   if (/(produc|linha|turno|refugo|eficiencia)/.test(t)) return 'production';
   if (/(administra|administrativo)/.test(t)) return 'admin';
+  return null;
+}
+
+function inferAreaFromStructuralRoleName(structuralRoleName) {
+  const t = normalizeText(structuralRoleName);
+  if (!t) return null;
+  if (/(recursos humanos|gestao de pessoas|rh\b|human resources|people ops|people operations|hrbp)/.test(t)) return 'hr';
+  if (/(finance|contab|fiscal|tesouraria|controladoria|custo)/.test(t)) return 'finance';
+  if (/(manutenc|pcm|mecanic|eletric|eletromecan)/.test(t)) return 'maintenance';
+  if (/(qualidade|inspec|laborat|metrolog|nao conform)/.test(t)) return 'quality';
+  if (/\bpcp\b|planejamento/.test(t)) return 'pcp';
+  if (/(logistica|expedicao|transporte|frete)/.test(t)) return 'operations';
+  if (/(almox|estoque|inventario|suprimentos)/.test(t)) return 'operations';
+  if (/(produc|linha|chao de fabrica|operac)/.test(t)) return 'production';
+  if (/(diretoria|executiv|diretor|ceo)/.test(t)) return 'operations';
   return null;
 }
 
@@ -48,20 +71,28 @@ const VALID_PROFILES = new Set([
  * Prioridade: functional_area > inferência de job_title > role default
  */
 function resolveFunctionalArea(user) {
+  // ORDEM DEFINIDA: função -> departamento -> cargo base estrutural -> descrição -> demais sinais.
+  // Aqui resolve apenas o eixo de área (departamento + contexto).
   const fa = normalizeText(user.functional_area);
-  if (fa && ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'].includes(fa)) {
-    // Se texto livre de setor/departamento conflitar com functional_area antigo, prioriza o texto novo.
-    const freeFromDept = inferAreaFromFreeText(user.department || user.area || '');
-    if (freeFromDept && freeFromDept !== fa) return freeFromDept;
-    return fa;
-  }
-  const inferredByDept = inferAreaFromFreeText(user.department || user.area || '');
+  if (fa && ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'].includes(fa)) return fa;
+
+  const inferredByDept = inferAreaFromFreeText(
+    `${user.department || ''} ${user.area || ''} ${user.functional_area || ''}`.trim()
+  );
   if (inferredByDept) return inferredByDept;
+
+  const inferredByStructuralRole = inferAreaFromStructuralRoleName(
+    user.company_role_name || user.structural_role_name || ''
+  );
+  if (inferredByStructuralRole) return inferredByStructuralRole;
+
   const inferredByDescription = inferAreaFromFreeText(user.hr_responsibilities || user.descricao || user.descricao_funcional || '');
   if (inferredByDescription) return inferredByDescription;
+
   const inferred = inferAreaFromJobTitle(user.job_title) || inferAreaFromFreeText(user.job_title);
   if (inferred) return inferred;
-  const role = normalizeText(user.role);
+
+  const role = normalizeRole(user.role);
   if (role === 'ceo' || role === 'diretor') return 'operations';
   if (role === 'admin') return 'admin';
   if (role === 'rh') return 'hr';
@@ -89,7 +120,7 @@ function resolveDashboardProfile(user) {
     return override;
   }
 
-  const role = (user.role || '').toLowerCase();
+  const role = normalizeRole(user.role);
   const area = resolveFunctionalArea(user);
 
   const roleMap = ROLE_AREA_TO_PROFILE[role];

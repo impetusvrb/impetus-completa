@@ -57,12 +57,15 @@ async function validateSession(token) {
              u.id, u.name, u.email, u.role, u.company_id, 
              u.department_id, u.hierarchy_level, u.supervisor_id, u.area, u.job_title, u.department,
              u.hr_responsibilities,
+             u.company_role_id,
+             cr.name as company_role_name,
              u.functional_area, u.dashboard_profile,
              u.preferred_kpis, u.dashboard_preferences, u.seniority_level, u.onboarding_completed, u.ai_profile_context,
              u.permissions, u.active, u.is_first_access, u.must_change_password,
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root
       FROM sessions s
       JOIN users u ON s.user_id = u.id
+      LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
       WHERE s.token = $1 
         AND s.expires_at > now()
         AND u.active = true
@@ -98,6 +101,8 @@ async function validateSession(token) {
       job_title: session.job_title,
       department: session.department,
       hr_responsibilities: session.hr_responsibilities || null,
+      company_role_id: session.company_role_id || null,
+      company_role_name: session.company_role_name || null,
       functional_area: session.functional_area || null,
       dashboard_profile: session.dashboard_profile || null,
       preferred_kpis: session.preferred_kpis,
@@ -144,13 +149,16 @@ async function validateJWTAndLoadUser(token) {
     if (!decoded?.id) return null;
 
     const r = await db.query(`
-      SELECT id, name, email, role, company_id, department_id, hierarchy_level,
+      SELECT u.id, u.name, u.email, u.role, u.company_id, u.department_id, u.hierarchy_level,
              supervisor_id, area, job_title, department, hr_responsibilities, functional_area, dashboard_profile,
+             u.company_role_id, cr.name as company_role_name,
              preferred_kpis, dashboard_preferences, seniority_level, onboarding_completed, ai_profile_context,
              permissions, active,
              is_first_access, must_change_password, temporary_password_expires_at,
              role_verified, role_verification_status, is_company_root
-      FROM users WHERE id = $1 AND active = true AND deleted_at IS NULL
+      FROM users u
+      LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
+      WHERE u.id = $1 AND u.active = true AND u.deleted_at IS NULL
     `, [decoded.id]);
 
     if (r.rows.length === 0) return null;
@@ -169,6 +177,8 @@ async function validateJWTAndLoadUser(token) {
       job_title: u.job_title,
       department: u.department,
       hr_responsibilities: u.hr_responsibilities || null,
+      company_role_id: u.company_role_id || null,
+      company_role_name: u.company_role_name || null,
       functional_area: u.functional_area || null,
       dashboard_profile: u.dashboard_profile || null,
       preferred_kpis: u.preferred_kpis,

@@ -206,8 +206,8 @@ router.get('/', requireAuth, requireHierarchyScope, async (req, res) => {
       communications: result.rows,
       pagination: {
         total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit,
+        offset,
         estimated: estimated || undefined
       }
     });

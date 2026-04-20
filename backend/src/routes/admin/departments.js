@@ -429,7 +429,7 @@ router.delete('/:id',
         [req.params.id]
       );
 
-      if (parseInt(hasUsers.rows[0].count) > 0) {
+      if (parseInt(hasUsers.rows[0].count, 10) > 0) {
         return res.status(400).json({
           ok: false,
           error: 'Não é possível desativar departamento com usuários ativos. Remova ou transfira os usuários primeiro.',
@@ -443,7 +443,7 @@ router.delete('/:id',
         [req.params.id]
       );
 
-      if (parseInt(hasSubdepartments.rows[0].count) > 0) {
+      if (parseInt(hasSubdepartments.rows[0].count, 10) > 0) {
         return res.status(400).json({
           ok: false,
           error: 'Não é possível desativar departamento com subdepartamentos ativos. Desative ou remova os subdepartamentos primeiro.',

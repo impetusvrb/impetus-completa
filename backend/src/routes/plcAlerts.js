@@ -12,7 +12,7 @@ const { runCollectorCycle } = require('../services/plcCollector');
 
 router.get('/', requireAuth, requireIndustrialView, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
     const acknowledged = req.query.acknowledged === 'true';
 
     const r = await db.query(`

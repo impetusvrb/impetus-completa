@@ -100,9 +100,9 @@ router.get('/audit',
         ok: true,
         logs: result.rows,
         pagination: {
-          total: parseInt(countResult.rows[0].total),
-          limit: parseInt(limit),
-          offset: parseInt(offset)
+          total: parseInt(countResult.rows[0].total, 10),
+          limit,
+          offset
         }
       });
 
@@ -193,9 +193,9 @@ router.get('/data-access',
         ok: true,
         logs: result.rows,
         pagination: {
-          total: parseInt(countResult.rows[0].total),
-          limit: parseInt(limit),
-          offset: parseInt(offset)
+          total: parseInt(countResult.rows[0].total, 10),
+          limit,
+          offset
         }
       });
 

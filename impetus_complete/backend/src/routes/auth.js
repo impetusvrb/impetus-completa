@@ -74,6 +74,18 @@ router.post('/login', async (req, res) => {
     });
 
     const roleNormalized = (user.role || 'colaborador').toString().toLowerCase();
+    let companyRoleName = null;
+    if (user.company_role_id) {
+      try {
+        const cr = await db.query(
+          'SELECT name FROM company_roles WHERE id = $1 AND company_id = $2 AND active = true',
+          [user.company_role_id, user.company_id]
+        );
+        companyRoleName = cr.rows[0]?.name || null;
+      } catch (_) {
+        companyRoleName = null;
+      }
+    }
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -89,7 +101,9 @@ router.post('/login', async (req, res) => {
         is_company_root: user.is_company_root === true,
         needs_role_verification: needsVerification,
         functional_area: user.functional_area || null,
-        dashboard_profile: user.dashboard_profile || null
+        dashboard_profile: user.dashboard_profile || null,
+        company_role_id: user.company_role_id || null,
+        company_role_name: companyRoleName
       }
     });
   } catch (err) {
