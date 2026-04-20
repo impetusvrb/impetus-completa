@@ -23,6 +23,18 @@ async function assertStructuralRoleForCompany(companyId, roleId) {
   }
 }
 
+/**
+ * Compatibilidade de payload entre versões:
+ * alguns clientes usam structural_role_id em vez de company_role_id.
+ */
+function normalizeRoleAlias(body) {
+  const b = body && typeof body === 'object' ? { ...body } : {};
+  if (b.company_role_id === undefined && b.structural_role_id !== undefined) {
+    b.company_role_id = b.structural_role_id;
+  }
+  return b;
+}
+
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
 const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
@@ -188,6 +200,7 @@ router.get('/',
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.hr_responsibilities,
           u.company_role_id,
+          u.company_role_id as structural_role_id,
           u.department_id,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
@@ -301,7 +314,7 @@ router.post('/',
       }
 
       // Validar dados
-      const validatedData = createUserSchema.parse(req.body);
+      const validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
 
       let companyRoleId = null;
       if (validatedData.company_role_id) {
@@ -442,7 +455,7 @@ router.put('/:id',
       }
 
       // Validar dados
-      const validatedData = updateUserSchema.parse(req.body);
+      const validatedData = updateUserSchema.parse(normalizeRoleAlias(req.body));
 
       if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
         const cr = validatedData.company_role_id;

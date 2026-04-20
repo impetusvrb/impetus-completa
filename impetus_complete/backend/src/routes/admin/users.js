@@ -34,6 +34,23 @@ function normalizeAreaLabel(value) {
   return String(value).trim();
 }
 
+function normalizeRoleAlias(body) {
+  const b = body && typeof body === 'object' ? { ...body } : {};
+  if (b.company_role_id === undefined && b.structural_role_id !== undefined) {
+    b.company_role_id = b.structural_role_id;
+  }
+  return b;
+}
+
+async function assertRoleCompany(companyId, roleId) {
+  if (!roleId) return true;
+  const r = await db.query(
+    `SELECT id FROM company_roles WHERE id = $1 AND company_id = $2 AND active`,
+    [roleId, companyId]
+  );
+  return r.rows.length > 0;
+}
+
 const createUserSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   email: z.string().email('Email inválido'),
@@ -57,7 +74,12 @@ const createUserSchema = z.object({
   ),
   permissions: z.array(z.string()).optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional(),
-  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  company_role_id: z.preprocess((v) => {
+    if (v === '' || v === null || v === undefined) return undefined;
+    const s = typeof v === 'string' ? v.trim() : String(v).trim();
+    return s === '' ? undefined : s;
+  }, z.string().uuid().optional())
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -90,7 +112,13 @@ const updateUserSchema = z.object({
   active: z.boolean().optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
   dashboard_profile: z.string().max(64).nullable().optional(),
-  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional())
+  hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  company_role_id: z.preprocess((v) => {
+    if (v === null) return null;
+    if (v === '' || v === undefined) return undefined;
+    const s = typeof v === 'string' ? v.trim() : String(v).trim();
+    return s === '' ? undefined : s;
+  }, z.union([z.string().uuid(), z.null()]).optional())
 });
 
 /**
@@ -162,13 +190,17 @@ router.get('/',
           u.functional_area, u.dashboard_profile,
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.hr_responsibilities,
+          u.company_role_id,
+          u.company_role_id as structural_role_id,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
           d.id as department_id,
+          cr.name as structural_role_name,
           (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now()) as active_sessions
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN company_roles cr ON cr.id = u.company_role_id
         WHERE ${whereClause} AND u.deleted_at IS NULL
         ORDER BY u.created_at DESC
         LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -267,7 +299,10 @@ router.post('/',
       }
 
       // Validar dados
-      const validatedData = createUserSchema.parse(req.body);
+      const validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
+      if (validatedData.company_role_id && !(await assertRoleCompany(req.user.company_id, validatedData.company_role_id))) {
+        return res.status(400).json({ ok: false, error: 'Cargo estrutural inválido ou inativo' });
+      }
 
       // Verificar se email já existe
       const existingUser = await db.query(
@@ -306,9 +341,9 @@ router.post('/',
           company_id, name, email, password_hash, role,
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
           hierarchy_level, permissions, active, executive_verified, functional_area,
-          hr_responsibilities, hr_responsibilities_parsed
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, created_at
+          hr_responsibilities, hr_responsibilities_parsed, company_role_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, company_role_id, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -327,7 +362,8 @@ router.post('/',
         false,
         validatedData.functional_area || null,
         hrText || null,
-        JSON.stringify(hrResponsibilitiesParsed)
+        JSON.stringify(hrResponsibilitiesParsed),
+        validatedData.company_role_id || null
       ]);
 
       // Log de auditoria
@@ -387,7 +423,13 @@ router.put('/:id',
       }
 
       // Validar dados
-      const validatedData = updateUserSchema.parse(req.body);
+      const validatedData = updateUserSchema.parse(normalizeRoleAlias(req.body));
+      if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
+        const roleId = validatedData.company_role_id;
+        if (roleId !== null && !(await assertRoleCompany(req.user.company_id, roleId))) {
+          return res.status(400).json({ ok: false, error: 'Cargo estrutural inválido ou inativo' });
+        }
+      }
 
       // Verificar se usuário existe
       const existingUser = await db.query(
@@ -467,7 +509,7 @@ router.put('/:id',
         UPDATE users
         SET ${updateFields.join(', ')}
         WHERE id = $${paramCount + 1} AND company_id = $${paramCount + 2} AND deleted_at IS NULL
-        RETURNING id, name, email, role, hierarchy_level, active, updated_at
+        RETURNING id, name, email, role, hierarchy_level, active, company_role_id, updated_at
       `, params);
 
       invalidateScopeCache(req.params.id);

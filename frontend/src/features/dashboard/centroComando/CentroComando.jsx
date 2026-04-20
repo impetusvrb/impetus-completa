@@ -34,7 +34,7 @@ import WidgetEnergia from './WidgetEnergia';
 import WidgetRastreabilidade from './WidgetRastreabilidade';
 import WidgetReceitas from './WidgetReceitas';
 import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
-import { isExecutiveLeadershipRole } from '../../../utils/roleUtils';
+import { canAccessLiveDashboardUser } from '../../../utils/roleUtils';
 import LiveSurfacePanel from './LiveSurfacePanel';
 import './CentroComando.css';
 
@@ -154,7 +154,7 @@ export default function CentroComando() {
   const smartQuestions = personalizado?.assistente_ia?.exemplos_perguntas || [];
   const fallbackMessages = personalizado?.assistente_ia?.mensagens_fallback || [];
 
-  const showUnifiedLive = isExecutiveLeadershipRole(user);
+  const showUnifiedLive = canAccessLiveDashboardUser(user);
 
   return (
     <Layout>

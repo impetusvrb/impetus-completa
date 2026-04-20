@@ -182,7 +182,11 @@ export default function AdminUsers() {
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
         functional_area: fa || undefined
       };
-      if (companyRoleId) payload.company_role_id = companyRoleId;
+      if (companyRoleId) {
+        payload.company_role_id = companyRoleId;
+        // Compatibilidade com backends legados que ainda esperam structural_role_id.
+        payload.structural_role_id = companyRoleId;
+      }
 
       await adminUsers.create(payload);
       
@@ -235,6 +239,8 @@ export default function AdminUsers() {
         executive_verified: formData.executive_verified ?? false,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
         company_role_id: companyRoleId || null,
+        // Compatibilidade com backends legados que ainda esperam structural_role_id.
+        structural_role_id: companyRoleId || null,
         functional_area: fa || null
       };
 
@@ -325,7 +331,7 @@ export default function AdminUsers() {
       permissions: user.permissions || [],
       active: user.active,
       executive_verified: user.executive_verified ?? false,
-      company_role_id: uuidFieldToString(user.company_role_id),
+      company_role_id: uuidFieldToString(user.company_role_id || user.structural_role_id),
       functional_area: user.functional_area || ''
     });
     setShowEditModal(true);
@@ -680,9 +686,9 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
   const structuralRoleOptions = [
     { value: '', label: 'Não associar à Base Estrutural' },
     ...(structuralRoles || [])
-      .filter((r) => r && r.id != null && uuidFieldToString(r.id))
+      .filter((r) => r && (r.id != null || r.company_role_id != null) && uuidFieldToString(r.id || r.company_role_id))
       .map((r) => ({
-        value: uuidFieldToString(r.id),
+        value: uuidFieldToString(r.id || r.company_role_id),
         label: `${r.name || ''}${r.work_area ? ` — ${r.work_area}` : ''}`
       }))
   ];

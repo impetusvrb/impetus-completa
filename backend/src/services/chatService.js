@@ -70,12 +70,17 @@ async function createGroup(userId, companyId, name, participantIds) {
 
 async function getMessages(conversationId, userId, limit = 50, before = null) {
   await verifyParticipant(conversationId, userId);
-  let q = `SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.content, m.file_url, m.file_name, m.file_size, m.reply_to, m.created_at,
+  let q = `SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.content, m.file_url, m.file_name, m.file_size, m.reply_to, m.created_at, m.deleted_for_everyone_at,
     json_build_object('id',u.id,'name',u.name,'avatar_url',COALESCE(u.foto_perfil, u.avatar_url),'status_online',u.status_online,'ultimo_visto',COALESCE(u.ultimo_visto,u.last_seen)) AS sender
     FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
-    WHERE m.conversation_id = $1 AND m.deleted_at IS NULL`;
-  const params = [conversationId];
-  if (before) { params.push(before); q += ` AND m.created_at < $${params.length}`; }
+    WHERE m.conversation_id = $1 AND m.deleted_at IS NULL
+    AND m.deleted_for_everyone_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM chat_message_deleted_for_user df WHERE df.message_id = m.id AND df.user_id = $2)`;
+  const params = [conversationId, userId];
+  if (before) {
+    params.push(before);
+    q += ` AND m.created_at < $${params.length}`;
+  }
   q += ` ORDER BY m.created_at DESC LIMIT $${params.length + 1}`;
   params.push(limit);
   const { rows } = await db.query(q, params);
@@ -94,6 +99,44 @@ async function saveMessage({ conversationId, senderId, type, content, fileUrl, f
 
 async function markAsRead(conversationId, userId) {
   await db.query(`UPDATE chat_participants SET last_read_at = NOW() WHERE conversation_id = $1 AND user_id = $2`, [conversationId, userId]);
+}
+
+/**
+ * Apagar mensagem: scope "me" (oculta só para o utilizador) ou "everyone" (autor apenas).
+ */
+async function deleteMessageScoped({ messageId, conversationId, userId, scope }) {
+  const s = String(scope || '').toLowerCase();
+  if (s !== 'me' && s !== 'everyone') {
+    const err = new Error('scope deve ser "me" ou "everyone"');
+    err.status = 400;
+    throw err;
+  }
+  await verifyParticipant(conversationId, userId);
+  const { rows } = await db.query(
+    `SELECT id, sender_id FROM chat_messages WHERE id = $1 AND conversation_id = $2`,
+    [messageId, conversationId]
+  );
+  if (rows.length === 0) {
+    const err = new Error('Mensagem não encontrada');
+    err.status = 404;
+    throw err;
+  }
+  const msg = rows[0];
+  if (s === 'me') {
+    await db.query(
+      `INSERT INTO chat_message_deleted_for_user (message_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (message_id, user_id) DO NOTHING`,
+      [messageId, userId]
+    );
+    return { ok: true };
+  }
+  if (String(msg.sender_id) !== String(userId)) {
+    const err = new Error('Apenas o autor pode apagar para todos');
+    err.status = 403;
+    throw err;
+  }
+  await db.query(`UPDATE chat_messages SET deleted_for_everyone_at = NOW() WHERE id = $1`, [messageId]);
+  return { ok: true };
 }
 
 async function addReaction(messageId, userId, emoji) {
@@ -144,4 +187,25 @@ async function getPushSubscriptions(userIds) {
   return rows;
 }
 
-module.exports = { AI_USER_ID, getConversations, getOrCreatePrivateConversation, createGroup, getMessages, saveMessage, markAsRead, addReaction, removeReaction, verifyParticipant, getConversationParticipantIds, getConversationParticipants, addParticipant, removeParticipant, getCompanyUsers, savePushSubscription, getPushSubscriptions, setUserPresence, updateUserProfilePhoto };
+module.exports = {
+  AI_USER_ID,
+  getConversations,
+  getOrCreatePrivateConversation,
+  createGroup,
+  getMessages,
+  saveMessage,
+  markAsRead,
+  deleteMessageScoped,
+  addReaction,
+  removeReaction,
+  verifyParticipant,
+  getConversationParticipantIds,
+  getConversationParticipants,
+  addParticipant,
+  removeParticipant,
+  getCompanyUsers,
+  savePushSubscription,
+  getPushSubscriptions,
+  setUserPresence,
+  updateUserProfilePhoto
+};

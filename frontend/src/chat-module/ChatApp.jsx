@@ -7,7 +7,7 @@ import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
 import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
-import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Image as ImageIcon, Mic, Target, AlertCircle, Brain } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import './styles/chat.css';
@@ -114,7 +114,8 @@ export default function ChatApp(){
 
   const handleChatDelete=useCallback(async (msg,scope)=>{
     try{
-      await chatApi.deleteMessage(msg.id,scope);
+      if (!activeId) return;
+      await chatApi.deleteMessage(msg.id, scope, activeId);
       if(scope==='me') removeMessage(msg.id);
       else markDeletedEveryone(msg.id);
       loadConversations();
@@ -122,7 +123,7 @@ export default function ChatApp(){
       console.error(e);
       window.alert(e?.response?.data?.error||'Não foi possível apagar a mensagem.');
     }
-  },[removeMessage,markDeletedEveryone,loadConversations]);
+  },[activeId, removeMessage,markDeletedEveryone,loadConversations]);
 
   async function handleAiSend(){
     if(!aiInput.trim()||aiLoading) return;

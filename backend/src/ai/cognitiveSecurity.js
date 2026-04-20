@@ -87,7 +87,6 @@ function assessHeuristicRisk(requestText, dossier) {
     'vazamento tóxico',
     'obito',
     'óbito',
-    'óbito',
     'morte',
     'óleo quente',
     'alto forno',

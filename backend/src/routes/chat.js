@@ -45,7 +45,8 @@ router.post('/conversations', async (req, res) => {
 router.get('/conversations/:id/messages', async (req, res) => {
   try {
     const { before, limit } = req.query;
-    res.json(await chatService.getMessages(req.params.id, req.user.id, parseInt(limit)||50, before));
+    const lim = Math.min(200, Math.max(1, parseInt(String(limit), 10) || 50));
+    res.json(await chatService.getMessages(req.params.id, req.user.id, lim, before || null));
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });
 router.post('/conversations/:id/messages', async (req, res) => {
@@ -126,8 +127,30 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });
 router.put('/messages/:id/read', async (req, res) => {
-  try { await chatService.markAsRead(req.body.conversationId, req.user.id); res.json({ ok: true }); }
-  catch { res.status(500).json({ error: 'Erro' }); }
+  try {
+    const cid = req.body?.conversationId;
+    if (!cid) return res.status(400).json({ error: 'conversationId obrigatório' });
+    await chatService.markAsRead(cid, req.user.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'Erro' });
+  }
+});
+
+router.post('/messages/:messageId/delete', async (req, res) => {
+  try {
+    const { scope, conversationId } = req.body || {};
+    if (!conversationId) return res.status(400).json({ error: 'conversationId obrigatório' });
+    await chatService.deleteMessageScoped({
+      messageId: req.params.messageId,
+      conversationId,
+      userId: req.user.id,
+      scope
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message || 'Erro ao apagar mensagem' });
+  }
 });
 router.get('/conversations/:id/participants', async (req, res) => {
   try { res.json(await chatService.getConversationParticipants(req.params.id, req.user.id)); }
@@ -147,10 +170,20 @@ router.get('/users', async (req, res) => {
 });
 router.post('/push/subscribe', async (req, res) => {
   try {
-    const { endpoint, keys } = req.body;
-    await chatService.savePushSubscription(req.user.id, endpoint, keys.p256dh, keys.auth);
+    const { endpoint, keys } = req.body || {};
+    if (!endpoint || typeof endpoint !== 'string') {
+      return res.status(400).json({ error: 'endpoint obrigatório' });
+    }
+    const p256dh = keys && typeof keys === 'object' ? keys.p256dh : null;
+    const auth = keys && typeof keys === 'object' ? keys.auth : null;
+    if (!p256dh || !auth) {
+      return res.status(400).json({ error: 'keys.p256dh e keys.auth obrigatórios' });
+    }
+    await chatService.savePushSubscription(req.user.id, endpoint, p256dh, auth);
     res.json({ ok: true });
-  } catch { res.status(500).json({ error: 'Erro' }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Erro' });
+  }
 });
 
 router.put('/me/avatar', avatarUpload.single('file'), async (req, res) => {

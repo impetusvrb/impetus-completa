@@ -21,6 +21,7 @@ const claudePanelService = require('../services/claudePanelService');
 const voiceRealtimeContextService = require('../services/voiceRealtimeContextService');
 const { composeLiveDashboardSurface } = require('../services/dashboardComposer');
 const { userRateLimit } = require('../middleware/userRateLimit');
+const ai = require('../services/ai');
 
 router.use('/maintenance', dashboardMaintenanceRouter);
 
@@ -458,6 +459,52 @@ router.post('/claude-panel', requireAuth, userRateLimit('executive_query'), asyn
   } catch (err) {
     console.error('[CLAUDE_PANEL]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro no painel Claude.', shouldRender: false });
+  }
+});
+
+/**
+ * POST /dashboard/chat
+ * Assistente Impetus IA no chat (fluxo simples GPT — não substitui o Conselho Cognitivo).
+ * Body: { message: string, history?: { role, content }[] }
+ */
+router.post('/chat', requireAuth, async (req, res) => {
+  try {
+    const message = String(req.body?.message ?? '').trim();
+    if (!message) {
+      return res.status(400).json({ ok: false, error: 'Mensagem vazia.' });
+    }
+    const historyRaw = Array.isArray(req.body?.history) ? req.body.history : [];
+    const history = historyRaw
+      .slice(-24)
+      .map((m) => ({
+        role: m && m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m?.content ?? '').slice(0, 16000)
+      }))
+      .filter((m) => m.content.length > 0);
+
+    const u = req.user;
+    const system = `És o assistente Impetus IA numa plataforma industrial. Responde em português, de forma clara e operacional.
+Perfil do utilizador: ${(u.role || 'colaborador').toString()}. Não inventes leituras de sensores, KPIs ou ordens de serviço sem fonte nos dados fornecidos. Se faltar contexto, pede esclarecimento ou indica o que o administrador deve configurar.`;
+
+    const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: message }];
+
+    const billing = u.company_id ? { companyId: u.company_id, userId: u.id } : null;
+    const reply = await ai.chatCompletionMessages(messages, {
+      max_tokens: 1400,
+      billing,
+      model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini'
+    });
+
+    const text = typeof reply === 'string' ? reply : String(reply || '');
+    res.json({
+      ok: true,
+      reply: text,
+      message: text,
+      content: text
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_CHAT]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro no assistente Impetus IA.' });
   }
 });
 

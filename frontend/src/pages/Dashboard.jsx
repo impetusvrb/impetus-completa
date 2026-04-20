@@ -1,13 +1,12 @@
 /**
  * DASHBOARD PRINCIPAL — Centro de Comando Industrial
- * Operador: DashboardOperador | Colaborador: DashboardColaborador | Manutenção: DashboardMecanico | Liderança/RH: CentroComando
+ * Operador: DashboardOperador | Manutenção: DashboardMecanico | Demais perfis (incl. colaborador): CentroComando
  */
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   CentroComando,
-  DashboardColaborador,
   DashboardMecanico,
   DashboardOperador
 } from '../features/dashboard';
@@ -28,20 +27,16 @@ function isColaboradorProfile(user) {
   return ['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role);
 }
 
-/** Alinha com o motor do servidor: perfis de staff (RH/Finanças) não usam o dashboard de chão genérico. */
-const CENTRO_BY_DASHBOARD_PROFILE = new Set(['hr_management', 'finance_management']);
-const CENTRO_BY_FUNCTIONAL_AREA = new Set(['hr', 'rh', 'recursos_humanos', 'finance']);
-
-function shouldUseCentroComandoForColaborador(user) {
+/** RH/Financeiro devem usar sempre o Centro de Comando personalizado. */
+function isStaffCentroProfile(user) {
   if (!user) return false;
-  const prof = String(user.dashboard_profile || '').toLowerCase().trim();
-  if (CENTRO_BY_DASHBOARD_PROFILE.has(prof)) return true;
-  const fa = String(user.functional_area || '')
+  const profile = String(user.dashboard_profile || '').toLowerCase().trim();
+  if (['hr_management', 'finance_management'].includes(profile)) return true;
+  const fa = String(user.functional_area || user.area || '')
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '_');
-  if (CENTRO_BY_FUNCTIONAL_AREA.has(fa)) return true;
-  return false;
+  return ['hr', 'rh', 'recursos_humanos', 'finance', 'financas'].includes(fa);
 }
 
 export default function Dashboard() {
@@ -50,19 +45,21 @@ export default function Dashboard() {
   const role = (user?.role || '').toString().toLowerCase();
   if (role === 'admin') return <Navigate to="/app/chatbot" replace />;
 
+  const useStaffCentro = isStaffCentroProfile(user);
   const useOperadorDashboard = isOperadorProfile(user);
   const useMaintenanceDashboard = isMaintenanceProfile(user);
   const colaboradorRole = isColaboradorProfile(user);
-  const useColaboradorDashboard =
-    colaboradorRole && !shouldUseCentroComandoForColaborador(user);
 
   return (
     <ModuleErrorBoundary moduleName="Dashboard">
-      {useOperadorDashboard && <DashboardOperador />}
+      {/** RH/Financeiro tem prioridade e usa o CentroComando personalizado. */}
+      {useStaffCentro && <CentroComando />}
+      {!useStaffCentro && useOperadorDashboard && <DashboardOperador />}
       {/** Manutenção antes de colaborador: técnicos de campo usam role colaborador + área manutenção */}
-      {!useOperadorDashboard && useMaintenanceDashboard && <DashboardMecanico />}
-      {!useOperadorDashboard && !useMaintenanceDashboard && useColaboradorDashboard && <DashboardColaborador />}
-      {!useOperadorDashboard && !useMaintenanceDashboard && !useColaboradorDashboard && <CentroComando />}
+      {!useStaffCentro && !useOperadorDashboard && useMaintenanceDashboard && <DashboardMecanico />}
+      {/** Colaborador também usa CentroComando personalizado (mesmo motor dos demais perfis). */}
+      {!useStaffCentro && !useOperadorDashboard && !useMaintenanceDashboard && colaboradorRole && <CentroComando />}
+      {!useStaffCentro && !useOperadorDashboard && !useMaintenanceDashboard && !colaboradorRole && <CentroComando />}
     </ModuleErrorBoundary>
   );
 }

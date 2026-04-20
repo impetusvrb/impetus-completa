@@ -162,8 +162,8 @@ router.post('/conversations/:id/messages', requireAuth, requireCompanyActive, as
       source: 'app'
     });
 
-    if ((message_type === 'text' && text_content?.trim()) || (message_type !== 'text' && text_content?.trim())) {
-      const msgs = [{ sender_name: req.user?.name || 'Usuário', text_content: text_content?.trim() || msg?.text_content || '' }];
+    if (text_content?.trim()) {
+      const msgs = [{ sender_name: req.user?.name || 'Usuário', text_content: text_content.trim() }];
       claudeAnalytics.ingestInternalChat(msgs, req.user.company_id, id);
     }
 
