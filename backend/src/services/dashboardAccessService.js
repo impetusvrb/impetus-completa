@@ -21,6 +21,12 @@ const MODULE_PERMISSIONS = {
   settings: ['settings.view', 'VIEW_SETTINGS']
 };
 
+const UNIVERSAL_MODULES = ['dashboard', 'proaction', 'operational', 'ai', 'chat', 'settings'];
+
+function withUniversalModules(modules) {
+  return [...new Set([...(Array.isArray(modules) ? modules : []), ...UNIVERSAL_MODULES])];
+}
+
 /** KPIs/cards sensíveis (estratégicos/financeiros) - exigem VIEW_STRATEGIC ou VIEW_FINANCIAL */
 const SENSITIVE_KPI_KEYS = [
   'financial_indicators', 'weekly_growth', 'critical_alerts',
@@ -43,7 +49,7 @@ function getAllowedModules(user) {
   // Compatibilidade: se permissions não vierem populadas para liderança,
   // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
   if (leadershipRoles.has(role) && userPerms.length === 0) {
-    return profileModules;
+    return withUniversalModules(profileModules);
   }
 
   const perms = new Set([
@@ -52,12 +58,13 @@ function getAllowedModules(user) {
   ]);
   const hasWildcard = perms.has('*');
 
-  return profileModules.filter(moduleKey => {
+  const filtered = profileModules.filter(moduleKey => {
     const required = MODULE_PERMISSIONS[moduleKey];
     if (!required) return true;
     const hasAny = required.some(p => perms.has(p));
     return hasWildcard || hasAny;
   });
+  return withUniversalModules(filtered);
 }
 
 /**

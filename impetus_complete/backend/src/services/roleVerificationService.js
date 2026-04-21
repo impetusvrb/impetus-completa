@@ -8,6 +8,7 @@ const { logAction } = require('../middleware/audit');
 const ai = require('./ai');
 const path = require('path');
 const fs = require('fs').promises;
+const orgVal = require('./organizationalValidationService');
 
 // Cargos estratégicos que exigem verificação
 const STRATEGIC_ROLES = ['diretor', 'gerente', 'coordenador', 'supervisor'];
@@ -40,7 +41,20 @@ function needsVerification(user) {
   const role = (user.role || '').toLowerCase();
   if (role === 'ceo' || role === 'colaborador') return false;
   if (!STRATEGIC_ROLES.includes(role)) return false;
-  return user.role_verified !== true;
+  if (user.role_verified !== true) return true;
+  const st = (user.role_verification_status || '').toLowerCase();
+  if (st === 'pending_revalidation' || st === 'pending' || st === 'awaiting_structure') return true;
+  return false;
+}
+
+function isAccessAllowedForStrategicUser(user) {
+  if (!user) return false;
+  if (!orgVal.isStrategicRole(user.role)) return true;
+  if (user.is_company_root === true) return true;
+  if (user.role_verified !== true) return false;
+  const st = (user.role_verification_status || '').toLowerCase();
+  if (['rejected', 'pending', 'pending_revalidation', 'awaiting_structure'].includes(st)) return false;
+  return true;
 }
 
 /**
@@ -86,7 +100,12 @@ async function verifyByCorporateEmail(userId, companyId, ipAddress, userAgent) {
   if (userRes.rows.length === 0) return { ok: false, error: 'Usuário não encontrado' };
 
   const companyRes = await db.query(`
-    SELECT id, company_domain, data_controller_email FROM companies WHERE id = $1
+    SELECT
+      c.id,
+      c.company_domain,
+      to_jsonb(c)->>'data_controller_email' AS data_controller_email
+    FROM companies c
+    WHERE c.id = $1
   `, [companyId]);
   if (companyRes.rows.length === 0) return { ok: false, error: 'Empresa não encontrada' };
 
@@ -119,51 +138,25 @@ async function verifyByCorporateEmail(userId, companyId, ipAddress, userAgent) {
  * Cria solicitação de aprovação hierárquica
  */
 async function requestHierarchicalApproval(userId, companyId, ipAddress, userAgent) {
-  const userRes = await db.query(`
-    SELECT u.id, u.name, u.email, u.role, u.supervisor_id FROM users u
-    WHERE u.id = $1 AND u.company_id = $2
-  `, [userId, companyId]);
-  if (userRes.rows.length === 0) return { ok: false, error: 'Usuário não encontrado' };
-  const user = userRes.rows[0];
-
-  if (!isStrategicRole(user.role)) return { ok: false, error: 'Cargo não exige aprovação hierárquica' };
-
-  const minLevel = getMinApproverLevel(user.role);
-
-  let approverId = user.supervisor_id;
-  if (!approverId) {
-    const superiorRes = await db.query(`
-      SELECT id FROM users
-      WHERE company_id = $1 AND role IN ('ceo','diretor','gerente','coordenador')
-        AND (CASE role WHEN 'ceo' THEN 0 WHEN 'diretor' THEN 1 WHEN 'gerente' THEN 2 WHEN 'coordenador' THEN 3 ELSE 5 END) <= $2
-        AND active = true AND deleted_at IS NULL
-      ORDER BY (CASE role WHEN 'ceo' THEN 0 WHEN 'diretor' THEN 1 WHEN 'gerente' THEN 2 WHEN 'coordenador' THEN 3 ELSE 5 END)
-      LIMIT 1
-    `, [companyId, minLevel + 1]);
-    approverId = superiorRes.rows[0]?.id;
-  }
-
-  if (!approverId) return { ok: false, error: 'Nenhum superior hierárquico encontrado para aprovação' };
-
-  await db.query(`
-    INSERT INTO role_verification_requests (company_id, user_id, requested_role, approver_id, status, ip_address)
-    VALUES ($1, $2, $3, $4, 'pending', $5)
-    ON CONFLICT (user_id) DO UPDATE SET approver_id = $4, status = 'pending', created_at = now()
-  `, [companyId, userId, user.role, approverId, ipAddress]);
-
-  await logAction({
-    companyId,
+  const r = await orgVal.enqueueOrganizationalValidation({
     userId,
-    action: 'role_verification_requested',
-    entityType: 'role_verification_request',
-    description: `Solicitação de aprovação de cargo: ${user.role}`,
+    companyId,
+    requestType: 'initial',
+    actorUserId: userId,
     ipAddress,
-    userAgent,
-    severity: 'info',
-    success: true
+    userAgent
   });
-
-  return { ok: true, approver_id: approverId };
+  if (!r.ok) return r;
+  if (r.skipped) return { ok: false, error: 'Cargo não exige aprovação hierárquica' };
+  if (r.awaitingStructure) {
+    return {
+      ok: false,
+      error: 'Estrutura organizacional incompleta (CEO ou departamento). Contacte o administrador.',
+      code: 'AWAITING_STRUCTURE',
+      structure_error: r.structure_error
+    };
+  }
+  return { ok: true, approver_id: r.approver_id };
 }
 
 /**
@@ -174,28 +167,157 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
     SELECT rvr.*, u.name as user_name, u.email as user_email
     FROM role_verification_requests rvr
     JOIN users u ON u.id = rvr.user_id
-    WHERE rvr.id = $1 AND rvr.approver_id = $2 AND rvr.status = 'pending'
-  `, [requestId, approverId]);
+    WHERE rvr.id = $1 AND rvr.status = 'pending'
+  `, [requestId]);
   if (reqRes.rows.length === 0) return { ok: false, error: 'Solicitação não encontrada ou já processada' };
 
   const req = reqRes.rows[0];
+  const subject = await orgVal.loadUserForValidation(req.user_id, req.company_id);
+  if (!subject) return { ok: false, error: 'Utilizador não encontrado' };
+  const approverRes = await db.query(
+    `SELECT id, role, company_id FROM users WHERE id = $1 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+    [approverId]
+  );
+  const approver = approverRes.rows[0];
+  if (!approver || approver.company_id !== req.company_id) {
+    return { ok: false, error: 'Aprovador inválido para esta empresa.', code: 'FORBIDDEN_APPROVER' };
+  }
+  const subjectRole = String(subject.role || '').toLowerCase();
+  const approverRole = String(approver.role || '').toLowerCase();
+
+  if (subjectRole === 'diretor') {
+    if (approverRole !== 'ceo') {
+      return { ok: false, error: 'Diretores só podem ser validados por CEO.', code: 'FORBIDDEN_APPROVER' };
+    }
+  } else {
+    const strict = await orgVal.assertApproverMatches(req.company_id, approverId, subject);
+    if (!strict.ok) return { ok: false, error: strict.error, code: strict.code };
+  }
 
   if (approved) {
-    await db.query(`
-      UPDATE users SET role_verified = true, role_verification_status = 'verified',
-        role_verified_at = now(), role_verified_by = $1, role_verification_method = 'hierarchical_approval'
-      WHERE id = $2
-    `, [approverId, req.user_id]);
-    await db.query(`
-      UPDATE role_verification_requests SET status = 'approved', approved_at = now() WHERE id = $1
-    `, [requestId]);
+    const duplicateApproval = await db.query(
+      `SELECT 1
+       FROM organizational_validation_history
+       WHERE request_id = $1 AND actor_user_id = $2 AND action = 'approved'
+       LIMIT 1`,
+      [requestId, approverId]
+    );
+    if (duplicateApproval.rows.length > 0) {
+      return { ok: false, error: 'Este CEO já aprovou esta solicitação.', code: 'DUPLICATE_APPROVAL' };
+    }
+
+    if (subjectRole === 'diretor') {
+      await orgVal.appendHistory({
+        companyId: req.company_id,
+        subjectUserId: req.user_id,
+        actorUserId: approverId,
+        requestId,
+        action: 'approved',
+        details: { request_type: req.request_type, mode: 'multi_ceo' },
+        ipAddress
+      });
+
+      const totalCeoRes = await db.query(
+        `SELECT COUNT(*)::int AS total
+         FROM users
+         WHERE company_id = $1 AND role = 'ceo' AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+        [req.company_id]
+      );
+      const approvedCeoRes = await db.query(
+        `SELECT COUNT(DISTINCT h.actor_user_id)::int AS total
+         FROM organizational_validation_history h
+         JOIN users u ON u.id = h.actor_user_id
+         WHERE h.request_id = $1
+           AND h.action = 'approved'
+           AND u.company_id = $2
+           AND u.role = 'ceo'
+           AND u.deleted_at IS NULL
+           AND COALESCE(u.active, true) = true`,
+        [requestId, req.company_id]
+      );
+      const totalCeos = totalCeoRes.rows[0]?.total || 0;
+      const approvedCeos = approvedCeoRes.rows[0]?.total || 0;
+
+      if (totalCeos > 0 && approvedCeos >= totalCeos) {
+        await db.query(
+          `UPDATE users
+           SET role_verified = true, role_verification_status = 'approved',
+               role_verified_at = now(), role_verified_by = $1, role_verification_method = 'hierarchical_approval'
+           WHERE id = $2`,
+          [approverId, req.user_id]
+        );
+        await db.query(
+          `UPDATE role_verification_requests
+           SET status = 'approved', approved_at = now(), updated_at = now()
+           WHERE id = $1`,
+          [requestId]
+        );
+      } else {
+        await db.query(
+          `UPDATE role_verification_requests
+           SET status = 'pending', updated_at = now()
+           WHERE id = $1`,
+          [requestId]
+        );
+      }
+
+      await logAction({
+        companyId: req.company_id,
+        userId: approverId,
+        action: 'role_verification_partial_approved',
+        entityType: 'user',
+        entityId: req.user_id,
+        description: `Aprovação CEO (${approvedCeos}/${totalCeos}) para diretor ${req.user_name}`,
+        ipAddress,
+        userAgent,
+        severity: 'info',
+        success: true
+      });
+
+      if (!(totalCeos > 0 && approvedCeos >= totalCeos)) {
+        return { ok: true, approved: false, pending_other_ceos: true, approvals: { approved: approvedCeos, required: totalCeos } };
+      }
+    } else {
+      await db.query(`
+        UPDATE users SET role_verified = true, role_verification_status = 'approved',
+          role_verified_at = now(), role_verified_by = $1, role_verification_method = 'hierarchical_approval'
+        WHERE id = $2
+      `, [approverId, req.user_id]);
+      await db.query(`
+        UPDATE role_verification_requests SET status = 'approved', approved_at = now(), updated_at = now() WHERE id = $1
+      `, [requestId]);
+      await orgVal.appendHistory({
+        companyId: req.company_id,
+        subjectUserId: req.user_id,
+        actorUserId: approverId,
+        requestId,
+        action: 'approved',
+        details: { request_type: req.request_type },
+        ipAddress
+      });
+    }
   } else {
     await db.query(`
-      UPDATE users SET role_verification_status = 'rejected' WHERE id = $1
+      UPDATE users SET role_verified = false, role_verification_status = 'rejected' WHERE id = $1
     `, [req.user_id]);
     await db.query(`
-      UPDATE role_verification_requests SET status = 'rejected', rejected_at = now(), rejection_reason = $1 WHERE id = $2
+      UPDATE role_verification_requests SET status = 'rejected', rejected_at = now(), rejection_reason = $1, updated_at = now() WHERE id = $2
     `, [rejectionReason || 'Rejeitado pelo superior', requestId]);
+  }
+
+  if (!approved) {
+    await orgVal.appendHistory({
+      companyId: req.company_id,
+      subjectUserId: req.user_id,
+      actorUserId: approverId,
+      requestId,
+      action: 'rejected',
+      details: {
+        rejection_reason: rejectionReason,
+        request_type: req.request_type
+      },
+      ipAddress
+    });
   }
 
   await logAction({
@@ -220,14 +342,91 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
  * Lista solicitações pendentes para o aprovador
  */
 async function getPendingApprovalsForUser(approverId) {
+  const approverRes = await db.query(
+    `SELECT id, role, company_id FROM users WHERE id = $1 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+    [approverId]
+  );
+  if (approverRes.rows.length === 0) return [];
+  const approver = approverRes.rows[0];
+  const isCeo = String(approver.role || '').toLowerCase() === 'ceo';
+
+  // Auto-reparo: recria solicitações pendentes para estratégicos antigos
+  // que ainda não possuem linha em role_verification_requests.
+  const staleSubjects = await db.query(
+    `SELECT u.id, u.role, u.role_verification_status
+       FROM users u
+      WHERE u.company_id = $1
+        AND u.deleted_at IS NULL
+        AND COALESCE(u.active, true) = true
+        AND LOWER(COALESCE(u.role, '')) IN ('diretor', 'gerente', 'coordenador', 'supervisor')
+        AND LOWER(COALESCE(u.role_verification_status, '')) IN ('pending', 'pending_revalidation', 'awaiting_structure')
+        AND NOT EXISTS (
+          SELECT 1 FROM role_verification_requests r
+          WHERE r.user_id = u.id
+            AND r.status = 'pending'
+        )`,
+    [approver.company_id]
+  );
+  for (const row of staleSubjects.rows || []) {
+    try {
+      const requestType = String(row.role_verification_status || '').toLowerCase() === 'pending_revalidation'
+        ? 'revalidation'
+        : 'initial';
+      await orgVal.enqueueOrganizationalValidation({
+        userId: row.id,
+        companyId: approver.company_id,
+        requestType,
+        actorUserId: approverId
+      });
+    } catch (e) {
+      console.warn('[ROLE_VERIFICATION_AUTOQUEUE_ERROR]', row.id, e?.message || e);
+    }
+  }
+
   const res = await db.query(`
     SELECT rvr.id, rvr.user_id, rvr.requested_role, rvr.created_at,
-           u.name as user_name, u.email as user_email
+           rvr.request_type, rvr.subject_snapshot, rvr.change_diff, rvr.structure_error,
+           rvr.department_id,
+           u.name as user_name, u.email as user_email,
+           u.role as user_role, u.hierarchy_level, u.area, u.job_title, u.functional_area,
+           u.hr_responsibilities,
+           u.descricao,
+           COALESCE(
+             NULLIF(TRIM(u.hr_responsibilities), ''),
+             NULLIF(TRIM(u.descricao), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'hr_responsibilities'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'descricao'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'description'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'responsibilities'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'descricao_funcional'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'what_i_do'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'o_que_faz'), ''),
+             NULLIF(TRIM(rvr.subject_snapshot->>'whatDoes'), '')
+           ) AS responsibilities_text,
+           d.name department_name,
+           cr.name structural_role_name
     FROM role_verification_requests rvr
     JOIN users u ON u.id = rvr.user_id
-    WHERE rvr.approver_id = $1 AND rvr.status = 'pending'
+    LEFT JOIN departments d ON d.id = u.department_id
+    LEFT JOIN company_roles cr ON cr.id = u.company_role_id
+    WHERE rvr.status = 'pending'
+      AND (
+        rvr.approver_id = $1
+        OR (
+          $2 = true
+          AND rvr.requested_role = 'diretor'
+          AND rvr.company_id = $3
+          AND NOT EXISTS (
+            SELECT 1
+            FROM organizational_validation_history h
+            WHERE h.request_id = rvr.id
+              AND h.actor_user_id = $1
+              AND h.action = 'approved'
+          )
+        )
+      )
     ORDER BY rvr.created_at ASC
-  `, [approverId]);
+  `, [approverId, isCeo, approver.company_id]);
   return res.rows;
 }
 
@@ -360,9 +559,15 @@ async function getVerificationPanel(companyId) {
   const res = await db.query(`
     SELECT u.id, u.name, u.email, u.role, u.role_verified, u.role_verification_status,
            u.role_verified_at, u.role_verification_method, u.is_company_root,
+           u.hierarchy_level, u.area, u.job_title, u.functional_area, u.hr_responsibilities,
+           u.department_id,
+           d.name AS department_name,
+           cr.name AS structural_role_name,
            v.name as verified_by_name
     FROM users u
     LEFT JOIN users v ON v.id = u.role_verified_by
+    LEFT JOIN departments d ON d.id = u.department_id
+    LEFT JOIN company_roles cr ON cr.id = u.company_role_id
     WHERE u.company_id = $1 AND u.deleted_at IS NULL
     ORDER BY u.role_verified ASC NULLS LAST, u.role, u.name
   `, [companyId]);
@@ -378,10 +583,16 @@ async function detectSuspiciousPatterns(companyId) {
     FROM users u
     WHERE u.company_id = $1 AND u.deleted_at IS NULL
       AND u.role IN ('diretor','gerente','coordenador','supervisor')
-      AND (u.role_verified = false OR u.role_verification_status = 'pending')
+      AND (u.role_verified = false OR u.role_verification_status IN ('pending','pending_revalidation','awaiting_structure'))
   `, [companyId]);
 
-  const companyRes = await db.query(`SELECT company_domain, data_controller_email FROM companies WHERE id = $1`, [companyId]);
+  const companyRes = await db.query(`
+    SELECT
+      c.company_domain,
+      to_jsonb(c)->>'data_controller_email' AS data_controller_email
+    FROM companies c
+    WHERE c.id = $1
+  `, [companyId]);
   const company = companyRes.rows[0] || {};
   let corpDomain = (company.company_domain || '').trim();
   if (!corpDomain && company.data_controller_email) corpDomain = company.data_controller_email.split('@')[1] || '';
@@ -404,6 +615,7 @@ async function detectSuspiciousPatterns(companyId) {
 
 module.exports = {
   needsVerification,
+  isAccessAllowedForStrategicUser,
   isStrategicRole,
   checkCorporateEmail,
   markCompanyRoot,

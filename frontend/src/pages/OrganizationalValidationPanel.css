@@ -2,6 +2,7 @@
   padding: 24px;
   max-width: 1100px;
   margin: 0 auto;
+  color: var(--text-primary, #e6f2ff);
 }
 
 .ovp-header {
@@ -10,7 +11,7 @@
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-default, rgba(0, 212, 255, 0.25));
 }
 
 .ovp-title {
@@ -19,18 +20,19 @@
   gap: 16px;
 }
 
-.ovp-title svg { color: #1e40af; }
+.ovp-title svg { color: var(--cyan, #00d4ff); }
 .ovp-title h1 { margin: 0 0 4px; font-size: 1.4rem; }
-.ovp-title p { margin: 0; color: #6b7280; font-size: 0.9rem; }
+.ovp-title p { margin: 0; color: var(--text-secondary, #9fb3c8); font-size: 0.9rem; }
 
 .ovp-refresh {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-default, rgba(0, 212, 255, 0.28));
   border-radius: 8px;
-  background: #fff;
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--text-primary, #e6f2ff);
   cursor: pointer;
 }
 .ovp-refresh .spin { animation: ovp-spin 1s linear infinite; }
@@ -43,15 +45,15 @@
   font-size: 0.9rem;
 }
 .ovp-banner--error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background: rgba(255, 64, 64, 0.12);
+  border: 1px solid rgba(255, 64, 64, 0.4);
+  color: #ffd3d3;
 }
 
 .ovp-table-empty {
   text-align: center;
   padding: 2rem 1rem !important;
-  color: #6b7280;
+  color: var(--text-secondary, #9fb3c8);
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -60,15 +62,15 @@
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: rgba(255, 170, 0, 0.12);
+  border: 1px solid rgba(255, 170, 0, 0.4);
   border-radius: 10px;
   margin-bottom: 24px;
 }
 
-.ovp-alerts svg { color: #f59e0b; flex-shrink: 0; }
+.ovp-alerts svg { color: var(--amber, #ffaa00); flex-shrink: 0; }
 .ovp-alerts h3 { margin: 0 0 8px; font-size: 1rem; }
-.ovp-alerts p { margin: 0 0 4px; font-size: 0.9rem; }
+.ovp-alerts p { margin: 0 0 4px; font-size: 0.9rem; color: #ffeec7; }
 
 .ovp-pending-section {
   margin-bottom: 24px;
@@ -79,28 +81,102 @@
 .ovp-pending-card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
   padding: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-default, rgba(0, 212, 255, 0.25));
   border-radius: 10px;
   margin-bottom: 12px;
-  background: #fff;
+  background: rgba(15, 26, 40, 0.92);
 }
+
+.ovp-pending-body { flex: 1; min-width: 240px; }
+.ovp-pending-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.ovp-pending-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 12px;
+  font-size: 0.88rem;
+  color: var(--text-primary, #d8e8f8);
+  margin-bottom: 0.5rem;
+}
+.ovp-pending-desc {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+.ovp-pending-desc p { margin: 0.35rem 0 0; white-space: pre-wrap; }
+.ovp-pending-date { display: block; margin-top: 1rem; color: var(--text-secondary, #9fb3c8); }
+
+.ovp-badge-type {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.ovp-badge-type--initial { background: rgba(0, 212, 255, 0.2); color: #9eefff; border: 1px solid rgba(0, 212, 255, 0.35); }
+.ovp-badge-type--revalidation { background: rgba(255, 170, 0, 0.2); color: #ffe2a1; border: 1px solid rgba(255, 170, 0, 0.35); }
+
+.ovp-diff {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed rgba(0, 212, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(7, 12, 20, 0.72);
+  font-size: 0.85rem;
+}
+.ovp-diff-title { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary, #d8e8f8); }
+.ovp-diff ul { margin: 0; padding-left: 1.1rem; }
+.ovp-diff li { margin-bottom: 10px; }
+.ovp-diff-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin-top: 4px; }
+.ovp-diff-old { color: #b91c1c; text-decoration: line-through; max-width: 100%; }
+.ovp-diff-new { color: #15803d; max-width: 100%; }
+.ovp-diff-arrow { color: var(--text-secondary, #9fb3c8); }
+
+.ovp-muted { color: var(--text-secondary, #9fb3c8); }
 
 .ovp-pending-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 220px;
 }
+
+.ovp-pending-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .ovp-reject-input {
   padding: 6px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   width: 200px;
+}
+
+.ovp-reject-textarea {
+  width: 100%;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default, rgba(0, 212, 255, 0.28));
+  background: rgba(7, 12, 20, 0.9);
+  color: var(--text-primary, #e6f2ff);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.ovp-btn-cancel {
+  padding: 6px 14px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary, #e6f2ff);
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .ovp-btn-approve {
@@ -125,8 +201,9 @@
 
 .ovp-table-wrap {
   overflow-x: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-default, rgba(0, 212, 255, 0.25));
   border-radius: 10px;
+  background: rgba(15, 26, 40, 0.94);
 }
 
 .ovp-loading {
@@ -135,7 +212,7 @@
   justify-content: center;
   gap: 12px;
   padding: 48px;
-  color: #6b7280;
+  color: var(--text-secondary, #9fb3c8);
 }
 
 .ovp-table {
@@ -146,16 +223,22 @@
 .ovp-table th, .ovp-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.16);
+  color: var(--text-primary, #e6f2ff);
+  font-weight: 500;
 }
 
 .ovp-table th {
-  background: #f8fafc;
-  font-weight: 600;
+  background: rgba(0, 212, 255, 0.12);
+  color: #b7f4ff;
+  font-weight: 700;
   font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.ovp-table tr.unverified { background: #fffbeb; }
+.ovp-table tr.unverified { background: rgba(255, 170, 0, 0.12); }
+.ovp-table tr:hover { background: rgba(0, 212, 255, 0.08); }
 
 .ovp-status {
   display: inline-flex;
@@ -170,8 +253,8 @@
 .ovp-badge-root {
   font-size: 0.7rem;
   padding: 2px 6px;
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(0, 212, 255, 0.2);
+  color: #a5f0ff;
   border-radius: 4px;
   margin-left: 6px;
 }

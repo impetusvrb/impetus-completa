@@ -12,6 +12,7 @@ const { auditMiddleware, logAction } = require('../../middleware/audit');
 const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
 const { z } = require('zod');
+const orgVal = require('../../services/organizationalValidationService');
 
 async function assertStructuralRoleForCompany(companyId, roleId) {
   if (!roleId) return null;
@@ -413,6 +414,16 @@ router.post('/',
         } catch (_) {}
       }
 
+      try {
+        await orgVal.syncAfterUserProfileChange(result.rows[0].id, req.user.company_id, {
+          actorUserId: req.user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (e) {
+        console.warn('[ORG_VALIDATION_SYNC]', e.message);
+      }
+
       res.status(201).json({
         ok: true,
         user: result.rows[0],
@@ -487,6 +498,9 @@ router.put('/:id',
           error: 'Usuário não encontrado'
         });
       }
+
+      const beforeRow = await orgVal.loadUserForValidation(req.params.id, req.user.company_id);
+      const beforeSnapshot = beforeRow ? orgVal.snapshotFromUserRow(beforeRow) : null;
 
       // Se está mudando email, verificar se já existe
       if (validatedData.email && validatedData.email !== existingUser.rows[0].email) {
@@ -578,6 +592,17 @@ router.put('/:id',
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
+
+      try {
+        await orgVal.syncAfterUserProfileChange(req.params.id, req.user.company_id, {
+          beforeSnapshot,
+          actorUserId: req.user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (e) {
+        console.warn('[ORG_VALIDATION_SYNC]', e.message);
+      }
 
       res.json({
         ok: true,

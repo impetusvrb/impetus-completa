@@ -205,7 +205,11 @@ router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
 router.get('/check-email', requireAuth, requireCompanyActive, async (req, res) => {
   try {
     const companyRes = await db.query(`
-      SELECT company_domain, data_controller_email FROM companies WHERE id = $1
+      SELECT
+        c.company_domain,
+        to_jsonb(c)->>'data_controller_email' AS data_controller_email
+      FROM companies c
+      WHERE c.id = $1
     `, [req.user.company_id]);
     const company = companyRes.rows[0] || {};
     const isCorporate = await roleVerification.checkCorporateEmail(req.user, company);

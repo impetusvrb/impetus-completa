@@ -12,6 +12,7 @@ const { auditMiddleware, logAction } = require('../../middleware/audit');
 const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
 const { z } = require('zod');
+const orgVal = require('../../services/organizationalValidationService');
 
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
@@ -75,6 +76,7 @@ const createUserSchema = z.object({
   permissions: z.array(z.string()).optional(),
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).optional(),
   hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  descricao: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
   company_role_id: z.preprocess((v) => {
     if (v === '' || v === null || v === undefined) return undefined;
     const s = typeof v === 'string' ? v.trim() : String(v).trim();
@@ -113,6 +115,7 @@ const updateUserSchema = z.object({
   functional_area: z.enum(FUNCTIONAL_AREA_OPTIONS).nullable().optional(),
   dashboard_profile: z.string().max(64).nullable().optional(),
   hr_responsibilities: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
+  descricao: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(2000).nullable().optional()),
   company_role_id: z.preprocess((v) => {
     if (v === null) return null;
     if (v === '' || v === undefined) return undefined;
@@ -190,6 +193,7 @@ router.get('/',
           u.functional_area, u.dashboard_profile,
           u.supervisor_id, u.permissions, u.active, u.executive_verified,
           u.hr_responsibilities,
+          u.descricao,
           u.company_role_id,
           u.company_role_id as structural_role_id,
           u.created_at, u.last_login, u.last_seen,
@@ -300,6 +304,11 @@ router.post('/',
 
       // Validar dados
       const validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
+      if (validatedData.hr_responsibilities !== undefined && validatedData.descricao === undefined) {
+        validatedData.descricao = validatedData.hr_responsibilities;
+      } else if (validatedData.descricao !== undefined && validatedData.hr_responsibilities === undefined) {
+        validatedData.hr_responsibilities = validatedData.descricao;
+      }
       if (validatedData.company_role_id && !(await assertRoleCompany(req.user.company_id, validatedData.company_role_id))) {
         return res.status(400).json({ ok: false, error: 'Cargo estrutural inválido ou inativo' });
       }
@@ -327,7 +336,7 @@ router.post('/',
         : (area && AREA_TO_LEVEL[area] ? AREA_TO_LEVEL[area] : (validatedData.hierarchy_level ?? 5));
 
       let hrResponsibilitiesParsed = [];
-      const hrText = validatedData.hr_responsibilities || '';
+      const hrText = validatedData.hr_responsibilities || validatedData.descricao || '';
       if (hrText) {
         try {
           const hrService = require('../../services/hrIntelligenceService');
@@ -342,8 +351,9 @@ router.post('/',
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
           hierarchy_level, permissions, active, executive_verified, functional_area,
           hr_responsibilities, hr_responsibilities_parsed, company_role_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, company_role_id, created_at
+          , descricao
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19, $20)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, descricao, company_role_id, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -363,7 +373,8 @@ router.post('/',
         validatedData.functional_area || null,
         hrText || null,
         JSON.stringify(hrResponsibilitiesParsed),
-        validatedData.company_role_id || null
+        validatedData.company_role_id || null,
+        hrText || null
       ]);
 
       // Log de auditoria
@@ -380,6 +391,17 @@ router.post('/',
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
+
+      try {
+        await orgVal.syncAfterUserProfileChange(result.rows[0].id, req.user.company_id, {
+          beforeSnapshot: null,
+          actorUserId: req.user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (e) {
+        console.error('[ADMIN_CREATE_USER_ORG_VALIDATION_SYNC_ERROR]', e);
+      }
 
       res.status(201).json({
         ok: true,
@@ -424,6 +446,11 @@ router.put('/:id',
 
       // Validar dados
       const validatedData = updateUserSchema.parse(normalizeRoleAlias(req.body));
+      if (validatedData.hr_responsibilities !== undefined && validatedData.descricao === undefined) {
+        validatedData.descricao = validatedData.hr_responsibilities;
+      } else if (validatedData.descricao !== undefined && validatedData.hr_responsibilities === undefined) {
+        validatedData.hr_responsibilities = validatedData.descricao;
+      }
       if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
         const roleId = validatedData.company_role_id;
         if (roleId !== null && !(await assertRoleCompany(req.user.company_id, roleId))) {
@@ -431,9 +458,16 @@ router.put('/:id',
         }
       }
 
-      // Verificar se usuário existe
+      // Verificar se usuário existe + snapshot para detecção de alterações sensíveis
       const existingUser = await db.query(
-        'SELECT id, email FROM users WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL',
+        `SELECT
+           u.id, u.email, u.name, u.department_id, u.functional_area, u.hierarchy_level,
+           u.role, u.area, u.job_title, u.company_role_id, u.hr_responsibilities, u.supervisor_id,
+           u.updated_at, d.name as department_name, cr.name as structural_role_name
+         FROM users u
+         LEFT JOIN departments d ON d.id = u.department_id
+         LEFT JOIN company_roles cr ON cr.id = u.company_role_id
+         WHERE u.id = $1 AND u.company_id = $2 AND u.deleted_at IS NULL`,
         [req.params.id, req.user.company_id]
       );
 
@@ -443,6 +477,8 @@ router.put('/:id',
           error: 'Usuário não encontrado'
         });
       }
+
+      const beforeSnapshot = orgVal.snapshotFromUserRow(existingUser.rows[0]);
 
       // Se está mudando email, verificar se já existe
       if (validatedData.email && validatedData.email !== existingUser.rows[0].email) {
@@ -525,6 +561,17 @@ router.put('/:id',
         ipAddress: req.ip,
         userAgent: req.headers['user-agent']
       });
+
+      try {
+        await orgVal.syncAfterUserProfileChange(req.params.id, req.user.company_id, {
+          beforeSnapshot,
+          actorUserId: req.user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (e) {
+        console.error('[ADMIN_UPDATE_USER_ORG_VALIDATION_SYNC_ERROR]', e);
+      }
 
       res.json({
         ok: true,

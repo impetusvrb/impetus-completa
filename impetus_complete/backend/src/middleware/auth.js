@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
+const roleVerification = require('../services/roleVerificationService');
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'impetus_super_secret_key');
 if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
@@ -220,6 +221,14 @@ function attachCompanyIdFromJwtClaims(user, rawToken) {
   return user;
 }
 
+function isRoleVerificationBypassPath(req) {
+  const path = String(req.originalUrl || req.path || '').replace(/^\/api/, '');
+  return (
+    path.startsWith('/role-verification') ||
+    path.startsWith('/auth/logout')
+  );
+}
+
 /**
  * Middleware de autenticação
  * Aceita: token de sessão (tabela sessions) OU JWT (login retorna JWT)
@@ -252,6 +261,18 @@ function requireAuth(req, res, next) {
     req.user = attachCompanyIdFromJwtClaims(user, token);
     req.session = { id: user.sessionId };
     req.authRawToken = token;
+    if (
+      roleVerification.isStrategicRole(req.user.role) &&
+      !roleVerification.isAccessAllowedForStrategicUser(req.user) &&
+      !isRoleVerificationBypassPath(req)
+    ) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Cargo não validado. Acesse a validação organizacional para liberar o acesso.',
+        code: 'ROLE_VERIFICATION_REQUIRED',
+        needs_verification: true
+      });
+    }
     next();
   }).catch(err => {
     console.error('[AUTH_MIDDLEWARE_ERROR]', err.message);

@@ -35,6 +35,10 @@ const SENSITIVE_KPI_KEYS = [
  */
 const UNIVERSAL_MODULES = ['dashboard', 'proaction', 'operational', 'ai', 'chat', 'settings'];
 
+function withUniversalModules(modules) {
+  return [...new Set([...(Array.isArray(modules) ? modules : []), ...UNIVERSAL_MODULES])];
+}
+
 /**
  * Retorna módulos permitidos ao usuário (interseção perfil x permissões)
  * @param {Object} user
@@ -50,7 +54,7 @@ function getAllowedModules(user) {
   // Compatibilidade: se permissions não vierem populadas para liderança,
   // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
   if (leadershipRoles.has(role) && userPerms.length === 0) {
-    return profileModules;
+    return withUniversalModules(profileModules);
   }
 
   const perms = new Set([
@@ -65,7 +69,7 @@ function getAllowedModules(user) {
     const hasAny = required.some(p => perms.has(p));
     return hasWildcard || hasAny;
   });
-  return [...new Set([...filtered, ...UNIVERSAL_MODULES])];
+  return withUniversalModules(filtered);
 }
 
 /**

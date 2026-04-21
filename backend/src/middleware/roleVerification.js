@@ -46,7 +46,7 @@ function requireRoleVerified(req, res, next) {
     return next();
   }
 
-  if (user.role_verified === true || user.is_company_root === true) {
+  if (roleVerification.isAccessAllowedForStrategicUser(user)) {
     return next();
   }
 

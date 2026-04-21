@@ -113,6 +113,16 @@ router.get('/pending-approvals', requireAuth, requireCompanyActive, async (req, 
 router.post('/approve/:requestId', requireAuth, requireCompanyActive, async (req, res) => {
   try {
     const { approved, rejection_reason } = req.body || {};
+    if (approved !== true) {
+      const reason = (rejection_reason != null && String(rejection_reason).trim()) ? String(rejection_reason).trim() : '';
+      if (!reason || reason.length < 3) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Motivo da reprovação é obrigatório (mínimo 3 caracteres).',
+          code: 'REJECTION_REASON_REQUIRED'
+        });
+      }
+    }
     const result = await roleVerification.processApprovalRequest(
       req.params.requestId,
       req.user.id,
@@ -121,7 +131,11 @@ router.post('/approve/:requestId', requireAuth, requireCompanyActive, async (req
       req.ip,
       req.get('user-agent')
     );
-    if (!result.ok) return res.status(400).json(result);
+    if (!result.ok) {
+      const code = result.code;
+      const status = code === 'FORBIDDEN_APPROVER' || code === 'SELF_APPROVAL' ? 403 : 400;
+      return res.status(status).json(result);
+    }
     res.json(result);
   } catch (e) {
     console.error('[ROLE_VERIFICATION_APPROVE]', e);

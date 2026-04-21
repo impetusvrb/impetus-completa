@@ -180,6 +180,7 @@ export default function AdminUsers() {
         hierarchy_level: Number(formData.hierarchy_level) ?? 5,
         permissions: Array.isArray(formData.permissions) ? formData.permissions : [],
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
+        descricao: formData.hr_responsibilities?.trim() || undefined,
         functional_area: fa || undefined
       };
       if (companyRoleId) {
@@ -238,6 +239,7 @@ export default function AdminUsers() {
         active: formData.active,
         executive_verified: formData.executive_verified ?? false,
         hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
+        descricao: formData.hr_responsibilities?.trim() || undefined,
         company_role_id: companyRoleId || null,
         // Compatibilidade com backends legados que ainda esperam structural_role_id.
         structural_role_id: companyRoleId || null,
@@ -324,7 +326,7 @@ export default function AdminUsers() {
       department: user.department || '',
       department_id: user.department_id || '',
       supervisor_id: user.supervisor_id || '',
-      hr_responsibilities: user.hr_responsibilities || '',
+      hr_responsibilities: user.hr_responsibilities || user.descricao || '',
       phone: user.phone || '',
       whatsapp_number: user.whatsapp_number || '',
       hierarchy_level: user.hierarchy_level,
