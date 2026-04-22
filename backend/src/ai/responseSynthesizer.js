@@ -4,6 +4,8 @@
  * Consolidador final — resposta explicável (content + explanation_layer) para o cliente.
  */
 
+const dataLineageService = require('../services/dataLineageService');
+
 function extractJsonBlock(text) {
   if (!text || typeof text !== 'string') return null;
   const m = text.match(/\{[\s\S]*\}/);
@@ -114,12 +116,27 @@ function normalizeExplanationLayer(raw, dossier, limitations, heuristic01, extra
 
   const reasoning_trace = raw?.reasoning_trace != null ? String(raw.reasoning_trace).slice(0, 2500) : '';
 
+  const catalogLineage = dossier?.meta?.data_lineage_snapshot || [];
+  const modelLineage = Array.isArray(raw?.data_lineage) ? raw.data_lineage : [];
+  let data_lineage = dataLineageService.mergeDataLineage(catalogLineage, modelLineage);
+  if (!data_lineage.length) {
+    data_lineage = [
+      {
+        entity: 'Sem fontes estruturadas correlacionadas',
+        origin: 'Modelo / pedido sem anexos de dados',
+        freshness: 'n/d',
+        reliability_score: 45
+      }
+    ];
+  }
+
   return {
     facts_used,
     business_rules: uniqRules,
     confidence_score: score,
     limitations: lim,
-    reasoning_trace: reasoning_trace
+    reasoning_trace: reasoning_trace,
+    data_lineage
   };
 }
 
@@ -190,10 +207,12 @@ function synthesize({
 
   const confidence = explanation_layer.confidence_score / 100;
 
+  const lineageN = Array.isArray(explanation_layer.data_lineage) ? explanation_layer.data_lineage.length : 0;
   const explanationParts = [
     `Rastreio: trace_id=${dossier.trace_id}`,
     `Confiança (painel explicabilidade): ${explanation_layer.confidence_score}/100`,
     `Factos considerados: ${explanation_layer.facts_used.length} linha(s) resumida(s)`,
+    `Linhagem de dados: ${lineageN} fonte(s) referenciada(s)`,
     `Motores: ${(modelsUsed || []).join(', ') || 'n/d'}`
   ];
   if (explanation_layer.reasoning_trace) {

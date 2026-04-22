@@ -11,6 +11,7 @@ import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriang
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import { useProtectedMediaSrc } from '../utils/mediaUrls';
+import DataLineageBlock from '../components/DataLineageBlock';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
@@ -503,6 +504,7 @@ export default function ChatApp(){
                   <div style={{ fontWeight: 600 }}>{aiExplainModal.layer.confidence_score}</div>
                 </div>
               )}
+              <DataLineageBlock items={aiExplainModal.layer.data_lineage} />
               {Array.isArray(aiExplainModal.layer.facts_used) && aiExplainModal.layer.facts_used.length > 0 && (
                 <div>
                   <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 6 }}>Factos utilizados</div>

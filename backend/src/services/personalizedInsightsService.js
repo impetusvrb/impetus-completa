@@ -5,6 +5,7 @@
  */
 const { getProfile } = require('../config/dashboardProfiles');
 const userContext = require('./userContext');
+const dataLineageService = require('./dataLineageService');
 
 /** Modos de insight e suas características */
 const INSIGHTS_MODES = {
@@ -176,6 +177,17 @@ function buildExplanationLayerForKpi(k, user) {
     limitations.push('Detalhe expandido do KPI não incluído neste cartão — apenas valor e rótulo.');
   }
 
+  const lineageRaw = dataLineageService.buildLineageForKpiCard(k, user);
+  const data_lineage = dataLineageService.mergeDataLineage(
+    lineageRaw.map((e) => ({
+      entity: e.entity,
+      origin: e.origin,
+      freshness: e.freshness,
+      reliability_score: e.reliability_score
+    })),
+    []
+  );
+
   return {
     facts_used,
     business_rules: [
@@ -184,7 +196,8 @@ function buildExplanationLayerForKpi(k, user) {
     ],
     confidence_score,
     limitations,
-    reasoning_trace: `Factos: o texto do insight espelha o valor e o tipo de indicador visíveis ao utilizador. Severidade (${sev}) deriva da cor/meta do cartão. Não há modelo generativo neste passo — apenas regras de composição e perfil.`
+    reasoning_trace: `Factos: o texto do insight espelha o valor e o tipo de indicador visíveis ao utilizador. Severidade (${sev}) deriva da cor/meta do cartão. Não há modelo generativo neste passo — apenas regras de composição e perfil.`,
+    data_lineage
   };
 }
 

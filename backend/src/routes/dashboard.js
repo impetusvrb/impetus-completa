@@ -23,6 +23,7 @@ const { composeLiveDashboardSurface } = require('../services/dashboardComposer')
 const { userRateLimit } = require('../middleware/userRateLimit');
 const ai = require('../services/ai');
 const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynthesizer');
+const dataLineageService = require('../services/dataLineageService');
 const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
@@ -527,9 +528,27 @@ router.post('/chat', requireAuth, async (req, res) => {
 Perfil do utilizador: ${(u.role || 'colaborador').toString()}. Não inventes leituras de sensores, KPIs ou ordens de serviço sem fonte nos dados fornecidos. Se faltar contexto, pede esclarecimento ou indica o que o administrador deve configurar.
 
 SAÍDA OBRIGATÓRIA: um único objeto JSON válido com as chaves "content" (mensagem ao utilizador) e "explanation_layer".
-explanation_layer deve incluir: facts_used (factos explícitos do pedido/histórico), business_rules (diretrizes aplicadas), confidence_score inteiro 0–100, limitations, reasoning_trace (Chain of Thought breve separando factos de inferências).`;
+explanation_layer deve incluir: facts_used, business_rules, confidence_score 0–100, limitations, reasoning_trace, e data_lineage (array obrigatório: {entity, origin, freshness, reliability_score 0–100} alinhado com origem_dados_lineagem injectada no pedido).`;
 
-    const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: message }];
+    const lineageCtx = dataLineageService.buildLineageForChatContext({
+      messagePreview: message,
+      historyTurns: history.length,
+      snapshotIso: new Date().toISOString()
+    });
+    const lineageBlock = `\n\norigem_dados_lineagem (proveniência):\n${JSON.stringify(
+      lineageCtx.map((e) => ({
+        entidade: e.entity,
+        fonte_tecnica: e.origin,
+        frescura: e.freshness,
+        fiabilidade_0_100: e.reliability_score
+      }))
+    ).slice(0, 4000)}`;
+
+    const messages = [
+      { role: 'system', content: system },
+      ...history,
+      { role: 'user', content: message + lineageBlock }
+    ];
 
     const billing = u.company_id ? { companyId: u.company_id, userId: u.id } : null;
     const raw = await ai.chatCompletionMessages(messages, {
@@ -553,11 +572,16 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
         module: 'dashboard_chat',
         request: message.slice(0, 4000),
         intent: 'generico_assistido',
-        pipeline_version: 'chat_gpt_json'
+        pipeline_version: 'chat_gpt_json',
+        timestamp: new Date().toISOString()
       },
       analysis: {},
       decision: { requires_human_validation: false, risk_level: 'low' },
-      meta: { models_touched: ['openai'], degraded }
+      meta: {
+        models_touched: ['openai'],
+        degraded,
+        data_lineage_snapshot: lineageCtx
+      }
     };
 
     const synthesis = synthesize({
@@ -586,6 +610,7 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
       input_payload: {
         user_message: message.slice(0, 8000),
         history_turns: history.length,
+        data_lineage: lineageCtx,
         history_excerpt: history.slice(-4).map((m) => ({
           role: m.role,
           content: String(m.content || '').slice(0, 2000)

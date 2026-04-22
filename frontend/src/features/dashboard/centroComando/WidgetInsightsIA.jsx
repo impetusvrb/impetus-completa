@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { dashboard } from '../../../services/api';
 import { Brain, Info } from 'lucide-react';
+import DataLineageBlock from '../../../components/DataLineageBlock';
 
 function uncertaintyPhrase(layer) {
   if (!layer || typeof layer.confidence_score !== 'number' || layer.confidence_score >= 60) return null;
@@ -100,6 +101,7 @@ export default function WidgetInsightsIA() {
                     </div>
                   </div>
                 )}
+                <DataLineageBlock items={explainFor.explanation_layer.data_lineage} />
                 {Array.isArray(explainFor.explanation_layer.facts_used) &&
                   explainFor.explanation_layer.facts_used.length > 0 && (
                     <div className="cc-insights-expl-block">

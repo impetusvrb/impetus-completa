@@ -36,6 +36,7 @@ const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('
 const cognitiveAudit = require('./cognitiveAudit');
 const aiAnalytics = require('../services/aiAnalyticsService');
 const humanValidationClosureService = require('../services/humanValidationClosureService');
+const dataLineageService = require('../services/dataLineageService');
 
 const PERCEPTION_IMAGE_PROMPT = `Você é o módulo de PERCEPÇÃO industrial (somente observação factual).
 Analise a imagem e responda SOMENTE JSON válido com esta forma:
@@ -323,9 +324,13 @@ async function stageTechnical(dossier, limitations) {
     documents: dossier.data.documents?.length || 0
   }).slice(0, 14000);
 
+  const lineageHint = JSON.stringify(dossier.meta?.data_lineage_for_prompt || []).slice(0, 6000);
   const userContent = `INTENÇÃO: ${dossier.context.intent}
 PEDIDO DO USUÁRIO:
 ${dossier.context.request}
+
+LINHAGEM DE DADOS (proveniência; use para não inventar fontes):
+${lineageHint}
 
 PERCEPÇÃO ESTRUTURADA (interno):
 ${perceptionBlock}
@@ -483,6 +488,7 @@ SAÍDA OBRIGATÓRIA: um único objeto JSON válido (sem markdown, sem texto fora
 - "confidence_score": inteiro de 0 a 100 — sua confiança na recomendação principal.
 - "limitations": array de strings — dados ausentes, atraso de dados, lacunas do dossiê.
 - "reasoning_trace": string — Chain of Thought em 3 a 6 frases curtas: (1) factos-chave (2) inferências (3) ligação à recomendação (4) principais incertezas.
+- "data_lineage": array obrigatório — um objeto por fonte relevante, alinhado com "origem_dados_lineagem" do dossiê: {"entity": "nome amigável", "origin": "fonte técnica", "freshness": "ex.: há 2 minutos", "reliability_score": 0-100}. Não invente fontes que não constem do dossiê.
 
 Regras:
 - Use apenas o dossiê; não invente sensores, KPIs ou eventos não fornecidos.
@@ -493,6 +499,7 @@ Regras:
 ${JSON.stringify({
     intent: dossier.context.intent,
     pedido: dossier.context.request,
+    origem_dados_lineagem: dossier.meta?.data_lineage_for_prompt || [],
     percepção: dossier.analysis.perception_structured || dossier.analysis.perception,
     analise_tecnica: dossier.analysis.technical_structured || dossier.analysis.technical_analysis,
     hipoteses: dossier.analysis.hypotheses,
@@ -580,6 +587,7 @@ async function runCognitiveCouncil(params) {
 
   dossier.context.intent = classifyIntent(sanitized, dossier);
   seedLayerInput(dossier);
+  dataLineageService.attachToDossier(dossier);
 
   const limitations = [];
 
@@ -699,6 +707,7 @@ async function runCognitiveCouncil(params) {
       user_prompt: sanitized,
       intent: dossier.context.intent,
       pipeline_version: PIPELINE_VERSION,
+      data_lineage: dossier.meta?.data_lineage_snapshot || [],
       user_scope: {
         role: scope.role,
         hierarchy_level: scope.hierarchy_level,

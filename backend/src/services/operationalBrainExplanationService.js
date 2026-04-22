@@ -1,5 +1,7 @@
 'use strict';
 
+const dataLineageService = require('./dataLineageService');
+
 /**
  * Explicabilidade para insights do Cérebro Operacional (operational_insights).
  * - Registos por padrão: motor determinístico (pattern_engine).
@@ -97,6 +99,14 @@ function buildExplanationLayerForOperationalInsight(row) {
       'Conteúdo assistido por modelo: cruzar facts_used e metadados com a operação.'
   ).slice(0, 2500);
 
+  const lineageCatalog = dataLineageService.buildLineageForOperationalInsightRow(row).map((e) => ({
+    entity: e.entity,
+    origin: e.origin,
+    freshness: e.freshness,
+    reliability_score: e.reliability_score
+  }));
+  const data_lineage = dataLineageService.mergeDataLineage(lineageCatalog, embedded?.data_lineage);
+
   const base = {
     facts_used,
     business_rules,
@@ -104,7 +114,8 @@ function buildExplanationLayerForOperationalInsight(row) {
     limitations,
     reasoning_trace: modelHint ? reasoningModel : reasoningDeterministic,
     source: modelHint ? 'model_assisted' : 'pattern_engine',
-    operational_insight_id: row.id
+    operational_insight_id: row.id,
+    data_lineage
   };
 
   if (!embedded) return base;
@@ -119,7 +130,8 @@ function buildExplanationLayerForOperationalInsight(row) {
         ? String(embedded.reasoning_trace).slice(0, 2500)
         : base.reasoning_trace,
     source: modelHint ? 'model_assisted' : 'pattern_engine',
-    operational_insight_id: row.id
+    operational_insight_id: row.id,
+    data_lineage
   };
 }
 
