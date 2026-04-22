@@ -24,6 +24,7 @@ const { initChatSocket } = require('./socket/chatSocket');
 const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
 const { requireAuth } = require('./middleware/auth');
 const { sendSafeError } = require('./utils/sendSafeError');
+const { allowHealthDetails } = require('./middleware/healthExposure');
 const db = require('./db');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
@@ -145,14 +146,20 @@ async function voiceHealthProbe() {
   return voz;
 }
 
-app.get('/health', async (_req, res) => {
-  const voz = await voiceHealthProbe();
-  res.json({ ok: true, status: 'ok', service: 'impetus-backend', voz });
+app.get('/health', async (req, res) => {
+  if (allowHealthDetails(req)) {
+    const voz = await voiceHealthProbe();
+    return res.json({ success: true, status: 'ok', service: 'impetus-backend', voz });
+  }
+  return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
-app.get('/api/health', async (_req, res) => {
-  const voz = await voiceHealthProbe();
-  res.json({ ok: true, status: 'ok', service: 'impetus-backend', voz });
+app.get('/api/health', async (req, res) => {
+  if (allowHealthDetails(req)) {
+    const voz = await voiceHealthProbe();
+    return res.json({ success: true, status: 'ok', service: 'impetus-backend', voz });
+  }
+  return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
 const uploadsPublicPath = path.join(__dirname, '../../uploads');

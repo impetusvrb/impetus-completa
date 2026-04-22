@@ -13,104 +13,10 @@ const { requireAuth, requireHierarchy } = require('../../middleware/auth');
 const { auditMiddleware } = require('../../middleware/audit');
 const { isValidUUID } = require('../../utils/security');
 const { tenantAssertMiddleware } = require('../../middleware/tenantResourceAssert');
+const { sendSuccess, sendFail } = require('../../utils/apiResponse');
+const { selectCompanyRowStructural, companyRowToApiPayload } = require('../../services/structuralCompanyPayload');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
-
-/** Colunas esperadas por AdminStructural.jsx — consulta dinâmica evita 500 se o PG estiver desatualizado. */
-const COMPANY_DATA_COLUMNS = [
-  'id',
-  'name',
-  'trade_name',
-  'cnpj',
-  'industry_segment',
-  'subsegment',
-  'address',
-  'city',
-  'state',
-  'country',
-  'main_unit',
-  'other_units',
-  'employee_count',
-  'shift_count',
-  'operating_hours',
-  'operation_type',
-  'production_type',
-  'products_manufactured',
-  'market',
-  'company_description',
-  'mission',
-  'vision',
-  'values_text',
-  'internal_policy',
-  'operation_rules',
-  'organizational_culture',
-  'strategic_notes',
-  'company_policy_text',
-  'config',
-  'active',
-  'created_at',
-  'updated_at'
-];
-
-async function selectCompanyRowStructural(cid) {
-  const colRes = await db.query(
-    `
-    SELECT column_name FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'companies'
-  `
-  );
-  const have = new Set(colRes.rows.map((r) => r.column_name));
-  const cols = COMPANY_DATA_COLUMNS.filter((c) => have.has(c));
-  if (!cols.includes('id')) {
-    throw new Error('Coluna id ausente em companies');
-  }
-  const quoted = cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(', ');
-  const r = await db.query(`SELECT ${quoted} FROM companies WHERE id = $1`, [cid]);
-  return { row: r.rows[0] || null, have };
-}
-
-function companyRowToApiPayload(row, have) {
-  const sEmpty = (k) => {
-    if (!have.has(k)) return '';
-    const v = row[k];
-    return v == null ? '' : String(v);
-  };
-  const nullable = (k) => (have.has(k) ? row[k] ?? null : null);
-  return {
-    id: row.id,
-    name: sEmpty('name'),
-    trade_name: sEmpty('trade_name'),
-    cnpj: sEmpty('cnpj'),
-    industry_segment: sEmpty('industry_segment'),
-    subsegment: sEmpty('subsegment'),
-    address: sEmpty('address'),
-    city: sEmpty('city'),
-    state: sEmpty('state'),
-    country: sEmpty('country'),
-    main_unit: sEmpty('main_unit'),
-    other_units: nullable('other_units'),
-    employee_count: nullable('employee_count'),
-    shift_count: nullable('shift_count'),
-    operating_hours: sEmpty('operating_hours'),
-    operation_type: sEmpty('operation_type'),
-    production_type: sEmpty('production_type'),
-    products_manufactured: nullable('products_manufactured'),
-    market: sEmpty('market'),
-    company_description: sEmpty('company_description'),
-    mission: sEmpty('mission'),
-    vision: sEmpty('vision'),
-    values_text: sEmpty('values_text'),
-    internal_policy: sEmpty('internal_policy'),
-    operation_rules: sEmpty('operation_rules'),
-    organizational_culture: sEmpty('organizational_culture'),
-    strategic_notes: sEmpty('strategic_notes'),
-    company_policy_text: sEmpty('company_policy_text'),
-    config: nullable('config'),
-    active: have.has('active') ? row.active !== false : true,
-    created_at: nullable('created_at'),
-    updated_at: nullable('updated_at')
-  };
-}
 
 function invalidateStructuralOrgCache(companyId) {
   if (!companyId) return;
@@ -149,23 +55,20 @@ function asPgTextArrayForUpdate(v) {
 router.get('/company-data', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!cid) return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    if (!cid) return sendFail(res, 'Empresa não identificada', 400);
     const { row, have } = await selectCompanyRowStructural(cid);
-    if (!row) return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
-    res.json({
-      ok: true,
-      data: companyRowToApiPayload(row, have)
-    });
+    if (!row) return sendFail(res, 'Empresa não encontrada', 404);
+    sendSuccess(res, companyRowToApiPayload(row, have));
   } catch (err) {
     console.error('[STRUCTURAL_COMPANY_DATA]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao buscar dados da empresa' });
+    sendFail(res, 'Erro ao buscar dados da empresa', 500);
   }
 });
 
 router.put('/company-data', ...adminMw, auditMiddleware({ action: 'company_data_updated', entityType: 'structural', severity: 'info' }), async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!cid) return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    if (!cid) return sendFail(res, 'Empresa não identificada', 400);
     const {
       name,
       trade_name,
@@ -256,10 +159,10 @@ router.put('/company-data', ...adminMw, auditMiddleware({ action: 'company_data_
     ]);
 
     invalidateStructuralOrgCache(cid);
-    res.json({ ok: true });
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_COMPANY_UPDATE]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao atualizar dados da empresa' });
+    sendFail(res, 'Erro ao atualizar dados da empresa', 500);
   }
 });
 
@@ -276,10 +179,10 @@ router.get('/roles', ...adminMw, async (req, res) => {
       LEFT JOIN company_roles s ON r.direct_superior_role_id = s.id
       WHERE r.company_id = $1 AND r.active ORDER BY r.hierarchy_level NULLS LAST, r.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_ROLES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar cargos' });
+    sendFail(res, 'Erro ao listar cargos', 500);
   }
 });
 
@@ -287,12 +190,12 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
   try {
     const cid = getCompanyId(req);
     if (!cid) {
-      return res.status(400).json({ ok: false, error: 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.' });
+      return sendFail(res, 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.', 400);
     }
     const b = req.body;
     let superiorId = b.direct_superior_role_id || null;
     if (superiorId && !isValidUUID(String(superiorId))) {
-      return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
+      return sendFail(res, 'ID do cargo "superior direto" é inválido.', 400);
     }
     const hint = b.dashboard_functional_hint != null && String(b.dashboard_functional_hint).trim() !== ''
       ? String(b.dashboard_functional_hint).trim().slice(0, 32)
@@ -313,25 +216,19 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
       b.escalation_role, b.operation_role, b.approval_role, b.notes, hint
     ]);
     invalidateStructuralOrgCache(cid);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_CREATE]', err);
     if (err.code === '23503') {
-      return res.status(400).json({
-        ok: false,
-        error: 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.'
-      });
+      return sendFail(res, 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.', 400);
     }
     if (err.code === '23502') {
-      return res.status(400).json({ ok: false, error: 'Dados obrigatórios ausentes (empresa ou nome do cargo).' });
+      return sendFail(res, 'Dados obrigatórios ausentes (empresa ou nome do cargo).', 400);
     }
     if (err.code === '42P01') {
-      return res.status(500).json({
-        ok: false,
-        error: 'Tabela de cargos não encontrada no banco. Execute a migração da base estrutural no servidor.'
-      });
+      return sendFail(res, 'Tabela de cargos não encontrada no banco. Execute a migração da base estrutural no servidor.', 500);
     }
-    res.status(500).json({ ok: false, error: 'Erro ao criar cargo' });
+    sendFail(res, 'Erro ao criar cargo', 500);
   }
 });
 
@@ -339,13 +236,13 @@ router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'
   try {
     const cid = getCompanyId(req);
     if (!cid) {
-      return res.status(400).json({ ok: false, error: 'Empresa não identificada para o usuário.' });
+      return sendFail(res, 'Empresa não identificada para o usuário.', 400);
     }
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     let superiorIdPut = b.direct_superior_role_id;
     if (superiorIdPut && !isValidUUID(String(superiorIdPut))) {
-      return res.status(400).json({ ok: false, error: 'ID do cargo "superior direto" é inválido.' });
+      return sendFail(res, 'ID do cargo "superior direto" é inválido.', 400);
     }
     const hintUpdate = Object.prototype.hasOwnProperty.call(b, 'dashboard_functional_hint')
       ? ', dashboard_functional_hint = NULLIF(TRIM($22::text), \'\')'
@@ -384,35 +281,32 @@ router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'
       WHERE id = $2 AND company_id = $1
       RETURNING *
     `, paramsPut);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
+    if (r.rows.length === 0) return sendFail(res, 'Cargo não encontrado', 404);
     invalidateStructuralOrgCache(cid);
-    res.json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_UPDATE]', err);
     if (err.code === '23503') {
-      return res.status(400).json({
-        ok: false,
-        error: 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.'
-      });
+      return sendFail(res, 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.', 400);
     }
-    res.status(500).json({ ok: false, error: 'Erro ao atualizar cargo' });
+    sendFail(res, 'Erro ao atualizar cargo', 500);
   }
 });
 
 router.delete('/roles/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE company_roles SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Cargo não encontrado' });
+    if (r.rows.length === 0) return sendFail(res, 'Cargo não encontrado', 404);
     invalidateStructuralOrgCache(cid);
-    res.json({ ok: true });
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_DELETE]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao remover cargo' });
+    sendFail(res, 'Erro ao remover cargo', 500);
   }
 });
 
@@ -431,17 +325,17 @@ router.get('/production-lines', ...adminMw, async (req, res) => {
       WHERE pl.company_id = $1 AND pl.active
       ORDER BY pl.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_LINES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar linhas' });
+    sendFail(res, 'Erro ao listar linhas', 500);
   }
 });
 
 router.get('/production-lines/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const pl = await db.query(`
       SELECT pl.*, d.name as department_name, u.name as responsible_name
       FROM production_lines pl
@@ -449,14 +343,14 @@ router.get('/production-lines/:id', ...adminMw, async (req, res) => {
       LEFT JOIN users u ON pl.responsible_id = u.id
       WHERE pl.id = $1 AND pl.company_id = $2
     `, [req.params.id, cid]);
-    if (pl.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
+    if (pl.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
     const machines = await db.query(`
       SELECT * FROM production_line_machines WHERE line_id = $1 ORDER BY flow_order NULLS LAST, name
     `, [req.params.id]);
-    res.json({ ok: true, data: { ...pl.rows[0], machines: machines.rows } });
+    sendSuccess(res, { ...pl.rows[0], machines: machines.rows } );
   } catch (err) {
     console.error('[STRUCTURAL_LINE_GET]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao buscar linha' });
+    sendFail(res, 'Erro ao buscar linha', 500);
   }
 });
 
@@ -477,17 +371,17 @@ router.post('/production-lines', ...adminMw, auditMiddleware({ action: 'producti
       b.description, b.main_bottleneck, b.critical_point, b.operation_time,
       b.criticality_level, b.operational_notes, b.main_product_id || null
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_LINE_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/production-lines/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE production_lines SET
@@ -509,27 +403,27 @@ router.put('/production-lines/:id', ...adminMw, async (req, res) => {
       b.description, b.main_bottleneck, b.critical_point, b.operation_time,
       b.criticality_level, b.operational_notes, b.main_product_id || null
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_LINE_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/production-lines/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE production_lines SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_LINE_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -537,9 +431,9 @@ router.delete('/production-lines/:id', ...adminMw, async (req, res) => {
 router.post('/production-lines/:id/machines', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const chk = await db.query('SELECT id FROM production_lines WHERE id = $1 AND company_id = $2', [req.params.id, cid]);
-    if (chk.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
+    if (chk.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
     const b = req.body;
     const r = await db.query(`
       INSERT INTO production_line_machines (line_id, name, nickname, code_tag, function_in_process,
@@ -553,10 +447,10 @@ router.post('/production-lines/:id/machines', ...adminMw, async (req, res) => {
       b.status || 'active', b.criticality, b.flow_order, b.department_id || null,
       b.common_failures || [], b.downtime_impact, b.technical_notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_LINE_MACHINE_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -564,9 +458,9 @@ router.put('/production-lines/:lineId/machines/:machineId', ...adminMw, async (r
   try {
     const cid = getCompanyId(req);
     const { lineId, machineId } = req.params;
-    if (!isValidUUID(lineId) || !isValidUUID(machineId)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(lineId) || !isValidUUID(machineId)) return sendFail(res, 'ID inválido', 400);
     const chk = await db.query('SELECT id FROM production_lines WHERE id = $1 AND company_id = $2', [lineId, cid]);
-    if (chk.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
+    if (chk.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
     const b = req.body;
     const r = await db.query(`
       UPDATE production_line_machines SET
@@ -587,11 +481,11 @@ router.put('/production-lines/:lineId/machines/:machineId', ...adminMw, async (r
       b.flow_order, b.department_id || null, b.common_failures, b.downtime_impact,
       b.technical_notes, machineId
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Máquina não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Máquina não encontrada', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_LINE_MACHINE_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -599,14 +493,14 @@ router.delete('/production-lines/:lineId/machines/:machineId', ...adminMw, async
   try {
     const cid = getCompanyId(req);
     const { lineId, machineId } = req.params;
-    if (!isValidUUID(lineId) || !isValidUUID(machineId)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(lineId) || !isValidUUID(machineId)) return sendFail(res, 'ID inválido', 400);
     const chk = await db.query('SELECT id FROM production_lines WHERE id = $1 AND company_id = $2', [lineId, cid]);
-    if (chk.rows.length === 0) return res.status(404).json({ ok: false, error: 'Linha não encontrada' });
+    if (chk.rows.length === 0) return sendFail(res, 'Linha não encontrada', 404);
     await db.query('DELETE FROM production_line_machines WHERE id = $1 AND line_id = $2', [machineId, lineId]);
-    res.json({ ok: true });
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_LINE_MACHINE_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -625,10 +519,10 @@ router.get('/assets', ...adminMw, async (req, res) => {
       WHERE a.company_id = $1 AND a.active
       ORDER BY a.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_ASSETS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar ativos' });
+    sendFail(res, 'Erro ao listar ativos', 500);
   }
 });
 
@@ -653,17 +547,17 @@ router.post('/assets', ...adminMw, auditMiddleware({ action: 'asset_created', en
       b.frequent_symptoms || [], b.associated_risks || [], b.downtime_impact,
       b.technical_responsible_id || null, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_ASSET_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/assets/:id', ...adminMw, tenantAssertMiddleware('structural_asset', 'id'), async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE assets SET
@@ -695,27 +589,27 @@ router.put('/assets/:id', ...adminMw, tenantAssertMiddleware('structural_asset',
       b.frequent_symptoms, b.associated_risks, b.downtime_impact,
       b.technical_responsible_id || null, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Ativo não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Ativo não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_ASSET_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/assets/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE assets SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Ativo não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Ativo não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_ASSET_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -733,10 +627,10 @@ router.get('/processes', ...adminMw, async (req, res) => {
       WHERE cp.company_id = $1 AND cp.active
       ORDER BY cp.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_PROCESSES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar processos' });
+    sendFail(res, 'Erro ao listar processos', 500);
   }
 });
 
@@ -758,17 +652,17 @@ router.post('/processes', ...adminMw, auditMiddleware({ action: 'process_created
       b.process_risks || [], b.critical_points || [], b.frequency,
       b.related_procedures || [], b.dependencies || [], b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_PROCESS_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/processes/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE company_processes SET
@@ -794,27 +688,27 @@ router.put('/processes/:id', ...adminMw, async (req, res) => {
       b.responsibles, b.process_indicators, b.process_risks, b.critical_points,
       b.frequency, b.related_procedures, b.dependencies, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Processo não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Processo não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_PROCESS_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/processes/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE company_processes SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Processo não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Processo não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_PROCESS_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -833,10 +727,10 @@ router.get('/products', ...adminMw, async (req, res) => {
       WHERE p.company_id = $1 AND p.active
       ORDER BY p.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_PRODUCTS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar produtos' });
+    sendFail(res, 'Erro ao listar produtos', 500);
   }
 });
 
@@ -858,17 +752,17 @@ router.post('/products', ...adminMw, auditMiddleware({ action: 'product_created'
       b.important_specs || [], b.associated_risks || [], b.avg_production_time,
       b.related_procedures || [], b.technical_notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_PRODUCT_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/products/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE company_products SET
@@ -892,27 +786,27 @@ router.put('/products/:id', ...adminMw, async (req, res) => {
       b.important_specs, b.associated_risks, b.avg_production_time,
       b.related_procedures, b.technical_notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Produto não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Produto não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_PRODUCT_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/products/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE company_products SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Produto não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Produto não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_PRODUCT_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -931,10 +825,10 @@ router.get('/indicators', ...adminMw, async (req, res) => {
       WHERE ki.company_id = $1 AND ki.active
       ORDER BY ki.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_INDICATORS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar indicadores' });
+    sendFail(res, 'Erro ao listar indicadores', 500);
   }
 });
 
@@ -955,17 +849,17 @@ router.post('/indicators', ...adminMw, async (req, res) => {
       b.attention_range, b.critical_range, b.measurement_frequency, b.unit,
       b.responsible_id || null, b.deviation_action, b.strategic_weight || null, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_INDICATOR_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/indicators/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE kpi_indicators SET
@@ -987,27 +881,27 @@ router.put('/indicators/:id', ...adminMw, async (req, res) => {
       b.max_acceptable, b.attention_range, b.critical_range, b.measurement_frequency,
       b.unit, b.responsible_id || null, b.deviation_action, b.strategic_weight, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Indicador não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Indicador não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_INDICATOR_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/indicators/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE kpi_indicators SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Indicador não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Indicador não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_INDICATOR_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1026,10 +920,10 @@ router.get('/failure-risks', ...adminMw, async (req, res) => {
       WHERE fr.company_id = $1 AND fr.active
       ORDER BY fr.criticality_level, fr.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_FAILURE_RISKS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar falhas e riscos' });
+    sendFail(res, 'Erro ao listar falhas e riscos', 500);
   }
 });
 
@@ -1053,17 +947,17 @@ router.post('/failure-risks', ...adminMw, async (req, res) => {
       b.criticality_level, b.expected_frequency, b.default_response_plan,
       b.default_responsible_id || null, b.suggested_escalation, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_FAILURE_RISK_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/failure-risks/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE failure_risks SET
@@ -1090,27 +984,27 @@ router.put('/failure-risks/:id', ...adminMw, async (req, res) => {
       b.safety_impact, b.productivity_impact, b.criticality_level, b.expected_frequency,
       b.default_response_plan, b.default_responsible_id || null, b.suggested_escalation, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Falha/Risco não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Falha/Risco não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_FAILURE_RISK_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/failure-risks/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE failure_risks SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Falha/Risco não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Falha/Risco não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_FAILURE_RISK_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1125,10 +1019,10 @@ router.get('/communication-rules', ...adminMw, async (req, res) => {
       'SELECT * FROM communication_rules WHERE company_id = $1 AND active ORDER BY subject_type',
       [cid]
     );
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_COM_RULES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar regras de comunicação' });
+    sendFail(res, 'Erro ao listar regras de comunicação', 500);
   }
 });
 
@@ -1153,17 +1047,17 @@ router.post('/communication-rules', ...adminMw, async (req, res) => {
       !!b.sensitive_topic, b.language_by_profile ? JSON.stringify(b.language_by_profile) : null,
       b.communication_flow, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_COM_RULE_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/communication-rules/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE communication_rules SET
@@ -1193,27 +1087,27 @@ router.put('/communication-rules/:id', ...adminMw, async (req, res) => {
       b.sensitive_topic, b.language_by_profile ? JSON.stringify(b.language_by_profile) : null,
       b.communication_flow, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Regra não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Regra não encontrada', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_COM_RULE_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/communication-rules/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE communication_rules SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Regra não encontrada' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Regra não encontrada', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_COM_RULE_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1233,10 +1127,10 @@ router.get('/routines', ...adminMw, async (req, res) => {
       WHERE rt.company_id = $1 AND rt.active
       ORDER BY rt.name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_ROUTINES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar rotinas' });
+    sendFail(res, 'Erro ao listar rotinas', 500);
   }
 });
 
@@ -1257,17 +1151,17 @@ router.post('/routines', ...adminMw, async (req, res) => {
       b.conformity_criteria || [], b.related_procedures || [],
       b.non_conformity_action, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_ROUTINE_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/routines/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE routines SET
@@ -1289,27 +1183,27 @@ router.put('/routines/:id', ...adminMw, async (req, res) => {
       b.verification_items ? JSON.stringify(b.verification_items) : null,
       b.conformity_criteria, b.related_procedures, b.non_conformity_action, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Rotina não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Rotina não encontrada', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_ROUTINE_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/routines/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE routines SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Rotina não encontrada' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Rotina não encontrada', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_ROUTINE_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1321,10 +1215,10 @@ router.get('/checklists', ...adminMw, async (req, res) => {
       'SELECT * FROM checklist_templates WHERE company_id = $1 ORDER BY name',
       [cid]
     );
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_CHECKLISTS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar checklists' });
+    sendFail(res, 'Erro ao listar checklists', 500);
   }
 });
 
@@ -1337,17 +1231,17 @@ router.post('/checklists', ...adminMw, async (req, res) => {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `, [cid, b.name || '', b.description, b.items ? JSON.stringify(b.items) : null, b.department_id || null]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_CHECKLIST_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/checklists/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE checklist_templates SET
@@ -1356,24 +1250,24 @@ router.put('/checklists/:id', ...adminMw, async (req, res) => {
       WHERE id = $2 AND company_id = $1
       RETURNING *
     `, [cid, req.params.id, b.name, b.description, b.items ? JSON.stringify(b.items) : null, b.department_id || null]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Checklist não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Checklist não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_CHECKLIST_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/checklists/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query('DELETE FROM checklist_templates WHERE id = $1 AND company_id = $2 RETURNING id', [req.params.id, cid]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Checklist não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Checklist não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_CHECKLIST_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1388,10 +1282,10 @@ router.get('/shifts', ...adminMw, async (req, res) => {
       'SELECT * FROM shifts WHERE company_id = $1 AND active ORDER BY start_time NULLS LAST',
       [cid]
     );
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_SHIFTS]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar turnos' });
+    sendFail(res, 'Erro ao listar turnos', 500);
   }
 });
 
@@ -1411,17 +1305,17 @@ router.post('/shifts', ...adminMw, async (req, res) => {
       b.shift_responsibles || [], b.shift_leader_id || null,
       b.operational_notes, b.shift_routines || [], b.common_risks || [], b.special_rules
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_SHIFT_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/shifts/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE shifts SET
@@ -1443,27 +1337,27 @@ router.put('/shifts/:id', ...adminMw, async (req, res) => {
       b.active_departments, b.active_lines, b.main_teams, b.shift_responsibles,
       b.shift_leader_id || null, b.operational_notes, b.shift_routines, b.common_risks, b.special_rules
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Turno não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Turno não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_SHIFT_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/shifts/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE shifts SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Turno não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Turno não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_SHIFT_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1482,10 +1376,10 @@ router.get('/area-responsibles', ...adminMw, async (req, res) => {
       WHERE ar.company_id = $1 AND ar.active
       ORDER BY ar.area_name
     `, [cid]);
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_AREA_RESP]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar responsáveis' });
+    sendFail(res, 'Erro ao listar responsáveis', 500);
   }
 });
 
@@ -1507,17 +1401,17 @@ router.post('/area-responsibles', ...adminMw, async (req, res) => {
       b.responsible_lines || [], b.responsible_processes || [],
       b.contact_rules, b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_AREA_RESP_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/area-responsibles/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE area_responsibles SET
@@ -1539,27 +1433,27 @@ router.put('/area-responsibles/:id', ...adminMw, async (req, res) => {
       b.responsible_themes, b.responsible_assets, b.responsible_lines,
       b.responsible_processes, b.contact_rules, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Responsável não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Responsável não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_AREA_RESP_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/area-responsibles/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE area_responsibles SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Responsável não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Responsável não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_AREA_RESP_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1574,10 +1468,10 @@ router.get('/ai-config', ...adminMw, async (req, res) => {
       'SELECT * FROM ai_intelligence_config WHERE company_id = $1 AND active ORDER BY config_key',
       [cid]
     );
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_AI_CONFIG]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar configurações IA' });
+    sendFail(res, 'Erro ao listar configurações IA', 500);
   }
 });
 
@@ -1607,17 +1501,17 @@ router.post('/ai-config', ...adminMw, async (req, res) => {
       b.escalation_contexts || [], b.discrete_response_contexts || [],
       b.immediate_response_contexts || [], b.notes
     ]);
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_AI_CONFIG_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/ai-config/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(`
       UPDATE ai_intelligence_config SET
@@ -1652,27 +1546,27 @@ router.put('/ai-config/:id', ...adminMw, async (req, res) => {
       b.monitoring_triggers ? JSON.stringify(b.monitoring_triggers) : null,
       b.escalation_contexts, b.discrete_response_contexts, b.immediate_response_contexts, b.notes
     ]);
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Configuração não encontrada' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Configuração não encontrada', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_AI_CONFIG_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/ai-config/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE ai_intelligence_config SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Configuração não encontrada' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Configuração não encontrada', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_AI_CONFIG_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1694,10 +1588,10 @@ router.get('/knowledge-documents', ...adminMw, async (req, res) => {
     `,
       [cid]
     );
-    res.json({ ok: true, data: r.rows });
+    sendSuccess(res, r.rows );
   } catch (err) {
     console.error('[STRUCTURAL_KNOWLEDGE_LIST]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao listar documentos de conhecimento' });
+    sendFail(res, 'Erro ao listar documentos de conhecimento', 500);
   }
 });
 
@@ -1737,17 +1631,17 @@ router.post('/knowledge-documents', ...adminMw, auditMiddleware({ action: 'knowl
         b.notes || null
       ]
     );
-    res.status(201).json({ ok: true, data: r.rows[0] });
+    sendSuccess(res, r.rows[0] , 201);
   } catch (err) {
     console.error('[STRUCTURAL_KNOWLEDGE_CREATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.put('/knowledge-documents/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const b = req.body;
     const r = await db.query(
       `
@@ -1795,27 +1689,27 @@ router.put('/knowledge-documents/:id', ...adminMw, async (req, res) => {
         b.notes
       ]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Documento não encontrado' });
-    res.json({ ok: true, data: r.rows[0] });
+    if (r.rows.length === 0) return sendFail(res, 'Documento não encontrado', 404);
+    sendSuccess(res, r.rows[0] );
   } catch (err) {
     console.error('[STRUCTURAL_KNOWLEDGE_UPDATE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
 router.delete('/knowledge-documents/:id', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
     const r = await db.query(
       'UPDATE company_knowledge_documents SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2 RETURNING id',
       [req.params.id, cid]
     );
-    if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Documento não encontrado' });
-    res.json({ ok: true });
+    if (r.rows.length === 0) return sendFail(res, 'Documento não encontrado', 404);
+    sendSuccess(res, null);
   } catch (err) {
     console.error('[STRUCTURAL_KNOWLEDGE_DELETE]', err);
-    res.status(500).json({ ok: false, error: err.message });
+    sendFail(res, err.message, 500);
   }
 });
 
@@ -1837,9 +1731,7 @@ router.get('/references', ...adminMw, async (req, res) => {
       db.query('SELECT id, name FROM shifts WHERE company_id = $1 AND active ORDER BY start_time NULLS LAST', [cid]),
       db.query('SELECT id, name FROM checklist_templates WHERE company_id = $1 ORDER BY name', [cid])
     ]);
-    res.json({
-      ok: true,
-      data: {
+    sendSuccess(res, {
         departments: depts.rows,
         productionLines: lines.rows,
         processes: processes.rows,
@@ -1850,10 +1742,10 @@ router.get('/references', ...adminMw, async (req, res) => {
         shifts: shifts.rows,
         checklists: checklists.rows
       }
-    });
+    );
   } catch (err) {
     console.error('[STRUCTURAL_REFERENCES]', err);
-    res.status(500).json({ ok: false, error: 'Erro ao buscar referências' });
+    sendFail(res, 'Erro ao buscar referências', 500);
   }
 });
 

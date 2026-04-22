@@ -10,7 +10,7 @@ import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
 import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
-import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
+import { useProtectedMediaSrc } from '../utils/mediaUrls';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }

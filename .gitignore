@@ -15,6 +15,21 @@ impetus_complete/backend/config/google-tts.json
 .env.test.local
 .env.production.local
 .env.production
+backend/.env
+frontend/.env
+**/.env
+!**/.env.example
+
+# Chaves e credenciais (nunca versionar)
+*.pem
+*.key
+*.p12
+*.pfx
+*secret*.json
+*credentials*.json
+service-account*.json
+google-services.json
+secrets/
 
 # Dependências
 node_modules/
