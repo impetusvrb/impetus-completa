@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireFactoryOperationalMember } = require('../middleware/auth');
+const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const { logAction } = require('../middleware/audit');
 const intelligentRegistrationService = require('../services/intelligentRegistrationService');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
@@ -15,7 +16,7 @@ const protected = [requireAuth];
  * POST /api/intelligent-registration
  * Registrar texto com processamento por IA
  */
-router.post('/', ...protected, requireFactoryOperationalMember, async (req, res) => {
+router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter, async (req, res) => {
   try {
     const companyId = req.user?.company_id;
     const userId = req.user?.id;

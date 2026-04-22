@@ -12,6 +12,7 @@ const db = require('../../db');
 const { requireAuth, requireHierarchy } = require('../../middleware/auth');
 const { auditMiddleware } = require('../../middleware/audit');
 const { isValidUUID } = require('../../utils/security');
+const { tenantAssertMiddleware } = require('../../middleware/tenantResourceAssert');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
 
@@ -334,7 +335,7 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
   }
 });
 
-router.put('/roles/:id', ...adminMw, async (req, res) => {
+router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'), async (req, res) => {
   try {
     const cid = getCompanyId(req);
     if (!cid) {
@@ -659,7 +660,7 @@ router.post('/assets', ...adminMw, auditMiddleware({ action: 'asset_created', en
   }
 });
 
-router.put('/assets/:id', ...adminMw, async (req, res) => {
+router.put('/assets/:id', ...adminMw, tenantAssertMiddleware('structural_asset', 'id'), async (req, res) => {
   try {
     const cid = getCompanyId(req);
     if (!isValidUUID(req.params.id)) return res.status(400).json({ ok: false, error: 'ID inválido' });

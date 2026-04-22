@@ -24,7 +24,11 @@ const apiByIpLimiter = rateLimit({
   skip: (req) => skipWebhookAndPreflight(req) || !!req.user?.id
 });
 
-/** 300 req/min por usuário autenticado em rotas críticas (dashboard, comunicações, etc.) */
+/**
+ * Limite por utilizador autenticado (chave `u:<userId>`).
+ * Usar em rotas pesadas de IA/processamento; o limitador global por IP ignora `req.user`, pelo que este middleware evita abuso por sessões válidas.
+ * Ajuste via RATE_LIMIT_USER_PER_MIN.
+ */
 const apiByUserLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_USER_PER_MIN, 10) || 300,

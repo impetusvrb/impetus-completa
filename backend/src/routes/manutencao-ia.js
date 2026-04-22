@@ -6,6 +6,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const { requireCompanyActive } = require('../middleware/multiTenant');
 const { resolveDashboardProfile } = require('../services/dashboardProfileResolver');
 
@@ -284,7 +285,7 @@ function manuiaPublicBaseUrl(req) {
  * Body: { query: string, session_id?: uuid }
  * Prioriza Biblioteca Técnica Inteligente (modelo GLB/GLTF) antes do catálogo procedural.
  */
-router.post('/research-equipment', manuiaGuard, async (req, res) => {
+router.post('/research-equipment', manuiaGuard, apiByUserLimiter, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const userId = req.user.id;
@@ -365,7 +366,7 @@ router.post('/live-assistance/analyze-frame', manuiaGuard, async (req, res) => {
  * POST /api/manutencao-ia/live-assistance/chat
  * Body: { messages: [{role, content}], dossier? }
  */
-router.post('/live-assistance/chat', manuiaGuard, async (req, res) => {
+router.post('/live-assistance/chat', manuiaGuard, apiByUserLimiter, async (req, res) => {
   try {
     const { messages, dossier } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -415,7 +416,7 @@ router.post('/live-assistance/save-session', manuiaGuard, async (req, res) => {
  * Conclui sessão: gera OS automática e opcionalmente cadastra equipamento
  * Body: { equipment_name, equipment_manufacturer, symptom, diagnosis_summary, create_work_order, add_to_cadastro }
  */
-router.post('/conclude-session', manuiaGuard, async (req, res) => {
+router.post('/conclude-session', manuiaGuard, apiByUserLimiter, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     const userId = req.user.id;

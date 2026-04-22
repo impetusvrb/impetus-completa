@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { requireAuth, requireRole, requireCompanyId } = require('../middleware/auth');
+const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const ctrl = require('../modules/technicalLibrary/controllers/technicalLibraryController');
 const fieldCtrl = require('../modules/technicalLibrary/controllers/fieldAnalysisController');
 
@@ -116,6 +117,7 @@ const uploadCsv = multer({
 router.post(
   '/field-analysis',
   ...companyUser,
+  apiByUserLimiter,
   fieldCtrl.prepareFieldAnalysisDir(baseUpload),
   uploadFieldMedia,
   fieldCtrl.postFieldAnalysis

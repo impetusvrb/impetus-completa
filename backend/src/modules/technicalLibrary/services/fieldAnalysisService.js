@@ -11,6 +11,34 @@ const unityVisualizationPayload = require('./unityVisualizationPayloadService');
 
 const execFileAsync = promisify(execFile);
 
+/** Mesma raiz que `routes/technicalLibrary.js` (src/routes → ../../../uploads/technical-library). */
+const UPLOADS_TECH_LIBRARY_ROOT = path.resolve(
+  __dirname,
+  '../../../../../uploads',
+  'technical-library'
+);
+
+/**
+ * Normaliza o caminho e garante que fique dentro do diretório da sessão de análise
+ * (mitiga path traversal e entradas inesperadas ao ffmpeg).
+ */
+function resolveSafeMediaInFieldAnalysisSession(mediaAbsPath, companyId, analysisId) {
+  const sessionDir = path.resolve(
+    UPLOADS_TECH_LIBRARY_ROOT,
+    String(companyId),
+    'field-analysis',
+    String(analysisId)
+  );
+  const resolved = path.resolve(String(mediaAbsPath || ''));
+  const rel = path.relative(sessionDir, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    const e = new Error('Caminho de mídia inválido para esta análise.');
+    e.status = 400;
+    throw e;
+  }
+  return resolved;
+}
+
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 
 const AI_SYSTEM = `Você é um especialista em manutenção industrial. Analise imagens de equipamentos, motores, bombas, painéis, rolamentos, vedações, etc.
@@ -82,17 +110,19 @@ async function extractVideoFrames(videoAbsPath, outDir, maxFrames) {
   const mf = maxFrames || 4;
   const frames = [];
   try {
-    await fs.promises.mkdir(outDir, { recursive: true });
-    const pattern = path.join(outDir, 'vf-%03d.jpg');
+    const safeVideo = path.resolve(String(videoAbsPath || ''));
+    const safeOutDir = path.resolve(String(outDir || ''));
+    await fs.promises.mkdir(safeOutDir, { recursive: true });
+    const pattern = path.join(safeOutDir, 'vf-%03d.jpg');
     await execFileAsync(
       'ffmpeg',
-      ['-y', '-i', videoAbsPath, '-vf', 'fps=1/4', '-frames:v', String(mf), pattern],
+      ['-y', '-i', safeVideo, '-vf', 'fps=1/4', '-frames:v', String(mf), pattern],
       { timeout: 120000 }
     );
-    const files = await fs.promises.readdir(outDir);
+    const files = await fs.promises.readdir(safeOutDir);
     for (const f of files.sort()) {
       if (f.startsWith('vf-') && f.endsWith('.jpg')) {
-        frames.push(path.join(outDir, f));
+        frames.push(path.join(safeOutDir, f));
       }
     }
   } catch (e) {
@@ -119,25 +149,43 @@ async function runAnalysis(companyId, userId, analysisId, body, files, publicBas
   const video = files.video && files.video[0] ? files.video[0] : null;
 
   const mediaPaths = [];
+  const photoAbsPaths = [];
   for (const p of photos) {
+    const abs = resolveSafeMediaInFieldAnalysisSession(p.path, companyId, analysisId);
+    photoAbsPaths.push(abs);
     mediaPaths.push({
       kind: 'image',
       path: `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/${p.filename}`,
-      abs: p.path
+      abs
     });
   }
+  let safeVideoAbs = null;
   if (video) {
+    safeVideoAbs = resolveSafeMediaInFieldAnalysisSession(video.path, companyId, analysisId);
     mediaPaths.push({
       kind: 'video',
       path: `/uploads/technical-library/${companyId}/field-analysis/${analysisId}/${video.filename}`,
-      abs: video.path
+      abs: safeVideoAbs
     });
   }
 
   let framePaths = [];
-  if (video && video.path) {
-    const framesDir = path.join(path.dirname(video.path), 'vframes');
-    framePaths = await extractVideoFrames(video.path, framesDir, 4);
+  if (video && safeVideoAbs) {
+    const framesDir = path.join(path.dirname(safeVideoAbs), 'vframes');
+    const resolvedFramesDir = path.resolve(framesDir);
+    const sessionDir = path.resolve(
+      UPLOADS_TECH_LIBRARY_ROOT,
+      String(companyId),
+      'field-analysis',
+      String(analysisId)
+    );
+    const relFrames = path.relative(sessionDir, resolvedFramesDir);
+    if (relFrames.startsWith('..') || path.isAbsolute(relFrames)) {
+      const e = new Error('Diretório de frames inválido.');
+      e.status = 400;
+      throw e;
+    }
+    framePaths = await extractVideoFrames(safeVideoAbs, resolvedFramesDir, 4);
     for (const ap of framePaths) {
       mediaPaths.push({
         kind: 'frame',
@@ -147,7 +195,7 @@ async function runAnalysis(companyId, userId, analysisId, body, files, publicBas
     }
   }
 
-  const imageAbs = photos.map((p) => p.path).concat(framePaths).filter(Boolean);
+  const imageAbs = photoAbsPaths.concat(framePaths).filter(Boolean);
 
   if (imageAbs.length === 0) {
     const e = new Error('Nenhuma imagem disponível para análise (envie fotos ou vídeo processável com ffmpeg).');

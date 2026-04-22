@@ -18,7 +18,7 @@ const poolConfig = {
   min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
   idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT, 10) || 30000,
   connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECT_TIMEOUT, 10) || 10000,
-  allowExitOnIdle: true
+  allowExitOnIdle: false
 };
 
 const pool = new Pool(poolConfig);

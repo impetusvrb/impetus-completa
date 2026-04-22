@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
+const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const db = require('../db');
 const geminiService = require('../services/geminiService');
 const mediaProcessor = require('../services/mediaProcessorService');
@@ -66,7 +67,7 @@ async function extractDocText(filePath) {
  * POST /api/cadastrar-com-ia
  * Cadastra informação via texto, imagem ou arquivo
  */
-router.post('/', requireAuth, upload.single('file'), async (req, res) => {
+router.post('/', requireAuth, apiByUserLimiter, upload.single('file'), async (req, res) => {
   try {
     const companyId = req.user?.company_id;
     const userId = req.user?.id;
