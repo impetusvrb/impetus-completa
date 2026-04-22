@@ -53,6 +53,7 @@ function cleanTtsInput(text) {
 
 const db = require('../db');
 const billingTokenService = require('../services/billingTokenService');
+const humanValidationClosureService = require('../services/humanValidationClosureService');
 
 router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res) => {
   if (!rateLimit(req.user.id, 30, 60 * 1000)) {
@@ -101,6 +102,15 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
     }
     if (billQty && result.text) {
       billingTokenService.registrarUsoSafe(req.user.company_id, req.user.id, 'outro', billQty);
+    }
+    if (result.text && String(result.text).trim()) {
+      humanValidationClosureService
+        .tryClosePendingValidation({
+          user: req.user,
+          utterance: result.text,
+          modality: 'VOICE'
+        })
+        .catch(() => {});
     }
     res.json({
       ok: true,

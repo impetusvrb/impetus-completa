@@ -100,10 +100,56 @@ async function getGestaoSummary(companyId, opts = {}) {
   };
 }
 
+/**
+ * Validação humana orgânica (voz/texto/gesto) — ISO / auditoria Centro de Comando.
+ */
+async function markHumanOrganicValidation({
+  insightId,
+  companyId,
+  userId,
+  status,
+  modality,
+  evidence,
+  traceId
+}) {
+  if (insightId == null || insightId === '' || !companyId || !userId) return false;
+  try {
+    const r = await db.query(
+      `
+      UPDATE operational_insights SET
+        human_validation_status = $3,
+        human_validation_modality = $4,
+        human_validation_evidence = $5,
+        human_validated_at = now(),
+        human_validated_by = $6,
+        linked_ai_trace_id = COALESCE($7::uuid, linked_ai_trace_id)
+      WHERE id = $1 AND company_id = $2
+      RETURNING id
+    `,
+      [
+        /^\d+$/.test(String(insightId)) ? parseInt(String(insightId), 10) : insightId,
+        companyId,
+        String(status).slice(0, 32),
+        modality ? String(modality).slice(0, 16) : null,
+        evidence != null ? String(evidence).slice(0, 20000) : null,
+        userId,
+        traceId || null
+      ]
+    );
+    return !!r.rows?.[0];
+  } catch (err) {
+    if (err.message && err.message.includes('human_validation_status')) {
+      return false;
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   generateFromPatterns,
   listRecent,
   markAsRead,
+  markHumanOrganicValidation,
   getProducaoSummary,
   getManutencaoSummary,
   getGestaoSummary

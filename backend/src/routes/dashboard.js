@@ -498,6 +498,21 @@ router.post('/chat', requireAuth, async (req, res) => {
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Mensagem vazia.' });
     }
+    const humanValidationClosureService = require('../services/humanValidationClosureService');
+    const modalityHint = req.body?.validation_modality === 'VIDEO' ? 'VIDEO' : 'TEXT';
+    const gestureDescription =
+      req.body?.gesture_description != null ? String(req.body.gesture_description).slice(0, 4000) : '';
+    let hitlClosure = null;
+    try {
+      hitlClosure = await humanValidationClosureService.tryClosePendingValidation({
+        user: req.user,
+        utterance: message,
+        modality: modalityHint,
+        gestureDescription: gestureDescription || undefined
+      });
+    } catch (e) {
+      console.warn('[HITL_CHAT]', e?.message);
+    }
     const historyRaw = Array.isArray(req.body?.history) ? req.body.history : [];
     const history = historyRaw
       .slice(-24)
@@ -561,6 +576,8 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
 
     const text = synthesis.answer || '';
     const aiAnalytics = require('../services/aiAnalyticsService');
+    const needsHitlPending =
+      !!synthesis.requires_action || (synthesis.confidence_score != null && synthesis.confidence_score < 70);
     aiAnalytics.enqueueAiTrace({
       trace_id: traceId,
       user_id: u.id,
@@ -580,7 +597,11 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
         explanation_layer: synthesis.explanation_layer,
         confidence_score: synthesis.confidence_score,
         requires_action: synthesis.requires_action,
-        degraded
+        degraded,
+        related_operational_insight_id:
+          req.body?.related_operational_insight_id != null
+            ? req.body.related_operational_insight_id
+            : undefined
       },
       model_info: {
         provider: 'openai',
@@ -589,9 +610,14 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
         max_tokens: 1600,
         response_format: 'json_object'
       },
-      system_fingerprint: null
+      system_fingerprint: null,
+      human_validation_status: needsHitlPending ? 'PENDING' : null,
+      validation_modality: null,
+      validation_evidence: null,
+      validated_at: null
     });
     res.setHeader('X-AI-Trace-ID', traceId);
+    if (needsHitlPending) res.setHeader('X-AI-HITL-Pending', '1');
     res.json({
       ok: true,
       reply: text,
@@ -600,7 +626,9 @@ explanation_layer deve incluir: facts_used (factos explícitos do pedido/histór
       explanation_layer: synthesis.explanation_layer,
       confidence_score: synthesis.confidence_score,
       requires_action: synthesis.requires_action,
-      degraded
+      degraded,
+      hitl_closed: hitlClosure?.closed === true,
+      hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);

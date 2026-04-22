@@ -222,6 +222,61 @@ async function montarContexto(opts = {}) {
   return context;
 }
 
+/**
+ * Classifica a reacção humana (texto, transcrição ou descrição de gesto) face à última sugestão da IA.
+ * Retorno: { intent: 'ACCEPTED'|'REJECTED'|'ADJUSTED'|'NONE', confidence, evidence_quote, reason_pt }
+ */
+async function classifyHumanLoopReaction(opts = {}) {
+  const assistantSummary = String(opts.assistantSummary || '').slice(0, 2000);
+  const userUtterance = String(opts.userUtterance || '').slice(0, 2000);
+  const gestureDescription = opts.gestureDescription ? String(opts.gestureDescription).slice(0, 1200) : '';
+  if (!userUtterance.trim() && !gestureDescription.trim()) {
+    return { intent: 'NONE', confidence: 0, evidence_quote: '', reason_pt: 'Sem conteúdo humano.' };
+  }
+  const gestureBlock = gestureDescription
+    ? `\nDescrição do gesto ou expressão (vídeo/análise visual): ${gestureDescription}`
+    : '';
+  const prompt = `És a supervisora Gemini do sistema industrial IMPETUS (governança e segurança).
+
+O assistente acabou de apresentar esta sugestão ou resumo ao utilizador:
+"""
+${assistantSummary}
+"""
+
+A reacção humana AGORA é:
+"""
+${userUtterance || '(apenas gesto/expressão — ver abaixo)'}
+"""${gestureBlock}
+
+Tarefa: determina se a reacção é uma resposta DIRECTA a essa sugestão e qual a intenção operacional.
+- ACCEPTED: concordância, autorização explícita ou implícita ("ok", "pode seguir", "de acordo", "execute", "faça", "aprovo").
+- REJECTED: recusa ou discordância clara ("não", "discordo", "cancela", "não faças").
+- ADJUSTED: aceita com ressalvas, condições ou pedido de alteração parcial.
+- NONE: assunto diferente, nova pergunta não relacionada, cumprimento vago, ou não há relação com a sugestão.
+
+Responde APENAS JSON válido:
+{"intent":"ACCEPTED|REJECTED|ADJUSTED|NONE","confidence":0,"evidence_quote":"","reason_pt":""}
+confidence: 0-100 (quão certa estás da classificação).`;
+
+  const raw = await generateText(prompt, { model: opts.model || SUPERVISOR_MODEL });
+  const parsed = extractJson(raw);
+  if (parsed && typeof parsed === 'object' && parsed.intent) {
+    const intent = String(parsed.intent).toUpperCase();
+    const ok = ['ACCEPTED', 'REJECTED', 'ADJUSTED', 'NONE'];
+    const intentNorm = ok.includes(intent) ? intent : 'NONE';
+    let conf = parseInt(parsed.confidence, 10);
+    if (Number.isNaN(conf)) conf = 60;
+    conf = Math.max(0, Math.min(100, conf));
+    return {
+      intent: intentNorm,
+      confidence: conf,
+      evidence_quote: String(parsed.evidence_quote || userUtterance || gestureDescription).slice(0, 800),
+      reason_pt: String(parsed.reason_pt || '').slice(0, 500)
+    };
+  }
+  return null;
+}
+
 async function geminiSupervisor(contexto, pergunta, opts = {}) {
   const prompt = `Você é a IMPETUS IA, supervisora do sistema industrial.
 
@@ -260,6 +315,7 @@ module.exports = {
   extractStructuredFromImage,
   interpretFileForCadastro,
   classifyRouting,
+  classifyHumanLoopReaction,
   montarContexto,
   geminiSupervisor
 };

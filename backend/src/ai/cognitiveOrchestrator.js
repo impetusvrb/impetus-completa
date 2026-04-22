@@ -35,6 +35,7 @@ const {
 const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('./responseSynthesizer');
 const cognitiveAudit = require('./cognitiveAudit');
 const aiAnalytics = require('../services/aiAnalyticsService');
+const humanValidationClosureService = require('../services/humanValidationClosureService');
 
 const PERCEPTION_IMAGE_PROMPT = `Você é o módulo de PERCEPÇÃO industrial (somente observação factual).
 Analise a imagem e responda SOMENTE JSON válido com esta forma:
@@ -549,6 +550,22 @@ async function runCognitiveCouncil(params) {
   const scope = buildUserScope(user);
   assertSameCompany(user, user.company_id);
 
+  if (sanitized) {
+    try {
+      await humanValidationClosureService.tryClosePendingValidation({
+        user,
+        utterance: sanitized,
+        modality: options?.validation_modality === 'VIDEO' ? 'VIDEO' : 'TEXT',
+        gestureDescription:
+          options?.gesture_description != null
+            ? String(options.gesture_description).slice(0, 4000)
+            : undefined
+      });
+    } catch (e) {
+      console.warn('[HITL_COGNITIVE]', e?.message);
+    }
+  }
+
   const dossier = createEmptyDossier({
     traceId,
     user: scope,
@@ -704,7 +721,11 @@ async function runCognitiveCouncil(params) {
       requires_action: synthesis.requires_action,
       degraded: dossier.meta.degraded,
       stages: buildStagesArray(dossier),
-      orchestration: explanationLayer.orchestration
+      orchestration: explanationLayer.orchestration,
+      related_operational_insight_id:
+        options.related_operational_insight_id != null
+          ? options.related_operational_insight_id
+          : undefined
     },
     model_info: {
       pipeline_version: PIPELINE_VERSION,
@@ -719,7 +740,11 @@ async function runCognitiveCouncil(params) {
       risk_level: risk,
       cross_validation: wantCross
     },
-    system_fingerprint: null
+    system_fingerprint: null,
+    human_validation_status: 'PENDING',
+    validation_modality: null,
+    validation_evidence: null,
+    validated_at: null
   });
 
   const dossierForClient = redactForPersistence(dossier);

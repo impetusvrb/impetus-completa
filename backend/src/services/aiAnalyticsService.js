@@ -104,13 +104,20 @@ function summarizeDossierData(data) {
   };
 }
 
+function buildInitialValidationAudit(row) {
+  const base = Array.isArray(row.validation_audit) ? [...row.validation_audit] : [];
+  if (row.human_validation_status === 'PENDING') {
+    base.push({
+      type: 'pending_opened',
+      at: new Date().toISOString(),
+      module: String(row.module_name || '').slice(0, 128)
+    });
+  }
+  return base;
+}
+
 async function insertAiTrace(row) {
-  const q = `
-    INSERT INTO ai_interaction_traces (
-      trace_id, user_id, company_id, module_name,
-      input_payload, output_response, model_info, system_fingerprint
-    ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8)
-  `;
+  const audit = buildInitialValidationAudit(row);
   const params = [
     row.trace_id,
     row.user_id || null,
@@ -119,9 +126,129 @@ async function insertAiTrace(row) {
     JSON.stringify(redactForTrace(row.input_payload || {})),
     JSON.stringify(redactForTrace(row.output_response || {})),
     JSON.stringify(redactForTrace(row.model_info || {})),
-    row.system_fingerprint != null ? String(row.system_fingerprint).slice(0, 512) : null
+    row.system_fingerprint != null ? String(row.system_fingerprint).slice(0, 512) : null,
+    row.human_validation_status != null ? String(row.human_validation_status).slice(0, 32) : null,
+    row.validation_modality != null ? String(row.validation_modality).slice(0, 16) : null,
+    row.validation_evidence != null ? String(row.validation_evidence).slice(0, 50000) : null,
+    row.validated_at != null ? row.validated_at : null,
+    JSON.stringify(redactForTrace(audit))
   ];
-  await db.query(q, params);
+
+  const runExtendedInsert = async () => {
+    if (row.human_validation_status === 'PENDING' && row.user_id && row.company_id) {
+      try {
+        await db.query(
+          `
+          UPDATE ai_interaction_traces
+          SET
+            human_validation_status = 'SUPERSEDED',
+            validation_audit = COALESCE(validation_audit, '[]'::jsonb) || $3::jsonb
+          WHERE company_id = $1 AND user_id = $2 AND human_validation_status = 'PENDING'
+        `,
+          [
+            row.company_id,
+            row.user_id,
+            JSON.stringify(
+              redactForTrace([
+                {
+                  type: 'superseded',
+                  at: new Date().toISOString(),
+                  by_trace: String(row.trace_id)
+                }
+              ])
+            )
+          ]
+        );
+      } catch (e) {
+        if (!String(e.message || '').includes('human_validation_status')) throw e;
+      }
+    }
+    const q = `
+      INSERT INTO ai_interaction_traces (
+        trace_id, user_id, company_id, module_name,
+        input_payload, output_response, model_info, system_fingerprint,
+        human_validation_status, validation_modality, validation_evidence, validated_at, validation_audit
+      ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13::jsonb)
+    `;
+    await db.query(q, params);
+  };
+
+  try {
+    await runExtendedInsert();
+  } catch (err) {
+    if (err.message && err.message.includes('human_validation_status')) {
+      await db.query(
+        `
+        INSERT INTO ai_interaction_traces (
+          trace_id, user_id, company_id, module_name,
+          input_payload, output_response, model_info, system_fingerprint
+        ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8)
+      `,
+        params.slice(0, 8)
+      );
+    } else {
+      throw err;
+    }
+  }
+}
+
+/**
+ * Fecha ciclo HITL: só actualiza se ainda PENDING e pertence ao utilizador/empresa.
+ */
+async function updateTraceHumanValidation({
+  traceId,
+  companyId,
+  userId,
+  status,
+  modality,
+  evidence,
+  auditEntry
+}) {
+  const fragment = auditEntry ? JSON.stringify([redactForTrace(auditEntry)]) : '[]';
+  const r = await db.query(
+    `
+    UPDATE ai_interaction_traces
+    SET
+      human_validation_status = $1,
+      validation_modality = $2,
+      validation_evidence = $3,
+      validated_at = now(),
+      validation_audit = COALESCE(validation_audit, '[]'::jsonb) || $4::jsonb
+    WHERE trace_id = $5::uuid AND company_id = $6 AND user_id = $7
+      AND human_validation_status = 'PENDING'
+    RETURNING trace_id
+  `,
+    [
+      String(status).slice(0, 32),
+      modality ? String(modality).slice(0, 16) : null,
+      evidence != null ? String(evidence).slice(0, 50000) : null,
+      fragment,
+      traceId,
+      companyId,
+      userId
+    ]
+  );
+  return r.rows?.[0] || null;
+}
+
+async function getLatestPendingTraceForUser(companyId, userId) {
+  if (!companyId || !userId) return null;
+  try {
+    const r = await db.query(
+      `
+      SELECT *
+      FROM ai_interaction_traces
+      WHERE company_id = $1 AND user_id = $2 AND human_validation_status = 'PENDING'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+      [companyId, userId]
+    );
+    return r.rows?.[0] || null;
+  } catch (err) {
+    if (err.message && err.message.includes('human_validation_status')) return null;
+    throw err;
+  }
 }
 
 /**
@@ -136,7 +263,12 @@ function enqueueAiTrace(record) {
     input_payload: record.input_payload,
     output_response: record.output_response,
     model_info: record.model_info,
-    system_fingerprint: record.system_fingerprint
+    system_fingerprint: record.system_fingerprint,
+    human_validation_status: record.human_validation_status,
+    validation_modality: record.validation_modality,
+    validation_evidence: record.validation_evidence,
+    validated_at: record.validated_at,
+    validation_audit: record.validation_audit
   };
   setImmediate(() => {
     insertAiTrace(copy).catch((err) => {
@@ -164,7 +296,12 @@ async function listTracesForCompany(companyId, limit = 50) {
       t.output_response,
       t.model_info,
       t.system_fingerprint,
-      t.created_at
+      t.created_at,
+      t.human_validation_status,
+      t.validation_modality,
+      t.validation_evidence,
+      t.validated_at,
+      t.validation_audit
     FROM ai_interaction_traces t
     LEFT JOIN users u ON u.id = t.user_id
     WHERE t.company_id = $1
@@ -181,5 +318,7 @@ module.exports = {
   summarizeDossierData,
   enqueueAiTrace,
   insertAiTrace,
+  updateTraceHumanValidation,
+  getLatestPendingTraceForUser,
   listTracesForCompany
 };

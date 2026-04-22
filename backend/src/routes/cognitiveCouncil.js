@@ -73,7 +73,10 @@ router.post('/execute', async (req, res) => {
       req.body?.input && typeof req.body.input === 'object' ? req.body.input : {};
     const moduleName = req.body?.module || 'cognitive_council';
     const options =
-      req.body?.options && typeof req.body.options === 'object' ? req.body.options : {};
+      req.body?.options && typeof req.body.options === 'object' ? { ...req.body.options } : {};
+    if (req.body?.related_operational_insight_id != null) {
+      options.related_operational_insight_id = req.body.related_operational_insight_id;
+    }
 
     const result = await runCognitiveCouncil({
       user,
@@ -87,6 +90,7 @@ router.post('/execute', async (req, res) => {
 
     const tid = result.trace_id || result.traceId;
     if (tid) res.setHeader('X-AI-Trace-ID', String(tid));
+    res.setHeader('X-AI-HITL-Pending', '1');
     res.json(result);
   } catch (err) {
     if (err.code === 'FORBIDDEN_SCOPE') {

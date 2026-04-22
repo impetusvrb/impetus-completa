@@ -16,6 +16,23 @@ function formatTraceRow(row) {
     if (typeof v === 'object') return v;
     return v;
   };
+  const hv = row.human_validation_status || null;
+  const mod = row.validation_modality || null;
+  const ev = row.validation_evidence || null;
+  const vat = row.validated_at || null;
+  let humanLine = null;
+  if (hv === 'PENDING') {
+    humanLine = 'Aguardando validação orgânica (texto, voz ou gesto).';
+  } else if (hv === 'SUPERSEDED') {
+    humanLine = 'Substituído por uma sugestão mais recente (novo trace).';
+  } else if (hv === 'ACCEPTED' || hv === 'REJECTED' || hv === 'ADJUSTED') {
+    const modLabel =
+      mod === 'VOICE' ? 'Áudio' : mod === 'VIDEO' ? 'Vídeo/gesto' : mod === 'TEXT' ? 'Texto' : mod || '—';
+    humanLine = `Validado pelo humano (${hv}) via ${modLabel}${vat ? ` em ${vat}` : ''}`;
+    if (ev) humanLine += `. Prova: «${String(ev).slice(0, 280)}${String(ev).length > 280 ? '…' : ''}»`;
+  } else if (hv == null) {
+    humanLine = 'Validação humana não aplicável a este registo.';
+  }
   return {
     id: row.id,
     trace_id: row.trace_id,
@@ -32,11 +49,27 @@ function formatTraceRow(row) {
     output_response: pretty(row.output_response),
     model_info: pretty(row.model_info),
     system_fingerprint: row.system_fingerprint,
+    human_validation_status: hv,
+    validation_modality: mod,
+    validation_evidence: ev,
+    validated_at: vat,
+    validation_audit: pretty(row.validation_audit),
     /** Campos derivados para leitura rápida no painel */
     summary: {
       module: row.module_name,
       trace_id: row.trace_id,
-      created_at: row.created_at
+      created_at: row.created_at,
+      human_validation: humanLine,
+      ai_vs_human:
+        hv === 'ACCEPTED' || hv === 'ADJUSTED'
+          ? 'Sugestão da IA validada pelo humano (conversa contínua).'
+          : hv === 'REJECTED'
+            ? 'Sugestão da IA recusada pelo humano (registado).'
+            : hv === 'PENDING'
+              ? 'Sugestão gerada — confirmação humana ainda pendente.'
+              : hv === 'SUPERSEDED'
+                ? 'Ciclo anterior substituído.'
+                : 'Interação registada (sem ciclo HITL obrigatório).'
     }
   };
 }
