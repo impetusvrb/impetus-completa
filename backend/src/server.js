@@ -25,6 +25,7 @@ const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
 const { requireAuth } = require('./middleware/auth');
 const { sendSafeError } = require('./utils/sendSafeError');
 const { allowHealthDetails } = require('./middleware/healthExposure');
+const { getAiIntegrationsHealth } = require('./services/aiIntegrationsHealthService');
 const db = require('./db');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
@@ -149,16 +150,28 @@ async function voiceHealthProbe() {
 
 app.get('/health', async (req, res) => {
   if (allowHealthDetails(req)) {
-    const voz = await voiceHealthProbe();
-    return res.json({ success: true, status: 'ok', service: 'impetus-backend', voz });
+    const [voz, integrations] = await Promise.all([voiceHealthProbe(), getAiIntegrationsHealth()]);
+    return res.json({
+      success: true,
+      status: 'ok',
+      service: 'impetus-backend',
+      voz,
+      integrations
+    });
   }
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
 app.get('/api/health', async (req, res) => {
   if (allowHealthDetails(req)) {
-    const voz = await voiceHealthProbe();
-    return res.json({ success: true, status: 'ok', service: 'impetus-backend', voz });
+    const [voz, integrations] = await Promise.all([voiceHealthProbe(), getAiIntegrationsHealth()]);
+    return res.json({
+      success: true,
+      status: 'ok',
+      service: 'impetus-backend',
+      voz,
+      integrations
+    });
   }
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
@@ -212,6 +225,7 @@ useRoute('/api/admin/logistics', './routes/admin/logistics');
 useRoute('/api/admin/time-clock', './routes/admin/timeClock');
 useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
 useRoute('/api/admin/nexus-wallet', './routes/admin/nexusWallet');
+useRoute('/api/nexus-ia', './routes/nexusIa');
 useRoute('/api/dashboard/chat/voice', './routes/chatVoice');
 useRoute('/api/realtime-presence', './routes/realtimePresence', requireAuth);
 useRoute('/api/tts', './routes/tts');

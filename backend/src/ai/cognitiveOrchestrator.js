@@ -37,6 +37,7 @@ const cognitiveAudit = require('./cognitiveAudit');
 const aiAnalytics = require('../services/aiAnalyticsService');
 const humanValidationClosureService = require('../services/humanValidationClosureService');
 const dataLineageService = require('../services/dataLineageService');
+const aiProviderService = require('../services/aiProviderService');
 
 const PERCEPTION_IMAGE_PROMPT = `Você é o módulo de PERCEPÇÃO industrial (somente observação factual).
 Analise a imagem e responda SOMENTE JSON válido com esta forma:
@@ -758,10 +759,20 @@ async function runCognitiveCouncil(params) {
 
   const dossierForClient = redactForPersistence(dossier);
 
+  let processing_transparency = null;
+  try {
+    if (user.company_id) {
+      processing_transparency = await aiProviderService.getCognitivePipelineDisclosure(user.company_id);
+    }
+  } catch (_) {
+    /* aditivo */
+  }
+
   return {
     ok: true,
     traceId,
     trace_id: traceId,
+    processing_transparency,
     result: {
       content: synthesis.content,
       answer: synthesis.answer,

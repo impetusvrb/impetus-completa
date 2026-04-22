@@ -2,6 +2,19 @@
 
 const aiComplaintDetectionService = require('./aiComplaintDetectionService');
 const aiIncidentService = require('./aiIncidentService');
+const aiProviderService = require('./aiProviderService');
+
+async function withProcessingTransparency(user, base) {
+  let processing_transparency = null;
+  try {
+    if (user?.company_id) {
+      processing_transparency = await aiProviderService.getProcessingDisclosure(user.company_id, 'chat');
+    }
+  } catch (_) {
+    /* aditivo: não bloquear fluxo de reclamação */
+  }
+  return { ...base, processing_transparency };
+}
 
 /**
  * Resposta unificada a reclamações de qualidade (alucinação, dados incorretos, etc.).
@@ -33,12 +46,13 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
       preferredTraceId: lastTrace
     });
 
-    const wrap = (base) => {
-      if (format !== 'cognitive') return base;
-      const content = base.reply || base.message || base.content || '';
-      const expl = base.explanation_layer;
+    const wrap = async (base) => {
+      const withPt = await withProcessingTransparency(u, base);
+      if (format !== 'cognitive') return withPt;
+      const content = withPt.reply || withPt.message || withPt.content || '';
+      const expl = withPt.explanation_layer;
       return {
-        ...base,
+        ...withPt,
         result: { content, explanation_layer: expl },
         synthesis: { content, explanation_layer: expl }
       };
@@ -59,7 +73,7 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
         console.error('[COMPLAINT_CREATE]', err);
         const failMsg = `Detetámos uma reclamação sobre a resposta da IA, mas não foi possível registar o incidente de qualidade neste momento. Por favor contacte o administrador ou o suporte IMPETUS. (${err?.code || err?.message || 'erro'})`;
         res.json(
-          wrap({
+          await wrap({
             ok: true,
             reply: failMsg,
             message: failMsg,
@@ -82,7 +96,7 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
       const shortId = String(incident.id).replace(/-/g, '').slice(0, 8).toUpperCase();
       const reply = `Sinto muito pelo erro. Registrei um incidente de qualidade (ID: ${shortId}) para a nossa equipa técnica analisar a origem desse dado.`;
       res.json(
-        wrap({
+        await wrap({
           ok: true,
           reply,
           message: reply,
@@ -109,7 +123,7 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
 
     const soft = `Não encontrei o rastreio da última resposta da IA para associar ao relatório. Interaja novamente com o assistente e volte a sinalizar, ou contacte o administrador.`;
     res.json(
-      wrap({
+      await wrap({
         ok: true,
         reply: soft,
         message: soft,

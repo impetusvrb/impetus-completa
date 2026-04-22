@@ -23,6 +23,19 @@ function uncertaintyPhrase(layer) {
     'confiança do modelo abaixo do limiar interno (60%).';
   return `Esta recomendação possui alto grau de incerteza devido a ${motivo}`;
 }
+
+function AiTransparencyNote({ pt }) {
+  if (!pt?.footer_pt) return null;
+  const href = pt.privacy_path || '/app/admin/nexusia-custos?tab=infra';
+  return (
+    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 8, lineHeight: 1.35 }}>
+      {pt.footer_pt}{' '}
+      <a href={href} style={{ color: '#a5b4fc' }}>
+        Nexus IA
+      </a>
+    </div>
+  );
+}
 function ChatHeaderAvatar({ rawUrl }) {
   const src = useProtectedMediaSrc(rawUrl || null);
   if (!rawUrl) return null;
@@ -171,6 +184,7 @@ export default function ChatApp(){
           data?.result?.confidence_score ?? data?.synthesis?.confidence_score;
         const explanationLayer =
           data?.result?.explanation_layer || data?.synthesis?.explanation_layer;
+        const processing_transparency = data?.processing_transparency;
         setAiMessages((prev) => [
           ...prev,
           {
@@ -183,7 +197,8 @@ export default function ChatApp(){
               stages,
               confidence,
               confidenceScore,
-              explanationLayer
+              explanationLayer,
+              processing_transparency
             }
           }
         ]);
@@ -199,6 +214,7 @@ export default function ChatApp(){
         const traceHdr = res.headers?.['x-ai-trace-id'];
         const explanationLayer = data?.explanation_layer;
         const confidenceScore = data?.confidence_score;
+        const processing_transparency = data?.processing_transparency;
         setAiMessages((prev) => [
           ...prev,
           {
@@ -207,11 +223,12 @@ export default function ChatApp(){
             isUser: false,
             created_at: new Date().toISOString(),
             cognitiveMeta:
-              explanationLayer || traceHdr
+              explanationLayer || traceHdr || processing_transparency
                 ? {
                     trace: traceHdr,
                     confidenceScore,
-                    explanationLayer
+                    explanationLayer,
+                    processing_transparency
                   }
                 : undefined
           }
@@ -490,6 +507,20 @@ export default function ChatApp(){
               <X size={20} />
             </button>
           </div>
+          {aiExplainModal.processing_transparency?.footer_pt && (
+            <p style={{ color: '#9ca3af', fontSize: 12, lineHeight: 1.45, marginBottom: 12 }}>
+              {aiExplainModal.processing_transparency.footer_pt}{' '}
+              <a
+                href={
+                  aiExplainModal.processing_transparency.privacy_path ||
+                  '/app/admin/nexusia-custos?tab=infra'
+                }
+                style={{ color: '#a5b4fc' }}
+              >
+                Nexus IA
+              </a>
+            </p>
+          )}
           {aiExplainModal.loading && (
             <p style={{ color: '#9ca3af', fontSize: 13 }}>A carregar detalhes do trace…</p>
           )}
@@ -622,12 +653,19 @@ export default function ChatApp(){
                     onClick={async () => {
                       const trace = msg.cognitiveMeta.trace;
                       const layer = msg.cognitiveMeta.explanationLayer;
+                      const processing_transparency = msg.cognitiveMeta.processing_transparency;
                       if (layer && typeof layer === 'object') {
-                        setAiExplainModal({ trace, layer, loading: false, error: null });
+                        setAiExplainModal({ trace, layer, loading: false, error: null, processing_transparency });
                         return;
                       }
                       if (!trace) return;
-                      setAiExplainModal({ trace, layer: null, loading: true, error: null });
+                      setAiExplainModal({
+                        trace,
+                        layer: null,
+                        loading: true,
+                        error: null,
+                        processing_transparency
+                      });
                       try {
                         const { data } = await chatApi.getCognitiveTrace(trace);
                         const expl =
@@ -635,13 +673,20 @@ export default function ChatApp(){
                           data?.result?.explanation_layer ||
                           data?.trace?.explanation_layer;
                         if (expl && typeof expl === 'object') {
-                          setAiExplainModal({ trace, layer: expl, loading: false, error: null });
+                          setAiExplainModal({
+                            trace,
+                            layer: expl,
+                            loading: false,
+                            error: null,
+                            processing_transparency
+                          });
                         } else {
                           setAiExplainModal({
                             trace,
                             layer: null,
                             loading: false,
-                            error: 'Sem camada de explicabilidade registada para este trace.'
+                            error: 'Sem camada de explicabilidade registada para este trace.',
+                            processing_transparency
                           });
                         }
                       } catch (e) {
@@ -649,7 +694,8 @@ export default function ChatApp(){
                           trace,
                           layer: null,
                           loading: false,
-                          error: e?.response?.data?.error || 'Não foi possível carregar o trace.'
+                          error: e?.response?.data?.error || 'Não foi possível carregar o trace.',
+                          processing_transparency
                         });
                       }
                     }}
@@ -692,6 +738,7 @@ export default function ChatApp(){
                   </ul>
                 </details>
               )}
+              <AiTransparencyNote pt={msg.cognitiveMeta?.processing_transparency} />
               <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4,textAlign:'right'}}>{new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
             </div>))}
             {aiLoading&&<div style={{display:'flex',gap:8}}><img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}}/><div style={{padding:'10px 14px',borderRadius:'18px 18px 18px 4px',background:'#1e1e2e',color:'#a0a0b0',fontSize:14}}>Digitando...</div></div>}

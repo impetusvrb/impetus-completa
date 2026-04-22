@@ -175,7 +175,9 @@ export const subscription = {
 
 /** NexusIA — custos de tokens (admin da empresa); sem detalhe por API */
 export const nexusIA = {
-  getCustos: (params) => api.get('/admin/nexus-custos', { params })
+  getCustos: (params) => api.get('/admin/nexus-custos', { params }),
+  /** Transparência de fornecedores / subprocessadores (admin da empresa) */
+  getProvidersTransparency: () => api.get('/nexus-ia/providers-transparency')
 };
 
 /** NexusIA — carteira de créditos, recargas (Stripe), taxas por serviço */

@@ -661,6 +661,17 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0â€
     });
     res.setHeader('X-AI-Trace-ID', traceId);
     if (needsHitlPending) res.setHeader('X-AI-HITL-Pending', '1');
+    let processing_transparency = null;
+    try {
+      if (u.company_id) {
+        processing_transparency = await require('../services/aiProviderService').getProcessingDisclosure(
+          u.company_id,
+          'chat'
+        );
+      }
+    } catch (_) {
+      /* aditivo */
+    }
     res.json({
       ok: true,
       reply: text,
@@ -671,7 +682,8 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0â€
       requires_action: synthesis.requires_action,
       degraded,
       hitl_closed: hitlClosure?.closed === true,
-      hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined
+      hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined,
+      processing_transparency
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);
@@ -785,7 +797,16 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
     });
 
     res.setHeader('X-AI-Trace-ID', traceId);
-    res.json({ ok: true, reply: text, message: text, content: text });
+    let processing_transparency = null;
+    try {
+      processing_transparency = await require('../services/aiProviderService').getProcessingDisclosure(
+        u.company_id,
+        'chat'
+      );
+    } catch (_) {
+      /* aditivo */
+    }
+    res.json({ ok: true, reply: text, message: text, content: text, processing_transparency });
   } catch (err) {
     console.error('[DASHBOARD_CHAT_MULTIMODAL]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro no chat multimodal.' });

@@ -149,7 +149,11 @@ export default function AIChatPage() {
           r.data?.ok && r.data?.reply
             ? r.data.reply
             : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
-        setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
+        const processing_transparency = r.data?.processing_transparency;
+        setMessages((m) => [
+          ...m,
+          { id: Date.now() + 1, role: 'assistant', content: reply, processing_transparency }
+        ]);
         if (autoSpeakResponses && voiceState.isContinuous) {
           await speakNaturalReply(reply);
         }
@@ -456,6 +460,17 @@ export default function AIChatPage() {
                   {(msg.content || '').split('\n').map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
+                  {msg.role === 'assistant' && msg.processing_transparency?.footer_pt && (
+                    <p className="ai-chat-transparency">
+                      {msg.processing_transparency.footer_pt}{' '}
+                      <a
+                        href={msg.processing_transparency.privacy_path || '/app/admin/nexusia-custos?tab=infra'}
+                        className="ai-chat-transparency-link"
+                      >
+                        Nexus IA
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             ))

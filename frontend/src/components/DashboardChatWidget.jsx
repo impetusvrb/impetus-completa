@@ -74,7 +74,11 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
       const reply = r.data?.ok && r.data?.reply
         ? r.data.reply
         : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
+      const processing_transparency = r.data?.processing_transparency;
+      setMessages((m) => [
+        ...m,
+        { id: Date.now() + 1, role: 'assistant', content: reply, processing_transparency }
+      ]);
     } catch (e) {
       const errMsg = e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
       setMessages((m) => [...m, {
@@ -110,6 +114,9 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
                   {(msg.content || '').split('\n').map((line, i) => (
                     <p key={i}>{line}</p>
                   ))}
+                  {msg.role === 'assistant' && msg.processing_transparency?.footer_pt && (
+                    <p className="dashboard-chat-widget__transparency">{msg.processing_transparency.footer_pt}</p>
+                  )}
                 </div>
               </div>
             ))

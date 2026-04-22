@@ -96,6 +96,14 @@
   margin-bottom: 0;
 }
 
+.dashboard-chat-widget__transparency {
+  margin: 8px 0 0 0 !important;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-secondary, #64748b);
+  opacity: 0.92;
+}
+
 .dashboard-chat-widget__input {
   display: flex;
   gap: 8px;

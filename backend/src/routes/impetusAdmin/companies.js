@@ -13,8 +13,18 @@ const { logAdminAction } = require('../../services/adminPortalLogService');
 const roleVerification = require('../../services/roleVerificationService');
 const { sendTenantAdminActivationEmail } = require('../../services/emailService');
 const { getPublicAppBaseUrl } = require('../../utils/publicAppUrl');
+const aiProviderService = require('../../services/aiProviderService');
 
 const router = express.Router();
+
+const nexusAiModelConfigPutSchema = z.object({
+  chat_provider: z.string().max(32).optional(),
+  chat_model: z.string().max(256).optional(),
+  supervision_provider: z.string().max(32).optional(),
+  supervision_model: z.string().max(256).optional(),
+  reports_provider: z.string().max(32).optional(),
+  reports_model: z.string().max(256).optional()
+});
 
 const TENANT_STATUSES = ['teste', 'ativo', 'suspenso', 'cancelado'];
 /** Licença comercial única: nível máximo, sem limite de usuários contratados (NULL na BD). */
@@ -139,6 +149,53 @@ router.get('/', requireAdminAuth, async (req, res) => {
   } catch (e) {
     console.error('[impetusAdmin/companies list]', e);
     res.status(500).json({ ok: false, error: 'Erro ao listar empresas' });
+  }
+});
+
+router.get('/:id/nexus-ai-model-config', requireAdminAuth, async (req, res) => {
+  if (!['super_admin', 'admin_comercial', 'admin_suporte'].includes(req.adminUser.perfil)) {
+    return res.status(403).json({ ok: false, error: 'Negado' });
+  }
+  try {
+    const companyId = req.params.id;
+    const ex = await db.query(`SELECT id FROM companies WHERE id = $1`, [companyId]);
+    if (!ex.rows.length) {
+      return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
+    }
+    const config = await aiProviderService.getCompanyModelConfig(companyId);
+    const transparency = await aiProviderService.buildTransparencyPayloadForCompany(companyId);
+    res.json({ ok: true, config, transparency });
+  } catch (e) {
+    console.error('[impetusAdmin/companies nexus-ai-model-config get]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao carregar configuração Nexus IA' });
+  }
+});
+
+router.put('/:id/nexus-ai-model-config', requireAdminAuth, requireAdminProfiles('super_admin'), async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const ex = await db.query(`SELECT id FROM companies WHERE id = $1`, [companyId]);
+    if (!ex.rows.length) {
+      return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
+    }
+    const body = nexusAiModelConfigPutSchema.parse(req.body);
+    await aiProviderService.upsertCompanyModelConfig(companyId, body, req.adminUser.id);
+    await logAdminAction({
+      adminUserId: req.adminUser.id,
+      acao: 'nexus_ai_model_config',
+      entidade: 'company',
+      entidadeId: companyId,
+      ip: req.ip,
+      detalhes: { campos: Object.keys(body).filter((k) => body[k] != null) }
+    });
+    const config = await aiProviderService.getCompanyModelConfig(companyId);
+    res.json({ ok: true, config });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return res.status(400).json({ ok: false, error: 'Validação', details: e.errors });
+    }
+    console.error('[impetusAdmin/companies nexus-ai-model-config put]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao guardar configuração Nexus IA' });
   }
 });
 

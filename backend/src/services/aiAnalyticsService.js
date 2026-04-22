@@ -118,6 +118,17 @@ function buildInitialValidationAudit(row) {
 
 async function insertAiTrace(row) {
   const audit = buildInitialValidationAudit(row);
+  let modelInfo = row.model_info || {};
+  try {
+    const aiProviderService = require('./aiProviderService');
+    modelInfo = await aiProviderService.enrichModelInfoForTrace(
+      row.company_id,
+      modelInfo,
+      row.module_name
+    );
+  } catch (e) {
+    console.warn('[AI_TRACE_SUPPLIER_TRANSPARENCY]', e.message);
+  }
   const params = [
     row.trace_id,
     row.user_id || null,
@@ -125,7 +136,7 @@ async function insertAiTrace(row) {
     String(row.module_name || 'unknown').slice(0, 128),
     JSON.stringify(redactForTrace(row.input_payload || {})),
     JSON.stringify(redactForTrace(row.output_response || {})),
-    JSON.stringify(redactForTrace(row.model_info || {})),
+    JSON.stringify(redactForTrace(modelInfo)),
     row.system_fingerprint != null ? String(row.system_fingerprint).slice(0, 512) : null,
     row.human_validation_status != null ? String(row.human_validation_status).slice(0, 32) : null,
     row.validation_modality != null ? String(row.validation_modality).slice(0, 16) : null,

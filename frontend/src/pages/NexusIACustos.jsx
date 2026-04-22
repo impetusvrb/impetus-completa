@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Cpu, RefreshCw, AlertCircle, Wallet, BarChart3, CreditCard, Pause, Play } from 'lucide-react';
+import { Cpu, RefreshCw, AlertCircle, Wallet, BarChart3, CreditCard, Pause, Play, Shield } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -69,7 +69,12 @@ export default function NexusIACustos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [view, setView] = useState(() => (searchParams.get('tab') === 'wallet' ? 'wallet' : 'tokens'));
+  const [view, setView] = useState(() => {
+    const t = searchParams.get('tab');
+    if (t === 'wallet') return 'wallet';
+    if (t === 'infra') return 'infra';
+    return 'tokens';
+  });
   const [walletData, setWalletData] = useState(null);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletErr, setWalletErr] = useState('');
@@ -77,6 +82,10 @@ export default function NexusIACustos() {
   const [rechargeAmount, setRechargeAmount] = useState('50');
   const [rateServico, setRateServico] = useState('chat');
   const [rateValue, setRateValue] = useState('1');
+
+  const [infraData, setInfraData] = useState(null);
+  const [infraLoading, setInfraLoading] = useState(false);
+  const [infraErr, setInfraErr] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -143,9 +152,37 @@ export default function NexusIACustos() {
     setView(v);
     const next = new URLSearchParams(searchParams);
     if (v === 'wallet') next.set('tab', 'wallet');
+    else if (v === 'infra') next.set('tab', 'infra');
     else next.delete('tab');
     setSearchParams(next, { replace: true });
   };
+
+  useEffect(() => {
+    if (view !== 'infra') return undefined;
+    let cancelled = false;
+    (async () => {
+      setInfraLoading(true);
+      setInfraErr('');
+      try {
+        const r = await nexusIA.getProvidersTransparency();
+        if (!cancelled) setInfraData(r.data);
+      } catch (e) {
+        if (!cancelled) {
+          if (e?.response?.status === 403) {
+            setInfraErr('Acesso restrito ao administrador da empresa.');
+          } else {
+            setInfraErr(e?.apiMessage || e?.response?.data?.error || e?.message || 'Erro ao carregar.');
+          }
+          setInfraData(null);
+        }
+      } finally {
+        if (!cancelled) setInfraLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
 
   const allowedRateServices = useMemo(() => new Set(['chat', 'gemini', 'claude', 'akool']), []);
   const serviceLabel = useCallback((servico) => {
@@ -223,6 +260,13 @@ export default function NexusIACustos() {
             onClick={() => setTab('wallet')}
           >
             <Wallet size={18} /> Carteira de créditos
+          </button>
+          <button
+            type="button"
+            className={view === 'infra' ? 'active' : ''}
+            onClick={() => setTab('infra')}
+          >
+            <Shield size={18} /> Infraestrutura e privacidade
           </button>
         </div>
 
@@ -578,6 +622,78 @@ export default function NexusIACustos() {
                   </ul>
                 )}
               </>
+            )}
+          </section>
+        )}
+
+        {view === 'infra' && (
+          <section className="nexus-infra-section">
+            <p className="nexus-wallet-hint" style={{ marginBottom: 16 }}>
+              Fornecedores de IA configurados para a sua organização (chat, supervisão, relatórios). Dados de
+              faturamento e carteira estão nos outros separadores.
+            </p>
+            {infraErr && (
+              <div className="nexus-custos-alert">
+                <AlertCircle size={20} />
+                <span>{infraErr}</span>
+              </div>
+            )}
+            {infraLoading && !infraData && !infraErr && <p className="nexus-custos-loading">Carregando…</p>}
+            {infraData?.ok && infraData?.cards && (
+              <div className="nexus-infra-cards">
+                {infraData.cards.map((c) => (
+                  <article key={c.category_key} className="nexus-custos-card nexus-infra-card">
+                    <span className="nexus-custos-card-label">{c.category_label_pt}</span>
+                    <h3 className="nexus-infra-provider">{c.provider_display}</h3>
+                    <p className="nexus-infra-model">
+                      <strong>Modelo:</strong> {c.model_active}
+                    </p>
+                    <p
+                      className={`nexus-infra-status nexus-infra-status--${c.operational_status === 'up' ? 'up' : 'down'}`}
+                    >
+                      {c.operational_status_label}
+                    </p>
+                    {c.operational_probe_detail && (
+                      <p className="nexus-infra-probe-detail" title="Última sondagem (alinhada com GET /health — integrações)">
+                        {c.operational_probe_detail}
+                      </p>
+                    )}
+                    <p className="nexus-infra-note">{c.region_note}</p>
+                    <p className="nexus-infra-retention">{c.retention_policy_pt}</p>
+                    {c.compliance_badge_pt && (
+                      <p className="nexus-infra-badge">{c.compliance_badge_pt}</p>
+                    )}
+                    <div className="nexus-infra-links">
+                      {c.dpa_url && (
+                        <a href={c.dpa_url} target="_blank" rel="noopener noreferrer">
+                          DPA / termos
+                        </a>
+                      )}
+                      {c.privacy_url && (
+                        <a href={c.privacy_url} target="_blank" rel="noopener noreferrer">
+                          Privacidade
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {infraData?.integrations_health?.probed_at && (
+              <p className="nexus-infra-meta muted">
+                Sondagem de integrações (mesma lógica que /health):{' '}
+                {new Date(infraData.integrations_health.probed_at).toLocaleString('pt-BR')}
+                {infraData.integrations_health.from_cache ? ' · cache' : ''}
+              </p>
+            )}
+            {infraData?.company_config_source && (
+              <p className="nexus-infra-meta muted">
+                Origem da configuração:{' '}
+                {infraData.company_config_source === 'database' ? 'registo IMPETUS' : 'predefinição (ambiente)'}
+                {infraData.updated_at
+                  ? ` · atualizado ${new Date(infraData.updated_at).toLocaleString('pt-BR')}`
+                  : ''}
+              </p>
             )}
           </section>
         )}

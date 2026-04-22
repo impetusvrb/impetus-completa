@@ -201,6 +201,16 @@ async function exportUserData(userId) {
   }
 
   try {
+    if (companyId) {
+      const aiProviderService = require('../services/aiProviderService');
+      result.ai_subprocessors = await aiProviderService.getSubprocessorsForExport(companyId);
+    }
+  } catch (err) {
+    console.error('[LGPD export ai_subprocessors]', err.message);
+    result.ai_subprocessors_error = err.message;
+  }
+
+  try {
     const dal = await db.query(
       `
       SELECT id, company_id, accessed_by, accessed_by_name, entity_type, entity_id,

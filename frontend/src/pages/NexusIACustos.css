@@ -344,3 +344,86 @@
   font-size: 0.85rem;
   opacity: 0.9;
 }
+
+.nexus-infra-section {
+  margin-top: 0.5rem;
+}
+
+.nexus-infra-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.nexus-infra-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.nexus-infra-provider {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.nexus-infra-model {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.nexus-infra-status {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.nexus-infra-status--up {
+  color: #4ade80;
+}
+
+.nexus-infra-status--down {
+  color: #f87171;
+}
+
+.nexus-infra-note,
+.nexus-infra-retention,
+.nexus-infra-badge {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  opacity: 0.82;
+}
+
+.nexus-infra-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.nexus-infra-links a {
+  font-size: 0.8rem;
+  color: #38bdf8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nexus-infra-meta {
+  margin-top: 1.25rem;
+  font-size: 0.78rem;
+}
+
+.nexus-infra-meta.muted {
+  opacity: 0.65;
+}
+
+.nexus-infra-probe-detail {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  opacity: 0.7;
+  font-style: italic;
+}

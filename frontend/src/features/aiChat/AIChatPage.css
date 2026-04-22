@@ -170,6 +170,19 @@
   margin-bottom: 0;
 }
 
+.ai-chat-transparency {
+  margin: 10px 0 0 0 !important;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-secondary, #64748b);
+}
+
+.ai-chat-transparency-link {
+  color: var(--color-primary, #6366f1);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .ai-chat-input-row {
   display: flex;
   gap: 10px;
