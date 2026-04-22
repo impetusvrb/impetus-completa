@@ -48,9 +48,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para retry automático (5xx, timeout, rede) e tratamento de erros
+// Guardar trace da última resposta do assistente (reporte de incidente / caixa-preta)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    try {
+      const url = String(response.config?.url || '');
+      const method = String(response.config?.method || '').toLowerCase();
+      if (
+        method === 'post' &&
+        (url.includes('/dashboard/chat') ||
+          url.includes('/dashboard/chat-multimodal') ||
+          url.includes('/cognitive-council/execute'))
+      ) {
+        const tid = response.headers?.['x-ai-trace-id'] || response.headers?.['X-AI-Trace-ID'];
+        if (tid && typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('impetus_last_ai_trace_id', tid);
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return response;
+  },
   async (error) => {
     const config = error.config || {};
 
@@ -294,21 +313,51 @@ export const dashboard = {
   getSmartSummary: () => 
     api.get('/dashboard/smart-summary'),
 
-  chat: (message, history = [], opts = {}) =>
-    api.post('/dashboard/chat', {
+  chat: (message, history = [], opts = {}) => {
+    let last_ai_trace_id;
+    try {
+      last_ai_trace_id = sessionStorage.getItem('impetus_last_ai_trace_id') || undefined;
+    } catch (_) {
+      last_ai_trace_id = undefined;
+    }
+    return api.post('/dashboard/chat', {
       message,
       history,
+      ...(last_ai_trace_id ? { last_ai_trace_id } : {}),
       ...(opts.voiceMode ? { voiceMode: true } : {}),
       ...(opts.sentimentContext ? { sentimentContext: opts.sentimentContext } : {})
-    }),
-  chatWithHeader: (message, history = [], headers = {}, opts = {}) =>
-    api.post(
+    });
+  },
+  chatWithHeader: (message, history = [], headers = {}, opts = {}) => {
+    let last_ai_trace_id;
+    try {
+      last_ai_trace_id = sessionStorage.getItem('impetus_last_ai_trace_id') || undefined;
+    } catch (_) {
+      last_ai_trace_id = undefined;
+    }
+    return api.post(
       '/dashboard/chat',
-      { message, history, ...(opts.voiceMode ? { voiceMode: true } : {}) },
+      {
+        message,
+        history,
+        ...(last_ai_trace_id ? { last_ai_trace_id } : {}),
+        ...(opts.voiceMode ? { voiceMode: true } : {})
+      },
       { headers }
-    ),
-  chatMultimodal: (payload) =>
-    api.post('/dashboard/chat-multimodal', payload),
+    );
+  },
+  chatMultimodal: (payload = {}) => {
+    let last_ai_trace_id;
+    try {
+      last_ai_trace_id = sessionStorage.getItem('impetus_last_ai_trace_id') || undefined;
+    } catch (_) {
+      last_ai_trace_id = undefined;
+    }
+    return api.post('/dashboard/chat-multimodal', {
+      ...payload,
+      ...(last_ai_trace_id ? { last_ai_trace_id } : {})
+    });
+  },
   uploadChatFile: (formData) =>
     api.post('/dashboard/chat/upload-file', formData),
 
@@ -1046,6 +1095,14 @@ export const adminStructural = {
 /** Auditoria de interações IA (admin empresa) */
 export const adminAiAudit = {
   list: (params) => api.get('/admin/ai-audit', { params })
+};
+
+/** Incidentes de qualidade da IA — gestão tenant (admin empresa) */
+export const adminIncidents = {
+  list: (params) => api.get('/admin/incidents', { params }),
+  stats: (params) => api.get('/admin/incidents/stats', { params }),
+  get: (id) => api.get(`/admin/incidents/${encodeURIComponent(id)}`),
+  update: (id, body) => api.patch(`/admin/incidents/${encodeURIComponent(id)}`, body)
 };
 
 export const intelligentRegistration = {

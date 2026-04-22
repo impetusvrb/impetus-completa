@@ -370,6 +370,7 @@ export default function Layout({ children }) {
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Interno' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
+      { path: '/app/admin/ai-incidents', icon: AlertTriangle, label: 'Incidentes de IA' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
       { path: '/app/admin/help-center', icon: HelpCircle, label: 'Central de Ajuda do Admin' },

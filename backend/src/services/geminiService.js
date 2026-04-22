@@ -277,6 +277,52 @@ confidence: 0-100 (quão certa estás da classificação).`;
   return null;
 }
 
+/**
+ * Classifica se a mensagem é reclamação sobre qualidade da resposta da IA (supervisora).
+ * @returns {Promise<{ is_complaint: boolean, incident_type: string, confidence: number, reason_pt?: string }|null>}
+ */
+async function classifyQualityComplaint(userMessage, opts = {}) {
+  const prompt = `És um classificador de reclamações sobre respostas de IA numa plataforma industrial (IMPETUS).
+
+Mensagem do utilizador:
+"""
+${String(userMessage || '').slice(0, 2000)}
+"""
+
+Decide se o utilizador está a REPORTAR um problema com a resposta anterior do assistente (ex.: alucinação, dados inventados ou incorretos, viés, tom inadequado, "isso está errado", "não confere", "estás a inventar").
+
+NÃO é reclamação: nova pergunta técnica, pedido de explicação neutro, cumprimento, ou assunto diferente sem crítica à IA.
+
+Responde APENAS JSON válido:
+{"is_complaint":true|false,"incident_type":"ALUCINACAO|DADO_INCORRETO|VIES|COMPORTAMENTO_INADEQUADO|UNKNOWN","confidence":0,"reason_pt":""}
+
+incident_type só importa se is_complaint for true:
+- ALUCINACAO: factos inventados, sem fonte
+- DADO_INCORRETO: números ou factos concretos errados
+- VIES: parcialidade discriminatória
+- COMPORTAMENTO_INADEQUADO: tom ofensivo ou inadequado
+- UNKNOWN: reclamação genérica
+
+confidence: 0-100`;
+
+  const raw = await generateText(prompt, { model: opts.model || SUPERVISOR_MODEL });
+  const parsed = extractJson(raw);
+  if (parsed && typeof parsed === 'object') {
+    let conf = parseInt(parsed.confidence, 10);
+    if (Number.isNaN(conf)) conf = 0;
+    conf = Math.max(0, Math.min(100, conf));
+    const it = String(parsed.incident_type || 'UNKNOWN').toUpperCase();
+    const okTypes = ['ALUCINACAO', 'DADO_INCORRETO', 'VIES', 'COMPORTAMENTO_INADEQUADO', 'UNKNOWN'];
+    return {
+      is_complaint: parsed.is_complaint === true || parsed.is_complaint === 'true',
+      incident_type: okTypes.includes(it) ? it : 'UNKNOWN',
+      confidence: conf,
+      reason_pt: String(parsed.reason_pt || '').slice(0, 400)
+    };
+  }
+  return null;
+}
+
 async function geminiSupervisor(contexto, pergunta, opts = {}) {
   const prompt = `Você é a IMPETUS IA, supervisora do sistema industrial.
 
@@ -316,6 +362,7 @@ module.exports = {
   interpretFileForCadastro,
   classifyRouting,
   classifyHumanLoopReaction,
+  classifyQualityComplaint,
   montarContexto,
   geminiSupervisor
 };

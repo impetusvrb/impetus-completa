@@ -63,6 +63,22 @@ router.post('/execute', async (req, res) => {
       });
     }
 
+    let lastAiTrace =
+      req.body?.last_ai_trace_id != null ? String(req.body.last_ai_trace_id).trim() : null;
+    if (lastAiTrace === '') lastAiTrace = null;
+    const { respondIfQualityComplaint } = require('../services/aiComplaintChatBridge');
+    if (
+      await respondIfQualityComplaint({
+        user,
+        message: requestText,
+        lastAiTraceId: lastAiTrace,
+        res,
+        format: 'cognitive'
+      })
+    ) {
+      return;
+    }
+
     const data =
       req.body?.data && typeof req.body.data === 'object' ? req.body.data : {};
     const context =

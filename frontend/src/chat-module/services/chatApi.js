@@ -2,6 +2,27 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const http = axios.create({ baseURL: API_URL });
 http.interceptors.request.use(c => { const t = localStorage.getItem('impetus_token'); if (t) c.headers.Authorization = 'Bearer ' + t; return c; });
+http.interceptors.response.use(
+  (response) => {
+    try {
+      const url = String(response.config?.url || '');
+      const method = String(response.config?.method || '').toLowerCase();
+      if (
+        method === 'post' &&
+        (url.includes('/dashboard/chat') ||
+          url.includes('/dashboard/chat-multimodal') ||
+          url.includes('/cognitive-council/execute'))
+      ) {
+        const tid = response.headers?.['x-ai-trace-id'] || response.headers?.['X-AI-Trace-ID'];
+        if (tid && typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('impetus_last_ai_trace_id', tid);
+        }
+      }
+    } catch (_) { /* ignore */ }
+    return response;
+  },
+  (err) => Promise.reject(err)
+);
 const chatApi = {
   getConversations: () => http.get('/chat/conversations'),
   createPrivateConversation: (uid) => http.post('/chat/conversations', { type: 'private', targetUserId: uid }),
@@ -18,9 +39,32 @@ const chatApi = {
   getUsers: () => http.get('/chat/users'),
   subscribePush: (sub) => http.post('/chat/push/subscribe', sub),
   /** Backend: POST /api/dashboard/chat — corpo { message: string, history: {role,content}[] } */
-  sendAIMessage: ({ message, history }) => http.post('/dashboard/chat', { message, history: history || [] }),
+  sendAIMessage: ({ message, history }) => {
+    let last_ai_trace_id;
+    try {
+      last_ai_trace_id = sessionStorage.getItem('impetus_last_ai_trace_id') || undefined;
+    } catch (_) {
+      last_ai_trace_id = undefined;
+    }
+    return http.post('/dashboard/chat', {
+      message,
+      history: history || [],
+      ...(last_ai_trace_id ? { last_ai_trace_id } : {})
+    });
+  },
   /** Conselho Cognitivo — pipeline Gemini → Claude → GPT (sem chat entre modelos). */
-  executeCognitiveCouncil: (body) => http.post('/cognitive-council/execute', body),
+  executeCognitiveCouncil: (body = {}) => {
+    let last_ai_trace_id;
+    try {
+      last_ai_trace_id = sessionStorage.getItem('impetus_last_ai_trace_id') || undefined;
+    } catch (_) {
+      last_ai_trace_id = undefined;
+    }
+    return http.post('/cognitive-council/execute', {
+      ...body,
+      ...(last_ai_trace_id ? { last_ai_trace_id } : {})
+    });
+  },
   /** Detalhe de auditoria (explicabilidade) por trace do conselho — mesma empresa do utilizador. */
   getCognitiveTrace: (traceId) =>
     http.get('/cognitive-council/trace/' + encodeURIComponent(String(traceId || ''))),

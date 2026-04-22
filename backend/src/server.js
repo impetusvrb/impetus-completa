@@ -65,7 +65,8 @@ function needsLargeBodyParser(url) {
     p.startsWith('/api/admin/equipment-library') ||
     p.startsWith('/api/technical-library') ||
     p.startsWith('/api/manutencao-ia') ||
-    p.startsWith('/api/cognitive-council')
+    p.startsWith('/api/cognitive-council') ||
+    p.includes('/dashboard/chat-multimodal')
   );
 }
 
@@ -202,6 +203,7 @@ useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeamsMetr
 useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeams');
 useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/ai-audit', './routes/admin/aiAudit');
+useRoute('/api/admin/incidents', './routes/admin/incidents');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
 useRoute('/api/admin/warehouse', './routes/admin/warehouse');

@@ -524,6 +524,24 @@ router.post('/chat', requireAuth, async (req, res) => {
       .filter((m) => m.content.length > 0);
 
     const u = req.user;
+
+    let lastAiTrace =
+      req.body?.last_ai_trace_id != null ? String(req.body.last_ai_trace_id).trim() : null;
+    if (lastAiTrace === '') lastAiTrace = null;
+
+    const { respondIfQualityComplaint } = require('../services/aiComplaintChatBridge');
+    if (
+      await respondIfQualityComplaint({
+        user: u,
+        message,
+        lastAiTraceId: lastAiTrace,
+        res,
+        format: 'dashboard'
+      })
+    ) {
+      return;
+    }
+
     const system = `És o assistente Impetus IA numa plataforma industrial. Responde em português, de forma clara e operacional.
 Perfil do utilizador: ${(u.role || 'colaborador').toString()}. Não inventes leituras de sensores, KPIs ou ordens de serviço sem fonte nos dados fornecidos. Se faltar contexto, pede esclarecimento ou indica o que o administrador deve configurar.
 
@@ -658,6 +676,119 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro no assistente Impetus IA.' });
+  }
+});
+
+/**
+ * POST /dashboard/chat-multimodal
+ * Texto + imagem (base64) + contexto de ficheiro; mesma política de reclamação que /dashboard/chat.
+ */
+router.post('/chat-multimodal', requireAuth, async (req, res) => {
+  try {
+    const message = String(req.body?.message ?? '').trim();
+    const hasImage = !!req.body?.imageBase64;
+    const fileCtx = req.body?.fileContext && typeof req.body.fileContext === 'object' ? req.body.fileContext : null;
+    if (!message && !hasImage && !fileCtx) {
+      return res.status(400).json({ ok: false, error: 'Envie texto, imagem ou ficheiro.' });
+    }
+
+    const u = req.user;
+    if (!u?.company_id) {
+      return res.status(403).json({ ok: false, error: 'Empresa não identificada.' });
+    }
+
+    let lastAiTrace =
+      req.body?.last_ai_trace_id != null ? String(req.body.last_ai_trace_id).trim() : null;
+    if (lastAiTrace === '') lastAiTrace = null;
+
+    const complaintText = message || '';
+    const { respondIfQualityComplaint } = require('../services/aiComplaintChatBridge');
+    if (
+      complaintText &&
+      (await respondIfQualityComplaint({
+        user: u,
+        message: complaintText,
+        lastAiTraceId: lastAiTrace,
+        res,
+        format: 'dashboard'
+      }))
+    ) {
+      return;
+    }
+
+    const historyRaw = Array.isArray(req.body?.history) ? req.body.history : [];
+    const history = historyRaw
+      .slice(-8)
+      .map((m) => ({
+        role: m && m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m?.content ?? '').slice(0, 16000)
+      }))
+      .filter((m) => m.content.length > 0);
+
+    const multimodalChatService = require('../services/multimodalChatService');
+    const userName = u.name || u.email || 'Usuário';
+    const rawOut = await multimodalChatService.processMultimodalChat({
+      message: message || 'Analise o conteúdo anexado.',
+      history,
+      imageBase64: hasImage ? req.body.imageBase64 : null,
+      fileContext: fileCtx,
+      companyId: u.company_id,
+      userName
+    });
+
+    let text = '';
+    if (typeof rawOut === 'string') text = rawOut;
+    else if (rawOut && typeof rawOut === 'object') {
+      text = String(rawOut.content || rawOut.message || rawOut.text || JSON.stringify(rawOut)).trim();
+    }
+    text = text.slice(0, 20000);
+
+    const traceId = require('uuid').v4();
+    const lineageCtx = dataLineageService.buildLineageForChatContext({
+      messagePreview: (message || 'multimodal').slice(0, 2000),
+      historyTurns: history.length,
+      snapshotIso: new Date().toISOString()
+    });
+
+    const aiAnalytics = require('../services/aiAnalyticsService');
+    aiAnalytics.enqueueAiTrace({
+      trace_id: traceId,
+      user_id: u.id,
+      company_id: u.company_id,
+      module_name: 'dashboard_chat_multimodal',
+      input_payload: {
+        user_message: message.slice(0, 8000),
+        has_image: hasImage,
+        file_context_meta: fileCtx
+          ? {
+              originalName: fileCtx.originalName,
+              has_extracted: !!fileCtx.extractedText
+            }
+          : null,
+        history_turns: history.length,
+        data_lineage: lineageCtx
+      },
+      output_response: {
+        reply: text,
+        modality: hasImage ? 'vision' : fileCtx ? 'document' : 'text'
+      },
+      model_info: {
+        provider: 'openai',
+        channel: 'chatWithVision',
+        multimodal: true
+      },
+      system_fingerprint: null,
+      human_validation_status: null,
+      validation_modality: null,
+      validation_evidence: null,
+      validated_at: null
+    });
+
+    res.setHeader('X-AI-Trace-ID', traceId);
+    res.json({ ok: true, reply: text, message: text, content: text });
+  } catch (err) {
+    console.error('[DASHBOARD_CHAT_MULTIMODAL]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro no chat multimodal.' });
   }
 });
 
