@@ -2,24 +2,14 @@ import React, { useState } from 'react';
 import { Search, Plus, Users, X } from 'lucide-react';
 import chatApi from '../services/chatApi';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
-/** Com VITE_API_URL=/api, mídia e socket no mesmo host (proxy /uploads e /socket.io no serveDist/vite). */
-const API_BASE = (() => {
-  const api = import.meta.env.VITE_API_URL || '/api';
-  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined') return window.location.origin;
-  return '';
-})();
+import { useProtectedMediaSrc } from '../../utils/protectedUploadMedia';
 function initials(n) { return n ? n.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase() : '?'; }
 function fmtTime(d) { if(!d) return ''; const dt=new Date(d),now=new Date(),df=now-dt; if(df<86400000) return dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
 function convName(c,uid) { if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
-function toAbs(url){
-  if(!url) return null;
-  const abs = url.startsWith('http') ? url : (API_BASE + url);
-  try { return encodeURI(abs); } catch { return abs; }
-}
-function AvatarOrInitial({ src, fallbackText, alt = '' }) {
+function AvatarOrInitial({ rawUrl, fallbackText, alt = '' }) {
+  const src = useProtectedMediaSrc(rawUrl || null);
   const [broken, setBroken] = useState(false);
-  if (!src || broken) return <span>{fallbackText}</span>;
+  if (!rawUrl || !src || broken) return <span>{fallbackText}</span>;
   return (
     <img
       src={src}
@@ -56,12 +46,12 @@ export default function ConversationList({ conversations, activeId, onSelect, cu
         const other = c.participants && c.participants.find(p=>p.id!==currentUserId);
         const otherId = other && other.id;
         const online=otherId&&onlineUsers&&onlineUsers.has(otherId);
-        const avatarUrl = c.type==='group' ? null : toAbs(other?.avatar_url);
+        const avatarRaw = c.type==='group' ? null : other?.avatar_url;
         return (<div key={c.id} className={'conv-item'+(activeId===c.id?' active':'')} onClick={()=>onSelect(c.id)}>
           <div className="conv-item__avatar">
             {c.type==='group'
               ? <Users size={18}/>
-              : <AvatarOrInitial src={avatarUrl} fallbackText={initials(nm)} alt={nm || 'avatar'} />}
+              : <AvatarOrInitial rawUrl={avatarRaw} fallbackText={initials(nm)} alt={nm || 'avatar'} />}
             {online&&<span className="conv-item__online-dot"/>}
           </div>
           <div className="conv-item__info"><div className="conv-item__name">{nm}</div>{lm&&<div className="conv-item__preview">{lm.message_type==='text'||lm.message_type==='ai'?(lm.content||'').slice(0,40):'📎 '+lm.message_type}</div>}</div>
@@ -73,11 +63,10 @@ export default function ConversationList({ conversations, activeId, onSelect, cu
       <div className="modal-box__header"><span>{groupMode?'Criar Grupo':'Nova Conversa'}</span><button className="btn-icon" onClick={()=>setShowNew(false)}><X size={16}/></button></div>
       {!groupMode?(<><button className="btn-secondary mb-2" onClick={()=>setGroupMode(true)}><Users size={14}/> Criar Grupo</button>
         <div className="modal-user-list">{users.map(u=>{
-          const uAvatar = toAbs(u.avatar_url);
           return (
             <div key={u.id} className="modal-user-item" onClick={()=>startPrivate(u.id)}>
               <div className="modal-user-avatar">
-                <AvatarOrInitial src={uAvatar} fallbackText={initials(u.name)} alt={u.name || 'avatar'} />
+                <AvatarOrInitial rawUrl={u.avatar_url} fallbackText={initials(u.name)} alt={u.name || 'avatar'} />
               </div>
               <div>
                 <div className="modal-user-name">{u.name}</div>

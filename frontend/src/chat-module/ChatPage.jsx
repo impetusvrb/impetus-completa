@@ -8,11 +8,51 @@ import { chatApi } from './chatApi';
 import { useChatSocket } from './useChatSocket';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './ChatPage.css';
 
 const API_URL = typeof window !== 'undefined'
   ? (import.meta.env.VITE_API_URL?.replace('/api', '') || window.location.origin)
   : '';
+
+function fileUrlAbs(fileUrl) {
+  if (!fileUrl) return null;
+  if (fileUrl.startsWith('http')) return fileUrl;
+  return `${API_URL}${fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`}`;
+}
+
+function ConvSidebarAvatar({ rawUrl, fallback }) {
+  const src = useProtectedMediaSrc(rawUrl || null);
+  if (!rawUrl || !src) return <span>{fallback}</span>;
+  return <img src={src} alt="" />;
+}
+
+function ChatMessageMedia({ msg }) {
+  const raw = msg.file_url ? fileUrlAbs(msg.file_url) : null;
+  const mediaSrc = useProtectedMediaSrc(raw);
+  if (!msg.file_url || !mediaSrc) return null;
+  if (msg.message_type === 'image') {
+    return (
+      <a href={mediaSrc} target="_blank" rel="noreferrer">
+        <img src={mediaSrc} alt="" />
+      </a>
+    );
+  }
+  if (msg.message_type === 'video') {
+    return <video controls src={mediaSrc} />;
+  }
+  if (msg.message_type === 'audio') {
+    return <audio controls src={mediaSrc} />;
+  }
+  if (msg.message_type === 'document') {
+    return (
+      <a href={mediaSrc} target="_blank" rel="noreferrer">
+        📄 {msg.file_name || 'Documento'}
+      </a>
+    );
+  }
+  return null;
+}
 
 export default function ChatPage() {
   const token = localStorage.getItem('impetus_token');
@@ -200,11 +240,10 @@ export default function ChatPage() {
               onClick={() => setSelectedConv(conv)}
             >
               <div className="chat-conv-avatar">
-                {getConvAvatar(conv) ? (
-                  <img src={getConvAvatar(conv)} alt="" />
-                ) : (
-                  <span>{getConvTitle(conv).slice(0, 2).toUpperCase()}</span>
-                )}
+                <ConvSidebarAvatar
+                  rawUrl={getConvAvatar(conv)}
+                  fallback={getConvTitle(conv).slice(0, 2).toUpperCase()}
+                />
                 {conv.unread_count > 0 && <span className="chat-badge">{conv.unread_count}</span>}
               </div>
               <div className="chat-conv-info">
@@ -246,22 +285,7 @@ export default function ChatPage() {
                     </div>
                   ) : (
                     <div className="chat-msg-media">
-                      {msg.message_type === 'image' && msg.file_url && (
-                        <a href={`${API_URL}${msg.file_url}`} target="_blank" rel="noreferrer">
-                          <img src={`${API_URL}${msg.file_url}`} alt="" />
-                        </a>
-                      )}
-                      {msg.message_type === 'video' && msg.file_url && (
-                        <video controls src={`${API_URL}${msg.file_url}`} />
-                      )}
-                      {msg.message_type === 'audio' && msg.file_url && (
-                        <audio controls src={`${API_URL}${msg.file_url}`} />
-                      )}
-                      {msg.message_type === 'document' && msg.file_url && (
-                        <a href={`${API_URL}${msg.file_url}`} target="_blank" rel="noreferrer">
-                          📄 {msg.file_name || 'Documento'}
-                        </a>
-                      )}
+                      <ChatMessageMedia msg={msg} />
                     </div>
                   )}
                 </div>

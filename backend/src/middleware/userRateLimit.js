@@ -49,11 +49,8 @@ async function checkUserRateLimit(userId, action = 'default') {
     }
     return { allowed: true, count, limit };
   } catch (err) {
-    if (err.message?.includes('user_rate_limits')) {
-      return { allowed: true, count: 0, limit: 999 };
-    }
-    console.error('[USER_RATE_LIMIT]', err);
-    return { allowed: true };
+    console.error('[USER_RATE_LIMIT] CRITICAL: falha fechada — limite não aplicável', err);
+    return { allowed: false, count: 0, limit: 0, error: 'rate_limit_unavailable' };
   }
 }
 
@@ -71,6 +68,13 @@ function userRateLimit(action = 'ai_chat') {
     req.rateLimit = result;
 
     if (!result.allowed) {
+      if (result.error === 'rate_limit_unavailable') {
+        return res.status(503).json({
+          ok: false,
+          error: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+          code: 'RATE_LIMIT_SERVICE_ERROR'
+        });
+      }
       return res.status(429).json({
         ok: false,
         error: ERRORS.TOO_MANY_REQUESTS,

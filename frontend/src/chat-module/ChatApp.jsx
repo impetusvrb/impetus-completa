@@ -10,16 +10,23 @@ import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
 import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
+import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
-const API_BASE = (() => {
-  const api = import.meta.env.VITE_API_URL || '/api';
-  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined') return window.location.origin;
-  return '';
-})();
-function toAbs(url){ if(!url) return null; if(url.startsWith('http')) return url; return API_BASE + url; }
+function ChatHeaderAvatar({ rawUrl }) {
+  const src = useProtectedMediaSrc(rawUrl || null);
+  if (!rawUrl) return null;
+  if (!src) return <User size={14} />;
+  return (
+    <img
+      src={src}
+      alt=""
+      style={{ width:22, height:22, borderRadius:'50%', objectFit:'cover' }}
+      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+    />
+  );
+}
 
 export default function ChatApp(){
   const navigate = useNavigate();
@@ -201,12 +208,7 @@ export default function ChatApp(){
       {currentUser&&(
         <div className="chat-header__user" style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>avatarInputRef.current?.click()}>
           {currentUser.avatar_url ? (
-            <img
-              src={toAbs(currentUser.avatar_url)}
-              alt=""
-              style={{width:22,height:22,borderRadius:'50%',objectFit:'cover'}}
-              onError={(e)=>{ e.currentTarget.style.display='none'; }}
-            />
+            <ChatHeaderAvatar rawUrl={currentUser.avatar_url} />
           ) : (
             <User size={14}/>
           )}

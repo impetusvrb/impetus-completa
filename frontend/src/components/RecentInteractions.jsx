@@ -4,9 +4,22 @@
 
 import React from 'react';
 import { MessageSquare, Clock } from 'lucide-react';
+import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import './RecentInteractions.css';
+
+function InteractionAvatarImg({ rawUrl, senderName, initials }) {
+  const src = useProtectedMediaSrc(rawUrl || null);
+  if (!rawUrl || !src) {
+    return (
+      <div className="avatar-placeholder">
+        {initials}
+      </div>
+    );
+  }
+  return <img src={src} alt={senderName || ''} />;
+}
 
 export default function RecentInteractions({ interactions = [], loading = false, onInteractionClick }) {
   const defaultInteractions = [
@@ -84,13 +97,11 @@ export default function RecentInteractions({ interactions = [], loading = false,
             onKeyDown={onInteractionClick ? (e) => e.key === 'Enter' && onInteractionClick(interaction) : undefined}
           >
             <div className="interaction-avatar">
-              {interaction.avatar_url ? (
-                <img src={interaction.avatar_url} alt={interaction.sender_name} />
-              ) : (
-                <div className="avatar-placeholder">
-                  {getInitials(interaction.sender_name)}
-                </div>
-              )}
+              <InteractionAvatarImg
+                rawUrl={interaction.avatar_url}
+                senderName={interaction.sender_name}
+                initials={getInitials(interaction.sender_name)}
+              />
               {interaction.source === 'whatsapp' && (
                 <div className="source-badge whatsapp">
                   <MessageSquare size={10} />

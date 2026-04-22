@@ -6,7 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireHierarchy } = require('../middleware/auth');
+const { isValidUUID } = require('../utils/security');
 const {
   registerConsent,
   revokeConsent,
@@ -22,18 +23,26 @@ const { logAction, logDataAccess } = require('../middleware/audit');
  */
 router.post('/consent', requireAuth, async (req, res) => {
   try {
-    const { consent_type, granted, consent_text } = req.body;
+    const { consent_type, granted, consent_text, document_version } = req.body;
 
-    await registerConsent({
+    const reg = await registerConsent({
       userId: req.user.id,
       companyId: req.user.company_id,
       consentType: consent_type,
       granted,
       consentText: consent_text,
-      version: '1.0',
+      version: document_version || '1.0',
+      documentVersion: document_version || '1.0',
       ipAddress: req.ip,
       userAgent: req.get('user-agent')
     });
+
+    if (!reg.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Não foi possível persistir o consentimento. Verifique se a migração LGPD foi aplicada.'
+      });
+    }
 
     await logAction({
       companyId: req.user.company_id,
@@ -65,7 +74,13 @@ router.post('/consent', requireAuth, async (req, res) => {
  */
 router.delete('/consent/:type', requireAuth, async (req, res) => {
   try {
-    await revokeConsent(req.user.id, req.params.type);
+    const rev = await revokeConsent(req.user.id, req.params.type);
+    if (!rev.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: rev.error || 'Erro ao revogar consentimento'
+      });
+    }
 
     await logAction({
       companyId: req.user.company_id,
@@ -219,6 +234,93 @@ router.get('/data-requests', requireAuth, async (req, res) => {
       ok: false,
       error: 'Erro ao buscar solicitações'
     });
+  }
+});
+
+/**
+ * PATCH /api/lgpd/data-requests/:id
+ * Atualiza estado do pedido LGPD (ex.: processing → completed). Uso: gestão/DPO na mesma empresa.
+ */
+router.patch('/data-requests/:id', requireAuth, requireHierarchy(1), async (req, res) => {
+  try {
+    if (!isValidUUID(req.params.id)) {
+      return res.status(400).json({ ok: false, error: 'ID inválido' });
+    }
+    const { status, response } = req.body || {};
+    if (!status || typeof status !== 'string') {
+      return res.status(400).json({ ok: false, error: 'Campo status é obrigatório' });
+    }
+    const proc = await processDataRequest({
+      requestId: req.params.id,
+      companyId: req.user.company_id,
+      status: status.toLowerCase(),
+      response: response != null ? String(response) : null
+    });
+    if (!proc.ok) {
+      const code = proc.error === 'request_not_found' ? 404 : 400;
+      return res.status(code).json({ ok: false, error: proc.error || 'Falha ao atualizar pedido' });
+    }
+    await logAction({
+      companyId: req.user.company_id,
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'lgpd_request_status_updated',
+      entityType: 'lgpd_data_request',
+      entityId: req.params.id,
+      description: `Pedido LGPD atualizado para ${status}`,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      severity: 'info'
+    });
+    res.json({ ok: true, request: proc.request });
+  } catch (err) {
+    console.error('[LGPD_PATCH_REQUEST]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao atualizar solicitação' });
+  }
+});
+
+/**
+ * POST /api/lgpd/anonymize-user/:userId
+ * Execução técnica do direito ao esquecimento (após análise jurídica). Apenas hierarquia ≤ 1 na mesma empresa.
+ */
+router.post('/anonymize-user/:userId', requireAuth, requireHierarchy(1), async (req, res) => {
+  try {
+    if (!isValidUUID(req.params.userId)) {
+      return res.status(400).json({ ok: false, error: 'ID inválido' });
+    }
+    if (req.body?.confirmation !== 'CONFIRMO ANONIMIZACAO LGPD') {
+      return res.status(400).json({
+        ok: false,
+        error: 'Confirmação obrigatória: envie confirmation: "CONFIRMO ANONIMIZACAO LGPD"'
+      });
+    }
+    if (String(req.params.userId) === String(req.user.id)) {
+      return res.status(400).json({ ok: false, error: 'Use o fluxo de solicitação para a própria conta' });
+    }
+    const anon = await anonymizeUserData(req.params.userId, {
+      companyId: req.user.company_id,
+      actingUserId: req.user.id
+    });
+    if (!anon.ok) {
+      const code = anon.error === 'user_not_found' ? 404 : anon.error === 'company_mismatch' ? 403 : 400;
+      return res.status(code).json({ ok: false, error: anon.error || 'Falha na anonimização' });
+    }
+    await logAction({
+      companyId: req.user.company_id,
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'lgpd_user_anonymized',
+      entityType: 'user',
+      entityId: req.params.userId,
+      description: `Titular anonimizado: ${anon.anonymized_label}`,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      severity: 'critical'
+    });
+    res.json({ ok: true, message: 'Titular anonimizado com sucesso', label: anon.anonymized_label });
+  } catch (err) {
+    console.error('[LGPD_ANONYMIZE_ROUTE]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao anonimizar titular' });
   }
 });
 

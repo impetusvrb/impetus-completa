@@ -23,12 +23,19 @@ import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
 import { meAccount } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './UserSettings.css';
 
-function avatarUrl(path) {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return path;
+function UsProfileAvatar({ rawPath }) {
+  const src = useProtectedMediaSrc(rawPath || null);
+  if (!rawPath || !src) {
+    return (
+      <div className="us-avatar-placeholder">
+        <User size={40} />
+      </div>
+    );
+  }
+  return <img src={src} alt="" className="us-avatar-img" />;
 }
 
 function syncLocalUser(profile) {
@@ -327,13 +334,7 @@ export default function UserSettings() {
           <div className="us-profile-grid">
             <div className="us-avatar-block">
               <div className="us-avatar-wrap">
-                {pic ? (
-                  <img src={avatarUrl(pic)} alt="" className="us-avatar-img" />
-                ) : (
-                  <div className="us-avatar-placeholder">
-                    <User size={40} />
-                  </div>
-                )}
+                <UsProfileAvatar rawPath={pic} />
               </div>
               <div className="us-avatar-actions">
                 <label className="btn btn-secondary us-file-label">

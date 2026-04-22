@@ -7,6 +7,13 @@
 
 const rateLimit = require('express-rate-limit');
 
+function skipWebhookAndPreflight(req) {
+  if (req.method === 'OPTIONS') return true;
+  const p = String(req.originalUrl || req.url || '').split('?')[0];
+  if (p === '/api/webhook' || p.startsWith('/api/webhooks/')) return true;
+  return false;
+}
+
 /** 60 req/min por IP em rotas de API (quando usuário não autenticado) */
 const apiByIpLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -14,7 +21,7 @@ const apiByIpLimiter = rateLimit({
   message: { ok: false, error: 'Muitas requisições. Aguarde um momento.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => !!req.user?.id
+  skip: (req) => skipWebhookAndPreflight(req) || !!req.user?.id
 });
 
 /** 300 req/min por usuário autenticado em rotas críticas (dashboard, comunicações, etc.) */

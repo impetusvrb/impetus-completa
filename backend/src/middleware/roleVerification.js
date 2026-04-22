@@ -4,6 +4,7 @@
  */
 
 const roleVerification = require('../services/roleVerificationService');
+const orgVal = require('../services/organizationalValidationService');
 
 /**
  * Rotas que exigem cargo verificado (dados estratégicos)
@@ -66,12 +67,34 @@ function requireRoleVerified(req, res, next) {
     return next();
   }
 
-  return res.status(403).json({
+  const st = (user.role_verification_status || '').toLowerCase();
+  const payload = {
     ok: false,
     error: 'Cargo não verificado. Valide seu cargo para acessar dados estratégicos.',
     code: 'ROLE_VERIFICATION_REQUIRED',
     needs_verification: true
-  });
+  };
+
+  const finish = () => res.status(403).json(payload);
+
+  if (st !== 'awaiting_structure') {
+    return finish();
+  }
+
+  orgVal
+    .getAwaitingStructureDetailForUser(user)
+    .then((detail) => {
+      if (detail) {
+        payload.organizational_structure = detail;
+        payload.code = detail.code || 'AWAITING_STRUCTURE';
+        payload.error = detail.message || payload.error;
+      }
+      finish();
+    })
+    .catch((e) => {
+      console.error('[ROLE_VERIFICATION] awaiting_structure detail:', e.message);
+      finish();
+    });
 }
 
 /**

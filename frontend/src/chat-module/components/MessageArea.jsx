@@ -1,31 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { File, MoreVertical } from 'lucide-react';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
+import { useProtectedMediaSrc, toAbsoluteAssetUrl, isUploadsAssetUrl, fetchUploadAsBlobUrl } from '../../utils/protectedUploadMedia';
 const AI_ID='00000000-0000-0000-0000-000000000001';
-const API_BASE = (() => {
-  const api = import.meta.env.VITE_API_URL || '/api';
-  if (api.startsWith('http')) return api.replace(/\/api\/?$/, '');
-  if (typeof window !== 'undefined') return window.location.origin;
-  return '';
-})();
 function initials(n){ return n?n.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase():'?'; }
 function fmtTime(d){ return d?new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):''; }
-function toAbs(url){
-  if(!url) return null;
-  const abs = url.startsWith('http') ? url : (API_BASE + url);
-  try { return encodeURI(abs); } catch { return abs; }
-}
-function AvatarOrInitial({ src, fallbackText }){
+function AvatarOrInitial({ rawUrl, fallbackText }){
+  const src = useProtectedMediaSrc(rawUrl || null);
   const [broken, setBroken] = React.useState(false);
-  if(!src || broken) return <span>{fallbackText}</span>;
+  if(!rawUrl || !src || broken) return <span>{fallbackText}</span>;
   return <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} onError={()=>setBroken(true)} />;
 }
 function Attachment({msg}){
-  const url=toAbs(msg.file_url);
-  if(msg.message_type==='image') return <a href={url} target="_blank" rel="noreferrer"><img src={url} alt={msg.file_name||'img'} className="msg-img"/></a>;
+  const url = useProtectedMediaSrc(msg.file_url || null);
+  async function openDownload(e) {
+    if (!msg.file_url) return;
+    e.preventDefault();
+    try {
+      if (isUploadsAssetUrl(msg.file_url)) {
+        const abs = msg.file_url.startsWith('http') ? msg.file_url : toAbsoluteAssetUrl(msg.file_url);
+        const blobUrl = await fetchUploadAsBlobUrl(abs);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = msg.file_name || 'arquivo';
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        const abs = msg.file_url.startsWith('http') ? msg.file_url : toAbsoluteAssetUrl(msg.file_url);
+        window.open(abs, '_blank', 'noreferrer');
+      }
+    } catch {
+      window.open(toAbsoluteAssetUrl(msg.file_url), '_blank', 'noreferrer');
+    }
+  }
+  if (!url && msg.file_url) return <span className="msg-file"><File size={14}/> Carregando…</span>;
+  if(msg.message_type==='image') return <a href={url} onClick={openDownload} target="_blank" rel="noreferrer"><img src={url} alt={msg.file_name||'img'} className="msg-img"/></a>;
   if(msg.message_type==='video') return <video src={url} controls className="msg-video"/>;
   if(msg.message_type==='audio') return <audio src={url} controls className="msg-audio"/>;
-  return <a href={url} target="_blank" rel="noreferrer" className="msg-file"><File size={14}/> {msg.file_name||'arquivo'}</a>;
+  return <a href={url} onClick={openDownload} target="_blank" rel="noreferrer" className="msg-file"><File size={14}/> {msg.file_name||'arquivo'}</a>;
 }
 function TypingIndicator({users}){
   if(!users||!users.length) return null;
@@ -50,7 +62,7 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
       const isOwn=msg.sender_id===currentUserId; const isAI=msg.sender_id===AI_ID||msg.message_type==='ai';
       const name=msg.sender&&msg.sender.name||'Usuário';
       const showAvatar=!isOwn&&(idx===0||messages[idx-1].sender_id!==msg.sender_id);
-      const avatarUrl = !isAI ? toAbs(msg.sender?.avatar_url) : null;
+      const avatarRaw = !isAI ? msg.sender?.avatar_url : null;
       const deletedEveryone = !!msg.deleted_for_everyone_at;
       const showMenu = onDeleteMessage && currentUserId && !deletedEveryone;
       const canDeleteEveryone = isOwn && showMenu;
@@ -60,7 +72,7 @@ export default function MessageArea({messages,currentUserId,loading,hasMore,onLo
             {isAI ? (
               <img src={impetusIaAvatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}/>
             ) : (
-              <AvatarOrInitial src={avatarUrl} fallbackText={initials(name)} />
+              <AvatarOrInitial rawUrl={avatarRaw} fallbackText={initials(name)} />
             )}
           </div>
         )}

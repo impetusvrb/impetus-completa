@@ -10,6 +10,9 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
+const { apiByIpLimiter } = require('./middleware/globalRateLimit');
+const secureStaticUploads = require('./middleware/secureStaticUploads');
 const compression = require('compression');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
@@ -33,33 +36,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet(buildHelmetOptions()));
 app.use(compression());
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-      'X-Webhook-Secret',
-      'X-Impetus-Webhook-Secret',
-      'X-Hub-Signature-256',
-      'X-Integration-Token'
-    ],
-    exposedHeaders: [
-      'Content-Type',
-      'X-TTS-Engine',
-      'X-TTS-Voice-Google',
-      'X-TTS-Template',
-      'Cache-Control'
-    ]
-  })
-);
+const corsOptions = buildCorsOptions();
+app.use(cors(corsOptions));
 
 const stripeNexusWalletWebhook = require('./routes/webhooks/stripeNexusWallet');
 app.post(
@@ -125,6 +105,13 @@ app.use((req, res, next) => {
   return urlEncDefault(req, res, next);
 });
 
+/** Rate limit por IP em /api (utilizadores autenticados são ignorados no limiter; webhooks excluídos). */
+app.use((req, res, next) => {
+  const orig = String(req.originalUrl || req.url || '');
+  if (!orig.startsWith('/api')) return next();
+  return apiByIpLimiter(req, res, next);
+});
+
 /** Probe rápido TTS (paridade impetus_complete/app.js) + estado Google/credenciais sem chamada extra à API Google. */
 async function voiceHealthProbe() {
   const voz = { openai: false };
@@ -170,9 +157,9 @@ app.get('/api/health', async (_req, res) => {
 const uploadsPublicPath = path.join(__dirname, '../../uploads');
 try {
   fs.mkdirSync(uploadsPublicPath, { recursive: true });
-  app.use('/uploads', express.static(uploadsPublicPath));
+  app.use('/uploads', secureStaticUploads);
 } catch (e) {
-  console.warn('[server] /uploads estático não montado:', e?.message);
+  console.warn('[server] /uploads seguro não montado:', e?.message);
 }
 
 function useRoute(mountPath, modulePath, ...middlewares) {
@@ -185,6 +172,7 @@ function useRoute(mountPath, modulePath, ...middlewares) {
 }
 
 /* --- API (cada bloco isolado: dependência em falta não derruba o servidor) --- */
+useRoute('/api/media', './routes/mediaFile');
 useRoute('/api/auth', './routes/auth');
 useRoute('/api/factory-team', './routes/factoryTeam');
 useRoute('/api/companies', './routes/companies');
@@ -272,7 +260,7 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   path: '/socket.io',
   cors: {
-    origin: true,
+    origin: corsOptions.origin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']
   }
@@ -395,6 +383,18 @@ if (String(process.env.ENABLE_NEXUS_TOKEN_BILLING_CRON || '').toLowerCase() === 
     console.warn('[server] NexusIA cron não iniciado:', e.message);
   }
 }
+
+httpServer.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.warn(
+      `[server] Porta ${PORT} já em uso. Libere com: fuser -k ${PORT}/tcp  ou  kill $(lsof -t -i:${PORT})`
+    );
+    process.exit(1);
+    return;
+  }
+  console.error('[server] falha no servidor HTTP:', err);
+  process.exit(1);
+});
 
 httpServer.listen(PORT, () => {
   console.log(`[impetus-backend] http://0.0.0.0:${PORT}  (health: /health)`);

@@ -15,7 +15,15 @@ import { InputField, SelectField, CheckboxField, TextAreaField } from '../compon
 import FieldHelpHint from '../components/FieldHelpHint';
 import { adminUsers, adminDepartments, adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './AdminUsers.css';
+
+function UserAvatarThumb({ rawUrl, name }) {
+  const src = useProtectedMediaSrc(rawUrl || null);
+  const initial = name?.charAt(0).toUpperCase() || '?';
+  if (!rawUrl || !src) return <span>{initial}</span>;
+  return <img src={src} alt={name || ''} />;
+}
 
 /** UUID / id vindo da API ou do driver pg (string ou outro tipo serializável). */
 function uuidFieldToString(raw) {
@@ -407,11 +415,7 @@ export default function AdminUsers() {
       render: (value, row) => (
         <div className="user-cell">
           <div className="user-avatar">
-            {row.avatar_url ? (
-              <img src={row.avatar_url} alt={value} />
-            ) : (
-              <span>{value?.charAt(0).toUpperCase()}</span>
-            )}
+            <UserAvatarThumb rawUrl={row.avatar_url} name={value} />
           </div>
           <div className="user-info">
             <div className="user-name">{value}</div>

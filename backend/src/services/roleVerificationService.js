@@ -249,8 +249,7 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
  * Lista solicitações pendentes para o aprovador
  */
 async function getPendingApprovalsForUser(approverId) {
-  const res = await db.query(
-    `
+  const fullQuery = `
     SELECT rvr.id, rvr.user_id, rvr.requested_role, rvr.created_at,
            rvr.request_type, rvr.subject_snapshot, rvr.change_diff, rvr.structure_error,
            rvr.department_id,
@@ -265,10 +264,43 @@ async function getPendingApprovalsForUser(approverId) {
     LEFT JOIN company_roles cr ON cr.id = u.company_role_id
     WHERE rvr.approver_id = $1 AND rvr.status = 'pending'
     ORDER BY rvr.created_at ASC
-  `,
-    [approverId]
-  );
-  return res.rows;
+  `;
+  try {
+    const res = await db.query(fullQuery, [approverId]);
+    return res.rows;
+  } catch (err) {
+    const msg = String(err.message || '');
+    const code = err.code;
+    if (code !== '42703' && !msg.includes('subject_snapshot') && !msg.includes('structure_error')) {
+      throw err;
+    }
+    console.warn('[ROLE_VERIFICATION] pending approvals: colunas estendidas ausentes, usando consulta legada');
+    const legacy = await db.query(
+      `
+      SELECT rvr.id, rvr.user_id, rvr.requested_role, rvr.created_at,
+             u.name as user_name, u.email as user_email,
+             u.role as user_role, u.hierarchy_level, u.area, u.job_title, u.functional_area,
+             u.hr_responsibilities,
+             d.name department_name,
+             cr.name structural_role_name
+      FROM role_verification_requests rvr
+      JOIN users u ON u.id = rvr.user_id
+      LEFT JOIN departments d ON d.id = u.department_id
+      LEFT JOIN company_roles cr ON cr.id = u.company_role_id
+      WHERE rvr.approver_id = $1 AND rvr.status = 'pending'
+      ORDER BY rvr.created_at ASC
+    `,
+      [approverId]
+    );
+    return legacy.rows.map((row) => ({
+      ...row,
+      request_type: null,
+      subject_snapshot: null,
+      change_diff: null,
+      structure_error: null,
+      department_id: null
+    }));
+  }
 }
 
 /**

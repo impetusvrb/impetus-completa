@@ -30,7 +30,7 @@ import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
 import { InputField, SelectField, TextAreaField } from '../components/FormField';
-import { adminStructural, companies } from '../services/api';
+import { adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import {
   StructuralGenericForm,
@@ -349,44 +349,7 @@ function CompanyDataModule({ loadRefs }) {
         strategic_notes: d.strategic_notes || ''
       });
     } catch (e) {
-      try {
-        // Fallback para ambientes onde o endpoint /admin/structural/company-data
-        // ainda não está totalmente compatível com o schema atual.
-        const fallback = await companies.getMe();
-        const d = fallback.data?.company || {};
-        const pm = d.products_manufactured;
-        setForm({
-          name: d.name || '',
-          trade_name: d.trade_name || '',
-          industry_segment: d.industry_segment || '',
-          subsegment: d.subsegment || '',
-          cnpj: d.cnpj || '',
-          address: d.address || '',
-          city: d.city || '',
-          state: d.state || '',
-          country: d.country || '',
-          main_unit: d.main_unit || '',
-          other_units_text: formatOtherUnits(d.other_units),
-          employee_count: d.employee_count ?? '',
-          shift_count: d.shift_count ?? '',
-          operating_hours: d.operating_hours || '',
-          operation_type: d.operation_type || '',
-          production_type: d.production_type || '',
-          products_manufactured_text: Array.isArray(pm) ? pm.join('\n') : pm || '',
-          market: d.market || '',
-          company_description: d.company_description || '',
-          mission: d.mission || '',
-          vision: d.vision || '',
-          values_text: d.values_text || '',
-          internal_policy: d.internal_policy || '',
-          operation_rules: d.operation_rules || '',
-          organizational_culture: d.organizational_culture || '',
-          strategic_notes: d.strategic_notes || ''
-        });
-        notify.warning('Base estrutural carregada em modo de compatibilidade.');
-      } catch {
       notify.error(e.apiMessage || 'Erro ao carregar dados');
-      }
     } finally {
       setLoading(false);
     }

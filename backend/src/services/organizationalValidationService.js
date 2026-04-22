@@ -223,8 +223,9 @@ async function enqueueOrganizationalValidation(opts) {
       [userId, companyId]
     );
 
-    await db.query(
-      `INSERT INTO role_verification_requests (
+    try {
+      await db.query(
+        `INSERT INTO role_verification_requests (
         company_id, user_id, requested_role, approver_id, status, ip_address,
         department_id, request_type, subject_snapshot, change_diff, structure_error, updated_at
       ) VALUES ($1, $2, $3, NULL, 'pending', $4, $5, $6, $7::jsonb, $8::jsonb, $9, now())
@@ -243,28 +244,40 @@ async function enqueueOrganizationalValidation(opts) {
         approved_at = NULL,
         updated_at = now()
       `,
-      [
-        companyId,
-        userId,
-        subject.role,
-        ipAddress || null,
-        subject.department_id || null,
-        requestType,
-        JSON.stringify(snap),
-        changeDiff ? JSON.stringify(changeDiff) : null,
-        structureError
-      ]
-    );
+        [
+          companyId,
+          userId,
+          subject.role,
+          ipAddress || null,
+          subject.department_id || null,
+          requestType,
+          JSON.stringify(snap),
+          changeDiff ? JSON.stringify(changeDiff) : null,
+          structureError
+        ]
+      );
+    } catch (e) {
+      if (e.message && /column/i.test(e.message)) {
+        console.warn('[ORG_VALIDATION] BD sem colunas estendidas — fallback legacy:', e.message);
+        await insertLegacyVerificationRequest(companyId, userId, subject.role, null, ipAddress);
+      } else {
+        throw e;
+      }
+    }
 
-    await appendHistory({
-      companyId,
-      subjectUserId: userId,
-      actorUserId,
-      requestId: null,
-      action: 'validation_queued_no_structure',
-      details: { structure_error: structureError, snapshot: snap },
-      ipAddress
-    });
+    try {
+      await appendHistory({
+        companyId,
+        subjectUserId: userId,
+        actorUserId,
+        requestId: null,
+        action: 'validation_queued_no_structure',
+        details: { structure_error: structureError, snapshot: snap },
+        ipAddress
+      });
+    } catch (e) {
+      console.warn('[ORG_VALIDATION_HISTORY]', e.message);
+    }
 
     await logAction({
       companyId,
@@ -282,8 +295,9 @@ async function enqueueOrganizationalValidation(opts) {
     return { ok: true, awaitingStructure: true, structure_error: structureError };
   }
 
-  await db.query(
-    `INSERT INTO role_verification_requests (
+  try {
+    await db.query(
+      `INSERT INTO role_verification_requests (
       company_id, user_id, requested_role, approver_id, status, ip_address,
       department_id, request_type, subject_snapshot, change_diff, structure_error, updated_at
     ) VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8::jsonb, $9::jsonb, NULL, now())
@@ -302,18 +316,32 @@ async function enqueueOrganizationalValidation(opts) {
       approved_at = NULL,
       updated_at = now()
     `,
-    [
-      companyId,
-      userId,
-      subject.role,
-      resolved.approverId,
-      ipAddress || null,
-      subject.department_id || null,
-      requestType,
-      JSON.stringify(snap),
-      changeDiff ? JSON.stringify(changeDiff) : null
-    ]
-  );
+      [
+        companyId,
+        userId,
+        subject.role,
+        resolved.approverId,
+        ipAddress || null,
+        subject.department_id || null,
+        requestType,
+        JSON.stringify(snap),
+        changeDiff ? JSON.stringify(changeDiff) : null
+      ]
+    );
+  } catch (e) {
+    if (e.message && /column/i.test(e.message)) {
+      console.warn('[ORG_VALIDATION] BD sem colunas estendidas — fallback legacy:', e.message);
+      await insertLegacyVerificationRequest(
+        companyId,
+        userId,
+        subject.role,
+        resolved.approverId,
+        ipAddress
+      );
+    } else {
+      throw e;
+    }
+  }
 
   await db.query(
     `UPDATE users SET
@@ -329,15 +357,19 @@ async function enqueueOrganizationalValidation(opts) {
     ]
   );
 
-  await appendHistory({
-    companyId,
-    subjectUserId: userId,
-    actorUserId,
-    requestId: null,
-    action: requestType === 'revalidation' ? 'revalidation_queued' : 'validation_queued',
-    details: { approver_id: resolved.approverId, request_type: requestType, change_diff: changeDiff },
-    ipAddress
-  });
+  try {
+    await appendHistory({
+      companyId,
+      subjectUserId: userId,
+      actorUserId,
+      requestId: null,
+      action: requestType === 'revalidation' ? 'revalidation_queued' : 'validation_queued',
+      details: { approver_id: resolved.approverId, request_type: requestType, change_diff: changeDiff },
+      ipAddress
+    });
+  } catch (e) {
+    console.warn('[ORG_VALIDATION_HISTORY]', e.message);
+  }
 
   await logAction({
     companyId,
@@ -373,6 +405,102 @@ async function assertApproverMatches(companyId, approverUserId, subjectUser) {
     return { ok: false, code: 'SELF_APPROVAL', error: 'Não é permitido validar a própria conta.' };
   }
   return { ok: true };
+}
+
+/**
+ * Detalhe legível quando role_verification_status = awaiting_structure (evita mensagem genérica).
+ */
+async function getAwaitingStructureDetailForUser(user) {
+  if (!user?.id || !user?.company_id) return null;
+  const st = (user.role_verification_status || '').toLowerCase();
+  if (st !== 'awaiting_structure') return null;
+
+  let subject;
+  try {
+    subject = await loadUserForValidation(user.id, user.company_id);
+  } catch {
+    subject = null;
+  }
+  if (!subject) {
+    return {
+      code: 'SUBJECT_NOT_LOADED',
+      structure_error: 'load_failed',
+      message:
+        'Não foi possível carregar o cadastro para diagnosticar a hierarquia. Contacte o administrador.'
+    };
+  }
+
+  let r;
+  try {
+    r = await resolveApproverUserId(user.company_id, subject);
+  } catch {
+    r = { approverId: null, reason: 'unknown' };
+  }
+
+  const role = (subject.role || '').toLowerCase();
+  const deptLabel = subject.department_name || 'sem departamento associado';
+  const superiorRole = { gerente: 'diretor', coordenador: 'gerente', supervisor: 'coordenador' }[role];
+
+  const byReason = {
+    no_ceo: {
+      code: 'NO_CEO',
+      structure_error: 'no_ceo',
+      missing_role: 'ceo',
+      message:
+        'Falta um CEO ativo na empresa. O CEO valida todos os diretores. Cadastre ou ative um utilizador com função «ceo» antes de concluir esta validação.',
+      user_role: role
+    },
+    no_department: {
+      code: 'NO_DEPARTMENT',
+      structure_error: 'no_department',
+      message: `O utilizador com função «${role}» precisa estar associado a um departamento (área). Sem isso, o sistema não encontra o gestor da mesma área para validar o cargo.`,
+      user_role: role
+    },
+    no_superior_in_department: {
+      code: 'NO_SUPERIOR_IN_DEPARTMENT',
+      structure_error: 'no_superior_in_department',
+      missing_role: superiorRole || null,
+      department_name: subject.department_name || null,
+      message: `Falta um «${superiorRole || 'superior hierárquico'}» ativo no departamento «${deptLabel}» para validar este «${role}». Coloque o diretor/gerente/coordenador correto na mesma área ou ajuste o departamento do colaborador.`
+    },
+    self_reference: {
+      code: 'STRUCTURE_SELF_REFERENCE',
+      structure_error: 'self_reference',
+      message:
+        'Há um conflito na hierarquia (referência circular). Corrija supervisor ou responsável do departamento.'
+    },
+    unknown_role: {
+      code: 'UNKNOWN_ROLE',
+      structure_error: 'unknown_role',
+      message: 'Função não mapeada na cadeia de validação organizacional.'
+    }
+  };
+
+  const reason = r.reason;
+  if (byReason[reason]) return byReason[reason];
+
+  return {
+    code: 'AWAITING_STRUCTURE',
+    structure_error: reason || 'unknown',
+    message:
+      'A estrutura organizacional está incompleta (CEO, departamento ou gestor na área). Peça ao administrador para revisar a Base Estrutural e os departamentos.'
+  };
+}
+
+async function insertLegacyVerificationRequest(companyId, userId, role, approverId, ipAddress) {
+  await db.query(
+    `
+    INSERT INTO role_verification_requests (company_id, user_id, requested_role, approver_id, status, ip_address)
+    VALUES ($1, $2, $3, $4, 'pending', $5)
+    ON CONFLICT (user_id) DO UPDATE SET
+      requested_role = EXCLUDED.requested_role,
+      approver_id = EXCLUDED.approver_id,
+      status = 'pending',
+      ip_address = EXCLUDED.ip_address,
+      created_at = now()
+  `,
+    [companyId, userId, role, approverId, ipAddress || null]
+  );
 }
 
 /**
@@ -434,5 +562,6 @@ module.exports = {
   enqueueOrganizationalValidation,
   appendHistory,
   assertApproverMatches,
+  getAwaitingStructureDetailForUser,
   syncAfterUserProfileChange
 };
