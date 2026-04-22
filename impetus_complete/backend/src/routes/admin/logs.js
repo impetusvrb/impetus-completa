@@ -134,37 +134,37 @@ router.get('/data-access',
         end_date
       } = req.query;
 
-      let conditions = ['company_id = $1'];
+      let conditions = ['dal.company_id = $1'];
       const params = [req.user.company_id];
       let paramCount = 1;
 
       if (user_id) {
         paramCount++;
-        conditions.push(`accessed_by = $${paramCount}`);
+        conditions.push(`dal.accessed_by = $${paramCount}`);
         params.push(user_id);
       }
 
       if (accessed_user_id) {
         paramCount++;
-        conditions.push(`entity_id = $${paramCount} AND entity_type = 'user'`);
+        conditions.push(`dal.entity_id = $${paramCount} AND dal.entity_type = 'user'`);
         params.push(accessed_user_id);
       }
 
       if (entity_type) {
         paramCount++;
-        conditions.push(`entity_type = $${paramCount}`);
+        conditions.push(`dal.entity_type = $${paramCount}`);
         params.push(entity_type);
       }
 
       if (start_date) {
         paramCount++;
-        conditions.push(`created_at >= $${paramCount}`);
+        conditions.push(`dal.created_at >= $${paramCount}`);
         params.push(start_date);
       }
 
       if (end_date) {
         paramCount++;
-        conditions.push(`created_at <= $${paramCount}`);
+        conditions.push(`dal.created_at <= $${paramCount}`);
         params.push(end_date);
       }
 
@@ -185,7 +185,7 @@ router.get('/data-access',
 
       const countResult = await db.query(`
         SELECT COUNT(*) as total
-        FROM data_access_logs
+        FROM data_access_logs dal
         WHERE ${whereClause}
       `, params);
 
@@ -201,6 +201,18 @@ router.get('/data-access',
 
     } catch (err) {
       console.error('[ADMIN_DATA_ACCESS_LOGS_ERROR]', err);
+      // Ambiente legado: se a tabela LGPD ainda não existir, não quebrar a tela.
+      if (err?.code === '42P01') {
+        return res.json({
+          ok: true,
+          logs: [],
+          pagination: {
+            total: 0,
+            limit: safeInteger(req.query.limit, 100, 1, 500),
+            offset: safeInteger(req.query.offset, 0, 0, 100000)
+          }
+        });
+      }
       res.status(500).json({
         ok: false,
         error: 'Erro ao buscar logs de acesso a dados'

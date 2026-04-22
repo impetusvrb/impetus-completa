@@ -152,11 +152,48 @@ function severityFromKpi(k) {
   return 'informativo';
 }
 
+/**
+ * Camada de explicabilidade determinística para insights derivados de KPIs (sem chamada LLM).
+ */
+function buildExplanationLayerForKpi(k, user) {
+  const sev = severityFromKpi(k);
+  const title = (k.title || 'Indicador').trim();
+  const val = k.value != null ? String(k.value) : '—';
+  const cfg = require('./dashboardProfileResolver').getDashboardConfigForUser(user);
+  const profileLabel = cfg.profile_config?.label || cfg.profile_code || 'perfil atual';
+
+  const facts_used = [
+    `Indicador "${title}" com valor apresentado no painel: ${val}.`,
+    k.key ? `Chave interna do KPI: ${String(k.key)}.` : null,
+    k.id != null ? `Referência do cartão: ${String(k.id)}.` : null,
+    k.color ? `Estado visual no dashboard: ${String(k.color)}.` : null
+  ].filter(Boolean);
+
+  const confidence_score = sev === 'alto' ? 66 : sev === 'médio' ? 78 : 88;
+
+  const limitations = [];
+  if (k.meta == null && k.details == null) {
+    limitations.push('Detalhe expandido do KPI não incluído neste cartão — apenas valor e rótulo.');
+  }
+
+  return {
+    facts_used,
+    business_rules: [
+      'IMPETUS — Insight gerado a partir de KPIs dinâmicos do dashboard (regra de transparência: sem inferir sensores ou OS não expostos).',
+      `Priorização adaptada ao perfil: ${profileLabel}.`
+    ],
+    confidence_score,
+    limitations,
+    reasoning_trace: `Factos: o texto do insight espelha o valor e o tipo de indicador visíveis ao utilizador. Severidade (${sev}) deriva da cor/meta do cartão. Não há modelo generativo neste passo — apenas regras de composição e perfil.`
+  };
+}
+
 module.exports = {
   getInsightsInstructions,
   getSmartSummaryContext,
   adaptInsightsToProfile,
   buildInsightSummaryForKpi,
+  buildExplanationLayerForKpi,
   severityFromKpi,
   INSIGHTS_MODES
 };

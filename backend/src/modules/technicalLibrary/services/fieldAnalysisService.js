@@ -5,7 +5,9 @@ const path = require('path');
 const { promisify } = require('util');
 const { execFile } = require('child_process');
 const Anthropic = require('@anthropic-ai/sdk');
+const { v4: uuidv4 } = require('uuid');
 const repo = require('../repositories/fieldAnalysisRepository');
+const aiAnalytics = require('../../../services/aiAnalyticsService');
 const modelResolver = require('./modelResolverService');
 const unityVisualizationPayload = require('./unityVisualizationPayloadService');
 
@@ -270,6 +272,37 @@ async function runAnalysis(companyId, userId, analysisId, body, files, publicBas
     unity_payload: unityPayload,
     fallback_level: fallbackLevel,
     matched_equipment_id: matchedEquipmentId
+  });
+
+  const faTraceId = uuidv4();
+  aiAnalytics.enqueueAiTrace({
+    trace_id: faTraceId,
+    user_id: userId,
+    company_id: companyId,
+    module_name: 'technical_field_analysis',
+    input_payload: {
+      analysis_id: analysisId,
+      machine_label: machineLabel,
+      sector,
+      maintenance_type: maintenanceType,
+      urgency,
+      observation: observation ? String(observation).slice(0, 4000) : null,
+      media: mediaPaths.map((m) => ({ kind: m.kind, path: m.path })),
+      user_prompt_excerpt: userText.slice(0, 4000),
+      image_and_frame_count: imageAbs.length
+    },
+    output_response: {
+      ai_parsed: ai,
+      raw_excerpt: aiText.slice(0, 8000),
+      matched_equipment_id: matchedEquipmentId,
+      fallback_level: fallbackLevel
+    },
+    model_info: {
+      provider: 'anthropic',
+      model: process.env.ANTHROPIC_VISION_MODEL || 'claude-sonnet-4-20250514',
+      max_tokens: 2000
+    },
+    system_fingerprint: null
   });
 
   return formatRow(row);

@@ -56,7 +56,7 @@ async function insertHitlFeedback(row) {
 
 async function getTraceForCompany(traceId, companyId) {
   const r = await db.query(
-    `SELECT trace_id, company_id, user_id, final_output, dossier_summary, stages_detail, created_at
+    `SELECT trace_id, company_id, user_id, final_output, explanation_layer, dossier_summary, stages_detail, created_at
      FROM ai_decision_logs WHERE trace_id = $1 AND company_id = $2`,
     [traceId, companyId]
   );

@@ -178,7 +178,14 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
 
   const strict = await orgVal.assertApproverMatches(req.company_id, approverId, subject);
   if (!strict.ok) {
-    return { ok: false, error: strict.error, code: strict.code };
+    const requestAssignedToApprover = req.approver_id && String(req.approver_id) === String(approverId);
+    const canUseRequestFallback =
+      requestAssignedToApprover &&
+      (strict.code === 'NO_APPROVER' || strict.code === 'FORBIDDEN_APPROVER');
+
+    if (!canUseRequestFallback) {
+      return { ok: false, error: strict.error, code: strict.code };
+    }
   }
 
   if (!req.approver_id && !approved) {
@@ -249,6 +256,13 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
  * Lista solicitações pendentes para o aprovador
  */
 async function getPendingApprovalsForUser(approverId) {
+  const approverRes = await db.query(
+    `SELECT id, company_id FROM users WHERE id = $1 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+    [approverId]
+  );
+  const approver = approverRes.rows[0];
+  if (!approver) return [];
+
   const fullQuery = `
     SELECT rvr.id, rvr.user_id, rvr.requested_role, rvr.created_at,
            rvr.request_type, rvr.subject_snapshot, rvr.change_diff, rvr.structure_error,
@@ -262,12 +276,42 @@ async function getPendingApprovalsForUser(approverId) {
     JOIN users u ON u.id = rvr.user_id
     LEFT JOIN departments d ON d.id = u.department_id
     LEFT JOIN company_roles cr ON cr.id = u.company_role_id
-    WHERE rvr.approver_id = $1 AND rvr.status = 'pending'
+    WHERE rvr.company_id = $2 AND rvr.approver_id = $1 AND rvr.status = 'pending'
     ORDER BY rvr.created_at ASC
   `;
   try {
-    const res = await db.query(fullQuery, [approverId]);
-    return res.rows;
+    const direct = await db.query(fullQuery, [approverId, approver.company_id]);
+
+    // Auto-reparo: reaproveita pendências antigas sem approver_id (ou com approver desatualizado)
+    // recalculando o validador correto conforme a estrutura atual.
+    const unresolvedRes = await db.query(
+      `
+      SELECT rvr.id, rvr.user_id
+      FROM role_verification_requests rvr
+      WHERE rvr.company_id = $1
+        AND rvr.status = 'pending'
+        AND (rvr.approver_id IS NULL OR rvr.approver_id <> $2)
+      ORDER BY rvr.created_at ASC
+      LIMIT 500
+    `,
+      [approver.company_id, approverId]
+    );
+
+    for (const req of unresolvedRes.rows) {
+      const subject = await orgVal.loadUserForValidation(req.user_id, approver.company_id);
+      if (!subject) continue;
+      const strict = await orgVal.assertApproverMatches(approver.company_id, approverId, subject);
+      if (!strict.ok) continue;
+      await db.query(
+        `UPDATE role_verification_requests
+         SET approver_id = $1, structure_error = NULL, updated_at = now()
+         WHERE id = $2`,
+        [approverId, req.id]
+      );
+    }
+
+    const refreshed = await db.query(fullQuery, [approverId, approver.company_id]);
+    return refreshed.rows.length > 0 ? refreshed.rows : direct.rows;
   } catch (err) {
     const msg = String(err.message || '');
     const code = err.code;
@@ -287,10 +331,10 @@ async function getPendingApprovalsForUser(approverId) {
       JOIN users u ON u.id = rvr.user_id
       LEFT JOIN departments d ON d.id = u.department_id
       LEFT JOIN company_roles cr ON cr.id = u.company_role_id
-      WHERE rvr.approver_id = $1 AND rvr.status = 'pending'
+      WHERE rvr.company_id = $2 AND rvr.approver_id = $1 AND rvr.status = 'pending'
       ORDER BY rvr.created_at ASC
     `,
-      [approverId]
+      [approverId, approver.company_id]
     );
     return legacy.rows.map((row) => ({
       ...row,

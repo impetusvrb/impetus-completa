@@ -22,8 +22,13 @@ const voiceRealtimeContextService = require('../services/voiceRealtimeContextSer
 const { composeLiveDashboardSurface } = require('../services/dashboardComposer');
 const { userRateLimit } = require('../middleware/userRateLimit');
 const ai = require('../services/ai');
+const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynthesizer');
+const smartSummaryService = require('../services/smartSummary');
+const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
+const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
 
 router.use('/maintenance', dashboardMaintenanceRouter);
+router.use('/operational-brain', dashboardOperationalBrainRouter);
 
 const preferencesSchema = z.object({
   cards_order: z.array(z.string()).optional(),
@@ -227,7 +232,8 @@ router.get('/insights', requireAuth, async (req, res) => {
       id: `ins-${k.key || k.id || i}`,
       title: k.title || 'Indicador',
       summary: personalizedInsightsService.buildInsightSummaryForKpi(k, user),
-      severity: personalizedInsightsService.severityFromKpi(k)
+      severity: personalizedInsightsService.severityFromKpi(k),
+      explanation_layer: personalizedInsightsService.buildExplanationLayerForKpi(k, user)
     }));
     const insights = personalizedInsightsService.adaptInsightsToProfile(user, raw);
     const insights_instructions = await personalizedInsightsService.getInsightsInstructions(
@@ -312,6 +318,25 @@ router.patch('/profile-context', requireAuth, express.json({ limit: '64kb' }), a
 /**
  * GET /dashboard/summary
  */
+/**
+ * GET /dashboard/smart-summary
+ * Resumo inteligente diário/semanal (IA); cabeçalho X-AI-Trace-ID quando gerado com sucesso.
+ */
+router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) => {
+  try {
+    const u = req.user;
+    if (!u?.company_id) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada.' });
+    }
+    const out = await smartSummaryService.buildSmartSummary(u.id, u.name, u.company_id, u);
+    if (out.aiTraceId) res.setHeader('X-AI-Trace-ID', String(out.aiTraceId));
+    res.json({ ok: true, ...out });
+  } catch (err) {
+    console.error('[SMART_SUMMARY_ROUTE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao gerar resumo inteligente.' });
+  }
+});
+
 router.get('/summary', requireAuth, async (req, res) => {
   try {
     const summary = await dashboardKPIs.getDashboardSummary(req.user);
@@ -484,23 +509,98 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     const u = req.user;
     const system = `És o assistente Impetus IA numa plataforma industrial. Responde em português, de forma clara e operacional.
-Perfil do utilizador: ${(u.role || 'colaborador').toString()}. Não inventes leituras de sensores, KPIs ou ordens de serviço sem fonte nos dados fornecidos. Se faltar contexto, pede esclarecimento ou indica o que o administrador deve configurar.`;
+Perfil do utilizador: ${(u.role || 'colaborador').toString()}. Não inventes leituras de sensores, KPIs ou ordens de serviço sem fonte nos dados fornecidos. Se faltar contexto, pede esclarecimento ou indica o que o administrador deve configurar.
+
+SAÍDA OBRIGATÓRIA: um único objeto JSON válido com as chaves "content" (mensagem ao utilizador) e "explanation_layer".
+explanation_layer deve incluir: facts_used (factos explícitos do pedido/histórico), business_rules (diretrizes aplicadas), confidence_score inteiro 0–100, limitations, reasoning_trace (Chain of Thought breve separando factos de inferências).`;
 
     const messages = [{ role: 'system', content: system }, ...history, { role: 'user', content: message }];
 
     const billing = u.company_id ? { companyId: u.company_id, userId: u.id } : null;
-    const reply = await ai.chatCompletionMessages(messages, {
-      max_tokens: 1400,
+    const raw = await ai.chatCompletionMessages(messages, {
+      max_tokens: 1600,
       billing,
+      response_format: { type: 'json_object' },
       model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini'
     });
 
-    const text = typeof reply === 'string' ? reply : String(reply || '');
+    const traceId = require('uuid').v4();
+    const degraded = typeof raw === 'string' && raw.startsWith('FALLBACK');
+    const limitations = degraded && raw ? [raw] : [];
+    const { finalRaw, structuredFinal } = parseFinalStructuredResponse(
+      typeof raw === 'string' ? raw : String(raw || '')
+    );
+
+    const miniDossier = {
+      trace_id: traceId,
+      data: {},
+      context: {
+        module: 'dashboard_chat',
+        request: message.slice(0, 4000),
+        intent: 'generico_assistido',
+        pipeline_version: 'chat_gpt_json'
+      },
+      analysis: {},
+      decision: { requires_human_validation: false, risk_level: 'low' },
+      meta: { models_touched: ['openai'], degraded }
+    };
+
+    const synthesis = synthesize({
+      finalRaw: degraded ? String(raw || '') : finalRaw,
+      structuredFinal: degraded ? null : structuredFinal,
+      dossier: miniDossier,
+      validation: null,
+      modelsUsed: ['openai'],
+      degraded,
+      limitations,
+      extraBusinessRules: [
+        'IMPETUS — Canal chat assistente (GPT) sem pipeline Conselho Cognitivo multimodal.',
+        'Governança: perfil e papel do utilizador restringem o conteúdo operacional.'
+      ]
+    });
+
+    const text = synthesis.answer || '';
+    const aiAnalytics = require('../services/aiAnalyticsService');
+    aiAnalytics.enqueueAiTrace({
+      trace_id: traceId,
+      user_id: u.id,
+      company_id: u.company_id,
+      module_name: 'dashboard_chat',
+      input_payload: {
+        user_message: message.slice(0, 8000),
+        history_turns: history.length,
+        history_excerpt: history.slice(-4).map((m) => ({
+          role: m.role,
+          content: String(m.content || '').slice(0, 2000)
+        }))
+      },
+      output_response: {
+        content: typeof synthesis.content === 'string' ? synthesis.content.slice(0, 20000) : synthesis.content,
+        reply: text.slice(0, 20000),
+        explanation_layer: synthesis.explanation_layer,
+        confidence_score: synthesis.confidence_score,
+        requires_action: synthesis.requires_action,
+        degraded
+      },
+      model_info: {
+        provider: 'openai',
+        model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini',
+        channel: 'chatCompletionMessages',
+        max_tokens: 1600,
+        response_format: 'json_object'
+      },
+      system_fingerprint: null
+    });
+    res.setHeader('X-AI-Trace-ID', traceId);
     res.json({
       ok: true,
       reply: text,
       message: text,
-      content: text
+      content: synthesis.content,
+      explanation_layer: synthesis.explanation_layer,
+      confidence_score: synthesis.confidence_score,
+      requires_action: synthesis.requires_action,
+      degraded
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);

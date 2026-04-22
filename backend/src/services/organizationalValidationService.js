@@ -68,8 +68,17 @@ function hasSensitiveChange(oldSnap, newSnap) {
 
 /**
  * Resolve o validador correto na mesma empresa.
- * Diretor → CEO (único ou primeiro). Demais → superior imediato na mesma department_id.
+ * Aplica cadeia por cargo e faz fallback para próximo nível disponível:
+ * CEO valida diretores; diretor valida gerentes; gerente valida coordenadores;
+ * coordenador valida supervisores; quando faltar nível intermediário, sobe na cadeia.
  */
+const APPROVER_ROLE_CHAINS = {
+  diretor: ['ceo'],
+  gerente: ['diretor', 'ceo'],
+  coordenador: ['gerente', 'diretor', 'ceo'],
+  supervisor: ['coordenador', 'gerente', 'diretor', 'ceo']
+};
+
 async function resolveApproverUserId(companyId, subject) {
   const role = (subject.role || '').toLowerCase();
   if (role === 'ceo' || role === 'colaborador' || role === 'internal_admin') {
@@ -78,65 +87,94 @@ async function resolveApproverUserId(companyId, subject) {
   if (!isStrategicRole(role)) {
     return { approverId: null, reason: 'not_applicable' };
   }
-  if (role === 'diretor') {
-    const ceo = await db.query(
-      `SELECT id FROM users
-       WHERE company_id = $1 AND role = 'ceo' AND deleted_at IS NULL AND COALESCE(active, true) = true
-       ORDER BY created_at ASC NULLS LAST, id ASC
-       LIMIT 1`,
-      [companyId]
-    );
-    const id = ceo.rows[0]?.id || null;
-    return { approverId: id, reason: id ? null : 'no_ceo' };
-  }
-
-  const deptId = subject.department_id;
-  if (!deptId) {
-    return { approverId: null, reason: 'no_department' };
-  }
-
-  const superiorRole = {
-    gerente: 'diretor',
-    coordenador: 'gerente',
-    supervisor: 'coordenador'
-  }[role];
-
-  if (!superiorRole) {
+  const roleChain = APPROVER_ROLE_CHAINS[role];
+  if (!Array.isArray(roleChain) || roleChain.length === 0) {
     return { approverId: null, reason: 'unknown_role' };
   }
 
-  const deptRes = await db.query(
-    `SELECT manager_id FROM departments WHERE id = $1 AND company_id = $2`,
-    [deptId, companyId]
-  );
-  const managerId = deptRes.rows[0]?.manager_id;
-  if (managerId) {
-    const mgr = await db.query(
-      `SELECT id, role FROM users WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
-      [managerId, companyId]
+  const topFallbackQuery = async () => {
+    for (const candidateRole of roleChain) {
+      const q = await db.query(
+        `SELECT id FROM users
+         WHERE company_id = $1 AND role = $2 AND deleted_at IS NULL AND COALESCE(active, true) = true
+         ORDER BY hierarchy_level ASC NULLS LAST, created_at ASC NULLS LAST, id ASC
+         LIMIT 1`,
+        [companyId, candidateRole]
+      );
+      const candidateId = q.rows[0]?.id || null;
+      if (candidateId && candidateId !== subject.id) {
+        return { approverId: candidateId, reason: null };
+      }
+    }
+    return null;
+  };
+
+  // Regra de diretoria: sempre CEO (com fallback global para o primeiro CEO ativo).
+  if (role === 'diretor') {
+    const top = await topFallbackQuery();
+    return top || { approverId: null, reason: 'no_ceo' };
+  }
+
+  // 1) Tenta o líder direto (supervisor_id) quando este estiver acima na cadeia permitida.
+  if (subject.supervisor_id) {
+    const leader = await db.query(
+      `SELECT id, role FROM users
+       WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+      [subject.supervisor_id, companyId]
     );
-    const ur = mgr.rows[0];
-    if (ur && (ur.role || '').toLowerCase() === superiorRole) {
-      if (ur.id === subject.id) {
+    const leaderRow = leader.rows[0];
+    const leaderRole = (leaderRow?.role || '').toLowerCase();
+    if (leaderRow && roleChain.includes(leaderRole)) {
+      if (leaderRow.id === subject.id) {
         return { approverId: null, reason: 'self_reference' };
       }
-      return { approverId: ur.id, reason: null };
+      return { approverId: leaderRow.id, reason: null };
     }
   }
 
-  const q = await db.query(
-    `SELECT u.id FROM users u
-     WHERE u.company_id = $1 AND u.department_id = $2 AND u.role = $3
-     AND u.deleted_at IS NULL AND COALESCE(u.active, true) = true
-     ORDER BY u.hierarchy_level ASC NULLS LAST, u.created_at ASC NULLS LAST
-     LIMIT 1`,
-    [companyId, deptId, superiorRole]
-  );
-  const aid = q.rows[0]?.id || null;
-  if (aid && aid === subject.id) {
-    return { approverId: null, reason: 'self_reference' };
+  // 2) Busca na mesma área/departamento, escalando para o próximo nível disponível.
+  const deptId = subject.department_id;
+  if (deptId) {
+    for (const candidateRole of roleChain) {
+      if (candidateRole === 'ceo') continue;
+
+      const deptRes = await db.query(
+        `SELECT manager_id FROM departments WHERE id = $1 AND company_id = $2`,
+        [deptId, companyId]
+      );
+      const managerId = deptRes.rows[0]?.manager_id;
+      if (managerId) {
+        const mgr = await db.query(
+          `SELECT id, role FROM users
+           WHERE id = $1 AND company_id = $2 AND deleted_at IS NULL AND COALESCE(active, true) = true`,
+          [managerId, companyId]
+        );
+        const ur = mgr.rows[0];
+        if (ur && (ur.role || '').toLowerCase() === candidateRole && ur.id !== subject.id) {
+          return { approverId: ur.id, reason: null };
+        }
+      }
+
+      const q = await db.query(
+        `SELECT u.id FROM users u
+         WHERE u.company_id = $1 AND u.department_id = $2 AND u.role = $3
+         AND u.deleted_at IS NULL AND COALESCE(u.active, true) = true
+         ORDER BY u.hierarchy_level ASC NULLS LAST, u.created_at ASC NULLS LAST
+         LIMIT 1`,
+        [companyId, deptId, candidateRole]
+      );
+      const candidateId = q.rows[0]?.id || null;
+      if (candidateId && candidateId !== subject.id) {
+        return { approverId: candidateId, reason: null };
+      }
+    }
   }
-  return { approverId: aid, reason: aid ? null : 'no_superior_in_department' };
+
+  // 3) Se faltar nível no departamento, sobe para o primeiro nível válido global da empresa.
+  const top = await topFallbackQuery();
+  if (top) return top;
+
+  return { approverId: null, reason: deptId ? 'no_superior_in_department' : 'no_department' };
 }
 
 async function loadUserForValidation(userId, companyId) {

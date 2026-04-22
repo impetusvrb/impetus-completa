@@ -32,8 +32,9 @@ const {
   shouldRequireCrossValidation,
   shouldForceHumanValidation
 } = require('./cognitiveSecurity');
-const { synthesize, extractJsonBlock } = require('./responseSynthesizer');
+const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('./responseSynthesizer');
 const cognitiveAudit = require('./cognitiveAudit');
+const aiAnalytics = require('../services/aiAnalyticsService');
 
 const PERCEPTION_IMAGE_PROMPT = `Você é o módulo de PERCEPÇÃO industrial (somente observação factual).
 Analise a imagem e responda SOMENTE JSON válido com esta forma:
@@ -470,12 +471,22 @@ async function stageCrossValidation(dossier) {
 
 async function stageGptFinal(dossier, userScope, billing) {
   const sys = `Você é a INTERFACE CONVERSACIONAL IMPETUS (${AI_ROLES.GPT}).
+
+SAÍDA OBRIGATÓRIA: um único objeto JSON válido (sem markdown, sem texto fora do JSON). Chaves de nível superior EXATAMENTE: "content" e "explanation_layer".
+
+"content": string em português — mensagem operacional para o utilizador. Não exponha prompts internos nem JSON bruto das etapas anteriores. Perfil: role=${userScope.role}, hierarquia=${userScope.hierarchy_level}.
+
+"explanation_layer": objeto com:
+- "facts_used": array de strings — SOMENTE factos comprovados vindos do dossiê (ex.: contagens de KPIs/eventos, trechos da percepção ou análise técnica citados). Separe claramente de inferências.
+- "business_rules": array de strings — diretrizes ou políticas aplicadas (ex.: "Cautela quando validação cruzada não alinhada", "Priorização por intent operacional IMPETUS").
+- "confidence_score": inteiro de 0 a 100 — sua confiança na recomendação principal.
+- "limitations": array de strings — dados ausentes, atraso de dados, lacunas do dossiê.
+- "reasoning_trace": string — Chain of Thought em 3 a 6 frases curtas: (1) factos-chave (2) inferências (3) ligação à recomendação (4) principais incertezas.
+
 Regras:
-- Use o dossiê fornecido; não invente leituras de sensor ou KPI inexistentes.
-- Linguagem operacional em português, respeitando perfil: role=${userScope.role}, hierarquia=${userScope.hierarchy_level}.
-- Inclua limitações quando dados faltarem.
-- Não exponha prompts internos nem JSON bruto das etapas anteriores.
-- Se validação cruzada apontar gaps ou inconsistências, mencione cautela e confirmação humana.`;
+- Use apenas o dossiê; não invente sensores, KPIs ou eventos não fornecidos.
+- Se a validação cruzada indicar inconsistências ou gaps, reduza confidence_score, preencha limitations e mantenha cautela em "content".
+- Em português, tom profissional.`;
 
   const usr = `DOSSIÊ RESUMIDO PARA RESPOSTA FINAL:
 ${JSON.stringify({
@@ -492,8 +503,9 @@ ${JSON.stringify({
   const text = await ai.chatCompletionMessages(
     [{ role: 'system', content: sys }, { role: 'user', content: usr }],
     {
-      max_tokens: 1800,
+      max_tokens: 2600,
       billing,
+      response_format: { type: 'json_object' },
       model: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini'
     }
   );
@@ -502,7 +514,7 @@ ${JSON.stringify({
     stage: 'final_answer',
     provider: Provider.GPT,
     model_hint: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini',
-    summary: 'Resposta final ao usuário.'
+    summary: 'Resposta final explicável (JSON) ao usuário.'
   });
 
   return text;
@@ -586,30 +598,46 @@ async function runCognitiveCouncil(params) {
       'Não foi possível gerar a resposta assistida completa no momento. Utilize os dados já registrados no IMPETUS e envolva seu supervisor técnico.';
   }
 
+  const { finalRaw, structuredFinal } = parseFinalStructuredResponse(finalText);
+
+  const extraBusinessRules = [
+    `Intent classificado: ${dossier.context.intent}`,
+    `Política de risco operacional (heurística): nível ${risk}`,
+    wantCross
+      ? 'Validação cruzada Claude↔GPT solicitada nesta execução.'
+      : 'Validação cruzada omitida pelos critérios do motor ou configuração.',
+    'Pipeline IMPETUS: percepção (Gemini quando disponível) → análise técnica (Claude) → rascunho (GPT) → resposta final explicável (GPT JSON).'
+  ];
+  if (dossier.analysis.cross_validation && typeof dossier.analysis.cross_validation.aligned === 'boolean') {
+    extraBusinessRules.push(
+      `Resultado da validação cruzada: alinhado=${dossier.analysis.cross_validation.aligned}`
+    );
+  }
+
   const synthesis = synthesize({
-    finalText,
+    finalRaw,
+    structuredFinal,
     dossier,
     validation: dossier.analysis.cross_validation,
     modelsUsed: dossier.meta.models_touched,
     degraded: dossier.meta.degraded,
-    limitations
+    limitations,
+    extraBusinessRules
   });
 
   dossier.decision.recommendation = synthesis.answer;
   dossier.decision.confidence = synthesis.confidence;
-  finalizeLayerFinal(dossier, { synthesis, finalText });
+  finalizeLayerFinal(dossier, { synthesis, finalText: synthesis.answer });
 
   const explanationLayer = {
     trace_id: traceId,
-    rules_applied: [
-      'Pipeline determinístico Gemini → Claude → GPT (rascunho) → validação opcional (Claude) → GPT final',
-      `Intent=${dossier.context.intent}`,
-      `Cross_validation=${wantCross ? 'requested' : 'skipped'}`,
-      `Risk=${risk}`
-    ],
-    limitations,
-    confidence: synthesis.confidence,
-    based_on: synthesis.based_on
+    ...synthesis.explanation_layer,
+    orchestration: {
+      intent: dossier.context.intent,
+      cross_validation_requested: wantCross,
+      risk_level: risk,
+      based_on: synthesis.based_on
+    }
   };
 
   const duration = Date.now() - t0;
@@ -645,6 +673,55 @@ async function runCognitiveCouncil(params) {
     console.warn('[COGNITIVE_AUDIT]', err.message);
   }
 
+  aiAnalytics.enqueueAiTrace({
+    trace_id: traceId,
+    user_id: user.id,
+    company_id: user.company_id,
+    module_name: module || 'cognitive_council',
+    input_payload: {
+      user_prompt: sanitized,
+      intent: dossier.context.intent,
+      pipeline_version: PIPELINE_VERSION,
+      user_scope: {
+        role: scope.role,
+        hierarchy_level: scope.hierarchy_level,
+        department: scope.department || null
+      },
+      context_snapshot: aiAnalytics.summarizeDossierData(data),
+      options: {
+        forceCrossValidation: !!options.forceCrossValidation,
+        keys: Object.keys(options || {}).slice(0, 20)
+      }
+    },
+    output_response: {
+      content: typeof synthesis.content === 'string' ? synthesis.content.slice(0, 12000) : synthesis.content,
+      answer: typeof synthesis.answer === 'string' ? synthesis.answer.slice(0, 12000) : synthesis.answer,
+      confidence: synthesis.confidence,
+      confidence_score: synthesis.confidence_score,
+      explanation_layer: synthesis.explanation_layer,
+      warnings: synthesis.warnings,
+      based_on: synthesis.based_on,
+      requires_action: synthesis.requires_action,
+      degraded: dossier.meta.degraded,
+      stages: buildStagesArray(dossier),
+      orchestration: explanationLayer.orchestration
+    },
+    model_info: {
+      pipeline_version: PIPELINE_VERSION,
+      duration_ms: duration,
+      stages: (dossier.logs || []).map((l) => ({
+        stage: l.stage,
+        provider: l.provider,
+        model_hint: l.model_hint || null,
+        at: l.ts
+      })),
+      models_touched: dossier.meta.models_touched || [],
+      risk_level: risk,
+      cross_validation: wantCross
+    },
+    system_fingerprint: null
+  });
+
   const dossierForClient = redactForPersistence(dossier);
 
   return {
@@ -652,8 +729,11 @@ async function runCognitiveCouncil(params) {
     traceId,
     trace_id: traceId,
     result: {
+      content: synthesis.content,
       answer: synthesis.answer,
       confidence: synthesis.confidence,
+      confidence_score: synthesis.confidence_score,
+      explanation_layer: synthesis.explanation_layer,
       warnings: synthesis.warnings,
       based_on: synthesis.based_on,
       requires_action: synthesis.requires_action,

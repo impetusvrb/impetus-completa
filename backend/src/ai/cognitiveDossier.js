@@ -158,7 +158,8 @@ function finalizeLayerFinal(dossier, { synthesis, finalText }) {
     requer_acao_humana: !!synthesis?.requires_action,
     trace_id: dossier.trace_id,
     baseado_em: synthesis?.based_on || [],
-    avisos: synthesis?.warnings || []
+    avisos: synthesis?.warnings || [],
+    explanation_layer: synthesis?.explanation_layer || null
   };
 }
 

@@ -21,6 +21,9 @@ const chatApi = {
   sendAIMessage: ({ message, history }) => http.post('/dashboard/chat', { message, history: history || [] }),
   /** Conselho Cognitivo — pipeline Gemini → Claude → GPT (sem chat entre modelos). */
   executeCognitiveCouncil: (body) => http.post('/cognitive-council/execute', body),
+  /** Detalhe de auditoria (explicabilidade) por trace do conselho — mesma empresa do utilizador. */
+  getCognitiveTrace: (traceId) =>
+    http.get('/cognitive-council/trace/' + encodeURIComponent(String(traceId || ''))),
   submitRegistration: (text) => http.post('/intelligent-registration', { text }),
   listRegistrations: () => http.get('/intelligent-registration?limit=10'),
   updateAvatar: (file) => {

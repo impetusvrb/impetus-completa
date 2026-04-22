@@ -7,13 +7,21 @@ import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
 import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
-import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain } from 'lucide-react';
+import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain, Info } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
 import impetusIaAvatar from '../assets/impetus-ia-avatar.png';
 import { useProtectedMediaSrc } from '../utils/mediaUrls';
 import './styles/chat.css';
 
 function convTitle(c,uid){ if(!c) return 'Chat'; if(c.type==='group') return c.name||'Grupo'; const o=c.participants&&c.participants.find(p=>p.id!==uid); return o&&(o.name||o.email)||'Conversa'; }
+
+function uncertaintyPhrase(layer) {
+  if (!layer || typeof layer.confidence_score !== 'number' || layer.confidence_score >= 60) return null;
+  const motivo =
+    (Array.isArray(layer.limitations) && layer.limitations.length && layer.limitations.join('; ')) ||
+    'confiança do modelo abaixo do limiar interno (60%).';
+  return `Esta recomendação possui alto grau de incerteza devido a ${motivo}`;
+}
 function ChatHeaderAvatar({ rawUrl }) {
   const src = useProtectedMediaSrc(rawUrl || null);
   if (!rawUrl) return null;
@@ -54,6 +62,8 @@ export default function ChatApp(){
   const [cadResult,setCadResult]=useState(null);
   /** Um único estado evita montar o overlay na aba errada (proposals) antes de aplicar tpm. */
   const [proacaoOverlay, setProacaoOverlay] = useState({ open: false, tab: 'proposals' });
+  /** Painel discreto de explicabilidade (auditoria / confiança). */
+  const [aiExplainModal, setAiExplainModal] = useState(null);
   const [currentUser,setCurrentUser]=useState(null);
   const typingTimers=useRef({});
   const avatarInputRef = useRef(null);
@@ -139,17 +149,27 @@ export default function ChatApp(){
     setAiMessages(prev=>[...prev,userMsg]);
     try{
       if (advancedCouncilMode) {
-        const { data } = await chatApi.executeCognitiveCouncil({
+        const res = await chatApi.executeCognitiveCouncil({
           input: { text },
           context: {},
           module: 'chat_impetus'
         });
+        const data = res.data;
         const reply =
-          (data && (data.result?.answer || data.synthesis?.answer)) ||
+          (data &&
+            (data.result?.content ||
+              data.result?.answer ||
+              data.synthesis?.content ||
+              data.synthesis?.answer)) ||
           'Sem resposta';
-        const trace = data?.traceId || data?.trace_id;
+        const trace =
+          res.headers?.['x-ai-trace-id'] || data?.traceId || data?.trace_id;
         const stages = Array.isArray(data?.stages) ? data.stages : [];
         const confidence = data?.result?.confidence;
+        const confidenceScore =
+          data?.result?.confidence_score ?? data?.synthesis?.confidence_score;
+        const explanationLayer =
+          data?.result?.explanation_layer || data?.synthesis?.explanation_layer;
         setAiMessages((prev) => [
           ...prev,
           {
@@ -157,7 +177,13 @@ export default function ChatApp(){
             content: reply,
             isUser: false,
             created_at: new Date().toISOString(),
-            cognitiveMeta: { trace, stages, confidence }
+            cognitiveMeta: {
+              trace,
+              stages,
+              confidence,
+              confidenceScore,
+              explanationLayer
+            }
           }
         ]);
       } else {
@@ -165,9 +191,30 @@ export default function ChatApp(){
           role: m.isUser ? 'user' : 'assistant',
           content: m.content || ''
         }));
-        const { data } = await chatApi.sendAIMessage({ message: text, history });
-        const reply=(data&&(data.reply||data.message||data.content))||'Sem resposta';
-        setAiMessages(prev=>[...prev,{id:Date.now()+1,content:reply,isUser:false,created_at:new Date().toISOString()}]);
+        const res = await chatApi.sendAIMessage({ message: text, history });
+        const data = res.data;
+        const reply =
+          (data && (data.reply || data.message || data.content)) || 'Sem resposta';
+        const traceHdr = res.headers?.['x-ai-trace-id'];
+        const explanationLayer = data?.explanation_layer;
+        const confidenceScore = data?.confidence_score;
+        setAiMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            content: reply,
+            isUser: false,
+            created_at: new Date().toISOString(),
+            cognitiveMeta:
+              explanationLayer || traceHdr
+                ? {
+                    trace: traceHdr,
+                    confidenceScore,
+                    explanationLayer
+                  }
+                : undefined
+          }
+        ]);
       }
     }catch(e){
       setAiMessages(prev=>[...prev,{id:Date.now()+1,content:'Erro ao conectar com a IA.',isUser:false,created_at:new Date().toISOString()}]);
@@ -379,6 +426,126 @@ export default function ChatApp(){
         </div>
       </div>
     </div>}
+    {aiExplainModal && (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-explain-title"
+        onClick={() => !aiExplainModal.loading && setAiExplainModal(null)}
+      >
+        <div
+          style={{
+            background: '#12121e',
+            border: '1px solid #2a2a3e',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 520,
+            maxHeight: '85vh',
+            overflow: 'auto',
+            padding: 20
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg,#6366f1,#4f46e5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Info size={18} color="#fff" />
+              </div>
+              <div>
+                <div id="ai-explain-title" style={{ color: '#fff', fontWeight: 600, fontSize: 15 }}>
+                  Raciocínio e transparência
+                </div>
+                <div style={{ color: '#6b7280', fontSize: 11 }}>
+                  {aiExplainModal.trace ? `Trace: ${aiExplainModal.trace}` : 'Detalhe da resposta'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAiExplainModal(null)}
+              style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 4 }}
+              aria-label="Fechar"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          {aiExplainModal.loading && (
+            <p style={{ color: '#9ca3af', fontSize: 13 }}>A carregar detalhes do trace…</p>
+          )}
+          {aiExplainModal.error && (
+            <p style={{ color: '#f87171', fontSize: 13 }}>{aiExplainModal.error}</p>
+          )}
+          {!aiExplainModal.loading && aiExplainModal.layer && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13, color: '#e5e7eb' }}>
+              {typeof aiExplainModal.layer.confidence_score === 'number' && (
+                <div>
+                  <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 4 }}>Confiança (0–100)</div>
+                  <div style={{ fontWeight: 600 }}>{aiExplainModal.layer.confidence_score}</div>
+                </div>
+              )}
+              {Array.isArray(aiExplainModal.layer.facts_used) && aiExplainModal.layer.facts_used.length > 0 && (
+                <div>
+                  <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 6 }}>Factos utilizados</div>
+                  <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.45 }}>
+                    {aiExplainModal.layer.facts_used.map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {Array.isArray(aiExplainModal.layer.business_rules) && aiExplainModal.layer.business_rules.length > 0 && (
+                <div>
+                  <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 6 }}>Diretrizes / regras de negócio</div>
+                  <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.45 }}>
+                    {aiExplainModal.layer.business_rules.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {Array.isArray(aiExplainModal.layer.limitations) && aiExplainModal.layer.limitations.length > 0 && (
+                <div>
+                  <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 6 }}>Limitações</div>
+                  <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.45 }}>
+                    {aiExplainModal.layer.limitations.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiExplainModal.layer.reasoning_trace && (
+                <div>
+                  <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 6 }}>Raciocínio (resumo)</div>
+                  <div style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap', color: '#d1d5db' }}>
+                    {aiExplainModal.layer.reasoning_trace}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
     {proacaoOverlay.open && (
       <div className="chat-proacao-overlay" role="dialog" aria-modal="true" aria-labelledby="chat-proacao-title">
         <div className="chat-proacao-overlay__topbar">
@@ -429,9 +596,88 @@ export default function ChatApp(){
             {aiMessages.map(msg=>(<div key={msg.id} style={{display:'flex',justifyContent:msg.isUser?'flex-end':'flex-start',gap:8,alignItems:'flex-end'}}>
               {!msg.isUser&&<img src={impetusIaAvatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}}/>}
               <div style={{maxWidth:'72%',padding:'10px 14px',borderRadius:msg.isUser?'18px 18px 4px 18px':'18px 18px 18px 4px',background:msg.isUser?'#6366f1':'#1e1e2e',color:'#fff',fontSize:14,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{msg.content}
+              {uncertaintyPhrase(msg.cognitiveMeta?.explanationLayer) && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'rgba(245,158,11,0.12)',
+                    border: '1px solid rgba(245,158,11,0.35)',
+                    color: '#fcd34d',
+                    fontSize: 12,
+                    lineHeight: 1.45
+                  }}
+                  role="status"
+                >
+                  {uncertaintyPhrase(msg.cognitiveMeta.explanationLayer)}
+                </div>
+              )}
+              {(msg.cognitiveMeta?.explanationLayer || msg.cognitiveMeta?.trace) && !msg.isUser && (
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const trace = msg.cognitiveMeta.trace;
+                      const layer = msg.cognitiveMeta.explanationLayer;
+                      if (layer && typeof layer === 'object') {
+                        setAiExplainModal({ trace, layer, loading: false, error: null });
+                        return;
+                      }
+                      if (!trace) return;
+                      setAiExplainModal({ trace, layer: null, loading: true, error: null });
+                      try {
+                        const { data } = await chatApi.getCognitiveTrace(trace);
+                        const expl =
+                          data?.explanation_layer ||
+                          data?.result?.explanation_layer ||
+                          data?.trace?.explanation_layer;
+                        if (expl && typeof expl === 'object') {
+                          setAiExplainModal({ trace, layer: expl, loading: false, error: null });
+                        } else {
+                          setAiExplainModal({
+                            trace,
+                            layer: null,
+                            loading: false,
+                            error: 'Sem camada de explicabilidade registada para este trace.'
+                          });
+                        }
+                      } catch (e) {
+                        setAiExplainModal({
+                          trace,
+                          layer: null,
+                          loading: false,
+                          error: e?.response?.data?.error || 'Não foi possível carregar o trace.'
+                        });
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11,
+                      color: '#a5b4fc',
+                      background: 'rgba(99,102,241,0.15)',
+                      border: '1px solid rgba(99,102,241,0.35)',
+                      borderRadius: 8,
+                      padding: '4px 10px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Info size={13} strokeWidth={2.25} aria-hidden />
+                    Ver raciocínio da IA
+                  </button>
+                </div>
+              )}
               {msg.cognitiveMeta?.trace && (
                 <div style={{fontSize:10,color:'rgba(255,255,255,0.45)',marginTop:6}}>
-                  Conselho Cognitivo · confiança {msg.cognitiveMeta.confidence != null ? Number(msg.cognitiveMeta.confidence).toFixed(2) : '—'} · trace {msg.cognitiveMeta.trace}
+                  {msg.cognitiveMeta.stages?.length ? 'Conselho Cognitivo' : 'Impetus IA'} ·{' '}
+                  {msg.cognitiveMeta.confidenceScore != null
+                    ? `confiança ${msg.cognitiveMeta.confidenceScore}/100`
+                    : msg.cognitiveMeta.confidence != null
+                      ? `confiança ${Number(msg.cognitiveMeta.confidence).toFixed(2)}`
+                      : 'confiança —'}
+                  {msg.cognitiveMeta.trace ? ` · trace ${msg.cognitiveMeta.trace}` : ''}
                 </div>
               )}
               {msg.cognitiveMeta?.stages?.length > 0 && (

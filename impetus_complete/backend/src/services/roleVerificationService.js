@@ -191,7 +191,15 @@ async function processApprovalRequest(requestId, approverId, approved, rejection
     }
   } else {
     const strict = await orgVal.assertApproverMatches(req.company_id, approverId, subject);
-    if (!strict.ok) return { ok: false, error: strict.error, code: strict.code };
+    if (!strict.ok) {
+      const requestAssignedToApprover = req.approver_id && String(req.approver_id) === String(approverId);
+      const canUseRequestFallback =
+        requestAssignedToApprover &&
+        (strict.code === 'NO_APPROVER' || strict.code === 'FORBIDDEN_APPROVER');
+      if (!canUseRequestFallback) {
+        return { ok: false, error: strict.error, code: strict.code };
+      }
+    }
   }
 
   if (approved) {
@@ -380,6 +388,35 @@ async function getPendingApprovalsForUser(approverId) {
       });
     } catch (e) {
       console.warn('[ROLE_VERIFICATION_AUTOQUEUE_ERROR]', row.id, e?.message || e);
+    }
+  }
+
+  const unresolvedRes = await db.query(
+    `
+    SELECT rvr.id, rvr.user_id
+    FROM role_verification_requests rvr
+    WHERE rvr.company_id = $1
+      AND rvr.status = 'pending'
+      AND (rvr.approver_id IS NULL OR rvr.approver_id <> $2)
+    ORDER BY rvr.created_at ASC
+    LIMIT 500
+  `,
+    [approver.company_id, approverId]
+  );
+  for (const req of unresolvedRes.rows || []) {
+    try {
+      const subject = await orgVal.loadUserForValidation(req.user_id, approver.company_id);
+      if (!subject) continue;
+      const strict = await orgVal.assertApproverMatches(approver.company_id, approverId, subject);
+      if (!strict.ok) continue;
+      await db.query(
+        `UPDATE role_verification_requests
+         SET approver_id = $1, structure_error = NULL, updated_at = now()
+         WHERE id = $2`,
+        [approverId, req.id]
+      );
+    } catch (e) {
+      console.warn('[ROLE_VERIFICATION_AUTOASSIGN_ERROR]', req.id, e?.message || e);
     }
   }
 

@@ -1043,6 +1043,11 @@ export const adminStructural = {
   }
 };
 
+/** Auditoria de interações IA (admin empresa) */
+export const adminAiAudit = {
+  list: (params) => api.get('/admin/ai-audit', { params })
+};
+
 export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
   /** Alias de getAll */

@@ -201,6 +201,7 @@ useRoute('/api/admin/operational-teams', './routes/admin/operationalTeams');
 useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeamsMetrics');
 useRoute('/api/admin/equipes-operacionais', './routes/admin/operationalTeams');
 useRoute('/api/admin/structural', './routes/admin/structural');
+useRoute('/api/admin/ai-audit', './routes/admin/aiAudit');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
 useRoute('/api/admin/warehouse', './routes/admin/warehouse');

@@ -85,6 +85,8 @@ router.post('/execute', async (req, res) => {
       options
     });
 
+    const tid = result.trace_id || result.traceId;
+    if (tid) res.setHeader('X-AI-Trace-ID', String(tid));
     res.json(result);
   } catch (err) {
     if (err.code === 'FORBIDDEN_SCOPE') {
@@ -160,6 +162,7 @@ router.get('/trace/:traceId', async (req, res) => {
       trace: row,
       stages,
       result: row.final_output || null,
+      explanation_layer: row.explanation_layer || row.final_output?.explanation_layer || null,
       created_at: row.created_at
     });
   } catch (err) {

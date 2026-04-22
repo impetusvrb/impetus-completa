@@ -11,6 +11,8 @@ const dashboardProfileResolver = require('./dashboardProfileResolver');
 const personalizedInsights = require('./personalizedInsightsService');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const { cached } = require('../utils/cache');
+const { v4: uuidv4 } = require('uuid');
+const aiAnalytics = require('./aiAnalyticsService');
 
 const isFriday = () => new Date().getDay() === 5;
 
@@ -233,12 +235,51 @@ async function buildSmartSummary(userId, userName, companyId, user = null) {
         user,
       });
 
+      const traceId = uuidv4();
+      aiAnalytics.enqueueAiTrace({
+        trace_id: traceId,
+        user_id: userId,
+        company_id: companyId,
+        module_name: 'smart_summary',
+        input_payload: {
+          period_days: days,
+          is_weekly: isWeekly,
+          activity_count: activities.length,
+          activity_entity_sample: activities.slice(0, 25).map((a) => ({
+            activity_type: a.activity_type,
+            entity_type: a.entity_type,
+            entity_id: a.entity_id,
+            created_at: a.created_at
+          })),
+          communications_aggregate: {
+            total: commSummary.total,
+            open_count: commSummary.open_count,
+            priority_count: commSummary.priority_count,
+            types: commSummary.types
+          },
+          open_communication_ids: openComms.map((c) => c.id).slice(0, 20),
+          open_proposal_ids: openProposals.map((p) => p.id)
+        },
+        output_response: {
+          summary_text: typeof summary === 'string' ? summary.slice(0, 20000) : String(summary || '').slice(0, 20000),
+          periodo: isWeekly ? 'semanal' : 'diário'
+        },
+        model_info: {
+          provider: 'openai',
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          channel: 'chatCompletion',
+          max_tokens_requested: 1000
+        },
+        system_fingerprint: null
+      });
+
       return {
         summary,
         isWeekly,
         periodo: isWeekly ? 'semanal' : 'diário',
         openCommsCount: commSummary.open_count || 0,
         openProposalsCount: openProposals.length,
+        aiTraceId: traceId
       };
     },
     () => cacheKey,
