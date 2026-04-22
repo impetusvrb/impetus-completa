@@ -23,6 +23,7 @@ const { attachRealtimeOpenaiProxy } =
 const { initChatSocket } = require('./socket/chatSocket');
 const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
 const { requireAuth } = require('./middleware/auth');
+const { sendSafeError } = require('./utils/sendSafeError');
 const db = require('./db');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
@@ -249,9 +250,13 @@ if (manuiaEnabled) {
   console.log('[server] ManuIA: desabilitado (ENABLE_MANUIA=false)');
 }
 
-app.use((err, _req, res, _next) => {
-  console.error('[server]', err);
-  res.status(500).json({ ok: false, error: err.message || 'Erro interno' });
+app.use((err, req, res, _next) => {
+  const st = err.status || err.statusCode;
+  sendSafeError(res, err, {
+    status: st,
+    code: err.code || 'EXPRESS_ERROR',
+    logContext: { path: req.originalUrl || req.path, method: req.method }
+  });
 });
 
 const PORT = parseInt(process.env.PORT || '4000', 10);

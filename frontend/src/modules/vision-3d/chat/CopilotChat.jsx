@@ -5,6 +5,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, FileText } from 'lucide-react';
 import useSpeechRecognition from '../../../hooks/useSpeechRecognition';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import styles from '../styles/Vision3D.module.css';
 
 export default function CopilotChat({
@@ -48,7 +49,7 @@ export default function CopilotChat({
       const sources = msg.webSources || [];
       return (
         <div key={i} className={styles.msgBubble + ' ' + styles['msgBubble--assistant']}>
-          {html && <div dangerouslySetInnerHTML={{ __html: html }} />}
+          {html && <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />}
           {steps.length > 0 && (
             <div style={{ marginTop: 12 }}>
               {steps.map((s, j) => {

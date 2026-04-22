@@ -168,7 +168,9 @@ async function exportUserData(userId) {
     data_access_logs: [],
     lgpd_requests: { summary: null, requests: [] },
     audit_trail_role_related: [],
-    consent_history: []
+    consent_history: [],
+    chat_messages: [],
+    communications: []
   };
 
   try {
@@ -288,6 +290,52 @@ async function exportUserData(userId) {
   } catch (err) {
     console.error('[LGPD export consent_logs]', err.message);
     result.consent_history_error = err.message;
+  }
+
+  try {
+    if (companyId) {
+      const chat = await db.query(
+        `
+        SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.content, m.file_url, m.file_name,
+               m.file_size, m.reply_to, m.created_at, m.deleted_for_everyone_at,
+               c.type AS conversation_type, c.name AS conversation_name, c.company_id
+        FROM chat_messages m
+        INNER JOIN chat_conversations c ON c.id = m.conversation_id AND c.company_id = $2
+        INNER JOIN chat_participants cp ON cp.conversation_id = c.id AND cp.user_id = $1
+        WHERE m.deleted_at IS NULL
+        ORDER BY m.created_at DESC
+        LIMIT 8000
+      `,
+        [userId, companyId]
+      );
+      result.chat_messages = chat.rows;
+    }
+  } catch (err) {
+    console.error('[LGPD export chat_messages]', err.message);
+    result.chat_messages_error = err.message;
+  }
+
+  try {
+    if (companyId) {
+      const comm = await db.query(
+        `
+        SELECT id, company_id, source, source_message_id, sender_id, sender_name, sender_phone,
+               recipient_id, recipient_department_id, message_type, text_content, media_url,
+               status, ai_sentiment, ai_priority, ai_keywords, related_equipment_id,
+               contains_sensitive_data, created_at
+        FROM communications
+        WHERE company_id = $1
+          AND (sender_id = $2 OR recipient_id = $2)
+        ORDER BY created_at DESC
+        LIMIT 5000
+      `,
+        [companyId, userId]
+      );
+      result.communications = comm.rows;
+    }
+  } catch (err) {
+    console.error('[LGPD export communications]', err.message);
+    result.communications_error = err.message;
   }
 
   return result;

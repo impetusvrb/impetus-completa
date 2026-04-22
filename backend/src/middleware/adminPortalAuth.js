@@ -3,12 +3,12 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 
-const IMPETUS_ADMIN_JWT_SECRET =
-  process.env.IMPETUS_ADMIN_JWT_SECRET ||
-  (process.env.NODE_ENV === 'production' ? null : 'impetus_admin_dev_only_change_me');
-
-if (process.env.NODE_ENV === 'production' && !process.env.IMPETUS_ADMIN_JWT_SECRET) {
-  console.error('[ADMIN_PORTAL] IMPETUS_ADMIN_JWT_SECRET obrigatório em produção');
+const IMPETUS_ADMIN_JWT_SECRET = (process.env.IMPETUS_ADMIN_JWT_SECRET || '').trim();
+if (!IMPETUS_ADMIN_JWT_SECRET) {
+  console.error(
+    '[ADMIN_PORTAL] IMPETUS_ADMIN_JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.'
+  );
+  process.exit(1);
 }
 
 const JWT_OPTS = { expiresIn: '8h', issuer: 'impetus-admin-portal' };
@@ -21,7 +21,7 @@ function signAdminToken(adminRow) {
       perfil: adminRow.perfil,
       email: adminRow.email
     },
-    IMPETUS_ADMIN_JWT_SECRET || 'impetus_admin_dev_only_change_me',
+    IMPETUS_ADMIN_JWT_SECRET,
     JWT_OPTS
   );
 }
@@ -47,7 +47,7 @@ function requireAdminAuth(req, res, next) {
 
   let decoded;
   try {
-    decoded = jwt.verify(raw, IMPETUS_ADMIN_JWT_SECRET || 'impetus_admin_dev_only_change_me');
+    decoded = jwt.verify(raw, IMPETUS_ADMIN_JWT_SECRET);
   } catch {
     return res.status(401).json({ ok: false, error: 'Token inválido ou expirado', code: 'ADMIN_AUTH_INVALID' });
   }

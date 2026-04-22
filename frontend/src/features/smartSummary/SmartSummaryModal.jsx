@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import Modal from '../../components/Modal';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 import './SmartSummaryModal.css';
 
 export default function SmartSummaryModal({ isOpen, onClose, summary, periodo, loading }) {
@@ -32,7 +33,7 @@ export default function SmartSummaryModal({ isOpen, onClose, summary, periodo, l
         ) : summary ? (
           <div
             className="smart-summary-content"
-            dangerouslySetInnerHTML={{ __html: markdownToHtml(summary) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownToHtml(summary)) }}
           />
         ) : (
           <p className="smart-summary-empty">Nenhum resumo disponível.</p>

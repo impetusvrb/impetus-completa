@@ -10,9 +10,9 @@ const dashboardProfileResolver = require('../services/dashboardProfileResolver')
 const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'impetus_super_secret_key');
-if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
-  console.error('[AUTH] JWT_SECRET obrigatório em produção. Configure em .env');
+const JWT_SECRET = (process.env.JWT_SECRET || '').trim();
+if (!JWT_SECRET) {
+  console.error('[AUTH] JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.');
   process.exit(1);
 }
 
