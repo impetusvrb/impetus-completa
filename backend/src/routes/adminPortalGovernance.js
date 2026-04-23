@@ -8,6 +8,7 @@ const aiComplianceEngine = require('../services/aiComplianceEngine');
 const aiPolicyService = require('../services/aiPolicyService');
 const observabilityService = require('../services/observabilityService');
 const aiLearningFeedbackService = require('../services/aiLearningFeedbackService');
+const complianceReportingService = require('../services/complianceReportingService');
 
 const router = express.Router();
 
@@ -213,6 +214,32 @@ router.get('/ai-learning', requireAdminAuth, requireGlobalGovernance, (_req, res
   } catch (e) {
     console.error('[ADMIN_PORTAL_AI_LEARNING]', e);
     res.status(500).json({ ok: false, error: 'Erro ao obter métricas de aprendizagem assistida' });
+  }
+});
+
+/** Relatórios de conformidade agregados (LGPD / ISO 42001): super_admin visão global; comercial/suporte exige company_id. */
+router.get('/compliance/reports', requireAdminAuth, async (req, res) => {
+  const perfil = req.adminUser?.perfil;
+  if (!['super_admin', 'admin_comercial', 'admin_suporte'].includes(perfil)) {
+    return res.status(403).json({ ok: false, error: 'Permissão insuficiente', code: 'ADMIN_FORBIDDEN' });
+  }
+  try {
+    const report = await complianceReportingService.generateComplianceReport({
+      adminProfile: perfil,
+      company_id: req.query.company_id != null ? String(req.query.company_id).trim() : null,
+      period_start: req.query.period_start,
+      period_end: req.query.period_end,
+      report_type: req.query.report_type,
+      format: req.query.format
+    });
+    if (!report.ok) {
+      const code = report.code === 'ACCESS_DENIED' ? 403 : 400;
+      return res.status(code).json({ ok: false, error: report.error, code: report.code });
+    }
+    res.json({ ok: true, data: report });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_COMPLIANCE_REPORT]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao gerar relatório de conformidade' });
   }
 });
 
