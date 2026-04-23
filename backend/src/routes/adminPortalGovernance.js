@@ -5,6 +5,7 @@ const { requireAdminAuth, requireAdminProfiles } = require('../middleware/adminP
 const aiIncidentGovernanceService = require('../services/aiIncidentGovernanceService');
 const riskIntelligenceService = require('../services/riskIntelligenceService');
 const aiComplianceEngine = require('../services/aiComplianceEngine');
+const aiPolicyService = require('../services/aiPolicyService');
 
 const router = express.Router();
 
@@ -115,6 +116,55 @@ router.get(
     }
   }
 );
+
+router.get('/policies', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
+  try {
+    const companyId = req.query.company_id ? String(req.query.company_id).trim() : null;
+    const items = await aiPolicyService.listPolicies({ companyId, superAdmin: true });
+    res.json({ ok: true, data: { items } });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_POLICIES_LIST]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao listar políticas' });
+  }
+});
+
+router.post('/policies', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
+  try {
+    const row = await aiPolicyService.createPolicy(req.body || {}, { superAdmin: true });
+    res.status(201).json({ ok: true, data: { policy: row } });
+  } catch (e) {
+    if (e.code === 'INVALID_POLICY_TYPE' || e.code === 'COMPANY_NOT_FOUND') {
+      return res.status(400).json({ ok: false, error: e.message, code: e.code });
+    }
+    console.error('[ADMIN_PORTAL_POLICIES_CREATE]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao criar política' });
+  }
+});
+
+router.put('/policies/:id', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
+  try {
+    const row = await aiPolicyService.updatePolicy(req.params.id, req.body || {}, { superAdmin: true });
+    if (!row) return res.status(404).json({ ok: false, error: 'Política não encontrada' });
+    res.json({ ok: true, data: { policy: row } });
+  } catch (e) {
+    if (e.code === 'INVALID_POLICY_TYPE') {
+      return res.status(400).json({ ok: false, error: e.message, code: e.code });
+    }
+    console.error('[ADMIN_PORTAL_POLICIES_UPDATE]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao atualizar política' });
+  }
+});
+
+router.delete('/policies/:id', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
+  try {
+    const row = await aiPolicyService.deletePolicy(req.params.id, { superAdmin: true });
+    if (!row) return res.status(404).json({ ok: false, error: 'Política não encontrada' });
+    res.json({ ok: true, data: { deleted: row.id } });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_POLICIES_DELETE]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao remover política' });
+  }
+});
 
 router.get('/ai-incidents/:id', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
   try {

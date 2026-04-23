@@ -155,21 +155,36 @@ async function insertAiTrace(row) {
     row.legal_basis != null ? String(row.legal_basis).slice(0, 48) : null;
   const dataClassificationJson = JSON.stringify(redactForTrace(row.data_classification || {}));
 
-  const scheduleComplianceIncident = () => {
-    if (!row.compliance_incident || !row.trace_id || !row.company_id) return;
+  const schedulePostTraceIncidents = () => {
     const aiIncidentService = require('./aiIncidentService');
-    setImmediate(() => {
-      aiIncidentService
-        .createIncident({
-          traceId: row.trace_id,
-          userId: row.user_id,
-          companyId: row.company_id,
-          incidentType: 'COMPLIANCE_RISK',
-          userComment: row.compliance_incident.summary,
-          severity: row.compliance_incident.severity || 'HIGH'
-        })
-        .catch((e) => console.warn('[COMPLIANCE_INCIDENT]', e?.message || e));
-    });
+    if (row.compliance_incident && row.trace_id && row.company_id) {
+      setImmediate(() => {
+        aiIncidentService
+          .createIncident({
+            traceId: row.trace_id,
+            userId: row.user_id,
+            companyId: row.company_id,
+            incidentType: 'COMPLIANCE_RISK',
+            userComment: row.compliance_incident.summary,
+            severity: row.compliance_incident.severity || 'HIGH'
+          })
+          .catch((e) => console.warn('[COMPLIANCE_INCIDENT]', e?.message || e));
+      });
+    }
+    if (row.policy_incident && row.trace_id && row.company_id) {
+      setImmediate(() => {
+        aiIncidentService
+          .createIncident({
+            traceId: row.trace_id,
+            userId: row.user_id,
+            companyId: row.company_id,
+            incidentType: 'POLICY_VIOLATION',
+            userComment: row.policy_incident.summary,
+            severity: row.policy_incident.severity || 'MEDIUM'
+          })
+          .catch((e) => console.warn('[POLICY_INCIDENT]', e?.message || e));
+      });
+    }
   };
 
   const runExtendedInsert = async () => {
@@ -231,7 +246,7 @@ async function insertAiTrace(row) {
 
   try {
     await runExtendedInsert();
-    scheduleComplianceIncident();
+    schedulePostTraceIncidents();
   } catch (err) {
     if (err.message && err.message.includes('human_validation_status')) {
       await db.query(
@@ -243,7 +258,7 @@ async function insertAiTrace(row) {
       `,
         params.slice(0, 8)
       );
-      scheduleComplianceIncident();
+      schedulePostTraceIncidents();
     } else {
       throw err;
     }
@@ -330,7 +345,8 @@ function enqueueAiTrace(record) {
     governance_tags: record.governance_tags,
     legal_basis: record.legal_basis,
     data_classification: record.data_classification,
-    compliance_incident: record.compliance_incident
+    compliance_incident: record.compliance_incident,
+    policy_incident: record.policy_incident
   };
   setImmediate(() => {
     insertAiTrace(copy).catch((err) => {

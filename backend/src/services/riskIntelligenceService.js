@@ -64,6 +64,7 @@ function computeUserRiskScoreFromMetrics(m) {
   const avgSev = m.avg_severity_numeric != null ? Number(m.avg_severity_numeric) : 1;
   const inv = m.invasions_30d || 0;
   const comp = m.compliance_incidents_30d || 0;
+  const pol = m.policy_violations_30d || 0;
   const rej = m.hitl_rejected_30d || 0;
   const acc = m.hitl_accepted_30d || 0;
   const traces = m.traces_30d || 0;
@@ -73,6 +74,7 @@ function computeUserRiskScoreFromMetrics(m) {
   score += Math.max(0, avgSev - 1) * 9;
   score += Math.min(inv * 28, 55);
   score += Math.min(comp * 12, 30);
+  score += Math.min(pol * 8, 24);
   const decided = rej + acc;
   if (decided > 0) score += (rej / decided) * 28;
   if (traces > 800) score += 12;
@@ -91,12 +93,14 @@ function computeCompanyRiskScoreFromMetrics(m, avgUserTension) {
   const crit = m.critical_30d || 0;
   const burst = m.high_burst_24h ? 1 : 0;
   const comp = m.compliance_incidents_30d || 0;
+  const pol = m.policy_violations_30d || 0;
 
   let score = 0;
   score += Math.min(inc * 3, 32);
   score += Math.min(crit * 14, 42);
   score += burst * 22;
   score += Math.min(comp * 6, 22);
+  score += Math.min(pol * 5, 18);
   score += Math.min(avgUserTension * 0.35, 28);
   return clampScore(score);
 }
@@ -137,6 +141,10 @@ async function fetchUserMetrics(companyId, userId) {
         WHERE user_id = $2 AND company_id = $1
           AND incident_type = 'COMPLIANCE_RISK'
           AND created_at >= now() - interval '30 days') AS compliance_incidents_30d,
+      (SELECT count(*)::int FROM ai_incidents
+        WHERE user_id = $2 AND company_id = $1
+          AND incident_type = 'POLICY_VIOLATION'
+          AND created_at >= now() - interval '30 days') AS policy_violations_30d,
       (SELECT count(*) FILTER (WHERE human_validation_status = 'REJECTED')::int
         FROM ai_interaction_traces
         WHERE user_id = $2 AND company_id = $1
@@ -173,6 +181,10 @@ async function fetchCompanyMetrics(companyId) {
         WHERE company_id = $1
           AND incident_type = 'COMPLIANCE_RISK'
           AND created_at >= now() - interval '30 days') AS compliance_incidents_30d,
+      (SELECT count(*)::int FROM ai_incidents
+        WHERE company_id = $1
+          AND incident_type = 'POLICY_VIOLATION'
+          AND created_at >= now() - interval '30 days') AS policy_violations_30d,
       (SELECT coalesce(avg(least(uc * 14, 85)), 0)::float FROM (
         SELECT count(*)::int AS uc FROM ai_incidents
         WHERE company_id = $1
