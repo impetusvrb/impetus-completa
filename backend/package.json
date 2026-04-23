@@ -33,6 +33,7 @@
     "test:realtime": "node scripts/test-realtime-ws.js",
     "test:did": "node scripts/test-did.js",
     "smoke:manuia-app": "node scripts/smoke-manuia-app.js",
+    "test:observability": "node src/tests/observabilityScenarios.js",
     "test:policy-hardening": "node src/tests/policyHardeningScenarios.js",
     "test:security": "node src/tests/securityScenarios.js",
     "test:redteam": "node src/tests/redTeamingScenarios.js"

@@ -46,6 +46,7 @@ const dataClassificationService = require('../services/dataClassificationService
 const aiLegalAuditService = require('../services/aiLegalAuditService');
 const policyEngineService = require('../services/policyEngineService');
 const policyEnforcementService = require('../services/policyEnforcementService');
+const observabilityService = require('../services/observabilityService');
 
 const AI_POLICY_ENGINE_ON = process.env.AI_POLICY_ENGINE_ENABLED !== 'false';
 
@@ -982,6 +983,14 @@ async function runCognitiveCouncil(params) {
 
   const t0 = Date.now();
   const traceId = uuidv4();
+  observabilityService.markCouncilStart({
+    traceId,
+    companyId: user?.company_id,
+    userId: user?.id,
+    module: module || 'cognitive_council'
+  });
+
+  const executeCouncil = async () => {
   const sanitized = sanitizeTextInput(rt);
   const scope = buildUserScope(user);
   assertSameCompany(user, user.company_id);
@@ -1054,6 +1063,14 @@ async function runCognitiveCouncil(params) {
     : 'none';
 
   if (!adaptivePolicy.allow_response) {
+    observabilityService.markCouncilBlocked({
+      traceId,
+      companyId: user?.company_id,
+      userId: user?.id,
+      reason: 'adaptive_governance',
+      riskLevel: risk,
+      responseMode: adaptiveResponseMode
+    });
     return buildAdaptiveBlockedCouncilResult({
       traceId,
       user,
@@ -1082,6 +1099,15 @@ async function runCognitiveCouncil(params) {
       countryCode: policyCtxEarly.countryCode
     });
     if (!policyEngineService.isModuleAllowed(module || 'cognitive_council', effectivePolicyBundle.rules)) {
+      observabilityService.markCouncilBlocked({
+        traceId,
+        companyId: user?.company_id,
+        userId: user?.id,
+        reason: 'policy_module_not_allowed',
+        riskLevel: risk,
+        responseMode: adaptiveResponseMode,
+        policyEffect: 'blocked'
+      });
       return buildPolicyBlockedCouncilResult({
         traceId,
         user,
@@ -1373,6 +1399,29 @@ async function runCognitiveCouncil(params) {
     /* aditivo */
   }
 
+  observabilityService.markPolicyApplied({
+    traceId,
+    companyId: user?.company_id,
+    userId: user?.id,
+    policyEffect: policyEnforcementResult?.policy_trace?.policy_effect,
+    riskLevel: risk,
+    responseMode: adaptiveResponseMode,
+    violation: !!policyEnforcementResult?.violation
+  });
+  observabilityService.markCouncilSuccess({
+    traceId,
+    companyId: user?.company_id,
+    userId: user?.id,
+    durationMs: duration,
+    riskLevel: risk,
+    responseMode: adaptiveResponseMode,
+    policyEffect: policyEnforcementResult?.policy_trace?.policy_effect || 'none',
+    policyViolation: !!policyEnforcementResult?.violation,
+    complianceIncident: !!compliancePack.compliance_incident,
+    degraded: dossier.meta.degraded,
+    module: module || 'cognitive_council'
+  });
+
   return {
     ok: true,
     traceId,
@@ -1398,6 +1447,19 @@ async function runCognitiveCouncil(params) {
     duration_ms: duration,
     degraded: dossier.meta.degraded
   };
+  };
+
+  try {
+    return await executeCouncil();
+  } catch (err) {
+    observabilityService.markCouncilException({
+      traceId,
+      companyId: user?.company_id,
+      userId: user?.id,
+      err
+    });
+    throw err;
+  }
 }
 
 function exampleMaintenancePayload() {

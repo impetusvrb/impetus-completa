@@ -6,11 +6,22 @@ const aiIncidentGovernanceService = require('../services/aiIncidentGovernanceSer
 const riskIntelligenceService = require('../services/riskIntelligenceService');
 const aiComplianceEngine = require('../services/aiComplianceEngine');
 const aiPolicyService = require('../services/aiPolicyService');
+const observabilityService = require('../services/observabilityService');
 
 const router = express.Router();
 
 /** Governança global: apenas super_admin (equipa Impetus, visão multi-tenant). */
 const requireGlobalGovernance = requireAdminProfiles('super_admin');
+
+router.get('/system-health', requireAdminAuth, requireGlobalGovernance, (_req, res) => {
+  try {
+    const { metrics, system_status, alerts, timestamp } = observabilityService.getSystemHealthPayload();
+    res.json({ ok: true, metrics, system_status, alerts, timestamp });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_SYSTEM_HEALTH]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao obter saúde do sistema' });
+  }
+});
 
 router.get(
   '/ai-incidents/metrics',
