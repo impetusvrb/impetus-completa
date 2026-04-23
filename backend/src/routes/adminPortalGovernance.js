@@ -128,6 +128,21 @@ router.get(
   }
 );
 
+router.get(
+  '/compliance/advanced',
+  requireAdminAuth,
+  requireGlobalGovernance,
+  async (_req, res) => {
+    try {
+      const data = await aiComplianceEngine.getAdvancedComplianceDashboard();
+      res.json({ ok: true, data });
+    } catch (e) {
+      console.error('[ADMIN_PORTAL_COMPLIANCE_ADVANCED]', e);
+      res.status(500).json({ ok: false, error: 'Erro ao obter conformidade avançada' });
+    }
+  }
+);
+
 router.get('/policies', requireAdminAuth, requireGlobalGovernance, async (req, res) => {
   try {
     const companyId = req.query.company_id ? String(req.query.company_id).trim() : null;

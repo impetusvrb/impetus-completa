@@ -73,7 +73,9 @@ function scanText(text, detected) {
  *   contains_personal_data: boolean,
  *   contains_sensitive_data: boolean,
  *   detected_fields: string[],
- *   risk_level: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL'
+ *   risk_level: 'LOW'|'MEDIUM'|'HIGH'|'CRITICAL',
+ *   data_categories: string[],
+ *   primary_category: 'PERSONAL'|'SENSITIVE'|'OPERATIONAL'|'CRITICAL_INDUSTRIAL'
  * }}
  */
 function classifyData(payload) {
@@ -114,11 +116,27 @@ function classifyData(payload) {
     risk_level = 'MEDIUM';
   }
 
+  const operationalHint = /\b(?:linha|sensor|oee|ativo|lote|manuten[cç][aã]o|ordem\s+de\s+produ[cç][aã]o|plc|scada)\b/i.test(
+    blob.slice(0, 80000)
+  );
+  const data_categories = [];
+  if (contains_personal_data) data_categories.push('PERSONAL');
+  if (contains_sensitive_data) data_categories.push('SENSITIVE');
+  if (hasIndustrial) data_categories.push('CRITICAL_INDUSTRIAL');
+  if (operationalHint || data_categories.length === 0) data_categories.push('OPERATIONAL');
+
+  let primary_category = 'OPERATIONAL';
+  if (hasIndustrial) primary_category = 'CRITICAL_INDUSTRIAL';
+  else if (contains_sensitive_data) primary_category = 'SENSITIVE';
+  else if (contains_personal_data) primary_category = 'PERSONAL';
+
   return {
     contains_personal_data,
     contains_sensitive_data,
     detected_fields: fields.sort(),
-    risk_level
+    risk_level,
+    data_categories: [...new Set(data_categories)].sort(),
+    primary_category
   };
 }
 

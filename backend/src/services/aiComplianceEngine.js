@@ -3,6 +3,7 @@
 const dataClassificationService = require('./dataClassificationService');
 const complianceAnonymizerService = require('./complianceAnonymizerService');
 const aiLegalAuditService = require('./aiLegalAuditService');
+const complianceDecisionService = require('./complianceDecisionService');
 
 const LEGAL_BASIS = {
   LEGITIMATE_INTEREST: 'LEGITIMATE_INTEREST',
@@ -36,6 +37,7 @@ const BLOCK_MSG =
  * @param {object} ctx.contextSnapshot
  * @param {string} ctx.module
  * @param {'full'|'limited'|'restricted'|'none'} ctx.adaptiveResponseMode
+ * @param {object} [ctx.policyRules] — regras fundidas (ex.: compliance_force_anonymize, data_retention_*)
  */
 async function processAfterAdaptive(ctx) {
   const legal_basis = resolveLegalBasis(ctx.module);
@@ -68,19 +70,17 @@ async function processAfterAdaptive(ctx) {
     model_answer: String(ctx.synthesis.answer || ctx.synthesis.content || '')
   };
   const classification = dataClassificationService.classifyData(payload);
+  const plan = complianceDecisionService.planCompliance(classification, {
+    adaptiveResponseMode: ctx.adaptiveResponseMode,
+    policyRules: ctx.policyRules || null
+  });
+  const criticalCombo = plan.criticalCombo;
+  const sensitiveHigh = plan.sensitiveHigh;
 
   let compliance_action = 'allowed';
   let justification =
     'Fluxo permitido: classificação não atingiu limiar crítico para bloqueio automático.';
   const governance_tags = [];
-
-  const needAnonymizeByAdaptive =
-    ctx.adaptiveResponseMode === 'limited' || ctx.adaptiveResponseMode === 'restricted';
-  const sensitiveHigh =
-    classification.contains_sensitive_data && classification.risk_level === 'HIGH';
-  const criticalCombo =
-    classification.risk_level === 'CRITICAL' &&
-    (classification.contains_sensitive_data || classification.contains_personal_data);
 
   if (criticalCombo) {
     compliance_action = 'blocked';
@@ -100,7 +100,11 @@ async function processAfterAdaptive(ctx) {
       data_classification: classification,
       legal_basis,
       risk_level: classification.risk_level,
-      decision_summary: justification
+      decision_summary: justification,
+      ...complianceDecisionService.buildAuditExtensions({
+        complianceAction: 'blocked',
+        anonymizationApplied: false
+      })
     });
     return {
       legal_basis,
@@ -127,14 +131,16 @@ async function processAfterAdaptive(ctx) {
       data_classification: classification,
       legal_basis,
       risk_level: classification.risk_level,
-      decision_summary: justification
+      decision_summary: justification,
+      ...complianceDecisionService.buildAuditExtensions({
+        complianceAction: 'allowed',
+        anonymizationApplied: false,
+        compliance_status_override: 'REVIEW_REQUIRED'
+      })
     });
   }
 
-  const shouldAnonymize =
-    needAnonymizeByAdaptive ||
-    (classification.contains_sensitive_data &&
-      (classification.risk_level === 'HIGH' || classification.risk_level === 'MEDIUM'));
+  const shouldAnonymize = plan.shouldAnonymize;
 
   let anonymization_applied = false;
   if (shouldAnonymize) {
@@ -157,7 +163,11 @@ async function processAfterAdaptive(ctx) {
         data_classification: classification,
         legal_basis,
         risk_level: classification.risk_level,
-        decision_summary: justification
+        decision_summary: justification,
+        ...complianceDecisionService.buildAuditExtensions({
+          complianceAction: 'anonymized',
+          anonymizationApplied: true
+        })
       });
     }
   }
@@ -172,7 +182,11 @@ async function processAfterAdaptive(ctx) {
       legal_basis,
       risk_level: classification.risk_level,
       decision_summary:
-        'Consulta registada: classificação sem bloqueio nem anonimização adicional na saída.'
+        'Consulta registada: classificação sem bloqueio nem anonimização adicional na saída.',
+      ...complianceDecisionService.buildAuditExtensions({
+        complianceAction: 'allowed',
+        anonymizationApplied: false
+      })
     });
   }
 
@@ -276,10 +290,84 @@ async function getComplianceOverview() {
   };
 }
 
+async function getAdvancedComplianceDashboard() {
+  const dataLifecycleService = require('./dataLifecycleService');
+  const retention = dataLifecycleService.getRetentionPolicy();
+  const lastRun = dataLifecycleService.getLastRunStats();
+  const db = require('../db');
+  let sensitive_traces_not_redacted_30d = 0;
+  let anonymization_audit_events_30d = 0;
+  let audit_by_status = [];
+  try {
+    const r = await db.query(
+      `
+      SELECT count(*)::int AS n
+      FROM ai_interaction_traces t
+      WHERE (t.data_classification->>'contains_sensitive_data')::boolean = true
+        AND t.created_at >= now() - interval '30 days'
+        AND NOT (COALESCE(t.model_info, '{}'::jsonb) @> '{"lifecycle_redacted": true}'::jsonb)
+      `
+    );
+    sensitive_traces_not_redacted_30d = r.rows[0]?.n || 0;
+  } catch (_) {
+    /* schema opcional */
+  }
+  try {
+    const r2 = await db.query(
+      `
+      SELECT count(*)::int AS n
+      FROM ai_legal_audit_logs
+      WHERE action_type = 'ANONYMIZE' AND created_at >= now() - interval '30 days'
+      `
+    );
+    anonymization_audit_events_30d = r2.rows[0]?.n || 0;
+  } catch (_) {}
+  try {
+    const r3 = await db.query(
+      `
+      SELECT coalesce(compliance_status, 'UNKNOWN') AS st, count(*)::int AS n
+      FROM ai_legal_audit_logs
+      WHERE created_at >= now() - interval '30 days'
+      GROUP BY 1
+      ORDER BY n DESC
+      `
+    );
+    audit_by_status = r3.rows.map((x) => ({ compliance_status: x.st, count: x.n }));
+  } catch (_) {}
+
+  const alerts = [...dataLifecycleService.computeRegulatoryAlerts(retention.retention_policy)];
+  if (sensitive_traces_not_redacted_30d > 500) {
+    alerts.push({
+      code: 'HIGH_SENSITIVE_TRACE_VOLUME',
+      severity: 'WARNING',
+      message: 'Volume elevado de traces sensíveis sem redação de ciclo de vida nos últimos 30 dias.'
+    });
+  }
+
+  return {
+    retention_policy: retention.retention_policy,
+    lifecycle_last_run: {
+      at: lastRun.at,
+      traces_deleted: lastRun.traces_deleted,
+      traces_anonymized: lastRun.traces_anonymized,
+      audit_logs_deleted: lastRun.audit_logs_deleted,
+      errors: lastRun.errors || []
+    },
+    aggregates_30d: {
+      sensitive_traces_not_redacted: sensitive_traces_not_redacted_30d,
+      anonymization_audit_events: anonymization_audit_events_30d,
+      audit_by_compliance_status: audit_by_status
+    },
+    regulatory_alerts: alerts,
+    generated_at: new Date().toISOString()
+  };
+}
+
 module.exports = {
   LEGAL_BASIS,
   ENABLED,
   resolveLegalBasis,
   processAfterAdaptive,
-  getComplianceOverview
+  getComplianceOverview,
+  getAdvancedComplianceDashboard
 };

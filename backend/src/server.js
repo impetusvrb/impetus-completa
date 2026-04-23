@@ -340,6 +340,7 @@ machineMonitoring.start();
  * Ativo quando OPERATIONAL_BRAIN_ENABLED ≠ false e o cron não está explicitamente desligado.
  */
 let operationalBrainIntervalId = null;
+let dataLifecycleIntervalId = null;
 const brainCronExplicitOff =
   String(process.env.OPERATIONAL_BRAIN_CRON_ENABLED || '').toLowerCase() === 'false' ||
   process.env.OPERATIONAL_BRAIN_CRON_ENABLED === '0';
@@ -371,9 +372,37 @@ function clearOperationalBrainInterval() {
   }
 }
 
+function clearDataLifecycleInterval() {
+  if (dataLifecycleIntervalId) {
+    clearInterval(dataLifecycleIntervalId);
+    dataLifecycleIntervalId = null;
+  }
+}
+
+if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 'false') {
+  try {
+    const dataLifecycleService = require('./services/dataLifecycleService');
+    const hours = Math.min(168, Math.max(1, parseInt(process.env.DATA_LIFECYCLE_INTERVAL_HOURS || '24', 10)));
+    dataLifecycleIntervalId = setInterval(() => {
+      dataLifecycleService.runRetentionCycle().catch((e) => {
+        console.warn('[DATA_LIFECYCLE]', e?.message || e);
+      });
+    }, hours * 3600 * 1000);
+    setTimeout(() => {
+      dataLifecycleService.runRetentionCycle().catch((e) => {
+        console.warn('[DATA_LIFECYCLE:first-run]', e?.message || e);
+      });
+    }, 120000);
+    console.info(`[DATA_LIFECYCLE] Retenção/expurgo agendado a cada ${hours}h (1.ª execução ~2 min)`);
+  } catch (e) {
+    console.warn('[DATA_LIFECYCLE] Não iniciado:', e?.message);
+  }
+}
+
 function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   clearOperationalBrainInterval();
+  clearDataLifecycleInterval();
   try {
     if (typeof reminderScheduler.stop === 'function') reminderScheduler.stop();
   } catch (e) {

@@ -1250,7 +1250,14 @@ async function runCognitiveCouncil(params) {
     sanitized,
     contextSnapshot,
     module: module || 'cognitive_council',
-    adaptiveResponseMode
+    adaptiveResponseMode,
+    policyRules:
+      AI_POLICY_ENGINE_ON &&
+      effectivePolicyBundle &&
+      effectivePolicyBundle.rules &&
+      typeof effectivePolicyBundle.rules === 'object'
+        ? effectivePolicyBundle.rules
+        : undefined
   });
   const prevExpl =
     synthesis.explanation_layer && typeof synthesis.explanation_layer === 'object'
