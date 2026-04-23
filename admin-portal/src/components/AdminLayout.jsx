@@ -5,6 +5,13 @@ import { useAuth } from '../auth/AuthContext';
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const navItems = [
+    ['/', 'Dashboard'],
+    ['/empresas', 'Empresas'],
+    ['/usuarios-internos', 'Usuários internos'],
+    ['/logs', 'Logs'],
+    ...(user?.perfil === 'super_admin' ? [['/governanca-ia', 'Governança IA']] : [])
+  ];
 
   const handleSair = async () => {
     await logout();
@@ -37,12 +44,7 @@ export default function AdminLayout() {
           </div>
         </div>
         <nav style={{ flex: 1, paddingTop: 12 }}>
-          {[
-            ['/', 'Dashboard'],
-            ['/empresas', 'Empresas'],
-            ['/usuarios-internos', 'Usuários internos'],
-            ['/logs', 'Logs']
-          ].map(([to, label]) => (
+          {navItems.map(([to, label]) => (
             <NavLink
               key={to}
               to={to}

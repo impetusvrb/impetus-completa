@@ -11,6 +11,7 @@ import CompanyEdit from './pages/CompanyEdit';
 import Logs from './pages/Logs';
 import Users from './pages/Users';
 import NotFound from './pages/NotFound';
+import AiGovernance from './pages/AiGovernance';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -44,6 +45,8 @@ export default function App() {
         <Route path="empresas/:id/editar" element={<CompanyEdit />} />
         <Route path="logs" element={<Logs />} />
         <Route path="usuarios-internos" element={<Users />} />
+        <Route path="governanca-ia" element={<AiGovernance />} />
+        <Route path="governanca-ia/:incidentId" element={<AiGovernance />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

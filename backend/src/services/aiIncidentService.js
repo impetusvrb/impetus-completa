@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../db');
+const governanceAlertService = require('./governanceAlertService');
 
 const INCIDENT_TYPES = new Set([
   'ALUCINACAO',
@@ -75,7 +76,11 @@ async function createIncident({
      RETURNING *`,
     [traceId, userId || null, companyId, type, userComment != null ? String(userComment).slice(0, 50000) : null, sev]
   );
-  return r.rows[0];
+  const created = r.rows[0];
+  governanceAlertService.onIncidentCreated(created).catch((err) => {
+    console.error('[GOVERNANCE_ALERT_ON_CREATE]', err?.message || err);
+  });
+  return created;
 }
 
 function mapRow(row) {

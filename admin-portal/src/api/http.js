@@ -1,4 +1,6 @@
 const BASE = '/api/impetus-admin';
+/** Central de governança de IA (rotas exclusivas super_admin). */
+const GOVERNANCE_BASE = '/api/admin-portal';
 
 function getToken() {
   try {
@@ -16,7 +18,7 @@ export function clearToken() {
   localStorage.removeItem('impetus_admin_token');
 }
 
-export async function api(path, options = {}) {
+async function apiFetch(baseUrl, path, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
@@ -24,7 +26,7 @@ export async function api(path, options = {}) {
   const t = getToken();
   if (t) headers.Authorization = `Bearer ${t}`;
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers
   });
@@ -36,4 +38,13 @@ export async function api(path, options = {}) {
     throw err;
   }
   return data;
+}
+
+export async function api(path, options = {}) {
+  return apiFetch(BASE, path, options);
+}
+
+/** Governança global de incidentes IA (ISO 42001 / auditoria). */
+export async function apiGovernance(path, options = {}) {
+  return apiFetch(GOVERNANCE_BASE, path, options);
 }

@@ -203,6 +203,7 @@ useRoute('/api/dashboard', './routes/dashboard');
 useRoute('/api/live-dashboard', './routes/liveDashboard', requireAuth);
 useRoute('/api/communications', './routes/communications');
 useRoute('/api/impetus-admin', './routes/impetusAdmin');
+useRoute('/api/admin-portal', './routes/adminPortalGovernance');
 useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
