@@ -579,6 +579,12 @@ function buildStagesArray(dossier) {
   }));
 }
 
+/** Contexto mínimo para criptografia em repouso (policy.rules.force_encryption). */
+function traceEncryptionPolicyHint(rules) {
+  if (!rules || typeof rules !== 'object' || rules.force_encryption !== true) return undefined;
+  return { force_encryption: true };
+}
+
 async function buildAdaptiveBlockedCouncilResult({
   traceId,
   user,
@@ -931,6 +937,7 @@ async function buildPolicyBlockedCouncilResult({
     validated_at: null,
     legal_basis: legalBasisPol,
     data_classification: classifPol,
+    trace_policy_rules: traceEncryptionPolicyHint(effectivePolicyBundle?.rules),
     policy_incident: {
       severity: 'HIGH',
       summary: `[POLICY_VIOLATION] Módulo não permitido pelas políticas da organização.`
@@ -1501,6 +1508,7 @@ async function runCognitiveCouncil(params) {
     validated_at: null,
     legal_basis: compliancePack.legal_basis,
     data_classification: compliancePack.data_classification,
+    trace_policy_rules: traceEncryptionPolicyHint(effectivePolicyBundle?.rules),
     compliance_incident: compliancePack.compliance_incident,
     policy_incident: policyEnforcementResult?.policy_incident || null
   });

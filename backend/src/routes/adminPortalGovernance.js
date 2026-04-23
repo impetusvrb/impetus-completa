@@ -9,6 +9,7 @@ const aiPolicyService = require('../services/aiPolicyService');
 const observabilityService = require('../services/observabilityService');
 const aiLearningFeedbackService = require('../services/aiLearningFeedbackService');
 const complianceReportingService = require('../services/complianceReportingService');
+const encryptionService = require('../services/encryptionService');
 
 const router = express.Router();
 
@@ -218,6 +219,16 @@ router.get('/ai-learning', requireAdminAuth, requireGlobalGovernance, (_req, res
 });
 
 /** Relatórios de conformidade agregados (LGPD / ISO 42001): super_admin visão global; comercial/suporte exige company_id. */
+router.get('/security/encryption-status', requireAdminAuth, requireGlobalGovernance, async (_req, res) => {
+  try {
+    const data = await encryptionService.getAtRestCoverageStats();
+    res.json({ ok: true, data });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_ENCRYPTION_STATUS]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao obter estado de criptografia' });
+  }
+});
+
 router.get('/compliance/reports', requireAdminAuth, async (req, res) => {
   const perfil = req.adminUser?.perfil;
   if (!['super_admin', 'admin_comercial', 'admin_suporte'].includes(perfil)) {

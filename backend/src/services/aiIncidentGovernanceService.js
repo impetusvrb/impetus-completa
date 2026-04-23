@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../db');
+const aiAnalyticsService = require('./aiAnalyticsService');
 const governanceAlertService = require('./governanceAlertService');
 
 function severityPriorityTier(sev) {
@@ -221,9 +222,10 @@ async function listGovernanceIncidents({
   const governance_alerts = await fetchGovernanceContextFlags();
 
   const items = r.rows.map((row) => {
+    const rowDec = aiAnalyticsService.hydrateTracePayloadsForRead(row);
     const { explanation_layer, data_lineage } = extractExplanationAndLineage(
-      row.input_payload,
-      row.output_response
+      rowDec.input_payload,
+      rowDec.output_response
     );
     const { priority_tier, priority_score } = computePriorityScore(
       row.severity,
@@ -244,8 +246,8 @@ async function listGovernanceIncidents({
       explanation_layer,
       data_lineage,
       human_validation_status: row.human_validation_status ?? null,
-      validation_evidence: truncateText(row.validation_evidence, 500),
-      model_info: row.model_info ?? null,
+      validation_evidence: truncateText(rowDec.validation_evidence, 500),
+      model_info: rowDec.model_info ?? null,
       module_name: row.module_name ?? null,
       priority_tier,
       priority_score
@@ -429,7 +431,8 @@ async function getGovernanceIncidentDetail(incidentId) {
      WHERE trace_id = $1::uuid`,
     [row.trace_id]
   );
-  const t = tq.rows[0];
+  const tRaw = tq.rows[0];
+  const t = tRaw ? aiAnalyticsService.hydrateTracePayloadsForRead(tRaw) : null;
   let explanation_layer = null;
   let data_lineage = [];
   if (t) {

@@ -41,7 +41,8 @@
     "test:security": "node src/tests/securityScenarios.js",
     "test:redteam": "node src/tests/redTeamingScenarios.js",
     "test:ai-learning-feedback": "node src/tests/aiLearningFeedbackScenarios.js",
-    "test:compliance-reporting": "node src/tests/complianceReportingScenarios.js"
+    "test:compliance-reporting": "node src/tests/complianceReportingScenarios.js",
+    "test:encryption-at-rest": "node src/tests/encryptionAtRestScenarios.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

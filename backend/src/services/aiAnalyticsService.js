@@ -4,6 +4,7 @@
  * Governança de IA — registo assíncrono de traces (sem bloquear latência da resposta HTTP).
  */
 const db = require('../db');
+const encryptionService = require('./encryptionService');
 
 const SENSITIVE_KEY_RE =
   /^(password|passwd|pwd|secret|token|authorization|cookie|api[_-]?key|credit[_-]?card|cvv|ssn|cpf_raw)$/i;
@@ -104,6 +105,27 @@ function summarizeDossierData(data) {
   };
 }
 
+/**
+ * Descriptografa campos persistidos com envelope AES-256-GCM (uso interno / APIs admin).
+ * Não regista conteúdo descriptografado.
+ */
+function hydrateTracePayloadsForRead(row) {
+  if (!row) return row;
+  const out = { ...row };
+  if (out.input_payload != null) {
+    out.input_payload = encryptionService.tryDecryptValue(out.input_payload);
+  }
+  if (out.output_response != null) {
+    out.output_response = encryptionService.tryDecryptValue(out.output_response);
+  }
+  if (out.validation_evidence != null && out.validation_evidence !== '') {
+    out.validation_evidence = encryptionService.tryDecryptValue(String(out.validation_evidence), {
+      muteErrors: true
+    });
+  }
+  return out;
+}
+
 function buildInitialValidationAudit(row) {
   const base = Array.isArray(row.validation_audit) ? [...row.validation_audit] : [];
   if (row.human_validation_status === 'PENDING') {
@@ -135,18 +157,71 @@ async function insertAiTrace(row) {
   } catch (e) {
     console.warn('[AI_TRACE_SUPPLIER_TRANSPARENCY]', e.message);
   }
+
+  const classificationObj =
+    row.data_classification && typeof row.data_classification === 'object'
+      ? row.data_classification
+      : (() => {
+          try {
+            return typeof row.data_classification === 'string'
+              ? JSON.parse(row.data_classification)
+              : {};
+          } catch {
+            return {};
+          }
+        })();
+
+  const policyRules =
+    row.trace_policy_rules && typeof row.trace_policy_rules === 'object' ? row.trace_policy_rules : null;
+  const doEncrypt =
+    encryptionService.isEncryptionAvailable() &&
+    encryptionService.shouldEncryptAtRest(classificationObj, policyRules, {
+      force_encryption: row.force_encryption === true
+    });
+
+  let inputSerialized = JSON.stringify(redactForTrace(row.input_payload || {}));
+  let outputSerialized = JSON.stringify(redactForTrace(row.output_response || {}));
+
+  if (doEncrypt) {
+    try {
+      inputSerialized = JSON.stringify(
+        encryptionService.encryptField(JSON.parse(inputSerialized))
+      );
+      outputSerialized = JSON.stringify(
+        encryptionService.encryptField(JSON.parse(outputSerialized))
+      );
+      modelInfo = {
+        ...modelInfo,
+        encryption_applied: true,
+        encryption_version: encryptionService.ENCRYPTION_VERSION
+      };
+    } catch (e) {
+      console.warn('[AI_TRACE_ENCRYPTION]', e.message || e);
+    }
+  }
+
+  let evidenceOut =
+    row.validation_evidence != null ? String(row.validation_evidence).slice(0, 50000) : null;
+  if (doEncrypt && evidenceOut && encryptionService.isEncryptionAvailable()) {
+    try {
+      evidenceOut = JSON.stringify(encryptionService.encryptField(evidenceOut));
+    } catch (e) {
+      console.warn('[AI_TRACE_ENCRYPTION_EVIDENCE]', e.message || e);
+    }
+  }
+
   const params = [
     row.trace_id,
     row.user_id || null,
     row.company_id,
     String(row.module_name || 'unknown').slice(0, 128),
-    JSON.stringify(redactForTrace(row.input_payload || {})),
-    JSON.stringify(redactForTrace(row.output_response || {})),
+    inputSerialized,
+    outputSerialized,
     JSON.stringify(redactForTrace(modelInfo)),
     row.system_fingerprint != null ? String(row.system_fingerprint).slice(0, 512) : null,
     row.human_validation_status != null ? String(row.human_validation_status).slice(0, 32) : null,
     row.validation_modality != null ? String(row.validation_modality).slice(0, 16) : null,
-    row.validation_evidence != null ? String(row.validation_evidence).slice(0, 50000) : null,
+    evidenceOut,
     row.validated_at != null ? row.validated_at : null,
     JSON.stringify(redactForTrace(audit))
   ];
@@ -317,7 +392,8 @@ async function getLatestPendingTraceForUser(companyId, userId) {
     `,
       [companyId, userId]
     );
-    return r.rows?.[0] || null;
+    const raw = r.rows?.[0] || null;
+    return raw ? hydrateTracePayloadsForRead(raw) : null;
   } catch (err) {
     if (err.message && err.message.includes('human_validation_status')) return null;
     throw err;
@@ -346,7 +422,9 @@ function enqueueAiTrace(record) {
     legal_basis: record.legal_basis,
     data_classification: record.data_classification,
     compliance_incident: record.compliance_incident,
-    policy_incident: record.policy_incident
+    policy_incident: record.policy_incident,
+    trace_policy_rules: record.trace_policy_rules,
+    force_encryption: record.force_encryption
   };
   setImmediate(() => {
     insertAiTrace(copy).catch((err) => {
@@ -388,7 +466,7 @@ async function listTracesForCompany(companyId, limit = 50) {
   `,
     [companyId, lim]
   );
-  return r.rows;
+  return r.rows.map((row) => hydrateTracePayloadsForRead(row));
 }
 
 module.exports = {
@@ -398,5 +476,6 @@ module.exports = {
   insertAiTrace,
   updateTraceHumanValidation,
   getLatestPendingTraceForUser,
-  listTracesForCompany
+  listTracesForCompany,
+  hydrateTracePayloadsForRead
 };
