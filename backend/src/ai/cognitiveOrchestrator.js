@@ -1119,7 +1119,15 @@ async function runCognitiveCouncil(params) {
     effectivePolicyBundle = await policyEngineService.resolveEffectivePolicy({
       companyId: user.company_id,
       sector: policyCtxEarly.sector,
-      countryCode: policyCtxEarly.countryCode
+      countryCode: policyCtxEarly.countryCode,
+      module_name: module || 'cognitive_council',
+      user_role: scope.role || null,
+      operation_type:
+        options?.operation_type != null
+          ? String(options.operation_type).slice(0, 96)
+          : options?.policy_operation_type != null
+            ? String(options.policy_operation_type).slice(0, 96)
+            : null
     });
     if (!policyEngineService.isModuleAllowed(module || 'cognitive_council', effectivePolicyBundle.rules)) {
       if (user?.company_id && user?.id) {
@@ -1286,6 +1294,16 @@ async function runCognitiveCouncil(params) {
           conflict_detected: false,
           resolved_by: null,
           affected_rules: []
+        },
+        context_applied: {
+          module: module || 'cognitive_council',
+          role: scope.role || null,
+          operation:
+            options?.operation_type != null
+              ? String(options.operation_type).slice(0, 96)
+              : options?.policy_operation_type != null
+                ? String(options.policy_operation_type).slice(0, 96)
+                : null
         }
       }
     });

@@ -33,6 +33,7 @@
     "test:realtime": "node scripts/test-realtime-ws.js",
     "test:did": "node scripts/test-did.js",
     "smoke:manuia-app": "node scripts/smoke-manuia-app.js",
+    "test:policy-context": "node src/tests/policyContextScenarios.js",
     "test:advanced-compliance": "node src/tests/advancedComplianceScenarios.js",
     "test:behavioral": "node src/tests/behavioralIntelligenceScenarios.js",
     "test:observability": "node src/tests/observabilityScenarios.js",

@@ -36,6 +36,9 @@ function applyPolicy(synthesis, dossier, params) {
       policy_source: (params.policyMeta?.layers || []).map((l) => l.scope),
       policy_effect: 'none',
       policy_type_layers: params.policyMeta?.layers || [],
+      ...(params.policyMeta?.context_applied && typeof params.policyMeta.context_applied === 'object'
+        ? { context_applied: params.policyMeta.context_applied }
+        : {}),
       ...(params.policyMeta?.policy_enforcement &&
       (params.policyMeta.policy_enforcement.conflict_detected ||
         (params.policyMeta.policy_enforcement.affected_rules || []).length > 0)
