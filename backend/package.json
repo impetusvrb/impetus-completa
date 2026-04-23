@@ -32,7 +32,9 @@
     "test:voz": "node scripts/test-voz.js",
     "test:realtime": "node scripts/test-realtime-ws.js",
     "test:did": "node scripts/test-did.js",
-    "smoke:manuia-app": "node scripts/smoke-manuia-app.js"
+    "smoke:manuia-app": "node scripts/smoke-manuia-app.js",
+    "test:security": "node src/tests/securityScenarios.js",
+    "test:redteam": "node src/tests/redTeamingScenarios.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

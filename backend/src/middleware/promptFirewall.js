@@ -4,6 +4,10 @@
  * Bloqueia termos sensíveis sem permissão e tentativas de prompt injection.
  */
 const { getUserPermissions } = require('./authorize');
+const aiPromptGuardService = require('../services/aiPromptGuardService');
+
+const SECURITY_BLOCK_MESSAGE =
+  'Pedido bloqueado pela política de segurança IMPETUS (possível injeção de prompt ou jailbreak). Se foi um uso legítimo, reformule sem pedir para ignorar instruções ou revelar o sistema.';
 
 const SENSITIVE_TERMS = [
   'faturamento', 'lucro', 'margem', 'salário', 'salario', 'contrato', 'demissão', 'demissao',
@@ -19,25 +23,12 @@ const SENSITIVE_PERMISSION_MAP = {
   strategic: 'VIEW_STRATEGIC'
 };
 
-const PROMPT_INJECTION_PATTERNS = [
-  /ignore\s+(as\s+)?(suas\s+)?regras?/i,
-  /ignore\s+(as\s+)?instru[çc][õo]es?\s+anteriores?/i,
-  /revele?\s+dados?\s+internos?/i,
-  /mostre?\s+tudo/i,
-  /bypass/i,
-  /admin\s+override/i,
-  /super\s?user/i,
-  /desative?\s+(a\s+)?segurana[çc]a/i,
-  /siga\s+apenas\s+(as\s+)?minhas?\s+instru/i,
-  /esque[çc]a?\s+o\s+anteriores?/i,
-  /voc[êe]\s+[ée]\s+um\s+(modelo\s+)?sem\s+restri/i,
-  /jailbreak/i,
-  /dane?-se\s+(as\s+)?instru/i,
-  /output\s+as\s+raw\s+dump/i,
-  /print\s+all\s+(internal|database)/i,
+/** Camada legada complementar (XSS / injeção marcadamente técnica). Injeção semântica: AIPromptGuardService. */
+const XSS_AND_MARKUP_PATTERNS = [
   /<\s*script/i,
   /javascript\s*:/i,
-  /on\s*error\s*=/i
+  /on\s*error\s*=/i,
+  /<\s*iframe/i
 ];
 
 const BLOCK_MESSAGE = 'Você não possui permissão para acessar informações estratégicas. Entre em contato com o administrador para solicitar acesso.';
@@ -55,14 +46,39 @@ async function analyzePrompt(message, user) {
     return { allowed: false, blocked: true, reason: 'Mensagem muito curta' };
   }
 
-  // 1) Detecção de prompt injection
-  for (const pattern of PROMPT_INJECTION_PATTERNS) {
-    if (pattern.test(message)) {
-      return { allowed: false, blocked: true, reason: 'Tentativa de prompt injection detectada' };
+  const ingress = aiPromptGuardService.analyzeIngressIntent(message, user);
+  if (ingress.blocked) {
+    if (user?.company_id && user?.id) {
+      setImmediate(() => {
+        aiPromptGuardService
+          .recordIngressSecurityEvent({
+            user,
+            companyId: user.company_id,
+            moduleName: 'prompt_firewall',
+            userText: message,
+            guardResult: ingress,
+            channel: 'prompt_firewall'
+          })
+          .catch((e) => console.error('[PROMPT_FIREWALL_SECURITY_LOG]', e?.message));
+      });
+    }
+    return {
+      allowed: false,
+      blocked: true,
+      reason: 'PROMPT_SECURITY',
+      message: SECURITY_BLOCK_MESSAGE,
+      security: { risk_score: ingress.risk_score, classification: ingress.classification }
+    };
+  }
+
+  for (const pattern of XSS_AND_MARKUP_PATTERNS) {
+    const once = new RegExp(pattern.source, pattern.flags.replace(/g/g, ''));
+    if (once.test(message)) {
+      return { allowed: false, blocked: true, reason: 'Conteúdo não permitido (marcação/script).' };
     }
   }
 
-  // 2) Verificar termos sensíveis vs permissões do usuário
+  // Termos sensíveis vs permissões do utilizador
   let userPerms = [];
   try {
     const r = await getUserPermissions(user);

@@ -119,6 +119,12 @@ function buildInitialValidationAudit(row) {
 async function insertAiTrace(row) {
   const audit = buildInitialValidationAudit(row);
   let modelInfo = row.model_info || {};
+  if (Array.isArray(row.governance_tags) && row.governance_tags.length) {
+    modelInfo = {
+      ...modelInfo,
+      governance_tags: [...new Set([...(modelInfo.governance_tags || []), ...row.governance_tags])]
+    };
+  }
   try {
     const aiProviderService = require('./aiProviderService');
     modelInfo = await aiProviderService.enrichModelInfoForTrace(
@@ -279,7 +285,8 @@ function enqueueAiTrace(record) {
     validation_modality: record.validation_modality,
     validation_evidence: record.validation_evidence,
     validated_at: record.validated_at,
-    validation_audit: record.validation_audit
+    validation_audit: record.validation_audit,
+    governance_tags: record.governance_tags
   };
   setImmediate(() => {
     insertAiTrace(copy).catch((err) => {

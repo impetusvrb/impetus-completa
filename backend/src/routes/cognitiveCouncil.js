@@ -59,7 +59,11 @@ router.post('/execute', async (req, res) => {
     if (!pf.allowed) {
       return res.status(403).json({
         ok: false,
-        error: pf.reason || 'Conteúdo não permitido pela política IMPETUS (prompt firewall).'
+        error:
+          pf.message ||
+          pf.reason ||
+          'Conteúdo não permitido pela política IMPETUS (prompt firewall).',
+        code: pf.reason
       });
     }
 
@@ -109,6 +113,13 @@ router.post('/execute', async (req, res) => {
     res.setHeader('X-AI-HITL-Pending', '1');
     res.json(result);
   } catch (err) {
+    if (err.code === 'PROMPT_SECURITY_INGRESS') {
+      return res.status(403).json({
+        ok: false,
+        error: 'Pedido bloqueado pela política de segurança IMPETUS.',
+        code: 'PROMPT_SECURITY'
+      });
+    }
     if (err.code === 'FORBIDDEN_SCOPE') {
       return res.status(403).json({ ok: false, error: 'Escopo inválido.' });
     }

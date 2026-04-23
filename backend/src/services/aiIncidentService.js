@@ -7,7 +7,8 @@ const INCIDENT_TYPES = new Set([
   'DADO_INCORRETO',
   'VIES',
   'COMPORTAMENTO_INADEQUADO',
-  'UNKNOWN'
+  'UNKNOWN',
+  'TENTATIVA_DE_INVASAO'
 ]);
 const STATUSES = new Set(['OPEN', 'UNDER_ANALYSIS', 'RESOLVED', 'FALSE_POSITIVE']);
 const SEVERITIES = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
@@ -19,6 +20,8 @@ function normType(t) {
 
 function severityForType(incidentType) {
   switch (incidentType) {
+    case 'TENTATIVA_DE_INVASAO':
+      return 'CRITICAL';
     case 'ALUCINACAO':
       return 'HIGH';
     case 'COMPORTAMENTO_INADEQUADO':
