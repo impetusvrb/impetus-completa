@@ -6,6 +6,7 @@
  */
 
 const riskIntel = require('./riskIntelligenceService');
+const behavioralIntel = require('./behavioralIntelligenceService');
 
 const ADAPTIVE_ENABLED = process.env.ADAPTIVE_GOVERNANCE_ENABLED !== 'false';
 
@@ -58,7 +59,9 @@ async function evaluateRiskContext(params) {
     riskIntel.getCompanyRiskBundle(params.companyId)
   ]);
 
-  const userScore = uB.user_risk_score || 0;
+  const behavioralSnapshot = behavioralIntel.getEvaluationForAdaptive(params.companyId, params.user.id);
+  const userScoreBase = uB.user_risk_score || 0;
+  const userScore = Math.min(100, userScoreBase + (behavioralSnapshot.score_boost || 0));
   const companyScore = cB.company_risk_score || 0;
   const comb = combinedScore(userScore, companyScore);
   const band = riskIntel.riskBandFromScore(comb);
@@ -103,6 +106,27 @@ async function evaluateRiskContext(params) {
     require_validation = true;
   }
 
+  if (behavioralSnapshot.pattern_detected) {
+    if (behavioralSnapshot.behavior_risk === 'CRITICAL') {
+      allow_response = false;
+      require_validation = true;
+      block_reason_pt = block_reason_pt || behavioralSnapshot.block_message_pt;
+      risk_level = 'CRITICAL';
+    } else if (behavioralSnapshot.behavior_risk === 'HIGH') {
+      if (allow_response !== false) {
+        require_validation = true;
+        if (response_mode === 'full') response_mode = 'limited';
+      }
+      const mergedRl = maxRiskLevel(String(risk_level).toLowerCase(), 'high');
+      risk_level = String(mergedRl).toUpperCase();
+    } else if (behavioralSnapshot.behavior_risk === 'MEDIUM') {
+      require_validation = require_validation || comb >= 38;
+      if (allow_response !== false && response_mode === 'full' && comb >= 42) {
+        response_mode = 'limited';
+      }
+    }
+  }
+
   return {
     risk_level,
     allow_response,
@@ -111,11 +135,14 @@ async function evaluateRiskContext(params) {
     block_reason_pt,
     _internal: {
       user_risk_score: userScore,
+      user_risk_score_base: userScoreBase,
+      behavioral_score_boost: behavioralSnapshot.score_boost || 0,
       company_risk_score: companyScore,
       combined_score: comb,
       user_reputation: uB.user_reputation,
       company_reputation: cB.company_reputation,
-      module: params.module || null
+      module: params.module || null,
+      behavioral: behavioralSnapshot
     }
   };
 }

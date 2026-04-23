@@ -47,6 +47,7 @@ const aiLegalAuditService = require('../services/aiLegalAuditService');
 const policyEngineService = require('../services/policyEngineService');
 const policyEnforcementService = require('../services/policyEnforcementService');
 const observabilityService = require('../services/observabilityService');
+const behavioralIntelligenceService = require('../services/behavioralIntelligenceService');
 
 const AI_POLICY_ENGINE_ON = process.env.AI_POLICY_ENGINE_ENABLED !== 'false';
 
@@ -989,6 +990,14 @@ async function runCognitiveCouncil(params) {
     userId: user?.id,
     module: module || 'cognitive_council'
   });
+  if (user?.company_id && user?.id) {
+    behavioralIntelligenceService.trackUserAction('ACCESS_ATTEMPT', {
+      userId: user.id,
+      companyId: user.company_id,
+      traceId,
+      module: module || 'cognitive_council'
+    });
+  }
 
   const executeCouncil = async () => {
   const sanitized = sanitizeTextInput(rt);
@@ -1063,6 +1072,20 @@ async function runCognitiveCouncil(params) {
     : 'none';
 
   if (!adaptivePolicy.allow_response) {
+    if (user?.company_id && user?.id) {
+      const beh = adaptivePolicy._internal?.behavioral;
+      const govReason =
+        beh?.pattern_detected && beh?.behavior_risk === 'CRITICAL'
+          ? 'behavioral_critical'
+          : 'adaptive_governance';
+      behavioralIntelligenceService.trackUserAction('GOVERNANCE_BLOCK', {
+        userId: user.id,
+        companyId: user.company_id,
+        traceId,
+        reason: govReason,
+        module: module || 'cognitive_council'
+      });
+    }
     observabilityService.markCouncilBlocked({
       traceId,
       companyId: user?.company_id,
@@ -1099,6 +1122,15 @@ async function runCognitiveCouncil(params) {
       countryCode: policyCtxEarly.countryCode
     });
     if (!policyEngineService.isModuleAllowed(module || 'cognitive_council', effectivePolicyBundle.rules)) {
+      if (user?.company_id && user?.id) {
+        behavioralIntelligenceService.trackUserAction('POLICY_BLOCK', {
+          userId: user.id,
+          companyId: user.company_id,
+          traceId,
+          reason: 'module_not_allowed',
+          module: module || 'cognitive_council'
+        });
+      }
       observabilityService.markCouncilBlocked({
         traceId,
         companyId: user?.company_id,
@@ -1199,6 +1231,15 @@ async function runCognitiveCouncil(params) {
   }
 
   adaptiveGovernanceEngine.applyAdaptiveResponse(synthesis, adaptiveResponseMode);
+  if (user?.company_id && user?.id && (adaptiveResponseMode === 'limited' || adaptiveResponseMode === 'restricted')) {
+    behavioralIntelligenceService.trackUserAction('RESPONSE_LIMITED', {
+      userId: user.id,
+      companyId: user.company_id,
+      traceId,
+      mode: adaptiveResponseMode,
+      module: module || 'cognitive_council'
+    });
+  }
 
   const contextSnapshot = aiAnalytics.summarizeDossierData(data);
   const compliancePack = await aiComplianceEngine.processAfterAdaptive({
@@ -1216,6 +1257,16 @@ async function runCognitiveCouncil(params) {
       ? synthesis.explanation_layer
       : {};
   synthesis.explanation_layer = { ...prevExpl, compliance: compliancePack.compliance };
+
+  if (user?.company_id && user?.id && compliancePack.compliance_incident) {
+    behavioralIntelligenceService.trackUserAction('INCIDENT_GENERATED', {
+      userId: user.id,
+      companyId: user.company_id,
+      traceId,
+      kind: 'compliance',
+      module: module || 'cognitive_council'
+    });
+  }
 
   let policyEnforcementResult = null;
   if (AI_POLICY_ENGINE_ON && user.company_id) {
@@ -1243,6 +1294,27 @@ async function runCognitiveCouncil(params) {
         violation_reason: policyEnforcementResult.violation_reason
       }
     };
+    if (user?.company_id && user?.id) {
+      if (policyEnforcementResult.violation) {
+        behavioralIntelligenceService.trackUserAction('INCIDENT_GENERATED', {
+          userId: user.id,
+          companyId: user.company_id,
+          traceId,
+          kind: 'policy_violation',
+          reason: policyEnforcementResult.violation_reason || 'policy',
+          module: module || 'cognitive_council'
+        });
+      }
+      if (policyEnforcementResult.effect === 'blocked' || policyEnforcementResult.policy_trace?.policy_effect === 'blocked') {
+        behavioralIntelligenceService.trackUserAction('POLICY_BLOCK', {
+          userId: user.id,
+          companyId: user.company_id,
+          traceId,
+          reason: policyEnforcementResult.violation_reason || 'enforcement_blocked',
+          module: module || 'cognitive_council'
+        });
+      }
+    }
   }
 
   dossier.decision.recommendation = synthesis.answer;
@@ -1452,6 +1524,15 @@ async function runCognitiveCouncil(params) {
   try {
     return await executeCouncil();
   } catch (err) {
+    if (user?.company_id && user?.id && err && err.code === 'PROMPT_SECURITY_INGRESS') {
+      behavioralIntelligenceService.trackUserAction('POLICY_BLOCK', {
+        userId: user.id,
+        companyId: user.company_id,
+        traceId,
+        reason: 'ingress_security',
+        module: module || 'cognitive_council'
+      });
+    }
     observabilityService.markCouncilException({
       traceId,
       companyId: user?.company_id,

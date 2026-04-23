@@ -320,8 +320,15 @@ function evaluateSystemHealth() {
 function getSystemHealthPayload() {
   const metricsSnapshot = getMetricsSnapshot();
   const { status, alerts } = evaluateSystemHealth();
+  let behavioral_metrics = null;
+  try {
+    behavioral_metrics = require('./behavioralIntelligenceService').getMetricsSnapshot();
+  } catch (_) {
+    behavioral_metrics = null;
+  }
   return {
     metrics: metricsSnapshot,
+    behavioral_metrics,
     system_status: status,
     alerts,
     timestamp: new Date().toISOString()
