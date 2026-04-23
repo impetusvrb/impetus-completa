@@ -12,6 +12,8 @@ import Logs from './pages/Logs';
 import Users from './pages/Users';
 import NotFound from './pages/NotFound';
 import AiGovernance from './pages/AiGovernance';
+import AiRiskIntelligence from './pages/AiRiskIntelligence';
+import AiCompliance from './pages/AiCompliance';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -47,6 +49,8 @@ export default function App() {
         <Route path="usuarios-internos" element={<Users />} />
         <Route path="governanca-ia" element={<AiGovernance />} />
         <Route path="governanca-ia/:incidentId" element={<AiGovernance />} />
+        <Route path="risco-ia" element={<AiRiskIntelligence />} />
+        <Route path="conformidade-ia" element={<AiCompliance />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

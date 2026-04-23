@@ -151,6 +151,27 @@ async function insertAiTrace(row) {
     JSON.stringify(redactForTrace(audit))
   ];
 
+  const legalBasis =
+    row.legal_basis != null ? String(row.legal_basis).slice(0, 48) : null;
+  const dataClassificationJson = JSON.stringify(redactForTrace(row.data_classification || {}));
+
+  const scheduleComplianceIncident = () => {
+    if (!row.compliance_incident || !row.trace_id || !row.company_id) return;
+    const aiIncidentService = require('./aiIncidentService');
+    setImmediate(() => {
+      aiIncidentService
+        .createIncident({
+          traceId: row.trace_id,
+          userId: row.user_id,
+          companyId: row.company_id,
+          incidentType: 'COMPLIANCE_RISK',
+          userComment: row.compliance_incident.summary,
+          severity: row.compliance_incident.severity || 'HIGH'
+        })
+        .catch((e) => console.warn('[COMPLIANCE_INCIDENT]', e?.message || e));
+    });
+  };
+
   const runExtendedInsert = async () => {
     if (row.human_validation_status === 'PENDING' && row.user_id && row.company_id) {
       try {
@@ -180,18 +201,37 @@ async function insertAiTrace(row) {
         if (!String(e.message || '').includes('human_validation_status')) throw e;
       }
     }
-    const q = `
+    const q13 = `
       INSERT INTO ai_interaction_traces (
         trace_id, user_id, company_id, module_name,
         input_payload, output_response, model_info, system_fingerprint,
         human_validation_status, validation_modality, validation_evidence, validated_at, validation_audit
       ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13::jsonb)
     `;
-    await db.query(q, params);
+    const q15 = `
+      INSERT INTO ai_interaction_traces (
+        trace_id, user_id, company_id, module_name,
+        input_payload, output_response, model_info, system_fingerprint,
+        human_validation_status, validation_modality, validation_evidence, validated_at, validation_audit,
+        legal_basis, data_classification
+      ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13::jsonb,$14,$15::jsonb)
+    `;
+    const params15 = [...params, legalBasis, dataClassificationJson];
+    try {
+      await db.query(q15, params15);
+    } catch (e) {
+      const msg = String(e.message || '');
+      if (msg.includes('legal_basis') || msg.includes('data_classification')) {
+        await db.query(q13, params);
+      } else {
+        throw e;
+      }
+    }
   };
 
   try {
     await runExtendedInsert();
+    scheduleComplianceIncident();
   } catch (err) {
     if (err.message && err.message.includes('human_validation_status')) {
       await db.query(
@@ -203,6 +243,7 @@ async function insertAiTrace(row) {
       `,
         params.slice(0, 8)
       );
+      scheduleComplianceIncident();
     } else {
       throw err;
     }
@@ -286,7 +327,10 @@ function enqueueAiTrace(record) {
     validation_evidence: record.validation_evidence,
     validated_at: record.validated_at,
     validation_audit: record.validation_audit,
-    governance_tags: record.governance_tags
+    governance_tags: record.governance_tags,
+    legal_basis: record.legal_basis,
+    data_classification: record.data_classification,
+    compliance_incident: record.compliance_incident
   };
   setImmediate(() => {
     insertAiTrace(copy).catch((err) => {

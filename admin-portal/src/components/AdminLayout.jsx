@@ -10,7 +10,13 @@ export default function AdminLayout() {
     ['/empresas', 'Empresas'],
     ['/usuarios-internos', 'Usuários internos'],
     ['/logs', 'Logs'],
-    ...(user?.perfil === 'super_admin' ? [['/governanca-ia', 'Governança IA']] : [])
+    ...(user?.perfil === 'super_admin'
+      ? [
+          ['/governanca-ia', 'Governança IA'],
+          ['/risco-ia', 'Risco IA'],
+          ['/conformidade-ia', 'Conformidade IA']
+        ]
+      : [])
   ];
 
   const handleSair = async () => {

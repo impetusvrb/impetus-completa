@@ -7,6 +7,7 @@
 const geminiService = require('./geminiService');
 const aiAnalytics = require('./aiAnalyticsService');
 const operationalInsights = require('./operationalInsightsService');
+const adaptiveGovernanceEngine = require('./adaptiveGovernanceEngine');
 
 const INTENT_THRESHOLD = 52;
 
@@ -119,6 +120,12 @@ async function tryClosePendingValidation(params) {
   });
 
   if (!updated) return { closed: false, detail: { race: true } };
+
+  try {
+    adaptiveGovernanceEngine.invalidateAfterFeedback(user.company_id, user.id);
+  } catch (_) {
+    /* aditivo */
+  }
 
   const out =
     pending.output_response && typeof pending.output_response === 'object'

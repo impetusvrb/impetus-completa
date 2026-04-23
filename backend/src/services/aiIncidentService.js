@@ -2,6 +2,7 @@
 
 const db = require('../db');
 const governanceAlertService = require('./governanceAlertService');
+const adaptiveGovernanceEngine = require('./adaptiveGovernanceEngine');
 
 const INCIDENT_TYPES = new Set([
   'ALUCINACAO',
@@ -9,7 +10,8 @@ const INCIDENT_TYPES = new Set([
   'VIES',
   'COMPORTAMENTO_INADEQUADO',
   'UNKNOWN',
-  'TENTATIVA_DE_INVASAO'
+  'TENTATIVA_DE_INVASAO',
+  'COMPLIANCE_RISK'
 ]);
 const STATUSES = new Set(['OPEN', 'UNDER_ANALYSIS', 'RESOLVED', 'FALSE_POSITIVE']);
 const SEVERITIES = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
@@ -21,6 +23,8 @@ function normType(t) {
 
 function severityForType(incidentType) {
   switch (incidentType) {
+    case 'COMPLIANCE_RISK':
+      return 'HIGH';
     case 'TENTATIVA_DE_INVASAO':
       return 'CRITICAL';
     case 'ALUCINACAO':
@@ -80,6 +84,7 @@ async function createIncident({
   governanceAlertService.onIncidentCreated(created).catch((err) => {
     console.error('[GOVERNANCE_ALERT_ON_CREATE]', err?.message || err);
   });
+  adaptiveGovernanceEngine.invalidateAfterFeedback(companyId, userId || null);
   return created;
 }
 
