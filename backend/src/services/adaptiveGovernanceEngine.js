@@ -7,6 +7,7 @@
 
 const riskIntel = require('./riskIntelligenceService');
 const behavioralIntel = require('./behavioralIntelligenceService');
+const aiLearningFeedbackService = require('./aiLearningFeedbackService');
 
 const ADAPTIVE_ENABLED = process.env.ADAPTIVE_GOVERNANCE_ENABLED !== 'false';
 
@@ -46,7 +47,8 @@ async function evaluateRiskContext(params) {
       company_risk_score: 0,
       combined_score: 0,
       user_reputation: null,
-      company_reputation: null
+      company_reputation: null,
+      learning_feedback: { confidence_score: null, adjustment_applied: null }
     }
   };
 
@@ -60,8 +62,22 @@ async function evaluateRiskContext(params) {
   ]);
 
   const behavioralSnapshot = behavioralIntel.getEvaluationForAdaptive(params.companyId, params.user.id);
+  const learningSignals = aiLearningFeedbackService.getLearningGovernanceSignals({
+    companyId: params.companyId,
+    userId: params.user.id,
+    module: params.module,
+    operation_type:
+      params.operation_type != null && params.operation_type !== ''
+        ? String(params.operation_type).slice(0, 96)
+        : null
+  });
   const userScoreBase = uB.user_risk_score || 0;
-  const userScore = Math.min(100, userScoreBase + (behavioralSnapshot.score_boost || 0));
+  const userScore = Math.min(
+    100,
+    userScoreBase +
+      (behavioralSnapshot.score_boost || 0) +
+      (learningSignals.risk_score_boost || 0)
+  );
   const companyScore = cB.company_risk_score || 0;
   const comb = combinedScore(userScore, companyScore);
   const band = riskIntel.riskBandFromScore(comb);
@@ -127,6 +143,21 @@ async function evaluateRiskContext(params) {
     }
   }
 
+  if (allow_response !== false && learningSignals.require_validation_extra) {
+    require_validation = true;
+  }
+  if (allow_response !== false && learningSignals.response_mode_tighten >= 1 && response_mode === 'full') {
+    response_mode = 'limited';
+  }
+  if (allow_response !== false && learningSignals.response_mode_tighten >= 2 && response_mode === 'limited') {
+    response_mode = 'restricted';
+  }
+
+  const learning_feedback = {
+    confidence_score: learningSignals.confidence_score,
+    adjustment_applied: learningSignals.adjustment_applied
+  };
+
   return {
     risk_level,
     allow_response,
@@ -137,12 +168,14 @@ async function evaluateRiskContext(params) {
       user_risk_score: userScore,
       user_risk_score_base: userScoreBase,
       behavioral_score_boost: behavioralSnapshot.score_boost || 0,
+      learning_risk_boost: learningSignals.risk_score_boost || 0,
       company_risk_score: companyScore,
       combined_score: comb,
       user_reputation: uB.user_reputation,
       company_reputation: cB.company_reputation,
       module: params.module || null,
-      behavioral: behavioralSnapshot
+      behavioral: behavioralSnapshot,
+      learning_feedback
     }
   };
 }

@@ -39,7 +39,8 @@
     "test:observability": "node src/tests/observabilityScenarios.js",
     "test:policy-hardening": "node src/tests/policyHardeningScenarios.js",
     "test:security": "node src/tests/securityScenarios.js",
-    "test:redteam": "node src/tests/redTeamingScenarios.js"
+    "test:redteam": "node src/tests/redTeamingScenarios.js",
+    "test:ai-learning-feedback": "node src/tests/aiLearningFeedbackScenarios.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

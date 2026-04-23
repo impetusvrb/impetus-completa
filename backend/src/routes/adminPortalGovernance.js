@@ -7,6 +7,7 @@ const riskIntelligenceService = require('../services/riskIntelligenceService');
 const aiComplianceEngine = require('../services/aiComplianceEngine');
 const aiPolicyService = require('../services/aiPolicyService');
 const observabilityService = require('../services/observabilityService');
+const aiLearningFeedbackService = require('../services/aiLearningFeedbackService');
 
 const router = express.Router();
 
@@ -202,6 +203,16 @@ router.get('/ai-incidents/:id', requireAdminAuth, requireGlobalGovernance, async
   } catch (e) {
     console.error('[ADMIN_PORTAL_AI_GOVERNANCE_DETAIL]', e);
     res.status(500).json({ ok: false, error: 'Erro ao obter detalhe do incidente' });
+  }
+});
+
+router.get('/ai-learning', requireAdminAuth, requireGlobalGovernance, (_req, res) => {
+  try {
+    const data = aiLearningFeedbackService.getAdminSnapshot();
+    res.json({ ok: true, data });
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_AI_LEARNING]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao obter métricas de aprendizagem assistida' });
   }
 });
 

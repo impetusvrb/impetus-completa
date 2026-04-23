@@ -588,6 +588,7 @@ async function buildAdaptiveBlockedCouncilResult({
   dossier,
   options,
   adaptivePolicy,
+  policyOperationType,
   t0,
   risk
 }) {
@@ -726,7 +727,9 @@ async function buildAdaptiveBlockedCouncilResult({
       pipeline_version: PIPELINE_VERSION,
       duration_ms: duration,
       risk_level: risk,
-      adaptive_governance: internalGov
+      operation_type: policyOperationType,
+      adaptive_governance: internalGov,
+      learning_feedback: adaptivePolicy._internal?.learning_feedback || null
     },
     governance_tags: ['ADAPTIVE_GOVERNANCE_BLOCK'],
     human_validation_status: 'PENDING',
@@ -785,7 +788,9 @@ async function buildPolicyBlockedCouncilResult({
   options,
   t0,
   risk,
-  effectivePolicyBundle
+  effectivePolicyBundle,
+  adaptivePolicy,
+  policyOperationType
 }) {
   const duration = Date.now() - t0;
   const blockMsg = policyEnforcementService.POLICY_BLOCK_MSG;
@@ -912,10 +917,12 @@ async function buildPolicyBlockedCouncilResult({
       pipeline_version: PIPELINE_VERSION,
       duration_ms: duration,
       risk_level: risk,
+      operation_type: policyOperationType || null,
       policy_resolution: {
         layers: effectivePolicyBundle?.layers || [],
         rules_keys: Object.keys(effectivePolicyBundle?.rules || {})
-      }
+      },
+      learning_feedback: adaptivePolicy?._internal?.learning_feedback || null
     },
     governance_tags: ['AI_POLICY_BLOCK'],
     human_validation_status: 'PENDING',
@@ -1056,11 +1063,19 @@ async function runCognitiveCouncil(params) {
   dossier.decision.risk_level = risk;
   dossier.decision.requires_human_validation = shouldForceHumanValidation(risk);
 
+  const policyOperationType =
+    options?.operation_type != null
+      ? String(options.operation_type).slice(0, 96)
+      : options?.policy_operation_type != null
+        ? String(options.policy_operation_type).slice(0, 96)
+        : null;
+
   const adaptivePolicy = await adaptiveGovernanceEngine.evaluateRiskContext({
     user,
     companyId: user.company_id,
     module: module || 'cognitive_council',
-    heuristicRiskLevel: risk
+    heuristicRiskLevel: risk,
+    operation_type: policyOperationType
   });
   risk = adaptiveGovernanceEngine.maxRiskLevel(risk, adaptivePolicy.risk_level);
   dossier.decision.risk_level = risk;
@@ -1103,6 +1118,7 @@ async function runCognitiveCouncil(params) {
       dossier,
       options,
       adaptivePolicy,
+      policyOperationType,
       t0,
       risk
     });
@@ -1158,7 +1174,9 @@ async function runCognitiveCouncil(params) {
         options,
         t0,
         risk,
-        effectivePolicyBundle
+        effectivePolicyBundle,
+        adaptivePolicy,
+        policyOperationType
       });
     }
   }
@@ -1448,6 +1466,8 @@ async function runCognitiveCouncil(params) {
       models_touched: dossier.meta.models_touched || [],
       risk_level: risk,
       cross_validation: wantCross,
+      operation_type: policyOperationType || null,
+      learning_feedback: adaptivePolicy._internal?.learning_feedback || null,
       ...(adaptiveGovernanceEngine.ADAPTIVE_ENABLED
         ? {
             adaptive_governance: {

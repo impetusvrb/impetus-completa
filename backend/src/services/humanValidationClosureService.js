@@ -8,6 +8,7 @@ const geminiService = require('./geminiService');
 const aiAnalytics = require('./aiAnalyticsService');
 const operationalInsights = require('./operationalInsightsService');
 const adaptiveGovernanceEngine = require('./adaptiveGovernanceEngine');
+const aiLearningFeedbackService = require('./aiLearningFeedbackService');
 
 const INTENT_THRESHOLD = 52;
 
@@ -120,6 +121,30 @@ async function tryClosePendingValidation(params) {
   });
 
   if (!updated) return { closed: false, detail: { race: true } };
+
+  try {
+    let modelInfo = pending.model_info;
+    if (typeof modelInfo === 'string') {
+      try {
+        modelInfo = JSON.parse(modelInfo);
+      } catch {
+        modelInfo = {};
+      }
+    }
+    if (!modelInfo || typeof modelInfo !== 'object') modelInfo = {};
+    const operationType =
+      modelInfo.operation_type != null && modelInfo.operation_type !== ''
+        ? String(modelInfo.operation_type).slice(0, 96)
+        : null;
+    aiLearningFeedbackService.captureFeedback(pending.trace_id, status, {
+      user_id: user.id,
+      company_id: user.company_id,
+      module_name: pending.module_name || null,
+      operation_type: operationType
+    });
+  } catch (_) {
+    /* aditivo */
+  }
 
   try {
     adaptiveGovernanceEngine.invalidateAfterFeedback(user.company_id, user.id);
