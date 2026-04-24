@@ -5,6 +5,18 @@
 
 const crypto = require('crypto');
 
+/** SHA-256 hex para correlacionar eventos sem expor PII em logs. */
+function safeHash(value) {
+  return crypto.createHash('sha256').update(String(value ?? '')).digest('hex');
+}
+
+/** Domínio do destinatário (sem local-part). */
+function emailRecipientDomain(to) {
+  const s = String(to || '').trim();
+  const i = s.indexOf('@');
+  return i > 0 && i < s.length - 1 ? s.slice(i + 1) : null;
+}
+
 function generateSecurePassword(length = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let result = '';
@@ -73,12 +85,20 @@ async function sendActivationEmail(opts) {
       return { sent: true };
     } catch (err) {
       console.error('[EMAIL_SEND_ERROR]', err.message);
-      console.log('[EMAIL_FALLBACK] Dados para envio manual:', { to, login, temporaryPassword, link });
+      console.warn('[EMAIL_FALLBACK]', {
+        to_domain: emailRecipientDomain(to),
+        user_hash: safeHash(login || to || 'unknown'),
+        reason: err.message || 'send_failed'
+      });
       return { sent: false, fallback: true };
     }
   }
 
-  console.log('[EMAIL_NOT_CONFIGURED] Envio manual necessário:', { to, login, temporaryPassword, link });
+  console.warn('[EMAIL_NOT_CONFIGURED]', {
+    to_domain: emailRecipientDomain(to),
+    user_hash: safeHash(login || to || 'unknown'),
+    reason: 'smtp_not_configured'
+  });
   return { sent: false, fallback: true };
 }
 
@@ -180,7 +200,11 @@ async function sendPasswordResetEmail({ to, name, resetUrl }) {
       return { sent: false };
     }
   }
-  console.log('[RESET_EMAIL_NO_SMTP] Link de reset:', resetUrl);
+  console.warn('[RESET_EMAIL_NO_SMTP]', {
+    to_domain: emailRecipientDomain(to),
+    user_hash: safeHash(to || 'unknown'),
+    reason: 'smtp_not_configured'
+  });
   return { sent: false, resetUrl };
 }
 
@@ -244,7 +268,11 @@ async function sendTenantAdminActivationEmail({
       return { sent: false };
     }
   }
-  console.log('[TENANT_ACTIVATION_NO_SMTP] SMTP não configurado — convite não enviado para', to);
+  console.warn('[TENANT_ACTIVATION_NO_SMTP]', {
+    to_domain: emailRecipientDomain(to),
+    user_hash: safeHash(to || 'unknown'),
+    reason: 'smtp_not_configured'
+  });
   return { sent: false };
 }
 

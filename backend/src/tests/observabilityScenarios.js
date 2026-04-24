@@ -74,11 +74,46 @@ function testLogEventJsonShape() {
   } finally {
     process.stdout.write = orig;
   }
+  assert.strictEqual(chunks.length, 1, 'sem padrão de segredo na linha sanitizada');
   const line = JSON.parse(chunks.join('').trim());
   assert.strictEqual(line.level, 'INFO');
   assert.strictEqual(line.event, 'TEST_EVENT');
   assert.strictEqual(line.trace_id, 'abc');
   assert.strictEqual(line.details.password, '[redacted]');
+}
+
+function testScanLogForSecrets() {
+  const { scanLogForSecrets } = observabilityService;
+  assert.strictEqual(scanLogForSecrets('ok'), false);
+  assert.strictEqual(scanLogForSecrets('Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789'), true);
+  assert.strictEqual(scanLogForSecrets('user@example.com'), true);
+  assert.strictEqual(scanLogForSecrets('cpf 123.456.789-01'), true);
+}
+
+function testSecurityLogWarningOnJwtInDetails() {
+  const chunks = [];
+  const orig = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (chunk, enc, cb) => {
+    chunks.push(String(chunk));
+    if (typeof cb === 'function') cb();
+    return true;
+  };
+  try {
+    observabilityService.logEvent('INFO', 'RISKY', {
+      details: {
+        note: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'
+      }
+    });
+  } finally {
+    process.stdout.write = orig;
+  }
+  assert.strictEqual(chunks.length, 2);
+  const warn = JSON.parse(chunks[0].trim());
+  const main = JSON.parse(chunks[1].trim());
+  assert.strictEqual(warn.event, 'SECURITY_LOG_WARNING');
+  assert.ok(warn.details.patterns.includes('jwt_like'));
+  assert.strictEqual(main.event, 'RISKY');
+  assert.strictEqual(main.details.redacted, true);
 }
 
 function testSystemHealthPayload() {
@@ -142,6 +177,8 @@ const suite = [
   testBlockSpikeWarning,
   testIncidentSpikeWarning,
   testLogEventJsonShape,
+  testScanLogForSecrets,
+  testSecurityLogWarningOnJwtInDetails,
   testSystemHealthPayload,
   testTenantRollup
 ];

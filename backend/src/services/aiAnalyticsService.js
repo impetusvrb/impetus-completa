@@ -190,10 +190,13 @@ async function insertAiTrace(row) {
       outputSerialized = JSON.stringify(
         encryptionService.encryptField(JSON.parse(outputSerialized))
       );
+      const encMeta = encryptionService.getEncryptionKeyMeta();
       modelInfo = {
         ...modelInfo,
         encryption_applied: true,
-        encryption_version: encryptionService.ENCRYPTION_VERSION
+        encryption_version: encryptionService.ENCRYPTION_VERSION,
+        encryption_key_source: encMeta.key_source,
+        encryption_key_version: encMeta.key_version
       };
     } catch (e) {
       console.warn('[AI_TRACE_ENCRYPTION]', e.message || e);

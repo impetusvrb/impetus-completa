@@ -1,6 +1,6 @@
 /**
  * Exportacao TPM — CSV (incidentes e totais por turno) e Excel (.xlsx) com duas folhas.
- * O pacote `xlsx` é carregado sob demanda ao gerar Excel (menor bundle inicial).
+ * Excel via exceljs (evita vulnerabilidades do pacote `xlsx` no registo público).
  */
 
 export function shiftNumberLabel(n) {
@@ -104,8 +104,8 @@ export function downloadShiftTotalsCsv(shiftTotals) {
 }
 
 export async function downloadTpmExcelWorkbook(incidents, shiftTotals) {
-  const XLSX = await import('xlsx');
-  const wb = XLSX.utils.book_new();
+  const ExcelJS = (await import('exceljs')).default;
+  const wb = new ExcelJS.Workbook();
 
   const incRows = (incidents || []).map((r) => ({
     ID: r.id,
@@ -126,10 +126,15 @@ export async function downloadTpmExcelWorkbook(incidents, shiftTotals) {
     'Descrição do produto': r.product_description
   }));
 
-  const ws1 = XLSX.utils.json_to_sheet(
-    incRows.length ? incRows : [{ Mensagem: 'Sem incidentes no período selecionado.' }]
-  );
-  XLSX.utils.book_append_sheet(wb, ws1, 'Incidentes');
+  const ws1 = wb.addWorksheet('Incidentes');
+  if (incRows.length) {
+    const h = Object.keys(incRows[0]);
+    ws1.addRow(h);
+    incRows.forEach((row) => ws1.addRow(h.map((k) => row[k])));
+  } else {
+    ws1.addRow(['Mensagem']);
+    ws1.addRow(['Sem incidentes no período selecionado.']);
+  }
 
   const totRows = (shiftTotals || []).map((r) => ({
     Data: r.shift_date,
@@ -138,11 +143,26 @@ export async function downloadTpmExcelWorkbook(incidents, shiftTotals) {
     Incidentes: r.incident_count
   }));
 
-  const ws2 = XLSX.utils.json_to_sheet(
-    totRows.length ? totRows : [{ Mensagem: 'Sem totais agregados no período selecionado.' }]
-  );
-  XLSX.utils.book_append_sheet(wb, ws2, 'Totais por turno');
+  const ws2 = wb.addWorksheet('Totais por turno');
+  if (totRows.length) {
+    const h = Object.keys(totRows[0]);
+    ws2.addRow(h);
+    totRows.forEach((row) => ws2.addRow(h.map((k) => row[k])));
+  } else {
+    ws2.addRow(['Mensagem']);
+    ws2.addRow(['Sem totais agregados no período selecionado.']);
+  }
 
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  XLSX.writeFile(wb, `tpm_export_${stamp}.xlsx`);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tpm_export_${stamp}.xlsx`;
+  a.rel = 'noopener';
+  a.click();
+  URL.revokeObjectURL(url);
 }

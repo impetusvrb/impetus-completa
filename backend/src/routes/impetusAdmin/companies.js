@@ -13,6 +13,7 @@ const { logAdminAction } = require('../../services/adminPortalLogService');
 const roleVerification = require('../../services/roleVerificationService');
 const { sendTenantAdminActivationEmail } = require('../../services/emailService');
 const { getPublicAppBaseUrl } = require('../../utils/publicAppUrl');
+const { parseBooleanEnv } = require('../../utils/parseBooleanEnv');
 const aiProviderService = require('../../services/aiProviderService');
 
 const router = express.Router();
@@ -36,11 +37,22 @@ function sanitizeCnpj(v) {
   return d.length === 14 ? d : null;
 }
 
-/** Só quando SMTP falha: devolve URL na API para copiar localmente (nunca ativar em produção). */
+/**
+ * Só quando SMTP falha: em não-produção e com flag explícita, devolve URL na API para copiar localmente.
+ * Em NODE_ENV=production nunca devolve o link (mesmo com a flag), para não expor token em respostas HTTP.
+ */
 function maybeDebugInviteLink(inviteSent, activateUrl) {
   if (inviteSent || !activateUrl) return {};
-  const on = String(process.env.ADMIN_PORTAL_DEBUG_INVITE_LINK || '').toLowerCase();
-  if (on === 'true' || on === '1') {
+  const isDebugEnabled = parseBooleanEnv(process.env.ADMIN_PORTAL_DEBUG_INVITE_LINK);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && isDebugEnabled) {
+    console.warn('[SECURITY_OVERRIDE]', {
+      reason: 'debug_invite_link_disabled_in_production'
+    });
+  }
+
+  if (isDebugEnabled && !isProduction) {
     return { debug_activation_url: activateUrl };
   }
   return {};

@@ -2,16 +2,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { promisify } = require('util');
-const { execFile } = require('child_process');
 const Anthropic = require('@anthropic-ai/sdk');
+const { execFfmpegExtractFrames } = require('../../../utils/safeExecFile');
 const { v4: uuidv4 } = require('uuid');
 const repo = require('../repositories/fieldAnalysisRepository');
 const aiAnalytics = require('../../../services/aiAnalyticsService');
 const modelResolver = require('./modelResolverService');
 const unityVisualizationPayload = require('./unityVisualizationPayloadService');
-
-const execFileAsync = promisify(execFile);
 
 /** Mesma raiz que `routes/technicalLibrary.js` (src/routes → ../../../uploads/technical-library). */
 const UPLOADS_TECH_LIBRARY_ROOT = path.resolve(
@@ -108,19 +105,20 @@ async function imageToBase64Part(absPath) {
   };
 }
 
-async function extractVideoFrames(videoAbsPath, outDir, maxFrames) {
+async function extractVideoFrames(videoAbsPath, outDir, maxFrames, sessionBaseDir) {
   const mf = maxFrames || 4;
   const frames = [];
   try {
     const safeVideo = path.resolve(String(videoAbsPath || ''));
     const safeOutDir = path.resolve(String(outDir || ''));
+    const sessionRoot = path.resolve(String(sessionBaseDir || ''));
     await fs.promises.mkdir(safeOutDir, { recursive: true });
-    const pattern = path.join(safeOutDir, 'vf-%03d.jpg');
-    await execFileAsync(
-      'ffmpeg',
-      ['-y', '-i', safeVideo, '-vf', 'fps=1/4', '-frames:v', String(mf), pattern],
-      { timeout: 120000 }
-    );
+    await execFfmpegExtractFrames({
+      videoAbsPath: safeVideo,
+      outputDir: safeOutDir,
+      sessionBaseDir: sessionRoot,
+      maxFrames: mf
+    });
     const files = await fs.promises.readdir(safeOutDir);
     for (const f of files.sort()) {
       if (f.startsWith('vf-') && f.endsWith('.jpg')) {
@@ -187,7 +185,7 @@ async function runAnalysis(companyId, userId, analysisId, body, files, publicBas
       e.status = 400;
       throw e;
     }
-    framePaths = await extractVideoFrames(safeVideoAbs, resolvedFramesDir, 4);
+    framePaths = await extractVideoFrames(safeVideoAbs, resolvedFramesDir, 4, sessionDir);
     for (const ap of framePaths) {
       mediaPaths.push({
         kind: 'frame',

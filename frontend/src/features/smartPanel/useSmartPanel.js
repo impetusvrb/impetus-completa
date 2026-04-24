@@ -201,7 +201,7 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
           downloadPanelPdf(out);
           notify.success('PDF a descarregar.');
         } else if (meta.kind === 'excel') {
-          downloadPanelXlsx(out);
+          await downloadPanelXlsx(out);
           notify.success('Excel a descarregar.');
         } else if (meta.kind === 'chat') {
           const body = panelOutputToPlainText(out);

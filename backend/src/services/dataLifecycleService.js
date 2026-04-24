@@ -2,7 +2,8 @@
 
 /**
  * Ciclo de vida de dados: retenção, expurgo e anonimização em background.
- * Expurgo respeita FK (incidentes): remove apenas traces elegíveis ou minimiza payload in-place.
+ * Traces: DELETE/anonimização conforme FK e incidentes.
+ * Trilha legal (ai_legal_audit_logs): nunca DELETE — apenas arquivamento lógico (archived).
  */
 
 const db = require('../db');
@@ -17,7 +18,7 @@ let lastRunStats = {
   at: null,
   traces_deleted: 0,
   traces_anonymized: 0,
-  audit_logs_deleted: 0,
+  audit_logs_archived: 0,
   errors: []
 };
 
@@ -63,7 +64,7 @@ async function runRetentionCycle(opts = {}) {
   const errors = [];
   let traces_deleted = 0;
   let traces_anonymized = 0;
-  let audit_logs_deleted = 0;
+  let audit_logs_archived = 0;
 
   const traceCutoffDays = policy.trace;
   const auditCutoffDays = policy.audit_logs;
@@ -102,20 +103,26 @@ async function runRetentionCycle(opts = {}) {
   }
 
   try {
-    const delAu = await db.query(
-      `DELETE FROM ai_legal_audit_logs WHERE created_at < now() - ($1::int * interval '1 day')`,
+    const archAu = await db.query(
+      `
+      UPDATE ai_legal_audit_logs
+      SET archived = true,
+          archived_at = now()
+      WHERE created_at < now() - ($1::int * interval '1 day')
+        AND archived IS NOT TRUE
+      `,
       [auditCutoffDays]
     );
-    audit_logs_deleted = delAu.rowCount || 0;
+    audit_logs_archived = archAu.rowCount || 0;
   } catch (e) {
-    errors.push(`audit_logs_delete: ${e.message || e}`);
+    errors.push(`audit_logs_archive: ${e.message || e}`);
   }
 
   lastRunStats = {
     at: new Date().toISOString(),
     traces_deleted,
     traces_anonymized,
-    audit_logs_deleted,
+    audit_logs_archived,
     errors
   };
 

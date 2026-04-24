@@ -164,6 +164,82 @@ async function fetchUserMetrics(companyId, userId) {
   return r.rows[0] || {};
 }
 
+/**
+ * Métricas para vários pares (company_id, user_id) numa única ida ao PostgreSQL.
+ * @param {{ company_id: string, user_id: string }[]} pairList — sem duplicados recomendado
+ */
+async function fetchUserMetricsBatch(pairList) {
+  if (!pairList.length) return [];
+  const valueSlots = pairList
+    .map((_, i) => {
+      const o = i * 2;
+      return `($${o + 1}::uuid, $${o + 2}::uuid)`;
+    })
+    .join(', ');
+  const params = pairList.flatMap((p) => [p.company_id, p.user_id]);
+  const r = await db.query(
+    `
+    WITH pairs AS (
+      SELECT * FROM (VALUES ${valueSlots}) AS v(company_id, user_id)
+    ),
+    inc_agg AS (
+      SELECT
+        i.company_id,
+        i.user_id,
+        count(*) FILTER (WHERE i.created_at >= now() - interval '30 days')::int AS incidents_30d,
+        avg((CASE i.severity
+          WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3 WHEN 'MEDIUM' THEN 2 ELSE 1 END))
+          FILTER (WHERE i.created_at >= now() - interval '30 days')::float AS avg_severity_numeric,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days'
+            AND i.incident_type = 'TENTATIVA_DE_INVASAO')::int AS invasions_30d,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days'
+            AND i.incident_type = 'COMPLIANCE_RISK')::int AS compliance_incidents_30d,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days'
+            AND i.incident_type = 'POLICY_VIOLATION')::int AS policy_violations_30d,
+        max(i.created_at) AS last_incident_at
+      FROM ai_incidents i
+      INNER JOIN pairs p ON i.company_id = p.company_id AND i.user_id = p.user_id
+      GROUP BY i.company_id, i.user_id
+    ),
+    tr_agg AS (
+      SELECT
+        t.company_id,
+        t.user_id,
+        count(*) FILTER (
+          WHERE t.created_at >= now() - interval '30 days'
+            AND t.human_validation_status = 'REJECTED')::int AS hitl_rejected_30d,
+        count(*) FILTER (
+          WHERE t.created_at >= now() - interval '30 days'
+            AND t.human_validation_status = 'ACCEPTED')::int AS hitl_accepted_30d,
+        count(*) FILTER (WHERE t.created_at >= now() - interval '30 days')::int AS traces_30d
+      FROM ai_interaction_traces t
+      INNER JOIN pairs p ON t.company_id = p.company_id AND t.user_id = p.user_id
+      GROUP BY t.company_id, t.user_id
+    )
+    SELECT
+      p.company_id,
+      p.user_id,
+      coalesce(ia.incidents_30d, 0) AS incidents_30d,
+      ia.avg_severity_numeric,
+      coalesce(ia.invasions_30d, 0) AS invasions_30d,
+      coalesce(ia.compliance_incidents_30d, 0) AS compliance_incidents_30d,
+      coalesce(ia.policy_violations_30d, 0) AS policy_violations_30d,
+      ia.last_incident_at,
+      coalesce(ta.hitl_rejected_30d, 0) AS hitl_rejected_30d,
+      coalesce(ta.hitl_accepted_30d, 0) AS hitl_accepted_30d,
+      coalesce(ta.traces_30d, 0) AS traces_30d
+    FROM pairs p
+    LEFT JOIN inc_agg ia ON ia.company_id = p.company_id AND ia.user_id = p.user_id
+    LEFT JOIN tr_agg ta ON ta.company_id = p.company_id AND ta.user_id = p.user_id
+    `,
+    params
+  );
+  return r.rows;
+}
+
 async function fetchCompanyMetrics(companyId) {
   const r = await db.query(
     `
@@ -199,6 +275,80 @@ async function fetchCompanyMetrics(companyId) {
   const high24 = row.high_24h || 0;
   row.high_burst_24h = high24 >= 3;
   return row;
+}
+
+/**
+ * Métricas de risco por empresa (mesma semântica que fetchCompanyMetrics) numa única consulta.
+ * @param {string[]} companyIds — UUIDs; serão deduplicados pelo caller se necessário
+ */
+async function fetchCompanyMetricsBatch(companyIds) {
+  if (!companyIds.length) return [];
+  const valueSlots = companyIds.map((_, i) => `($${i + 1}::uuid)`).join(', ');
+  const r = await db.query(
+    `
+    WITH companies AS (
+      SELECT * FROM (VALUES ${valueSlots}) AS v(company_id)
+    ),
+    inc_agg AS (
+      SELECT
+        i.company_id,
+        count(*) FILTER (WHERE i.created_at >= now() - interval '30 days')::int AS incidents_30d,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days' AND i.severity = 'CRITICAL'
+        )::int AS critical_30d,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '24 hours' AND i.severity = 'HIGH'
+        )::int AS high_24h,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days'
+            AND i.incident_type = 'COMPLIANCE_RISK'
+        )::int AS compliance_incidents_30d,
+        count(*) FILTER (
+          WHERE i.created_at >= now() - interval '30 days'
+            AND i.incident_type = 'POLICY_VIOLATION'
+        )::int AS policy_violations_30d,
+        max(i.created_at) AS last_incident_at
+      FROM ai_incidents i
+      INNER JOIN companies c ON i.company_id = c.company_id
+      GROUP BY i.company_id
+    ),
+    tension AS (
+      SELECT
+        u.company_id,
+        coalesce(avg(least(u.uc * 14, 85)), 0)::float AS user_tension_proxy
+      FROM (
+        SELECT
+          i.company_id,
+          count(*)::int AS uc
+        FROM ai_incidents i
+        INNER JOIN companies c ON i.company_id = c.company_id
+        WHERE i.created_at >= now() - interval '30 days'
+        GROUP BY i.company_id, i.user_id
+      ) u
+      GROUP BY u.company_id
+    )
+    SELECT
+      c.company_id,
+      coalesce(ia.incidents_30d, 0) AS incidents_30d,
+      coalesce(ia.critical_30d, 0) AS critical_30d,
+      coalesce(ia.high_24h, 0) AS high_24h,
+      coalesce(ia.compliance_incidents_30d, 0) AS compliance_incidents_30d,
+      coalesce(ia.policy_violations_30d, 0) AS policy_violations_30d,
+      ia.last_incident_at,
+      coalesce(t.user_tension_proxy, 0)::float AS user_tension_proxy
+    FROM companies c
+    LEFT JOIN inc_agg ia ON ia.company_id = c.company_id
+    LEFT JOIN tension t ON t.company_id = c.company_id
+    `,
+    companyIds
+  );
+  return r.rows.map((row) => {
+    const high24 = row.high_24h || 0;
+    return {
+      ...row,
+      high_burst_24h: high24 >= 3
+    };
+  });
 }
 
 async function getUserRiskBundle(companyId, userId) {
@@ -239,6 +389,75 @@ async function getUserRiskBundle(companyId, userId) {
   return bundle;
 }
 
+/**
+ * Vários bundles de risco por utilizador com 1 consulta agregada (+ cache TTL existente).
+ * @param {{ company_id: string, user_id: string }[]} pairs
+ * @returns {Promise<Map<string, object>>} chave `${company_id}:${user_id}` → mesmo formato que getUserRiskBundle
+ */
+async function getUserRiskBundlesBatch(pairs) {
+  const out = new Map();
+  if (!pairs?.length) return out;
+
+  const dedup = new Map();
+  for (const raw of pairs) {
+    const companyId = raw?.company_id;
+    const userId = raw?.user_id;
+    if (!companyId || !userId) continue;
+    const mapKey = `${companyId}:${userId}`;
+    if (!dedup.has(mapKey)) dedup.set(mapKey, { company_id: companyId, user_id: userId });
+  }
+  const list = [...dedup.values()];
+  if (!list.length) return out;
+
+  const needFetch = [];
+  for (const p of list) {
+    const mapKey = `${p.company_id}:${p.user_id}`;
+    const ck = `u:${p.company_id}:${p.user_id}`;
+    const hit = cacheGet(ck);
+    if (hit) out.set(mapKey, hit);
+    else needFetch.push(p);
+  }
+
+  if (needFetch.length) {
+    const rows = await fetchUserMetricsBatch(needFetch);
+    for (const row of rows) {
+      const metrics = {
+        incidents_30d: row.incidents_30d,
+        avg_severity_numeric: row.avg_severity_numeric,
+        invasions_30d: row.invasions_30d,
+        compliance_incidents_30d: row.compliance_incidents_30d,
+        policy_violations_30d: row.policy_violations_30d,
+        hitl_rejected_30d: row.hitl_rejected_30d,
+        hitl_accepted_30d: row.hitl_accepted_30d,
+        traces_30d: row.traces_30d,
+        last_incident_at: row.last_incident_at
+      };
+      const user_risk_score = computeUserRiskScoreFromMetrics(metrics);
+      const bundle = {
+        user_risk_score,
+        user_reputation: {
+          trust_level: trustLevelFromScore(user_risk_score),
+          history_score: clampScore(100 - user_risk_score),
+          last_incident_at: metrics.last_incident_at || null
+        },
+        metrics: {
+          incidents_30d: metrics.incidents_30d,
+          avg_severity_numeric: metrics.avg_severity_numeric,
+          invasions_30d: metrics.invasions_30d,
+          hitl_rejected_30d: metrics.hitl_rejected_30d,
+          hitl_accepted_30d: metrics.hitl_accepted_30d,
+          traces_30d: metrics.traces_30d
+        }
+      };
+      const mapKey = `${row.company_id}:${row.user_id}`;
+      cacheSet(`u:${row.company_id}:${row.user_id}`, bundle);
+      out.set(mapKey, bundle);
+    }
+  }
+
+  return out;
+}
+
 async function getCompanyRiskBundle(companyId) {
   if (!companyId) {
     return {
@@ -276,6 +495,67 @@ async function getCompanyRiskBundle(companyId) {
   return bundle;
 }
 
+/**
+ * Vários bundles de risco por empresa com 1 consulta agregada (+ cache TTL existente).
+ * @param {string[]} companyIds
+ * @returns {Promise<Map<string, object>>} chave company_id (uuid) → mesmo formato que getCompanyRiskBundle
+ */
+async function getCompanyRiskBundlesBatch(companyIds) {
+  const out = new Map();
+  if (!companyIds?.length) return out;
+
+  const dedup = [...new Set(companyIds.filter(Boolean).map((id) => String(id)))];
+  if (!dedup.length) return out;
+
+  const needFetch = [];
+  for (const companyId of dedup) {
+    const idKey = String(companyId);
+    const ck = `co:${idKey}`;
+    const hit = cacheGet(ck);
+    if (hit) out.set(idKey, hit);
+    else needFetch.push(idKey);
+  }
+
+  if (needFetch.length) {
+    const rows = await fetchCompanyMetricsBatch(needFetch);
+    for (const row of rows) {
+      const cid = row.company_id;
+      if (!cid) continue;
+      const metrics = {
+        incidents_30d: row.incidents_30d,
+        critical_30d: row.critical_30d,
+        high_24h: row.high_24h,
+        high_burst_24h: row.high_burst_24h,
+        compliance_incidents_30d: row.compliance_incidents_30d,
+        policy_violations_30d: row.policy_violations_30d,
+        user_tension_proxy: row.user_tension_proxy,
+        last_incident_at: row.last_incident_at
+      };
+      const avgTension = Number(metrics.user_tension_proxy) || 0;
+      const company_risk_score = computeCompanyRiskScoreFromMetrics(metrics, avgTension);
+      const bundle = {
+        company_risk_score,
+        company_reputation: {
+          trust_level: trustLevelFromScore(company_risk_score),
+          history_score: clampScore(100 - company_risk_score),
+          last_incident_at: metrics.last_incident_at || null
+        },
+        metrics: {
+          incidents_30d: metrics.incidents_30d,
+          critical_30d: metrics.critical_30d,
+          high_burst_24h: metrics.high_burst_24h,
+          high_24h: metrics.high_24h
+        }
+      };
+      const idKey = String(cid);
+      cacheSet(`co:${idKey}`, bundle);
+      out.set(idKey, bundle);
+    }
+  }
+
+  return out;
+}
+
 async function getTopRiskUsers(limit = 25) {
   const lim = Math.min(80, Math.max(5, parseInt(limit, 10) || 25));
   const r = await db.query(
@@ -295,9 +575,18 @@ async function getTopRiskUsers(limit = 25) {
     `,
     [lim * 2]
   );
+  const pairList = r.rows.map((row) => ({ company_id: row.company_id, user_id: row.user_id }));
+  const bundleMap = await getUserRiskBundlesBatch(pairList);
   const scored = [];
   for (const row of r.rows) {
-    const b = await getUserRiskBundle(row.company_id, row.user_id);
+    const b = bundleMap.get(`${row.company_id}:${row.user_id}`) || {
+      user_risk_score: 0,
+      user_reputation: {
+        trust_level: 'trusted',
+        history_score: 100,
+        last_incident_at: null
+      }
+    };
     scored.push({
       user_id: row.user_id,
       company_id: row.company_id,
@@ -331,9 +620,19 @@ async function getTopRiskCompanies(limit = 25) {
     `,
     [lim * 2]
   );
+  const idList = r.rows.map((row) => row.company_id);
+  const bundleMap = await getCompanyRiskBundlesBatch(idList);
+  const defaultCo = {
+    company_risk_score: 0,
+    company_reputation: {
+      trust_level: 'trusted',
+      history_score: 100,
+      last_incident_at: null
+    }
+  };
   const scored = [];
   for (const row of r.rows) {
-    const b = await getCompanyRiskBundle(row.company_id);
+    const b = bundleMap.get(String(row.company_id)) || defaultCo;
     scored.push({
       company_id: row.company_id,
       company_name: row.company_name,
@@ -402,8 +701,11 @@ module.exports = {
   riskBandFromScore,
   fetchUserMetrics,
   fetchCompanyMetrics,
+  fetchCompanyMetricsBatch,
   getUserRiskBundle,
+  getUserRiskBundlesBatch,
   getCompanyRiskBundle,
+  getCompanyRiskBundlesBatch,
   getTopRiskUsers,
   getTopRiskCompanies,
   getRiskTimeseries,

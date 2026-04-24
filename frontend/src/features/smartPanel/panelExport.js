@@ -3,7 +3,10 @@
  */
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+
+async function loadExcelJS() {
+  return await import('exceljs');
+}
 
 function flattenClaudePayloadForSheet(payload) {
   const rows = [];
@@ -185,12 +188,24 @@ function flattenOutputForSheet(output) {
   return { headers: ['Secção', 'Rótulo', 'Valor'], rows };
 }
 
-export function downloadPanelXlsx(output) {
+export async function downloadPanelXlsx(output) {
+  const { default: ExcelJS } = await loadExcelJS();
   const { headers, rows } = flattenOutputForSheet(output);
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Painel');
-  XLSX.writeFile(wb, `impetus-painel-${Date.now()}.xlsx`);
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Painel');
+  ws.addRow(headers);
+  rows.forEach((r) => ws.addRow(r));
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `impetus-painel-${Date.now()}.xlsx`;
+  a.rel = 'noopener';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function downloadPanelPdf(output) {

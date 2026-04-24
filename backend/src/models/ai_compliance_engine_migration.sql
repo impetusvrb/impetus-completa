@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ai_legal_audit_logs (
 );
 
 COMMENT ON TABLE ai_legal_audit_logs IS
-  'Trilha legal append-only: decisões de conformidade por trace (sem UPDATE/DELETE pela aplicação).';
+  'Trilha legal: decisões de conformidade por trace. Sem DELETE físico; retenção = arquivamento (colunas archived/archived_at, migração dedicada).';
 
 CREATE INDEX IF NOT EXISTS idx_ai_legal_audit_company_created
   ON ai_legal_audit_logs (company_id, created_at DESC);

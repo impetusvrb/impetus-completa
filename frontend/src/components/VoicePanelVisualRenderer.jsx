@@ -16,27 +16,37 @@ import {
 import { Download, FileSpreadsheet, Printer, Share2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 export default function VoicePanelVisualRenderer({ visual, className = '', visualOnly = false }) {
   const printRef = useRef(null);
 
-  const downloadXlsx = useCallback(() => {
+  const downloadXlsx = useCallback(async () => {
     if (!visual) return;
+    const ExcelJS = (await import('exceljs')).default;
     const rows = visual.exportRows;
     const cols = visual.exportColumns;
+    const writeBook = async (sheetName, matrix) => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet(sheetName);
+      matrix.forEach((line) => ws.addRow(line));
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `impetus-voz-${Date.now()}.xlsx`;
+      a.rel = 'noopener';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
     if (rows && cols) {
-      const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Impetus');
-      XLSX.writeFile(wb, `impetus-voz-${Date.now()}.xlsx`);
+      await writeBook('Impetus', [cols, ...rows]);
       return;
     }
     if (visual.kind === 'table' && visual.columns && visual.rows) {
-      const ws = XLSX.utils.aoa_to_sheet([visual.columns, ...visual.rows]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-      XLSX.writeFile(wb, `impetus-voz-${Date.now()}.xlsx`);
+      await writeBook('Dados', [visual.columns, ...visual.rows]);
     }
   }, [visual]);
 

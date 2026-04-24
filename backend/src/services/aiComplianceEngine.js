@@ -205,16 +205,32 @@ async function processAfterAdaptive(ctx) {
   };
 }
 
+async function countLegalAuditAnonymizeSince(sqlInterval) {
+  const db = require('../db');
+  const withArch = `
+    SELECT count(*)::int AS n
+    FROM ai_legal_audit_logs
+    WHERE action_type = 'ANONYMIZE'
+      AND created_at >= now() - ${sqlInterval}
+      AND archived IS NOT TRUE`;
+  const noArch = `
+    SELECT count(*)::int AS n
+    FROM ai_legal_audit_logs
+    WHERE action_type = 'ANONYMIZE'
+      AND created_at >= now() - ${sqlInterval}`;
+  try {
+    return await db.query(withArch);
+  } catch (e) {
+    if (e.code === '42703' && /archived/i.test(String(e.message || ''))) {
+      return db.query(noArch);
+    }
+    throw e;
+  }
+}
+
 async function getComplianceOverview() {
   const db = require('../db');
-  const [
-    sensitiveTraces,
-    complianceIncidents,
-    topCompanies,
-    fieldAgg,
-    basisDist,
-    anonymizationEvents
-  ] = await Promise.all([
+  const [sensitiveTraces, complianceIncidents, topCompanies, fieldAgg, basisDist] = await Promise.all([
     db.query(
       `SELECT count(*)::int AS n
        FROM ai_interaction_traces
@@ -258,14 +274,9 @@ async function getComplianceOverview() {
        WHERE created_at >= now() - interval '90 days'
        GROUP BY 1
        ORDER BY n DESC`
-    ),
-    db.query(
-      `SELECT count(*)::int AS n
-       FROM ai_legal_audit_logs
-       WHERE action_type = 'ANONYMIZE'
-         AND created_at >= now() - interval '90 days'`
     )
   ]);
+  const anonymizationEvents = await countLegalAuditAnonymizeSince(`interval '90 days'`);
 
   const data_types_detected = {};
   for (const row of fieldAgg.rows) {
@@ -313,27 +324,39 @@ async function getAdvancedComplianceDashboard() {
     /* schema opcional */
   }
   try {
-    const r2 = await db.query(
-      `
-      SELECT count(*)::int AS n
-      FROM ai_legal_audit_logs
-      WHERE action_type = 'ANONYMIZE' AND created_at >= now() - interval '30 days'
-      `
-    );
+    const r2 = await countLegalAuditAnonymizeSince(`interval '30 days'`);
     anonymization_audit_events_30d = r2.rows[0]?.n || 0;
-  } catch (_) {}
+  } catch (_) {
+    /* schema opcional */
+  }
   try {
-    const r3 = await db.query(
-      `
+    const withArch = `
+      SELECT coalesce(compliance_status, 'UNKNOWN') AS st, count(*)::int AS n
+      FROM ai_legal_audit_logs
+      WHERE created_at >= now() - interval '30 days'
+        AND archived IS NOT TRUE
+      GROUP BY 1
+      ORDER BY n DESC`;
+    const noArch = `
       SELECT coalesce(compliance_status, 'UNKNOWN') AS st, count(*)::int AS n
       FROM ai_legal_audit_logs
       WHERE created_at >= now() - interval '30 days'
       GROUP BY 1
-      ORDER BY n DESC
-      `
-    );
+      ORDER BY n DESC`;
+    let r3;
+    try {
+      r3 = await db.query(withArch);
+    } catch (e) {
+      if (e.code === '42703' && /archived/i.test(String(e.message || ''))) {
+        r3 = await db.query(noArch);
+      } else {
+        throw e;
+      }
+    }
     audit_by_status = r3.rows.map((x) => ({ compliance_status: x.st, count: x.n }));
-  } catch (_) {}
+  } catch (_) {
+    /* schema opcional */
+  }
 
   const alerts = [...dataLifecycleService.computeRegulatoryAlerts(retention.retention_policy)];
   if (sensitive_traces_not_redacted_30d > 500) {
@@ -350,7 +373,7 @@ async function getAdvancedComplianceDashboard() {
       at: lastRun.at,
       traces_deleted: lastRun.traces_deleted,
       traces_anonymized: lastRun.traces_anonymized,
-      audit_logs_deleted: lastRun.audit_logs_deleted,
+      audit_logs_archived: lastRun.audit_logs_archived ?? 0,
       errors: lastRun.errors || []
     },
     aggregates_30d: {

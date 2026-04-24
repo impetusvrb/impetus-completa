@@ -129,7 +129,7 @@ export default function SmartPanel({
                   className="smart-panel__icon-btn"
                   title="Excel"
                   aria-label="Exportar Excel"
-                  onClick={() => downloadPanelXlsx(currentOutput)}
+                  onClick={() => void downloadPanelXlsx(currentOutput)}
                 >
                   <FileSpreadsheet size={18} />
                 </button>
@@ -268,7 +268,7 @@ export default function SmartPanel({
             {canExport && (
               <div className="smart-panel__export">
                 {(currentOutput.exportOptions || []).includes('excel') && (
-                  <button type="button" className="smart-panel__export-btn" onClick={() => downloadPanelXlsx(currentOutput)}>
+                  <button type="button" className="smart-panel__export-btn" onClick={() => void downloadPanelXlsx(currentOutput)}>
                     <FileSpreadsheet size={15} /> Excel
                   </button>
                 )}

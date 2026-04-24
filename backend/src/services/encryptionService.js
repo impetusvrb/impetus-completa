@@ -1,12 +1,20 @@
 'use strict';
 
 /**
- * Camada de criptografia em repouso — AES-256-GCM (Node.js crypto).
- * Chave apenas via DATA_ENCRYPTION_KEY (base64, 32 bytes). Sem chave válida: modo desativado (sem quebrar fluxo).
- * Extensível para KMS: defina DATA_ENCRYPTION_KMS_PROVIDER (ex.: AWS_KMS) quando integrar.
+ * Criptografia em repouso — AES-256-GCM (Node.js crypto).
+ *
+ * Material de chave:
+ * - Padrão: DATA_ENCRYPTION_KEY (base64, 32 bytes), key_source = "env".
+ * - Com DATA_ENCRYPTION_KMS_PROVIDER=aws|gcp (ou legado AWS_KMS/GCP_KMS):
+ *   key_source = "kms" nos metadados. Modo mock: sem DEK embrulhada, o material
+ *   continua a ser DATA_ENCRYPTION_KEY. Modo real: DATA_ENCRYPTION_KMS_ENCRYPTED_DEK
+ *   + chamada KMS (ver docs); falha KMS → fallback para DATA_ENCRYPTION_KEY.
+ *
+ * Sem chave válida: modo desativado (sem quebrar fluxo).
  */
 
 const crypto = require('crypto');
+const { normalizeKmsProvider } = require('./kms/kmsProviderNormalize');
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -17,33 +25,40 @@ const MAX_PLAINTEXT_BYTES = Math.min(
   Math.max(65536, parseInt(process.env.DATA_ENCRYPTION_MAX_PLAINTEXT_BYTES || '524288', 10))
 );
 
+/** Esquema do envelope e versão lógica da chave (rotação futura via KMS). */
 const ENCRYPTION_VERSION = 'v1';
 
-/** @type {Buffer|null} */
-let _cachedKey = undefined;
+/**
+ * @typedef {object} EncryptionKeyBundle
+ * @property {Buffer|null} key — material AES-256; não registar em logs.
+ * @property {'env'|'kms'} key_source
+ * @property {string} key_version
+ */
+
+/** @type {EncryptionKeyBundle|undefined} */
+let _cachedBundle = undefined;
 
 function getKmsProviderHint() {
   const p = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
   return p != null && String(p).trim() !== '' ? String(p).trim() : null;
 }
 
-function loadKeyBuffer() {
-  if (_cachedKey !== undefined) return _cachedKey;
+/**
+ * Lê e valida DATA_ENCRYPTION_KEY sem cache (uso interno + validação startup).
+ * @returns {Buffer|null}
+ */
+function parseEnvKeyMaterial() {
   const raw = process.env.DATA_ENCRYPTION_KEY;
   if (raw == null || String(raw).trim() === '') {
-    _cachedKey = null;
     return null;
   }
   try {
     const buf = Buffer.from(String(raw).trim(), 'base64');
     if (buf.length !== KEY_LENGTH) {
-      _cachedKey = null;
       return null;
     }
-    _cachedKey = buf;
     return buf;
   } catch {
-    _cachedKey = null;
     return null;
   }
 }
@@ -51,7 +66,7 @@ function loadKeyBuffer() {
 function validateConfigurationOnce() {
   if (globalThis.__impetusEncryptionConfigChecked) return;
   globalThis.__impetusEncryptionConfigChecked = true;
-  if (process.env.DATA_ENCRYPTION_KEY && !loadKeyBuffer()) {
+  if (process.env.DATA_ENCRYPTION_KEY && !parseEnvKeyMaterial()) {
     console.error(
       '[ENCRYPTION] DATA_ENCRYPTION_KEY definida mas inválida (use base64 de exatamente 32 bytes). Criptografia em repouso desativada.'
     );
@@ -59,10 +74,155 @@ function validateConfigurationOnce() {
 }
 
 /**
+ * Resolve o material de cifra e metadados de origem.
+ * @returns {EncryptionKeyBundle}
+ */
+function getEncryptionKey() {
+  validateConfigurationOnce();
+  if (_cachedBundle !== undefined) {
+    return _cachedBundle;
+  }
+
+  const key = parseEnvKeyMaterial();
+  const kms = getKmsProviderHint();
+
+  if (kms) {
+    _cachedBundle = {
+      key,
+      key_source: 'kms',
+      key_version: ENCRYPTION_VERSION
+    };
+  } else {
+    _cachedBundle = {
+      key,
+      key_source: 'env',
+      key_version: ENCRYPTION_VERSION
+    };
+  }
+  return _cachedBundle;
+}
+
+/**
+ * Metadados seguros para persistência (sem expor o buffer da chave).
+ * @returns {{ key_source: 'env'|'kms', key_version: string }}
+ */
+function getEncryptionKeyMeta() {
+  const b = getEncryptionKey();
+  return { key_source: b.key_source, key_version: b.key_version };
+}
+
+function hasKmsWrappedDekConfigured() {
+  const v = process.env.DATA_ENCRYPTION_KMS_ENCRYPTED_DEK;
+  return v != null && String(v).trim() !== '';
+}
+
+function isKmsBootstrapGenerateEnabled() {
+  const v = process.env.DATA_ENCRYPTION_KMS_BOOTSTRAP_GENERATE;
+  return v === '1' || String(v || '').toLowerCase() === 'true';
+}
+
+/**
+ * Integração opcional AWS KMS (@aws-sdk/client-kms) / GCP Cloud KMS (@google-cloud/kms).
+ *
+ * - Sem provider normalizado ou sem DEK embrulhada / bootstrap: equivale ao mock
+ *   (retorna {@link getEncryptionKey}).
+ * - Com `DATA_ENCRYPTION_KMS_ENCRYPTED_DEK` (+ IAM / ADC): obtém plaintext via Decrypt.
+ * - AWS bootstrap (só laboratório): `DATA_ENCRYPTION_KMS_BOOTSTRAP_GENERATE=true` + KEY_ID → GenerateDataKey.
+ * - GCP bootstrap (só laboratório): gera plaintext aleatório, encrypt+decrypt na mesma chave.
+ *
+ * Em qualquer falha de KMS com `DATA_ENCRYPTION_KEY` válida: fallback para env (`key_source: env`,
+ * flag `kms_fallback_from_env` no bundle).
+ *
+ * @returns {Promise<EncryptionKeyBundle & { kms_fallback_from_env?: boolean }>}
+ */
+async function fetchKeyFromKMS() {
+  validateConfigurationOnce();
+  const hint = getKmsProviderHint();
+  const provider = normalizeKmsProvider(hint);
+
+  if (!hint || !provider) {
+    await Promise.resolve();
+    return getEncryptionKey();
+  }
+
+  const hasWrapped = hasKmsWrappedDekConfigured();
+  const bootstrap = isKmsBootstrapGenerateEnabled();
+
+  if (!hasWrapped && !bootstrap) {
+    await Promise.resolve();
+    return getEncryptionKey();
+  }
+
+  try {
+    let keyBuf;
+    if (provider === 'aws') {
+      const { fetchAwsKmsPlaintextKey } = require('./kms/awsKmsKeyMaterial');
+      keyBuf = await fetchAwsKmsPlaintextKey({ hasWrapped, bootstrap });
+    } else {
+      const { fetchGcpKmsPlaintextKey } = require('./kms/gcpKmsKeyMaterial');
+      keyBuf = await fetchGcpKmsPlaintextKey({ hasWrapped, bootstrap });
+    }
+    if (!keyBuf || keyBuf.length !== KEY_LENGTH) {
+      throw new Error('KMS_KEY_LENGTH_INVALID');
+    }
+    return {
+      key: keyBuf,
+      key_source: 'kms',
+      key_version: ENCRYPTION_VERSION
+    };
+  } catch (e) {
+    console.warn(
+      '[ENCRYPTION_KMS] Falha ao obter chave via KMS; a usar fallback DATA_ENCRYPTION_KEY se existir.',
+      e && (e.code || e.name || e.message)
+    );
+    const envKey = parseEnvKeyMaterial();
+    if (!envKey) {
+      await Promise.resolve();
+      return getEncryptionKey();
+    }
+    return {
+      key: envKey,
+      key_source: 'env',
+      key_version: ENCRYPTION_VERSION,
+      kms_fallback_from_env: true
+    };
+  }
+}
+
+/**
+ * Opcional: após `await warmKmsEncryptionKey()`, a cache interna usa o material
+ * devolvido por {@link fetchKeyFromKMS} (KMS real ou fallback env). Chamar no
+ * arranque do processo **antes** de aceitar tráfego que cifra dados, quando usar
+ * modo KMS real. Não está ligado ao `server.js` por defeito (ver documentação).
+ *
+ * @returns {Promise<{ ok: boolean, key_source?: string, kms_fallback_from_env?: boolean, reason?: string }>}
+ */
+async function warmKmsEncryptionKey() {
+  validateConfigurationOnce();
+  const bundle = await fetchKeyFromKMS();
+  if (!bundle.key) {
+    return { ok: false, reason: 'no_key_material' };
+  }
+  _cachedBundle = {
+    key: bundle.key,
+    key_source: bundle.key_source,
+    key_version: bundle.key_version
+  };
+  return {
+    ok: true,
+    key_source: bundle.key_source,
+    kms_fallback_from_env: bundle.kms_fallback_from_env === true
+  };
+}
+
+function loadKeyBuffer() {
+  return getEncryptionKey().key;
+}
+
+/**
  * Criptografia disponível e chave válida carregada.
  */
 function isEncryptionAvailable() {
-  validateConfigurationOnce();
   return loadKeyBuffer() !== null;
 }
 
@@ -180,7 +340,7 @@ function tryDecryptValue(payload, opts = {}) {
     return {
       _encryption_error: true,
       code: 'KEY_UNAVAILABLE',
-      hint: 'DATA_ENCRYPTION_KEY missing or invalid on this node'
+      hint: 'DATA_ENCRYPTION_KEY missing or invalid on this node (or KMS mock without key)'
     };
   }
 
@@ -193,7 +353,7 @@ function tryDecryptValue(payload, opts = {}) {
     return {
       _encryption_error: true,
       code: 'DECRYPT_FAILED',
-      hint: 'verify_DATA_ENCRYPTION_KEY'
+      hint: 'verify_DATA_ENCRYPTION_KEY_or_KMS'
     };
   }
 }
@@ -220,10 +380,24 @@ function shouldEncryptAtRest(classification, policyRules, recordHints) {
 
 function getStatusMeta() {
   validateConfigurationOnce();
+  const bundle = getEncryptionKey();
+  const hint = getKmsProviderHint();
+  const kmsNormalized = normalizeKmsProvider(hint);
+  const keyIdSet = !!(process.env.DATA_ENCRYPTION_KMS_KEY_ID && String(process.env.DATA_ENCRYPTION_KMS_KEY_ID).trim());
   return {
     algorithm: ALGORITHM,
     encryption_version: ENCRYPTION_VERSION,
-    kms_provider_hint: getKmsProviderHint(),
+    key_source: bundle.key_source,
+    encryption_key_source: bundle.key_source,
+    encryption_key_version: bundle.key_version,
+    kms_provider: hint,
+    /** @deprecated use kms_provider */
+    kms_provider_hint: hint,
+    kms_provider_normalized: kmsNormalized,
+    kms_key_id_configured: keyIdSet,
+    kms_wrapped_dek_configured: hasKmsWrappedDekConfigured(),
+    kms_bootstrap_generate_enabled: isKmsBootstrapGenerateEnabled(),
+    kms_real_api_eligible: !!(kmsNormalized && (hasKmsWrappedDekConfigured() || isKmsBootstrapGenerateEnabled())),
     max_plaintext_bytes: MAX_PLAINTEXT_BYTES
   };
 }
@@ -278,11 +452,15 @@ module.exports = {
   decryptField,
   tryDecryptValue,
   shouldEncryptAtRest,
+  getEncryptionKey,
+  getEncryptionKeyMeta,
+  fetchKeyFromKMS,
+  warmKmsEncryptionKey,
   getStatusMeta,
   getAtRestCoverageStats,
   /** @internal test */
   _resetKeyCacheForTests() {
-    _cachedKey = undefined;
+    _cachedBundle = undefined;
     delete globalThis.__impetusEncryptionConfigChecked;
   }
 };

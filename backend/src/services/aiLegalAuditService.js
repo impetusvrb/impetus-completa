@@ -3,7 +3,8 @@
 const db = require('../db');
 
 /**
- * Append-only: apenas INSERT. Sem UPDATE/DELETE.
+ * Trilha legal: sem DELETE de linhas. Inserção via INSERT; arquivamento (archived)
+ * apenas pelo job de ciclo de vida; anonimização de campos quando aplicável noutros fluxos.
  *
  * @param {object} row
  * @param {string} row.trace_id

@@ -5,6 +5,8 @@
  * Passivo — não persiste em BD; não deve receber payloads sensíveis.
  */
 
+const { scanLogForSecrets, getLogSecretScanFindings } = require('./logSecretLeakDetector');
+
 const MAX_LOG_STRING = 500;
 const MAX_DETAILS_DEPTH = 5;
 const MAX_DETAILS_KEYS = 40;
@@ -115,9 +117,12 @@ function sanitizeDetails(val, depth = 0) {
  * @param {'INFO'|'WARN'|'ERROR'} level
  * @param {string} event
  * @param {object} payload
+ * @param {{ skipSecretScan?: boolean }} [options]
  */
-function logEvent(level, event, payload = {}) {
-  const line = {
+function logEvent(level, event, payload = {}, options = {}) {
+  const skipSecretScan = options.skipSecretScan === true;
+
+  let line = {
     timestamp: new Date().toISOString(),
     level: level === 'WARN' || level === 'ERROR' ? level : 'INFO',
     event: String(event || 'UNKNOWN').slice(0, 80),
@@ -130,6 +135,34 @@ function logEvent(level, event, payload = {}) {
   if (line.trace_id === undefined) delete line.trace_id;
   if (line.company_id === undefined) delete line.company_id;
   if (line.user_id === undefined) delete line.user_id;
+
+  if (!skipSecretScan) {
+    const serialized = JSON.stringify(line);
+    const findings = getLogSecretScanFindings(serialized);
+    if (findings.suspected) {
+      logEvent(
+        'WARN',
+        'SECURITY_LOG_WARNING',
+        {
+          details: {
+            patterns: findings.patterns,
+            source_event: line.event,
+            source_level: line.level
+          }
+        },
+        { skipSecretScan: true }
+      );
+      line = {
+        ...line,
+        details: {
+          redacted: true,
+          reason: 'potential_secret_patterns_removed_from_log_line',
+          patterns_flagged: findings.patterns
+        }
+      };
+    }
+  }
+
   try {
     process.stdout.write(`${JSON.stringify(line)}\n`);
   } catch (_) {
@@ -353,6 +386,8 @@ function resetAllMetrics() {
 
 module.exports = {
   logEvent,
+  scanLogForSecrets,
+  getLogSecretScanFindings,
   incrementMetric,
   recordLatency,
   getMetricsSnapshot,

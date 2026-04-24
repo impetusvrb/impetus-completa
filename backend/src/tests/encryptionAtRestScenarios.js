@@ -13,13 +13,51 @@ const testKeyB64 = crypto.randomBytes(32).toString('base64');
 
 function withKey(fn) {
   const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
   process.env.DATA_ENCRYPTION_KEY = testKeyB64;
+  delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
   encryptionService._resetKeyCacheForTests();
   try {
     fn();
   } finally {
     if (prev === undefined) delete process.env.DATA_ENCRYPTION_KEY;
     else process.env.DATA_ENCRYPTION_KEY = prev;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
+    encryptionService._resetKeyCacheForTests();
+  }
+}
+
+function withKeyKmsMock(fn) {
+  const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+  process.env.DATA_ENCRYPTION_KEY = testKeyB64;
+  process.env.DATA_ENCRYPTION_KMS_PROVIDER = 'AWS_KMS';
+  encryptionService._resetKeyCacheForTests();
+  try {
+    fn();
+  } finally {
+    if (prev === undefined) delete process.env.DATA_ENCRYPTION_KEY;
+    else process.env.DATA_ENCRYPTION_KEY = prev;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
+    encryptionService._resetKeyCacheForTests();
+  }
+}
+
+async function withKeyKmsMockAsync(fn) {
+  const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+  process.env.DATA_ENCRYPTION_KEY = testKeyB64;
+  process.env.DATA_ENCRYPTION_KMS_PROVIDER = 'AWS_KMS';
+  encryptionService._resetKeyCacheForTests();
+  try {
+    await fn();
+  } finally {
+    if (prev === undefined) delete process.env.DATA_ENCRYPTION_KEY;
+    else process.env.DATA_ENCRYPTION_KEY = prev;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
     encryptionService._resetKeyCacheForTests();
   }
 }
@@ -122,7 +160,9 @@ function testShouldEncryptClassification() {
 
 function testDisabledWithoutKey() {
   const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
   delete process.env.DATA_ENCRYPTION_KEY;
+  delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
   encryptionService._resetKeyCacheForTests();
   try {
     assert.strictEqual(encryptionService.isEncryptionAvailable(), false);
@@ -130,6 +170,51 @@ function testDisabledWithoutKey() {
     assert.deepStrictEqual(encryptionService.encryptField(o), o);
   } finally {
     if (prev !== undefined) process.env.DATA_ENCRYPTION_KEY = prev;
+    else delete process.env.DATA_ENCRYPTION_KEY;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
+    encryptionService._resetKeyCacheForTests();
+  }
+}
+
+function testKmsMockMetadataAndRoundTrip() {
+  withKeyKmsMock(() => {
+    const bundle = encryptionService.getEncryptionKey();
+    assert.strictEqual(bundle.key_source, 'kms');
+    assert.strictEqual(bundle.key_version, encryptionService.ENCRYPTION_VERSION);
+    assert.ok(Buffer.isBuffer(bundle.key) && bundle.key.length === 32);
+    const meta = encryptionService.getEncryptionKeyMeta();
+    assert.deepStrictEqual(meta, { key_source: 'kms', key_version: encryptionService.ENCRYPTION_VERSION });
+    const orig = { x: 1 };
+    const enc = encryptionService.encryptField(orig);
+    assert.strictEqual(encryptionService.isEncrypted(enc), true);
+    assert.deepStrictEqual(encryptionService.decryptField(enc), orig);
+  });
+}
+
+async function testFetchKeyFromKMSMock() {
+  await withKeyKmsMockAsync(async () => {
+    const b = await encryptionService.fetchKeyFromKMS();
+    assert.strictEqual(b.key_source, 'kms');
+    assert.ok(Buffer.isBuffer(b.key) && b.key.length === 32);
+  });
+}
+
+async function testFetchKeyFromKMSProviderAwsLowercase() {
+  const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+  process.env.DATA_ENCRYPTION_KEY = testKeyB64;
+  process.env.DATA_ENCRYPTION_KMS_PROVIDER = 'aws';
+  encryptionService._resetKeyCacheForTests();
+  try {
+    const b = await encryptionService.fetchKeyFromKMS();
+    assert.strictEqual(b.key_source, 'kms');
+    assert.ok(Buffer.isBuffer(b.key) && b.key.length === 32);
+  } finally {
+    if (prev === undefined) delete process.env.DATA_ENCRYPTION_KEY;
+    else process.env.DATA_ENCRYPTION_KEY = prev;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
     encryptionService._resetKeyCacheForTests();
   }
 }
@@ -143,18 +228,23 @@ const suite = [
   testInvalidKeyDecryptFails,
   testAuthTagTamper,
   testShouldEncryptClassification,
-  testDisabledWithoutKey
+  testDisabledWithoutKey,
+  testKmsMockMetadataAndRoundTrip,
+  testFetchKeyFromKMSMock,
+  testFetchKeyFromKMSProviderAwsLowercase
 ];
 
-let failed = false;
-for (const t of suite) {
-  try {
-    t();
-    console.log('OK', t.name);
-  } catch (e) {
-    failed = true;
-    console.error('FAIL', t.name, e);
+(async () => {
+  let failed = false;
+  for (const t of suite) {
+    try {
+      await Promise.resolve(t());
+      console.log('OK', t.name);
+    } catch (e) {
+      failed = true;
+      console.error('FAIL', t.name, e);
+    }
   }
-}
-if (failed) process.exit(1);
-console.log('encryptionAtRestScenarios: all passed');
+  if (failed) process.exit(1);
+  console.log('encryptionAtRestScenarios: all passed');
+})();

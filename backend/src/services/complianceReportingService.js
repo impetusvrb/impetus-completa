@@ -198,7 +198,8 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
     params.push(companyId);
     filter = ` AND company_id = $3::uuid`;
   }
-  try {
+
+  async function runFullAggregate(archClause) {
     const r = await db.query(
       `
       SELECT
@@ -208,6 +209,7 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
         count(*) FILTER (WHERE retention_applied = true)::int AS retention_n
       FROM ai_legal_audit_logs
       WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
+      ${archClause}
       ${filter}
       GROUP BY action_type
       ORDER BY n DESC
@@ -231,6 +233,7 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
       SELECT coalesce(legal_basis, 'UNKNOWN') AS lb, count(*)::int AS n
       FROM ai_legal_audit_logs
       WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
+      ${archClause}
       ${filter}
       GROUP BY lb
       ORDER BY n DESC
@@ -243,6 +246,7 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
       SELECT coalesce(compliance_status, 'UNKNOWN') AS st, count(*)::int AS n
       FROM ai_legal_audit_logs
       WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
+      ${archClause}
       ${filter}
       GROUP BY st
       ORDER BY n DESC
@@ -255,6 +259,7 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
       SELECT coalesce(regulation_tag, 'UNTAGGED') AS tag, count(*)::int AS n
       FROM ai_legal_audit_logs
       WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz
+      ${archClause}
       ${filter}
       GROUP BY tag
       ORDER BY n DESC
@@ -269,8 +274,22 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
       regulation_tag_distribution: reg.rows.map((x) => ({ tag: x.tag, count: x.n })),
       totals: { anonymization_actions: totalAnon, retention_flags: totalRet }
     };
+  }
+
+  try {
+    return await runFullAggregate(' AND archived IS NOT TRUE');
   } catch (e) {
-    if (String(e.message || '').includes('anonymization_applied') || e.code === '42703') {
+    let err = e;
+    const msg = String(err.message || '');
+    if (err.code === '42703' && /archived/i.test(msg)) {
+      try {
+        return await runFullAggregate('');
+      } catch (e2) {
+        err = e2;
+      }
+    }
+    const msg2 = String(err.message || '');
+    if (msg2.includes('anonymization_applied') || err.code === '42703') {
       const r2 = await db.query(
         `
         SELECT action_type, count(*)::int AS n
@@ -293,7 +312,7 @@ async function queryLegalAuditAggregates(companyId, start, endExclusive) {
         note: 'Colunas avançadas de auditoria não disponíveis neste schema.'
       };
     }
-    throw e;
+    throw err;
   }
 }
 
@@ -314,15 +333,17 @@ async function queryRiskSubjects(companyId, start, endExclusive, limit = 12) {
     `,
     params
   );
+  const pairs = r.rows.map((row) => ({ company_id: row.company_id, user_id: row.user_id }));
+  let bundleByKey = new Map();
+  try {
+    bundleByKey = await riskIntel.getUserRiskBundlesBatch(pairs);
+  } catch (_) {
+    /* relatório continua com risk_score_proxy 0 */
+  }
   const out = [];
   for (const row of r.rows) {
-    let score = 0;
-    try {
-      const b = await riskIntel.getUserRiskBundle(row.company_id, row.user_id);
-      score = b.user_risk_score || 0;
-    } catch (_) {
-      /* agregado apenas */
-    }
+    const b = bundleByKey.get(`${row.company_id}:${row.user_id}`);
+    const score = b?.user_risk_score || 0;
     out.push({
       subject_ref: anonymizeSubjectId(row.user_id),
       org_ref: anonymizeOrgId(row.company_id),
@@ -355,15 +376,33 @@ async function queryOrgRiskRanking(companyId, start, endExclusive, limit = 12) {
     `,
     [start, endExclusive, lim]
   );
+  const companyIds = r.rows.map((row) => row.company_id);
+  let riskMap;
+  try {
+    riskMap = await riskIntel.getCompanyRiskBundlesBatch(companyIds);
+  } catch (err) {
+    console.warn('[RISK_BATCH_FAILED]', {
+      reason: err && err.message ? String(err.message) : 'unknown'
+    });
+    riskMap = new Map();
+  }
+  const defaultRisk = { company_risk_score: 0 };
   const out = [];
   for (const row of r.rows) {
-    let score = 0;
-    try {
-      const b = await riskIntel.getCompanyRiskBundle(row.company_id);
-      score = b.company_risk_score || 0;
-    } catch (_) {
-      /* */
+    const companyIdKey = String(row.company_id);
+    let risk;
+    if (!riskMap.has(companyIdKey)) {
+      try {
+        risk = await riskIntel.getCompanyRiskBundle(row.company_id);
+      } catch {
+        risk = defaultRisk;
+      }
+    } else {
+      risk = riskMap.get(companyIdKey);
     }
+    const rawScore = risk?.company_risk_score;
+    // garante que apenas números finitos são considerados válidos
+    const score = Number.isFinite(rawScore) ? rawScore : 0;
     out.push({
       org_ref: anonymizeOrgId(row.company_id),
       incident_count_period: row.incident_count,
