@@ -95,7 +95,93 @@ async function findUsersByCompany(company_id) {
   }
 }
 
+/**
+ * Perfil completo do utilizador (mesma empresa). Uma junção simples a departments para o nome do departamento.
+ * @param {string} company_id
+ * @param {string} user_id
+ * @returns {Promise<{
+ *   id: string,
+ *   name: string,
+ *   email: string|null,
+ *   role: string,
+ *   job_title: string|null,
+ *   department: string|null,
+ *   status: 'active'|'inactive'
+ * }|null>}
+ */
+async function findUserProfileById(company_id, user_id) {
+  try {
+    if (!company_id || !user_id) {
+      return null;
+    }
+    const cid = String(company_id).trim();
+    const uid = String(user_id).trim();
+    if (!isValidUUID(cid) || !isValidUUID(uid)) {
+      return null;
+    }
+
+    const r = await db.query(
+      `
+      SELECT u.id, u.name, u.email, u.role, u.job_title, u.department, u.active,
+             d.name AS department_name
+      FROM users u
+      LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
+      WHERE u.id = $1::uuid AND u.company_id = $2::uuid AND u.deleted_at IS NULL
+      LIMIT 1
+      `,
+      [uid, cid]
+    );
+    const row = r.rows[0];
+    if (!row) {
+      return null;
+    }
+    const dept =
+      row.department_name != null && String(row.department_name).trim() !== ''
+        ? String(row.department_name).trim()
+        : row.department != null && String(row.department).trim() !== ''
+          ? String(row.department).trim()
+          : null;
+    return {
+      id: row.id,
+      name: row.name != null ? String(row.name) : '',
+      email: row.email != null ? String(row.email) : null,
+      role: row.role != null ? String(row.role) : '',
+      job_title: row.job_title != null ? String(row.job_title) : null,
+      department: dept,
+      status: row.active === false ? 'inactive' : 'active'
+    };
+  } catch (e) {
+    try {
+      const cid = String(company_id).trim();
+      const uid = String(user_id).trim();
+      const r2 = await db.query(
+        `
+        SELECT id, name, email, role, job_title, department, active
+        FROM users
+        WHERE id = $1::uuid AND company_id = $2::uuid AND deleted_at IS NULL
+        LIMIT 1
+        `,
+        [uid, cid]
+      );
+      const row = r2.rows[0];
+      if (!row) return null;
+      return {
+        id: row.id,
+        name: row.name != null ? String(row.name) : '',
+        email: row.email != null ? String(row.email) : null,
+        role: row.role != null ? String(row.role) : '',
+        job_title: row.job_title != null ? String(row.job_title) : null,
+        department: row.department != null ? String(row.department) : null,
+        status: row.active === false ? 'inactive' : 'active'
+      };
+    } catch {
+      return null;
+    }
+  }
+}
+
 module.exports = {
   findUserByName,
-  findUsersByCompany
+  findUsersByCompany,
+  findUserProfileById
 };

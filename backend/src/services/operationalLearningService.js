@@ -18,6 +18,31 @@ const machineOutcomes = new Map();
 const machineActionStats = new Map();
 
 /**
+ * Estatísticas in-memory por contexto (failure | maintenance | quality). Não persiste no PostgreSQL;
+ * o modelo global (machineOutcomes) mantém a persistência actual.
+ * @type {Map<string, Map<string, { attempts: number, successes: number }>>} chave: companyScope::machine_id, sub-chave: context_tag
+ */
+const machineContextStats = new Map();
+
+/** @typedef {'failure' | 'maintenance' | 'quality'} ContextTag */
+const CONTEXT_TAGS = Object.freeze(['failure', 'maintenance', 'quality']);
+
+/**
+ * Série temporal in-memory: até MAX_OUTCOMES_PER_MACHINE eventos por (empresa, máquina),
+ * com `{ action_type, success, timestamp, context_tag }`. Não persiste no PostgreSQL (extensão; agregados mantêm a persistência actual).
+ * @type {Map<string, Array<{ action_type: string, success: boolean, timestamp: string, context_tag: ContextTag }>>}
+ */
+const machineOutcomeTimeline = new Map();
+
+/** Máximo de desfechos guardados por máquina (escopo empresa+máquina). */
+const MAX_OUTCOMES_PER_MACHINE = 50;
+
+/** Janela recente p/ taxa e tendência. */
+const TREND_RECENT_N = 20;
+const TREND_MIN_EVENTS = 4;
+const TREND_EPS = 0.08;
+
+/**
  * @param {string|null|undefined} companyId
  * @param {string} machineId
  * @returns {string}
@@ -63,6 +88,108 @@ function resolveActionKey(action) {
 }
 
 /**
+ * @param {string|undefined} raw
+ * @returns {ContextTag}
+ */
+function normalizeContextTag(raw) {
+  if (raw == null) {
+    return 'failure';
+  }
+  const t = String(raw).trim().toLowerCase();
+  if (t === 'maintenance' || t === 'quality' || t === 'failure') {
+    return t;
+  }
+  return 'failure';
+}
+
+/**
+ * Infere o contexto operacional a partir de sinais (tipo de evento, risco, intent, texto livre).
+ * Heurística estável: preferência para qualidade e manutenção quando palavras-chave coincidem; caso contrário, falha operacional.
+ *
+ * @param {object} [params]
+ * @param {string} [params.event_type]
+ * @param {string} [params.risk_level]
+ * @param {string} [params.intent]
+ * @param {string} [params.text] motivo, descrição ou corpo a analisar
+ * @returns {ContextTag}
+ */
+function inferContextTagFromSignals({ event_type, risk_level, intent, text } = {}) {
+  const parts = [event_type, intent, text]
+    .filter((x) => x != null)
+    .map((x) => String(x).toLowerCase());
+  const blob = parts.join(' ');
+
+  const hasQuality =
+    /quali|qms|conformi|lote|inspe|reprova|nc\b|não[- ]?conform|rejeit|amostra|produt(o|a)\s+fora|sensor\s+de\s+qualid/.test(
+      blob
+    ) ||
+    /get_product|quality|qms|inspe/.test(intent != null ? String(intent).toLowerCase() : '');
+  const hasMaintenance =
+    /manuten|tpm|lubric|lubrif|preditiv|preventiv|taref(a|as)|\bos\b|ordem\s+de\s+servi|falta\s+de\s+lub/.test(
+      blob
+    ) ||
+    /manuten|tpm|os_/.test(intent != null ? String(intent).toLowerCase() : '');
+
+  if (hasQuality) {
+    return 'quality';
+  }
+  if (hasMaintenance) {
+    return 'maintenance';
+  }
+
+  const ev = event_type != null ? String(event_type).toLowerCase() : '';
+  if (/falh|falha|parad|paragem|perda|alarm|crit|emerg|trip|down|parad/.test(ev + ' ' + blob)) {
+    return 'failure';
+  }
+  if (event_type && /qms|qualidade|lote|inspe/.test(ev)) {
+    return 'quality';
+  }
+  if (event_type && /manut|tarefa|tpm|os_/.test(ev)) {
+    return 'maintenance';
+  }
+
+  const risk = risk_level != null ? String(risk_level).trim().toLowerCase() : '';
+  if (/(critical|cr[ií]tico|muito\s+alto|high|alto|elev|sever)/.test(risk)) {
+    return 'failure';
+  }
+
+  if (/operational|maquin|sens?or|parad|falh/.test(intent != null ? String(intent).toLowerCase() : '')) {
+    return 'failure';
+  }
+
+  return 'failure';
+}
+
+/**
+ * @param {object} [action]
+ * @param {object|boolean} [result]
+ * @returns {ContextTag}
+ */
+function inferContextTagFromActionResult(action, result) {
+  const a = action && typeof action === 'object' ? action : null;
+  const r = result && typeof result === 'object' && result !== null ? result : null;
+  const event_type =
+    (a && a.event_type != null ? String(a.event_type) : '') ||
+    (r && r.event_type != null ? String(r.event_type) : '');
+  const risk_level = a && a.risk_level != null ? a.risk_level : r && r.risk_level;
+  const intent = a && (a.intent != null ? a.intent : a.intent_key);
+  const text =
+    (a && a.reason != null ? String(a.reason) : '') ||
+    (a && a.message != null ? String(a.message) : '') ||
+    (r && r.message != null ? String(r.message) : '') ||
+    (r && r.detail != null ? String(r.detail) : '');
+
+  if (r && r.context_tag != null) {
+    return normalizeContextTag(r.context_tag);
+  }
+  if (a && a.context_tag != null) {
+    return normalizeContextTag(a.context_tag);
+  }
+
+  return inferContextTagFromSignals({ event_type, risk_level, intent, text });
+}
+
+/**
  * @param {string|null|undefined} companyId
  * @param {string} machineId
  * @param {string} actionKey
@@ -78,6 +205,25 @@ function recordActionOutcome(companyId, machineId, actionKey, success) {
   const attempts = prev.attempts + 1;
   const successes = prev.successes + (success ? 1 : 0);
   am.set(actionKey, { attempts, successes });
+}
+
+/**
+ * @param {string|null|undefined} companyId
+ * @param {string} machineId
+ * @param {ContextTag} contextTag
+ * @param {boolean} success
+ */
+function recordContextOutcome(companyId, machineId, contextTag, success) {
+  const tag = normalizeContextTag(contextTag);
+  const sk = scopeKey(companyId, machineId);
+  if (!machineContextStats.has(sk)) {
+    machineContextStats.set(sk, new Map());
+  }
+  const cm = machineContextStats.get(sk);
+  const prev = cm.get(tag) || { attempts: 0, successes: 0 };
+  const attempts = prev.attempts + 1;
+  const successes = prev.successes + (success ? 1 : 0);
+  cm.set(tag, { attempts, successes });
 }
 
 /**
@@ -153,6 +299,16 @@ function clearLearningMemoryForCompany(companyId) {
   for (const k of machineActionStats.keys()) {
     if (k.startsWith(prefix)) {
       machineActionStats.delete(k);
+    }
+  }
+  for (const k of machineOutcomeTimeline.keys()) {
+    if (k.startsWith(prefix)) {
+      machineOutcomeTimeline.delete(k);
+    }
+  }
+  for (const k of machineContextStats.keys()) {
+    if (k.startsWith(prefix)) {
+      machineContextStats.delete(k);
     }
   }
 }
@@ -265,7 +421,9 @@ function recordOperationalOutcome({ action, result, company_id: companyIdParam }
   }
 
   const actionKey = resolveActionKey(action);
+  const contextTag = inferContextTagFromActionResult(action, result);
   recordActionOutcome(companyId, mid, actionKey, success);
+  recordContextOutcome(companyId, mid, contextTag, success);
 
   const sk = scopeKey(companyId, mid);
   const prev = machineOutcomes.get(sk) || { success_rate: 0, attempts: 0 };
@@ -281,6 +439,16 @@ function recordOperationalOutcome({ action, result, company_id: companyIdParam }
     success_rate: Math.round(success_rate * 10000) / 10000,
     attempts
   });
+
+  const ts = new Date().toISOString();
+  if (!machineOutcomeTimeline.has(sk)) {
+    machineOutcomeTimeline.set(sk, []);
+  }
+  const timeline = machineOutcomeTimeline.get(sk);
+  timeline.push({ action_type: actionKey, success, timestamp: ts, context_tag: contextTag });
+  while (timeline.length > MAX_OUTCOMES_PER_MACHINE) {
+    timeline.shift();
+  }
 
   if (companyId && isValidUUID(companyId)) {
     schedulePersistMachineLearning(companyId, mid);
@@ -311,6 +479,49 @@ function getMachineLearningMetrics(companyId, machine_id) {
 }
 
 /**
+ * Métricas de aprendizado filtradas por contexto (failure | maintenance | quality).
+ * Compatível com a assinatura de getMachineLearningMetrics: (machine_id) legado ou (company_id, machine_id, context_tag).
+ * Se não houver dados para o contexto, devolve `null` (o chamador usa o modelo global).
+ *
+ * @param {string|null|undefined} companyId
+ * @param {string} [machine_id]
+ * @param {string} [context_tag]
+ * @returns {{ success_rate: number, attempts: number, context_tag: ContextTag }|null}
+ */
+function getLearningByContext(companyId, machine_id, context_tag) {
+  if (arguments.length < 2) {
+    return null;
+  }
+  let cid;
+  let mid;
+  let tag;
+  if (arguments.length >= 3) {
+    cid = companyId;
+    mid = machine_id;
+    tag = context_tag;
+  } else {
+    cid = null;
+    mid = companyId;
+    tag = machine_id;
+  }
+  mid = mid != null ? String(mid).trim() : '';
+  if (!mid) {
+    return null;
+  }
+  const ctx = normalizeContextTag(tag);
+  const sk = scopeKey(cid, mid);
+  const m = machineContextStats.get(sk)?.get(ctx);
+  if (!m || m.attempts < 1) {
+    return null;
+  }
+  return {
+    success_rate: m.attempts > 0 ? m.successes / m.attempts : 0,
+    attempts: m.attempts,
+    context_tag: ctx
+  };
+}
+
+/**
  * @param {object} [params]
  * @param {string[]} [params.machine_ids]
  * @param {string} [params.company_id]
@@ -336,6 +547,169 @@ function getLearningSummary({ machine_ids = [], company_id = null } = {}) {
   }
 
   return out;
+}
+
+/**
+ * Histórico agrupado por tipo de ação (formato pedido para telemetria / extensões).
+ * @param {string|null|undefined} companyId
+ * @param {string} machine_id
+ * @returns {Array<{ machine_id: string, action_type: string, outcomes: Array<{ success: boolean, timestamp: string, context_tag: ContextTag }> }>}
+ */
+function getMachineActionOutcomeHistory(companyId, machine_id) {
+  let cid = companyId;
+  let mid = machine_id;
+  if (mid === undefined && cid != null) {
+    mid = cid;
+    cid = null;
+  }
+  mid = mid != null ? String(mid).trim() : '';
+  if (!mid) {
+    return [];
+  }
+  const sk = scopeKey(cid, mid);
+  const raw = machineOutcomeTimeline.get(sk) || [];
+  const byAction = new Map();
+  for (const e of raw) {
+    const at = e.action_type != null ? String(e.action_type) : 'intervencao_geral';
+    if (!byAction.has(at)) {
+      byAction.set(at, []);
+    }
+    byAction.get(at).push({
+      success: Boolean(e.success),
+      timestamp: e.timestamp,
+      context_tag: e.context_tag != null ? normalizeContextTag(e.context_tag) : 'failure'
+    });
+  }
+  const out = [];
+  for (const [action_type, outcomes] of byAction) {
+    out.push({ machine_id: mid, action_type, outcomes });
+  }
+  return out;
+}
+
+/**
+ * Taxa de sucesso dos últimos `n` eventos (ordenados por tempo).
+ * @param {Array<{ success: boolean, timestamp: string }>} sorted
+ * @param {number} n
+ * @returns {{ rate: number|null, n: number }}
+ */
+function successRateLastN(sorted, n) {
+  const take = Math.min(n, sorted.length);
+  if (take === 0) {
+    return { rate: null, n: 0 };
+  }
+  const slice = sorted.slice(-take);
+  const ok = slice.filter((e) => e.success).length;
+  return { rate: ok / slice.length, n: slice.length };
+}
+
+/**
+ * Compara primeira metade vs segunda metade da janela recente (orden cronológico).
+ * @param {Array<{ success: boolean, timestamp: string }>} events
+ * @returns {{
+ *   trend: 'improving'|'worsening'|'stable'|'insufficient_data',
+ *   recent_success_rate: number|null,
+ *   recent_window_n: number,
+ *   split_older_rate: number|null,
+ *   split_newer_rate: number|null
+ * }}
+ */
+function computeOutcomeTrend(events) {
+  if (!Array.isArray(events) || events.length < TREND_MIN_EVENTS) {
+    return {
+      trend: 'insufficient_data',
+      recent_success_rate: null,
+      recent_window_n: events && events.length ? events.length : 0,
+      split_older_rate: null,
+      split_newer_rate: null
+    };
+  }
+  const sorted = events
+    .slice()
+    .sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+  const win = sorted.slice(-Math.min(TREND_RECENT_N, sorted.length));
+  const recent = successRateLastN(win, win.length);
+  const half = Math.floor(win.length / 2);
+  if (half < 1) {
+    return {
+      trend: 'insufficient_data',
+      recent_success_rate: recent.rate,
+      recent_window_n: win.length,
+      split_older_rate: null,
+      split_newer_rate: null
+    };
+  }
+  const older = win.slice(0, half);
+  const newer = win.slice(half);
+  const rOlder = older.filter((e) => e.success).length / older.length;
+  const rNewer = newer.filter((e) => e.success).length / newer.length;
+  const diff = rNewer - rOlder;
+  let trend = 'stable';
+  if (diff > TREND_EPS) {
+    trend = 'improving';
+  } else if (diff < -TREND_EPS) {
+    trend = 'worsening';
+  }
+  return {
+    trend,
+    recent_success_rate: recent.rate,
+    recent_window_n: win.length,
+    split_older_rate: rOlder,
+    split_newer_rate: rNewer
+  };
+}
+
+/**
+ * Analisa taxa de sucesso recente e tendência (melhorar / piorar) com base no histórico temporal.
+ * Compatível com getMachineLearningMetrics: (machine_id) legado ou (company_id, machine_id).
+ *
+ * @param {string|null|undefined} companyId
+ * @param {string} [machine_id]
+ * @returns {{
+ *   machine_id: string,
+ *   company_id: string|null,
+ *   event_count: number,
+ *   recent_success_rate: number|null,
+ *   recent_window_n: number,
+ *   trend: 'improving'|'worsening'|'stable'|'insufficient_data',
+ *   split_older_rate: number|null,
+ *   split_newer_rate: number|null
+ * }}
+ */
+function getMachineTrend(companyId, machine_id) {
+  let cid = companyId;
+  let mid = machine_id;
+  if (mid === undefined && cid != null) {
+    mid = cid;
+    cid = null;
+  }
+  mid = mid != null ? String(mid).trim() : '';
+  const company_id = cid != null && String(cid).trim() !== '' ? String(cid).trim() : null;
+  if (!mid) {
+    return {
+      machine_id: '',
+      company_id,
+      event_count: 0,
+      recent_success_rate: null,
+      recent_window_n: 0,
+      trend: 'insufficient_data',
+      split_older_rate: null,
+      split_newer_rate: null
+    };
+  }
+  const sk = scopeKey(cid, mid);
+  const events = machineOutcomeTimeline.get(sk) || [];
+  const t = computeOutcomeTrend(events);
+  return {
+    machine_id: mid,
+    company_id,
+    event_count: events.length,
+    recent_success_rate: t.recent_success_rate,
+    recent_window_n: t.recent_window_n,
+    trend: t.trend,
+    split_older_rate: t.split_older_rate,
+    split_newer_rate: t.split_newer_rate
+  };
 }
 
 /**
@@ -378,6 +752,8 @@ async function loadAllOperationalLearningFromDB() {
     );
     machineOutcomes.clear();
     machineActionStats.clear();
+    machineOutcomeTimeline.clear();
+    machineContextStats.clear();
     for (const row of r.rows || []) {
       applyDbRowToMemory(row);
     }
@@ -397,8 +773,15 @@ async function loadAllOperationalLearningFromDB() {
 module.exports = {
   recordOperationalOutcome,
   getMachineLearningMetrics,
+  getMachineActionOutcomeHistory,
+  getMachineTrend,
   getLearningSummary,
+  getLearningByContext,
+  inferContextTagFromSignals,
+  inferContextTagFromActionResult,
+  CONTEXT_TAGS,
   loadLearningFromDB,
   loadAllOperationalLearningFromDB,
-  AGGREGATE_ACTION_TYPE
+  AGGREGATE_ACTION_TYPE,
+  MAX_OUTCOMES_PER_MACHINE
 };

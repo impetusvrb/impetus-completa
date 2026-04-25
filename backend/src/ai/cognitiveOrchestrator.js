@@ -25,14 +25,25 @@ const aiProviderService = require('../services/aiProviderService');
 const adaptiveGovernanceEngine = require('../services/adaptiveGovernanceEngine');
 const observabilityService = require('../services/observabilityService');
 const behavioralIntelligenceService = require('../services/behavioralIntelligenceService');
-const { detectIntent } = require('../services/intentDetectionService');
+const {
+  detectIntentWithContext,
+  detectIntentAdvanced,
+  inferImplicitOperationalIntent
+} = require('../services/intentDetectionService');
 const { retrieveContextualData } = require('../services/dataRetrievalService');
+const { mergeContextualData } = require('../services/contextualDataMergeService');
 const { recordOperationalOutcome } = require('../services/operationalLearningService');
+const contextSessionService = require('../services/contextSessionService');
+const { shouldTriggerProactiveRetrieval } = require('../services/proactiveRetrievalService');
 
 const ingressLayer = require('./layers/ingressLayer');
 const policyLayer = require('./layers/policyLayer');
 const complianceLayer = require('./layers/complianceLayer');
 const executionLayer = require('./layers/executionLayer');
+
+/** Mínimo de intenções com confiança para agregação multi (máx. 3 pedidos a retrieveContextualData). */
+const AUTO_DATA_MULTI_CONFIDENCE_MIN = 0.5;
+const AUTO_DATA_MULTI_MAX_INTENTS = 3;
 
 /**
  * Condição alinhada ao contrato de API: nenhum payload explícito em `data` nem em `context`
@@ -63,6 +74,30 @@ function shouldAutoInjectBroadOperational(requestText, intentData) {
   return false;
 }
 
+/**
+ * Persiste no contexto de sessão só metadados (intenção, entidades resumidas, chaves de contextual_data).
+ * @param {object|undefined} user
+ * @param {{ intentData: object, multiIntentList: object[]|null, enrichedData: object }} s
+ * @returns {void}
+ */
+function commitContextSessionFromCouncil(user, s) {
+  if (!user?.company_id || !user?.id) {
+    return;
+  }
+  const { intentData, multiIntentList, enrichedData } = s || {};
+  const intents =
+    multiIntentList && multiIntentList.length
+      ? multiIntentList.map((m) => m && m.intent).filter(Boolean)
+      : intentData && intentData.intent
+        ? [String(intentData.intent)]
+        : [];
+  contextSessionService.updateSessionContext(user, {
+    intents,
+    entities: intentData && intentData.entities,
+    contextual_data: enrichedData && enrichedData.contextual_data
+  });
+}
+
 async function runCognitiveCouncil(params) {
   const norm = ingressLayer.normalizeRunInput(params);
   const {
@@ -91,59 +126,210 @@ async function runCognitiveCouncil(params) {
   }
 
   const executeCouncil = async () => {
-    const intentData = detectIntent(rt);
+    const sessionCtx =
+      user?.company_id && user?.id ? contextSessionService.getSessionContext(user) : null;
+    const advPipeline = detectIntentAdvanced(rt);
+    const implicitOperational = inferImplicitOperationalIntent(rt, sessionCtx, advPipeline);
+    const willMultiIntent =
+      hasNoExplicitClientData(params) &&
+      user?.company_id &&
+      (() => {
+        const m = (advPipeline.intents || [])
+          .filter(
+            (x) =>
+              x &&
+              x.confidence > AUTO_DATA_MULTI_CONFIDENCE_MIN &&
+              x.intent &&
+              x.intent !== 'generic'
+          )
+          .slice(0, AUTO_DATA_MULTI_MAX_INTENTS);
+        return m.length >= 2;
+      })();
+    let intentData = detectIntentWithContext(rt, sessionCtx, advPipeline);
+    if (
+      implicitOperational &&
+      hasNoExplicitClientData(params) &&
+      user?.company_id &&
+      !willMultiIntent
+    ) {
+      const top0 = advPipeline.intents && advPipeline.intents[0] ? advPipeline.intents[0] : null;
+      intentData = { intent: 'operational_overview', entities: {} };
+      console.info('[AUTO_INFERRED_INTENT]', {
+        ok: true,
+        intent: 'operational_overview',
+        reason: implicitOperational.reason,
+        top_before: top0
+          ? { intent: top0.intent, confidence: top0.confidence }
+          : null
+      });
+    }
     let enrichedData = data;
     let didAutoInjectOperational = false;
+    let didMultiIntent = false;
+    let multiIntentList = null;
 
-    if (
-      hasNoExplicitClientData(params) &&
-      shouldAutoInjectBroadOperational(rt, intentData) &&
-      user?.company_id
-    ) {
+    if (hasNoExplicitClientData(params) && user?.company_id) {
       try {
-        const autoData = await retrieveContextualData({
-          user,
-          intent: 'operational_overview',
-          entities: {}
-        });
-        enrichedData = {
-          ...data,
-          ...autoData,
-          contextual_data: {
-            ...(data.contextual_data || {}),
-            ...(autoData.contextual_data || {})
-          }
+        const advanced = advPipeline;
+        const entMerged = {
+          ...(sessionCtx && sessionCtx.last_entities ? sessionCtx.last_entities : {}),
+          ...((advanced.entities && typeof advanced.entities === 'object' && !Array.isArray(advanced.entities)
+            ? advanced.entities
+            : {}) || {})
         };
-        didAutoInjectOperational = true;
-        console.info('[AUTO_DATA_INJECTION]', { intent: 'operational_overview' });
+        const multi = (advanced.intents || [])
+          .filter(
+            (x) =>
+              x &&
+              x.confidence > AUTO_DATA_MULTI_CONFIDENCE_MIN &&
+              x.intent &&
+              x.intent !== 'generic'
+          )
+          .slice(0, AUTO_DATA_MULTI_MAX_INTENTS);
+        if (multi.length >= 2) {
+          const parts = await Promise.all(
+            multi.map((it) =>
+              retrieveContextualData({
+                user,
+                intent: it.intent,
+                entities: entMerged
+              })
+            )
+          );
+          const merged = mergeContextualData(parts);
+          enrichedData = {
+            ...data,
+            ...merged,
+            contextual_data: {
+              ...(data.contextual_data || {}),
+              ...(merged.contextual_data || {})
+            }
+          };
+          didMultiIntent = true;
+          multiIntentList = multi;
+          if (multi.some((i) => i.intent === 'operational_overview')) {
+            didAutoInjectOperational = true;
+          }
+          intentData = { intent: multi[0].intent, entities: entMerged };
+          console.info('[AUTO_DATA_MULTI_INTENT]', {
+            ok: true,
+            intents: multi.map((m) => ({ intent: m.intent, confidence: m.confidence }))
+          });
+        }
       } catch (autoErr) {
-        console.warn('[AUTO_DATA_INJECTION_FAILED]', {
+        console.warn('[AUTO_DATA_MULTI_INTENT]', {
+          ok: false,
           reason: autoErr && autoErr.message ? String(autoErr.message) : 'unknown'
         });
       }
     }
 
-    try {
+    if (!didMultiIntent) {
       if (
-        intentData.intent !== 'generic' &&
-        !(didAutoInjectOperational && intentData.intent === 'operational_overview')
+        hasNoExplicitClientData(params) &&
+        shouldAutoInjectBroadOperational(rt, intentData) &&
+        user?.company_id
       ) {
-        const retrieved = await retrieveContextualData({
-          user,
-          intent: intentData.intent,
-          entities: intentData.entities
-        });
-        enrichedData = {
-          ...enrichedData,
-          ...retrieved,
-          contextual_data: {
-            ...(enrichedData.contextual_data || {}),
-            ...(retrieved.contextual_data || {})
-          }
-        };
+        try {
+          const autoData = await retrieveContextualData({
+            user,
+            intent: 'operational_overview',
+            entities: {}
+          });
+          enrichedData = {
+            ...data,
+            ...autoData,
+            contextual_data: {
+              ...(data.contextual_data || {}),
+              ...(autoData.contextual_data || {})
+            }
+          };
+          didAutoInjectOperational = true;
+          console.info('[AUTO_DATA_INJECTION]', { intent: 'operational_overview' });
+        } catch (autoErr) {
+          console.warn('[AUTO_DATA_INJECTION_FAILED]', {
+            reason: autoErr && autoErr.message ? String(autoErr.message) : 'unknown'
+          });
+        }
       }
-    } catch (err) {
-      console.warn('[DATA_RETRIEVAL_FAILED]', { reason: err && err.message ? String(err.message) : 'unknown' });
+
+      try {
+        if (
+          intentData.intent !== 'generic' &&
+          !(didAutoInjectOperational && intentData.intent === 'operational_overview')
+        ) {
+          const retrieved = await retrieveContextualData({
+            user,
+            intent: intentData.intent,
+            entities: intentData.entities
+          });
+          enrichedData = {
+            ...enrichedData,
+            ...retrieved,
+            contextual_data: {
+              ...(enrichedData.contextual_data || {}),
+              ...(retrieved.contextual_data || {})
+            }
+          };
+        }
+      } catch (err) {
+        console.warn('[DATA_RETRIEVAL_FAILED]', {
+          reason: err && err.message ? String(err.message) : 'unknown'
+        });
+      }
+    }
+
+    let proactiveRetrievalUsed = false;
+    if (hasNoExplicitClientData(params) && user?.company_id) {
+      const proactiveDecision = shouldTriggerProactiveRetrieval({
+        hasExplicitClientData: !hasNoExplicitClientData(params),
+        companyId: user.company_id,
+        intentData,
+        enrichedData,
+        sessionContext: sessionCtx,
+        requestText: rt,
+        didMultiIntent,
+        didAutoInjectOperational,
+        proactiveRetrievalUsed: false
+      });
+      if (proactiveDecision.trigger) {
+        try {
+          const proactivePack = await retrieveContextualData({
+            user,
+            intent: 'operational_overview',
+            entities: {}
+          });
+          const mergedPro = mergeContextualData([
+            {
+              kpis: Array.isArray(enrichedData.kpis) ? enrichedData.kpis : [],
+              events: Array.isArray(enrichedData.events) ? enrichedData.events : [],
+              assets: Array.isArray(enrichedData.assets) ? enrichedData.assets : [],
+              contextual_data:
+                enrichedData.contextual_data && typeof enrichedData.contextual_data === 'object'
+                  ? enrichedData.contextual_data
+                  : {}
+            },
+            proactivePack
+          ]);
+          enrichedData = {
+            ...enrichedData,
+            kpis: mergedPro.kpis,
+            events: mergedPro.events,
+            assets: mergedPro.assets,
+            contextual_data: mergedPro.contextual_data
+          };
+          proactiveRetrievalUsed = true;
+          console.info('[PROACTIVE_RETRIEVAL]', {
+            ok: true,
+            reason: proactiveDecision.reason
+          });
+        } catch (prErr) {
+          console.warn('[PROACTIVE_RETRIEVAL]', {
+            ok: false,
+            reason: prErr && prErr.message ? String(prErr.message) : 'unknown'
+          });
+        }
+      }
     }
 
     enrichedData = {
@@ -151,7 +337,15 @@ async function runCognitiveCouncil(params) {
       contextual_data: {
         ...(data.contextual_data || {}),
         ...(enrichedData.contextual_data || {}),
-        detected_intent: intentData.intent
+        detected_intent: intentData.intent,
+        ...(multiIntentList
+          ? {
+              detected_intents: multiIntentList.map((m) => ({
+                intent: m.intent,
+                confidence: m.confidence
+              }))
+            }
+          : {})
       }
     };
 
@@ -179,6 +373,7 @@ async function runCognitiveCouncil(params) {
       risk
     });
     if (policyGate.type === 'early') {
+      commitContextSessionFromCouncil(user, { intentData, multiIntentList, enrichedData });
       return policyGate.result;
     }
 
@@ -433,6 +628,8 @@ async function runCognitiveCouncil(params) {
     } catch (learnErr) {
       console.warn('[OPERATIONAL_LEARNING_OUTCOME]', learnErr && learnErr.message);
     }
+
+    commitContextSessionFromCouncil(user, { intentData, multiIntentList, enrichedData });
 
     return {
       ok: true,

@@ -5,7 +5,12 @@
  */
 
 const { isValidUUID } = require('../utils/security');
-const { findUserByName, findUsersByCompany } = require('../repositories/userRepository');
+const {
+  findUserByName,
+  findUsersByCompany,
+  findUserProfileById
+} = require('../repositories/userRepository');
+const { findOpenWorkOrders, findRecentWorkOrders } = require('../repositories/workOrderRepository');
 const {
   findMachinesByCompany,
   findMachineById,
@@ -19,6 +24,9 @@ const {
   normalizeProductToken
 } = require('../repositories/productRepository');
 const { correlateOperationalData } = require('./correlationService');
+const {
+  deriveCorrelationInsightsWithLearning
+} = require('./correlationInsightsService');
 const { predictOperationalRisks } = require('./predictionService');
 const { prioritizeOperationalRisks } = require('./prioritizationService');
 const { getLearningSummary } = require('./operationalLearningService');
@@ -74,6 +82,44 @@ function aggregateProductGateStatus(lots) {
  * @param {{ lots: object[], events: object[] }} ctx
  * @returns {'LOW'|'MEDIUM'|'HIGH'}
  */
+/**
+ * @param {unknown[]} events
+ * @returns {number}
+ */
+function shouldAttachCorrelationInsights() {
+  return String(process.env.IMPETUS_CORRELATION_INSIGHTS || '1') !== '0';
+}
+
+function countFailureLikeEvents(events) {
+  const list = Array.isArray(events) ? events : [];
+  const re = /falha|parada|down|emerg|alarm|crit|fail|erro|error|inativo|stop|trip/i;
+  let n = 0;
+  for (const e of list) {
+    if (!e || typeof e !== 'object') continue;
+    const o = /** @type {Record<string, unknown>} */ (e);
+    const sev = o.severity != null ? String(o.severity) : '';
+    const et = o.event_type != null ? String(o.event_type) : '';
+    if (re.test(sev) || re.test(et)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * @param {Array<{ id?: unknown, _source?: string }>} open
+ * @param {Array<{ id?: unknown, _source?: string }>} recent
+ * @returns {unknown[]}
+ */
+function mergeWorkOrdersById(open, recent) {
+  const m = new Map();
+  for (const r of Array.isArray(recent) ? recent : []) {
+    if (r && r.id != null) m.set(String(r.id), r);
+  }
+  for (const o of Array.isArray(open) ? open : []) {
+    if (o && o.id != null) m.set(String(o.id), o);
+  }
+  return Array.from(m.values());
+}
+
 function productRiskLevelFromContext(ctx) {
   const lots = Array.isArray(ctx.lots) ? ctx.lots : [];
   const events = Array.isArray(ctx.events) ? ctx.events : [];
@@ -147,6 +193,15 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         machine_ids: machineIds,
         company_id: safeUser.company_id
       });
+      const correlationBundle = shouldAttachCorrelationInsights()
+        ? deriveCorrelationInsightsWithLearning({
+            users,
+            machines,
+            events,
+            correlation: correlated,
+            company_id: safeUser.company_id
+          })
+        : { insights: [], learned_patterns: [] };
       result.contextual_data = {
         users,
         machines,
@@ -154,7 +209,9 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         correlation: correlated,
         ...predictions,
         prioritized_actions: prioritized.prioritized_actions,
-        learning_summary
+        learning_summary,
+        correlation_insights: correlationBundle.insights,
+        learned_patterns: correlationBundle.learned_patterns
       };
       return result;
     }
@@ -192,6 +249,15 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           machine_ids: [String(machine.id)],
           company_id: safeUser.company_id
         });
+        const correlationBundle = shouldAttachCorrelationInsights()
+          ? deriveCorrelationInsightsWithLearning({
+              users,
+              machines: [machine],
+              events,
+              correlation: correlated,
+              company_id: safeUser.company_id
+            })
+          : { insights: [], learned_patterns: [] };
 
         const row =
           correlated.machine_status_summary && correlated.machine_status_summary[0]
@@ -213,7 +279,9 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           correlation: correlated,
           ...predictions,
           prioritized_actions: prioritized.prioritized_actions,
-          learning_summary
+          learning_summary,
+          correlation_insights: correlationBundle.insights,
+          learned_patterns: correlationBundle.learned_patterns
         };
         return result;
       } catch {
@@ -266,6 +334,88 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         user_name: userData.name != null ? String(userData.name) : ''
       };
       return result;
+    }
+
+    if (safeIntent === 'get_user_profile') {
+      if (!isValidUUID(String(safeUser.company_id).trim()) || !safeUser.id) {
+        return result;
+      }
+      const uid = String(safeUser.id).trim();
+      if (!isValidUUID(uid)) {
+        return result;
+      }
+      const profile = await findUserProfileById(safeUser.company_id, uid);
+      if (!profile) {
+        return result;
+      }
+      result.contextual_data = {
+        users: [
+          {
+            id: profile.id,
+            nome: profile.name,
+            cargo: profile.role,
+            job_title: profile.job_title,
+            departamento: profile.department,
+            status: profile.status,
+            email: profile.email
+          }
+        ],
+        work_orders: [],
+        metrics: {}
+      };
+      return result;
+    }
+
+    if (safeIntent === 'get_work_orders') {
+      try {
+        if (!isValidUUID(String(safeUser.company_id).trim())) {
+          return result;
+        }
+        const [open, recent] = await Promise.all([
+          findOpenWorkOrders(safeUser.company_id),
+          findRecentWorkOrders(safeUser.company_id)
+        ]);
+        const work_orders = mergeWorkOrdersById(
+          open || [],
+          recent || []
+        );
+        result.contextual_data = {
+          users: [],
+          work_orders,
+          metrics: {
+            open_count: (open || []).length,
+            recent_window_count: (recent || []).length
+          }
+        };
+        return result;
+      } catch {
+        return emptyResult();
+      }
+    }
+
+    if (safeIntent === 'get_operational_metrics') {
+      try {
+        if (!isValidUUID(String(safeUser.company_id).trim())) {
+          return result;
+        }
+        const [machines, events] = await Promise.all([
+          findMachinesByCompany(safeUser.company_id),
+          findRecentEvents(safeUser.company_id)
+        ]);
+        const failures = countFailureLikeEvents(events || []);
+        result.contextual_data = {
+          users: [],
+          work_orders: [],
+          metrics: {
+            machines_active: (machines || []).length,
+            events_recent_count: (events || []).length,
+            failures: failures
+          }
+        };
+        return result;
+      } catch {
+        return emptyResult();
+      }
     }
 
     if (safeIntent === 'echo_entities') {

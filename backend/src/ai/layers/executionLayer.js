@@ -11,6 +11,8 @@ const ai = require('../../services/ai');
 const { Provider, AI_ROLES } = require('../aiRoles');
 const { recordStage } = require('../cognitiveDossier');
 const { sanitizeTextInput, normalizeImageList, shouldRequireCrossValidation } = require('../cognitiveSecurity');
+const { isResponseContextuallyValid, hasMachineObjectGrounding } = require('../contextualResponseValidation');
+const { validateResponseStructure } = require('../responseStructureValidation');
 const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('../responseSynthesizer');
 const aiPromptGuardService = require('../../services/aiPromptGuardService');
 const aiEgressGuardService = require('../../services/aiEgressGuardService');
@@ -370,6 +372,9 @@ const AUDIT_CONTEXTUAL_DATA_DETERMINISTIC_MSG =
 const GENERIC_MODEL_MISS_CONTEXTUAL_DATA_MSG =
   'Resposta substituída automaticamente: o texto do modelo de linguagem não referenciou máquina(s), risco ou contexto operacional exigido; não estavam disponíveis dados operacionais estruturados suficientes para sumário automático.';
 
+const STRUCTURE_SEMANTIC_FALLBACK_MSG =
+  'Resposta substituída automaticamente: validação de estrutura semântica (SITUAÇÃO / PROBLEMAS / RECOMENDAÇÕES) e coerência mínima não atingiu o limite de confiança — conteúdo reposto a partir dos dados operacionais.';
+
 /**
  * @param {string[]} limitations
  * @param {string} msg
@@ -402,10 +407,13 @@ function applyContextualOperationsFallback(synthesis, dossier) {
   const answer = synthesis.answer != null ? String(synthesis.answer) : '';
   const mp = dossier.meta && dossier.meta.must_use_predictions === true;
   const mpr = dossier.meta && dossier.meta.must_use_priorities === true;
-
-  const missPred = mp && !answerHonorsPredictionsContext(answer, cd);
-  const missPri = mpr && !answerHonorsPrioritiesContext(answer, cd);
-  if (missPred || missPri) {
+  const needsSemanticContextGate = Boolean(mp || mpr || (cd && hasMachineObjectGrounding(cd)));
+  const { valid: contextuallyValid } = isResponseContextuallyValid(answer, cd);
+  const structureCheck = validateResponseStructure(answer);
+  const missStructure =
+    needsSemanticContextGate && structureCheck.needs_fallback && contextuallyValid;
+  const missContext = needsSemanticContextGate && (!contextuallyValid || structureCheck.needs_fallback);
+  if (missContext) {
     const hasStructured =
       (cd && Array.isArray(cd.prioritized_actions) && cd.prioritized_actions.length > 0) ||
       (cd && Array.isArray(cd.predictions) && cd.predictions.length > 0);
@@ -441,6 +449,14 @@ function applyContextualOperationsFallback(synthesis, dossier) {
         synthesis.explanation_layer.limitations = appendUniqueLimitation(
           lim,
           GENERIC_MODEL_MISS_CONTEXTUAL_DATA_MSG
+        );
+      }
+      if (missStructure) {
+        synthesis.explanation_layer.limitations = appendUniqueLimitation(
+          Array.isArray(synthesis.explanation_layer.limitations)
+            ? synthesis.explanation_layer.limitations
+            : lim,
+          STRUCTURE_SEMANTIC_FALLBACK_MSG
         );
       }
     }

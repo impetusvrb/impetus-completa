@@ -191,5 +191,7 @@ function correlateOperationalData({ users = [], machines = [], events = [] } = {
 }
 
 module.exports = {
-  correlateOperationalData
+  correlateOperationalData,
+  eventBelongsToMachine,
+  parseEventTime
 };

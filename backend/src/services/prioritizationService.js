@@ -6,7 +6,12 @@
  * Ordem final adapta-se ao histórico em operationalLearningService (memória).
  */
 
-const { getMachineLearningMetrics } = require('./operationalLearningService');
+const {
+  getMachineLearningMetrics,
+  getMachineTrend,
+  getLearningByContext,
+  inferContextTagFromSignals
+} = require('./operationalLearningService');
 
 const PRIORITY_ORDER = {
   CRITICAL: 1,
@@ -20,6 +25,15 @@ const PRIORITY_ORDER = {
 const LEARNING_MIN_ATTEMPTS = 3;
 const LEARNING_LOW_SUCCESS = 0.38;
 const LEARNING_HIGH_SUCCESS = 0.72;
+
+/** Mínimo de desfechos temporais para confiar no ajuste por tendência */
+const TREND_MIN_EVENTS = 4;
+
+/**
+ * Peso do ajuste por aprendizado contextual (failure | maintenance | quality)
+ * em relação ao `learningRankShift` global. Mantém o modelo existente como base.
+ */
+const CONTEXT_LEARNING_WEIGHT = 0.32;
 
 /**
  * Desvio no score de ordenação (maior = menos urgente na fila).
@@ -42,6 +56,33 @@ function learningRankShift(metrics) {
   return 0;
 }
 
+/**
+ * Tendência recente: melhorando → reforçar prioridade (rank mais baixo = mais urgente);
+ * piorando → atenuar. Estável/sem dados: 0.
+ * @param {{ trend: string, event_count?: number }|null|undefined} trendInfo
+ * @returns {number}
+ */
+function learningTrendRankShift(trendInfo) {
+  if (!trendInfo) {
+    return 0;
+  }
+  if (trendInfo.trend === 'insufficient_data' || trendInfo.trend === 'stable') {
+    return 0;
+  }
+  const n = Math.max(0, parseInt(trendInfo.event_count, 10) || 0);
+  if (n < TREND_MIN_EVENTS) {
+    return 0;
+  }
+  const w = Math.min(1, (n - (TREND_MIN_EVENTS - 1)) / 10);
+  if (trendInfo.trend === 'improving') {
+    return -(0.1 + 0.12 * w);
+  }
+  if (trendInfo.trend === 'worsening') {
+    return 0.1 + 0.12 * w;
+  }
+  return 0;
+}
+
 function appendLearningToReason(reason, metrics, shift) {
   if (!metrics || metrics.attempts < LEARNING_MIN_ATTEMPTS || shift === 0) {
     return reason;
@@ -51,6 +92,62 @@ function appendLearningToReason(reason, metrics, shift) {
     return `${reason} Ajuste adaptativo: histórico com baixa eficácia (${pct}% sucesso, ${metrics.attempts} registos) — peso relativo reduzido.`;
   }
   return `${reason} Ajuste adaptativo: histórico com alta eficácia (${pct}% sucesso, ${metrics.attempts} registos) — urgência relativa reforçada.`;
+}
+
+/**
+ * @param {string} reason
+ * @param {{ trend: string, recent_success_rate: number|null, event_count?: number }|null} trend
+ * @param {number} trendShift
+ * @returns {string}
+ */
+function appendTrendToReason(reason, trend, trendShift) {
+  if (!trend || trendShift === 0 || (trend.event_count != null && trend.event_count < TREND_MIN_EVENTS)) {
+    return reason;
+  }
+  const label =
+    trend.trend === 'improving'
+      ? 'em melhoria (desfechos recentes mais favoráveis)'
+      : trend.trend === 'worsening'
+        ? 'em deterioração (desfechos recentes menos favoráveis)'
+        : null;
+  if (!label) {
+    return reason;
+  }
+  const r =
+    trend.recent_success_rate != null
+      ? `${Math.round(trend.recent_success_rate * 100)}% sucesso`
+      : 'taxa recente indisponível';
+  return `${reason} Tendência adaptativa: desempenho ${label} (${r}, ${trend.event_count} evento(s) na janela).`;
+}
+
+/**
+ * Ajuste adicional com base no histórico do mesmo contexto (inferido a partir da previsão).
+ * Devolve 0 se não houver amostra suficiente — fallback explícito ao shift global.
+ * @param {{ success_rate: number, attempts: number }|null|undefined} ctxMetrics
+ * @returns {number}
+ */
+function learningContextShift(ctxMetrics) {
+  if (!ctxMetrics || ctxMetrics.attempts < LEARNING_MIN_ATTEMPTS) {
+    return 0;
+  }
+  return CONTEXT_LEARNING_WEIGHT * learningRankShift(ctxMetrics);
+}
+
+/**
+ * @param {string} reason
+ * @param {string} contextTag
+ * @param {{ success_rate: number, attempts: number }|null} ctxMetrics
+ * @param {number} contextShift
+ * @returns {string}
+ */
+function appendContextToReason(reason, contextTag, ctxMetrics, contextShift) {
+  if (contextShift === 0 || !ctxMetrics) {
+    return reason;
+  }
+  const pct = Math.round(ctxMetrics.success_rate * 100);
+  const label =
+    contextTag === 'quality' ? 'qualidade' : contextTag === 'maintenance' ? 'manutenção' : 'falha/operacional';
+  return `${reason} Contexto operacional (${label}): ajuste por histórico específico (${pct}% sucesso, ${ctxMetrics.attempts} reg.).`;
 }
 
 function normalizeRiskLevel(level) {
@@ -129,11 +226,25 @@ function prioritizeOperationalRisks({ predictions, correlation, company_id = nul
     const suggested_action = enrichSuggestedAction(p && p.recommendation_hint, corrRow);
 
     const metrics = machine_id ? getMachineLearningMetrics(cid || null, machine_id) : null;
+    const trend = machine_id ? getMachineTrend(cid || null, machine_id) : null;
     const shift = learningRankShift(metrics);
+    const trendShift = machine_id ? learningTrendRankShift(trend) : 0;
+
+    const contextTag = inferContextTagFromSignals({
+      event_type: p && p.event_type,
+      risk_level: p && p.risk_level,
+      intent: p && p.intent,
+      text: p && p.reason
+    });
+    const ctxMetrics = machine_id ? getLearningByContext(cid || null, machine_id, contextTag) : null;
+    const contextShift = learningContextShift(ctxMetrics);
+    const combined = shift + trendShift + contextShift;
     reason = appendLearningToReason(reason, metrics, shift);
+    reason = appendTrendToReason(reason, trend, trendShift);
+    reason = appendContextToReason(reason, contextTag, ctxMetrics, contextShift);
 
     const baseRank = PRIORITY_ORDER[priority] ?? 99;
-    const effectiveRank = Math.max(0.15, baseRank + shift);
+    const effectiveRank = Math.max(0.15, baseRank + combined);
 
     return {
       machine_id,

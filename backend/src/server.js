@@ -35,6 +35,7 @@ const { sendSafeError } = require('./utils/sendSafeError');
 const { allowHealthDetails } = require('./middleware/healthExposure');
 const { getAiIntegrationsHealth } = require('./services/aiIntegrationsHealthService');
 const db = require('./db');
+const systemReadinessService = require('./services/systemReadinessService');
 const unifiedMessaging = require('./services/unifiedMessagingService');
 const reminderScheduler = require('./services/reminderSchedulerService');
 const machineMonitoring = require('./services/machineMonitoringService');
@@ -182,6 +183,21 @@ app.get('/api/health', async (req, res) => {
     });
   }
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
+});
+
+/** Prontidão: BD, schema, cifra (sem chamadas a APIs de IA). */
+app.get('/api/system/health/deep', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const r = await systemReadinessService.checkSystemReadiness();
+    return res.json(systemReadinessService.toPublicPayload(r));
+  } catch (e) {
+    const msg = e && e.message ? String(e.message) : 'erro interno';
+    return res.status(500).json({
+      ready: false,
+      issues: [`[crítico] READINESS: ${msg}`]
+    });
+  }
 });
 
 const uploadsPublicPath = path.join(__dirname, '../../uploads');
@@ -500,6 +516,46 @@ httpServer.on('error', (err) => {
   process.exit(1);
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`[impetus-backend] http://0.0.0.0:${PORT}  (health: /health)`);
-});
+(function runWithReadiness() {
+  const nodeEnv = String(process.env.NODE_ENV || '').trim().toLowerCase();
+  (async () => {
+    try {
+      const r = await systemReadinessService.checkSystemReadiness();
+      const pub = systemReadinessService.toPublicPayload(r);
+      if (systemReadinessService.shouldAbortOnStartup(r)) {
+        console.error('[SYSTEM_READINESS] Arranque abortado em produção (falhas críticas).');
+        for (const line of pub.issues) {
+          console.error(' ', line);
+        }
+        process.exit(1);
+        return;
+      }
+      if (pub.issues.length) {
+        if (nodeEnv === 'production') {
+          console.warn('[SYSTEM_READINESS] Avisos em produção (processo a iniciar).');
+        } else {
+          console.warn(
+            '[SYSTEM_READINESS] Configuração incompleta (modo dev: processo continua; use /api/system/health/deep).'
+          );
+        }
+        for (const line of pub.issues) {
+          console.warn(' ', line);
+        }
+      }
+    } catch (e) {
+      const msg = e && e.message ? String(e.message) : String(e);
+      if (nodeEnv === 'production') {
+        console.error('[SYSTEM_READINESS] Exceção no arranque (produção):', msg);
+        process.exit(1);
+        return;
+      }
+      console.warn('[SYSTEM_READINESS] Exceção no check (dev: continua):', msg);
+    }
+
+    httpServer.listen(PORT, () => {
+      console.log(
+        `[impetus-backend] http://0.0.0.0:${PORT}  (health: /health  deep: /api/system/health/deep)`
+      );
+    });
+  })();
+})();
