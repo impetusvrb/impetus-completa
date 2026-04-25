@@ -44,7 +44,11 @@ function createEmptyDossier({ traceId = uuidv4(), user = {}, context = {}, data 
       documents: Array.isArray(data.documents) ? data.documents : [],
       images: Array.isArray(data.images) ? data.images : [],
       sensors: data.sensors && typeof data.sensors === 'object' ? data.sensors : {},
-      extras: data.extras && typeof data.extras === 'object' ? data.extras : {}
+      extras: data.extras && typeof data.extras === 'object' ? data.extras : {},
+      contextual_data:
+        data.contextual_data && typeof data.contextual_data === 'object'
+          ? { ...data.contextual_data }
+          : {}
     },
     analysis: {
       perception: null,

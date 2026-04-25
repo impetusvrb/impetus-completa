@@ -476,4 +476,11 @@ router.post('/export',
     }
 });
 
+// Alias para o painel de Interações IA dentro de Logs de Auditoria.
+try {
+  router.use('/ai-traces', require('./aiAudit'));
+} catch (err) {
+  console.warn('[ADMIN_LOGS] /ai-traces indisponível:', err?.message || err);
+}
+
 module.exports = router;

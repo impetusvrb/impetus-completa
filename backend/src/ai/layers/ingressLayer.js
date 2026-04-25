@@ -80,6 +80,9 @@ function normalizeRunInput(params) {
       historico: ctx.historico != null ? ctx.historico : baseData.extras?.historico
     }
   };
+  if (!mergedData.contextual_data) {
+    mergedData.contextual_data = {};
+  }
   return {
     user,
     requestText: merged,

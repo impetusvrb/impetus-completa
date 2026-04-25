@@ -104,7 +104,7 @@ function formatTraceRow(row) {
   };
 }
 
-router.get('/', ...adminCompany, async (req, res) => {
+async function handleListAiTraces(req, res) {
   try {
     const limit = req.query.limit;
     const rows = await aiAnalytics.listTracesForCompany(req.user.company_id, limit);
@@ -122,6 +122,12 @@ router.get('/', ...adminCompany, async (req, res) => {
       error: err?.message || 'Erro ao listar auditoria de IA.'
     });
   }
-});
+}
+
+/** Reutilizado em `logs.js` como GET /api/admin/logs/ai-traces (registo explícito, sem sub-router). */
+const listAiTracesHandlers = [...adminCompany, handleListAiTraces];
+
+router.get('/', ...listAiTracesHandlers);
+router.listAiTracesHandlersForMountOnLogs = listAiTracesHandlers;
 
 module.exports = router;

@@ -25,6 +25,9 @@ const aiProviderService = require('../services/aiProviderService');
 const adaptiveGovernanceEngine = require('../services/adaptiveGovernanceEngine');
 const observabilityService = require('../services/observabilityService');
 const behavioralIntelligenceService = require('../services/behavioralIntelligenceService');
+const { detectIntent } = require('../services/intentDetectionService');
+const { retrieveContextualData } = require('../services/dataRetrievalService');
+const { recordOperationalOutcome } = require('../services/operationalLearningService');
 
 const ingressLayer = require('./layers/ingressLayer');
 const policyLayer = require('./layers/policyLayer');
@@ -59,11 +62,38 @@ async function runCognitiveCouncil(params) {
   }
 
   const executeCouncil = async () => {
+    const intentData = detectIntent(rt);
+    let enrichedData = data;
+    try {
+      if (intentData.intent !== 'generic') {
+        const retrieved = await retrieveContextualData({
+          user,
+          intent: intentData.intent,
+          entities: intentData.entities
+        });
+        enrichedData = {
+          ...data,
+          ...retrieved
+        };
+      }
+    } catch (err) {
+      console.warn('[DATA_RETRIEVAL_FAILED]', { reason: err && err.message ? String(err.message) : 'unknown' });
+    }
+
+    enrichedData = {
+      ...enrichedData,
+      contextual_data: {
+        ...(data.contextual_data || {}),
+        ...(enrichedData.contextual_data || {}),
+        detected_intent: intentData.intent
+      }
+    };
+
     const { sanitized, scope, dossier, limitations, risk: riskIngress } =
       await ingressLayer.prepareCouncilIngress({
         user,
         requestText: rt,
-        data,
+        data: enrichedData,
         module,
         options,
         traceId
@@ -106,7 +136,7 @@ async function runCognitiveCouncil(params) {
       scope,
       module,
       user,
-      data,
+      data: enrichedData,
       adaptiveResponseMode,
       traceId
     });
@@ -117,7 +147,7 @@ async function runCognitiveCouncil(params) {
       synthesis,
       dossier,
       sanitized,
-      data,
+      data: enrichedData,
       module,
       adaptiveResponseMode,
       effectivePolicyBundle,
@@ -206,7 +236,7 @@ async function runCognitiveCouncil(params) {
           hierarchy_level: scope.hierarchy_level,
           department: scope.department || null
         },
-        context_snapshot: aiAnalytics.summarizeDossierData(data),
+        context_snapshot: aiAnalytics.summarizeDossierData(enrichedData),
         options: {
           forceCrossValidation: !!options.forceCrossValidation,
           keys: Object.keys(options || {}).slice(0, 20)
@@ -314,6 +344,28 @@ async function runCognitiveCouncil(params) {
       degraded: dossier.meta.degraded,
       module: module || 'cognitive_council'
     });
+
+    try {
+      const pa = enrichedData?.contextual_data?.prioritized_actions;
+      if (Array.isArray(pa) && pa.length > 0) {
+        const seen = new Set();
+        for (const row of pa) {
+          const machine_id =
+            row && row.machine_id != null ? String(row.machine_id).trim() : '';
+          if (!machine_id || seen.has(machine_id)) continue;
+          seen.add(machine_id);
+          recordOperationalOutcome({
+            action: {
+              machine_id,
+              action_type: 'auto_analysis'
+            },
+            result: { success: null, confidence: 'auto_generated' }
+          });
+        }
+      }
+    } catch (learnErr) {
+      console.warn('[OPERATIONAL_LEARNING_OUTCOME]', learnErr && learnErr.message);
+    }
 
     return {
       ok: true,

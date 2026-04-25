@@ -1094,9 +1094,18 @@ export const adminStructural = {
   }
 };
 
-/** Auditoria de interações IA (admin empresa) */
+/** Auditoria de interações IA (admin empresa) — tenta /admin/logs/ai-traces, depois /admin/ai-audit (404 em deploys antigos). */
 export const adminAiAudit = {
-  list: (params) => api.get('/admin/ai-audit', { params })
+  async list(params) {
+    try {
+      return await api.get('/admin/logs/ai-traces', { params });
+    } catch (e) {
+      if (e.response?.status === 404) {
+        return await api.get('/admin/ai-audit', { params });
+      }
+      throw e;
+    }
+  }
 };
 
 /** Incidentes de qualidade da IA — gestão tenant (admin empresa) */

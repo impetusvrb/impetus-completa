@@ -464,4 +464,93 @@ router.post('/export',
     }
 });
 
+function parseJsonObjectSafe(value) {
+  if (value == null) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * GET /api/admin/logs/ai-traces
+ * Endpoint autónomo para painel "Interações IA", sem depender de outros routers.
+ */
+router.get('/ai-traces', requireAuth, requireHierarchy(1), async (req, res) => {
+  try {
+    const limit = safeInteger(req.query.limit, 100, 1, 200);
+    const result = await db.query(
+      `
+      SELECT
+        t.id,
+        t.trace_id,
+        t.user_id,
+        u.name AS user_name,
+        u.email AS user_email,
+        t.module_name,
+        t.input_payload,
+        t.output_response,
+        t.model_info,
+        t.system_fingerprint,
+        t.created_at
+      FROM ai_interaction_traces t
+      LEFT JOIN users u ON u.id = t.user_id
+      WHERE t.company_id = $1
+      ORDER BY t.created_at DESC
+      LIMIT $2
+      `,
+      [req.user.company_id, limit]
+    );
+
+    const items = result.rows.map((row) => {
+      const payload = parseJsonObjectSafe(row.input_payload);
+      const lineage = Array.isArray(payload.data_lineage) ? payload.data_lineage : [];
+      return {
+        id: row.id,
+        trace_id: row.trace_id,
+        created_at: row.created_at,
+        module_name: row.module_name,
+        user: row.user_id
+          ? { id: row.user_id, name: row.user_name, email: row.user_email }
+          : null,
+        input_payload: row.input_payload,
+        output_response: row.output_response,
+        model_info: row.model_info,
+        system_fingerprint: row.system_fingerprint,
+        data_lineage: lineage,
+        summary: {
+          module: row.module_name,
+          trace_id: row.trace_id,
+          created_at: row.created_at,
+          data_lineage_count: lineage.length,
+          data_lineage_entities: lineage
+            .map((x) => (x && typeof x === 'object' ? x.entity : null))
+            .filter(Boolean)
+            .slice(0, 6),
+          human_validation: 'Validação humana disponível no endpoint dedicado de IA.',
+          ai_vs_human: 'Interação registrada para auditoria de caixa-preta.'
+        }
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        count: items.length
+      }
+    });
+  } catch (err) {
+    console.error('[ADMIN_LOGS_AI_TRACES_ERROR]', err);
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Erro ao listar traces de IA.'
+    });
+  }
+});
+
 module.exports = router;

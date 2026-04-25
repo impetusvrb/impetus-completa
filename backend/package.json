@@ -43,7 +43,9 @@
     "test:redteam": "node src/tests/redTeamingScenarios.js",
     "test:ai-learning-feedback": "node src/tests/aiLearningFeedbackScenarios.js",
     "test:compliance-reporting": "node src/tests/complianceReportingScenarios.js",
-    "test:encryption-at-rest": "node src/tests/encryptionAtRestScenarios.js"
+    "test:encryption-at-rest": "node src/tests/encryptionAtRestScenarios.js",
+    "test:cognitive-enrichment": "node src/tests/cognitiveDataEnrichmentScenarios.js",
+    "test:cognitive-e2e-db": "node src/tests/cognitiveUserRoleDbIntegration.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

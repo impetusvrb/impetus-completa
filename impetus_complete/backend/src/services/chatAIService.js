@@ -5,6 +5,29 @@ const documentContext = require('./documentContext');
 const AI_USER_ID = chatService.AI_USER_ID;
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const AI_ORCHESTRATOR_ENABLED = process.env.AI_ORCHESTRATOR_ENABLED === 'true';
+const LIVE_CHAT_MODEL = process.env.IMPETUS_LIVE_CHAT_MODEL || 'gpt-4o';
+
+function sanitizeContent(v) {
+  return String(v || '').replace(/\s+/g, ' ').trim();
+}
+
+function buildLiveChatSystemPrompt(lgpdProtocol) {
+  return [
+    'Você é a Impetus IA do chat interno da empresa.',
+    'Objetivo: conversar com naturalidade, manter coerência com o contexto e ser útil no próximo passo.',
+    'Idioma: português do Brasil.',
+    'Estilo: humano, claro, direto e respeitoso; evite jargão desnecessário.',
+    'Regras de qualidade:',
+    '- Responda ao ponto principal primeiro e depois detalhe somente se necessário.',
+    '- Não invente fatos. Se faltar contexto, diga o que falta e faça 1 pergunta objetiva.',
+    '- Evite respostas genéricas, repetitivas ou fora de contexto.',
+    '- Sempre que útil, entregue em formato: diagnóstico curto + ação recomendada + próximo passo.',
+    '- Não use tom robótico nem frases de abertura repetidas.',
+    lgpdProtocol
+      ? `\nPROTOCOLO OBRIGATÓRIO - LGPD E ÉTICA DA IA (aplicar em TODAS as respostas):\n${lgpdProtocol}`
+      : ''
+  ].join('\n');
+}
 
 async function getConversationContext(conversationId) {
   try {
@@ -50,15 +73,23 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
     }
 
     const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
-    const systemContent = [
-      'Você é a Impetus IA, assistente do chat interno IMPETUS. Responda em português, de forma concisa e profissional.',
-      lgpdProtocol ? `\n\n---\nPROTOCOLO OBRIGATÓRIO - LGPD E ÉTICA DA IA (aplicar em TODAS as respostas):\n${lgpdProtocol}` : ''
-    ].filter(Boolean).join('');
+    const systemContent = buildLiveChatSystemPrompt(lgpdProtocol);
     const msgs = [
       { role: 'system', content: systemContent },
-      ...history.slice(-20).map(m => ({ role: m.sender_id === AI_USER_ID ? 'assistant' : 'user', content: (m.sender?.name || 'Usuário') + ': ' + (m.content || '[arquivo]') }))
+      ...history.slice(-20).map((m) => ({
+        role: m.sender_id === AI_USER_ID ? 'assistant' : 'user',
+        content: sanitizeContent(m.content || '[arquivo]')
+      })),
+      { role: 'user', content: sanitizeContent(triggerMessage) }
     ];
-    const r = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: msgs, max_tokens: 600, temperature: 0.7 });
+    const r = await openai.chat.completions.create({
+      model: LIVE_CHAT_MODEL,
+      messages: msgs,
+      max_tokens: 700,
+      temperature: 0.45,
+      top_p: 0.9,
+      presence_penalty: 0.2
+    });
     const txt = r.choices[0]?.message?.content || 'Não consegui processar.';
     const saved = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt });
     if (io) io.to(conversationId).emit('new_message', saved);
