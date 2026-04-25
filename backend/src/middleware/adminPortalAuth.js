@@ -2,13 +2,22 @@
 
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { isAllowPartialEnv } = require('../config/configValidator');
 
-const IMPETUS_ADMIN_JWT_SECRET = (process.env.IMPETUS_ADMIN_JWT_SECRET || '').trim();
-if (!IMPETUS_ADMIN_JWT_SECRET) {
-  console.error(
-    '[ADMIN_PORTAL] IMPETUS_ADMIN_JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.'
-  );
-  process.exit(1);
+const _rawAdminJwt = (process.env.IMPETUS_ADMIN_JWT_SECRET || '').trim();
+let IMPETUS_ADMIN_JWT_SECRET = _rawAdminJwt;
+if (!_rawAdminJwt) {
+  if (isAllowPartialEnv() && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '[ADMIN_PORTAL] IMPETUS_ADMIN_JWT_SECRET em falta — placeholder inseguro (ALLOW_PARTIAL_ENV; apenas desenvolvimento). Nunca em produção.'
+    );
+    IMPETUS_ADMIN_JWT_SECRET = 'ALLOW_PARTIAL_INSECURE_ADMIN_JWT_NOT_FOR_PROD';
+  } else {
+    console.error(
+      '[ADMIN_PORTAL] IMPETUS_ADMIN_JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.'
+    );
+    process.exit(1);
+  }
 }
 
 const JWT_OPTS = { expiresIn: '8h', issuer: 'impetus-admin-portal' };

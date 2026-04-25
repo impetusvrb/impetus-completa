@@ -177,6 +177,38 @@ function testDisabledWithoutKey() {
   }
 }
 
+function testSensitiveBlockedWithoutKey() {
+  const prev = process.env.DATA_ENCRYPTION_KEY;
+  const prevKms = process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+  delete process.env.DATA_ENCRYPTION_KEY;
+  delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+  encryptionService._resetKeyCacheForTests();
+  try {
+    assert.strictEqual(encryptionService.isEncryptionAvailable(), false);
+    let threw = false;
+    try {
+      encryptionService.assertAtRestPersistenceAllowed({ primary_category: 'SENSITIVE' }, null, null);
+    } catch (e) {
+      threw = e.code === encryptionService.ERR_SENSITIVE_PERSISTENCE_NO_KEY;
+    }
+    assert.strictEqual(threw, true);
+    encryptionService.assertAtRestPersistenceAllowed({ primary_category: 'OPERATIONAL' }, null, null);
+    encryptionService.assertAtRestPersistenceAllowed({ primary_category: 'PERSONAL' }, null, null);
+  } finally {
+    if (prev !== undefined) process.env.DATA_ENCRYPTION_KEY = prev;
+    else delete process.env.DATA_ENCRYPTION_KEY;
+    if (prevKms === undefined) delete process.env.DATA_ENCRYPTION_KMS_PROVIDER;
+    else process.env.DATA_ENCRYPTION_KMS_PROVIDER = prevKms;
+    encryptionService._resetKeyCacheForTests();
+  }
+}
+
+function testSensitiveAllowedWithKey() {
+  withKey(() => {
+    encryptionService.assertAtRestPersistenceAllowed({ primary_category: 'SENSITIVE' }, null, null);
+  });
+}
+
 function testKmsMockMetadataAndRoundTrip() {
   withKeyKmsMock(() => {
     const bundle = encryptionService.getEncryptionKey();
@@ -229,6 +261,8 @@ const suite = [
   testAuthTagTamper,
   testShouldEncryptClassification,
   testDisabledWithoutKey,
+  testSensitiveBlockedWithoutKey,
+  testSensitiveAllowedWithKey,
   testKmsMockMetadataAndRoundTrip,
   testFetchKeyFromKMSMock,
   testFetchKeyFromKMSProviderAwsLowercase

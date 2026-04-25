@@ -97,6 +97,166 @@ function buildIntelligentContextualFallback(cd) {
   return null;
 }
 
+/**
+ * Há conteúdo operacional em contextual_data além de metadados (ex.: detected_intent).
+ */
+function hasUsableContextualPayload(cd) {
+  if (!cd || typeof cd !== 'object' || Array.isArray(cd)) return false;
+  const keys = Object.keys(cd).filter((k) => k !== 'detected_intent' && k !== 'received_entities');
+  if (keys.length === 0) return false;
+  for (const k of keys) {
+    const v = cd[k];
+    if (v == null) continue;
+    if (Array.isArray(v) && v.length > 0) return true;
+    if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length > 0) return true;
+    if (typeof v === 'string' && v.trim() !== '') return true;
+    if (typeof v === 'number' && !Number.isNaN(v)) return true;
+    if (typeof v === 'boolean') return true;
+  }
+  return false;
+}
+
+/**
+ * Resposta determinística a partir de product / machine / visão operacional quando não há predictions/priorities.
+ * @param {object} cd
+ * @returns {string|null}
+ */
+function buildStructuredSnapshotFallback(cd) {
+  if (!cd || typeof cd !== 'object') return null;
+
+  if (cd.product && typeof cd.product === 'object') {
+    const p = cd.product;
+    const name = p.name != null ? String(p.name) : String(p.id || 'produto');
+    const st = cd.status != null ? String(cd.status) : '—';
+    const br = cd.blocking_reason != null && String(cd.blocking_reason).trim() !== '' ? String(cd.blocking_reason) : '—';
+    const rl = cd.risk_level != null ? String(cd.risk_level) : '—';
+    const evs = Array.isArray(cd.events) ? cd.events : [];
+    const lines = evs.slice(0, 10).map((e, i) => {
+      const t = e && e.event_type != null ? String(e.event_type) : 'evento';
+      const lc = e && e.lot_code != null ? String(e.lot_code) : '';
+      const when = e && e.created_at != null ? String(e.created_at).slice(0, 19) : '';
+      return `${i + 1}) ${t}${lc ? ` — lote ${lc}` : ''}${when ? ` (${when})` : ''}`;
+    });
+    const prob = lines.length ? lines.join('\n') : '— (sem eventos de lote registados no período indexado.)';
+    return `SITUAÇÃO ATUAL:\nProduto: ${name}. Estado: ${st}. Risco: ${rl}. ${br !== '—' ? `Detalhe: ${br}.` : ''}
+
+PROBLEMAS / EVENTOS (amostra):
+${prob}
+
+RECOMENDAÇÕES:\nAvaliar lotes e restrições no módulo de qualidade; priorizar ações alinhadas ao estado ${st} e ao risco ${rl}.`;
+  }
+
+  if (cd.machine && typeof cd.machine === 'object') {
+    const m = cd.machine;
+    const mid = m.id != null ? String(m.id) : '—';
+    const mname = m.name != null ? String(m.name) : mid;
+    const mst = m.status != null ? String(m.status) : '—';
+    const rev = Array.isArray(cd.recent_events) ? cd.recent_events : [];
+    const lines = rev.slice(0, 10).map((e, i) => {
+      const t = e && (e.event_type != null) ? String(e.event_type) : 'evento';
+      const sev = e && e.severity != null ? String(e.severity) : '';
+      return `${i + 1}) ${mname} — ${t}${sev ? ` (${sev})` : ''}`;
+    });
+    const prob = lines.length ? lines.join('\n') : '— (sem eventos recentes vinculados a este ativo na amostra.)';
+    return `SITUAÇÃO ATUAL:\nAtivo: ${mname} (id ${mid}). Estado operacional resumido: ${mst}.
+
+PROBLEMAS / EVENTOS:
+${prob}
+
+RECOMENDAÇÕES:\nAcompanhar o ativo no painel operacional e reforçar ações alinhadas ao estado ${mst} e ao histórico de eventos.`;
+  }
+
+  const nM = Array.isArray(cd.machines) ? cd.machines.length : 0;
+  const nE = Array.isArray(cd.events) ? cd.events.length : 0;
+  if (nM > 0 || nE > 0) {
+    const sampleM = (cd.machines || [])
+      .slice(0, 5)
+      .map((x, i) => {
+        const id = x && x.id != null ? String(x.id) : '—';
+        const nm = x && x.name != null ? String(x.name) : id;
+        return `${i + 1}) ${nm} (${id})`;
+      })
+      .join('\n');
+    const sampleE = (cd.events || [])
+      .slice(0, 5)
+      .map((x, i) => {
+        const t = x && (x.event_type != null || x.tipo != null) ? String(x.event_type || x.tipo) : 'evento';
+        return `${i + 1}) ${t}`;
+      })
+      .join('\n');
+    return `SITUAÇÃO ATUAL:\nDados operacionais da empresa: ${nM} máquina(s) e ${nE} evento(s) em contexto.
+
+PROBLEMAS:
+${nM ? `Máquinas (amostra):\n${sampleM}` : '—'}
+${nE ? `\nEventos (amostra):\n${sampleE}` : ''}
+
+RECOMENDAÇÕES:\nCruzar estes indícios com o pedido do utilizador; priorize ativos e eventos listados.`;
+  }
+
+  const mss = cd.correlation && Array.isArray(cd.correlation.machine_status_summary) ? cd.correlation.machine_status_summary : [];
+  if (mss.length > 0) {
+    const lines = mss.slice(0, 8).map((row, i) => {
+      const id = row && row.machine_id != null ? String(row.machine_id) : '—';
+      const st = row && row.status != null ? String(row.status) : '—';
+      return `${i + 1}) ${id} — ${st}`;
+    });
+    return `SITUAÇÃO ATUAL:\nResumo correlacionado de máquinas (dados internos).
+
+PROBLEMAS / ESTADO:
+${lines.join('\n')}
+
+RECOMENDAÇÕES:\nRever ativos com estado crítico ou de atenção e planear intervenção conforme o resumo.`;
+  }
+
+  return null;
+}
+
+/**
+ * Última saída ancorada em contagens, quando existe payload mas não foi possível formatar com riqueza.
+ * @param {object} cd
+ * @returns {string}
+ */
+function buildLastResortDataGroundedMessage(cd) {
+  const parts = [];
+  if (Array.isArray(cd.machines) && cd.machines.length) parts.push(`${cd.machines.length} máquina(s) em contexto`);
+  if (Array.isArray(cd.events) && cd.events.length) parts.push(`${cd.events.length} evento(s) em contexto`);
+  if (Array.isArray(cd.users) && cd.users.length) parts.push(`${cd.users.length} utilizador(es) em contexto`);
+  if (cd.product) parts.push('dados de produto em contexto');
+  if (cd.machine) parts.push('dados de ativo em contexto');
+  if (Array.isArray(cd.predictions) && cd.predictions.length) parts.push(`${cd.predictions.length} previsão(ões)`);
+  if (Array.isArray(cd.prioritized_actions) && cd.prioritized_actions.length) {
+    parts.push(`${cd.prioritized_actions.length} ação(ões) priorizada(s)`);
+  }
+  const summary = parts.length ? parts.join('; ') : 'Dados operacionais estruturados presentes no contexto.';
+  return `SITUAÇÃO ATUAL:\n${summary}
+
+PROBLEMAS:\nA resposta automática devia integrar estes insumos de forma explícita — utilize-os como fonte na análise.
+
+RECOMENDAÇÕES:\nSintetize com base em contextual_data (máquinas, eventos, correlação ou produto) sem respostas genéricas.`;
+}
+
+/**
+ * Síntese com restrição de política / governança — permite mensagem de fallback operacional genérica.
+ * @param {object} synthesis
+ * @param {object} dossier
+ * @returns {boolean}
+ */
+function isPolicyConstrainedSynthesis(synthesis, dossier) {
+  const w = Array.isArray(synthesis && synthesis.warnings) ? synthesis.warnings : [];
+  for (const x of w) {
+    if (/POLICY|ADAPTIVE|BLOCK|GOVERNANCE|RESTRICTED|LIMITED/i.test(String(x))) {
+      return true;
+    }
+  }
+  if (dossier && dossier.meta && dossier.meta.degraded === true) {
+    const lim = synthesis?.explanation_layer?.limitations;
+    if (Array.isArray(lim) && lim.some((s) => /pol[ií]tica|governan|bloque|restri/i.test(String(s)))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Último recurso quando o builder completo falha mas ainda existem ids em memória. */
 function buildMinimalStructuredFallback(cd) {
   const ids = [];
@@ -249,10 +409,23 @@ function applyContextualOperationsFallback(synthesis, dossier) {
     const hasStructured =
       (cd && Array.isArray(cd.prioritized_actions) && cd.prioritized_actions.length > 0) ||
       (cd && Array.isArray(cd.predictions) && cd.predictions.length > 0);
+    const hasPayload = hasUsableContextualPayload(cd);
+
     const smart = buildIntelligentContextualFallback(cd);
     const minimal = smart == null && hasStructured ? buildMinimalStructuredFallback(cd) : null;
-    const resolved =
-      smart != null ? smart : minimal != null ? minimal : CONTEXTUAL_DATA_OPERATIONS_FALLBACK_PT;
+    const snapshot = smart == null && minimal == null ? buildStructuredSnapshotFallback(cd) : null;
+
+    let resolved = smart != null ? smart : minimal != null ? minimal : snapshot;
+
+    if (resolved == null) {
+      const policyConstrained = isPolicyConstrainedSynthesis(synthesis, dossier);
+      if (!hasPayload || policyConstrained) {
+        resolved = CONTEXTUAL_DATA_OPERATIONS_FALLBACK_PT;
+      } else {
+        resolved = buildLastResortDataGroundedMessage(cd);
+      }
+    }
+
     synthesis.answer = resolved;
     synthesis.content = resolved;
 
@@ -260,8 +433,9 @@ function applyContextualOperationsFallback(synthesis, dossier) {
       const lim = Array.isArray(synthesis.explanation_layer.limitations)
         ? synthesis.explanation_layer.limitations
         : [];
-      const usedData = smart != null || minimal != null;
-      if (usedData) {
+      const usedRichData = smart != null || minimal != null || snapshot != null;
+      const usedGenericTemplate = resolved === CONTEXTUAL_DATA_OPERATIONS_FALLBACK_PT;
+      if (usedRichData || !usedGenericTemplate) {
         synthesis.explanation_layer.limitations = appendAuditLimitation(lim);
       } else {
         synthesis.explanation_layer.limitations = appendUniqueLimitation(

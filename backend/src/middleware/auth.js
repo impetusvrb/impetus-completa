@@ -9,11 +9,20 @@ const jwt = require('jsonwebtoken');
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
+const { isAllowPartialEnv } = require('../config/configValidator');
 
-const JWT_SECRET = (process.env.JWT_SECRET || '').trim();
-if (!JWT_SECRET) {
-  console.error('[AUTH] JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.');
-  process.exit(1);
+const _rawJwt = (process.env.JWT_SECRET || '').trim();
+let JWT_SECRET = _rawJwt;
+if (!_rawJwt) {
+  if (isAllowPartialEnv() && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '[AUTH] JWT_SECRET em falta — placeholder inseguro (ALLOW_PARTIAL_ENV; apenas desenvolvimento). Nunca em produção.'
+    );
+    JWT_SECRET = 'ALLOW_PARTIAL_INSECURE_JWT_NOT_FOR_PROD';
+  } else {
+    console.error('[AUTH] JWT_SECRET é obrigatório. Defina no ambiente (.env). Encerrando.');
+    process.exit(1);
+  }
 }
 
 /**

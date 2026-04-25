@@ -173,6 +173,11 @@ async function insertAiTrace(row) {
 
   const policyRules =
     row.trace_policy_rules && typeof row.trace_policy_rules === 'object' ? row.trace_policy_rules : null;
+  encryptionService.assertAtRestPersistenceAllowed(
+    classificationObj,
+    policyRules,
+    { force_encryption: row.force_encryption === true }
+  );
   const doEncrypt =
     encryptionService.isEncryptionAvailable() &&
     encryptionService.shouldEncryptAtRest(classificationObj, policyRules, {

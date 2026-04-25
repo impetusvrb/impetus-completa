@@ -3,9 +3,17 @@
  * O PM2 neste servidor usa: impetus_complete/backend/src/server.js
  */
 require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
+
+try {
+  require('./config/configValidator').validateConfigOrThrow();
+} catch (e) {
+  console.error(e.name === 'ConfigError' ? e.message : e);
+  process.exit(1);
+}
 
 const fs = require('fs');
-const path = require('path');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
@@ -273,7 +281,10 @@ const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABL
 if (manuiaEnabled) {
   useRoute('/api/manutencao-ia', './routes/manutencao-ia');
 } else {
-  console.log('[server] ManuIA: desabilitado (ENABLE_MANUIA=false)');
+  console.log(
+    '[server] ManuIA: desabilitado (ENABLE_MANUIA=false) — fallback JSON em /api/manutencao-ia/*'
+  );
+  useRoute('/api/manutencao-ia', './routes/manuiaDisabledFallback');
 }
 
 app.use((err, req, res, _next) => {
@@ -334,6 +345,35 @@ try {
 }
 reminderScheduler.start();
 machineMonitoring.start();
+
+setImmediate(() => {
+  try {
+    const operationalLearningService = require('./services/operationalLearningService');
+    operationalLearningService.loadAllOperationalLearningFromDB().catch(() => {});
+  } catch (e) {
+    console.warn('[OPERATIONAL_LEARNING] bootstrap:', e?.message);
+  }
+});
+
+let systemMetricsIntervalId = null;
+if (String(process.env.SYSTEM_METRICS_CRON_ENABLED || 'true').toLowerCase() !== 'false') {
+  try {
+    const observabilityService = require('./services/observabilityService');
+    const rawMs = parseInt(process.env.SYSTEM_METRICS_INTERVAL_MS || '60000', 10);
+    const intervalMs = Number.isFinite(rawMs)
+      ? Math.min(3600000, Math.max(60000, rawMs))
+      : 60000;
+    systemMetricsIntervalId = setInterval(() => {
+      observabilityService.persistMetricsSnapshot().catch(() => {});
+    }, intervalMs);
+    setTimeout(() => {
+      observabilityService.persistMetricsSnapshot().catch(() => {});
+    }, 15000);
+    console.info(`[SYSTEM_METRICS] Persistência de métricas a cada ${intervalMs}ms (1.ª após ~15s)`);
+  } catch (e) {
+    console.warn('[SYSTEM_METRICS] Cron não iniciado:', e?.message);
+  }
+}
 
 /**
  * Cérebro operacional: checker periódico (paridade impetus_complete/server.js).
@@ -401,6 +441,10 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
 
 function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
+  if (systemMetricsIntervalId) {
+    clearInterval(systemMetricsIntervalId);
+    systemMetricsIntervalId = null;
+  }
   clearOperationalBrainInterval();
   clearDataLifecycleInterval();
   try {

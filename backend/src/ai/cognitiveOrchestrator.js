@@ -34,6 +34,35 @@ const policyLayer = require('./layers/policyLayer');
 const complianceLayer = require('./layers/complianceLayer');
 const executionLayer = require('./layers/executionLayer');
 
+/**
+ * Condição alinhada ao contrato de API: nenhum payload explícito em `data` nem em `context`
+ * (após normalização, `data` adquire sempre chaves por omissão — não pode usar só Object.keys(data)).
+ */
+function hasNoExplicitClientData(params) {
+  if (!params) return true;
+  const d = params.data;
+  const c = params.context;
+  const noData =
+    d == null || (typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length === 0);
+  const noContext =
+    c == null || (typeof c === 'object' && !Array.isArray(c) && Object.keys(c).length === 0);
+  return noData && noContext;
+}
+
+/**
+ * Intenção operacional ampla: mesmo que a heurística de intent falhe, capturar frases de visão geral.
+ */
+function shouldAutoInjectBroadOperational(requestText, intentData) {
+  if (intentData && intentData.intent === 'operational_overview') return true;
+  const t = (requestText || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (t.includes('situacao') || t.includes('status geral')) return true;
+  if (t.includes('o que esta acontecendo')) return true;
+  return false;
+}
+
 async function runCognitiveCouncil(params) {
   const norm = ingressLayer.normalizeRunInput(params);
   const {
@@ -64,16 +93,53 @@ async function runCognitiveCouncil(params) {
   const executeCouncil = async () => {
     const intentData = detectIntent(rt);
     let enrichedData = data;
+    let didAutoInjectOperational = false;
+
+    if (
+      hasNoExplicitClientData(params) &&
+      shouldAutoInjectBroadOperational(rt, intentData) &&
+      user?.company_id
+    ) {
+      try {
+        const autoData = await retrieveContextualData({
+          user,
+          intent: 'operational_overview',
+          entities: {}
+        });
+        enrichedData = {
+          ...data,
+          ...autoData,
+          contextual_data: {
+            ...(data.contextual_data || {}),
+            ...(autoData.contextual_data || {})
+          }
+        };
+        didAutoInjectOperational = true;
+        console.info('[AUTO_DATA_INJECTION]', { intent: 'operational_overview' });
+      } catch (autoErr) {
+        console.warn('[AUTO_DATA_INJECTION_FAILED]', {
+          reason: autoErr && autoErr.message ? String(autoErr.message) : 'unknown'
+        });
+      }
+    }
+
     try {
-      if (intentData.intent !== 'generic') {
+      if (
+        intentData.intent !== 'generic' &&
+        !(didAutoInjectOperational && intentData.intent === 'operational_overview')
+      ) {
         const retrieved = await retrieveContextualData({
           user,
           intent: intentData.intent,
           entities: intentData.entities
         });
         enrichedData = {
-          ...data,
-          ...retrieved
+          ...enrichedData,
+          ...retrieved,
+          contextual_data: {
+            ...(enrichedData.contextual_data || {}),
+            ...(retrieved.contextual_data || {})
+          }
         };
       }
     } catch (err) {
@@ -359,7 +425,8 @@ async function runCognitiveCouncil(params) {
               machine_id,
               action_type: 'auto_analysis'
             },
-            result: { success: null, confidence: 'auto_generated' }
+            result: { success: null, confidence: 'auto_generated' },
+            company_id: user.company_id
           });
         }
       }

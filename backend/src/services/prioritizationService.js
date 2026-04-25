@@ -116,9 +116,10 @@ function enrichSuggestedAction(hint, corrRow) {
  *   }>
  * }}
  */
-function prioritizeOperationalRisks({ predictions, correlation } = {}) {
+function prioritizeOperationalRisks({ predictions, correlation, company_id = null } = {}) {
   const predList = resolvePredictionsList(predictions);
   const byMachine = correlationIndex(correlation);
+  const cid = company_id != null ? String(company_id).trim() : '';
 
   const prioritized_actions = predList.map((p) => {
     const machine_id = p && p.machine_id != null ? String(p.machine_id).trim() : '';
@@ -127,7 +128,7 @@ function prioritizeOperationalRisks({ predictions, correlation } = {}) {
     let reason = enrichReason(p && p.reason, corrRow);
     const suggested_action = enrichSuggestedAction(p && p.recommendation_hint, corrRow);
 
-    const metrics = machine_id ? getMachineLearningMetrics(machine_id) : null;
+    const metrics = machine_id ? getMachineLearningMetrics(cid || null, machine_id) : null;
     const shift = learningRankShift(metrics);
     reason = appendLearningToReason(reason, metrics, shift);
 

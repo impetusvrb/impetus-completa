@@ -10,7 +10,8 @@
  *   continua a ser DATA_ENCRYPTION_KEY. Modo real: DATA_ENCRYPTION_KMS_ENCRYPTED_DEK
  *   + chamada KMS (ver docs); falha KMS → fallback para DATA_ENCRYPTION_KEY.
  *
- * Sem chave válida: modo desativado (sem quebrar fluxo).
+ * Categoria SENSITIVE sem chave: persistência de novos traces **bloqueada** (ver
+ * {@link assertAtRestPersistenceAllowed}); leitura de dados legados inalterada.
  */
 
 const crypto = require('crypto');
@@ -27,6 +28,9 @@ const MAX_PLAINTEXT_BYTES = Math.min(
 
 /** Esquema do envelope e versão lógica da chave (rotação futura via KMS). */
 const ENCRYPTION_VERSION = 'v1';
+
+/** Código em Error.code quando persistência com primary_category SENSITIVE é rejeitada. */
+const ERR_SENSITIVE_PERSISTENCE_NO_KEY = 'SENSITIVE_DATA_ENCRYPTION_REQUIRED';
 
 /**
  * @typedef {object} EncryptionKeyBundle
@@ -378,6 +382,57 @@ function shouldEncryptAtRest(classification, policyRules, recordHints) {
   return false;
 }
 
+/**
+ * `data_classification.primary_category === "SENSITIVE"` (comparação case-insensitive).
+ * @param {object|null|undefined} classification
+ * @returns {boolean}
+ */
+function isSensitivePrimaryCategory(classification) {
+  if (!classification || typeof classification !== 'object') return false;
+  return String(classification.primary_category || '').toUpperCase() === 'SENSITIVE';
+}
+
+/**
+ * Regista evento de segurança (nunca inclui payload ou PII).
+ * @param {string} event
+ * @param {Record<string, unknown>} [detail]
+ */
+function logSecurityWarning(event, detail = {}) {
+  console.warn(
+    JSON.stringify({
+      level: 'SECURITY_WARNING',
+      event,
+      source: 'impetus_encryption_at_rest',
+      ts: new Date().toISOString(),
+      ...detail
+    })
+  );
+}
+
+/**
+ * Evita persistir traces classificados como SENSITIVE sem material de cifra.
+ * Dados antigos (plain ou envelope) continuam a ser lidos via {@link tryDecryptValue} / {@link decryptField}.
+ * @param {object|null|undefined} classification — p.ex. data_classification do trace
+ * @param {object|null} [_policyRules] reservado (coerente com shouldEncryptAtRest)
+ * @param {object|null} [_recordHints] reservado
+ * @returns {void}
+ * @throws {Error} code {@link ERR_SENSITIVE_PERSISTENCE_NO_KEY} quando SENSITIVE e `!`{@link isEncryptionAvailable}
+ */
+function assertAtRestPersistenceAllowed(classification, _policyRules, _recordHints) {
+  if (isEncryptionAvailable()) return;
+  if (!isSensitivePrimaryCategory(classification)) return;
+  logSecurityWarning('SENSITIVE_PERSISTENCE_BLOCKED', {
+    reason: 'no_encryption_key',
+    hint: 'defina_DATA_ENCRYPTION_KEY_ou_kms',
+    primary_category: 'SENSITIVE'
+  });
+  const err = new Error(
+    `${ERR_SENSITIVE_PERSISTENCE_NO_KEY}: classificação SENSITIVE exige cifra em repouso (DATA_ENCRYPTION_KEY / KMS).`
+  );
+  err.code = ERR_SENSITIVE_PERSISTENCE_NO_KEY;
+  throw err;
+}
+
 function getStatusMeta() {
   validateConfigurationOnce();
   const bundle = getEncryptionKey();
@@ -446,6 +501,9 @@ module.exports = {
   ALGORITHM,
   ENCRYPTION_VERSION,
   MAX_PLAINTEXT_BYTES,
+  ERR_SENSITIVE_PERSISTENCE_NO_KEY,
+  isSensitivePrimaryCategory,
+  assertAtRestPersistenceAllowed,
   isEncryptionAvailable,
   isEncrypted,
   encryptField,

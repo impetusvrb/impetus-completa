@@ -6,6 +6,7 @@
  */
 
 const { scanLogForSecrets, getLogSecretScanFindings } = require('./logSecretLeakDetector');
+const db = require('../db');
 
 const MAX_LOG_STRING = 500;
 const MAX_DETAILS_DEPTH = 5;
@@ -202,6 +203,64 @@ function getMetricsSnapshot() {
   };
 }
 
+/**
+ * Grava no BD um instantâneo das métricas globais (não altera contadores em memória).
+ * Chaves: total_requests, blocked_requests, incidents, avg_response_time
+ * (incidents = compliance_incidents_count + policy_violations_count).
+ * Falha de BD: log e retorno silencioso.
+ * @returns {Promise<void>}
+ */
+async function persistMetricsSnapshot() {
+  const snap = getMetricsSnapshot();
+  const ts = new Date();
+  const blocked = Number(snap.ai_responses_blocked) || 0;
+  const total = Number(snap.total_requests) || 0;
+  const incidents =
+    (Number(snap.compliance_incidents_count) || 0) + (Number(snap.policy_violations_count) || 0);
+  const avgRt = Number(snap.average_response_time) || 0;
+  const rows = [
+    ['total_requests', total],
+    ['blocked_requests', blocked],
+    ['incidents', incidents],
+    ['avg_response_time', avgRt]
+  ];
+  let client;
+  try {
+    client = await db.pool.connect();
+    await client.query('BEGIN');
+    for (const [metric_key, value] of rows) {
+      await client.query(
+        `INSERT INTO system_metrics (metric_key, value, created_at) VALUES ($1, $2, $3)`,
+        [metric_key, value, ts]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (e) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (_) {
+        /* */
+      }
+    }
+    try {
+      logEvent('WARN', 'OBSERVABILITY_METRICS_PERSIST_FAILED', {
+        details: { message: (e && e.message) || String(e) }
+      });
+    } catch (_) {
+      console.warn('[OBSERVABILITY_PERSIST]', (e && e.message) || e);
+    }
+  } finally {
+    if (client) {
+      try {
+        client.release();
+      } catch (_) {
+        /* */
+      }
+    }
+  }
+}
+
 function resetConsecutiveErrors() {
   consecutiveErrors = 0;
 }
@@ -391,6 +450,7 @@ module.exports = {
   incrementMetric,
   recordLatency,
   getMetricsSnapshot,
+  persistMetricsSnapshot,
   evaluateSystemHealth,
   getSystemHealthPayload,
   markCouncilStart,
