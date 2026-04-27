@@ -13,6 +13,33 @@ function toAbsoluteUrl(raw) {
   return `${base}${t.startsWith('/') ? '' : '/'}${t}`;
 }
 
+export function toAbsoluteAssetUrl(raw) {
+  return toAbsoluteUrl(raw);
+}
+
+export function isUploadsAssetUrl(raw) {
+  const abs = toAbsoluteUrl(raw);
+  if (!abs) return false;
+  try {
+    const u = new URL(abs, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return u.pathname.startsWith('/uploads/');
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchUploadAsBlobUrl(rawUrl) {
+  const abs = toAbsoluteUrl(rawUrl);
+  if (!abs) throw new Error('invalid_url');
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('impetus_token') : null;
+  const res = await fetch(abs, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 export function useProtectedMediaSrc(rawUrl) {
   const [src, setSrc] = useState(() => {
     if (!rawUrl) return null;
