@@ -31,8 +31,14 @@ export function useDashboardMe(options = {}) {
   }, [fetchMe]);
 
   const trackInteraction = useCallback((eventType, entityType, entityId, context = {}) => {
-    const uid = payload?.user_context ? JSON.parse(localStorage.getItem('impetus_user') || '{}')?.id : null;
-    const cid = payload?.user_context ? JSON.parse(localStorage.getItem('impetus_user') || '{}')?.company_id : null;
+    let sessionUser = {};
+    try {
+      sessionUser = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    } catch {
+      sessionUser = {};
+    }
+    const uid = payload?.user_context ? sessionUser?.id : null;
+    const cid = payload?.user_context ? sessionUser?.company_id : null;
     if (uid && cid) {
       dashboard.trackInteraction(eventType, entityType, entityId, context).catch(() => {});
     }

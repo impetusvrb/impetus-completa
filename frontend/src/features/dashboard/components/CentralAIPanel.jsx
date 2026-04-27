@@ -35,8 +35,14 @@ export default function CentralAIPanel({ data }) {
             )}
           </div>
           <ul className="central-ai-panel__alerts-list">
-            {(alerts.items || []).slice(0, 5).map((a) => (
-              <li key={a.id} className={`central-ai-panel__alert-item severity-${a.severity}`}>
+            {(alerts.items || [])
+              .filter((a) => a != null && typeof a === 'object')
+              .slice(0, 5)
+              .map((a, aidx) => (
+              <li
+                key={a.id != null ? String(a.id) : `central-alert-${aidx}`}
+                className={`central-ai-panel__alert-item severity-${a.severity || 'medium'}`}
+              >
                 <span className="sector-tag">{a.sector}</span>
                 <strong>{a.title}</strong>
               </li>
@@ -54,12 +60,15 @@ export default function CentralAIPanel({ data }) {
         </div>
       )}
 
-      {sectors && sectors.length > 0 && (
+      {Array.isArray(sectors) && sectors.filter((s) => s && typeof s === 'object').length > 0 && (
         <div className="central-ai-panel__sectors">
           <h4><Layers size={16} /> Setores integrados</h4>
           <div className="central-ai-panel__sectors-grid">
-            {sectors.map((s) => (
-              <div key={s.key} className={`central-ai-panel__sector status-${s.status}`}>
+            {sectors.filter((s) => s && typeof s === 'object').map((s, sidx) => (
+              <div
+                key={s.key != null ? String(s.key) : `sector-${sidx}`}
+                className={`central-ai-panel__sector status-${s.status || 'unknown'}`}
+              >
                 <span className="sector-name">{s.name}</span>
                 <span className="sector-status">{s.status === 'ok' ? '✓' : s.status === 'alert' ? '!' : '?'}</span>
               </div>
@@ -68,11 +77,14 @@ export default function CentralAIPanel({ data }) {
         </div>
       )}
 
-      {insights && insights.length > 0 && (
+      {Array.isArray(insights) && insights.filter((i) => i && typeof i === 'object').length > 0 && (
         <div className="central-ai-panel__insights">
           <h4><TrendingUp size={16} /> Insights</h4>
           <ul>
-            {insights.slice(0, 3).map((i, idx) => (
+            {insights
+              .filter((i) => i && typeof i === 'object')
+              .slice(0, 3)
+              .map((i, idx) => (
               <li key={idx}>
                 <strong>{i.title}</strong>
                 <p>{i.description}</p>

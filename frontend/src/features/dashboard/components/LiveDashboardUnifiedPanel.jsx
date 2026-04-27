@@ -63,6 +63,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
   const dynamicSurface = display?.dynamic_surface || null;
 
   const renderDynamicBody = (block) => {
+    if (!block || typeof block !== 'object') return null;
     const viz = block?.visualization;
     const data = block?.data || {};
     if (viz === 'alert') return <p className="live-dash-dyn-body live-dash-dyn-body--alert">{data.message || 'Ação imediata recomendada.'}</p>;
@@ -275,8 +276,11 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                 <div className="live-dash-pers-gaps">
                   <strong>Dados em falta ou genéricos:</strong>
                   <ul>
-                    {display.personalization.gaps.map((g) => (
-                      <li key={g}>{g}</li>
+                    {display.personalization.gaps
+                      .map((g, gidx) => (g == null ? '' : typeof g === 'string' ? g : String(g)))
+                      .filter(Boolean)
+                      .map((g, gidx) => (
+                      <li key={`gap-${gidx}-${g.slice(0, 40)}`}>{g}</li>
                     ))}
                   </ul>
                 </div>
@@ -357,12 +361,12 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             </section>
           )}
 
-          {display.alerts_preview?.length > 0 && (
+          {Array.isArray(display.alerts_preview) && display.alerts_preview.filter(Boolean).length > 0 && (
             <section className="live-dash-alerts-preview">
               <h3>Alertas recentes</h3>
               <ul>
-                {display.alerts_preview.map((a) => (
-                  <li key={a.id}>
+                {display.alerts_preview.filter((a) => a && typeof a === 'object').map((a, idx) => (
+                  <li key={a.id != null ? String(a.id) : `alert-${idx}`}>
                     <span className="live-dash-sev">{a.severidade || '—'}</span> {a.titulo || a.tipo_alerta}
                   </li>
                 ))}
@@ -392,13 +396,20 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                   <div key={groupKey} className="live-dash-dynamic-group">
                     <h3>{groupTitleMap[groupKey] || groupKey}</h3>
                     <div className="live-dash-dynamic-grid">
-                      {blocks.map((block) => (
-                        <article key={block.id} className={`live-dash-dynamic-card live-dash-dynamic-card--${block.severity || 'baixa'}`}>
+                      {blocks
+                        .filter((b) => b != null && typeof b === 'object')
+                        .map((block, bidx) => (
+                        <article
+                          key={block.id != null ? String(block.id) : `dyn-${groupKey}-${bidx}`}
+                          className={`live-dash-dynamic-card live-dash-dynamic-card--${block.severity || 'baixa'}`}
+                        >
                           <div className="live-dash-dynamic-head">
-                            <h4>{block.title}</h4>
+                            <h4>{block.title != null ? String(block.title) : '—'}</h4>
                             {block.requires_action && <span className="live-dash-dynamic-action-tag">Ação sugerida</span>}
                           </div>
-                          <p className="live-dash-dynamic-sub">{block.subtitle}</p>
+                          <p className="live-dash-dynamic-sub">
+                            {block.subtitle != null ? String(block.subtitle) : ''}
+                          </p>
                           {renderDynamicBody(block)}
                         </article>
                       ))}
@@ -408,12 +419,15 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             </section>
           )}
 
-          {Array.isArray(display.smart_questions) && display.smart_questions.length > 0 && (
+          {Array.isArray(display.smart_questions) && display.smart_questions.filter((q) => q != null && String(q).trim() !== '').length > 0 && (
             <section className="live-dash-suggestions">
               <h3>Perguntas inteligentes do seu perfil</h3>
               <ul>
-                {display.smart_questions.map((q) => (
-                  <li key={q}>{q}</li>
+                {display.smart_questions
+                  .map((q, qidx) => (q == null ? null : String(q)))
+                  .filter(Boolean)
+                  .map((q, qidx) => (
+                  <li key={`${q}-${qidx}`}>{q}</li>
                 ))}
               </ul>
             </section>
@@ -436,8 +450,10 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                     <div key={pri} className="live-dash-plan-group">
                       <h4 className={`live-dash-plan-group-title live-dash-plan-group-title--${pri}`}>{label}</h4>
                       <ul className="live-dash-plan">
-                        {list.map((item) => (
-                          <li key={item.id} className="live-dash-plan-item">
+                        {list
+                          .filter((item) => item != null && typeof item === 'object')
+                          .map((item, iidx) => (
+                          <li key={item.id != null ? String(item.id) : `plan-${pri}-${iidx}`} className="live-dash-plan-item">
                             <div className="live-dash-plan-head">
                               <span className={priorityClass(item.priority)}>{item.priority}</span>
                               <span className="live-dash-order">#{item.suggested_order}</span>
@@ -460,9 +476,11 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                               Responsável sugerido: {item.assignee_hint || '—'} · ~{item.eta_minutes} min
                             </div>
                             <div className="live-dash-plan-actions">
-                              {(item.actions || []).map((act) => (
+                              {(item.actions || [])
+                                .filter((act) => act != null && typeof act === 'object')
+                                .map((act, aidx) => (
                                 <button
-                                  key={act.id}
+                                  key={act.id != null ? String(act.id) : `act-${pri}-${iidx}-${aidx}`}
                                   type="button"
                                   className="live-dash-btn live-dash-btn--small"
                                   onClick={() =>
@@ -485,12 +503,14 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                 })}
               </section>
 
-              {(display.orchestration.suggestions || []).length > 0 && (
+              {(display.orchestration.suggestions || []).filter((s) => s && typeof s === 'object').length > 0 && (
                 <section className="live-dash-suggestions">
                   <h3>Sugestões da IA</h3>
                   <ul>
-                    {display.orchestration.suggestions.map((s) => (
-                      <li key={s.id}>{s.text}</li>
+                    {display.orchestration.suggestions
+                      .filter((s) => s && typeof s === 'object')
+                      .map((s, six) => (
+                      <li key={s.id != null ? String(s.id) : `sug-${six}`}>{s.text}</li>
                     ))}
                   </ul>
                 </section>

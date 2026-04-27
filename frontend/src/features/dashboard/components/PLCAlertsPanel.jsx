@@ -12,7 +12,14 @@ export default function PLCAlertsPanel() {
   const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
-    dashboard.getPlcAlerts(false).then((r) => setAlerts(r.data?.alerts || [])).catch(() => setAlerts([])).finally(() => setLoading(false));
+    dashboard
+      .getPlcAlerts(false)
+      .then((r) => {
+        const raw = r.data?.alerts || [];
+        setAlerts(Array.isArray(raw) ? raw.filter((a) => a != null && typeof a === 'object') : []);
+      })
+      .catch(() => setAlerts([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleAcknowledge = (id) => {
