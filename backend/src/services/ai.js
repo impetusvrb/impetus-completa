@@ -6,8 +6,18 @@
 const OpenAI = require('openai');
 const documentContext = require('./documentContext');
 const incomingProcessor = require('./incomingMessageProcessor');
-const billingTokenService = require('./billingTokenService');
-const nexusWalletService = require('./nexusWalletService');
+let billingTokenService;
+let nexusWalletService;
+try {
+  billingTokenService = require('./billingTokenService');
+} catch (_) {
+  billingTokenService = { registrarUsoSafe: () => {} };
+}
+try {
+  nexusWalletService = require('./nexusWalletService');
+} catch (_) {
+  nexusWalletService = { canConsumeEstimate: async () => ({ ok: true, skipped: true }) };
+}
 
 const WALLET_FALLBACK_MSG =
   'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';

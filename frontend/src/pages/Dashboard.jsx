@@ -3,13 +3,15 @@
  * Operador: DashboardOperador | Manutenção: DashboardMecanico | Demais perfis (incl. colaborador): CentroComando
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   CentroComando,
   DashboardMecanico,
   DashboardOperador
 } from '../features/dashboard';
+import LiveDashboardUnifiedPanel from '../features/dashboard/components/LiveDashboardUnifiedPanel';
+import LiveSurfacePanel from '../features/dashboard/centroComando/LiveSurfacePanel';
 import { isMaintenanceProfile } from '../utils/roleUtils';
 import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
 import './Dashboard.css';
@@ -43,7 +45,17 @@ export default function Dashboard() {
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? (() => { try { return JSON.parse(userStr); } catch { return null; } })() : null;
   const role = (user?.role || '').toString().toLowerCase();
-  if (role === 'admin') return <Navigate to="/app/chatbot" replace />;
+  const isAdmin = role === 'admin';
+  const intelligentActivated = useRef(false);
+  useEffect(() => {
+    if (isAdmin) return;
+    if (!intelligentActivated.current) {
+      intelligentActivated.current = true;
+      console.info('[DASHBOARD_INTELLIGENT_ACTIVATED]');
+    }
+  }, [isAdmin]);
+
+  if (isAdmin) return <Navigate to="/app/chatbot" replace />;
 
   const useStaffCentro = isStaffCentroProfile(user);
   const useOperadorDashboard = isOperadorProfile(user);
@@ -52,6 +64,8 @@ export default function Dashboard() {
 
   return (
     <ModuleErrorBoundary moduleName="Dashboard">
+      <LiveDashboardUnifiedPanel />
+      <LiveSurfacePanel autoFetch />
       {/** RH/Financeiro tem prioridade e usa o CentroComando personalizado. */}
       {useStaffCentro && <CentroComando />}
       {!useStaffCentro && useOperadorDashboard && <DashboardOperador />}

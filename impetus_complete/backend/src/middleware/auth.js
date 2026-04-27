@@ -206,18 +206,42 @@ async function validateJWTAndLoadUser(token) {
  * repõe o tenant (evita 403 "Empresa não identificada" em rotas como /api/tpm).
  * Só aplica se a BD não tiver company_id — a BD continua a ter prioridade.
  */
-function attachCompanyIdFromJwtClaims(user, rawToken) {
+function readCompanyIdFromJwt(decoded) {
+  if (!decoded || typeof decoded !== 'object') return null;
+  return decoded.company_id || decoded.companyId || decoded.tenant_id || decoded.tenantId || null;
+}
+
+async function attachCompanyIdFromFallbacks(user, rawToken) {
   if (!user || user.company_id) return user;
-  if (!rawToken || typeof rawToken !== 'string') return user;
-  if (rawToken.split('.').length !== 3) return user;
-  try {
-    const decoded = jwt.verify(rawToken, JWT_SECRET);
-    if (decoded && decoded.company_id) {
-      return { ...user, company_id: decoded.company_id };
+
+  if (rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3) {
+    try {
+      const decoded = jwt.verify(rawToken, JWT_SECRET);
+      const claimCompanyId = readCompanyIdFromJwt(decoded);
+      if (claimCompanyId) {
+        return { ...user, company_id: claimCompanyId };
+      }
+    } catch (_) {
+      /* token opaco ou JWT inválido */
     }
-  } catch (_) {
-    /* token opaco ou JWT inválido */
   }
+
+  // Fallback seguro para usuários com cargo corporativo já associado.
+  if (user.company_role_id) {
+    try {
+      const r = await db.query(
+        'SELECT company_id FROM company_roles WHERE id = $1 AND active = true LIMIT 1',
+        [user.company_role_id]
+      );
+      const roleCompanyId = r.rows[0]?.company_id || null;
+      if (roleCompanyId) {
+        return { ...user, company_id: roleCompanyId };
+      }
+    } catch (_) {
+      /* mantém fluxo normal sem interromper autenticação */
+    }
+  }
+
   return user;
 }
 
@@ -258,7 +282,7 @@ function requireAuth(req, res, next) {
       });
     }
 
-    req.user = attachCompanyIdFromJwtClaims(user, token);
+    req.user = await attachCompanyIdFromFallbacks(user, token);
     req.session = { id: user.sessionId };
     req.authRawToken = token;
     if (

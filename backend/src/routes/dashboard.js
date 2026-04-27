@@ -15,7 +15,12 @@ const dashboardKPIs = require('../services/dashboardKPIs');
 const userContext = require('../services/userContext');
 const hierarchicalFilter = require('../services/hierarchicalFilter');
 const dashboardComposerService = require('../services/dashboardComposerService');
-const personalizedInsightsService = require('../services/personalizedInsightsService');
+let personalizedInsightsService = null;
+try {
+  personalizedInsightsService = require('../services/personalizedInsightsService');
+} catch (e) {
+  console.warn('[INSIGHTS_SERVICE_MISSING]', e && e.message ? String(e.message) : e);
+}
 const smartPanelCommandService = require('../services/smartPanelCommandService');
 const claudePanelService = require('../services/claudePanelService');
 const voiceRealtimeContextService = require('../services/voiceRealtimeContextService');
@@ -24,6 +29,7 @@ const { userRateLimit } = require('../middleware/userRateLimit');
 const ai = require('../services/ai');
 const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynthesizer');
 const dataLineageService = require('../services/dataLineageService');
+const strategicLearningService = require('../services/strategicLearningService');
 const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
@@ -226,6 +232,10 @@ router.post('/track-interaction', requireAuth, express.json({ limit: '32kb' }), 
 router.get('/insights', requireAuth, async (req, res) => {
   try {
     const user = req.user;
+    if (!personalizedInsightsService) {
+      console.warn('[INSIGHTS_SERVICE_MISSING]');
+      return res.json({ ok: true, insights: [], insights_instructions: null });
+    }
     const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 8));
     const scope = await hierarchicalFilter.resolveHierarchyScope(user);
     const kpis = await dashboardKPIs.getDashboardKPIs(user, scope).catch(() => []);
@@ -534,6 +544,46 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     const u = req.user;
 
+    const { v4: uuidv4 } = require('uuid');
+    const traceId = uuidv4();
+    const sessionContextService = require('../services/sessionContextService');
+    const {
+      buildProactiveContextFromSession,
+      formatAutonomousContextAppendixForPrompt
+    } = require('../services/proactiveRetrievalService');
+    const { runAutonomousPreflight } = require('../ai/cognitiveOrchestrator');
+
+    const miniDossier = {
+      trace_id: traceId,
+      data: {},
+      context: {
+        module: 'dashboard_chat',
+        request: message.slice(0, 4000),
+        intent: 'generico_assistido',
+        pipeline_version: 'chat_gpt_json',
+        timestamp: new Date().toISOString()
+      },
+      analysis: {},
+      decision: { requires_human_validation: false, risk_level: 'low' },
+      meta: {
+        models_touched: ['openai']
+      }
+    };
+
+    let autonomousAppendix = '';
+    if (u.company_id && u.id) {
+      try {
+        const sess = await sessionContextService.getSessionContext(u.company_id, u.id);
+        const proactiveCtx = buildProactiveContextFromSession(u, sess);
+        const pre = await runAutonomousPreflight({ user: u, dossier: miniDossier, context: proactiveCtx });
+        if (pre.enriched) {
+          autonomousAppendix = formatAutonomousContextAppendixForPrompt(miniDossier);
+        }
+      } catch (e) {
+        console.warn('[DASHBOARD_CHAT] autonomous_preflight', e && e.message ? e.message : e);
+      }
+    }
+
     let lastAiTrace =
       req.body?.last_ai_trace_id != null ? String(req.body.last_ai_trace_id).trim() : null;
     if (lastAiTrace === '') lastAiTrace = null;
@@ -576,7 +626,7 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0‚Ä
     const messages = [
       { role: 'system', content: system },
       ...history,
-      { role: 'user', content: message + lineageBlock }
+      { role: 'user', content: message + lineageBlock + autonomousAppendix }
     ];
 
     const billing = u.company_id ? { companyId: u.company_id, userId: u.id } : null;
@@ -587,30 +637,20 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0‚Ä
       model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini'
     });
 
-    const traceId = require('uuid').v4();
     const degraded = typeof raw === 'string' && raw.startsWith('FALLBACK');
     const limitations = degraded && raw ? [raw] : [];
     const { finalRaw, structuredFinal } = parseFinalStructuredResponse(
       typeof raw === 'string' ? raw : String(raw || '')
     );
 
-    const miniDossier = {
-      trace_id: traceId,
-      data: {},
-      context: {
-        module: 'dashboard_chat',
-        request: message.slice(0, 4000),
-        intent: 'generico_assistido',
-        pipeline_version: 'chat_gpt_json',
-        timestamp: new Date().toISOString()
-      },
-      analysis: {},
-      decision: { requires_human_validation: false, risk_level: 'low' },
-      meta: {
-        models_touched: ['openai'],
-        degraded,
-        data_lineage_snapshot: lineageCtx
-      }
+    miniDossier.meta = {
+      ...miniDossier.meta,
+      degraded,
+      data_lineage_snapshot: lineageCtx
+    };
+    miniDossier.context = {
+      ...miniDossier.context,
+      timestamp: new Date().toISOString()
     };
 
     const synthesis = synthesize({
@@ -625,6 +665,12 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0‚Ä
         'IMPETUS ‚Äî Canal chat assistente (GPT) sem pipeline Conselho Cognitivo multimodal.',
         'Governan√ßa: perfil e papel do utilizador restringem o conte√∫do operacional.'
       ]
+    });
+
+    strategicLearningService.scheduleStrategicLearningAfterCognitiveRun({
+      user: u,
+      dossier: miniDossier,
+      synthesis
     });
 
     let text = synthesis.answer || '';

@@ -214,6 +214,9 @@ function useRoute(mountPath, modulePath, ...middlewares) {
     app.use(mountPath, ...middlewares, router);
   } catch (e) {
     console.warn('[server] Rota não carregada:', mountPath, '-', e.message);
+    if (mountPath === '/api/cognitive-council' || String(modulePath).includes('cognitiveCouncil')) {
+      console.warn('[COGNITIVE_COUNCIL_NOT_LOADED]', e && e.message ? e.message : e);
+    }
   }
 }
 

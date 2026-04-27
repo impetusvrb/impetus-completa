@@ -1,0 +1,239 @@
+/* Faixa Dashboard Vivo embutida em /app */
+.live-dash-strip {
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.live-dash-strip--exec {
+  background: linear-gradient(135deg, rgba(30, 58, 95, 0.45) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.live-dash-strip--light {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.live-dash-strip__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.live-dash-strip__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.live-dash-strip--exec .live-dash-strip__title {
+  color: #f1f5f9;
+}
+
+.live-dash-strip--light .live-dash-strip__title {
+  color: #0f172a;
+}
+
+.live-dash-strip__title svg {
+  color: #c9a227;
+}
+
+.live-dash-strip__badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(201, 162, 39, 0.2);
+  color: #fbbf24;
+}
+
+.live-dash-strip--light .live-dash-strip__badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.live-dash-strip__summary {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 58rem;
+}
+
+.live-dash-strip--exec .live-dash-strip__summary {
+  color: #cbd5e1;
+}
+
+.live-dash-strip--light .live-dash-strip__summary {
+  color: #334155;
+}
+
+.live-dash-strip__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+}
+
+.live-dash-strip--exec .live-dash-strip__metrics {
+  color: #94a3b8;
+}
+
+.live-dash-strip--light .live-dash-strip__metrics {
+  color: #64748b;
+}
+
+.live-dash-strip__metrics strong {
+  color: #c9a227;
+}
+
+.live-dash-strip--light .live-dash-strip__metrics strong {
+  color: #b45309;
+}
+
+.live-dash-strip__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-dash-strip__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: #c9a227;
+  color: #0f172a;
+  border: none;
+  cursor: pointer;
+}
+
+.live-dash-strip__link:hover {
+  filter: brightness(1.08);
+}
+
+.live-dash-strip__link--ghost {
+  background: transparent;
+  color: #c9a227;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+}
+
+.live-dash-strip--light .live-dash-strip__link--ghost {
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+.live-dash-strip__orch {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.live-dash-strip--light .live-dash-strip__orch {
+  border-top-color: #e2e8f0;
+}
+
+.live-dash-strip__orch-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.live-dash-strip--exec .live-dash-strip__orch-title {
+  color: #e2e8f0;
+}
+
+.live-dash-strip--light .live-dash-strip__orch-title {
+  color: #475569;
+}
+
+.live-dash-strip__orch-hint {
+  font-size: 0.72rem;
+  margin: 0 0 0.6rem;
+  opacity: 0.85;
+}
+
+.live-dash-strip--exec .live-dash-strip__orch-hint {
+  color: #94a3b8;
+}
+
+.live-dash-strip--light .live-dash-strip__orch-hint {
+  color: #64748b;
+}
+
+.live-dash-strip__orch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.live-dash-strip__orch-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.live-dash-strip--exec .live-dash-strip__orch-item {
+  color: #e2e8f0;
+}
+
+.live-dash-strip--light .live-dash-strip__orch-item {
+  color: #1e293b;
+}
+
+.live-dash-strip__pri {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.12rem 0.35rem;
+  border-radius: 3px;
+}
+
+.live-dash-strip__pri--alta {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.live-dash-strip__pri--media {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.live-dash-strip__pri--baixa {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+
+.live-dash-strip__err {
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0;
+  color: #f87171;
+}
+
+.live-dash-strip--light .live-dash-strip__err {
+  color: #b91c1c;
+}

@@ -1,68 +1,65 @@
 'use strict';
 
 /**
- * Insights operacionais determinísticos a partir de histórico recente e frequência.
- * Não invoca modelos de IA externos.
- * Extensão: padrões aprendidos in-memory por empresa (Map) + `learned_patterns` em contextual_data.
+ * Insights operacionais + aprendizagem in-memory (learned_patterns) + histórico temporal (BD).
+ * Não utiliza modelos de ML; heurísticas determinísticas.
  */
 
 const { isValidUUID } = require('../utils/security');
 const { correlateOperationalData, eventBelongsToMachine, parseEventTime } = require('./correlationService');
+const correlationHistoryRepository = require('../repositories/correlationHistoryRepository');
 
-/** Janela de "histórico recente" para contagens. */
 const RECENT_MS = 30 * 24 * 60 * 60 * 1000;
-
 const FAILURE_LIKE_RE =
   /falha|parada|down|emerg|alarm|crit|fail|erro|error|inativo|stop|trip|falout|falh/i;
-
-/** Mínimo de desfechos tipo-falha para falar em recorrência. */
 const MIN_RECURRING_FAILURES = 3;
-
-/** Mínimo de eventos com o mesmo `event_type` (entre falhas) para marcar padrão. */
 const MIN_SAME_TYPE_FAILURES = 2;
-
-/** Mínimo de “peso” (eventos de falha recente) atribuídos ao operador (correlação) para padrão. */
 const MIN_OPERATOR_FAILURE_WEIGHT = 3;
-
-/** Janela deslizante: eventos muito próximos no tempo (picos de atividade / alarme). */
 const BURST_WINDOW_MS = 4 * 60 * 60 * 1000;
 const BURST_MIN_EVENTS = 4;
-
-/** Quantos ativos em estado exigente com o mesmo responsável → sobrecarga atribuível. */
 const HEAVY_OPERATOR_MIN_ASSETS = 2;
-
 const STRESS_STATUS = new Set(['critical', 'attention']);
-
 const MAX_INSIGHTS = 12;
-
-/** Teto de padrões devolvidos e guardados em memória por empresa. */
 const MAX_LEARNED_PATTERNS = 20;
 
-/**
- * Aprendizado in-memory: por empresa, última fotografia de padrões calculados a cada execução.
- * @type {Map<string, { recurring_patterns: object[], last_updated: string }>}
- */
 const companyRecurringPatternStore = new Map();
 
+/** Padrões com repetição detectada → persistir histórico para análise temporal. */
+const PERSISTED_RECURRING_TYPES = new Set(['recurring_machine_failure', 'machine_event_pair']);
+
 /**
- * @param {number} n
- * @returns {'low'|'medium'|'high'}
+ * @param {string|undefined} companyId
+ * @param {object} p
  */
-function confidenceFromCount(n) {
-  const c = Math.max(0, parseInt(n, 10) || 0);
-  if (c >= 5) {
-    return 'high';
+function schedulePersistRecurringPattern(companyId, p) {
+  const cid = companyId != null ? String(companyId).trim() : '';
+  if (!cid || !isValidUUID(cid) || !p || typeof p !== 'object') {
+    return;
   }
-  if (c >= 3) {
-    return 'medium';
+  if (!PERSISTED_RECURRING_TYPES.has(p.pattern_type)) {
+    return;
   }
-  return 'low';
+  setImmediate(() => {
+    persistCorrelationPattern(cid, {
+      pattern_type: p.pattern_type,
+      machine_id: p.machine_id != null ? String(p.machine_id) : null,
+      event_type: p.event_type != null ? String(p.event_type) : null,
+      occurrences: p.evidence_count != null ? parseInt(p.evidence_count, 10) || 1 : 1,
+      window_days: 30
+    }).catch(() => {});
+  });
 }
 
 /**
- * @param {object} ev
- * @returns {boolean}
+ * Grava metadados do padrão na tabela de histórico (sem alterar a análise em memória corrente).
+ * @param {string} companyId
+ * @param {object} pattern
+ * @returns {Promise<boolean>}
  */
+async function persistCorrelationPattern(companyId, pattern) {
+  return correlationHistoryRepository.insertCorrelationPattern(companyId, pattern);
+}
+
 function isFailureLikeEvent(ev) {
   if (!ev || typeof ev !== 'object') {
     return false;
@@ -72,10 +69,6 @@ function isFailureLikeEvent(ev) {
   return FAILURE_LIKE_RE.test(sev) || FAILURE_LIKE_RE.test(et);
 }
 
-/**
- * @param {object|undefined} machine
- * @returns {string}
- */
 function machineLabel(machine) {
   if (!machine) {
     return 'ativo';
@@ -88,10 +81,6 @@ function machineLabel(machine) {
   return id || 'ativo';
 }
 
-/**
- * @param {number} t
- * @returns {boolean}
- */
 function isInRecentWindow(t) {
   if (!Number.isFinite(t) || t <= 0) {
     return true;
@@ -99,11 +88,6 @@ function isInRecentWindow(t) {
   return t >= Date.now() - RECENT_MS;
 }
 
-/**
- * @param {object[]} machines
- * @param {object[]} events
- * @returns {Map<string, { machine: object, events: object[] }>}
- */
 function groupEventsByMachine(machines, events) {
   const mList = Array.isArray(machines) ? machines : [];
   const eList = Array.isArray(events) ? events : [];
@@ -126,11 +110,6 @@ function groupEventsByMachine(machines, events) {
   return byId;
 }
 
-/**
- * Eventos com timestamp utilizável, ordenados por tempo crescente.
- * @param {object[]} list
- * @returns {Array<{ t: number, ev: object }>}
- */
 function sortedTimedEvents(list) {
   const out = [];
   for (const ev of list) {
@@ -144,13 +123,6 @@ function sortedTimedEvents(list) {
   return out;
 }
 
-/**
- * Picos: em alguma janela de duração `winMs` existem >= `minN` eventos.
- * @param {Array<{ t: number, ev: object }>} timed
- * @param {number} winMs
- * @param {number} minN
- * @returns {boolean}
- */
 function hasBurstInWindow(timed, winMs, minN) {
   if (timed.length < minN) {
     return false;
@@ -167,10 +139,6 @@ function hasBurstInWindow(timed, winMs, minN) {
   return false;
 }
 
-/**
- * @param {object} correlation
- * @returns {Map<string, { responsible_user: object|null, status: string }>}
- */
 function buildMachineIdToSummaryRow(correlation) {
   const m = new Map();
   const summary =
@@ -189,10 +157,6 @@ function buildMachineIdToSummaryRow(correlation) {
   return m;
 }
 
-/**
- * @param {object} correlation
- * @returns {string[]}
- */
 function collectOperatorInsights(correlation) {
   const out = [];
   const summary =
@@ -213,8 +177,7 @@ function collectOperatorInsights(correlation) {
     if (!name) {
       continue;
     }
-    const n = (byName.get(name) || 0) + 1;
-    byName.set(name, n);
+    byName.set(name, (byName.get(name) || 0) + 1);
   }
   for (const [name, count] of byName) {
     if (count >= HEAVY_OPERATOR_MIN_ASSETS) {
@@ -226,11 +189,6 @@ function collectOperatorInsights(correlation) {
   return out;
 }
 
-/**
- * Padrão estruturado para múltiplas máquinas em stress com o mesmo responsável (alinhado a collectOperatorInsights).
- * @param {object} correlation
- * @param {(obj: object) => void} pushPattern
- */
 function collectOperatorMultiStressLearnedPatterns(correlation, pushPattern) {
   const summary =
     correlation &&
@@ -253,8 +211,7 @@ function collectOperatorMultiStressLearnedPatterns(correlation, pushPattern) {
     if (!byName.has(name)) {
       byName.set(name, { count: 0, user_id: ru.user_id != null ? String(ru.user_id) : null });
     }
-    const b = byName.get(name);
-    b.count += 1;
+    byName.get(name).count += 1;
   }
   for (const [name, { count, user_id }] of byName) {
     if (count < HEAVY_OPERATOR_MIN_ASSETS) {
@@ -270,15 +227,11 @@ function collectOperatorMultiStressLearnedPatterns(correlation, pushPattern) {
       operator_id: user_id,
       operator_name: name,
       evidence_count: count,
-      confidence: confidenceFromCount(count)
+      confidence: count >= 3 ? 'high' : 'medium'
     });
   }
 }
 
-/**
- * @param {string|undefined} companyId
- * @param {object[]} learnedPatterns
- */
 function refreshCompanyRecurringStore(companyId, learnedPatterns) {
   if (!companyId || !isValidUUID(String(companyId).trim())) {
     return;
@@ -290,11 +243,6 @@ function refreshCompanyRecurringStore(companyId, learnedPatterns) {
   });
 }
 
-/**
- * Retorna a última fotografia de padrões aprendidos para a empresa (só in-memory; pode ser vazio).
- * @param {string|null|undefined} companyId
- * @returns {{ recurring_patterns: object[], last_updated: string }|null}
- */
 function getCompanyRecurringPatternMemory(companyId) {
   const cid = companyId != null && String(companyId).trim() !== '' ? String(companyId).trim() : '';
   if (!cid || !isValidUUID(cid)) {
@@ -303,13 +251,6 @@ function getCompanyRecurringPatternMemory(companyId) {
   return companyRecurringPatternStore.get(cid) || null;
 }
 
-/**
- * Analisa correlação e gera listas de mensagens (insights) e padrões estruturados.
- * Atualiza o Map in-memory se `company_id` for um UUID válido.
- *
- * @param {{ users?: object[], machines?: object[], events?: object[], correlation?: object, company_id?: string }|null|undefined} params
- * @returns {{ insights: string[], learned_patterns: object[] }}
- */
 function deriveCorrelationInsightsWithLearning(params) {
   const p = params && typeof params === 'object' ? params : {};
   const company_id = p.company_id != null && String(p.company_id).trim() !== '' ? String(p.company_id).trim() : '';
@@ -335,17 +276,11 @@ function deriveCorrelationInsightsWithLearning(params) {
 
   const learnedPatterns = /** @type {object[]} */ ([]);
   const seenPatternKeys = new Set();
-
   const pushPattern = (obj) => {
     if (learnedPatterns.length >= MAX_LEARNED_PATTERNS || !obj || typeof obj !== 'object') {
       return;
     }
-    const key = [
-      obj.pattern_type,
-      obj.machine_id,
-      obj.event_type,
-      obj.operator_name
-    ]
+    const key = [obj.pattern_type, obj.machine_id, obj.event_type, obj.operator_name]
       .map((x) => (x != null ? String(x) : ''))
       .join('|');
     if (seenPatternKeys.has(key)) {
@@ -353,11 +288,13 @@ function deriveCorrelationInsightsWithLearning(params) {
     }
     seenPatternKeys.add(key);
     learnedPatterns.push(obj);
+    if (company_id) {
+      schedulePersistRecurringPattern(company_id, obj);
+    }
   };
 
   const machineRowById = buildMachineIdToSummaryRow(correlation);
   const operatorFailureWeight = new Map();
-
   const grouped = groupEventsByMachine(machines, events);
 
   for (const { machine, events: evs } of grouped.values()) {
@@ -393,7 +330,7 @@ function deriveCorrelationInsightsWithLearning(params) {
       push(
         `Máquina ${label} apresenta falhas recorrentes no período recente (${failRecent.length} ocorrência(s) relevantes).`
       );
-      pushPattern({
+      const pat = {
         pattern_type: 'recurring_machine_failure',
         label: 'Falhas recorrentes no ativo',
         summary: `Máquina ${label} com ${failRecent.length} ocorrência(s) tipo-falha na janela recente.`,
@@ -403,8 +340,9 @@ function deriveCorrelationInsightsWithLearning(params) {
         operator_id: opId,
         operator_name: opName || null,
         evidence_count: failRecent.length,
-        confidence: confidenceFromCount(failRecent.length)
-      });
+        confidence: failRecent.length >= 5 ? 'high' : 'medium'
+      };
+      pushPattern(pat);
     } else {
       for (const [et, c] of byType) {
         if (et !== '—' && c >= MIN_SAME_TYPE_FAILURES) {
@@ -430,7 +368,7 @@ function deriveCorrelationInsightsWithLearning(params) {
         operator_id: opId,
         operator_name: opName || null,
         evidence_count: c,
-        confidence: confidenceFromCount(c)
+        confidence: c >= 4 ? 'high' : 'medium'
       });
     }
 
@@ -483,7 +421,7 @@ function deriveCorrelationInsightsWithLearning(params) {
       operator_id: opId,
       operator_name: opName,
       evidence_count: w,
-      confidence: confidenceFromCount(w)
+      confidence: w >= 5 ? 'high' : 'medium'
     });
   }
 
@@ -494,16 +432,133 @@ function deriveCorrelationInsightsWithLearning(params) {
   }
 
   const outInsights = insights.length > MAX_INSIGHTS ? insights.slice(0, MAX_INSIGHTS) : insights;
-
   refreshCompanyRecurringStore(company_id, learnedPatterns);
 
   return { insights: outInsights, learned_patterns: learnedPatterns };
 }
 
+function keyTriplet(r) {
+  const pt = r.pattern_type != null ? String(r.pattern_type) : '';
+  const mid = r.machine_id != null ? String(r.machine_id) : '';
+  const et = r.event_type != null ? String(r.event_type) : '';
+  return `${pt}|${mid}|${et}`;
+}
+
 /**
- * @param {{ users?: object[], machines?: object[], events?: object[], correlation?: object, company_id?: string }|null|undefined} params
- * @returns {string[]}
+ * Janelas 7/30/90 dias; heurísticas de repetição, sazonalidade simples (dow) e pico 7d vs 30d.
+ * @param {string} companyId
+ * @returns {Promise<{
+ *   recurring_patterns: object[],
+ *   seasonal_patterns: object[],
+ *   anomaly_patterns: object[]
+ * }>}
  */
+async function deriveTemporalInsights(companyId) {
+  const cid = companyId != null ? String(companyId).trim() : '';
+  if (!cid || !isValidUUID(cid)) {
+    return { recurring_patterns: [], seasonal_patterns: [], anomaly_patterns: [] };
+  }
+  const rows = await correlationHistoryRepository.listHistoryForCompany(cid, 90);
+  if (!rows.length) {
+    return { recurring_patterns: [], seasonal_patterns: [], anomaly_patterns: [] };
+  }
+
+  const now = Date.now();
+  const d7 = now - 7 * 86400000;
+  const d30 = now - 30 * 86400000;
+  const d90 = now - 90 * 86400000;
+
+  const groups = new Map();
+  for (const row of rows) {
+    const k = keyTriplet(row);
+    if (!groups.has(k)) {
+      groups.set(k, {
+        pattern_type: row.pattern_type,
+        machine_id: row.machine_id,
+        event_type: row.event_type,
+        rows: []
+      });
+    }
+    const t = row.created_at != null ? new Date(row.created_at).getTime() : 0;
+    groups.get(k).rows.push({ t, occ: row.occurrences, wd: row.window_days });
+  }
+
+  const recurring_patterns = [];
+  const seasonal_patterns = [];
+  const anomaly_patterns = [];
+
+  for (const g of groups.values()) {
+    const times = g.rows.map((x) => x.t).filter((t) => Number.isFinite(t) && t > 0);
+    if (!times.length) {
+      continue;
+    }
+    const inWin = (t0, t1) => g.rows.filter((r) => r.t >= t0 && r.t <= t1).length;
+    const c7 = inWin(d7, now);
+    const c30 = inWin(d30, now);
+    const c90 = inWin(d90, now);
+
+    const dows = g.rows
+      .filter((r) => r.t >= d90)
+      .map((r) => new Date(r.t).getUTCDay());
+    const hist = new Array(7).fill(0);
+    for (const d of dows) {
+      hist[d] += 1;
+    }
+    const totalDow = dows.length;
+    let maxD = 0;
+    let maxIdx = 0;
+    for (let i = 0; i < 7; i += 1) {
+      if (hist[i] > maxD) {
+        maxD = hist[i];
+        maxIdx = i;
+      }
+    }
+    const conc = totalDow > 0 ? maxD / totalDow : 0;
+
+    if (c90 >= 2 && (c30 >= 2 || c7 >= 1)) {
+      const trend = c7 > c30 / 4 ? 'up' : c7 < c30 / 6 ? 'down' : 'stable';
+      recurring_patterns.push({
+        pattern_type: g.pattern_type,
+        machine_id: g.machine_id,
+        event_type: g.event_type,
+        counts_by_window: { days_7: c7, days_30: c30, days_90: c90 },
+        trend,
+        note: 'repetição observada nas janelas 7/30/90d (metadados agregados)'
+      });
+    }
+
+    if (totalDow >= 5 && conc >= 0.38) {
+      seasonal_patterns.push({
+        pattern_type: g.pattern_type,
+        machine_id: g.machine_id,
+        event_type: g.event_type,
+        day_of_week_peak: maxIdx,
+        concentration: Math.round(conc * 100) / 100,
+        note: 'concentração em dia da semana (UTC) — padrão cíclico simples'
+      });
+    }
+
+    const baseline = Math.max(1, c30 / 4);
+    if (c30 >= 3 && c7 > baseline * 1.35) {
+      anomaly_patterns.push({
+        pattern_type: g.pattern_type,
+        machine_id: g.machine_id,
+        event_type: g.event_type,
+        short_window: c7,
+        baseline_30d_quarter: Math.round(baseline * 100) / 100,
+        ratio: Math.round((c7 / baseline) * 100) / 100,
+        note: 'aumento de ocorrências na janela curta vs. base derivada de 30d'
+      });
+    }
+  }
+
+  return {
+    recurring_patterns: recurring_patterns.slice(0, 24),
+    seasonal_patterns: seasonal_patterns.slice(0, 20),
+    anomaly_patterns: anomaly_patterns.slice(0, 20)
+  };
+}
+
 function deriveCorrelationInsights(params) {
   return deriveCorrelationInsightsWithLearning(params).insights;
 }
@@ -511,5 +566,7 @@ function deriveCorrelationInsights(params) {
 module.exports = {
   deriveCorrelationInsights,
   deriveCorrelationInsightsWithLearning,
-  getCompanyRecurringPatternMemory
+  getCompanyRecurringPatternMemory,
+  persistCorrelationPattern,
+  deriveTemporalInsights
 };

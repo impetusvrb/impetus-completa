@@ -1,0 +1,49 @@
+.stub-page {
+  padding: 1.5rem;
+  max-width: 720px;
+}
+
+.stub-page__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text1, #e8edf4);
+}
+
+.stub-page__description {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.95rem;
+}
+
+.stub-page--dark {
+  background: rgba(8, 18, 40, 0.8);
+  border: 1px solid rgba(50, 120, 255, 0.2);
+  border-radius: 16px;
+  max-width: none;
+}
+
+.stub-page--dark .stub-page__title {
+  color: #e2eaff;
+}
+
+.stub-page--dark .stub-page__description {
+  color: rgba(160, 200, 255, 0.85);
+  text-align: center;
+}
+
+.stub-page--manuia {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  max-width: none;
+}
+
+.stub-page--manuia .stub-page__title {
+  color: #fff;
+}
+
+.stub-page--manuia .stub-page__description {
+  color: #8b9aab;
+}

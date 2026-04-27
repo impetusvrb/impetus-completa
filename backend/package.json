@@ -47,7 +47,8 @@
     "test:cognitive-enrichment": "node src/tests/cognitiveDataEnrichmentScenarios.js",
     "test:intent-advanced": "node src/tests/intentDetectionAdvancedScenarios.js",
     "test:contextual-merge": "node src/tests/contextualDataMergeScenarios.js",
-    "test:cognitive-e2e-db": "node src/tests/cognitiveUserRoleDbIntegration.js"
+    "test:cognitive-e2e-db": "node src/tests/cognitiveUserRoleDbIntegration.js",
+    "test:strategic-learning": "node src/tests/strategicLearningIntegrationTest.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
