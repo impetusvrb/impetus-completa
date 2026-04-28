@@ -166,7 +166,8 @@ async function insertAiTrace(row) {
             return typeof row.data_classification === 'string'
               ? JSON.parse(row.data_classification)
               : {};
-          } catch {
+          } catch (err) {
+            console.warn('[aiAnalyticsService][data_classification_parse]', err?.message ?? err);
             return {};
           }
         })();

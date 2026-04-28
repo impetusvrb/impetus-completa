@@ -80,7 +80,8 @@ function generateExecutiveSessionToken() {
   const token = crypto.randomBytes(32).toString('hex');
   try {
     return process.env.ENCRYPTION_KEY ? encrypt(token) : token;
-  } catch {
+  } catch (err) {
+    console.warn('[executiveMode][encrypt_session_token]', err?.message ?? err);
     return token;
   }
 }
@@ -150,7 +151,9 @@ async function logExecutiveAction(params) {
     description: `[CEO Mode] ${action}`,
     changes: { requestSummary, responseSummary },
     severity: 'critical'
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn('[executiveMode][general_audit_log]', err?.message ?? err);
+  });
 }
 
 /**

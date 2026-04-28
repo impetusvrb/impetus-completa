@@ -74,7 +74,8 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
       try {
         fs.copyFileSync(filePath, transcribePath);
         fs.unlinkSync(filePath);
-      } catch (_) {
+      } catch (renameOrCopyErr) {
+        console.warn('[routes/chatVoice][audio_prepare]', renameOrCopyErr?.message ?? renameOrCopyErr);
         return res.status(400).json({ ok: false, error: 'Áudio inválido' });
       }
     }
@@ -89,7 +90,12 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
       try {
         const st = fs.statSync(transcribePath);
         billQty = Math.max(1, Math.round(st.size / 8000));
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[chatVoice][billing_stat]',
+          err && err.message ? err.message : err
+        );
+      }
     }
     fs.unlink(transcribePath, () => {});
     if (!result.success) {
@@ -110,7 +116,12 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
           utterance: result.text,
           modality: 'VOICE'
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn(
+            '[chatVoice][hitl_close]',
+            err && err.message ? err.message : err
+          );
+        });
     }
     res.json({
       ok: true,
@@ -120,8 +131,16 @@ router.post('/transcribe', requireAuth, upload.single('audio'), async (req, res)
       prompt_hint: prompt.slice(0, 200)
     });
   } catch (err) {
-    try { fs.unlinkSync(transcribePath); } catch (_) {}
-    try { fs.unlinkSync(filePath); } catch (_) {}
+    try {
+      fs.unlinkSync(transcribePath);
+    } catch (unlinkErr) {
+      console.warn('[routes/chatVoice][cleanup_transcribe]', unlinkErr?.message ?? unlinkErr);
+    }
+    try {
+      fs.unlinkSync(filePath);
+    } catch (unlinkErr) {
+      console.warn('[routes/chatVoice][cleanup_original]', unlinkErr?.message ?? unlinkErr);
+    }
     console.warn('[CHAT_VOICE transcribe]', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }

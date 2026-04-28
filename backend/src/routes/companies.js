@@ -128,7 +128,9 @@ router.post('/', async (req, res) => {
     });
 
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch((err) => {
+      console.warn('[routes/companies][rollback_after_error]', err?.message ?? err);
+    });
     if (err instanceof z.ZodError) {
       return res.status(400).json({
         ok: false,

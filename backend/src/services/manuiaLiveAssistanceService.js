@@ -49,7 +49,8 @@ function extractJsonFromText(raw) {
   if (!match) return null;
   try {
     return JSON.parse(match[0]);
-  } catch {
+  } catch (err) {
+    console.warn('[manuiaLiveAssistanceService][extract_json_from_text]', err?.message ?? err);
     return null;
   }
 }
@@ -80,8 +81,8 @@ async function searchWorkOrders(companyId, queryText, machineId, limit = 8) {
         params.push(`%${mn}%`);
         machineNameFilter = ` AND (machine_name ILIKE $${params.length} OR title ILIKE $${params.length})`;
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.warn('[manuiaLiveAssistanceService][machine_name_filter]', err?.message ?? err);
     }
   }
   let sql = `SELECT id, title, description, status, machine_name, sector, created_at
@@ -119,7 +120,8 @@ async function searchEmergencyEvents(companyId, machineId, limit = 5) {
     q += ` ORDER BY created_at DESC LIMIT ${limit}`;
     const r = await db.query(q, params);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[manuiaLiveAssistanceService][emergency_events]', err?.message ?? err);
     return [];
   }
 }
@@ -190,8 +192,8 @@ async function buildTechnicalDossier({
           manuals: []
         };
       }
-    } catch (_) {
-      /* ignore */
+    } catch (err) {
+      console.warn('[manuiaLiveAssistanceService][library_fallback]', err?.message ?? err);
     }
   }
 
@@ -215,7 +217,8 @@ async function buildTechnicalDossier({
             [companyId, machineId]
           );
           return r.rows || [];
-        } catch {
+        } catch (err) {
+          console.warn('[manuiaLiveAssistanceService][matched_assets]', err?.message ?? err);
           return [];
         }
       })())

@@ -180,7 +180,12 @@ async function debitAfterUsageSafe(companyId, userId, servico, quantidade, unida
   } catch (e) {
     try {
       await client.query('ROLLBACK');
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[NEXUS_WALLET][debit_rollback]',
+        err && err.message ? err.message : err
+      );
+    }
     console.warn('[NEXUS_WALLET] debitAfterUsageSafe:', e.message);
     return { ok: false, error: e.message };
   } finally {
@@ -290,7 +295,12 @@ async function completeStripeTopUp(sessionId, paymentIntentId) {
   } catch (e) {
     try {
       await client.query('ROLLBACK');
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[NEXUS_WALLET][stripe_topup_rollback]',
+        err && err.message ? err.message : err
+      );
+    }
     throw e;
   } finally {
     client.release();
@@ -313,7 +323,8 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
       const a = Buffer.from(sig, 'hex');
       const b = Buffer.from(expected, 'hex');
       return a.length === b.length && crypto.timingSafeEqual(a, b);
-    } catch {
+    } catch (err) {
+      console.warn('[nexusWalletService][stripe_sig_compare]', err?.message ?? err);
       return false;
     }
   });
@@ -327,7 +338,8 @@ async function handleStripeWebhook(rawBodyBuffer, sigHeader) {
   let event;
   try {
     event = JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    console.warn('[nexusWalletService][stripe_webhook_json]', err?.message ?? err);
     return { ok: false, error: 'invalid_json' };
   }
   if (event.type === 'checkout.session.completed') {

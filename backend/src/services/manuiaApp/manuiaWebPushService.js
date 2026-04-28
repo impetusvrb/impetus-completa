@@ -48,7 +48,8 @@ async function sendJsonToUserDevices(companyId, userId, payload) {
     if (typeof sub === 'string') {
       try {
         sub = JSON.parse(sub);
-      } catch {
+      } catch (err) {
+        console.warn('[manuiaWebPushService][parse_subscription]', err?.message ?? err);
         sub = null;
       }
     }
@@ -58,12 +59,16 @@ async function sendJsonToUserDevices(companyId, userId, payload) {
     }
     try {
       await webpush.sendNotification(sub, body, { TTL: 120 });
-      await repo.touchDeviceLastSeen(companyId, userId, d.id).catch(() => {});
+      await repo.touchDeviceLastSeen(companyId, userId, d.id).catch((err) => {
+        console.warn('[manuiaWebPushService][touch_last_seen]', err?.message ?? err);
+      });
       results.push({ id: d.id, ok: true });
     } catch (e) {
       const code = e.statusCode;
       if (code === 410 || code === 404) {
-        await repo.deleteDeviceById(companyId, userId, d.id).catch(() => {});
+        await repo.deleteDeviceById(companyId, userId, d.id).catch((err) => {
+          console.warn('[manuiaWebPushService][delete_stale_device]', err?.message ?? err);
+        });
       }
       results.push({ id: d.id, ok: false, error: e.message || String(e) });
     }

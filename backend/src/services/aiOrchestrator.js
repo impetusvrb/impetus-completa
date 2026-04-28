@@ -56,7 +56,8 @@ Seja objetivo. Destaque quedas de produtividade, perdas financeiras e anomalias.
     const m = raw.match(/\{[\s\S]*\}/);
     const parsed = m ? JSON.parse(m[0]) : { insights: [raw], alertas: [] };
     return { ok: true, ...parsed, source: 'claude' };
-  } catch {
+  } catch (err) {
+    console.warn('[aiOrchestrator][parse_claude_json]', err?.message ?? err);
     return { ok: true, insights: [raw], alertas: [], source: 'claude' };
   }
 }
@@ -148,7 +149,8 @@ async function getRecentMemory(companyId, memoryType, limit = 10) {
       [companyId, memoryType || null, limit]
     );
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[aiOrchestrator][get_recent_memory]', err?.message ?? err);
     return [];
   }
 }

@@ -5,6 +5,10 @@ const { isValidUUID } = require('../utils/security');
 
 const WINDOWS = Object.freeze([7, 30, 90]);
 const MAX_ROWS_FETCH = 5000;
+/** Limite por omissão para análise temporal (deriveTemporalInsights); evita scans grandes. */
+const DEFAULT_TEMPORAL_LIST_CAP = 1500;
+/** Tecto rígido para leituras temporais (pedido: máx. 1500 registos). */
+const TEMPORAL_ANALYSIS_HARD_CAP = 1500;
 
 /**
  * @param {string} companyId
@@ -57,14 +61,19 @@ async function insertCorrelationPattern(companyId, pattern) {
 /**
  * @param {string} companyId
  * @param {number} [lookbackDays]
+ * @param {number} [maxRows] — tecto global {@link MAX_ROWS_FETCH}
  * @returns {Promise<Array<Record<string, unknown>>>}
  */
-async function listHistoryForCompany(companyId, lookbackDays = 90) {
+async function listHistoryForCompany(companyId, lookbackDays = 90, maxRows = MAX_ROWS_FETCH) {
   const cid = companyId != null ? String(companyId).trim() : '';
   if (!cid || !isValidUUID(cid)) {
     return [];
   }
   const days = Math.min(Math.max(parseInt(String(lookbackDays), 10) || 90, 1), 400);
+  const lim = Math.min(
+    Math.max(parseInt(String(maxRows), 10) || MAX_ROWS_FETCH, 1),
+    MAX_ROWS_FETCH
+  );
   try {
     const r = await db.query(
       `
@@ -75,7 +84,7 @@ async function listHistoryForCompany(companyId, lookbackDays = 90) {
       ORDER BY created_at ASC
       LIMIT $3
       `,
-      [cid, days, MAX_ROWS_FETCH]
+      [cid, days, lim]
     );
     return r.rows || [];
   } catch (e) {
@@ -93,5 +102,8 @@ async function listHistoryForCompany(companyId, lookbackDays = 90) {
 module.exports = {
   insertCorrelationPattern,
   listHistoryForCompany,
-  WINDOWS
+  WINDOWS,
+  MAX_ROWS_FETCH,
+  DEFAULT_TEMPORAL_LIST_CAP,
+  TEMPORAL_ANALYSIS_HARD_CAP
 };

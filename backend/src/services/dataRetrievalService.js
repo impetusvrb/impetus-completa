@@ -27,9 +27,13 @@ const { correlateOperationalData } = require('./correlationService');
 const {
   deriveCorrelationInsightsWithLearning
 } = require('./correlationInsightsService');
+const correlationInsightsService = require('./correlationInsightsService');
 const { predictOperationalRisks } = require('./predictionService');
 const { prioritizeOperationalRisks } = require('./prioritizationService');
 const { getLearningSummary } = require('./operationalLearningService');
+const { generateOperationalPlan, deriveTemporalInsights, mergeTemporalInsights } = require('./operationalPlanningService');
+const operationalDecisionEngine = require('./operationalDecisionEngine');
+const { executeOperationalActions } = require('./operationalActionExecutor');
 
 function emptyResult() {
   return {
@@ -38,6 +42,71 @@ function emptyResult() {
     assets: [],
     contextual_data: {}
   };
+}
+
+/**
+ * Plano operacional + avaliação do motor de decisões (só sinalização; efeitos via logs / strategic_learning assíncronos).
+ * @param {object} p
+ * @returns {{ operational_plan: object, operational_decisions: object }}
+ */
+function buildOperationalPlanWithDecisions({
+  predictions,
+  prioritized_actions,
+  learning_summary,
+  temporal_insights,
+  companyId,
+  userId,
+  sourceTag
+}) {
+  const operational_plan = generateOperationalPlan({
+    predictions,
+    prioritized_actions,
+    learning_summary,
+    temporal_insights
+  });
+  const operational_decisions = operationalDecisionEngine.evaluateOperationalDecisions(operational_plan, {
+    company_id: companyId,
+    user_id: userId,
+    temporal_insights
+  });
+  operationalDecisionEngine.scheduleOperationalDecisionSignals({
+    companyId,
+    userId,
+    evaluation: operational_decisions,
+    source: sourceTag
+  });
+  return { operational_plan, operational_decisions };
+}
+
+/**
+ * Efeitos seguros (notificação / tarefa de revisão / horizontes do plano / logs) — falhas não quebram retrieveContextualData.
+ * @param {object} operational_decisions
+ * @param {{ id?: string, company_id?: string }|null|undefined} user
+ * @param {string} companyId
+ * @param {string} sourceTag
+ * @param {string} intent
+ * @param {object|null|undefined} [operational_plan] — mesmo objeto devolvido em contextual_data (alertas, tarefas, learning)
+ */
+async function finalizeOperationalDecisionActions(
+  operational_decisions,
+  user,
+  companyId,
+  sourceTag,
+  intent,
+  operational_plan = null
+) {
+  try {
+    await executeOperationalActions(operational_decisions, {
+      user,
+      companyId,
+      userId: user && user.id,
+      sourceTag,
+      intent,
+      operational_plan: operational_plan && typeof operational_plan === 'object' ? operational_plan : null
+    });
+  } catch (err) {
+    console.warn('[dataRetrievalService][executeOperationalActions]', err?.message ?? err);
+  }
 }
 
 /**
@@ -202,6 +271,31 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
             company_id: safeUser.company_id
           })
         : { insights: [], learned_patterns: [] };
+      const heuristicTemporal = deriveTemporalInsights(predictions, prioritized.prioritized_actions);
+      let temporal_insights = heuristicTemporal;
+      try {
+        const historyTemporal = await correlationInsightsService.deriveTemporalInsights(safeUser.company_id);
+        temporal_insights = mergeTemporalInsights(heuristicTemporal, historyTemporal);
+      } catch (err) {
+        console.warn('[dataRetrievalService][temporal_insights_history]', err?.message ?? err);
+      }
+      const { operational_plan, operational_decisions } = buildOperationalPlanWithDecisions({
+        predictions,
+        prioritized_actions: prioritized.prioritized_actions,
+        learning_summary,
+        temporal_insights,
+        companyId: safeUser.company_id,
+        userId: safeUser.id,
+        sourceTag: 'data_retrieval:operational_overview'
+      });
+      await finalizeOperationalDecisionActions(
+        operational_decisions,
+        safeUser,
+        safeUser.company_id,
+        'data_retrieval:operational_overview',
+        safeIntent,
+        operational_plan
+      );
       result.contextual_data = {
         users,
         machines,
@@ -209,6 +303,9 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         correlation: correlated,
         ...predictions,
         prioritized_actions: prioritized.prioritized_actions,
+        temporal_insights,
+        operational_plan,
+        operational_decisions,
         learning_summary,
         correlation_insights: correlationBundle.insights,
         learned_patterns: correlationBundle.learned_patterns
@@ -268,6 +365,31 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
             ? events[0]
             : null;
 
+        const heuristicTemporal = deriveTemporalInsights(predictions, prioritized.prioritized_actions);
+        let temporal_insights = heuristicTemporal;
+        try {
+          const historyTemporal = await correlationInsightsService.deriveTemporalInsights(safeUser.company_id);
+          temporal_insights = mergeTemporalInsights(heuristicTemporal, historyTemporal);
+        } catch (err) {
+          console.warn('[dataRetrievalService][temporal_insights_history]', err?.message ?? err);
+        }
+        const { operational_plan, operational_decisions } = buildOperationalPlanWithDecisions({
+          predictions,
+          prioritized_actions: prioritized.prioritized_actions,
+          learning_summary,
+          temporal_insights,
+          companyId: safeUser.company_id,
+          userId: safeUser.id,
+          sourceTag: 'data_retrieval:get_machine_status'
+        });
+        await finalizeOperationalDecisionActions(
+          operational_decisions,
+          safeUser,
+          safeUser.company_id,
+          'data_retrieval:get_machine_status',
+          safeIntent,
+          operational_plan
+        );
         result.contextual_data = {
           machine: {
             id: String(machine.id),
@@ -279,12 +401,16 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           correlation: correlated,
           ...predictions,
           prioritized_actions: prioritized.prioritized_actions,
+          temporal_insights,
+          operational_plan,
+          operational_decisions,
           learning_summary,
           correlation_insights: correlationBundle.insights,
           learned_patterns: correlationBundle.learned_patterns
         };
         return result;
-      } catch {
+      } catch (err) {
+        console.warn('[dataRetrievalService][get_machine_status]', err?.message ?? err);
         return emptyResult();
       }
     }
@@ -315,7 +441,8 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           risk_level
         };
         return result;
-      } catch {
+      } catch (err) {
+        console.warn('[dataRetrievalService][get_product_status]', err?.message ?? err);
         return emptyResult();
       }
     }
@@ -388,7 +515,8 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           }
         };
         return result;
-      } catch {
+      } catch (err) {
+        console.warn('[dataRetrievalService][get_work_orders]', err?.message ?? err);
         return emptyResult();
       }
     }
@@ -413,7 +541,8 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
           }
         };
         return result;
-      } catch {
+      } catch (err) {
+        console.warn('[dataRetrievalService][get_operational_metrics]', err?.message ?? err);
         return emptyResult();
       }
     }
@@ -426,7 +555,8 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
     }
 
     return result;
-  } catch {
+  } catch (err) {
+    console.warn('[dataRetrievalService][retrieveContextualData]', err?.message ?? err);
     return emptyResult();
   }
 }

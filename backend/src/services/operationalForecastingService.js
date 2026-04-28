@@ -41,7 +41,12 @@ async function getProjections(companyId, metricType = 'eficiencia') {
     if (costProj?.projected_loss > 0 && costProj?.baseline_24h > 0) {
       basePrejuizo = Math.round(costProj.baseline_24h / 24 * 2);
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[operationalForecasting][projected_loss]',
+      err && err.message ? err.message : err
+    );
+  }
 
   const totalMachines = profiles.rows?.length || 1;
   const offlineCount = offline.length;
@@ -151,7 +156,12 @@ async function simulateFuture(companyId, scenarioHours = 48) {
   try {
     const leakProj = await financialLeakage.getProjectedImpact(companyId, 2, true);
     if (leakProj?.projected_impact > 0) lastPrej = Math.max(lastPrej, leakProj.projected_impact);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[operationalForecasting][simulate_leak]',
+      err && err.message ? err.message : err
+    );
+  }
 
   return {
     scenario: `Operação mantida por ${scenarioHours}h`,
@@ -197,7 +207,12 @@ async function getCompanyHealth(companyId) {
     if (costProj?.projected_loss > 0) prejuizoEvitavelFinal = Math.max(prejuizoEvitavel, costProj.projected_loss);
     const leakProj = await financialLeakage.getProjectedImpact(companyId, 1, true);
     if (leakProj?.projected_impact > 0) prejuizoEvitavelFinal = Math.max(prejuizoEvitavelFinal, leakProj.projected_impact);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[operationalForecasting][company_health_costs]',
+      err && err.message ? err.message : err
+    );
+  }
 
   return {
     eficiencia_geral: Math.round(baseEff),

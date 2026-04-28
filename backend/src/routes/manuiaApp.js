@@ -220,16 +220,31 @@ router.get('/dashboard', ...guard, async (req, res) => {
     const companyId = req.user.company_id;
     const userId = req.user.id;
     const [prefs, inbox, wo, machines, onCall] = await Promise.all([
-      repo.getPreferences(companyId, userId).catch(() => null),
-      repo.listInbox(companyId, userId, 15).catch(() => []),
-      repo.listMyWorkOrders(companyId, userId, 10).catch(() => []),
+      repo.getPreferences(companyId, userId).catch((err) => {
+        console.warn('[routes/manuiaApp][dashboard_prefs]', err?.message ?? err);
+        return null;
+      }),
+      repo.listInbox(companyId, userId, 15).catch((err) => {
+        console.warn('[routes/manuiaApp][dashboard_inbox]', err?.message ?? err);
+        return [];
+      }),
+      repo.listMyWorkOrders(companyId, userId, 10).catch((err) => {
+        console.warn('[routes/manuiaApp][dashboard_work_orders]', err?.message ?? err);
+        return [];
+      }),
       db
         .query(
           `SELECT COUNT(*)::int AS c FROM manuia_machines WHERE company_id = $1 AND active = true`,
           [companyId]
         )
-        .catch(() => ({ rows: [{ c: 0 }] })),
-      repo.isUserOnCallNow(companyId, userId, new Date()).catch(() => false)
+        .catch((err) => {
+          console.warn('[routes/manuiaApp][dashboard_machine_count]', err?.message ?? err);
+          return { rows: [{ c: 0 }] };
+        }),
+      repo.isUserOnCallNow(companyId, userId, new Date()).catch((err) => {
+        console.warn('[routes/manuiaApp][dashboard_on_call]', err?.message ?? err);
+        return false;
+      })
     ]);
 
     const unread = (inbox || []).filter((n) => !n.read_at).length;

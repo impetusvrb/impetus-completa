@@ -201,7 +201,9 @@ async function handlePaymentConfirmed(payment, subscription) {
     description: 'Pagamento confirmado - assinatura ativada',
     changes: { paymentId: payment.id },
     severity: 'info'
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn('[asaasService][audit_log_payment_confirmed]', err?.message ?? err);
+  });
 }
 
 /**
@@ -239,7 +241,9 @@ async function handlePaymentOverdue(payment, subscription) {
     description: 'Pagamento em atraso - início do período de carência',
     changes: { paymentId: payment.id, gracePeriodDays: grace_period_days },
     severity: 'warning'
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn('[asaasService][audit_log_payment_overdue]', err?.message ?? err);
+  });
 }
 
 /**
@@ -336,7 +340,9 @@ async function checkGracePeriodAndSuspend() {
       entityId: row.id,
       description: 'Assinatura suspensa - período de carência excedido',
       severity: 'critical'
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('[asaasService][audit_log_subscription_suspended]', err?.message ?? err);
+    });
   }
 }
 

@@ -10,8 +10,6 @@ import {
   DashboardMecanico,
   DashboardOperador
 } from '../features/dashboard';
-import LiveDashboardUnifiedPanel from '../features/dashboard/components/LiveDashboardUnifiedPanel';
-import LiveSurfacePanel from '../features/dashboard/centroComando/LiveSurfacePanel';
 import { isMaintenanceProfile } from '../utils/roleUtils';
 import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
 import './Dashboard.css';
@@ -64,8 +62,6 @@ export default function Dashboard() {
 
   return (
     <ModuleErrorBoundary moduleName="Dashboard">
-      <LiveDashboardUnifiedPanel />
-      <LiveSurfacePanel autoFetch />
       {/** RH/Financeiro tem prioridade e usa o CentroComando personalizado. */}
       {useStaffCentro && <CentroComando />}
       {!useStaffCentro && useOperadorDashboard && <DashboardOperador />}

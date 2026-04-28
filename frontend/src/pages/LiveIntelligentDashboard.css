@@ -535,15 +535,16 @@
 
 .live-dash-dynamic-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0.7rem;
+  grid-template-columns: 1fr !important;
+  gap: 0.95rem;
 }
 
 .live-dash-dynamic-card {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--surface-card);
-  padding: 0.8rem 0.9rem;
+  padding: 0.9rem 1rem;
+  min-height: 156px;
 }
 
 .live-dash-dynamic-card--alta {
@@ -577,14 +578,21 @@
 
 .live-dash-dynamic-sub {
   margin: 0.2rem 0 0.45rem;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   color: var(--text-tertiary);
 }
 
 .live-dash-dyn-body {
   margin: 0;
-  font-size: 0.83rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
   color: var(--text-secondary);
+}
+
+@media (max-width: 1023px) {
+  .live-dash-dynamic-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .live-dash-dyn-body--kpi {

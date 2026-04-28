@@ -611,10 +611,22 @@ router.get('/references', ...adminMw, async (req, res) => {
       db.query('SELECT id, name FROM warehouse_suppliers WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, warehouse_sector, aisle_area, shelf_position FROM warehouse_locations WHERE company_id = $1 AND active ORDER BY warehouse_sector', [cid]),
       db.query('SELECT id, name, code FROM warehouse_materials WHERE company_id = $1 AND active ORDER BY code', [cid]),
-      db.query('SELECT id, name FROM company_processes WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] })),
-      db.query('SELECT id, name FROM production_lines WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] })),
-      db.query('SELECT id, name FROM assets WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] })),
-      db.query('SELECT id, name FROM departments WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] }))
+      db.query('SELECT id, name FROM company_processes WHERE company_id = $1 AND active ORDER BY name', [cid]).catch((err) => {
+        console.warn('[routes/admin/warehouse][references_processes]', err?.message ?? err);
+        return { rows: [] };
+      }),
+      db.query('SELECT id, name FROM production_lines WHERE company_id = $1 AND active ORDER BY name', [cid]).catch((err) => {
+        console.warn('[routes/admin/warehouse][references_lines]', err?.message ?? err);
+        return { rows: [] };
+      }),
+      db.query('SELECT id, name FROM assets WHERE company_id = $1 AND active ORDER BY name', [cid]).catch((err) => {
+        console.warn('[routes/admin/warehouse][references_assets]', err?.message ?? err);
+        return { rows: [] };
+      }),
+      db.query('SELECT id, name FROM departments WHERE company_id = $1 AND active ORDER BY name', [cid]).catch((err) => {
+        console.warn('[routes/admin/warehouse][references_departments]', err?.message ?? err);
+        return { rows: [] };
+      })
     ]);
     res.json({
       ok: true,

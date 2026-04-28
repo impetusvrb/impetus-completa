@@ -86,7 +86,12 @@ async function getPrecoTokenBrl(planType) {
       [planType || 'profissional']
     );
     if (r.rows?.length) return Number(r.rows[0].preco_token_brl);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[NEXUS_BILLING][getPrecoTokenBrl]',
+      err && err.message ? err.message : err
+    );
+  }
   return defaultPrecoToken(planType);
 }
 

@@ -54,7 +54,8 @@ async function getDepartmentName(userId) {
       [userId]
     );
     return r.rows?.[0]?.name || null;
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][department_name]', err?.message ?? err);
     return null;
   }
 }
@@ -100,7 +101,7 @@ async function getTaskSignals(companyId, user, scope) {
 async function getOperationalAlertsPreview(companyId, limit = 8) {
   try {
     const r = await db.query(
-      `SELECT id, tipo_alerta, severidade, titulo, created_at
+      `SELECT id, tipo_alerta, severidade, titulo, mensagem, source, created_at
        FROM operational_alerts
        WHERE company_id = $1 AND (resolvido = false OR resolvido IS NULL)
        ORDER BY created_at DESC
@@ -111,9 +112,12 @@ async function getOperationalAlertsPreview(companyId, limit = 8) {
       id: row.id,
       tipo_alerta: row.tipo_alerta,
       severidade: row.severidade || 'media',
-      titulo: row.titulo || row.tipo_alerta || 'Alerta'
+      titulo: row.titulo || row.tipo_alerta || 'Alerta',
+      message: row.mensagem || null,
+      source: row.source || null
     }));
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][operational_alerts_preview]', err?.message ?? err);
     return [];
   }
 }
@@ -135,7 +139,8 @@ async function getPlcTelemetrySummary(companyId) {
     const equipments = parseInt(eq.rows[0]?.c || 0, 10);
     const anomalies = parseInt(anom.rows[0]?.c || 0, 10);
     return { ok: true, equipments_tracked: equipments, anomalies };
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][plc_telemetry_summary]', err?.message ?? err);
     return { ok: false, equipments_tracked: 0, anomalies: 0 };
   }
 }
@@ -162,7 +167,8 @@ async function getChatOperationalMentions(companyId) {
       operational_mentions: mentions,
       messages_scanned_48h: parseInt(r2.rows[0]?.c || 0, 10)
     };
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][chat_operational_mentions]', err?.message ?? err);
     return { operational_mentions: 0, messages_scanned_48h: 0, _unavailable: true };
   }
 }
@@ -176,7 +182,8 @@ async function getAuditSevere24h(companyId) {
       [companyId]
     );
     return parseInt(r.rows[0]?.c || 0, 10);
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][audit_severe_24h]', err?.message ?? err);
     return 0;
   }
 }
@@ -190,7 +197,8 @@ async function getOpenCommunicationsCount(scope, companyId) {
       filter.params
     );
     return parseInt(r.rows[0]?.c || 0, 10);
-  } catch {
+  } catch (err) {
+    console.warn('[liveDashboardService][open_communications_count]', err?.message ?? err);
     return 0;
   }
 }

@@ -251,7 +251,12 @@ ${histText}`;
     try {
       const match = (res || '').match(/\{[\s\S]*\}/);
       if (match) parsed = JSON.parse(match[0]);
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[onboardingService][parse_empresa_json]',
+        err && err.message ? err.message : err
+      );
+    }
 
     await db.query(`
       INSERT INTO memoria_empresa (company_id, respostas_raw, perfil_estrategico, resumo_executivo, mapa_riscos, resumo_operacional, resumo_cultural, onboarding_completed, last_context_update, updated_at)
@@ -292,7 +297,12 @@ ${histText}`;
     try {
       const match = (res || '').match(/\{[\s\S]*\}/);
       if (match) parsed = JSON.parse(match[0]);
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[onboardingService][parse_usuario_json]',
+        err && err.message ? err.message : err
+      );
+    }
 
     await db.query(`
       INSERT INTO memoria_usuario (user_id, company_id, respostas_raw, perfil_tecnico, perfil_comportamental, mapa_responsabilidade, resumo_estrategico, onboarding_completed, last_context_update, updated_at)

@@ -232,7 +232,8 @@ async function fetchTraceSnapshot(traceId, companyId) {
   if (typeof out === 'string') {
     try {
       out = JSON.parse(out);
-    } catch {
+    } catch (err) {
+      console.warn('[aiIncidentService][output_response_parse]', err?.message ?? err);
       out = {};
     }
   }

@@ -70,7 +70,9 @@ router.post('/', async (req, res) => {
         await db.query(
           'UPDATE asaas_webhook_logs SET error_message = $1 WHERE id = $2',
           [err.message, logId]
-        ).catch(() => {});
+        ).catch((err) => {
+          console.warn('[routes/webhooks/asaas][log_update_error]', err?.message ?? err);
+        });
       }
     }
   });

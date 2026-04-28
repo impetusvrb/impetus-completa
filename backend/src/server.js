@@ -413,9 +413,19 @@ if (!brainCronExplicitOff) {
             'SELECT id FROM companies WHERE active = true LIMIT 50'
           );
           for (const c of r.rows || []) {
-            operationalBrain.checkAlerts(c.id).catch(() => {});
+            operationalBrain.checkAlerts(c.id).catch((err) => {
+              console.warn(
+                '[SERVER][OPERATIONAL_BRAIN_CHECK_ALERTS]',
+                err && err.message ? err.message : err
+              );
+            });
           }
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[SERVER][OPERATIONAL_BRAIN_CRON_TICK]',
+            err && err.message ? err.message : err
+          );
+        }
       }, 5 * 60 * 1000);
       console.info('[OPERATIONAL_BRAIN] Alert checker ativo (5 min)');
     }

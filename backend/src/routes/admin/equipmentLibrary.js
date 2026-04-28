@@ -261,7 +261,9 @@ router.post(
       console.error('[EQ_LIB_3D_CREATE]', err);
       try {
         if (req.file?.path) fs.unlinkSync(req.file.path);
-      } catch (_) {}
+      } catch (unlinkErr) {
+        console.warn('[routes/admin/equipmentLibrary][3d_cleanup]', unlinkErr?.message ?? unlinkErr);
+      }
       res.status(400).json({ ok: false, error: err.message });
     }
   }
@@ -289,7 +291,9 @@ router.delete('/technical-3d-models/:id', ...adminOnly, async (req, res) => {
     if (abs) {
       try {
         fs.unlinkSync(abs);
-      } catch (_) {}
+      } catch (unlinkErr) {
+        console.warn('[routes/admin/equipmentLibrary][3d_file_delete]', unlinkErr?.message ?? unlinkErr);
+      }
     }
     res.json({ ok: true });
   } catch (err) {
@@ -423,7 +427,9 @@ router.post('/spare-parts/import-csv', ...adminOnly, uploadCsv.single('file'), a
     const buf = fs.readFileSync(req.file.path);
     try {
       fs.unlinkSync(req.file.path);
-    } catch (_) {}
+    } catch (unlinkErr) {
+      console.warn('[routes/admin/equipmentLibrary][csv_temp_delete]', unlinkErr?.message ?? unlinkErr);
+    }
     const parsed = parsePartsCsvBuffer(buf);
     const companyId = cid(req);
     const imported = [];

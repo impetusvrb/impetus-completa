@@ -44,13 +44,23 @@ function createRealtimeResponseLipsyncTap(avatarNsp) {
   function emitRoundDone(payload) {
     try {
       avatarNsp.to('avatar_clients').emit('lipsync_round_done', payload);
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[REALTIME_LIPSYNC][emit_round_done]',
+        err && err.message ? err.message : err
+      );
+    }
   }
 
   function emitMp4(buf) {
     try {
       avatarNsp.to('avatar_clients').emit('lipsync_mp4', buf);
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[REALTIME_LIPSYNC][emit_mp4]',
+        err && err.message ? err.message : err
+      );
+    }
   }
 
   function enqueue(task) {
@@ -71,7 +81,12 @@ function createRealtimeResponseLipsyncTap(avatarNsp) {
       if (!buffers.has(id)) buffers.set(id, []);
       try {
         buffers.get(id).push(Buffer.from(delta, 'base64'));
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[REALTIME_LIPSYNC][decode_delta]',
+          err && err.message ? err.message : err
+        );
+      }
       return;
     }
 

@@ -78,7 +78,12 @@ async function getUnifiedAlerts(companyId, user) {
         ORDER BY created_at DESC LIMIT 15
       `, [companyId, maxAge, h]);
       (r.rows || []).forEach(row => alerts.push({ ...row, sector: 'qualidade', sector_key: 'quality' }));
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[CENTRAL_AI][UNIFIED_ALERTS_QUALITY]',
+        err && err.message ? err.message : err
+      );
+    }
 
     // HR
     try {
@@ -89,12 +94,17 @@ async function getUnifiedAlerts(companyId, user) {
         ORDER BY created_at DESC LIMIT 15
       `, [companyId, maxAge]);
       (r.rows || []).forEach(row => alerts.push({ ...row, sector: 'rh', sector_key: 'hr' }));
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[CENTRAL_AI][UNIFIED_ALERTS_HR]',
+        err && err.message ? err.message : err
+      );
+    }
 
     // Operational (máquina parada, tarefa atrasada, etc.)
     try {
       const r = await db.query(`
-        SELECT id, tipo_alerta as alert_type, severidade as severity, titulo as title, mensagem as description, created_at
+        SELECT id, tipo_alerta as alert_type, severidade as severity, titulo as title, mensagem as description, source, created_at
         FROM operational_alerts
         WHERE company_id = $1 AND (resolvido = false OR resolvido IS NULL) AND created_at >= $2
         ORDER BY created_at DESC LIMIT 15
@@ -105,11 +115,17 @@ async function getUnifiedAlerts(companyId, user) {
         severity: row.severity || 'media',
         title: row.title,
         description: row.description,
+        source: row.source || null,
         created_at: row.created_at,
         sector: 'produção',
         sector_key: 'operational'
       }));
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[CENTRAL_AI][UNIFIED_ALERTS_OPERATIONAL]',
+        err && err.message ? err.message : err
+      );
+    }
   } catch (err) {
     console.warn('[CENTRAL_AI] getUnifiedAlerts:', err?.message);
   }
@@ -139,7 +155,13 @@ async function getSectorStatus(companyId, user) {
         const ind = await hrIntel.getIndicators(companyId, 7);
         const risk = (ind.delay_index || 0) > 15 || (ind.absence_index || 0) > 10 ? 'alert' : 'ok';
         sectors.push({ key: 'rh', name: 'RH', status: risk, indicators: { delay_index: ind.delay_index, absence_index: ind.absence_index } });
-      } catch (_) { sectors.push({ key: 'rh', name: 'RH', status: 'unknown' }); }
+      } catch (err) {
+        console.warn(
+          '[CENTRAL_AI][SECTOR_RH]',
+          err && err.message ? err.message : err
+        );
+        sectors.push({ key: 'rh', name: 'RH', status: 'unknown' });
+      }
     }
 
     // Almoxarifado
@@ -148,7 +170,13 @@ async function getSectorStatus(companyId, user) {
         const ind = await warehouseIntel.calculateWarehouseIndicators(companyId, 7);
         const risk = (ind.below_min_count || 0) > 5 ? 'alert' : (ind.below_min_count || 0) > 0 ? 'warning' : 'ok';
         sectors.push({ key: 'warehouse', name: 'Almoxarifado', status: risk, indicators: ind });
-      } catch (_) { sectors.push({ key: 'warehouse', name: 'Almoxarifado', status: 'unknown' }); }
+      } catch (err) {
+        console.warn(
+          '[CENTRAL_AI][SECTOR_WAREHOUSE]',
+          err && err.message ? err.message : err
+        );
+        sectors.push({ key: 'warehouse', name: 'Almoxarifado', status: 'unknown' });
+      }
     }
 
     // Qualidade
@@ -156,7 +184,13 @@ async function getSectorStatus(companyId, user) {
       try {
         const ind = await qualityIntel.calculateQualityIndicators(companyId, 7);
         sectors.push({ key: 'quality', name: 'Qualidade', status: 'ok', indicators: ind });
-      } catch (_) { sectors.push({ key: 'quality', name: 'Qualidade', status: 'unknown' }); }
+      } catch (err) {
+        console.warn(
+          '[CENTRAL_AI][SECTOR_QUALITY]',
+          err && err.message ? err.message : err
+        );
+        sectors.push({ key: 'quality', name: 'Qualidade', status: 'unknown' });
+      }
     }
 
     // Logística
@@ -165,7 +199,13 @@ async function getSectorStatus(companyId, user) {
         const ind = await logisticsIntel.calculateLogisticsIndicators(companyId, 7);
         const risk = (ind.deliveries_delayed || 0) > (ind.deliveries_total || 0) * 0.2 ? 'alert' : 'ok';
         sectors.push({ key: 'logistics', name: 'Logística', status: risk, indicators: ind });
-      } catch (_) { sectors.push({ key: 'logistics', name: 'Logística', status: 'unknown' }); }
+      } catch (err) {
+        console.warn(
+          '[CENTRAL_AI][SECTOR_LOGISTICS]',
+          err && err.message ? err.message : err
+        );
+        sectors.push({ key: 'logistics', name: 'Logística', status: 'unknown' });
+      }
     }
 
     // Produção/Industrial
@@ -178,7 +218,13 @@ async function getSectorStatus(companyId, user) {
       const woCount = parseInt(orders.rows?.[0]?.c || 0, 10);
       const risk = evCount > 20 ? 'alert' : evCount > 5 ? 'warning' : 'ok';
       sectors.push({ key: 'production', name: 'Produção', status: risk, indicators: { events_24h: evCount, work_orders_open: woCount } });
-    } catch (_) { sectors.push({ key: 'production', name: 'Produção', status: 'unknown' }); }
+    } catch (err) {
+      console.warn(
+        '[CENTRAL_AI][SECTOR_PRODUCTION]',
+        err && err.message ? err.message : err
+      );
+      sectors.push({ key: 'production', name: 'Produção', status: 'unknown' });
+    }
 
     // Manutenção
     try {
@@ -190,7 +236,13 @@ async function getSectorStatus(companyId, user) {
       const pending = parseInt(r.rows?.[0]?.pending || 0, 10);
       const risk = pending > 10 ? 'alert' : pending > 3 ? 'warning' : 'ok';
       sectors.push({ key: 'maintenance', name: 'Manutenção', status: risk, indicators: { total, pending } });
-    } catch (_) { sectors.push({ key: 'maintenance', name: 'Manutenção', status: 'unknown' }); }
+    } catch (err) {
+      console.warn(
+        '[CENTRAL_AI][SECTOR_MAINTENANCE]',
+        err && err.message ? err.message : err
+      );
+      sectors.push({ key: 'maintenance', name: 'Manutenção', status: 'unknown' });
+    }
   } catch (err) {
     console.warn('[CENTRAL_AI] getSectorStatus:', err?.message);
   }

@@ -358,7 +358,12 @@ router.post('/',
         try {
           const hrService = require('../../services/hrIntelligenceService');
           hrResponsibilitiesParsed = hrService.parseResponsibilities(hrText);
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[admin/users][hr_responsibilities_parse]',
+            err && err.message ? err.message : err
+          );
+        }
       }
 
       // Criar usuário (CEO: executive_verified = false até verificação via WhatsApp)
@@ -411,7 +416,12 @@ router.post('/',
         try {
           const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
           invalidateCompanyCache(req.user.company_id);
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[admin/users][invalidateCompanyCache_create]',
+            err && err.message ? err.message : err
+          );
+        }
       }
 
       try {
@@ -553,7 +563,12 @@ router.put('/:id',
           try {
             const hrService = require('../../services/hrIntelligenceService');
             hrResponsibilitiesParsed = hrService.parseResponsibilities(validatedData[key] || '');
-          } catch (_) {}
+          } catch (err) {
+            console.warn(
+              '[admin/users][hr_responsibilities_update]',
+              err && err.message ? err.message : err
+            );
+          }
         }
       });
       if (hrResponsibilitiesParsed !== null) {
@@ -578,7 +593,12 @@ router.put('/:id',
         try {
           const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
           invalidateCompanyCache(req.user.company_id);
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[admin/users][invalidateCompanyCache_update]',
+            err && err.message ? err.message : err
+          );
+        }
       }
 
       // Log de auditoria

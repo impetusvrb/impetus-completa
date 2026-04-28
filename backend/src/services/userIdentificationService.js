@@ -14,7 +14,8 @@ async function tableExists(name) {
       [name]
     );
     return (r.rows || []).length > 0;
-  } catch {
+  } catch (err) {
+    console.warn('[userIdentificationService][table_exists]', err?.message ?? err);
     return false;
   }
 }

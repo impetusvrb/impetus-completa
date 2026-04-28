@@ -71,7 +71,8 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
     let host;
     try {
       host = request.headers.host || 'localhost';
-    } catch {
+    } catch (err) {
+      console.warn('[realtimeOpenaiProxy][upgrade_host]', err?.message ?? err);
       socket.destroy();
       return;
     }
@@ -82,7 +83,8 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       const u = new URL(request.url || '/', `http://${host}`);
       pathname = u.pathname.replace(/\/$/, '') || '/';
       searchParams = u.searchParams;
-    } catch {
+    } catch (err) {
+      console.warn('[realtimeOpenaiProxy][upgrade_url_parse]', err?.message ?? err);
       socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
       socket.destroy();
       return;
@@ -101,7 +103,8 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
 
     try {
       jwt.verify(token, JWT_SECRET);
-    } catch {
+    } catch (err) {
+      console.warn('[realtimeOpenaiProxy][jwt_verify]', err?.message ?? err);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       socket.destroy();
       return;
@@ -130,13 +133,28 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
         cleaned = true;
         try {
           lipsyncTap.reset();
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[REALTIME_PROXY][lipsync_reset]',
+            err && err.message ? err.message : err
+          );
+        }
         try {
           clientWs.close();
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[REALTIME_PROXY][clientWs_close]',
+            err && err.message ? err.message : err
+          );
+        }
         try {
           upstream.close();
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[REALTIME_PROXY][upstream_close]',
+            err && err.message ? err.message : err
+          );
+        }
       };
 
       clientWs.on('message', (data, isBinary) => {
@@ -169,7 +187,12 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
             const text = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
             const msg = JSON.parse(text);
             lipsyncTap.feedFromUpstreamMessage(msg);
-          } catch (_) {}
+          } catch (err) {
+            console.warn(
+              '[REALTIME_PROXY][lipsync_feed]',
+              err && err.message ? err.message : err
+            );
+          }
         }
       });
 

@@ -126,7 +126,9 @@ async function createProposal(payload){
       operator_id: payload.operator_id || payload.reporter_id,
       defect_count: 1,
       rework_count: 0
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('[proacao][record_lot_usage]', err?.message ?? err);
+    });
   }
   return proposal;
 }

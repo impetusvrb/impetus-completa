@@ -129,7 +129,9 @@ async function recordDecisionTrace({
  */
 function recordDecisionTraceAsync(params) {
   setImmediate(() => {
-    recordDecisionTrace(params).catch(() => {});
+    recordDecisionTrace(params).catch((err) => {
+      console.warn('[strategicLearningService][recordDecisionTrace_async]', err?.message ?? err);
+    });
   });
 }
 
@@ -191,7 +193,9 @@ async function recordUserBehavior({
  */
 function recordUserBehaviorAsync(params) {
   setImmediate(() => {
-    recordUserBehavior(params).catch(() => {});
+    recordUserBehavior(params).catch((err) => {
+      console.warn('[strategicLearningService][recordUserBehavior_async]', err?.message ?? err);
+    });
   });
 }
 

@@ -29,7 +29,9 @@ const { userRateLimit } = require('../middleware/userRateLimit');
 const ai = require('../services/ai');
 const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynthesizer');
 const dataLineageService = require('../services/dataLineageService');
+const secureContextBuilder = require('../services/secureContextBuilder');
 const strategicLearningService = require('../services/strategicLearningService');
+const { getUnifiedSessionContext } = require('../services/unifiedSessionContextService');
 const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
@@ -102,8 +104,14 @@ router.get('/me', requireAuth, async (req, res) => {
 
     const [sections, kpisRaw, personalization] = await Promise.all([
       dashboardVisibility.getVisibilityForUser(hierarchyLevel, user.company_id),
-      dashboardKPIs.getDashboardKPIs(user, scope).catch(() => []),
-      dashboardComposerService.buildDashboardPayload(user).catch(() => null)
+      dashboardKPIs.getDashboardKPIs(user, scope).catch((err) => {
+        console.warn('[routes/dashboard][me_kpis]', err?.message ?? err);
+        return [];
+      }),
+      dashboardComposerService.buildDashboardPayload(user).catch((err) => {
+        console.warn('[routes/dashboard][me_personalization]', err?.message ?? err);
+        return null;
+      })
     ]);
 
     const kpis = dashboardComposerService.applyPersonalizationToKpis(kpisRaw, user);
@@ -238,7 +246,10 @@ router.get('/insights', requireAuth, async (req, res) => {
     }
     const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 8));
     const scope = await hierarchicalFilter.resolveHierarchyScope(user);
-    const kpis = await dashboardKPIs.getDashboardKPIs(user, scope).catch(() => []);
+    const kpis = await dashboardKPIs.getDashboardKPIs(user, scope).catch((err) => {
+      console.warn('[routes/dashboard][insights_kpis]', err?.message ?? err);
+      return [];
+    });
     const raw = kpis.slice(0, limit).map((k, i) => ({
       id: `ins-${k.key || k.id || i}`,
       title: k.title || 'Indicador',
@@ -546,7 +557,6 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     const { v4: uuidv4 } = require('uuid');
     const traceId = uuidv4();
-    const sessionContextService = require('../services/sessionContextService');
     const {
       buildProactiveContextFromSession,
       formatAutonomousContextAppendixForPrompt
@@ -573,8 +583,8 @@ router.post('/chat', requireAuth, async (req, res) => {
     let autonomousAppendix = '';
     if (u.company_id && u.id) {
       try {
-        const sess = await sessionContextService.getSessionContext(u.company_id, u.id);
-        const proactiveCtx = buildProactiveContextFromSession(u, sess);
+        const sessionContext = await getUnifiedSessionContext(u);
+        const proactiveCtx = buildProactiveContextFromSession(u, sessionContext || {});
         const pre = await runAutonomousPreflight({ user: u, dossier: miniDossier, context: proactiveCtx });
         if (pre.enriched) {
           autonomousAppendix = formatAutonomousContextAppendixForPrompt(miniDossier);
@@ -623,8 +633,22 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0â€
       }))
     ).slice(0, 4000)}`;
 
+    let secureGovernanceSystem = '';
+    try {
+      const secureCtx = await secureContextBuilder.buildContext(u, {
+        companyId: u.company_id,
+        queryText: message
+      });
+      if (secureCtx && typeof secureCtx.context === 'string' && secureCtx.context.trim()) {
+        secureGovernanceSystem = secureCtx.context.trim();
+      }
+    } catch (e) {
+      console.warn('[DASHBOARD_CHAT] secureContextBuilder', e && e.message ? e.message : e);
+    }
+
     const messages = [
       { role: 'system', content: system },
+      ...(secureGovernanceSystem ? [{ role: 'system', content: secureGovernanceSystem }] : []),
       ...history,
       { role: 'user', content: message + lineageBlock + autonomousAppendix }
     ];
@@ -739,8 +763,8 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0â€
           'chat'
         );
       }
-    } catch (_) {
-      /* aditivo */
+    } catch (err) {
+      console.warn('[routes/dashboard][chat_processing_transparency]', err?.message ?? err);
     }
     res.json({
       ok: true,
@@ -906,8 +930,8 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
         u.company_id,
         'chat'
       );
-    } catch (_) {
-      /* aditivo */
+    } catch (err) {
+      console.warn('[routes/dashboard][multimodal_processing_transparency]', err?.message ?? err);
     }
     res.json({ ok: true, reply: text, message: text, content: text, processing_transparency });
   } catch (err) {

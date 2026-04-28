@@ -13,7 +13,8 @@ function cloneJson(obj) {
   if (obj === undefined || obj === null) return obj;
   try {
     return JSON.parse(JSON.stringify(obj));
-  } catch {
+  } catch (err) {
+    console.warn('[policyHardeningService][clone_json]', err?.message ?? err);
     return obj;
   }
 }

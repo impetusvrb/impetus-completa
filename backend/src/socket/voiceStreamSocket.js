@@ -45,7 +45,12 @@ function initVoiceStreamSocket(io) {
     socket.on('voice:cancel', () => {
       try {
         socket._voiceTtsAbort?.abort();
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[VOICE_WS][cancel_abort]',
+          err && err.message ? err.message : err
+        );
+      }
     });
 
     socket.on('voice:speak_stream', async (payload) => {
@@ -63,7 +68,12 @@ function initVoiceStreamSocket(io) {
 
         try {
           socket._voiceTtsAbort?.abort();
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[VOICE_WS][speak_stream_abort_prev]',
+            err && err.message ? err.message : err
+          );
+        }
         const ac = new AbortController();
         socket._voiceTtsAbort = ac;
         const { signal } = ac;
@@ -115,7 +125,12 @@ function initVoiceStreamSocket(io) {
         console.warn('[impetus-voice] speak_stream:', e?.message || e);
         try {
           socket.emit('voice:error', { error: 'Falha no stream de voz' });
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[VOICE_WS][emit_error_fallback]',
+            err && err.message ? err.message : err
+          );
+        }
       }
     });
   });

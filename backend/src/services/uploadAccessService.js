@@ -28,8 +28,8 @@ async function userCanReadUpload(user, relativeFromUploads) {
       [cid, abs, base, `%${base}`]
     );
     if (r1.rows.length) return true;
-  } catch {
-    /* tabela/coluna em falta */
+  } catch (err) {
+    console.warn('[uploadAccessService][role_verification_lookup]', err?.message ?? err);
   }
 
   try {
@@ -42,8 +42,8 @@ async function userCanReadUpload(user, relativeFromUploads) {
       [cid, user.id, `/uploads/${rel}`, `%/${base}`, `%${base}`]
     );
     if (r2.rows.length) return true;
-  } catch {
-    /* schema chat opcional */
+  } catch (err) {
+    console.warn('[uploadAccessService][chat_message_lookup]', err?.message ?? err);
   }
 
   try {
@@ -52,8 +52,8 @@ async function userCanReadUpload(user, relativeFromUploads) {
       [cid, `/uploads/${rel}`, `%${base}`]
     );
     if (r3.rows.length) return true;
-  } catch {
-    /* */
+  } catch (err) {
+    console.warn('[uploadAccessService][manuals_lookup]', err?.message ?? err);
   }
 
   try {
@@ -64,8 +64,8 @@ async function userCanReadUpload(user, relativeFromUploads) {
       [user.id, cid, `%${base}`, `/uploads/${rel}`]
     );
     if (r4.rows.length) return true;
-  } catch {
-    /* */
+  } catch (err) {
+    console.warn('[uploadAccessService][user_avatar_self]', err?.message ?? err);
   }
 
   try {
@@ -76,8 +76,8 @@ async function userCanReadUpload(user, relativeFromUploads) {
       [cid, `/uploads/${rel}`, `%/${base}`]
     );
     if (r5.rows.length) return true;
-  } catch {
-    /* */
+  } catch (err) {
+    console.warn('[uploadAccessService][user_avatar_company]', err?.message ?? err);
   }
 
   return false;

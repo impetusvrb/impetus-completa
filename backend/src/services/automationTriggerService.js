@@ -89,7 +89,8 @@ async function getCandidateMachines(companyId, pattern) {
       LIMIT 10
     `, [companyId, `%${pattern}%`]);
     return fallback.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[automationTriggerService][candidate_machines]', err?.message ?? err);
     return [];
   }
 }

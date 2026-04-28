@@ -130,7 +130,12 @@ router.post('/', requireAuth, apiByUserLimiter, upload.single('file'), async (re
               categoria = parsed.categoria || 'outro';
               dadosExtraidos = parsed.dados || {};
               resumo = parsed.resumo || '';
-            } catch (_) {}
+            } catch (err) {
+              console.warn(
+                '[cadastrarComIA][parse_json_text]',
+                err && err.message ? err.message : err
+              );
+            }
           }
         }
       } else if (['.pdf', '.doc', '.docx'].includes(ext)) {
@@ -151,7 +156,12 @@ router.post('/', requireAuth, apiByUserLimiter, upload.single('file'), async (re
               categoria = parsed.categoria || 'outro';
               dadosExtraidos = parsed.dados || {};
               resumo = parsed.resumo || '';
-            } catch (_) {}
+            } catch (err) {
+              console.warn(
+                '[cadastrarComIA][parse_json_document]',
+                err && err.message ? err.message : err
+              );
+            }
           }
         }
       }
@@ -168,7 +178,12 @@ router.post('/', requireAuth, apiByUserLimiter, upload.single('file'), async (re
             categoria = parsed.categoria || 'outro';
             dadosExtraidos = parsed.dados || {};
             resumo = parsed.resumo || '';
-          } catch (_) {}
+          } catch (err) {
+            console.warn(
+              '[cadastrarComIA][parse_json_free_text]',
+              err && err.message ? err.message : err
+            );
+          }
         }
       }
     } else {

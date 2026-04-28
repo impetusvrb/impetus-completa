@@ -55,7 +55,12 @@ async function read(cfg, equipmentId, equipmentName) {
   } finally {
     try {
       client.disconnect();
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[opcuaAdapter][disconnect]',
+        err && err.message ? err.message : err
+      );
+    }
   }
 }
 

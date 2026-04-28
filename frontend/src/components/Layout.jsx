@@ -46,11 +46,10 @@ import {
   Monitor,
   UsersRound
 } from 'lucide-react';
-import { companies, onboarding, auth } from '../services/api';
+import { companies, auth } from '../services/api';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
-import OnboardingModal from './OnboardingModal';
 import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu, isStrictAdminRole } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
@@ -121,7 +120,6 @@ export default function Layout({ children }) {
   const pulseUi = useImpetusPulse();
   const pulseSup = useImpetusPulseSupervisor();
   const [pulseSupItem, setPulseSupItem] = useState(null);
-  const [onboardingState, setOnboardingState] = useState({ show: false, tipo: null });
   const location = useLocation();
   const navigate = useNavigate();
   const isNarrowViewport = useMatchMedia(MQ_NAV_DRAWER);
@@ -218,20 +216,6 @@ export default function Layout({ children }) {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    onboarding.getStatus().then((r) => {
-      if (r?.data?.needsOnboarding && r?.data?.activeType) {
-        setOnboardingState({ show: true, tipo: r.data.activeType });
-      }
-    }).catch(() => {});
-  }, []);
-
-  const handleMainOnboardingComplete = () => {
-    setOnboardingState({ show: false, tipo: null });
-  };
-
-
-  
   // Pegar dados do usuário do localStorage
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
@@ -859,13 +843,6 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
-
-      {onboardingState.show && onboardingState.tipo ? (
-        <OnboardingModal
-          tipo={onboardingState.tipo}
-          onComplete={handleMainOnboardingComplete}
-        />
-      ) : null}
 
       <ImpetusPulseModal
         isOpen={pulseUi.promptOpen}

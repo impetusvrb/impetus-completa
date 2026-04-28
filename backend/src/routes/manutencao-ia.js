@@ -120,7 +120,12 @@ router.get('/machines/:id/diagnostic', manuiaGuard, async (req, res) => {
         [id, companyId]
       );
       sensors = sensorR.rows || [];
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[manutencao-ia][sensors_list]',
+        err && err.message ? err.message : err
+      );
+    }
 
     let events = [];
     try {
@@ -132,7 +137,12 @@ router.get('/machines/:id/diagnostic', manuiaGuard, async (req, res) => {
         [id, companyId]
       );
       events = evR.rows || [];
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[manutencao-ia][emergency_events]',
+        err && err.message ? err.message : err
+      );
+    }
 
     res.json({
       ok: true,

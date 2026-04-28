@@ -53,7 +53,12 @@ async function read(cfg, equipmentId, equipmentName) {
   } finally {
     try {
       client.close();
-    } catch (_) {}
+    } catch (err) {
+      console.warn(
+        '[modbusAdapter][client_close]',
+        err && err.message ? err.message : err
+      );
+    }
   }
 }
 

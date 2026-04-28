@@ -128,13 +128,17 @@ router.post(
         fs.copyFileSync(base, webmPath);
         try {
           fs.unlinkSync(base);
-        } catch (_) {}
+        } catch (unlinkErr) {
+          console.warn('[routes/voz][cleanup_after_rename]', unlinkErr?.message ?? unlinkErr);
+        }
       }
       const mediaProcessor = require('../services/mediaProcessorService');
       const out = await mediaProcessor.transcribeAudio(webmPath, { language: 'pt' });
       try {
         fs.unlinkSync(webmPath);
-      } catch (_) {}
+      } catch (unlinkErr) {
+        console.warn('[routes/voz][cleanup_webm_after_transcribe]', unlinkErr?.message ?? unlinkErr);
+      }
       if (!out.success || !String(out.text || '').trim()) {
         return res.status(502).json({
           ok: false,
@@ -145,10 +149,14 @@ router.post(
     } catch (e) {
       try {
         fs.unlinkSync(webmPath);
-      } catch (_) {}
+      } catch (unlinkErr) {
+        console.warn('[routes/voz][cleanup_webm_on_error]', unlinkErr?.message ?? unlinkErr);
+      }
       try {
         fs.unlinkSync(base);
-      } catch (_) {}
+      } catch (unlinkErr) {
+        console.warn('[routes/voz][cleanup_base_on_error]', unlinkErr?.message ?? unlinkErr);
+      }
       console.error('[VOZ_TRANSCREVER]', e);
       return res.status(500).json({ ok: false, error: 'Erro ao transcrever.' });
     }

@@ -40,7 +40,8 @@ Identifique variações anormais e liste possíveis causas baseadas nos manuais.
     try {
       const json = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
       return json;
-    } catch {
+    } catch (err) {
+      console.warn('[plcAi][parse_llm_json]', err?.message ?? err);
       return { alert_title: 'Variação detectada', alert_message: text, severity: 'medium', possible_causes: [] };
     }
   } catch (err) {

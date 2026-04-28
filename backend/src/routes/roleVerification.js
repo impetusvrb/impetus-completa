@@ -13,7 +13,11 @@ const roleVerification = require('../services/roleVerificationService');
 const db = require('../db');
 
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/role-verification');
-try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (_) {}
+try {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+} catch (err) {
+  console.warn('[routes/roleVerification][mkdir_uploads]', err?.message ?? err);
+}
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),

@@ -25,7 +25,8 @@ async function getDbFlags() {
     dbFlagsCache = Object.fromEntries((r.rows || []).map(x => [x.flag_key, x.enabled]));
     dbFlagsExpiry = Date.now() + CACHE_TTL_MS;
     return dbFlagsCache;
-  } catch {
+  } catch (err) {
+    console.warn('[featureFlagsService][get_db_flags]', err?.message ?? err);
     return {};
   }
 }

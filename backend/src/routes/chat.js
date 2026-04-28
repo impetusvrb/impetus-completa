@@ -84,7 +84,9 @@ router.post('/conversations/:id/messages', async (req, res) => {
       senderUser: req.user,
       content: content.trim(),
       io
-    }).catch(() => {}));
+    }).catch((err) => {
+      console.warn('[routes/chat][operational_realtime]', err?.message ?? err);
+    }));
     res.json(msg);
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });

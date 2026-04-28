@@ -1,7 +1,11 @@
 /**
- * CONTROLE DE CONTEXTO DA IA
- * buildContext(user, opts) - Busca apenas dados permitidos para o usuário.
- * Nunca envia banco inteiro. Nunca envia dados sensíveis sem permissão.
+ * CONTROLE DE CONTEXTO DA IA — FONTE ÚNICA (canónica)
+ *
+ * Caminho de referência no repositório: backend/src/services/secureContextBuilder.js
+ * Não manter cópias paralelas (ex.: árvore legada impetus_complete/): qualquer outro caminho
+ * deve reexportar este módulo ou apontar para o backend unificado na raiz.
+ *
+ * API: buildContext(user, opts) — dados permitidos ao utilizador + governance + documentContext.
  */
 const documentContext = require('./documentContext');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
@@ -17,7 +21,8 @@ async function buildContext(user, opts) {
   try {
     const r = await getUserPermissions(user || {});
     permissions = r.permissions || [];
-  } catch {
+  } catch (err) {
+    console.warn('[secureContextBuilder][get_user_permissions]', err?.message ?? err);
     permissions = [];
   }
 

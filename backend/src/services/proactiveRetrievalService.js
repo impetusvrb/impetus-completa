@@ -343,8 +343,90 @@ function buildProactiveContextFromSession(user, sessionContext) {
   };
 }
 
+/**
+ * Pré-recolha de overview operacional: combina sinais do dossiê corrente com contextual_meta da sessão (unificada ou BD).
+ *
+ * @param {object} [opts]
+ * @param {boolean} [opts.hasExplicitClientData]
+ * @param {string} [opts.companyId]
+ * @param {object} [opts.user]
+ * @param {object} [opts.intentData]
+ * @param {object} [opts.enrichedData]
+ * @param {object|null} [opts.sessionContext]
+ * @returns {{ trigger: boolean, reason: string }}
+ */
+function shouldTriggerProactiveRetrieval(opts = {}) {
+  const {
+    hasExplicitClientData,
+    user,
+    enrichedData,
+    sessionContext,
+    proactiveRetrievalUsed
+  } = opts;
+
+  if (proactiveRetrievalUsed) {
+    return { trigger: false, reason: 'already_used' };
+  }
+  if (hasExplicitClientData) {
+    return { trigger: false, reason: 'explicit_client_data' };
+  }
+  const u = user && typeof user === 'object' ? user : null;
+  if (!u || !u.company_id) {
+    return { trigger: false, reason: 'no_user' };
+  }
+
+  const fromSession = buildProactiveContextFromSession(u, sessionContext);
+  const cd =
+    enrichedData && enrichedData.contextual_data && typeof enrichedData.contextual_data === 'object'
+      ? enrichedData.contextual_data
+      : {};
+
+  const predsCd = asPredictionList(cd.predictions);
+  const predsSess = asPredictionList(fromSession.predictions);
+  const predictions = [...predsSess, ...predsCd].slice(0, 40);
+
+  const learned = [
+    ...(Array.isArray(cd.learned_patterns) ? cd.learned_patterns : []),
+    ...(Array.isArray(fromSession.learned_patterns) ? fromSession.learned_patterns : [])
+  ];
+  const temporal_insights =
+    cd.temporal_insights && typeof cd.temporal_insights === 'object'
+      ? cd.temporal_insights
+      : fromSession.temporal_insights;
+
+  const evCd = Array.isArray(cd.recent_events) ? cd.recent_events : Array.isArray(cd.events) ? cd.events : [];
+  const evS = Array.isArray(fromSession.recent_events) ? fromSession.recent_events : [];
+  const recent_events = [...evS, ...evCd].slice(0, 50);
+
+  const fCd = cd.failure_like_recent_count != null ? parseInt(String(cd.failure_like_recent_count), 10) : 0;
+  const fS =
+    fromSession.failure_like_recent_count != null ? parseInt(String(fromSession.failure_like_recent_count), 10) : 0;
+  const failure_like_recent_count = Math.max(
+    Number.isFinite(fCd) ? fCd : 0,
+    Number.isFinite(fS) ? fS : 0
+  );
+  const sequential_failures = cd.sequential_failures === true || fromSession.sequential_failures === true;
+
+  const ctx = {
+    user: u,
+    predictions,
+    learned_patterns: learned,
+    temporal_insights,
+    recent_events,
+    failure_like_recent_count,
+    sequential_failures
+  };
+
+  if (!shouldTriggerAutonomousAnalysis(ctx)) {
+    return { trigger: false, reason: 'autonomous_threshold' };
+  }
+
+  return { trigger: true, reason: 'session_or_enriched_signals' };
+}
+
 module.exports = {
   shouldTriggerAutonomousAnalysis,
+  shouldTriggerProactiveRetrieval,
   buildAutonomousContext,
   runAutonomousRetrievalIfTriggered,
   enrichDossierIfTriggered,

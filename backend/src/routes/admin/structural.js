@@ -23,8 +23,8 @@ function invalidateStructuralOrgCache(companyId) {
   try {
     const { invalidateCompanyCache } = require('../../services/structuralOrgContextService');
     invalidateCompanyCache(companyId);
-  } catch (_) {
-    /* opcional */
+  } catch (err) {
+    console.warn('[routes/admin/structural][invalidate_org_cache]', err?.message ?? err);
   }
 }
 

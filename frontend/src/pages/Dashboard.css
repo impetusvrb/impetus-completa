@@ -2,6 +2,41 @@
  * ESTILOS DO DASHBOARD
  */
 
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.dashboard-shell__hero,
+.dashboard-shell__surface,
+.dashboard-shell__main {
+  min-width: 0;
+}
+
+.dashboard-shell__surface .live-surface {
+  grid-template-columns: 1fr !important;
+  gap: 16px;
+}
+
+.dashboard-shell__surface .live-surface-card {
+  min-height: 148px;
+}
+
+.dashboard-shell__surface {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-shell__main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .dashboard-container {
   display: flex;
   flex-direction: column;
@@ -12,10 +47,10 @@
 .dashboard-empty-visibility {
   padding: 32px;
   text-align: center;
-  background: var(--gray-50);
-  border: 1px dashed var(--gray-300);
-  border-radius: var(--radius-lg);
-  color: var(--gray-600);
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-default);
+  border-radius: 8px;
+  color: var(--text-secondary);
 }
 
 .dashboard-empty-visibility p {
@@ -79,6 +114,10 @@
 }
 
 @media (max-width: 1023px) and (min-width: 768px) {
+  .dashboard-shell__surface .live-surface {
+    grid-template-columns: 1fr !important;
+  }
+
   .bottom-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -89,6 +128,18 @@
 }
 
 @media (max-width: 767px) {
+  .dashboard-shell {
+    gap: 16px;
+  }
+
+  .dashboard-shell__surface .live-surface {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-shell__main {
+    gap: 16px;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }

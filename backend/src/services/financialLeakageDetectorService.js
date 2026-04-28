@@ -91,7 +91,12 @@ async function detectAndAggregate(companyId) {
       WHERE company_id = $1 AND incident_date >= $2
         AND (root_cause ILIKE '%retrabalho%' OR root_cause ILIKE '%retorno%' OR root_cause ILIKE '%refugo%')
     `, [companyId, periodStart.toISOString().slice(0, 10)]);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[financialLeakage][tpm_rework_query]',
+      err && err.message ? err.message : err
+    );
+  }
 
   const reworkCount = (tpmRework.rows || []).length;
   if (reworkCount > 0) {
@@ -120,7 +125,12 @@ async function detectAndAggregate(companyId) {
       WHERE company_id = $1 AND collected_at >= $2 AND power_kw > 0
       GROUP BY equipment_id
     `, [companyId, periodStart]);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[financialLeakage][plc_power_query]',
+      err && err.message ? err.message : err
+    );
+  }
 
   const powerRows = plcPower.rows || [];
   if (powerRows.length > 1) {
@@ -151,7 +161,12 @@ async function detectAndAggregate(companyId) {
       FROM machine_detected_events
       WHERE company_id = $1 AND created_at >= $2
     `, [companyId, periodStart]);
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[financialLeakage][machine_events_query]',
+      err && err.message ? err.message : err
+    );
+  }
 
   const evs = machineEvents.rows || [];
   const highCount = evs.filter(e => ['high', 'critical'].includes(e.severity)).length;
@@ -339,7 +354,12 @@ Responda em português, de forma objetiva.`;
     if (aiRes && !aiRes.startsWith('FALLBACK')) {
       aiSuggestion = aiRes;
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn(
+      '[financialLeakage][ai_report_summary]',
+      err && err.message ? err.message : err
+    );
+  }
 
   const report = {
     main_cause: top?.leak_label || null,

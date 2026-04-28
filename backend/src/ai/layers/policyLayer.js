@@ -205,8 +205,8 @@ async function buildAdaptiveBlockedCouncilResult({
     if (user.company_id) {
       processing_transparency = await aiProviderService.getCognitivePipelineDisclosure(user.company_id);
     }
-  } catch (_) {
-    /* aditivo */
+  } catch (err) {
+    console.warn('[ai/layers/policyLayer][processing_transparency]', err?.message ?? err);
   }
 
   const dossierForClient = redactForPersistence(dossier);
@@ -403,8 +403,8 @@ async function buildPolicyBlockedCouncilResult({
     if (user.company_id) {
       processing_transparency = await aiProviderService.getCognitivePipelineDisclosure(user.company_id);
     }
-  } catch (_) {
-    /* aditivo */
+  } catch (err) {
+    console.warn('[ai/layers/policyLayer][processing_transparency]', err?.message ?? err);
   }
 
   const dossierForClient = redactForPersistence(dossier);

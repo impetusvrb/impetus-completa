@@ -75,7 +75,8 @@ async function getBalance(companyId, materialId) {
       WHERE company_id = $1 AND material_id = $2
     `, [companyId, materialId]);
     return parseFloat(r.rows[0]?.quantity || 0, 10);
-  } catch {
+  } catch (err) {
+    console.warn('[warehouseService][get_balance]', err?.message ?? err);
     return 0;
   }
 }
@@ -100,7 +101,8 @@ async function getParams(companyId) {
       replenishment_alert_days: 7,
       consumption_analysis_frequency: 'daily'
     };
-  } catch {
+  } catch (err) {
+    console.warn('[warehouseService][get_params]', err?.message ?? err);
     return { min_safety_stock_pct: 20, critical_level_pct: 10, replenishment_alert_days: 7, consumption_analysis_frequency: 'daily' };
   }
 }

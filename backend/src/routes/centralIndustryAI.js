@@ -13,21 +13,24 @@ const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 let decisionEngine;
 try {
   decisionEngine = require('../services/decisionEngineService');
-} catch (_) {
+} catch (err) {
+  console.warn('[routes/centralIndustryAI][optional_require_decision_engine]', err?.message ?? err);
   decisionEngine = null;
 }
 
 let operationalBrain;
 try {
   operationalBrain = require('../services/operationalBrainEngine');
-} catch (_) {
+} catch (err) {
+  console.warn('[routes/centralIndustryAI][optional_require_operational_brain]', err?.message ?? err);
   operationalBrain = null;
 }
 
 let claudeService;
 try {
   claudeService = require('../services/claudeService');
-} catch (_) {
+} catch (err) {
+  console.warn('[routes/centralIndustryAI][optional_require_claude]', err?.message ?? err);
   claudeService = null;
 }
 

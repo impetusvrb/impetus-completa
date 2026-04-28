@@ -149,7 +149,9 @@ async function persistTpmIncidentFromData(companyId, d, meta = {}) {
         rework_count: 0,
         inspection_result: null
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[tpmFormService][record_lot_usage]', err?.message ?? err);
+      });
   }
 
   return incident;

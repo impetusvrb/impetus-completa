@@ -57,7 +57,8 @@ function parseJsonMaybe(v) {
   if (typeof v === 'string') {
     try {
       return JSON.parse(v);
-    } catch {
+    } catch (err) {
+      console.warn('[aiIncidentGovernanceService][parse_json_maybe]', err?.message ?? err);
       return {};
     }
   }

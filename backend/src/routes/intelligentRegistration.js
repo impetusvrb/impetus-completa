@@ -52,7 +52,9 @@ router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter
         userAgent: req.get('user-agent'),
         sessionId: req.user.sessionId || null,
         severity: 'info'
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[routes/intelligentRegistration][log_action]', err?.message ?? err);
+      });
     }
 
     claudeAnalytics.ingestRegistroInteligente(registration, companyId);

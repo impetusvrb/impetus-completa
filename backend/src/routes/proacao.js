@@ -32,7 +32,9 @@ router.post('/', requireFactoryOperationalMember, async (req, res) => {
         userAgent: req.get('user-agent'),
         sessionId: req.user.sessionId || null,
         severity: 'info'
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[routes/proacao][log_action]', err?.message ?? err);
+      });
     }
     res.json({ ok: true, proposal: p });
   } catch (err) {

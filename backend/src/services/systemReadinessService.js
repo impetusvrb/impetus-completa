@@ -41,7 +41,8 @@ function isValidDataEncryptionKeyFormat(b64) {
   try {
     const buf = Buffer.from(String(b64).trim(), 'base64');
     return buf.length === 32;
-  } catch {
+  } catch (err) {
+    console.warn('[systemReadinessService][encryption_key_b64]', err?.message ?? err);
     return false;
   }
 }

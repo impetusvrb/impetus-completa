@@ -253,7 +253,9 @@ async function detectAndCreateLogisticsAlerts(companyId) {
     if (!exists.rows?.length) {
       await db.query(`
         UPDATE logistics_expeditions SET status = 'atraso_detectado', delay_minutes = EXTRACT(EPOCH FROM (now() - estimated_arrival_at))/60 WHERE id = $1
-      `, [exp.id]).catch(() => {});
+      `, [exp.id]).catch((err) => {
+        console.warn('[logisticsIntelligenceService][expedition_delay_update]', err?.message ?? err);
+      });
       alerts.push(await createLogisticsAlert(companyId, {
         alert_type: 'delivery_delay',
         severity: 'high',
@@ -361,7 +363,9 @@ async function saveLogisticsSnapshot(companyId) {
     indicators.avg_route_time_minutes,
     indicators.fleet_utilization_pct,
     indicators.total_weight_kg
-  ]).catch(() => {});
+  ]).catch((err) => {
+    console.warn('[logisticsIntelligenceService][logistics_snapshot_upsert]', err?.message ?? err);
+  });
 }
 
 /**

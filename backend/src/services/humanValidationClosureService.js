@@ -40,7 +40,8 @@ function assistantSnippetFromTrace(row) {
   if (typeof out === 'string') {
     try {
       out = JSON.parse(out);
-    } catch {
+    } catch (err) {
+      console.warn('[humanValidationClosureService][assistant_snippet_parse]', err?.message ?? err);
       return '';
     }
   }
@@ -127,7 +128,8 @@ async function tryClosePendingValidation(params) {
     if (typeof modelInfo === 'string') {
       try {
         modelInfo = JSON.parse(modelInfo);
-      } catch {
+      } catch (err) {
+        console.warn('[humanValidationClosureService][model_info_parse]', err?.message ?? err);
         modelInfo = {};
       }
     }
@@ -142,14 +144,14 @@ async function tryClosePendingValidation(params) {
       module_name: pending.module_name || null,
       operation_type: operationType
     });
-  } catch (_) {
-    /* aditivo */
+  } catch (err) {
+    console.warn('[humanValidationClosureService][capture_feedback]', err?.message ?? err);
   }
 
   try {
     adaptiveGovernanceEngine.invalidateAfterFeedback(user.company_id, user.id);
-  } catch (_) {
-    /* aditivo */
+  } catch (err) {
+    console.warn('[humanValidationClosureService][invalidate_governance]', err?.message ?? err);
   }
 
   const out =
@@ -159,7 +161,8 @@ async function tryClosePendingValidation(params) {
         ? (() => {
             try {
               return JSON.parse(pending.output_response);
-            } catch {
+            } catch (err) {
+              console.warn('[humanValidationClosureService][pending_output_parse]', err?.message ?? err);
               return {};
             }
           })()

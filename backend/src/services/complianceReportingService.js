@@ -394,7 +394,8 @@ async function queryOrgRiskRanking(companyId, start, endExclusive, limit = 12) {
     if (!riskMap.has(companyIdKey)) {
       try {
         risk = await riskIntel.getCompanyRiskBundle(row.company_id);
-      } catch {
+      } catch (err) {
+        console.warn('[complianceReportingService][risk_bundle_row]', err?.message ?? err);
         risk = defaultRisk;
       }
     } else {

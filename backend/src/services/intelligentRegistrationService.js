@@ -24,7 +24,8 @@ function normalizeIntelligentRegistrationRow(row) {
   } else if (typeof meta === 'string') {
     try {
       out.ai_metadata = JSON.parse(meta);
-    } catch {
+    } catch (err) {
+      console.warn('[intelligentRegistrationService][ai_metadata_parse]', err?.message ?? err);
       out.ai_metadata = {};
     }
   } else if (typeof meta === 'object' && !Array.isArray(meta)) {
@@ -55,7 +56,8 @@ function parseJsonFromText(text) {
       return JSON.parse(jsonMatch[0]);
     }
     return null;
-  } catch {
+  } catch (err) {
+    console.warn('[intelligentRegistrationService][parse_json_from_text]', err?.message ?? err);
     return null;
   }
 }

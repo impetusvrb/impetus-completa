@@ -143,7 +143,8 @@ async function getUserIdsInDepartments(departmentIds) {
       [departmentIds]
     );
     return r.rows.map((row) => row.id);
-  } catch {
+  } catch (err) {
+    console.warn('[hierarchicalFilter][user_ids_in_departments]', err?.message ?? err);
     return [];
   }
 }

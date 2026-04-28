@@ -14,7 +14,8 @@ function parseMetadados(row) {
   if (typeof m === 'string') {
     try {
       m = JSON.parse(m);
-    } catch {
+    } catch (err) {
+      console.warn('[operationalBrainExplanationService][metadados_parse]', err?.message ?? err);
       return {};
     }
   }

@@ -14,7 +14,8 @@ function parseJsonField(val, fallback) {
   if (typeof val === 'string') {
     try {
       return JSON.parse(val);
-    } catch {
+    } catch (err) {
+      console.warn('[dashboardComposerService][parse_json_field]', err?.message ?? err);
       return fallback;
     }
   }
@@ -80,7 +81,8 @@ async function getUsageWeights(userId, days = 30) {
       entity_id: row.entity_id,
       weight: row.weight
     }));
-  } catch {
+  } catch (err) {
+    console.warn('[dashboardComposerService][usage_weights]', err?.message ?? err);
     return [];
   }
 }

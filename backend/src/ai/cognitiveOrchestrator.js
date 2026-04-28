@@ -33,7 +33,7 @@ const {
 const { retrieveContextualData } = require('../services/dataRetrievalService');
 const { mergeContextualData } = require('../services/contextualDataMergeService');
 const { recordOperationalOutcome } = require('../services/operationalLearningService');
-const contextSessionService = require('../services/contextSessionService');
+const { getUnifiedSessionContext, updateUnifiedSessionContext } = require('../services/unifiedSessionContextService');
 const { shouldTriggerProactiveRetrieval } = require('../services/proactiveRetrievalService');
 
 const ingressLayer = require('./layers/ingressLayer');
@@ -91,7 +91,7 @@ function commitContextSessionFromCouncil(user, s) {
       : intentData && intentData.intent
         ? [String(intentData.intent)]
         : [];
-  contextSessionService.updateSessionContext(user, {
+  updateUnifiedSessionContext(user, {
     intents,
     entities: intentData && intentData.entities,
     contextual_data: enrichedData && enrichedData.contextual_data
@@ -127,7 +127,7 @@ async function runCognitiveCouncil(params) {
 
   const executeCouncil = async () => {
     const sessionCtx =
-      user?.company_id && user?.id ? contextSessionService.getSessionContext(user) : null;
+      user?.company_id && user?.id ? await getUnifiedSessionContext(user) : null;
     const advPipeline = detectIntentAdvanced(rt);
     const implicitOperational = inferImplicitOperationalIntent(rt, sessionCtx, advPipeline);
     const willMultiIntent =
@@ -284,6 +284,7 @@ async function runCognitiveCouncil(params) {
       const proactiveDecision = shouldTriggerProactiveRetrieval({
         hasExplicitClientData: !hasNoExplicitClientData(params),
         companyId: user.company_id,
+        user,
         intentData,
         enrichedData,
         sessionContext: sessionCtx,
@@ -579,8 +580,8 @@ async function runCognitiveCouncil(params) {
       if (user.company_id) {
         processing_transparency = await aiProviderService.getCognitivePipelineDisclosure(user.company_id);
       }
-    } catch (_) {
-      /* aditivo */
+    } catch (err) {
+      console.warn('[ai/cognitiveOrchestrator][processing_transparency]', err?.message ?? err);
     }
 
     observabilityService.markPolicyApplied({

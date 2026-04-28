@@ -97,8 +97,8 @@ async function revokeConsent(userId, type) {
   try {
     const uc = await db.query(`SELECT company_id FROM users WHERE id = $1`, [userId]);
     companyId = uc.rows[0]?.company_id || null;
-  } catch (_) {
-    /* fail-safe */
+  } catch (err) {
+    console.warn('[middleware/lgpd][revoke_consent_lookup]', err?.message ?? err);
   }
   try {
     const upd = await db.query(

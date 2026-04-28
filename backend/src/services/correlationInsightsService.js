@@ -46,7 +46,9 @@ function schedulePersistRecurringPattern(companyId, p) {
       event_type: p.event_type != null ? String(p.event_type) : null,
       occurrences: p.evidence_count != null ? parseInt(p.evidence_count, 10) || 1 : 1,
       window_days: 30
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('[correlationInsightsService][persist_pattern_async]', err?.message ?? err);
+    });
   });
 }
 
@@ -444,29 +446,279 @@ function keyTriplet(r) {
   return `${pt}|${mid}|${et}`;
 }
 
+function rowOccurrences(row) {
+  const n = parseInt(String(row && row.occurrences != null ? row.occurrences : 1), 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function clamp01(x) {
+  if (!Number.isFinite(x)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, x));
+}
+
+function linearRegressionWeekIndex(weights) {
+  const y = Array.isArray(weights) ? weights.map((v) => Math.max(0, Number(v) || 0)) : [];
+  const n = y.length;
+  if (n < 2) {
+    return { slope: 0, r2: 0, intercept: 0, weekly_mean: 0, n };
+  }
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+  for (let i = 0; i < n; i += 1) {
+    sumX += i;
+    sumY += y[i];
+    sumXY += i * y[i];
+    sumXX += i * i;
+  }
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) {
+    return { slope: 0, r2: 0, intercept: sumY / n, weekly_mean: sumY / n, n };
+  }
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  const meanY = sumY / n;
+  let ssTot = 0;
+  let ssRes = 0;
+  for (let i = 0; i < n; i += 1) {
+    const yi = y[i];
+    const pred = slope * i + intercept;
+    ssTot += (yi - meanY) ** 2;
+    ssRes += (yi - pred) ** 2;
+  }
+  const r2 = ssTot > 1e-9 ? clamp01(1 - ssRes / ssTot) : 0;
+  return { slope, r2, intercept, weekly_mean: meanY, n };
+}
+
+function buildWeeklyVolumeSeries(rows, tStart, now) {
+  const MSW = 7 * 86400000;
+  const span = Math.max(now - tStart, MSW);
+  const nWeeks = Math.min(14, Math.max(2, Math.ceil(span / MSW)));
+  const w = new Array(nWeeks).fill(0);
+  for (const row of rows) {
+    const t = row.created_at != null ? new Date(row.created_at).getTime() : 0;
+    if (!Number.isFinite(t) || t < tStart || t > now) {
+      continue;
+    }
+    const idx = Math.min(Math.floor((t - tStart) / MSW), nWeeks - 1);
+    w[idx] += rowOccurrences(row);
+  }
+  return w;
+}
+
+function recurrenceStrengthFromSignals({ v7, v30, v90, c7, c30, c90, patternTrend, conc }) {
+  const snapScore = Math.min(1, c90 / 5) * 0.45 + Math.min(1, v90 / 18) * 0.55;
+  const momentum =
+    patternTrend === 'up' ? 0.15 : patternTrend === 'down' ? -0.05 : 0;
+  const seasonalBoost = conc >= 0.42 ? 0.12 : conc >= 0.32 ? 0.06 : 0;
+  const burstShort = v7 >= 4 && c7 >= 2 ? 0.1 : 0;
+  const score = clamp01(snapScore + momentum + seasonalBoost + burstShort);
+  if (score >= 0.58 || (v90 >= 8 && c90 >= 3) || (v30 >= 6 && c7 >= 2 && patternTrend === 'up')) {
+    return { strength: 'strong', score };
+  }
+  if (score >= 0.35 || v90 >= 4 || c90 >= 2) {
+    return { strength: 'weak', score };
+  }
+  return { strength: 'weak', score };
+}
+
+function patternConfidenceScore({ v7, v30, v90, c90, conc, share90 }) {
+  const volPart = Math.min(1, Math.log2(1 + v90) / Math.log2(1 + 36));
+  const snapPart = Math.min(1, c90 / 6);
+  const concPart = conc > 0 ? 0.25 + 0.75 * conc : 0.25;
+  const sharePart =
+    share90 != null && Number.isFinite(share90) && share90 > 0
+      ? Math.min(1, 0.35 + share90 * 2)
+      : 0.35;
+  return clamp01(volPart * 0.42 + snapPart * 0.28 + concPart * 0.15 + sharePart * 0.15);
+}
+
 /**
- * Janelas 7/30/90 dias; heurísticas de repetição, sazonalidade simples (dow) e pico 7d vs 30d.
+ * Janelas 7/30/90 dias sobre `correlation_history` (≤1500 registos) + regressão semanal ponderada,
+ * sazonalidade DOW com volume, perfis por máquina, força de recorrência e confiança.
  * @param {string} companyId
- * @returns {Promise<{
- *   recurring_patterns: object[],
- *   seasonal_patterns: object[],
- *   anomaly_patterns: object[]
- * }>}
+ * @returns {Promise<object>}
  */
 async function deriveTemporalInsights(companyId) {
+  const LOOKBACK_DAYS = 90;
+  const maxList = Math.min(
+    correlationHistoryRepository.DEFAULT_TEMPORAL_LIST_CAP,
+    correlationHistoryRepository.TEMPORAL_ANALYSIS_HARD_CAP != null
+      ? correlationHistoryRepository.TEMPORAL_ANALYSIS_HARD_CAP
+      : 1500
+  );
+
+  const emptyOut = (note) => ({
+    recurring_patterns: [],
+    seasonal_patterns: [],
+    anomaly_patterns: [],
+    machine_profiles: [],
+    trend_direction: 'stable',
+    trend_note: note || null,
+    windows_days: [7, 30, LOOKBACK_DAYS],
+    history_rows_used: 0,
+    history_lookback_days: LOOKBACK_DAYS,
+    data_source: 'correlation_history',
+    global_trend_confidence: 0,
+    trend_metrics: {
+      method: 'none',
+      r_squared: 0,
+      slope_per_week: 0,
+      week_over_week_ratio: null,
+      weeks_in_series: 0
+    }
+  });
+
   const cid = companyId != null ? String(companyId).trim() : '';
   if (!cid || !isValidUUID(cid)) {
-    return { recurring_patterns: [], seasonal_patterns: [], anomaly_patterns: [] };
+    return emptyOut('company_id inválido');
   }
-  const rows = await correlationHistoryRepository.listHistoryForCompany(cid, 90);
+
+  let rows = [];
+  try {
+    rows = await correlationHistoryRepository.listHistoryForCompany(cid, LOOKBACK_DAYS, maxList);
+  } catch (e) {
+    console.warn('[correlationInsightsService][deriveTemporalInsights_query]', e?.message ?? e);
+    return {
+      ...emptyOut('falha ao ler histórico; usar heurísticas a jusante'),
+      trend_direction: 'unknown',
+      global_trend_confidence: 0
+    };
+  }
+
   if (!rows.length) {
-    return { recurring_patterns: [], seasonal_patterns: [], anomaly_patterns: [] };
+    return emptyOut('sem registos em correlation_history no período (fallback heurístico possível)');
   }
 
   const now = Date.now();
   const d7 = now - 7 * 86400000;
   const d30 = now - 30 * 86400000;
-  const d90 = now - 90 * 86400000;
+  const d90 = now - LOOKBACK_DAYS * 86400000;
+
+  let aggV7 = 0;
+  let aggV30 = 0;
+  let companyV90 = 0;
+  for (const row of rows) {
+    const t = row.created_at != null ? new Date(row.created_at).getTime() : 0;
+    if (!Number.isFinite(t) || t <= 0) {
+      continue;
+    }
+    const w = rowOccurrences(row);
+    if (t >= d7) {
+      aggV7 += w;
+    }
+    if (t >= d30) {
+      aggV30 += w;
+    }
+    if (t >= d90) {
+      companyV90 += w;
+    }
+  }
+
+  const weeklySeries = buildWeeklyVolumeSeries(rows, d90, now);
+  const reg = linearRegressionWeekIndex(weeklySeries);
+  const meanY = reg.weekly_mean;
+  const relSlope = meanY > 0.4 ? reg.slope / meanY : reg.slope;
+  const lastW = weeklySeries[weeklySeries.length - 1] || 0;
+  const prevW = weeklySeries.length >= 2 ? weeklySeries[weeklySeries.length - 2] || 0 : 0;
+  const wow = prevW > 0 ? lastW / prevW : lastW > 0 ? 2 : 1;
+
+  let trend_direction = 'stable';
+  let trend_note = null;
+  let global_trend_confidence = clamp01(reg.r2 * Math.min(1, companyV90 / 24));
+
+  if (companyV90 < 3) {
+    trend_direction = 'unknown';
+    trend_note = 'volume agregado insuficiente para tendência global';
+    global_trend_confidence = 0;
+  } else {
+    const strongUp = relSlope > 0.1 && reg.r2 >= 0.15;
+    const strongDown = relSlope < -0.1 && reg.r2 >= 0.15;
+    const wowUp = wow >= 1.5 && lastW >= 2;
+    const wowDown = wow <= 0.55 && prevW >= 3;
+
+    if (strongUp || (wowUp && reg.r2 >= 0.08)) {
+      trend_direction = 'up';
+      trend_note = strongUp
+        ? 'regressão linear sobre semanas (volume ponderado) indica subida'
+        : 'última semana acima da anterior (week-over-week)';
+      global_trend_confidence = clamp01(Math.max(global_trend_confidence, 0.45 + reg.r2 * 0.4));
+    } else if (strongDown || (wowDown && reg.r2 >= 0.08)) {
+      trend_direction = 'down';
+      trend_note = strongDown
+        ? 'regressão linear sobre semanas indica descida'
+        : 'queda acentuada semana a semana';
+      global_trend_confidence = clamp01(Math.max(global_trend_confidence, 0.45 + reg.r2 * 0.4));
+    } else {
+      const expected7from30 = aggV30 > 0 ? aggV30 * (7 / 30) : 0;
+      if (aggV30 < 3 && aggV7 < 2) {
+        trend_direction = 'unknown';
+        trend_note = 'sinal fraco: poucos registos nas janelas 7d/30d';
+        global_trend_confidence = clamp01(reg.r2 * 0.25);
+      } else if (expected7from30 > 0 && aggV7 > expected7from30 * 1.25) {
+        trend_direction = 'up';
+        trend_note = 'volume ponderado 7d acima do proporcional à janela 30d (fallback ratio)';
+        global_trend_confidence = clamp01(0.32 + reg.r2 * 0.28);
+      } else if (expected7from30 > 0 && aggV7 < expected7from30 * 0.65) {
+        trend_direction = 'down';
+        trend_note = 'volume 7d abaixo do proporcional 30d (fallback ratio)';
+        global_trend_confidence = clamp01(0.32 + reg.r2 * 0.28);
+      } else {
+        trend_note = 'variação compatível com estabilidade (histórico real)';
+        global_trend_confidence = clamp01(reg.r2 * 0.35 + 0.1);
+      }
+    }
+  }
+
+  const trend_metrics = {
+    method:
+      companyV90 < 3 ? 'insufficient_data' : 'weekly_weighted_regression_plus_ratio_fallback',
+    r_squared: Math.round(reg.r2 * 1000) / 1000,
+    slope_per_week: Math.round(reg.slope * 1000) / 1000,
+    week_over_week_ratio: Math.round(wow * 100) / 100,
+    weeks_in_series: weeklySeries.length
+  };
+
+  const machineBuckets = new Map();
+  for (const row of rows) {
+    const mid = row.machine_id != null ? String(row.machine_id).trim() : '';
+    if (!mid) {
+      continue;
+    }
+    const t = row.created_at != null ? new Date(row.created_at).getTime() : 0;
+    if (!Number.isFinite(t) || t < d90) {
+      continue;
+    }
+    const w = rowOccurrences(row);
+    if (!machineBuckets.has(mid)) {
+      machineBuckets.set(mid, {
+        machine_id: mid,
+        vol7: 0,
+        vol30: 0,
+        vol90: 0,
+        c7: 0,
+        c30: 0,
+        c90: 0,
+        dow: new Array(7).fill(0)
+      });
+    }
+    const b = machineBuckets.get(mid);
+    b.vol90 += w;
+    b.c90 += 1;
+    if (t >= d30) {
+      b.vol30 += w;
+      b.c30 += 1;
+    }
+    if (t >= d7) {
+      b.vol7 += w;
+      b.c7 += 1;
+    }
+    const dow = new Date(t).getUTCDay();
+    b.dow[dow] += w;
+  }
 
   const groups = new Map();
   for (const row of rows) {
@@ -480,31 +732,41 @@ async function deriveTemporalInsights(companyId) {
       });
     }
     const t = row.created_at != null ? new Date(row.created_at).getTime() : 0;
-    groups.get(k).rows.push({ t, occ: row.occurrences, wd: row.window_days });
+    groups.get(k).rows.push({ t, occ: rowOccurrences(row), wd: row.window_days });
   }
 
   const recurring_patterns = [];
   const seasonal_patterns = [];
   const anomaly_patterns = [];
 
+  const countSnaps = (grows, t0, t1) => grows.filter((r) => r.t >= t0 && r.t <= t1 && Number.isFinite(r.t)).length;
+  const sumVol = (grows, t0, t1) =>
+    grows.reduce(
+      (s, r) => (Number.isFinite(r.t) && r.t >= t0 && r.t <= t1 ? s + Math.max(1, r.occ || 1) : s),
+      0
+    );
+
   for (const g of groups.values()) {
     const times = g.rows.map((x) => x.t).filter((t) => Number.isFinite(t) && t > 0);
     if (!times.length) {
       continue;
     }
-    const inWin = (t0, t1) => g.rows.filter((r) => r.t >= t0 && r.t <= t1).length;
-    const c7 = inWin(d7, now);
-    const c30 = inWin(d30, now);
-    const c90 = inWin(d90, now);
+    const c7 = countSnaps(g.rows, d7, now);
+    const c30 = countSnaps(g.rows, d30, now);
+    const c90 = countSnaps(g.rows, d90, now);
+    const v7 = sumVol(g.rows, d7, now);
+    const v30 = sumVol(g.rows, d30, now);
+    const v90 = sumVol(g.rows, d90, now);
 
-    const dows = g.rows
-      .filter((r) => r.t >= d90)
-      .map((r) => new Date(r.t).getUTCDay());
     const hist = new Array(7).fill(0);
-    for (const d of dows) {
-      hist[d] += 1;
+    for (const r of g.rows) {
+      if (!Number.isFinite(r.t) || r.t < d90) {
+        continue;
+      }
+      const dow = new Date(r.t).getUTCDay();
+      hist[dow] += Math.max(1, r.occ || 1);
     }
-    const totalDow = dows.length;
+    const totalDow = hist.reduce((a, b) => a + b, 0);
     let maxD = 0;
     let maxIdx = 0;
     for (let i = 0; i < 7; i += 1) {
@@ -515,47 +777,189 @@ async function deriveTemporalInsights(companyId) {
     }
     const conc = totalDow > 0 ? maxD / totalDow : 0;
 
-    if (c90 >= 2 && (c30 >= 2 || c7 >= 1)) {
-      const trend = c7 > c30 / 4 ? 'up' : c7 < c30 / 6 ? 'down' : 'stable';
+    const recurrentBySnapshots = c90 >= 2 && (c30 >= 2 || c7 >= 1);
+    const recurrentByVolume = v90 >= 5 && v30 >= 2;
+    if (recurrentBySnapshots || recurrentByVolume) {
+      let patternTrend = 'stable';
+      if (c30 > 0 && v30 > 0) {
+        const expected7 = v30 * (7 / 30);
+        if (expected7 > 0 && v7 > expected7 * 1.2) {
+          patternTrend = 'up';
+        } else if (expected7 > 0 && v7 < expected7 * 0.7) {
+          patternTrend = 'down';
+        } else if (c7 > c30 / 4) {
+          patternTrend = 'up';
+        } else if (c7 < c30 / 6) {
+          patternTrend = 'down';
+        }
+      } else if (c7 > c30 / 4) {
+        patternTrend = 'up';
+      } else if (c7 < c30 / 6) {
+        patternTrend = 'down';
+      }
+      const share90 = companyV90 > 0 ? v90 / companyV90 : 0;
+      const conf = patternConfidenceScore({
+        v7,
+        v30,
+        v90,
+        c90,
+        conc,
+        share90
+      });
+      const { strength: recurrence_strength, score: recurrence_score } = recurrenceStrengthFromSignals({
+        v7,
+        v30,
+        v90,
+        c7,
+        c30,
+        c90,
+        patternTrend,
+        conc
+      });
       recurring_patterns.push({
         pattern_type: g.pattern_type,
         machine_id: g.machine_id,
         event_type: g.event_type,
         counts_by_window: { days_7: c7, days_30: c30, days_90: c90 },
-        trend,
-        note: 'repetição observada nas janelas 7/30/90d (metadados agregados)'
+        evidence_volume_by_window: { days_7: v7, days_30: v30, days_90: v90 },
+        trend_direction: patternTrend,
+        trend: patternTrend,
+        confidence_score: Math.round(conf * 100) / 100,
+        recurrence_strength,
+        recurrence_score: Math.round(recurrence_score * 100) / 100,
+        volume_normalized: {
+          events_per_day_90d: Math.round((v90 / 90) * 1000) / 1000,
+          share_of_company_volume_90d: companyV90 > 0 ? Math.round(share90 * 1000) / 1000 : null
+        },
+        note: 'repetição a partir de correlation_history (snapshots + volume occurrences), normalizado à empresa',
+        data_source: 'correlation_history'
       });
     }
 
     if (totalDow >= 5 && conc >= 0.38) {
+      const seasonality_strength = clamp01(conc * Math.min(1, Math.log1p(totalDow) / Math.log1p(48)));
       seasonal_patterns.push({
         pattern_type: g.pattern_type,
         machine_id: g.machine_id,
         event_type: g.event_type,
         day_of_week_peak: maxIdx,
         concentration: Math.round(conc * 100) / 100,
-        note: 'concentração em dia da semana (UTC) — padrão cíclico simples'
+        seasonality_strength: Math.round(seasonality_strength * 100) / 100,
+        weighted_samples_90d: Math.round(totalDow * 100) / 100,
+        note: 'concentração em dia da semana (UTC), pesado por occurrences (volume)',
+        data_source: 'correlation_history'
       });
     }
 
-    const baseline = Math.max(1, c30 / 4);
-    if (c30 >= 3 && c7 > baseline * 1.35) {
+    const baselineVol = Math.max(1, v30 / 4);
+    if (v30 >= 3 && v7 > baselineVol * 1.35) {
+      anomaly_patterns.push({
+        pattern_type: g.pattern_type,
+        machine_id: g.machine_id,
+        event_type: g.event_type,
+        short_window_volume: v7,
+        baseline_30d_quarter_volume: Math.round(baselineVol * 100) / 100,
+        ratio: Math.round((v7 / baselineVol) * 100) / 100,
+        snapshot_short_window: c7,
+        note: 'aumento de volume na janela 7d vs base derivada de 30d (occurrences)',
+        data_source: 'correlation_history'
+      });
+    } else if (c30 >= 3 && c7 > Math.max(1, c30 / 4) * 1.35) {
       anomaly_patterns.push({
         pattern_type: g.pattern_type,
         machine_id: g.machine_id,
         event_type: g.event_type,
         short_window: c7,
-        baseline_30d_quarter: Math.round(baseline * 100) / 100,
-        ratio: Math.round((c7 / baseline) * 100) / 100,
-        note: 'aumento de ocorrências na janela curta vs. base derivada de 30d'
+        baseline_30d_quarter: Math.round(Math.max(1, c30 / 4) * 100) / 100,
+        ratio: Math.round((c7 / Math.max(1, c30 / 4)) * 100) / 100,
+        note: 'aumento de frequência de registos na janela curta vs. base 30d (heurística de contagem)',
+        data_source: 'correlation_history_heuristic'
       });
     }
   }
 
+  const machine_profiles = [];
+  for (const b of machineBuckets.values()) {
+    const tdow = b.dow.reduce((a, x) => a + x, 0);
+    let maxD = 0;
+    let maxIdx = 0;
+    for (let i = 0; i < 7; i += 1) {
+      if (b.dow[i] > maxD) {
+        maxD = b.dow[i];
+        maxIdx = i;
+      }
+    }
+    const concM = tdow > 0 ? maxD / tdow : 0;
+    let pTrend = 'stable';
+    if (b.c30 > 0 && b.vol30 > 0) {
+      const e7 = b.vol30 * (7 / 30);
+      if (e7 > 0 && b.vol7 > e7 * 1.2) {
+        pTrend = 'up';
+      } else if (e7 > 0 && b.vol7 < e7 * 0.7) {
+        pTrend = 'down';
+      }
+    }
+    const { strength, score: recScore } = recurrenceStrengthFromSignals({
+      v7: b.vol7,
+      v30: b.vol30,
+      v90: b.vol90,
+      c7: b.c7,
+      c30: b.c30,
+      c90: b.c90,
+      patternTrend: pTrend,
+      conc: concM
+    });
+    const confM = patternConfidenceScore({
+      v7: b.vol7,
+      v30: b.vol30,
+      v90: b.vol90,
+      c90: b.c90,
+      conc: concM,
+      share90: companyV90 > 0 ? b.vol90 / companyV90 : 0
+    });
+    machine_profiles.push({
+      machine_id: b.machine_id,
+      windows: {
+        days_7: { volume: Math.round(b.vol7 * 100) / 100, snapshots: b.c7 },
+        days_30: { volume: Math.round(b.vol30 * 100) / 100, snapshots: b.c30 },
+        days_90: { volume: Math.round(b.vol90 * 100) / 100, snapshots: b.c90 }
+      },
+      volume_normalized: {
+        events_per_day_90d: Math.round((b.vol90 / 90) * 1000) / 1000,
+        share_of_company_volume_90d:
+          companyV90 > 0 ? Math.round((b.vol90 / companyV90) * 1000) / 1000 : null
+      },
+      trend_direction: pTrend,
+      recurrence_strength: strength,
+      recurrence_score: Math.round(recScore * 100) / 100,
+      confidence_score: Math.round(confM * 100) / 100,
+      seasonality_hint:
+        tdow >= 4 && concM >= 0.34
+          ? {
+              day_of_week_peak_utc: maxIdx,
+              concentration: Math.round(concM * 100) / 100
+            }
+          : null
+    });
+  }
+  machine_profiles.sort(
+    (a, b) => (b.windows?.days_90?.volume || 0) - (a.windows?.days_90?.volume || 0)
+  );
+
   return {
     recurring_patterns: recurring_patterns.slice(0, 24),
     seasonal_patterns: seasonal_patterns.slice(0, 20),
-    anomaly_patterns: anomaly_patterns.slice(0, 20)
+    anomaly_patterns: anomaly_patterns.slice(0, 20),
+    machine_profiles: machine_profiles.slice(0, 40),
+    trend_direction,
+    trend_note,
+    global_trend_confidence: Math.round(global_trend_confidence * 100) / 100,
+    trend_metrics,
+    windows_days: [7, 30, LOOKBACK_DAYS],
+    history_rows_used: rows.length,
+    history_lookback_days: LOOKBACK_DAYS,
+    max_rows_cap: maxList,
+    data_source: 'correlation_history'
   };
 }
 

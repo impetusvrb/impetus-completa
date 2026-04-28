@@ -416,7 +416,12 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
     if (client) {
       try {
         await client.query('ROLLBACK');
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[impetusAdmin/companies][ROLLBACK]',
+          err && err.message ? err.message : err
+        );
+      }
     }
     if (e instanceof z.ZodError) {
       return res.status(400).json({ ok: false, error: 'Validação', details: e.errors });
@@ -430,7 +435,12 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
     if (client) {
       try {
         client.release();
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[impetusAdmin/companies][CLIENT_RELEASE]',
+          err && err.message ? err.message : err
+        );
+      }
     }
   }
 });

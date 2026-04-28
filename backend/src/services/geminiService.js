@@ -165,7 +165,8 @@ async function montarContexto(opts = {}) {
         sender: x.sender_name || 'sistema',
         created_at: x.created_at
       }));
-    } catch {
+    } catch (err) {
+      console.warn('[geminiService][context_conversas]', err?.message ?? err);
       context.conversas_recentes = [];
     }
   }
@@ -181,7 +182,8 @@ async function montarContexto(opts = {}) {
         [companyId]
       );
       context.eventos_operacionais = r.rows || [];
-    } catch {
+    } catch (err) {
+      console.warn('[geminiService][context_eventos]', err?.message ?? err);
       context.eventos_operacionais = [];
     }
   }
@@ -197,7 +199,8 @@ async function montarContexto(opts = {}) {
         [companyId]
       );
       context.manuais = r.rows || [];
-    } catch {
+    } catch (err) {
+      console.warn('[geminiService][context_manuais]', err?.message ?? err);
       context.manuais = [];
     }
   }
@@ -212,7 +215,8 @@ async function montarContexto(opts = {}) {
       [companyId]
     );
     context.equipe = team.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[geminiService][context_equipe]', err?.message ?? err);
     context.equipe = [];
   }
 
@@ -348,7 +352,8 @@ function extractJson(raw) {
     if (!match) return null;
   try {
     return JSON.parse(match[0]);
-  } catch {
+  } catch (err) {
+    console.warn('[geminiService][extract_json]', err?.message ?? err);
     return null;
   }
 }

@@ -97,7 +97,9 @@ async function processPush(companyId, connectorId, payload) {
     await db.query(`
       INSERT INTO mes_erp_sync_log (company_id, connector_id, sync_type, status, error_message)
       VALUES ($1, $2, 'push', 'error', $3)
-    `, [companyId, connectorId, errorMsg]).catch(() => {});
+    `, [companyId, connectorId, errorMsg]).catch((err) => {
+      console.warn('[mesErpIntegrationService][sync_log_insert]', err?.message ?? err);
+    });
     throw err;
   }
 }
@@ -144,7 +146,8 @@ async function assertMesErpPushAuthorized(companyId, connectorId, presentedToken
   if (typeof cfg === 'string') {
     try {
       cfg = JSON.parse(cfg);
-    } catch {
+    } catch (err) {
+      console.warn('[mesErpIntegrationService][auth_config_parse]', err?.message ?? err);
       cfg = {};
     }
   }

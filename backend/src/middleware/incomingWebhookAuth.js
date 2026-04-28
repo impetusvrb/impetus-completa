@@ -23,8 +23,8 @@ function logWebhookAuthFailure(code, req, extra = {}) {
         ...extra
       })
     );
-  } catch (_) {
-    /* no-op */
+  } catch (err) {
+    console.warn('[middleware/incomingWebhookAuth][log_failure_json]', err?.message ?? err);
   }
 }
 

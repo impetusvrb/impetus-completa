@@ -248,5 +248,6 @@ module.exports = {
   getSessionContext,
   updateSessionContext,
   clearSessionContext,
-  TTL_MS
+  TTL_MS,
+  summarizeContextualDataMeta
 };

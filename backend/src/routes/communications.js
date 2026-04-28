@@ -65,9 +65,20 @@ Retorne JSON:
           let parsed = null;
           try {
             parsed = JSON.parse(aiResponse);
-          } catch (_) {
-            const jsonMatch = String(aiResponse || '').match(/\{[\s\S]*\}/);
-            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+          } catch (parseErr) {
+            console.warn(
+              '[routes/communications][ai_classification_json]',
+              parseErr?.message ?? parseErr
+            );
+            try {
+              const jsonMatch = String(aiResponse || '').match(/\{[\s\S]*\}/);
+              if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+            } catch (fallbackErr) {
+              console.warn(
+                '[routes/communications][ai_classification_json_fallback]',
+                fallbackErr?.message ?? fallbackErr
+              );
+            }
           }
           if (parsed && typeof parsed === 'object') {
             aiClassification = parsed;

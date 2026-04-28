@@ -154,7 +154,8 @@ async function getHrManagementKpis(user, scope, companyId, profileConfig) {
       [companyId]
     );
     pulseTotal = parseInt(r.rows[0]?.c || 0, 10);
-  } catch {
+  } catch (err) {
+    console.warn('[dashboardKPIs][pulse_evaluations_count]', err?.message ?? err);
     pulseTotal = 0;
   }
   try {
@@ -163,7 +164,8 @@ async function getHrManagementKpis(user, scope, companyId, profileConfig) {
       [companyId]
     );
     hrAlertsOpen = parseInt(r.rows[0]?.c || 0, 10);
-  } catch {
+  } catch (err) {
+    console.warn('[dashboardKPIs][hr_alerts_count]', err?.message ?? err);
     hrAlertsOpen = 0;
   }
 

@@ -19,7 +19,7 @@ function normalizeApiBase(raw) {
   return t;
 }
 
-const API_URL = normalizeApiBase(import.meta.env.VITE_API_URL);
+export const API_URL = normalizeApiBase(import.meta.env.VITE_API_URL);
 const REQUEST_TIMEOUT_MS = 60000; // 60 segundos - evita requisições penduradas
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
@@ -149,14 +149,6 @@ export const setupCompany = {
   complete: (data) => api.post('/setup-company', data),
   changePassword: (newPassword) =>
     api.post('/setup-company/change-password', { new_password: newPassword })
-};
-
-export const onboarding = {
-  getStatus: () => api.get('/onboarding/status'),
-  start: (tipo) => api.post('/onboarding/start', { tipo }),
-  respond: (tipo, answer) => api.post('/onboarding/respond', { tipo, answer }),
-  getHistory: (tipo) => api.get(`/onboarding/history?tipo=${tipo || 'usuario'}`),
-  getContext: () => api.get('/onboarding/context')
 };
 
 // Identificação e ativação de usuário (segurança IA)

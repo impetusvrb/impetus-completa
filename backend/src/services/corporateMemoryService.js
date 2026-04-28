@@ -19,7 +19,8 @@ function parseScheduledAt(dataStr, horaStr) {
     }
     data.setHours(hours, mins, 0, 0);
     return data.toISOString();
-  } catch {
+  } catch (err) {
+    console.warn('[corporateMemoryService][parse_scheduled_at]', err?.message ?? err);
     return null;
   }
 }

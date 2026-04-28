@@ -230,7 +230,8 @@ Inclua corporate_events APENAS quando houver evidência clara. Se não houver, r
       facts: parsed.facts.filter((f) => f?.content && f?.fact_type),
       corporate_events: corporateEvents
     };
-  } catch {
+  } catch (err) {
+    console.warn('[claudeService][extract_memory_facts]', err?.message ?? err);
     return null;
   }
 }

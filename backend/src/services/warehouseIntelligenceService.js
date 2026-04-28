@@ -233,7 +233,9 @@ async function calculateWarehouseIndicators(companyId, days = 30) {
       below_min_count = EXCLUDED.below_min_count,
       idle_materials_count = EXCLUDED.idle_materials_count,
       total_movements_30d = EXCLUDED.total_movements_30d
-  `, [companyId, indicators.total_materials, indicators.below_min_count, indicators.idle_materials_count, indicators.total_movements_30d]).catch(() => {});
+  `, [companyId, indicators.total_materials, indicators.below_min_count, indicators.idle_materials_count, indicators.total_movements_30d]).catch((err) => {
+    console.warn('[warehouseIntelligenceService][snapshot_upsert]', err?.message ?? err);
+  });
 
   return indicators;
 }
@@ -388,7 +390,12 @@ async function detectAndCreateWarehouseAlerts(companyId) {
             { max_tokens: 150 }
           );
           if (String(analysis).startsWith('FALLBACK:')) analysis = null;
-        } catch (_) {}
+        } catch (err) {
+          console.warn(
+            '[WAREHOUSE_INTEL][idle_ai_completion]',
+            err && err.message ? err.message : err
+          );
+        }
       }
       alerts.push(await createWarehouseAlert(companyId, {
         material_id: m.id,
@@ -420,7 +427,9 @@ async function savePredictionsSnapshot(companyId) {
       companyId, p.material_id, today, p.current_quantity, p.min_stock,
       p.ideal_stock ?? 0, p.consumption_rate_per_day || 0, p.days_until_depletion,
       p.suggested_quantity, p.insight_text, p.risk_level
-    ]).catch(() => {});
+    ]).catch((err) => {
+      console.warn('[warehouseIntelligenceService][prediction_insert]', err?.message ?? err);
+    });
   }
 }
 

@@ -246,8 +246,8 @@ async function attachSessionOperationalMember(user, rawToken) {
         factory_member_confirmed_at: r.rows[0].factory_member_confirmed_at || null
       };
     }
-  } catch (_) {
-    /* ignore */
+  } catch (err) {
+    console.warn('[middleware/auth][attach_session_operational]', err?.message ?? err);
   }
   return user;
 }
@@ -272,8 +272,8 @@ async function attachCompanyIdFromFallbacks(user, rawToken) {
       if (claimCompanyId) {
         return { ...user, company_id: claimCompanyId };
       }
-    } catch (_) {
-      /* token opaco ou JWT inválido */
+    } catch (err) {
+      console.warn('[middleware/auth][jwt_company_fallback]', err?.message ?? err);
     }
   }
 
@@ -287,8 +287,8 @@ async function attachCompanyIdFromFallbacks(user, rawToken) {
       if (roleCompanyId) {
         return { ...user, company_id: roleCompanyId };
       }
-    } catch (_) {
-      /* mantém fluxo */
+    } catch (err) {
+      console.warn('[middleware/auth][company_role_lookup]', err?.message ?? err);
     }
   }
 
@@ -372,7 +372,9 @@ function requireHierarchy(minLevel) {
         userAgent: req.get('user-agent'),
         severity: 'warning',
         success: false
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[middleware/auth][log_action_access_denied_hierarchy]', err?.message ?? err);
+      });
       return res.status(403).json({
         ok: false,
         error: AUTH.ACCESS_DENIED_HIERARCHY,
@@ -415,7 +417,9 @@ function requirePermission(permission) {
         userAgent: req.get('user-agent'),
         severity: 'warning',
         success: false
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[middleware/auth][log_action_access_denied_permission]', err?.message ?? err);
+      });
       return res.status(403).json({
         ok: false,
         error: AUTH.ACCESS_DENIED_PERMISSION,
@@ -456,7 +460,9 @@ function requireRole(...allowedRoles) {
         userAgent: req.get('user-agent'),
         severity: 'warning',
         success: false
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[middleware/auth][log_action_access_denied_role]', err?.message ?? err);
+      });
       return res.status(403).json({
         ok: false,
         error: AUTH.ACCESS_DENIED_ROLE,
@@ -488,8 +494,8 @@ function userHasRhManagementScope(user) {
     if (dashboardProfileResolver.resolveDashboardProfile(user) === 'hr_management') {
       return true;
     }
-  } catch (_) {
-    /* ignore */
+  } catch (err) {
+    console.warn('[middleware/auth][rh_profile_resolve]', err?.message ?? err);
   }
 
   let hrCtx = false;
@@ -565,7 +571,9 @@ function requireRhManagementAccess(req, res, next) {
     userAgent: req.get('user-agent'),
     severity: 'warning',
     success: false
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn('[middleware/auth][log_action_access_denied_rh]', err?.message ?? err);
+  });
   return res.status(403).json({
     ok: false,
     error: AUTH.ACCESS_DENIED_ROLE,
@@ -627,7 +635,9 @@ function sameCompanyOnly(req, res, next) {
       userAgent: req.get('user-agent'),
       severity: 'warning',
       success: false
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('[middleware/auth][log_action_access_denied_company]', err?.message ?? err);
+    });
     return res.status(403).json({
       ok: false,
       error: AUTH.ACCESS_DENIED_COMPANY,

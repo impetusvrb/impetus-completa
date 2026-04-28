@@ -23,7 +23,12 @@ function parseClaudePanelJson(raw) {
     if (m) {
       try {
         return validateAndNormalizePanel(JSON.parse(m[0]));
-      } catch (_) {}
+      } catch (err) {
+        console.warn(
+          '[CLAUDE_PANEL][parseJson_fallback]',
+          err && err.message ? err.message : err
+        );
+      }
     }
   }
   return {

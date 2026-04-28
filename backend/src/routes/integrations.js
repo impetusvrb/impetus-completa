@@ -32,8 +32,8 @@ function logMesErpAuthFailure(status, req, message) {
         error: message
       })
     );
-  } catch (_) {
-    /* no-op */
+  } catch (err) {
+    console.warn('[routes/integrations][log_mes_erp_auth_failure_json]', err?.message ?? err);
   }
 }
 

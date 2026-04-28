@@ -57,7 +57,8 @@ async function getLinhasFromStructural(companyId) {
       ORDER BY pl.name
     `, [companyId]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[operationalKnowledgeMapService][linhas_structural]', err?.message ?? err);
     return [];
   }
 }
@@ -83,7 +84,8 @@ async function getEquipamentosFromStructural(companyId) {
       list.push({ id: a.id, name: a.name, line_id: a.line_id, machine_type: 'ativo' });
     });
     return list;
-  } catch {
+  } catch (err) {
+    console.warn('[operationalKnowledgeMapService][equipamentos_structural]', err?.message ?? err);
     return [];
   }
 }
@@ -105,7 +107,8 @@ async function getEntidadesFromEvents(companyId) {
       LIMIT 200
     `, [companyId]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[operationalKnowledgeMapService][entidades_events]', err?.message ?? err);
     return [];
   }
 }

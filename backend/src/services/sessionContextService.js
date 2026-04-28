@@ -118,7 +118,9 @@ function isEntryVisuallyEmpty(entry) {
 function schedulePersistSessionContext(companyId, userId, payload) {
   const n = normalizePayload(payload);
   setImmediate(() => {
-    Promise.resolve(sessionContextRepository.upsertSessionContext(companyId, userId, n)).catch(() => {});
+    Promise.resolve(sessionContextRepository.upsertSessionContext(companyId, userId, n)).catch((err) => {
+      console.warn('[sessionContextService][upsert_session_context]', err?.message ?? err);
+    });
   });
 }
 

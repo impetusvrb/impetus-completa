@@ -43,7 +43,8 @@ function getGovernanceWebhookUrl() {
   let u;
   try {
     u = new URL(String(raw).trim());
-  } catch {
+  } catch (err) {
+    console.warn('[governanceAlertService][governance_webhook_url]', err?.message ?? err);
     return null;
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
@@ -71,7 +72,7 @@ function postJsonOnce(webhookUrl, body, timeoutMs) {
       try {
         req.removeAllListeners();
       } catch (_) {
-        /* */
+        console.warn('[governanceAlertService][req_remove_listeners]', _?.message ?? _);
       }
       if (err) reject(err);
       else resolve();

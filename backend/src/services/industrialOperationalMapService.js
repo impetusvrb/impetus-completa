@@ -89,7 +89,8 @@ async function getLastReadings(companyId) {
       ORDER BY equipment_id, collected_at DESC
     `, [companyId]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[industrialOperationalMapService][last_readings]', err?.message ?? err);
     return [];
   }
 }
@@ -104,7 +105,8 @@ async function getRecentEvents(companyId, limit = 20) {
       LIMIT $2
     `, [companyId, limit]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[industrialOperationalMapService][recent_events]', err?.message ?? err);
     return [];
   }
 }
@@ -117,7 +119,8 @@ async function getActiveInterventions(companyId) {
       WHERE company_id = $1 AND status = 'active'
     `, [companyId]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[industrialOperationalMapService][active_interventions]', err?.message ?? err);
     return [];
   }
 }
@@ -148,7 +151,8 @@ async function getOfflineEquipment(companyId) {
       machine_name: p.machine_name,
       last_seen: lastSeen.get(p.machine_identifier) || null
     }));
-  } catch {
+  } catch (err) {
+    console.warn('[industrialOperationalMapService][offline_equipment]', err?.message ?? err);
     return [];
   }
 }
@@ -168,7 +172,8 @@ async function getFailurePredictions(companyId, limit = 10) {
       LIMIT $2
     `, [companyId, limit]);
     return r.rows || [];
-  } catch {
+  } catch (err) {
+    console.warn('[industrialOperationalMapService][failure_predictions]', err?.message ?? err);
     return [];
   }
 }

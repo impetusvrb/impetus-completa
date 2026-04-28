@@ -456,7 +456,8 @@ async function getAwaitingStructureDetailForUser(user) {
   let subject;
   try {
     subject = await loadUserForValidation(user.id, user.company_id);
-  } catch {
+  } catch (err) {
+    console.warn('[organizationalValidationService][load_user_for_validation]', err?.message ?? err);
     subject = null;
   }
   if (!subject) {
@@ -471,7 +472,8 @@ async function getAwaitingStructureDetailForUser(user) {
   let r;
   try {
     r = await resolveApproverUserId(user.company_id, subject);
-  } catch {
+  } catch (err) {
+    console.warn('[organizationalValidationService][resolve_approver]', err?.message ?? err);
     r = { approverId: null, reason: 'unknown' };
   }
 

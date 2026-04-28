@@ -62,7 +62,8 @@ function parseEnvKeyMaterial() {
       return null;
     }
     return buf;
-  } catch {
+  } catch (err) {
+    console.warn('[encryptionService][parse_env_key_material]', err?.message ?? err);
     return null;
   }
 }
@@ -485,7 +486,8 @@ async function getAtRestCoverageStats() {
       window_days: 365,
       meta: getStatusMeta()
     };
-  } catch {
+  } catch (err) {
+    console.warn('[encryptionService][at_rest_metrics]', err?.message ?? err);
     return {
       encryption_enabled: isEncryptionAvailable(),
       encrypted_records_estimate: null,
