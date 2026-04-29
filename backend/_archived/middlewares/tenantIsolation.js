@@ -1,3 +1,10 @@
+// ⚠️ ARQUIVADO — NÃO USAR EM PRODUÇÃO
+// archived_at: 2026-04-28
+// reason: Middleware legado (impetus_complete) sem referências require() no codebase
+// replacement: multiTenant / escopos em backend/src/middleware/multiTenant.js e afins
+// status: descontinuado
+// nota: caminhos relativos supõem impetus_complete/backend/src/middleware/
+
 /**
  * MULTI-TENANT REAL - Isolamento absoluto entre empresas
  * Garante que TODAS as queries contenham company_id = user.company_id

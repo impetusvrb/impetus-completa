@@ -1,3 +1,10 @@
+// ⚠️ ARQUIVADO — NÃO USAR EM PRODUÇÃO
+// archived_at: 2026-04-28
+// reason: Router HTTP legado nunca montado em impetus_complete/src/app.js; sustentáculo duplicado do stack oficial
+// replacement: backend/src/ai/cognitiveOrchestrator.js + serviços IA em backend/src/services + /api/cognitive-council
+// status: descontinuado
+// nota: caminhos relativos supõem impetus_complete/backend/src/routes/ — serviço aiOrchestratorService.js permanece no legado (ainda em uso)
+
 /**
  * Rotas da Tríade de IAs - AI_ORCHESTRATOR
  * /api/ai/claude/analyze - análise de dados (Claude)

@@ -1,3 +1,10 @@
+// ⚠️ ARQUIVADO — NÃO USAR EM PRODUÇÃO
+// archived_at: 2026-04-28
+// reason: Middleware de licença legado nunca montado nem referenciado fora de si mesmo
+// replacement: Políticas / billing / feature flags em backend/src (conforme produto)
+// status: descontinuado
+// nota: caminhos relativos supõem impetus_complete/backend/src/middleware/
+
 /**
  * MIDDLEWARE DE LICENÇA
  * Bloqueia acesso às rotas core se licença inválida

@@ -264,6 +264,7 @@ useRoute('/api/asset-management', './routes/assetManagement');
 useRoute('/api/vision', './routes/vision', requireAuth, apiByUserLimiter);
 useRoute('/api/proacao', './routes/proacao');
 useRoute('/api/cadastrar-com-ia', './routes/cadastrarComIA');
+useRoute('/api/chat/metrics', './routes/chatMetrics', requireAuth);
 useRoute('/api/chat', './routes/chat', requireAuth);
 useRoute('/api/tpm', './routes/tpm', requireAuth);
 useRoute('/api/tasks', './routes/tasks', requireAuth);

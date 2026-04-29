@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
 const chatService = require('../services/chatService');
-const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
+const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 const onlineUsers = new Map();
 

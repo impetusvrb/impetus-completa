@@ -2,9 +2,10 @@
  * Integração IA no chat interno (mencionar assistente).
  * Stub mínimo para o servidor subir; substitua pela lógica completa se necessário.
  */
+const { detectAIMention } = require('../utils/mentionsAI');
+
 function mentionsAI(content) {
-  if (!content || typeof content !== 'string') return false;
-  return /@impetus\b|impetus\s*ia|#impetus/i.test(content);
+  return detectAIMention(content, { mode: 'lenient' });
 }
 
 async function handleAIMessage(_conversationId, _content, _io) {

@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
-const { handleAIMessage, mentionsAI } = require('../services/chatAIService');
+const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
 const executiveMode = require('../services/executiveMode');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 
