@@ -253,6 +253,11 @@ async function handleAIMessageWrapped(...args) {
 
   let picked = pickModuleForRequest(rolloutKey);
 
+  console.info('[CHAT_FLOW]', {
+    pipeline: picked.version,
+    conversationId: rolloutKey != null && rolloutKey !== '' ? String(rolloutKey) : null
+  });
+
   if (picked.version === 'consolidated') {
     const execConsolidatedStart = Date.now();
     try {

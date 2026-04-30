@@ -1,0 +1,110 @@
+{
+  "audit_version": "1.0",
+  "generated_for": "IMPETUS — Arquitetura Unificada de Inteligência e Decisão",
+  "decision_points": [
+    {
+      "id": "dp_chat_consolidated",
+      "location": "backend/src/services/chatAIService.consolidated.js",
+      "description": "handleAIMessage: ramo CHAT_USE_TRIADE delega resposta a runCognitiveCouncil; fallbacks OpenAI/aiOrchestratorService.",
+      "risk_class": "conversational_response"
+    },
+    {
+      "id": "dp_chat_loader",
+      "location": "backend/src/services/chatAIService.loader.js",
+      "description": "Controle de rollout/canary para módulo consolidado; não decide conteúdo, apenas roteamento.",
+      "risk_class": "routing"
+    },
+    {
+      "id": "dp_cognitive_orchestrator",
+      "location": "backend/src/ai/cognitiveOrchestrator.js",
+      "description": "runCognitiveCouncil: intenção, retrieval contextual, proactive retrieval, policy, executionLayer (Gemini/Claude/GPT encadeados), compliance e auditoria.",
+      "risk_class": "multi_model_cognitive"
+    },
+    {
+      "id": "dp_decision_engine",
+      "location": "backend/src/services/decisionEngineService.js",
+      "description": "evaluate / buildOptions / analyzeWithAI: pontuação IMPETUS (segurança, ética, financeiro, operação), opções por tipo de situação.",
+      "risk_class": "structured_decision"
+    },
+    {
+      "id": "dp_operational_decision",
+      "location": "backend/src/services/operationalDecisionEngine.js",
+      "description": "evaluateOperationalDecisions: traduz operational_plan em triggers, alerts e recommended_actions (sugestão, sem execução).",
+      "risk_class": "operational_signals"
+    },
+    {
+      "id": "dp_manuia_alert",
+      "location": "backend/src/services/manuiaApp/manuiaAlertDecisionService.js",
+      "description": "decideAlertDelivery: nível de alerta e entrega (disponibilidade, plantão).",
+      "risk_class": "notification_policy"
+    },
+    {
+      "id": "dp_manuia_live",
+      "location": "backend/src/services/manuiaLiveAssistanceService.js",
+      "description": "Respostas copilot/visão; depende de Gemini/OpenAI conforme fluxo.",
+      "risk_class": "assistive_ia"
+    },
+    {
+      "id": "dp_proactive_retrieval",
+      "location": "backend/src/services/proactiveRetrievalService.js",
+      "description": "shouldTriggerProactiveRetrieval: decisão de pré-carregar contexto operacional.",
+      "risk_class": "context_budget"
+    },
+    {
+      "id": "dp_central_ai_routes",
+      "location": "backend/src/routes/centralIndustryAI.js",
+      "description": "POST /decision/analyze chama decisionEngineService.analyzeWithAI.",
+      "risk_class": "api_decision"
+    }
+  ],
+  "services_involved": [
+    "chatAIService.js (stub oficial)",
+    "chatAIService.consolidated.js",
+    "chatAIService.loader.js",
+    "cognitiveOrchestrator.js",
+    "decisionEngineService.js",
+    "operationalDecisionEngine.js",
+    "proactiveRetrievalService.js",
+    "manuiaAlertDecisionService.js",
+    "manuiaLiveAssistanceService.js",
+    "dataRetrievalService.js (retrieveContextualData)",
+    "unifiedSessionContextService.js (sessão — usado pelo orquestrador)",
+    "centralIndustryAIService.js (via rotas)"
+  ],
+  "flows": [
+    {
+      "name": "chat_interno_triade",
+      "path": "chat consolidado → runCognitiveCouncil(module=chat_interno) → executionLayer → resposta",
+      "decision_point_ids": ["dp_chat_consolidated", "dp_cognitive_orchestrator"]
+    },
+    {
+      "name": "chat_interno_openai",
+      "path": "chat consolidado → histórico + OpenAI (ou aiOrchestratorService se habilitado)",
+      "decision_point_ids": ["dp_chat_consolidated"]
+    },
+    {
+      "name": "cognitive_council_generico",
+      "path": "API/módulos → runCognitiveCouncil → ingress/policy/compliance/execution",
+      "decision_point_ids": ["dp_cognitive_orchestrator", "dp_proactive_retrieval"]
+    },
+    {
+      "name": "motor_decisao_estruturado",
+      "path": "POST /central-ai/decision/analyze → analyzeWithAI → evaluate + opcional IA",
+      "decision_point_ids": ["dp_decision_engine", "dp_central_ai_routes"]
+    },
+    {
+      "name": "plano_operacional_sinais",
+      "path": "dataRetrievalService / pipelines → operationalDecisionEngine.evaluateOperationalDecisions",
+      "decision_point_ids": ["dp_operational_decision"]
+    },
+    {
+      "name": "manuia_alertas",
+      "path": "Eventos → manuiaAlertDecisionService.decideAlertDelivery",
+      "decision_point_ids": ["dp_manuia_alert"]
+    }
+  ],
+  "notes": {
+    "globalContextAggregatorService": "Não existe no repositório; motor unificado usa fallback seguro (aggregator opcional + unifiedSessionContext).",
+    "integration_policy": "Alterações aditivas sob UNIFIED_DECISION_ENGINE=true; fallback ao comportamento atual em falha ou flag desligada."
+  }
+}

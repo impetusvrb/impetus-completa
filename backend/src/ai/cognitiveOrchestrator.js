@@ -350,6 +350,51 @@ async function runCognitiveCouncil(params) {
       }
     };
 
+    const uPref = options && options.impetusUnifiedDecision;
+    if (uPref) {
+      try {
+        const ud = require('../services/unifiedDecisionEngine');
+        enrichedData = {
+          ...enrichedData,
+          contextual_data: {
+            ...(enrichedData.contextual_data || {}),
+            impetus_unified_decision: ud.stripForDossier(uPref)
+          }
+        };
+      } catch (mergeErr) {
+        console.warn('[UNIFIED_DECISION_MERGE]', mergeErr?.message || mergeErr);
+      }
+    } else if (
+      process.env.UNIFIED_DECISION_ENGINE === 'true' &&
+      !(options && options.skipRecursiveUnified)
+    ) {
+      try {
+        const ud = require('../services/unifiedDecisionEngine');
+        const snap = await ud.decide({
+          user,
+          context: {
+            message: rt,
+            module,
+            type: options && options.decisionContextType
+          },
+          options: options && Array.isArray(options.decisionCandidateOptions) ? options.decisionCandidateOptions : null,
+          source: 'cognitive_orchestrator',
+          skipCognitiveInvocation: true
+        });
+        if (snap && snap.ok === true && snap.fallback_used !== true) {
+          enrichedData = {
+            ...enrichedData,
+            contextual_data: {
+              ...(enrichedData.contextual_data || {}),
+              impetus_unified_decision: ud.stripForDossier(snap)
+            }
+          };
+        }
+      } catch (uErr) {
+        console.warn('[UNIFIED_DECISION_ORCHESTRATOR]', uErr?.message || uErr);
+      }
+    }
+
     const { sanitized, scope, dossier, limitations, risk: riskIngress } =
       await ingressLayer.prepareCouncilIngress({
         user,

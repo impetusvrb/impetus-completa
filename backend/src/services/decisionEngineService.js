@@ -221,4 +221,30 @@ module.exports = {
   analyzeWithAI,
   buildOptions,
   CRITERIA_WEIGHTS,
+  analyzeWithUnifiedEnvelope,
 };
+
+async function analyzeWithUnifiedEnvelope(situation, context, aiService) {
+  const base = await analyzeWithAI(situation, context, aiService);
+  if (process.env.UNIFIED_DECISION_ENGINE !== 'true') {
+    return base;
+  }
+  try {
+    const ud = require('./unifiedDecisionEngine');
+    const envelope = await ud.decide({
+      user: context && context.user ? context.user : null,
+      context: {
+        type: context && context.type,
+        situation,
+        message: situation,
+        module: context && context.module
+      },
+      options: context && Array.isArray(context.candidate_options) ? context.candidate_options : null,
+      source: 'decision_engine_analyze',
+      skipCognitiveInvocation: true
+    });
+    return { ...base, impetus_unified_envelope: envelope };
+  } catch (_e) {
+    return base;
+  }
+}

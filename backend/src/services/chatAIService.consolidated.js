@@ -156,6 +156,26 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
         role: userRow?.role ?? null
       };
 
+      let impetusUnifiedDecision = null;
+      if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
+        try {
+          const unifiedDecisionEngine = require('./unifiedDecisionEngine');
+          impetusUnifiedDecision = await unifiedDecisionEngine.decide({
+            user: userContext,
+            context: {
+              message: normalizedMessage,
+              conversationId,
+              company_id: companyIdResolved
+            },
+            options: null,
+            source: 'chat_triade',
+            skipCognitiveInvocation: true
+          });
+        } catch (uErr) {
+          console.warn('[UNIFIED_DECISION_CHAT_TRIADE]', uErr?.message || String(uErr));
+        }
+      }
+
       let retrieveContextualData = null;
       try {
         retrieveContextualData =
@@ -209,6 +229,11 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
         hasData
       });
 
+      const councilOptions =
+        impetusUnifiedDecision && impetusUnifiedDecision.ok !== false && impetusUnifiedDecision.skipped !== true
+          ? { impetusUnifiedDecision }
+          : {};
+
       const councilOut = await cognitiveOrchestrator.runCognitiveCouncil({
         user: userContext,
         requestText: normalizedMessage,
@@ -220,7 +245,7 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
           message: normalizedMessage
         },
         module: 'chat_interno',
-        options: {}
+        options: councilOptions
       });
 
       const result = councilOut && councilOut.result ? councilOut.result : null;
@@ -341,6 +366,31 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
 
     const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
     const systemContent = buildLiveChatSystemPrompt(lgpdProtocol);
+
+    if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
+      try {
+        const unifiedDecisionEngine = require('./unifiedDecisionEngine');
+        const participantsShadow = await loadParticipantRows(conversationId);
+        const userRowShadow = participantsShadow.find((p) => String(p.user_id) !== String(AI_USER_ID));
+        const userShadow = {
+          id: userRowShadow?.user_id ?? null,
+          company_id: companyId,
+          role: userRowShadow?.role ?? null
+        };
+        const unified = await unifiedDecisionEngine.decide({
+          user: userShadow,
+          context: { message: normalizedMessage, conversationId, company_id: companyId },
+          source: 'chat_consolidated',
+          skipCognitiveInvocation: true
+        });
+        if (unified?.decision) {
+          console.warn('[UNIFIED_DECISION_USED]', { source: 'chat_consolidated' });
+        }
+      } catch (err) {
+        console.warn('[UNIFIED_DECISION_FAIL]', err?.message || String(err));
+      }
+    }
+
     const msgs = [
       { role: 'system', content: systemContent },
       ...history.slice(-20).map((m) => ({

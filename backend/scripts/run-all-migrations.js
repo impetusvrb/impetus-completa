@@ -12,6 +12,8 @@ const db = require('../src/db');
 
 const MODELS_DIR = path.join(__dirname, '../src/models');
 const MIGRATIONS_ORDER = [
+  'auth_middleware_schema_migration.sql',
+  'structural_knowledge_documents_context_migration.sql',
   'nexus_token_billing_migration.sql',
   'nexus_credit_wallet_migration.sql',
   'dashboard_intelligence_migration.sql',

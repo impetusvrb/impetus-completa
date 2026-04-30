@@ -1,0 +1,7 @@
+{
+  "chat_legacy_handler_status": "handleAIMessage era corpo vazio (apenas comentário); não persistia mensagem IA nem emitia evento.",
+  "is_stub": true,
+  "can_be_called_in_runtime": true,
+  "risk_level": "high",
+  "notes": "chatAIService.loader.js encaminha para este módulo quando CHAT_ENABLE_CONSOLIDATED não está ativo ou rollout/safe-mode/circuit impede consolidado; chatSocket e routes/chat invocam handleAIMessage via loader."
+}

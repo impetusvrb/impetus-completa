@@ -198,9 +198,13 @@ async function montarContexto(opts = {}) {
          LIMIT 10`,
         [companyId]
       );
-      context.manuais = r.rows || [];
+      const docs = r.rows || [];
+      if (!docs.length) {
+        console.warn('[STRUCTURAL_KNOWLEDGE_EMPTY]', { company_id: companyId });
+      }
+      context.manuais = docs;
     } catch (err) {
-      console.warn('[geminiService][context_manuais]', err?.message ?? err);
+      console.warn('[STRUCTURAL_KNOWLEDGE_MISSING]', err?.message ?? err);
       context.manuais = [];
     }
   }

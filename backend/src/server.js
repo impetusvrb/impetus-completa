@@ -295,6 +295,7 @@ useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');
 useRoute('/api/internal/sales', './routes/internal/sales');
+useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics');
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';
