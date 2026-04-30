@@ -1,0 +1,19 @@
+---
+description: Base oficial do backend Node/Express — produção (PM2); todas as edições de API/servidor aqui
+alwaysApply: true
+---
+
+# Backend oficial IMPETUS (produção)
+
+## Local canónico
+
+- **Toda implementação, correção e evolução do servidor** (Node.js, Express, rotas, serviços, middleware) deve ser feita em **`backend/` na raiz do repositório** — o mesmo diretório que o **PM2** usa em produção (ex.: `backend/src/server.js`, `package.json` do backend).
+
+## O que evitar
+
+- **Não** usar como base de produção pastas espelho ou legadas (ex.: `impetus_complete/backend`, cópias paralelas), salvo **migração explícita** ou tarefa só de arquivo — o código que entra em produção vive em **`backend/`**.
+
+## Boas práticas
+
+- Preferir alterações **aditivas** e **compatíveis** com o comportamento atual, alinhadas ao que já está em `backend/`.
+- Após mudanças sensíveis à configuração: alinhar **variáveis de ambiente** e **reinício do processo PM2** (`--update-env` quando aplicável), conforme o deploy da equipa.

@@ -9,11 +9,22 @@
  * Não substitui executionLayer nem decisionEngineService; compõe e audita.
  */
 
+const crypto = require('crypto');
 const decisionEngineService = require('./decisionEngineService');
 const { getUnifiedSessionContext } = require('./unifiedSessionContextService');
 const { getStructuralKnowledge } = require('./structuralKnowledgeService');
 const unifiedDecisionMetricsService = require('./unifiedDecisionMetricsService');
 const aggregator = require('./unifiedMetricsAggregatorService');
+const unifiedLearningFeedbackService = require('./unifiedLearningFeedbackService');
+const operationalFeedbackService = require('./operationalFeedbackService');
+const { detectDegradation, triggerDegradationResponse, isTriadCooldownActive } = require('./unifiedDegradationService');
+const unifiedCostControlService = require('./unifiedCostControlService');
+const unifiedAdaptiveResponseService = require('./unifiedAdaptiveResponseService');
+const unifiedSystemInfluenceService = require('./unifiedSystemInfluenceService');
+const unifiedLearningConfidenceService = require('./unifiedLearningConfidenceService');
+const unifiedAdaptationLimiterService = require('./unifiedAdaptationLimiterService');
+const { detectBehaviorDrift } = require('./unifiedDriftDetectionService');
+const unifiedAutonomySupervisorService = require('./unifiedAutonomySupervisorService');
 
 const HUMAN_RISK_RANK = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 const HUMAN_RISK_KEYWORDS =
@@ -21,6 +32,14 @@ const HUMAN_RISK_KEYWORDS =
 
 function isEnabled() {
   return process.env.UNIFIED_DECISION_ENGINE === 'true';
+}
+
+function newUnifiedDecisionId() {
+  try {
+    return crypto.randomUUID();
+  } catch (_e) {
+    return `ud_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  }
 }
 
 /**
@@ -94,12 +113,60 @@ function clamp01(x) {
 
 const DEFAULT_SCORE_WEIGHTS = { risk: 0.4, complexity: 0.2, uncertainty: 0.2, impact: 0.2 };
 
+/** @type {Map<string, object>} */
+const lastAppliedWeightsByCompany = new Map();
+
+function cidForWeights(companyId) {
+  if (companyId == null || companyId === '') return '_global';
+  return String(companyId).trim();
+}
+
+function getLastAppliedWeights(companyId) {
+  const w = lastAppliedWeightsByCompany.get(cidForWeights(companyId));
+  return w && typeof w === 'object' ? { ...w } : { ...DEFAULT_SCORE_WEIGHTS };
+}
+
+function setLastAppliedWeights(companyId, weights) {
+  const w = weights && typeof weights === 'object' ? weights : { ...DEFAULT_SCORE_WEIGHTS };
+  lastAppliedWeightsByCompany.set(cidForWeights(companyId), {
+    risk: w.risk,
+    complexity: w.complexity,
+    uncertainty: w.uncertainty,
+    impact: w.impact
+  });
+}
+
+/**
+ * new = base + (proposed - base) * factor (renormalizado)
+ */
+function blendAdaptiveWeights(base, proposed, factor) {
+  const f = clamp01(factor);
+  const keys = ['risk', 'complexity', 'uncertainty', 'impact'];
+  const o = {};
+  for (const k of keys) {
+    const b = Number(base[k]) || DEFAULT_SCORE_WEIGHTS[k] || 0.25;
+    const p = Number(proposed[k]);
+    const p2 = Number.isFinite(p) ? p : b;
+    o[k] = b + (p2 - b) * f;
+  }
+  const s = o.risk + o.complexity + o.uncertainty + o.impact;
+  if (!s) return { ...DEFAULT_SCORE_WEIGHTS };
+  return {
+    risk: o.risk / s,
+    complexity: o.complexity / s,
+    uncertainty: o.uncertainty / s,
+    impact: o.impact / s
+  };
+}
+
 /**
  * Ajuste conservador de pesos com base no buffer de métricas (sem efeitos colaterais externos).
  * @param {object} baseWeights
  * @param {object|null} metrics — getMetricsSnapshot
+ * @param {object|null} [learningStats] — getLearningStats(companyId)
+ * @param {object|null} [operationalStats] — getOperationalImpactStats(companyId)
  */
-function adjustWeightsDynamically(baseWeights, metrics) {
+function adjustWeightsDynamically(baseWeights, metrics, learningStats, operationalStats) {
   const w = {
     risk: Number(baseWeights.risk) || DEFAULT_SCORE_WEIGHTS.risk,
     complexity: Number(baseWeights.complexity) || DEFAULT_SCORE_WEIGHTS.complexity,
@@ -124,6 +191,19 @@ function adjustWeightsDynamically(baseWeights, metrics) {
       w.uncertainty += 0.05;
     }
   }
+
+  const ls = learningStats && typeof learningStats === 'object' ? learningStats : null;
+  if (ls && Number(ls.bad_rate) > 0.2 && (ls.n || 0) >= 4) {
+    w.uncertainty += 0.1;
+  }
+  if (ls && Number(ls.good_rate) > 0.7 && (ls.n || 0) >= 6) {
+    w.impact += 0.05;
+  }
+  const os = operationalStats && typeof operationalStats === 'object' ? operationalStats : null;
+  if (os && Number(os.high_rate) > 0.25 && (os.n || 0) >= 5) {
+    w.risk += 0.06;
+  }
+
   const sum = w.risk + w.complexity + w.uncertainty + w.impact;
   if (!sum || sum <= 0) return { ...DEFAULT_SCORE_WEIGHTS };
   return {
@@ -202,6 +282,94 @@ function analyzeTemporalPatterns(temporalInsights) {
 }
 
 /**
+ * Sinal preditivo leve a partir de insights temporais (sem modelo externo).
+ * @param {object|null} temporalInsights
+ * @param {object|null} [temporalAnalysisPre] — resultado de analyzeTemporalPatterns (evita recomputar)
+ * @returns {{ predicted_risk: number, forecast_window: 'short'|'medium' }}
+ */
+function predictFutureRisk(temporalInsights, temporalAnalysisPre) {
+  const empty = { predicted_risk: 0, forecast_window: 'short' };
+  if (!temporalInsights || typeof temporalInsights !== 'object') return empty;
+
+  const ta =
+    temporalAnalysisPre && typeof temporalAnalysisPre === 'object'
+      ? temporalAnalysisPre
+      : analyzeTemporalPatterns(temporalInsights);
+
+  let pr = 0;
+  let window = 'short';
+  const td = temporalInsights.trend_direction;
+  const conf = Number(temporalInsights.global_trend_confidence) || 0;
+
+  if (td === 'up' && conf > 0.35) {
+    pr += 0.28 + conf * 0.28;
+    window = conf > 0.62 ? 'medium' : 'short';
+  }
+
+  const rec = Array.isArray(temporalInsights.recurring_patterns)
+    ? temporalInsights.recurring_patterns.length
+    : 0;
+  if (rec >= 3) {
+    pr += 0.14 + Math.min(0.2, (rec - 3) * 0.03);
+    if (rec >= 6) window = 'medium';
+  }
+
+  const tm =
+    temporalInsights.trend_metrics && typeof temporalInsights.trend_metrics === 'object'
+      ? temporalInsights.trend_metrics
+      : {};
+  const slope = Number(tm.slope_per_week) || 0;
+  if (slope > 0.07) pr += 0.12;
+
+  pr += clamp01(Number(ta.instability_level) || 0) * 0.22;
+
+  return {
+    predicted_risk: Math.round(clamp01(pr) * 1000) / 1000,
+    forecast_window: window
+  };
+}
+
+/**
+ * Previsão por entidade (máquina) a partir de perfis temporais — flag UNIFIED_TEMPORAL_FORECAST.
+ * @param {object|null} temporalInsights
+ */
+function buildEntityLevelForecast(temporalInsights) {
+  const empty = { entity_forecasts: [] };
+  if (process.env.UNIFIED_TEMPORAL_FORECAST !== 'true') {
+    return empty;
+  }
+  if (!temporalInsights || typeof temporalInsights !== 'object') {
+    return empty;
+  }
+  const profiles = Array.isArray(temporalInsights.machine_profiles)
+    ? temporalInsights.machine_profiles
+    : [];
+  const entity_forecasts = [];
+  for (const p of profiles.slice(0, 28)) {
+    const mid = p.machine_id != null ? String(p.machine_id) : '';
+    if (!mid) continue;
+    const rec = Number(p.recurrence_score) || 0;
+    const conf = Number(p.confidence_score) || 0;
+    const td = p.trend_direction === 'up' ? 0.18 : p.trend_direction === 'down' ? -0.06 : 0;
+    const risk24 = clamp01(0.12 + rec * 0.5 + conf * 0.28 + td);
+    const risk7 = clamp01(risk24 * 0.88 + rec * 0.08);
+    entity_forecasts.push({
+      machine_id: mid,
+      risk_next_24h: Math.round(risk24 * 1000) / 1000,
+      risk_next_7d: Math.round(risk7 * 1000) / 1000,
+      confidence: Math.round(conf * 1000) / 1000
+    });
+  }
+  try {
+    console.info(
+      '[UNIFIED_TEMPORAL_FORECAST]',
+      JSON.stringify({ n: entity_forecasts.length, top: entity_forecasts.slice(0, 4) })
+    );
+  } catch (_e) {}
+  return { entity_forecasts };
+}
+
+/**
  * Limiar dinâmico para roteamento da tríade (janela de métricas agregadas).
  * @param {object|null} metrics
  * @param {number} [base]
@@ -227,10 +395,18 @@ function calibrateThresholds(metrics, base = 0.6) {
 
 /**
  * Score 0–1 para recomendar pipeline (GPT vs cognitivo). Não executa acções.
- * @param {{ context: { norm: object, humanStress?: boolean, evaluated?: object }, temporal: object|null, knowledge: object[], weights?: object, temporalAnalysis?: object }} args
- * @returns {{ score: number, risk_level: 'LOW'|'MEDIUM'|'HIGH', components: { risk: number, complexity: number, uncertainty: number, impact: number } }}
+ * @param {{ context: object, temporal: object|null, knowledge: object[], weights?: object, temporalAnalysis?: object, riskPrediction?: object, adaptiveHints?: object|null, entityForecast?: object|null }} args
  */
-function computeDecisionScore({ context, temporal, knowledge, weights, temporalAnalysis }) {
+function computeDecisionScore({
+  context,
+  temporal,
+  knowledge,
+  weights,
+  temporalAnalysis,
+  riskPrediction,
+  adaptiveHints,
+  entityForecast
+}) {
   const norm = context && context.norm ? context.norm : normalizeContext({});
   const humanStress = !!(context && context.humanStress);
   const evaluated = context && context.evaluated ? context.evaluated : null;
@@ -258,6 +434,11 @@ function computeDecisionScore({ context, temporal, knowledge, weights, temporalA
   const recPat = Array.isArray(temporal?.recurring_patterns) ? temporal.recurring_patterns.length : 0;
   complexity += Math.min(0.35, recPat * 0.05);
 
+  const ah = adaptiveHints && typeof adaptiveHints === 'object' ? adaptiveHints : null;
+  if (ah && ah.reduce_complexity) {
+    complexity = clamp01(complexity * 0.92);
+  }
+
   let uncertainty = 0.15;
   const klen = Array.isArray(knowledge) ? knowledge.length : 0;
   if (klen === 0) uncertainty += 0.25;
@@ -269,6 +450,10 @@ function computeDecisionScore({ context, temporal, knowledge, weights, temporalA
     uncertainty = clamp01(uncertainty - 0.06);
   }
   uncertainty = clamp01(uncertainty);
+
+  if (ah && ah.increase_conservatism) {
+    uncertainty = clamp01(uncertainty + 0.04);
+  }
 
   let impact = 0.15;
   impact += Math.min(0.55, histRows / 500);
@@ -286,6 +471,12 @@ function computeDecisionScore({ context, temporal, knowledge, weights, temporalA
   if (ta.cascade_detected) risk = clamp01(risk + 0.2);
   if (ta.anomaly_spike) impact = clamp01(impact + 0.1);
   uncertainty = clamp01(uncertainty + clamp01(Number(ta.instability_level) || 0) * 0.15);
+
+  const rp = riskPrediction && typeof riskPrediction === 'object' ? riskPrediction : null;
+  const prVal = rp ? Number(rp.predicted_risk) : NaN;
+  if (Number.isFinite(prVal) && prVal > 0.6) {
+    risk = clamp01(risk + 0.15);
+  }
 
   const w0 =
     weights && typeof weights === 'object' ? weights : { ...DEFAULT_SCORE_WEIGHTS };
@@ -306,8 +497,35 @@ function computeDecisionScore({ context, temporal, knowledge, weights, temporalA
         }
       : { ...DEFAULT_SCORE_WEIGHTS };
 
+  let wAdj = { ...wn };
+  const ef = entityForecast && typeof entityForecast === 'object' ? entityForecast : null;
+  const forecasts = ef && Array.isArray(ef.entity_forecasts) ? ef.entity_forecasts : [];
+  let maxR24 = 0;
+  for (const e of forecasts) {
+    const v = Number(e.risk_next_24h);
+    if (Number.isFinite(v) && v > maxR24) maxR24 = v;
+  }
+  if (maxR24 > 0.7) {
+    wAdj = {
+      risk: wn.risk + 0.06,
+      complexity: wn.complexity,
+      uncertainty: wn.uncertainty,
+      impact: wn.impact
+    };
+    const s2 = wAdj.risk + wAdj.complexity + wAdj.uncertainty + wAdj.impact;
+    wAdj = {
+      risk: wAdj.risk / s2,
+      complexity: wAdj.complexity / s2,
+      uncertainty: wAdj.uncertainty / s2,
+      impact: wAdj.impact / s2
+    };
+  }
+
   const score = clamp01(
-    risk * wn.risk + complexity * wn.complexity + uncertainty * wn.uncertainty + impact * wn.impact
+    risk * wAdj.risk +
+      complexity * wAdj.complexity +
+      uncertainty * wAdj.uncertainty +
+      impact * wAdj.impact
   );
   let risk_level = 'MEDIUM';
   if (score < 0.3) risk_level = 'LOW';
@@ -629,8 +847,10 @@ async function decide(params) {
         (params.context && params.context.skipCognitiveInvocation))
     );
 
+  let unifiedDecisionId = '';
   try {
-    console.info('[UNIFIED_DECISION_START]', { source });
+    unifiedDecisionId = newUnifiedDecisionId();
+    console.info('[UNIFIED_DECISION_START]', { source, unified_decision_id: unifiedDecisionId });
     const t0 = Date.now();
 
     const norm = normalizeContext((params && params.context) || {});
@@ -710,6 +930,7 @@ async function decide(params) {
         meta: {
           source,
           decision_type_inferred: norm.type,
+          unified_decision_id: unifiedDecisionId,
           global_context_keys: {
             has_aggregator: !!signalBundle.aggregator,
             has_session: !!signalBundle.session,
@@ -734,6 +955,15 @@ async function decide(params) {
         source,
         phase: 'decide_evaluate_error'
       });
+      try {
+        unifiedLearningFeedbackService.recordDecisionOutcome({
+          decisionId: unifiedDecisionId,
+          companyId: user?.company_id ?? norm.company_id,
+          outcome: 'bad',
+          latency: Date.now() - t0,
+          fallback: true
+        });
+      } catch (_lr) {}
       return {
         ...neutral,
         control_signals: {
@@ -753,6 +983,39 @@ async function decide(params) {
       console.info('[UNIFIED_METRICS_SNAPSHOT]', metricsSnapshot);
     }
 
+    let driftResult = { drift_detected: false, severity: 'low', reasons: [] };
+    try {
+      driftResult = detectBehaviorDrift(metricsSnapshot, companyIdForMetrics);
+    } catch (_dr) {
+      driftResult = { drift_detected: false, severity: 'low', reasons: [] };
+    }
+
+    let costForceDisable = false;
+    try {
+      costForceDisable = unifiedCostControlService.shouldForceDisableCognitiveForCost(
+        companyIdForMetrics
+      );
+    } catch (_cf) {
+      costForceDisable = false;
+    }
+    if (costForceDisable) {
+      try {
+        console.warn(
+          '[UNIFIED_COST_CONTROL]',
+          JSON.stringify({
+            action: 'force_gpt_cpm',
+            ...unifiedCostControlService.getCostStats(companyIdForMetrics)
+          })
+        );
+      } catch (_e) {}
+    }
+    try {
+      const prCost = unifiedCostControlService.predictNearFutureCost(companyIdForMetrics);
+      if (prCost.should_prevent_cognitive) {
+        costForceDisable = true;
+      }
+    } catch (_pc) {}
+
     const triadCapPct = Math.min(
       100,
       Math.max(0, parseInt(process.env.UNIFIED_TRIAD_MAX_PERCENT || '20', 10))
@@ -766,8 +1029,8 @@ async function decide(params) {
             (metricsSnapshot.pipeline_usage.cognitive / routed) * 1000
           ) / 10
         : 0;
-    const forceDisableCognitive = routed >= 3 && cognitiveSharePct > triadCapPct;
-    if (forceDisableCognitive) {
+    const triadCapForce = routed >= 3 && cognitiveSharePct > triadCapPct;
+    if (triadCapForce) {
       console.info(
         '[UNIFIED_TRIAD_USAGE_CAP]',
         JSON.stringify({
@@ -778,10 +1041,83 @@ async function decide(params) {
       );
     }
 
-    const baseWeights = { ...DEFAULT_SCORE_WEIGHTS };
-    const weights = adjustWeightsDynamically(baseWeights, metricsSnapshot);
+    let learningStats = { good_rate: 0, bad_rate: 0, neutral_rate: 0, n: 0 };
+    let operationalStats = { high_rate: 0, medium_rate: 0, low_rate: 0, n: 0 };
     try {
-      console.info('[UNIFIED_ADAPTIVE_WEIGHTS]', JSON.stringify(weights));
+      learningStats = unifiedLearningFeedbackService.getLearningStats(companyIdForMetrics);
+    } catch (_ls) {}
+    try {
+      operationalStats = operationalFeedbackService.getOperationalImpactStats(companyIdForMetrics);
+    } catch (_os) {}
+
+    let adaptiveHints = {
+      reduce_complexity: false,
+      avoid_cognitive_pipeline: false,
+      increase_conservatism: false
+    };
+    try {
+      adaptiveHints = unifiedAdaptiveResponseService.applyAdaptiveSystemResponse(
+        metricsSnapshot,
+        learningStats
+      );
+      if (process.env.UNIFIED_ADAPTIVE_RESPONSE === 'true') {
+        console.info('[UNIFIED_ADAPTIVE_RESPONSE]', JSON.stringify(adaptiveHints));
+      }
+    } catch (_ah) {}
+
+    const evidenceCountProxy = Math.min(25, Number(metricsSnapshot.total_decisions) || 0);
+    let learningConf = {
+      confidence: 1,
+      reliable: true,
+      sample_size: learningStats.n,
+      skipped: true
+    };
+    try {
+      learningConf = unifiedLearningConfidenceService.evaluateLearningConfidence({
+        learningStats,
+        evidenceCount: evidenceCountProxy
+      });
+    } catch (_lc) {}
+
+    const freeze_adaptation =
+      (process.env.UNIFIED_DRIFT_DETECTION === 'true' && driftResult.drift_detected) ||
+      (process.env.UNIFIED_LEARNING_CONFIDENCE === 'true' &&
+        (!learningConf.reliable || learningConf.confidence < 0.35));
+
+    const baseWeights = { ...DEFAULT_SCORE_WEIGHTS };
+    let weights;
+    if (freeze_adaptation) {
+      weights = { ...DEFAULT_SCORE_WEIGHTS };
+    } else {
+      const rawWeights = adjustWeightsDynamically(
+        baseWeights,
+        metricsSnapshot,
+        learningStats,
+        operationalStats
+      );
+      let smoothFactor =
+        learningConf.confidence != null && !learningConf.skipped
+          ? learningConf.confidence
+          : 1;
+      if (process.env.UNIFIED_LEARNING_CONFIDENCE === 'true' && !learningConf.reliable) {
+        smoothFactor = Math.min(smoothFactor, 0.25);
+      }
+      const smoothed = blendAdaptiveWeights(baseWeights, rawWeights, smoothFactor);
+      try {
+        weights = unifiedAdaptationLimiterService.limitAdaptiveChange({
+          current: getLastAppliedWeights(companyIdForMetrics),
+          proposed: smoothed
+        });
+      } catch (_lim) {
+        weights = smoothed;
+      }
+    }
+    setLastAppliedWeights(companyIdForMetrics, weights);
+    try {
+      console.info(
+        '[UNIFIED_ADAPTIVE_WEIGHTS]',
+        JSON.stringify({ ...weights, freeze_adaptation })
+      );
     } catch (_e) {
       console.info('[UNIFIED_ADAPTIVE_WEIGHTS]', weights);
     }
@@ -793,11 +1129,85 @@ async function decide(params) {
       console.info('[UNIFIED_TEMPORAL_ANALYSIS]', temporalAnalysis);
     }
 
-    const dynamicThreshold = calibrateThresholds(metricsSnapshot);
+    const riskPrediction = predictFutureRisk(temporalInsights, temporalAnalysis);
+    try {
+      console.info('[UNIFIED_PREDICTION]', JSON.stringify(riskPrediction));
+    } catch (_e) {
+      console.info('[UNIFIED_PREDICTION]', riskPrediction);
+    }
+
+    const entityForecast = buildEntityLevelForecast(temporalInsights);
+
+    let dynamicThreshold = calibrateThresholds(metricsSnapshot);
+    let degradation = { degraded: false, severity: 'low', reasons: [] };
+    if (!freeze_adaptation) {
+      try {
+        degradation = detectDegradation(metricsSnapshot, companyIdForMetrics);
+      } catch (_deg) {
+        degradation = { degraded: false, severity: 'low', reasons: [] };
+      }
+      if (degradation.degraded) {
+        if (process.env.UNIFIED_DEGRADATION_RESPONSE === 'true') {
+          try {
+            const degAct = triggerDegradationResponse(degradation, companyIdForMetrics);
+            dynamicThreshold = Math.round(
+              Math.min(0.85, dynamicThreshold + (degAct.threshold_delta || 0)) * 1000
+            ) / 1000;
+          } catch (_tr) {}
+          console.warn(
+            '[UNIFIED_DEGRADATION_DETECTED]',
+            JSON.stringify({ ...degradation, dynamicThreshold_after: dynamicThreshold, managed: true })
+          );
+        } else {
+          const bump =
+            degradation.severity === 'high' ? 0.1 : degradation.severity === 'medium' ? 0.08 : 0.05;
+          dynamicThreshold = Math.round(Math.min(0.85, dynamicThreshold + bump) * 1000) / 1000;
+          console.warn(
+            '[UNIFIED_DEGRADATION_DETECTED]',
+            JSON.stringify({ ...degradation, dynamicThreshold_after: dynamicThreshold })
+          );
+        }
+      }
+
+      let adaptiveThresholdBump = 0;
+      if (process.env.UNIFIED_ADAPTIVE_RESPONSE === 'true') {
+        if (adaptiveHints.increase_conservatism) adaptiveThresholdBump += 0.03;
+        if (adaptiveHints.reduce_complexity) adaptiveThresholdBump += 0.02;
+      }
+      dynamicThreshold =
+        Math.round(Math.min(0.85, dynamicThreshold + adaptiveThresholdBump) * 1000) / 1000;
+    } else {
+      try {
+        degradation = detectDegradation(metricsSnapshot, companyIdForMetrics);
+      } catch (_d0) {
+        degradation = { degraded: false, severity: 'low', reasons: [] };
+      }
+    }
+
+    const adaptiveAvoidTriade =
+      process.env.UNIFIED_ADAPTIVE_RESPONSE === 'true' && !!adaptiveHints.avoid_cognitive_pipeline;
+    let cooldownTriade = false;
+    try {
+      cooldownTriade = isTriadCooldownActive(companyIdForMetrics);
+    } catch (_tc) {}
+
+    const forceDisableCognitive =
+      triadCapForce || costForceDisable || adaptiveAvoidTriade || cooldownTriade;
+
     try {
       console.info(
         '[UNIFIED_DYNAMIC_THRESHOLD]',
-        JSON.stringify({ dynamicThreshold, triadCapPct, forceDisableCognitive })
+        JSON.stringify({
+          dynamicThreshold,
+          triadCapPct,
+          forceDisableCognitive,
+          cost_force: costForceDisable,
+          adaptive_avoid_triade: adaptiveAvoidTriade,
+          cooldown_triade: cooldownTriade,
+          degradation: degradation.degraded ? degradation.severity : null,
+          freeze_adaptation,
+          drift: driftResult.drift_detected ? driftResult : null
+        })
       );
     } catch (_e) {
       console.info('[UNIFIED_DYNAMIC_THRESHOLD]', {
@@ -812,8 +1222,22 @@ async function decide(params) {
       temporal: temporalInsights,
       knowledge: signalBundle.knowledge || [],
       weights,
-      temporalAnalysis
+      temporalAnalysis,
+      riskPrediction,
+      adaptiveHints,
+      entityForecast
     });
+    let autonomyEligibility = { eligible: false, skipped: true };
+    try {
+      autonomyEligibility = unifiedAutonomySupervisorService.evaluateAutonomyEligibility({
+        score: scoreResult.score,
+        confidence:
+          learningConf.confidence != null && !learningConf.skipped
+            ? learningConf.confidence
+            : 1,
+        risk: scoreResult.risk_level
+      });
+    } catch (_au) {}
     console.info(
       '[UNIFIED_DECISION_SCORE]',
       JSON.stringify({
@@ -834,7 +1258,10 @@ async function decide(params) {
       score: scoreResult.score,
       useTriadeEnv,
       dynamicThreshold,
-      triad_cap_applied: forceDisableCognitive
+      triad_cap_applied: triadCapForce,
+      cost_cpm_cap_applied: costForceDisable,
+      adaptive_avoid_triade: adaptiveAvoidTriade,
+      cooldown_triade: cooldownTriade
     });
     unifiedDecisionMetricsService.recordPipelineUsage({
       pipeline,
@@ -904,10 +1331,38 @@ async function decide(params) {
             : 0
         };
         console.info('[UNIFIED_ODE_READONLY]', JSON.stringify(operationalReadonlySummary));
+        try {
+          const tn = operationalReadonlySummary.triggers_n ?? 0;
+          const an = operationalReadonlySummary.alerts_n ?? 0;
+          const s = tn + an;
+          let impactLevel = 'low';
+          if (s >= 5) impactLevel = 'high';
+          else if (s >= 2) impactLevel = 'medium';
+          operationalFeedbackService.recordOperationalOutcome({
+            decisionId: unifiedDecisionId,
+            companyId: companyIdForMetrics,
+            impactLevel
+          });
+        } catch (_of) {}
       } catch (odeErr) {
         console.warn('[UNIFIED_ODE_READONLY_FAIL]', odeErr?.message ?? odeErr);
       }
     }
+
+    let systemInfluencePayload = {
+      recommended_system_behavior: {
+        prioritize_monitoring: false,
+        reduce_risk_tolerance: false,
+        increase_alert_sensitivity: false
+      }
+    };
+    try {
+      systemInfluencePayload = unifiedSystemInfluenceService.generateSystemInfluenceSignals({
+        decision: finalChosen,
+        score: scoreResult.score,
+        context: norm
+      });
+    } catch (_si) {}
 
     const out = {
       ok: true,
@@ -941,6 +1396,7 @@ async function decide(params) {
       meta: {
         source,
         decision_type_inferred: norm.type,
+        unified_decision_id: unifiedDecisionId,
         global_context_keys: {
           has_aggregator: !!signalBundle.aggregator,
           has_session: !!signalBundle.session,
@@ -957,8 +1413,20 @@ async function decide(params) {
         dynamic_threshold: dynamicThreshold,
         triad_cap_percent: triadCapPct,
         triad_cap_applied: forceDisableCognitive,
+        triad_share_cap_applied: triadCapForce,
+        cost_cpm_cap_applied: costForceDisable,
         temporal_analysis: temporalAnalysis,
+        risk_prediction: riskPrediction,
+        degradation,
+        learning_stats: learningStats,
+        learning_confidence: learningConf,
+        drift_behavior: driftResult,
+        freeze_adaptation,
         adaptive_weights: weights,
+        adaptive_response: adaptiveHints,
+        entity_forecast: entityForecast,
+        system_influence: systemInfluencePayload.recommended_system_behavior,
+        autonomy_candidate: autonomyEligibility.eligible === true,
         operational_readonly_summary: operationalReadonlySummary
       }
     };
@@ -983,6 +1451,75 @@ async function decide(params) {
       company_id: user?.company_id
     });
 
+    if (process.env.UNIFIED_REAL_LEARNING !== 'true') {
+      try {
+        unifiedLearningFeedbackService.recordDecisionOutcome({
+          decisionId: unifiedDecisionId,
+          companyId: user?.company_id ?? norm.company_id,
+          latency: latencyMs,
+          fallback: false
+        });
+      } catch (_le) {}
+    } else {
+      setImmediate(() => {
+        (async () => {
+          try {
+            const uoc = require('./unifiedOutcomeCorrelationService');
+            const bridge = require('./unifiedOperationalFeedbackBridge');
+            const rawCtx = norm.raw && typeof norm.raw === 'object' ? norm.raw : {};
+            const decisionMachineId =
+              rawCtx.machine_id != null
+                ? rawCtx.machine_id
+                : rawCtx.machineId != null
+                  ? rawCtx.machineId
+                  : null;
+            const cor = await uoc.correlateDecisionWithOutcome({
+              decisionId: unifiedDecisionId,
+              companyId: companyIdForMetrics,
+              decisionTimestampMs: t0,
+              correlationWindowMs: parseInt(
+                process.env.UNIFIED_OUTCOME_CORRELATION_WINDOW_MS || '900000',
+                10
+              ),
+              latencyMs,
+              machine_id: decisionMachineId
+            });
+            console.info(
+              '[UNIFIED_REAL_OUTCOME]',
+              JSON.stringify({ decisionId: unifiedDecisionId, ...cor })
+            );
+            bridge.ingestOperationalFeedback({
+              decisionId: unifiedDecisionId,
+              companyId: companyIdForMetrics,
+              operationalEvents: (cor.evidence || []).filter(
+                (e) => e && e.type !== uoc.OUTCOME_HEURISTIC_TYPE
+              )
+            });
+            unifiedLearningFeedbackService.recordDecisionOutcome({
+              decisionId: unifiedDecisionId,
+              companyId: companyIdForMetrics,
+              outcome_type: cor.outcome_type,
+              source: 'real_world',
+              latency: latencyMs,
+              fallback: false
+            });
+          } catch (e) {
+            console.warn('[UNIFIED_REAL_OUTCOME_FAIL]', e?.message ?? e);
+          }
+        })();
+      });
+    }
+
+    if (cognitive_pipeline) {
+      try {
+        unifiedCostControlService.trackCognitiveUsage({
+          companyId: user?.company_id ?? norm.company_id,
+          tokensUsed: 0,
+          latency: latencyMs
+        });
+      } catch (_tu) {}
+    }
+
     try {
       console.info(
         '[UNIFIED_DECISION_STATS]',
@@ -1002,6 +1539,15 @@ async function decide(params) {
     return out;
   } catch (err) {
     console.warn('[UNIFIED_DECISION_FAIL]', err?.message ?? err);
+    try {
+      unifiedLearningFeedbackService.recordDecisionOutcome({
+        decisionId: unifiedDecisionId || newUnifiedDecisionId(),
+        companyId: user && user.company_id,
+        outcome: 'bad',
+        latency: 0,
+        fallback: true
+      });
+    } catch (_le) {}
     unifiedDecisionMetricsService.recordFallbackMetric({
       reason: err && err.message ? String(err.message) : 'unified_decide_exception',
       pipeline: 'fallback',
@@ -1035,6 +1581,8 @@ module.exports = {
   adjustWeightsDynamically,
   analyzeTemporalPatterns,
   calibrateThresholds,
+  predictFutureRisk,
+  buildEntityLevelForecast,
   __test__: {
     normalizeContext,
     applyImpetusGovernance,
@@ -1044,6 +1592,8 @@ module.exports = {
     clamp01,
     adjustWeightsDynamically,
     analyzeTemporalPatterns,
-    calibrateThresholds
+    calibrateThresholds,
+    predictFutureRisk,
+    buildEntityLevelForecast
   }
 };
