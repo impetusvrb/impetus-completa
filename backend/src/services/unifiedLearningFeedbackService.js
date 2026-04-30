@@ -140,9 +140,57 @@ function getLearningStats(companyId) {
   };
 }
 
+/**
+ * Compara taxa de outcomes negativos na 1.ª vs 2.ª metade do buffer (tendência).
+ * @param {string|null|undefined} companyId
+ * @returns {{ sufficient: boolean, first_bad_rate: number, second_bad_rate: number, n: number }}
+ */
+function getLearningBadTrendSplit(companyId) {
+  const buf = getBuf(companyId);
+  const n = buf.length;
+  const minHalf = Math.max(
+    4,
+    parseInt(process.env.UNIFIED_LEARNING_INTEGRITY_MIN_HALF || '5', 10)
+  );
+  if (n < minHalf * 2) {
+    return { sufficient: false, first_bad_rate: 0, second_bad_rate: 0, n };
+  }
+  const mid = Math.floor(n / 2);
+  const first = buf.slice(0, mid);
+  const second = buf.slice(mid);
+  const badRate = (rows) => {
+    if (!rows.length) return 0;
+    let b = 0;
+    for (const r of rows) if (r.outcome === 'bad') b += 1;
+    return b / rows.length;
+  };
+  return {
+    sufficient: true,
+    first_bad_rate: Math.round(badRate(first) * 1000) / 1000,
+    second_bad_rate: Math.round(badRate(second) * 1000) / 1000,
+    n
+  };
+}
+
+/**
+ * Últimas N linhas: proporção de bad (alto score operacional + bad → integrity).
+ * @param {string|null|undefined} companyId
+ * @param {number} [limit]
+ */
+function getRecentBadShare(companyId, limit = 18) {
+  const buf = getBuf(companyId);
+  const slice = buf.slice(-Math.max(1, limit));
+  if (!slice.length) return { n: 0, bad_share: 0 };
+  let b = 0;
+  for (const r of slice) if (r.outcome === 'bad') b += 1;
+  return { n: slice.length, bad_share: Math.round((b / slice.length) * 1000) / 1000 };
+}
+
 module.exports = {
   recordDecisionOutcome,
   getLearningStats,
+  getLearningBadTrendSplit,
+  getRecentBadShare,
   inferOutcome,
   __test: { buffers, cidKey, MAX_PER_COMPANY }
 };

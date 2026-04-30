@@ -8,6 +8,12 @@
 /** @type {Map<string, { composite_latency: number, avg_score: number, fallback_rate: number, ts: number }>} */
 const lastByCompany = new Map();
 
+/** @type {Map<string, { cognitive_share: number, gpt_share: number, ts: number }>} */
+const lastPipelineMixByCompany = new Map();
+
+/** @type {Map<string, { total_decisions: number, ts: number }>} */
+const lastDecisionVolumeByCompany = new Map();
+
 /** @type {Map<string, number>} companyId → epoch ms até quando bloquear tríade */
 const triadCooldownUntil = new Map();
 
@@ -88,6 +94,99 @@ function detectDegradation(metrics, companyId) {
 }
 
 /**
+ * Deriva silenciosa da distribuição de decisões / score (complementa latência/fallback).
+ * Log [UNIFIED_BEHAVIOR_DRIFT] quando UNIFIED_BEHAVIOR_DRIFT=true.
+ *
+ * @param {object|null} metrics — getMetricsSnapshot
+ * @param {string|null|undefined} companyId
+ * @returns {{ drift: boolean, severity: 'low'|'medium'|'high', reasons: string[], skipped?: boolean }}
+ */
+function detectSilentBehaviorDrift(metrics, companyId) {
+  const empty = { drift: false, severity: 'low', reasons: [] };
+  if (process.env.UNIFIED_BEHAVIOR_DRIFT !== 'true') {
+    return { ...empty, skipped: true };
+  }
+
+  const m = metrics && typeof metrics === 'object' ? metrics : {};
+  const samples = Number(m.total_decisions) || 0;
+  const minN =
+    parseInt(process.env.UNIFIED_BEHAVIOR_DRIFT_MIN_N || '14', 10) || 14;
+  if (samples < minN) return empty;
+
+  const pu = m.pipeline_usage && typeof m.pipeline_usage === 'object' ? m.pipeline_usage : {};
+  const gpt = Number(pu.gpt) || 0;
+  const cog = Number(pu.cognitive) || 0;
+  const tot = gpt + cog;
+  if (tot < 8) return empty;
+
+  const cognitiveShare = cog / tot;
+  const k = cidKey(companyId);
+  const prev = lastPipelineMixByCompany.get(k);
+  const avg = Number(m.avg_score);
+  const fr = Number(m.fallback_rate);
+
+  const reasons = [];
+  let drift = false;
+  let severity = 'low';
+
+  if (prev && Number.isFinite(prev.cognitive_share)) {
+    const mixDelta = Math.abs(cognitiveShare - prev.cognitive_share);
+    const mixThr =
+      parseFloat(process.env.UNIFIED_BEHAVIOR_MIX_DELTA || '0.26') || 0.26;
+    if (mixDelta > mixThr) {
+      drift = true;
+      severity = mixDelta > 0.4 ? 'high' : 'medium';
+      reasons.push('pipeline_mix_shift');
+    }
+  }
+
+  const scoreDropThr =
+    parseFloat(process.env.UNIFIED_BEHAVIOR_SCORE_SHIFT || '0.14') || 0.14;
+  if (
+    prev &&
+    Number.isFinite(prev.avg_score) &&
+    Number.isFinite(avg) &&
+    prev.avg_score - avg > scoreDropThr &&
+    Number.isFinite(fr) &&
+    fr < 0.18
+  ) {
+    drift = true;
+    severity = severity === 'high' ? 'high' : 'medium';
+    reasons.push('score_drop_without_fallback_explanation');
+  }
+
+  const td = Number(m.total_decisions) || 0;
+  const volPrev = lastDecisionVolumeByCompany.get(k);
+  if (volPrev && td >= 8 && volPrev.total_decisions >= 8) {
+    const ratio =
+      volPrev.total_decisions > 0 ? td / volPrev.total_decisions : 1;
+    const volThr =
+      parseFloat(process.env.UNIFIED_BEHAVIOR_VOLUME_SHIFT_RATIO || '1.45') || 1.45;
+    if (ratio >= volThr || ratio <= 1 / volThr) {
+      drift = true;
+      severity = severity === 'high' ? 'high' : 'medium';
+      reasons.push('decision_throughput_shift');
+    }
+  }
+  lastDecisionVolumeByCompany.set(k, { total_decisions: td, ts: Date.now() });
+
+  lastPipelineMixByCompany.set(k, {
+    cognitive_share: cognitiveShare,
+    gpt_share: gpt / tot,
+    avg_score: Number.isFinite(avg) ? avg : prev?.avg_score,
+    ts: Date.now()
+  });
+
+  const out = { drift, severity, reasons };
+  if (drift) {
+    try {
+      console.warn('[UNIFIED_BEHAVIOR_DRIFT]', JSON.stringify({ company_key: k, ...out }));
+    } catch (_e) {}
+  }
+  return out;
+}
+
+/**
  * Resposta estrutural à degradação — só metadados e bloqueio temporário em memória.
  * @param {{ degraded: boolean, severity: string, reasons?: string[] }} degradation
  * @param {string|null|undefined} companyId
@@ -151,7 +250,15 @@ function isTriadCooldownActive(companyId) {
 
 module.exports = {
   detectDegradation,
+  detectSilentBehaviorDrift,
   triggerDegradationResponse,
   isTriadCooldownActive,
-  __test: { lastByCompany, compositeLatency, cidKey, triadCooldownUntil }
+  __test: {
+    lastByCompany,
+    lastPipelineMixByCompany,
+    lastDecisionVolumeByCompany,
+    compositeLatency,
+    cidKey,
+    triadCooldownUntil
+  }
 };

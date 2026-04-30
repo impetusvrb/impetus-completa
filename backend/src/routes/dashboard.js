@@ -629,18 +629,35 @@ router.post('/chat', requireAuth, async (req, res) => {
     if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
       try {
         console.info('[UNIFIED_CHAT_START]', { userId: u.id, company_id: u.company_id });
-        const unifiedDecisionEngine = require('../services/unifiedDecisionEngine');
-        unifiedDecision = await unifiedDecisionEngine.decide({
-          user: u,
-          context: {
-            message,
-            company_id: u.company_id,
-            module: 'dashboard_chat',
-            dashboard_history_turns: history.length
-          },
-          source: 'dashboard_chat',
-          skipCognitiveInvocation: true
-        });
+        if (process.env.USE_DECISION_FACADE === 'true') {
+          const decisionFacadeService = require('../services/decisionFacadeService');
+          const facaded = await decisionFacadeService.decideWithFacade({
+            user: u,
+            context: {
+              message,
+              company_id: u.company_id,
+              module: 'dashboard_chat',
+              dashboard_history_turns: history.length
+            },
+            source: 'dashboard_chat',
+            skipCognitiveInvocation: true
+          });
+          unifiedDecision = facaded.unified_result != null ? facaded.unified_result : null;
+          console.info('[DECISION_FACADE_USED]', facaded?.decision);
+        } else {
+          const unifiedDecisionEngine = require('../services/unifiedDecisionEngine');
+          unifiedDecision = await unifiedDecisionEngine.decide({
+            user: u,
+            context: {
+              message,
+              company_id: u.company_id,
+              module: 'dashboard_chat',
+              dashboard_history_turns: history.length
+            },
+            source: 'dashboard_chat',
+            skipCognitiveInvocation: true
+          });
+        }
         console.info('[UNIFIED_CHAT_RESULT]', {
           hasDecision: !!(unifiedDecision && unifiedDecision.decision),
           escalation: !!(unifiedDecision && unifiedDecision.meta && unifiedDecision.meta.cognitive_escalation)

@@ -35,6 +35,7 @@
     "test:did": "node scripts/test-did.js",
     "smoke:manuia-app": "node scripts/smoke-manuia-app.js",
     "smoke:chat-rollout": "node scripts/smoke-chat-mentions-rollout.js",
+    "smoke:decision-facade": "node scripts/smoke-decision-facade.js",
     "test:policy-context": "node src/tests/policyContextScenarios.js",
     "test:advanced-compliance": "node src/tests/advancedComplianceScenarios.js",
     "test:behavioral": "node src/tests/behavioralIntelligenceScenarios.js",

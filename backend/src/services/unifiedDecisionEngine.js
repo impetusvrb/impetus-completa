@@ -17,7 +17,12 @@ const unifiedDecisionMetricsService = require('./unifiedDecisionMetricsService')
 const aggregator = require('./unifiedMetricsAggregatorService');
 const unifiedLearningFeedbackService = require('./unifiedLearningFeedbackService');
 const operationalFeedbackService = require('./operationalFeedbackService');
-const { detectDegradation, triggerDegradationResponse, isTriadCooldownActive } = require('./unifiedDegradationService');
+const {
+  detectDegradation,
+  detectSilentBehaviorDrift,
+  triggerDegradationResponse,
+  isTriadCooldownActive
+} = require('./unifiedDegradationService');
 const unifiedCostControlService = require('./unifiedCostControlService');
 const unifiedAdaptiveResponseService = require('./unifiedAdaptiveResponseService');
 const unifiedSystemInfluenceService = require('./unifiedSystemInfluenceService');
@@ -25,6 +30,10 @@ const unifiedLearningConfidenceService = require('./unifiedLearningConfidenceSer
 const unifiedAdaptationLimiterService = require('./unifiedAdaptationLimiterService');
 const { detectBehaviorDrift } = require('./unifiedDriftDetectionService');
 const unifiedAutonomySupervisorService = require('./unifiedAutonomySupervisorService');
+const unifiedStabilityMonitorService = require('./unifiedStabilityMonitorService');
+const unifiedLearningIntegrityService = require('./unifiedLearningIntegrityService');
+const unifiedConservatismGuardService = require('./unifiedConservatismGuardService');
+const unifiedMetricsInterpreterService = require('./unifiedMetricsInterpreterService');
 
 const HUMAN_RISK_RANK = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 const HUMAN_RISK_KEYWORDS =
@@ -1191,7 +1200,7 @@ async function decide(params) {
       cooldownTriade = isTriadCooldownActive(companyIdForMetrics);
     } catch (_tc) {}
 
-    const forceDisableCognitive =
+    let forceDisableCognitive =
       triadCapForce || costForceDisable || adaptiveAvoidTriade || cooldownTriade;
 
     try {
@@ -1227,6 +1236,85 @@ async function decide(params) {
       adaptiveHints,
       entityForecast
     });
+
+    let scoreStability = {
+      is_stable: true,
+      volatility: 0,
+      trend: 'stable',
+      anomaly_detected: false,
+      skipped: true
+    };
+    let learningIntegrity = {
+      learning_valid: true,
+      anomaly: false,
+      reason: '',
+      skipped: true
+    };
+    let conservatism = { over_conservative: false, severity: 'low', skipped: true };
+    let metricsHealth = {
+      system_health: 'good',
+      dominant_issue: 'latency',
+      recommendation: '',
+      skipped: true
+    };
+    let behaviorDriftSilent = {
+      drift: false,
+      severity: 'low',
+      reasons: [],
+      skipped: true
+    };
+
+    try {
+      scoreStability = unifiedStabilityMonitorService.evaluateScoreStability({
+        companyId: companyIdForMetrics,
+        currentScore: scoreResult.score,
+        metricsSnapshot
+      });
+    } catch (_stab) {}
+    try {
+      learningIntegrity = unifiedLearningIntegrityService.evaluateLearningIntegrity({
+        learningStats,
+        metricsSnapshot,
+        companyId: companyIdForMetrics
+      });
+    } catch (_lint) {}
+    try {
+      let pipelineStatsForCons = null;
+      try {
+        pipelineStatsForCons = aggregator.getPipelineStats(companyIdForMetrics);
+      } catch (_gp) {
+        pipelineStatsForCons =
+          metricsSnapshot && typeof metricsSnapshot === 'object'
+            ? metricsSnapshot.pipeline_usage
+            : null;
+      }
+      conservatism = unifiedConservatismGuardService.evaluateConservatism({
+        metricsSnapshot,
+        pipelineStats: pipelineStatsForCons,
+        currentScore: scoreResult.score
+      });
+    } catch (_cons) {}
+    try {
+      metricsHealth = unifiedMetricsInterpreterService.interpretMetrics({ metricsSnapshot });
+    } catch (_mh) {}
+    try {
+      behaviorDriftSilent = detectSilentBehaviorDrift(metricsSnapshot, companyIdForMetrics);
+    } catch (_bd) {}
+
+    let behaviorGuardApplied = false;
+    if (process.env.UNIFIED_BEHAVIOR_GUARD === 'true') {
+      behaviorGuardApplied = true;
+      dynamicThreshold =
+        Math.round(Math.min(0.85, dynamicThreshold + 0.05) * 1000) / 1000;
+      if (
+        metricsHealth &&
+        metricsHealth.skipped !== true &&
+        metricsHealth.system_health === 'critical'
+      ) {
+        forceDisableCognitive = true;
+      }
+    }
+
     let autonomyEligibility = { eligible: false, skipped: true };
     try {
       autonomyEligibility = unifiedAutonomySupervisorService.evaluateAutonomyEligibility({
@@ -1261,7 +1349,8 @@ async function decide(params) {
       triad_cap_applied: triadCapForce,
       cost_cpm_cap_applied: costForceDisable,
       adaptive_avoid_triade: adaptiveAvoidTriade,
-      cooldown_triade: cooldownTriade
+      cooldown_triade: cooldownTriade,
+      behavior_guard: behaviorGuardApplied
     });
     unifiedDecisionMetricsService.recordPipelineUsage({
       pipeline,
@@ -1427,7 +1516,18 @@ async function decide(params) {
         entity_forecast: entityForecast,
         system_influence: systemInfluencePayload.recommended_system_behavior,
         autonomy_candidate: autonomyEligibility.eligible === true,
-        operational_readonly_summary: operationalReadonlySummary
+        operational_readonly_summary: operationalReadonlySummary,
+        stability: scoreStability,
+        learning_integrity: learningIntegrity,
+        conservatism,
+        system_health: metricsHealth.system_health,
+        dominant_issue:
+          metricsHealth && metricsHealth.dominant_issue != null
+            ? metricsHealth.dominant_issue
+            : 'latency',
+        health_recommendation: metricsHealth.recommendation,
+        behavior_drift: behaviorDriftSilent,
+        behavior_guard_applied: behaviorGuardApplied
       }
     };
 
