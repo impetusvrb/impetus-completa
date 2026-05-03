@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, User } from 'lucide-react';
 import { dashboard } from '../services/api';
+import SystemInfluenceCard from './SystemInfluenceCard';
 import './DashboardChatWidget.css';
 
 export default function DashboardChatWidget({ compact = false, greetingSummary = true }) {
@@ -61,6 +62,20 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
     scrollToBottom();
   }, [messages]);
 
+  const extractSystemInfluencePayload = (data) => {
+    const si = data?.system_influence;
+    if (!si || typeof si !== 'object') return null;
+    if (typeof si.message !== 'string' || !si.message.trim()) return null;
+    return si;
+  };
+
+  const handleConfirmSystemInfluence = async (payload) => {
+    return dashboard.confirmOperationalSystemInfluence({
+      type: payload?.type,
+      severity: payload?.severity
+    });
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -75,9 +90,16 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
         ? r.data.reply
         : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
       const processing_transparency = r.data?.processing_transparency;
+      const systemInfluence = extractSystemInfluencePayload(r.data);
       setMessages((m) => [
         ...m,
-        { id: Date.now() + 1, role: 'assistant', content: reply, processing_transparency }
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: reply,
+          processing_transparency,
+          ...(systemInfluence ? { system_influence: systemInfluence } : {})
+        }
       ]);
     } catch (e) {
       const errMsg = e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
@@ -116,6 +138,12 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
                   ))}
                   {msg.role === 'assistant' && msg.processing_transparency?.footer_pt && (
                     <p className="dashboard-chat-widget__transparency">{msg.processing_transparency.footer_pt}</p>
+                  )}
+                  {msg.role === 'assistant' && (
+                    <SystemInfluenceCard
+                      data={msg.system_influence}
+                      onConfirm={handleConfirmSystemInfluence}
+                    />
                   )}
                 </div>
               </div>

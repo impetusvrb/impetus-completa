@@ -11,7 +11,13 @@ function skipWebhookAndPreflight(req) {
   if (req.method === 'OPTIONS') return true;
   const p = String(req.originalUrl || req.url || '').split('?')[0];
   if (p === '/api/webhook' || p.startsWith('/api/webhooks/')) return true;
-  if (p === '/api/health' || p === '/api/system/health/deep' || p === '/health') return true;
+  if (
+    p === '/api/health' ||
+    p === '/api/health/settings-module' ||
+    p === '/api/system/health/deep' ||
+    p === '/health'
+  )
+    return true;
   return false;
 }
 

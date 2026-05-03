@@ -63,6 +63,10 @@ function inferOutcome(p) {
  * @param {string} [payload.source] — ex.: real_world, heuristic
  * @param {number} [payload.latency]
  * @param {boolean} [payload.fallback]
+ * @param {object} [payload.unifiedResult] — opcional p/ validação (observabilidade)
+ * @param {object} [payload.facadeResult] — opcional p/ validação
+ * @param {object} [payload.metrics] — opcional p/ validação
+ * @param {object} [payload.validationContext] — { unifiedResult?, facadeResult?, metrics?, avg_latency_cognitive? }
  */
 function recordDecisionOutcome(payload) {
   const p = payload && typeof payload === 'object' ? payload : {};
@@ -109,6 +113,29 @@ function recordDecisionOutcome(payload) {
     );
   } catch (_e) {
     console.info('[UNIFIED_LEARNING_UPDATE]', row);
+  }
+
+  if (process.env.UNIFIED_DECISION_AUDIT === 'true') {
+    try {
+      const { applyOutcomeToAudit } = require('./unifiedDecisionAuditService');
+      applyOutcomeToAudit(decisionId, companyId, row);
+    } catch (_au) {}
+  }
+
+  if (process.env.UNIFIED_DECISION_VALIDATION === 'true') {
+    try {
+      const { validateDecisionQualitySafe } = require('./unifiedDecisionValidationService');
+      validateDecisionQualitySafe({
+        decisionId,
+        companyId,
+        outcome: row.outcome,
+        row,
+        unifiedResult: p.unifiedResult,
+        facadeResult: p.facadeResult,
+        metrics: p.metrics,
+        validationContext: p.validationContext
+      });
+    } catch (_val) {}
   }
 
   return { decisionId, outcome: row.outcome };
@@ -186,11 +213,28 @@ function getRecentBadShare(companyId, limit = 18) {
   return { n: slice.length, bad_share: Math.round((b / slice.length) * 1000) / 1000 };
 }
 
+/**
+ * Última linha do buffer para um decisionId (rollback / autonomia).
+ * @param {string|null|undefined} companyId
+ * @param {string} decisionId
+ * @returns {object|null}
+ */
+function getLastOutcomeRowForDecision(companyId, decisionId) {
+  const did = decisionId != null ? String(decisionId) : '';
+  if (!did) return null;
+  const buf = getBuf(companyId);
+  for (let i = buf.length - 1; i >= 0; i--) {
+    if (String(buf[i].decisionId) === did) return buf[i];
+  }
+  return null;
+}
+
 module.exports = {
   recordDecisionOutcome,
   getLearningStats,
   getLearningBadTrendSplit,
   getRecentBadShare,
+  getLastOutcomeRowForDecision,
   inferOutcome,
   __test: { buffers, cidKey, MAX_PER_COMPANY }
 };

@@ -185,6 +185,16 @@ app.get('/api/health', async (req, res) => {
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
+/** Smoke check para o módulo de configurações do app (conta / perfil). Sem BD; só confirma rota montada. */
+app.get('/api/health/settings-module', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.json({
+    ok: true,
+    module: 'user_settings_account',
+    account_get: '/api/usuarios/conta/account'
+  });
+});
+
 /** Prontidão: BD, schema, cifra (sem chamadas a APIs de IA). */
 app.get('/api/system/health/deep', async (req, res) => {
   try {
@@ -293,9 +303,11 @@ useRoute('/api/pulse', './routes/pulse', requireAuth);
 useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth, apiByUserLimiter);
 useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
+useRoute('/api/operational', './routes/operational', requireAuth);
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');
 useRoute('/api/internal/sales', './routes/internal/sales');
 useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics');
+useRoute('/api/internal/unified-health', './routes/internal/unifiedHealth');
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';

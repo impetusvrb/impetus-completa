@@ -68,6 +68,7 @@ const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinancei
 const SelectTeamMember = lazy(() => import('./pages/SelectTeamMember'));
 const AdminOperationalTeams = lazy(() => import('./pages/AdminOperationalTeams'));
 const AdminHelpCenter = lazy(() => import('./pages/AdminHelpCenter'));
+const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -304,6 +305,11 @@ function StrictAdminRouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+/** Rota só existe dentro de `<PrivateRoute>` — qualquer sessão válida pode abrir o ecrã (API filtra dados). */
+function SystemHealthRouteGuard({ children }) {
+  return children;
+}
+
 // Logs de Áudio: acesso exclusivo CEO e diretoria (conteúdo sensível)
 function isDirectorOrCEO() {
   try {
@@ -443,6 +449,7 @@ export default function App() {
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/help-center" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminHelpCenter /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/system-health" element={<PrivateRoute><SetupGuard><SystemHealthRouteGuard><SystemHealthPage /></SystemHealthRouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/equipe-operacional" element={<PrivateRoute><SetupGuard><ColaboradorRouteGuard><SelectTeamMember /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><UserSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />

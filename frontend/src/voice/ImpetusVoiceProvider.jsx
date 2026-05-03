@@ -79,6 +79,10 @@ export default function ImpetusVoiceProvider({ children }) {
     return { reply, sentimentContext };
   }, []);
 
+  const onSensitiveBlock = useCallback(() => {
+    setOverlayOpen(true);
+  }, []);
+
   const {
     voiceState,
     voiceBadge,
@@ -95,15 +99,23 @@ export default function ImpetusVoiceProvider({ children }) {
     stopWakeWord
   } = useVoiceEngine({
     chatRound,
-    onSensitiveBlock: () => {
-      setOverlayOpen(true);
-    }
+    onSensitiveBlock
   });
 
   const voiceStateRef = useRef(voiceState);
   useEffect(() => {
     voiceStateRef.current = voiceState;
   }, [voiceState]);
+
+  /** Evita reiniciar o intervalo de alertas quando callbacks do motor de voz mudam de identidade (causava rajadas de GET). */
+  const speakNaturalReplyRef = useRef(speakNaturalReply);
+  const stopSpeakingRef = useRef(stopSpeaking);
+  const stopVoiceCaptureRef = useRef(stopVoiceCapture);
+  const alertMinPriorityRef = useRef(alertMinPriority);
+  speakNaturalReplyRef.current = speakNaturalReply;
+  stopSpeakingRef.current = stopSpeaking;
+  stopVoiceCaptureRef.current = stopVoiceCapture;
+  alertMinPriorityRef.current = alertMinPriority;
 
   const startWakeWordRef = useRef(startWakeWord);
   const stopWakeWordRef = useRef(stopWakeWord);
@@ -235,6 +247,7 @@ export default function ImpetusVoiceProvider({ children }) {
     if (!voiceEnabled) return;
     if (!voiceState.alertsEnabled) return;
     const tick = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const r = await dashboard.operationalBrain.getAlerts({ limit: 15 });
         const list = r.data?.alerts || r.data?.items || [];
@@ -247,14 +260,14 @@ export default function ImpetusVoiceProvider({ children }) {
           await handleVoiceAlert(
             { ...a, priority },
             {
-              alertsEnabled: voiceState.alertsEnabled,
-              alertMinPriority,
+              alertsEnabled: voiceStateRef.current.alertsEnabled,
+              alertMinPriority: alertMinPriorityRef.current,
               speakText: (msg, meta) => {
-                if (voiceState.isRealtimeMode) return Promise.resolve();
-                return speakNaturalReply(msg, meta);
+                if (voiceStateRef.current.isRealtimeMode) return Promise.resolve();
+                return speakNaturalReplyRef.current(msg, meta);
               },
-              stopSpeaking,
-              stopVoiceCapture,
+              stopSpeaking: () => stopSpeakingRef.current(),
+              stopVoiceCapture: () => stopVoiceCaptureRef.current(),
               formatAlert: async (alert) => {
                 try {
                   const fr = await dashboard.formatVoiceAlert(alert);
@@ -273,15 +286,7 @@ export default function ImpetusVoiceProvider({ children }) {
     const iv = setInterval(tick, 95000);
     tick();
     return () => clearInterval(iv);
-  }, [
-    voiceState.alertsEnabled,
-    voiceState.isRealtimeMode,
-    alertMinPriority,
-    speakNaturalReply,
-    stopSpeaking,
-    stopVoiceCapture,
-    voiceEnabled
-  ]);
+  }, [voiceEnabled, voiceState.alertsEnabled]);
 
   // Overlay abre automaticamente quando o modo voz está ligado
   useEffect(() => {

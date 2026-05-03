@@ -39,6 +39,81 @@ const HUMAN_RISK_RANK = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 const HUMAN_RISK_KEYWORDS =
   /\b(emerg(ê|e)ncia|acidente|evacua|vazamento|inc(ê|e)ndio|explos|morte|falec|ferid|choque el(é|e)trico|arco el(é|e)trico|qu(í|i)mico t(ó|o)xico)\b/i;
 
+/** Hints ambientais — desvio acima do limiar (não altera decisão final nesta fase). */
+const ENV_DEVIATION_HINT_THRESHOLD = 0.1;
+const ENV_HIGH_RISK_DEVIATION_THRESHOLD = 0.3;
+
+/**
+ * @param {object|null|undefined} metrics
+ * @returns {boolean}
+ */
+function detectDeviation(metrics) {
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) return false;
+  return Object.values(metrics).some((m) => {
+    const d = m && typeof m === 'object' ? Number(m.deviation) : NaN;
+    return Number.isFinite(d) && d > ENV_DEVIATION_HINT_THRESHOLD;
+  });
+}
+
+/**
+ * @param {object|null|undefined} metrics
+ * @returns {boolean}
+ */
+function detectEnvironmentalRisk(metrics) {
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) return false;
+  return Object.values(metrics).some((m) => {
+    const d = m && typeof m === 'object' ? Number(m.deviation) : NaN;
+    return Number.isFinite(d) && d > ENV_HIGH_RISK_DEVIATION_THRESHOLD;
+  });
+}
+
+/**
+ * @param {object|null|undefined} raw
+ * @returns {object|null}
+ */
+function getEnvironmentalMetricsFromRawContext(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw.metrics != null && typeof raw.metrics === 'object' && !Array.isArray(raw.metrics)) {
+    return raw.metrics;
+  }
+  const cap = raw.cognitive_attachment_payload;
+  if (cap && typeof cap === 'object' && cap.metrics != null && typeof cap.metrics === 'object') {
+    return cap.metrics;
+  }
+  const att = raw.cognitive_attachment;
+  if (
+    att &&
+    typeof att === 'object' &&
+    att.payload &&
+    att.payload.metrics != null &&
+    typeof att.payload.metrics === 'object'
+  ) {
+    return att.payload.metrics;
+  }
+  return null;
+}
+
+/**
+ * @param {object|null|undefined} raw
+ * @returns {{ environmental?: { hasDeviation: boolean, hasHighRisk: boolean } }}
+ */
+function buildEnvironmentalDecisionContext(raw) {
+  /** @type {{ environmental?: { hasDeviation: boolean, hasHighRisk: boolean } }} */
+  const decisionContext = {};
+  if (!raw || typeof raw !== 'object') return decisionContext;
+  const att = raw.cognitive_attachment;
+  const isEnvironmental =
+    raw.cognitive_attachment_kind === 'environmental' ||
+    (att && typeof att === 'object' && att.kind === 'environmental');
+  if (!isEnvironmental) return decisionContext;
+  const metrics = getEnvironmentalMetricsFromRawContext(raw);
+  decisionContext.environmental = {
+    hasDeviation: detectDeviation(metrics),
+    hasHighRisk: detectEnvironmentalRisk(metrics)
+  };
+  return decisionContext;
+}
+
 function isEnabled() {
   return process.env.UNIFIED_DECISION_ENGINE === 'true';
 }
@@ -863,6 +938,7 @@ async function decide(params) {
     const t0 = Date.now();
 
     const norm = normalizeContext((params && params.context) || {});
+    const decisionContext = buildEnvironmentalDecisionContext(norm.raw);
     const signalBundle = await loadDecisionSignals(user, norm);
 
     if ((signalBundle.knowledge || []).length > 0) {
@@ -1382,12 +1458,18 @@ async function decide(params) {
       _knowledge_alignment: o._knowledge_alignment
     }));
 
+    const envReasonHint =
+      decisionContext.environmental != null
+        ? `[Hints ambientais] desvio_acima_limiar=${decisionContext.environmental.hasDeviation}; risco_ambiental_elevado=${decisionContext.environmental.hasHighRisk}.`
+        : '';
+
     const reasoning = [
       buildStructuredReasoning({ ...evaluated, chosen: finalChosen }, norm, globalSnap),
       ...gov.governance_notes,
       cognitive_validation && cognitive_validation.answer
         ? `Validação tríade (resumo): ${cognitive_validation.answer}`
-        : ''
+        : '',
+      envReasonHint
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -1443,13 +1525,31 @@ async function decide(params) {
         prioritize_monitoring: false,
         reduce_risk_tolerance: false,
         increase_alert_sensitivity: false
-      }
+      },
+      controlled_system_influence: unifiedSystemInfluenceService.buildControlledSystemInfluence({
+        score: scoreResult.score,
+        predicted_risk: riskPrediction && riskPrediction.predicted_risk,
+        fallback_rate: metricsSnapshot && metricsSnapshot.fallback_rate,
+        cognitive_pipeline,
+        cost_force_disable: costForceDisable,
+        learning_stats: learningStats,
+        learning_confidence: learningConf && learningConf.confidence,
+        score_risk_level: scoreResult.risk_level
+      })
     };
     try {
       systemInfluencePayload = unifiedSystemInfluenceService.generateSystemInfluenceSignals({
         decision: finalChosen,
         score: scoreResult.score,
-        context: norm
+        context: norm,
+        companyId: companyIdForMetrics,
+        predicted_risk: riskPrediction && riskPrediction.predicted_risk,
+        fallback_rate: metricsSnapshot && metricsSnapshot.fallback_rate,
+        cognitive_pipeline,
+        cost_force_disable: costForceDisable,
+        learning_stats: learningStats,
+        learning_confidence: learningConf && learningConf.confidence,
+        score_risk_level: scoreResult.risk_level
       });
     } catch (_si) {}
 
@@ -1514,7 +1614,8 @@ async function decide(params) {
         adaptive_weights: weights,
         adaptive_response: adaptiveHints,
         entity_forecast: entityForecast,
-        system_influence: systemInfluencePayload.recommended_system_behavior,
+        recommended_system_behavior: systemInfluencePayload.recommended_system_behavior,
+        system_influence: systemInfluencePayload.controlled_system_influence,
         autonomy_candidate: autonomyEligibility.eligible === true,
         operational_readonly_summary: operationalReadonlySummary,
         stability: scoreStability,
@@ -1527,9 +1628,19 @@ async function decide(params) {
             : 'latency',
         health_recommendation: metricsHealth.recommendation,
         behavior_drift: behaviorDriftSilent,
-        behavior_guard_applied: behaviorGuardApplied
+        behavior_guard_applied: behaviorGuardApplied,
+        decisionContext:
+          decisionContext && Object.keys(decisionContext).length > 0 ? decisionContext : undefined
       }
     };
+
+    try {
+      const unifiedSystemInfluenceSummaryService = require('./unifiedSystemInfluenceSummaryService');
+      unifiedSystemInfluenceSummaryService.recordInfluenceSample(
+        companyIdForMetrics,
+        out.meta && out.meta.system_influence
+      );
+    } catch (_isum) {}
 
     const latencyMs = Date.now() - t0;
     unifiedDecisionMetricsService.recordLatencyMetric({
@@ -1550,6 +1661,16 @@ async function decide(params) {
       user_id: user?.id,
       company_id: user?.company_id
     });
+
+    try {
+      const unifiedPerformanceService = require('./unifiedPerformanceService');
+      unifiedPerformanceService.recordPipelinePerformance({
+        companyId: companyIdForMetrics,
+        pipeline: cognitive_pipeline ? 'cognitive' : 'gpt',
+        latency: latencyMs,
+        tokensUsed: 0
+      });
+    } catch (_perf) {}
 
     if (process.env.UNIFIED_REAL_LEARNING !== 'true') {
       try {
@@ -1635,6 +1756,55 @@ async function decide(params) {
       knowledge_items: (signalBundle.knowledge || []).length,
       session_active: signalBundle.session != null
     });
+
+    setImmediate(() => {
+      (async () => {
+        try {
+          if (process.env.UNIFIED_DECISION_AUDIT === 'true') {
+            const auditSvc = require('./unifiedDecisionAuditService');
+            await auditSvc.auditDecision({
+              facadeResult: null,
+              unifiedResult: out,
+              outcome: null,
+              context: {
+                source,
+                company_id: companyIdForMetrics,
+                companyId: companyIdForMetrics
+              }
+            });
+          }
+        } catch (_a) {}
+      })();
+    });
+
+    if (process.env.UNIFIED_AUTONOMY_ENABLED === 'true' && user?.id && user?.company_id) {
+      setImmediate(() => {
+        Promise.resolve()
+          .then(() => {
+            const unifiedAutonomyService = require('./unifiedAutonomyService');
+            return unifiedAutonomyService.evaluateAutonomousExecution({
+              decision: out.decision,
+              score: scoreResult.score,
+              systemInfluence: out.meta && out.meta.system_influence,
+              context: {
+                user,
+                companyId: companyIdForMetrics,
+                decisionId: unifiedDecisionId,
+                temporalInsights,
+                source
+              }
+            });
+          })
+          .catch((e) => {
+            try {
+              console.info(
+                '[UNIFIED_AUTONOMY_SKIPPED]',
+                JSON.stringify({ reason: 'async_error', message: e?.message ?? String(e) })
+              );
+            } catch (_l) {}
+          });
+      });
+    }
 
     return out;
   } catch (err) {

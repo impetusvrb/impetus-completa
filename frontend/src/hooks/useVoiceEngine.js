@@ -1870,6 +1870,14 @@ export function useVoiceEngine(options = {}) {
     setVoiceState((s) => ({ ...s, alertsEnabled: !!v }));
   }, []);
 
+  const setVoicePrefs = useCallback((p) => {
+    if (!p || typeof p !== 'object') return;
+    if (p.voice_id) voiceIdRef.current = p.voice_id;
+    if (p.speed != null) speedRef.current = parseFloat(p.speed) || 1;
+    if (typeof p.alerts_enabled === 'boolean')
+      setVoiceState((s) => ({ ...s, alertsEnabled: p.alerts_enabled }));
+  }, []);
+
   const startWakeWord = useCallback(() => {
     /* Nunca escutar «Ok Impetus» em paralelo ao modo contínuo / Realtime — causa 2 fluxos de áudio e trava o microfone. */
     if (continuousRef.current) return;
@@ -1967,12 +1975,7 @@ export function useVoiceEngine(options = {}) {
     speakText,
     stopSpeaking,
     setAlertsEnabled,
-    setVoicePrefs: (p) => {
-      if (p.voice_id) voiceIdRef.current = p.voice_id;
-      if (p.speed != null) speedRef.current = parseFloat(p.speed) || 1;
-      if (typeof p.alerts_enabled === 'boolean')
-        setVoiceState((s) => ({ ...s, alertsEnabled: p.alerts_enabled }));
-    },
+    setVoicePrefs,
     isWakeWordActive,
     startWakeWord,
     stopWakeWord,

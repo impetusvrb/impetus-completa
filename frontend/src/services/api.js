@@ -340,6 +340,10 @@ export const dashboard = {
       { headers }
     );
   },
+  /** Confirmação de proposta system_influence (chat) — alinhado a POST /api/operational/confirm-action */
+  confirmOperationalSystemInfluence: (body) => api.post('/operational/confirm-action', body),
+  /** Rollback controlado — corpo { rollback_context } devolvido na confirmação */
+  rollbackOperationalSystemInfluence: (body) => api.post('/operational/rollback-action', body),
   chatMultimodal: (payload = {}) => {
     let last_ai_trace_id;
     try {

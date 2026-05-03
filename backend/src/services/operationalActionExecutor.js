@@ -393,11 +393,60 @@ async function executeOperationalActions(evaluation, context = {}) {
           message: err && err.message ? err.message : String(err)
         });
       }
+    } else if (String(context.sourceTag) === 'autonomous_execution') {
+      const softAlerts = suggestionAlerts
+        .filter((a) => {
+          const sev = String(a.severity || '').toLowerCase();
+          return sev === 'low' || sev === 'medium';
+        })
+        .slice(0, 2);
+      if (softAlerts.length) {
+        const lines = softAlerts
+          .map((a) => (a.message != null ? String(a.message) : String(a.code || '')))
+          .filter(Boolean);
+        const body = `[Autonomia supervisionada]\n${lines.join('\n')}`.slice(0, 3800);
+        try {
+          const send = await unifiedMessaging.sendToUser(companyId, user.id, body, {
+            type: 'autonomous_suggestion'
+          });
+          if (send.ok) {
+            executed.push({
+              type: 'notification',
+              meta: {
+                severity: 'low',
+                count: softAlerts.length,
+                notificationId: send.notificationId
+              }
+            });
+            logStructured('autonomous_notification_sent', {
+              company_id: companyId,
+              user_id: user.id,
+              alert_codes: softAlerts.map((a) => a.code).filter(Boolean),
+              count: softAlerts.length
+            });
+          } else {
+            errors.push({
+              operation: 'notification',
+              message: send.error || 'Falha ao enviar notificação (autonomia)'
+            });
+          }
+        } catch (err) {
+          errors.push({
+            operation: 'notification',
+            message: err && err.message ? err.message : String(err)
+          });
+        }
+      } else {
+        skipped.push({ reason: 'autonomous_no_soft_alerts' });
+      }
     } else {
       skipped.push({ reason: 'no_high_severity_notifications' });
     }
 
-    const criticalPlanAlert = suggestionAlerts.find((a) => a && String(a.code) === 'IMMEDIATE_CRITICAL');
+    const criticalPlanAlert =
+      String(context.sourceTag) === 'autonomous_execution'
+        ? null
+        : suggestionAlerts.find((a) => a && String(a.code) === 'IMMEDIATE_CRITICAL');
     if (criticalPlanAlert) {
       try {
         const taskId = await insertReviewTask(

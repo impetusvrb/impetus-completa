@@ -10,6 +10,7 @@ import Layout from '../../components/Layout';
 import { Shield, FileText, BookOpen, Phone, Settings, Bot, Send, User, ArrowRight } from 'lucide-react';
 import { dashboard, adminSettings } from '../../services/api';
 import { useActivityLog } from '../../hooks/useActivityLog';
+import SystemInfluenceCard from '../../components/SystemInfluenceCard';
 import './AdminDashboard.css';
 
 const DOC_CARDS = [
@@ -86,6 +87,20 @@ export default function AdminDashboard() {
     scrollToBottom();
   }, [messages]);
 
+  const extractSystemInfluencePayload = (data) => {
+    const si = data?.system_influence;
+    if (!si || typeof si !== 'object') return null;
+    if (typeof si.message !== 'string' || !si.message.trim()) return null;
+    return si;
+  };
+
+  const handleConfirmSystemInfluence = async (payload) => {
+    return dashboard.confirmOperationalSystemInfluence({
+      type: payload?.type,
+      severity: payload?.severity
+    });
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -99,7 +114,16 @@ export default function AdminDashboard() {
       const reply = r.data?.ok && r.data?.reply
         ? r.data.reply
         : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', content: reply }]);
+      const systemInfluence = extractSystemInfluencePayload(r.data);
+      setMessages((m) => [
+        ...m,
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: reply,
+          ...(systemInfluence ? { system_influence: systemInfluence } : {})
+        }
+      ]);
     } catch (e) {
       const errMsg = e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
       setMessages((m) => [...m, {
@@ -188,6 +212,12 @@ export default function AdminDashboard() {
                         {(msg.content || '').split('\n').map((line, i) => (
                           <p key={i}>{line}</p>
                         ))}
+                        {msg.role === 'assistant' && (
+                          <SystemInfluenceCard
+                            data={msg.system_influence}
+                            onConfirm={handleConfirmSystemInfluence}
+                          />
+                        )}
                       </div>
                     </div>
                   ))

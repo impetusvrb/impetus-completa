@@ -46,9 +46,12 @@ const STANDALONE_MANUIA_PATHS = new Set([
 ]);
 
 function getModuleForPath(path) {
-  if (PATH_TO_MODULE[path]) return PATH_TO_MODULE[path];
-  if (path.startsWith('/app/admin')) return 'admin';
-  if (path.startsWith('/diagnostic')) return 'operational';
+  const norm = (path || '').replace(/\/+$/, '') || '/';
+  /** Saúde do sistema: não depende só da chave `admin` em visible_modules (CEO/liderança + internal_admin). */
+  if (norm === '/app/admin/system-health') return null;
+  if (PATH_TO_MODULE[norm]) return PATH_TO_MODULE[norm];
+  if (norm.startsWith('/app/admin')) return 'admin';
+  if (norm.startsWith('/diagnostic')) return 'operational';
   return null;
 }
 

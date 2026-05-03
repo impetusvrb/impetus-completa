@@ -5,6 +5,7 @@
  */
 const db = require('../db');
 const crypto = require('crypto');
+const axios = require('axios');
 
 /**
  * Registra um conector MES/ERP
@@ -172,9 +173,206 @@ async function assertMesErpPushAuthorized(companyId, connectorId, presentedToken
   return r.rows[0].id;
 }
 
+/**
+ * Histórico de sincronização / testes do conector
+ */
+async function listSyncLogs(companyId, connectorId, limit = 50) {
+  const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+  const r = await db.query(
+    `
+    SELECT id, sync_type, status, records_count, error_message, payload_summary, created_at
+    FROM mes_erp_sync_log
+    WHERE company_id = $1 AND connector_id = $2
+    ORDER BY created_at DESC
+    LIMIT $3
+  `,
+    [companyId, connectorId, lim]
+  );
+  return (r.rows || []).map((row) => {
+    const ps =
+      row.payload_summary && typeof row.payload_summary === 'object'
+        ? row.payload_summary
+        : {};
+    return {
+      id: row.id,
+      sync_type: row.sync_type,
+      status: row.status,
+      records_count: row.records_count,
+      error_message: row.error_message || null,
+      payload_summary: row.payload_summary,
+      created_at: row.created_at,
+      duration_ms: ps.duration_ms != null ? ps.duration_ms : null
+    };
+  });
+}
+
+function assertSafeOutboundUrl(rawUrl) {
+  let u;
+  try {
+    u = new URL(String(rawUrl).trim());
+  } catch {
+    const err = new Error('URL do endpoint inválida');
+    err.status = 400;
+    throw err;
+  }
+  if (!['http:', 'https:'].includes(u.protocol)) {
+    const err = new Error('Apenas http/https são permitidos no teste');
+    err.status = 400;
+    throw err;
+  }
+  const host = u.hostname.toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '[::1]') {
+    const err = new Error('URL localhost não é permitida no teste a partir do servidor');
+    err.status = 400;
+    throw err;
+  }
+  return u.href;
+}
+
+function buildOutboundHeaders(authType, authConfig) {
+  const cfg = authConfig && typeof authConfig === 'object' ? authConfig : {};
+  const t = String(authType || 'api_key').toLowerCase();
+  if (t === 'bearer') {
+    const tok = cfg.token || cfg.access_token;
+    if (tok) return { Authorization: `Bearer ${tok}` };
+    return {};
+  }
+  if (t === 'basic') {
+    const user = cfg.username || cfg.user || '';
+    const pass = cfg.password || cfg.pass || '';
+    if (user || pass) {
+      const b64 = Buffer.from(`${user}:${pass}`).toString('base64');
+      return { Authorization: `Basic ${b64}` };
+    }
+    return {};
+  }
+  if (t === 'oauth2') {
+    const tok = cfg.access_token || cfg.token;
+    if (tok) return { Authorization: `Bearer ${tok}` };
+    return {};
+  }
+  const headerName = (cfg.header_name || 'X-API-Key').trim() || 'X-API-Key';
+  const val = cfg.value ?? cfg.api_key ?? '';
+  if (val) return { [headerName]: String(val) };
+  return {};
+}
+
+/**
+ * Testa conectividade outbound para endpoint_url (pull). Webhook-only sem URL → simula OK e regista log.
+ */
+async function testConnectorOutbound(companyId, connectorId) {
+  const r = await db.query(
+    `
+    SELECT id, endpoint_url, auth_type, auth_config
+    FROM integration_connectors
+    WHERE id = $1 AND company_id = $2 AND connector_type = 'mes_erp'
+  `,
+    [connectorId, companyId]
+  );
+  if (!r.rows?.length) {
+    const err = new Error('Conector não encontrado');
+    err.status = 404;
+    throw err;
+  }
+  const row = r.rows[0];
+  let cfg = row.auth_config || {};
+  if (typeof cfg === 'string') {
+    try {
+      cfg = JSON.parse(cfg);
+    } catch {
+      cfg = {};
+    }
+  }
+
+  const endpoint = row.endpoint_url && String(row.endpoint_url).trim();
+  if (!endpoint) {
+    await db.query(
+      `
+      INSERT INTO mes_erp_sync_log (company_id, connector_id, sync_type, status, records_count, payload_summary)
+      VALUES ($1, $2, 'test', 'success', 0, $3::jsonb)
+    `,
+      [
+        companyId,
+        connectorId,
+        JSON.stringify({
+          mode: 'webhook_inbound_only',
+          message: 'Sem URL externa; push via POST /api/integrations/mes-erp/push'
+        })
+      ]
+    );
+    return {
+      ok: true,
+      mode: 'webhook_only',
+      message: 'Conector configurado para receber webhook (push). Não há URL externa para ping.'
+    };
+  }
+
+  const url = assertSafeOutboundUrl(endpoint);
+  const headers = buildOutboundHeaders(row.auth_type, cfg);
+  const t0 = Date.now();
+  let httpStatus = null;
+  let errMsg = null;
+  try {
+    const resp = await axios.get(url, {
+      headers: { Accept: 'application/json', ...headers },
+      timeout: 20000,
+      maxRedirects: 5,
+      validateStatus: () => true
+    });
+    httpStatus = resp.status;
+    const okHttp = httpStatus >= 200 && httpStatus < 400;
+    const duration_ms = Date.now() - t0;
+    await db.query(
+      `
+      INSERT INTO mes_erp_sync_log (company_id, connector_id, sync_type, status, records_count, payload_summary, error_message)
+      VALUES ($1, $2, 'test', $3, 0, $4::jsonb, $5)
+    `,
+      [
+        companyId,
+        connectorId,
+        okHttp ? 'success' : 'error',
+        JSON.stringify({ http_status: httpStatus, duration_ms }),
+        okHttp ? null : `HTTP ${httpStatus}`
+      ]
+    );
+    if (!okHttp) {
+      const err = new Error(`HTTP ${httpStatus} ao contactar o endpoint`);
+      err.status = 502;
+      err._mesErpTestLogged = true;
+      throw err;
+    }
+    return { ok: true, http_status: httpStatus, duration_ms };
+  } catch (e) {
+    if (e && e._mesErpTestLogged) throw e;
+    errMsg = e.response?.status ? `HTTP ${e.response.status}` : e.message || 'Falha na requisição';
+    const duration_ms = Date.now() - t0;
+    if (httpStatus == null && e.response?.status) httpStatus = e.response.status;
+    await db.query(
+      `
+      INSERT INTO mes_erp_sync_log (company_id, connector_id, sync_type, status, records_count, payload_summary, error_message)
+      VALUES ($1, $2, 'test', 'error', 0, $3::jsonb, $4)
+    `,
+      [
+        companyId,
+        connectorId,
+        JSON.stringify({ http_status: httpStatus, duration_ms }),
+        errMsg
+      ]
+    ).catch((logErr) => console.warn('[mesErpIntegrationService][test_log]', logErr?.message));
+    if (!e.status) {
+      const wrap = new Error(errMsg);
+      wrap.status = e.response?.status >= 400 ? 502 : 500;
+      throw wrap;
+    }
+    throw e;
+  }
+}
+
 module.exports = {
   createConnector,
   listConnectors,
   processPush,
-  assertMesErpPushAuthorized
+  assertMesErpPushAuthorized,
+  listSyncLogs,
+  testConnectorOutbound
 };

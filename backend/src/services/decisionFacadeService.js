@@ -154,6 +154,28 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
 
     logFacadeCoherence(payload, result, src);
 
+    setImmediate(() => {
+      (async () => {
+        try {
+          if (process.env.UNIFIED_DECISION_AUDIT === 'true') {
+            const auditSvc = require('./unifiedDecisionAuditService');
+            const companyId =
+              user && user.company_id != null
+                ? user.company_id
+                : context && typeof context === 'object' && context.company_id != null
+                  ? context.company_id
+                  : null;
+            await auditSvc.auditDecision({
+              facadeResult: payload,
+              unifiedResult: result,
+              outcome: null,
+              context: { source: src, company_id: companyId, companyId }
+            });
+          }
+        } catch (_a) {}
+      })();
+    });
+
     return payload;
   } catch (err) {
     console.warn('[DECISION_FACADE_FAIL]', err?.message || err);

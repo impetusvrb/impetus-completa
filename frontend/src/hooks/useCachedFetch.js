@@ -54,6 +54,9 @@ export function useCachedFetch(cacheKey, fetchFn, options = {}) {
   const [loading, setLoading] = useState(!data && enabled);
   const [error, setError] = useState(null);
   const isMountedRef = useRef(true);
+  /** Identidade de fetchFn muda em quase todos os call sites (arrow inline) — não pode estar nas deps do fetch. */
+  const fetchFnRef = useRef(fetchFn);
+  fetchFnRef.current = fetchFn;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -77,7 +80,8 @@ export function useCachedFetch(cacheKey, fetchFn, options = {}) {
       setError(null);
     }
     try {
-      const result = await fetchFn();
+      const fn = fetchFnRef.current;
+      const result = await fn();
       const value = result?.data ?? result;
       setCached(cacheKey, value, ttlMs);
       if (isMountedRef.current) {
@@ -93,7 +97,7 @@ export function useCachedFetch(cacheKey, fetchFn, options = {}) {
         setLoading(false);
       }
     }
-  }, [cacheKey, fetchFn, ttlMs, enabled]);
+  }, [cacheKey, ttlMs, enabled]);
 
   useEffect(() => {
     fetchData();

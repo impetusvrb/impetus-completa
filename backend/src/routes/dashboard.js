@@ -36,6 +36,62 @@ const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
 
+/**
+ * Proposta informativa ao utilizador com base em meta.system_influence (sem execução automática).
+ * @param {object|null} systemInfluence
+ * @returns {{ type: string, message: string, severity: string } | null}
+ */
+function buildSystemInfluenceMessage(systemInfluence) {
+  if (!systemInfluence || typeof systemInfluence !== 'object') return null;
+
+  const {
+    priority_override,
+    requires_attention,
+    risk_level,
+    confidence_score: _confidence_score
+  } = systemInfluence;
+
+  const rl = risk_level != null ? String(risk_level).toLowerCase() : '';
+
+  if (priority_override === true && rl === 'high') {
+    return {
+      type: 'critical_action_proposal',
+      message:
+        'Identifiquei uma situação crítica que pode impactar a operação. Posso registrar uma ação para tratamento imediato. Deseja que eu prossiga?',
+      severity: 'high'
+    };
+  }
+
+  if (requires_attention === true) {
+    return {
+      type: 'attention_action_proposal',
+      message:
+        'Esse cenário merece atenção. Posso gerar uma recomendação estruturada ou registrar uma ação preventiva. Deseja que eu prossiga?',
+      severity: 'medium'
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Evita expor erros internos de runtime no chat para o utilizador final.
+ * @param {unknown} err
+ * @param {string} fallback
+ */
+function buildSafeChatErrorMessage(err, fallback) {
+  const raw = err && err.message ? String(err.message) : '';
+  const normalized = raw.toLowerCase();
+  const internalRuntimeError =
+    normalized.includes('before initialization') ||
+    normalized.includes('referenceerror') ||
+    normalized.includes('syntaxerror') ||
+    normalized.includes('typeerror');
+  if (internalRuntimeError) return fallback;
+  if (!raw.trim()) return fallback;
+  return raw.slice(0, 300);
+}
+
 router.use('/maintenance', dashboardMaintenanceRouter);
 router.use('/operational-brain', dashboardOperationalBrainRouter);
 
@@ -667,6 +723,8 @@ router.post('/chat', requireAuth, async (req, res) => {
       }
     }
 
+    const systemInfluence = unifiedDecision?.meta?.system_influence || null;
+
     let useCognitiveCouncil = false;
     if (
       process.env.UNIFIED_DECISION_USE_TRIADE === 'true' &&
@@ -734,6 +792,24 @@ router.post('/chat', requireAuth, async (req, res) => {
             } catch (_) {
               /* ignore */
             }
+            let systemInfluenceMessage = null;
+            try {
+              systemInfluenceMessage = buildSystemInfluenceMessage(systemInfluence);
+            } catch (err) {
+              console.warn('[SYSTEM_INFLUENCE_BUILD_FAIL]', err?.message || err);
+            }
+            if (systemInfluenceMessage) {
+              try {
+                console.info(
+                  '[SYSTEM_INFLUENCE_CHAT]',
+                  JSON.stringify({
+                    type: systemInfluenceMessage.type,
+                    severity: systemInfluenceMessage.severity,
+                    company_id: u?.company_id || null
+                  })
+                );
+              } catch (_log) {}
+            }
             return res.json({
               ok: true,
               reply: textCouncil,
@@ -746,7 +822,8 @@ router.post('/chat', requireAuth, async (req, res) => {
               hitl_closed: hitlClosure?.closed === true,
               hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined,
               processing_transparency: processingTransparencyCouncil,
-              cognitive_council: true
+              cognitive_council: true,
+              system_influence: systemInfluenceMessage || null
             });
           }
         }
@@ -928,6 +1005,24 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
     } catch (err) {
       console.warn('[routes/dashboard][chat_processing_transparency]', err?.message ?? err);
     }
+    let systemInfluenceMessage = null;
+    try {
+      systemInfluenceMessage = buildSystemInfluenceMessage(systemInfluence);
+    } catch (err) {
+      console.warn('[SYSTEM_INFLUENCE_BUILD_FAIL]', err?.message || err);
+    }
+    if (systemInfluenceMessage) {
+      try {
+        console.info(
+          '[SYSTEM_INFLUENCE_CHAT]',
+          JSON.stringify({
+            type: systemInfluenceMessage.type,
+            severity: systemInfluenceMessage.severity,
+            company_id: u?.company_id || null
+          })
+        );
+      } catch (_log) {}
+    }
     res.json({
       ok: true,
       reply: text,
@@ -939,11 +1034,15 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
       degraded,
       hitl_closed: hitlClosure?.closed === true,
       hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined,
-      processing_transparency
+      processing_transparency,
+      system_influence: systemInfluenceMessage || null
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);
-    res.status(500).json({ ok: false, error: err?.message || 'Erro no assistente Impetus IA.' });
+    res.status(500).json({
+      ok: false,
+      error: buildSafeChatErrorMessage(err, 'Erro temporário no assistente Impetus IA.')
+    });
   }
 });
 
@@ -1098,7 +1197,10 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
     res.json({ ok: true, reply: text, message: text, content: text, processing_transparency });
   } catch (err) {
     console.error('[DASHBOARD_CHAT_MULTIMODAL]', err);
-    res.status(500).json({ ok: false, error: err?.message || 'Erro no chat multimodal.' });
+    res.status(500).json({
+      ok: false,
+      error: buildSafeChatErrorMessage(err, 'Erro temporário no chat multimodal.')
+    });
   }
 });
 

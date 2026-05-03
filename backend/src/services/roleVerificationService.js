@@ -69,8 +69,12 @@ async function checkCorporateEmail(user, company) {
 
   let domain = company?.company_domain?.trim()?.toLowerCase();
   if (!domain) {
-    const dc = (company?.data_controller_email || '').trim();
-    if (dc && dc.includes('@')) domain = dc.split('@')[1];
+    const dc = (
+      company?.data_controller_email ||
+      company?.email_responsavel ||
+      ''
+    ).trim();
+    if (dc && dc.includes('@')) domain = dc.split('@')[1].toLowerCase();
   }
   if (!domain) return false;
 
@@ -102,9 +106,10 @@ async function verifyByCorporateEmail(userId, companyId, ipAddress, userAgent) {
   `, [userId, companyId]);
   if (userRes.rows.length === 0) return { ok: false, error: 'Usuário não encontrado' };
 
-  const companyRes = await db.query(`
-    SELECT id, company_domain, data_controller_email FROM companies WHERE id = $1
-  `, [companyId]);
+  const companyRes = await db.query(
+    `SELECT id, company_domain, email_responsavel FROM companies WHERE id = $1`,
+    [companyId]
+  );
   if (companyRes.rows.length === 0) return { ok: false, error: 'Empresa não encontrada' };
 
   const isCorporate = await checkCorporateEmail(userRes.rows[0], companyRes.rows[0]);
@@ -506,10 +511,16 @@ async function detectSuspiciousPatterns(companyId) {
       AND (u.role_verified = false OR u.role_verification_status IN ('pending','pending_revalidation','awaiting_structure'))
   `, [companyId]);
 
-  const companyRes = await db.query(`SELECT company_domain, data_controller_email FROM companies WHERE id = $1`, [companyId]);
+  const companyRes = await db.query(
+    `SELECT company_domain, email_responsavel FROM companies WHERE id = $1`,
+    [companyId]
+  );
   const company = companyRes.rows[0] || {};
   let corpDomain = (company.company_domain || '').trim();
-  if (!corpDomain && company.data_controller_email) corpDomain = company.data_controller_email.split('@')[1] || '';
+  if (!corpDomain && company.email_responsavel) {
+    const e = String(company.email_responsavel).trim();
+    if (e.includes('@')) corpDomain = e.split('@')[1] || '';
+  }
 
   const suspicious = [];
   for (const u of res.rows) {

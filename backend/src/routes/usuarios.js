@@ -4,9 +4,12 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const chatService = require('../services/chatService');
+const userAccountConta = require('./userAccountConta');
 
 const router = express.Router();
 router.use(requireAuth);
+
+router.use('/conta', userAccountConta);
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),

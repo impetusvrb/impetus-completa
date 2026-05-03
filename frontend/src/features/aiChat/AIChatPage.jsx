@@ -9,6 +9,7 @@ import { dashboard } from '../../services/api';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { useImpetusVoice } from '../../voice/ImpetusVoiceContext';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
+import SystemInfluenceCard from '../../components/SystemInfluenceCard';
 import './AIChatPage.css';
 
 export default function AIChatPage() {
@@ -131,6 +132,20 @@ export default function AIChatPage() {
     };
   }, [stopVoiceNoteStream]);
 
+  const extractSystemInfluencePayload = useCallback((data) => {
+    const si = data?.system_influence;
+    if (!si || typeof si !== 'object') return null;
+    if (typeof si.message !== 'string' || !si.message.trim()) return null;
+    return si;
+  }, []);
+
+  const handleConfirmSystemInfluence = useCallback(async (payload) => {
+    return dashboard.confirmOperationalSystemInfluence({
+      type: payload?.type,
+      severity: payload?.severity
+    });
+  }, []);
+
   /** Após o utilizador já estar na lista de mensagens. multimodalPayload = null para texto só. */
   const runChatRequest = useCallback(
     async (textForApi, historyBeforeUser, multimodalPayload) => {
@@ -150,9 +165,17 @@ export default function AIChatPage() {
             ? r.data.reply
             : r.data?.fallback || 'Resposta temporariamente indisponível. Tente novamente.';
         const processing_transparency = r.data?.processing_transparency;
+        const systemInfluence =
+          multimodalPayload ? null : extractSystemInfluencePayload(r.data);
         setMessages((m) => [
           ...m,
-          { id: Date.now() + 1, role: 'assistant', content: reply, processing_transparency }
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            content: reply,
+            processing_transparency,
+            ...(systemInfluence ? { system_influence: systemInfluence } : {})
+          }
         ]);
         if (autoSpeakResponses && voiceState.isContinuous) {
           await speakNaturalReply(reply);
@@ -181,7 +204,7 @@ export default function AIChatPage() {
         setSending(false);
       }
     },
-    [autoSpeakResponses, speakNaturalReply, stopSpeaking, voiceState.isContinuous]
+    [autoSpeakResponses, speakNaturalReply, stopSpeaking, voiceState.isContinuous, extractSystemInfluencePayload]
   );
 
   const handleSend = async () => {
@@ -358,10 +381,16 @@ export default function AIChatPage() {
         const reply = r2.data?.ok && r2.data?.reply
           ? r2.data.reply
           : r2.data?.fallback || 'Resposta temporariamente indisponível.';
+        const si = extractSystemInfluencePayload(r2.data);
         setMessages((m) => [
           ...m,
           { id: Date.now(), role: 'user', content: text },
-          { id: Date.now() + 1, role: 'assistant', content: reply }
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            content: reply,
+            ...(si ? { system_influence: si } : {})
+          }
         ]);
         if (autoSpeakResponses && voiceState.isContinuous) await speakNaturalReply(reply);
         setSending(false);
@@ -470,6 +499,9 @@ export default function AIChatPage() {
                         Nexus IA
                       </a>
                     </p>
+                  )}
+                  {msg.role === 'assistant' && (
+                    <SystemInfluenceCard data={msg.system_influence} onConfirm={handleConfirmSystemInfluence} />
                   )}
                 </div>
               </div>

@@ -111,6 +111,10 @@ export function resolveMenuRole(user) {
   if (role === 'manager') role = 'gerente';
   if (role === 'coordinator') role = 'coordenador';
 
+  /** Staff IMPETUS — mesmo menu lateral que administrador de tenant (rotas admin continuam com guards próprios). */
+  if (role === 'internal_admin') return 'admin';
+  if (role === 'tenant_admin' || role === 'company_admin') return 'admin';
+
   if (role === 'admin' || profile === 'admin_system') return 'admin';
   if (role === 'rh') return 'rh';
   if (role === 'ceo' || profile === 'ceo_executive') return 'ceo';

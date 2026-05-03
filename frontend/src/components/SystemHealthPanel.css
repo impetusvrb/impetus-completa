@@ -1,0 +1,564 @@
+.impetus-sys-health__section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+}
+
+.impetus-sys-health__section-title {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #7a9bb5);
+  margin: 0 0 8px;
+}
+
+.impetus-sys-health__global-health {
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.impetus-sys-health__global-health__value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.impetus-sys-health__global-health__sub {
+  font-size: 10px;
+  color: var(--text-tertiary, #4a6a82);
+  margin: 8px 0 0;
+  line-height: 1.35;
+  font-style: normal;
+}
+
+.impetus-sys-health__global-health[data-tone='good'] {
+  background: rgba(0, 255, 136, 0.06);
+}
+
+.impetus-sys-health__global-health[data-tone='warning'] {
+  background: rgba(255, 170, 0, 0.07);
+}
+
+.impetus-sys-health__global-health[data-tone='critical'] {
+  background: rgba(255, 64, 64, 0.07);
+}
+
+.impetus-sys-health__global-health--incomplete {
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.impetus-sys-health__global-health--partial {
+  box-shadow: inset 0 0 0 1px rgba(255, 170, 0, 0.12);
+}
+
+.impetus-sys-health__primary-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  border-left-width: 3px;
+  border-left-style: solid;
+  background: var(--bg-overlay, rgba(0, 212, 255, 0.04));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary, #c8e0f0);
+}
+
+.impetus-sys-health__primary-alert[data-level='critical'] {
+  background: rgba(255, 64, 64, 0.08);
+  border-color: rgba(255, 64, 64, 0.22);
+}
+
+.impetus-sys-health__primary-alert[data-level='warning'] {
+  background: rgba(255, 170, 0, 0.07);
+  border-color: rgba(255, 170, 0, 0.22);
+}
+
+.impetus-sys-health__primary-alert-icon {
+  flex-shrink: 0;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 10px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.impetus-sys-health__primary-alert-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  letter-spacing: 0.02em;
+}
+
+.impetus-sys-health__confidence-wrap {
+  margin: 6px 0 0;
+}
+
+.impetus-sys-health__confidence {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-tertiary, #4a6a82);
+}
+
+.impetus-sys-health__confidence-note {
+  margin: 4px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--amber, #ffaa00);
+  opacity: 0.92;
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-weight: 500;
+}
+
+.impetus-sys-health__confidence-label {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #7a9bb5);
+}
+
+.impetus-sys-health__confidence-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-weight: 700;
+}
+
+.impetus-sys-health__confidence-hint {
+  font-weight: 500;
+  color: var(--text-tertiary, #4a6a82);
+  opacity: 0.92;
+}
+
+.impetus-sys-health__narrative-prose {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-primary, #c8e0f0);
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-weight: 500;
+}
+
+.impetus-sys-health__trend-prose {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-primary, #c8e0f0);
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-weight: 500;
+}
+
+.impetus-sys-health__insights-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.impetus-sys-health__insights-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  background: var(--bg-overlay, rgba(0, 212, 255, 0.04));
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-primary, #c8e0f0);
+}
+
+.impetus-sys-health__insights-item[data-level='critical'] {
+  border-color: rgba(255, 64, 64, 0.28);
+  background: rgba(255, 64, 64, 0.06);
+}
+
+.impetus-sys-health__insights-item[data-level='info'] {
+  border-color: rgba(0, 212, 255, 0.22);
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.impetus-sys-health__insights-item[data-level='positive'] {
+  border-color: rgba(0, 255, 136, 0.22);
+  background: rgba(0, 255, 136, 0.06);
+}
+
+.impetus-sys-health__insights-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  width: 1.25em;
+  text-align: center;
+}
+
+.impetus-sys-health__insights-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.impetus-sys-health__block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impetus-sys-health__card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impetus-sys-health__card-grid--dense {
+  gap: 6px;
+}
+
+.impetus-sys-health__card {
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--bg-overlay, rgba(0, 212, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.impetus-sys-health__card--wide {
+  grid-column: 1 / -1;
+}
+
+.impetus-sys-health__card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #7a9bb5);
+  margin-bottom: 4px;
+}
+
+.impetus-sys-health__card-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.impetus-sys-health__card-value-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary, #c8e0f0);
+}
+
+.impetus-sys-health__card-hint {
+  font-size: 10px;
+  color: var(--text-tertiary, #4a6a82);
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
+.impetus-sys-health__mono {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 11px;
+}
+
+.impetus-sys-health__pill {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-subtle);
+}
+
+.impetus-sys-health__pill[data-tone='good'] {
+  color: var(--green);
+  border-color: rgba(0, 255, 136, 0.35);
+  background: rgba(0, 255, 136, 0.08);
+}
+
+.impetus-sys-health__pill[data-tone='warning'] {
+  color: var(--amber);
+  border-color: rgba(255, 170, 0, 0.35);
+  background: rgba(255, 170, 0, 0.08);
+}
+
+.impetus-sys-health__pill[data-tone='critical'] {
+  color: var(--red);
+  border-color: rgba(255, 64, 64, 0.35);
+  background: rgba(255, 64, 64, 0.08);
+}
+
+.impetus-sys-health__pill[data-tone='unknown'] {
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+  background: transparent;
+}
+
+.impetus-sys-health__row--block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.impetus-sys-health__row--block span:first-child {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.impetus-sys-health__advanced-toggle {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+}
+
+.impetus-sys-health__toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #7a9bb5);
+  letter-spacing: 0.02em;
+}
+
+.impetus-sys-health__toggle-input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--cyan, #00d4ff);
+}
+
+.impetus-sys-health__audit-list-wrap {
+  margin-top: 10px;
+}
+
+.impetus-sys-health__audit-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.impetus-sys-health__audit-item {
+  border-radius: 4px;
+  padding: 8px;
+  background: var(--bg-secondary, #0d1520);
+  border: 1px solid var(--border-subtle);
+}
+
+.impetus-sys-health__audit-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.impetus-sys-health__audit-item-body {
+  font-size: 11px;
+  color: var(--text-primary, #c8e0f0);
+  line-height: 1.35;
+}
+
+.impetus-sys-health__influence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.32);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber, #ffaa00);
+}
+
+.impetus-sys-health__influence-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: impetus-influence-pulse 1.8s ease-in-out infinite;
+}
+
+.impetus-sys-health__influence-meta {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(200, 210, 230, 0.75);
+}
+
+.impetus-sys-health--lateral {
+  /* Widget flutuante legado — hoje o painel abre no drawer; mantido se nested !== embedded */
+}
+
+/* Conteúdo dentro do SystemHealthDrawer: sem posicionamento fixo nem sombra de widget */
+.impetus-sys-health--embedded {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(18, 22, 32, 0.92) 0%, rgba(12, 14, 22, 0.95) 100%);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  pointer-events: auto;
+}
+
+.impetus-sys-health {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 40;
+  width: min(288px, calc(100vw - 28px));
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  background: linear-gradient(160deg, var(--bg-panel, #0f1a28) 0%, var(--bg-primary, #070c14) 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  color: rgba(242, 245, 250, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.impetus-sys-health--embedded.impetus-sys-health {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+}
+
+.impetus-sys-health__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.impetus-sys-health__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.impetus-sys-health__title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: rgba(200, 210, 230, 0.85);
+}
+
+.impetus-sys-health__body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impetus-sys-health__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.impetus-sys-health__row span:first-child {
+  color: rgba(170, 182, 204, 0.9);
+}
+
+.impetus-sys-health__row span:last-child {
+  font-weight: 600;
+  text-align: right;
+}
+
+.impetus-sys-health__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.impetus-sys-health__bar {
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.impetus-sys-health__bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.35s ease, background 0.25s ease;
+}
+
+.impetus-sys-health__muted {
+  font-size: 10px;
+  color: rgba(150, 160, 180, 0.65);
+  margin-top: 4px;
+}
+
+.impetus-sys-health--collapsed .impetus-sys-health__body {
+  display: none;
+}
+
+.impetus-sys-health__toggle {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(180, 195, 220, 0.7);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.impetus-sys-health__toggle:hover {
+  color: rgba(220, 230, 250, 0.95);
+}
+
+@media (max-width: 1023px) {
+  .impetus-sys-health:not(.impetus-sys-health--embedded) {
+    right: 8px;
+    bottom: 8px;
+    width: min(260px, calc(100vw - 16px));
+  }
+}
