@@ -579,6 +579,18 @@ httpServer.on('error', (err) => {
       console.warn('[SYSTEM_READINESS] Exceção no check (dev: continua):', msg);
     }
 
+    try {
+      const eps = require('./services/eventPipelineBootstrapService');
+      const pipeBoot = eps.bootIfEnabled();
+      if (pipeBoot.ok) {
+        console.info('[EVENT_PIPELINE_BOOT]', pipeBoot.types ? { types: pipeBoot.types } : pipeBoot);
+      } else if (pipeBoot.reason && pipeBoot.reason !== 'disabled_by_env') {
+        console.warn('[EVENT_PIPELINE_BOOT]', pipeBoot.reason);
+      }
+    } catch (e) {
+      console.warn('[EVENT_PIPELINE_BOOT] excepção (processo continua):', e && e.message ? e.message : e);
+    }
+
     httpServer.listen(PORT, () => {
       console.log(
         `[impetus-backend] http://0.0.0.0:${PORT}  (health: /health  deep: /api/system/health/deep)`

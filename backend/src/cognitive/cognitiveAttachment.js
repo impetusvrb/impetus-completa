@@ -44,6 +44,26 @@ async function cognitiveAttachment(input, context) {
       );
     }
 
+    if (snapshot && typeof snapshot === 'object') {
+      try {
+        console.log(
+          JSON.stringify({
+            tag: '[COGNITIVE_IMPACT]',
+            decision: snapshot.intent != null ? String(snapshot.intent) : null,
+            traceId: snapshot.traceId ?? context?.traceId ?? null,
+            confidence:
+              typeof snapshot.confidence === 'number' && Number.isFinite(snapshot.confidence)
+                ? snapshot.confidence
+                : null,
+            source: 'cognitive_attachment_overlay',
+            ts: new Date().toISOString()
+          })
+        );
+      } catch (_e) {
+        /* NDJSON não deve falhar o pedido */
+      }
+    }
+
     return { cognitive: snapshot };
   } catch (err) {
     console.error('[COGNITIVE_ATTACHMENT_FAIL]', {

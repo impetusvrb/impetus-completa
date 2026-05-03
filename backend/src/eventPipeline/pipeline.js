@@ -56,12 +56,54 @@ function bootEventPipeline(opts = {}) {
               priority: processed.priority,
               refined_by: 'fallback'
             };
-            await routeRefinedEvent(processed, refined);
+            const route = await routeRefinedEvent(processed, refined);
+            try {
+              await audit({
+                event_id: processed.event_id,
+                event_type: processed.event_type,
+                intent_pre: processed.intent_pre,
+                intent_refined: refined.intent,
+                ia_chamada: refined.refined_by === 'gemini' ? 'gemini' : 'none',
+                route_channel: route ? route.channel : null,
+                ok: !!(route && route.ok),
+                summary: processed.summary,
+                meta: { priority: processed.priority, confidence: refined.confidence, bus: true }
+              });
+            } catch (_auditErr) {
+              /* não derrubar o bus */
+            }
+          } else if (processed.filtered) {
+            try {
+              await audit({
+                event_id: processed.event_id,
+                event_type: processed.event_type,
+                intent_pre: processed.intent_pre,
+                intent_refined: 'filtered',
+                ia_chamada: 'none',
+                route_channel: 'filtered',
+                ok: false,
+                summary: processed.summary,
+                meta: { reason: processed.reason || 'noise', bus: true }
+              });
+            } catch (_auditErr) {}
           }
           return;
         }
         const refined = await refineIntent(processed);
-        await routeRefinedEvent(processed, refined);
+        const route = await routeRefinedEvent(processed, refined);
+        try {
+          await audit({
+            event_id: processed.event_id,
+            event_type: processed.event_type,
+            intent_pre: processed.intent_pre,
+            intent_refined: refined.intent,
+            ia_chamada: refined.refined_by === 'gemini' ? 'gemini' : 'none',
+            route_channel: route ? route.channel : null,
+            ok: !!(route && route.ok),
+            summary: processed.summary,
+            meta: { priority: refined.priority, confidence: refined.confidence, bus: true }
+          });
+        } catch (_auditErr) {}
       } catch (err) {
         console.warn('[EVENT_PIPELINE_ERROR]', { type, err: err && err.message });
       }

@@ -21,8 +21,10 @@
  * (`LOW` | `MEDIUM` | `HIGH` | `CRITICAL`); aqui usa-se `'medium'` por convenção de entrada.
  */
 
+const crypto = require('crypto');
 const { analyzePrompt } = require('../middleware/promptFirewall');
 const { runCognitiveCouncil } = require('../ai/cognitiveOrchestrator');
+const eventPipelineGovernanceService = require('./eventPipelineGovernanceService');
 const aiProviderService = require('./aiProviderService');
 const aiIncidentService = require('./aiIncidentService');
 const {
@@ -192,9 +194,44 @@ async function handleCognitiveRequest({
       }
     }
 
+    const sensorTrace =
+      (options && options.traceId && String(options.traceId)) ||
+      (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `tmp-${Date.now()}`);
+
+    let pipelineSensor = null;
+    if (process.env.IMPETUS_PIPELINE_HTTP_SENSOR !== 'false') {
+      pipelineSensor = await eventPipelineGovernanceService.runTextSensor(text, {
+        traceId: sensorTrace,
+        userId: user.id,
+        priority: 'medium'
+      });
+    }
+
+    const controllerIntentLabel = eventPipelineGovernanceService.inferControllerIntentLabel(
+      text,
+      councilModule
+    );
+    const pipeIntent = pipelineSensor && pipelineSensor.intent ? String(pipelineSensor.intent) : null;
+    const intentConflict = !!(
+      pipeIntent &&
+      controllerIntentLabel &&
+      pipeIntent !== controllerIntentLabel
+    );
+    eventPipelineGovernanceService.maybeLogDecisionConflict({
+      controllerIntent: controllerIntentLabel,
+      pipelineIntent: pipeIntent,
+      confidence: pipelineSensor && pipelineSensor.confidence,
+      traceId: pipelineSensor && pipelineSensor.traceId
+    });
+    const pipelineGovernance = eventPipelineGovernanceService.evaluateGovernance({
+      confidence: pipelineSensor && pipelineSensor.confidence,
+      conflict: intentConflict
+    });
+
     const rawOpts = options && typeof options === 'object' ? { ...options } : {};
     delete rawOpts.skipPromptFirewall;
     const councilOptions = { ...rawOpts, skipRecursiveUnified: true };
+    councilOptions._pipelineGovernance = pipelineGovernance;
 
     let requestPayloadText = text;
     if (
@@ -212,6 +249,12 @@ async function handleCognitiveRequest({
       const cogBlock = formatCognitiveBlock(cognitiveSnapshot);
       if (cogBlock) {
         requestPayloadText = `${requestPayloadText}\n\n[Contexto semântico — overlay event-pipeline]\n${cogBlock}`;
+      }
+    }
+    if (pipelineSensor && typeof pipelineSensor === 'object') {
+      const sensorBlock = formatCognitiveBlock(pipelineSensor);
+      if (sensorBlock) {
+        requestPayloadText = `${requestPayloadText}\n\n[Sensor semântico — pipeline interno]\n${sensorBlock}`;
       }
     }
 
@@ -244,6 +287,24 @@ async function handleCognitiveRequest({
           e && e.message ? e.message : e
         );
       }
+    }
+
+    try {
+      const decisionLabel =
+        (resPart && resPart.intent != null && String(resPart.intent)) ||
+        (resPart && resPart.decision != null && String(resPart.decision)) ||
+        (content ? String(content).slice(0, 160) : 'council_ok');
+      eventPipelineGovernanceService.logCognitiveImpact({
+        traceId: trace_id,
+        companyId: user.company_id,
+        userId: user.id,
+        decision: decisionLabel,
+        pipelineIntent: pipeIntent,
+        confidence: pipelineSensor && pipelineSensor.confidence,
+        degraded: !!(councilResult.degraded ?? resPart.degraded)
+      });
+    } catch (_e) {
+      /* log não pode derrubar resposta */
     }
 
     return {
