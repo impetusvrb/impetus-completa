@@ -30,6 +30,8 @@ async function nexusWalletPrecheck(billing, servico, estimatedUnits) {
 }
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const circuitBreakerService = require('./circuitBreakerService');
+const chaosRuntime = require('../middleware/chaosRuntime');
 
 // Tipos de classificação (arquitetura IMPETUS)
 const CLASSIFY_TYPES = ['tarefa', 'lembrete', 'comunicado', 'falha_técnica', 'autorização', 'alerta', 'dúvida', 'outro'];
@@ -52,6 +54,9 @@ function isCircuitOpen() {
 async function chatCompletion(prompt, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada. Prompt: ${prompt.slice(0, 300)}`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  if (!opts.resilienceCircuitBypass && circuitBreakerService.shouldSkip('gpt')) {
+    return `FALLBACK: Serviço de IA temporariamente indisponível (circuito).`;
+  }
 
   try {
     const gate = require('../ai/orchestratorExecutionGate');
@@ -60,10 +65,21 @@ async function chatCompletion(prompt, opts = {}) {
     if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
   }
 
+  const t0 = Date.now();
   try {
     const maxTok = opts.max_tokens || 800;
     const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
     if (blocked) return blocked;
+
+    try {
+      await chaosRuntime.maybeRejectProvider('gpt');
+    } catch (chaosErr) {
+      if (chaosRuntime.shouldAffectCircuitBreaker()) {
+        circuitBreakerService.recordOutcome('gpt', false);
+      }
+      return `FALLBACK: ${String(chaosErr.message || chaosErr).slice(0, 120)}`;
+    }
+    circuitBreakerService.beginCall('gpt');
 
     const timeoutMs = opts.timeout || 30000; // 30s
     const completionPromise = client.chat.completions.create({
@@ -76,15 +92,27 @@ async function chatCompletion(prompt, opts = {}) {
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
+    circuitBreakerService.recordOutcome('gpt', true);
     const content = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
       billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
     }
+    try {
+      require('./aiLatencyMonitor').recordLatency('openai', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
     return content;
   } catch (err) {
+    try {
+      require('./aiLatencyMonitor').recordLatency('openai', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
     failures++;
     lastFailureTime = Date.now();
+    circuitBreakerService.recordOutcome('gpt', false);
     console.warn('[AI_ERROR]', err.message, 'failures:', failures);
     if (err.message === 'TIMEOUT') {
       return `FALLBACK: Tempo esgotado na análise. Tente novamente.`;
@@ -100,16 +128,30 @@ async function chatCompletion(prompt, opts = {}) {
 async function chatCompletionMessages(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  if (!opts.resilienceCircuitBypass && circuitBreakerService.shouldSkip('gpt')) {
+    return `FALLBACK: Serviço de IA temporariamente indisponível (circuito).`;
+  }
   try {
     const gate = require('../ai/orchestratorExecutionGate');
     gate.assertOpenAiInvocation(opts || {});
   } catch (e) {
     if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
   }
+  const t0 = Date.now();
   try {
     const maxTok = opts.max_tokens || 800;
     const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
     if (blocked) return blocked;
+
+    try {
+      await chaosRuntime.maybeRejectProvider('gpt');
+    } catch (chaosErr) {
+      if (chaosRuntime.shouldAffectCircuitBreaker()) {
+        circuitBreakerService.recordOutcome('gpt', false);
+      }
+      return `FALLBACK: ${String(chaosErr.message || chaosErr).slice(0, 120)}`;
+    }
+    circuitBreakerService.beginCall('gpt');
 
     const timeoutMs = opts.timeout || 45000;
     const completionBody = {
@@ -126,15 +168,27 @@ async function chatCompletionMessages(messages, opts = {}) {
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
+    circuitBreakerService.recordOutcome('gpt', true);
     const content = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
       billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
     }
+    try {
+      require('./aiLatencyMonitor').recordLatency('openai', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
     return content;
   } catch (err) {
+    try {
+      require('./aiLatencyMonitor').recordLatency('openai', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
     failures++;
     lastFailureTime = Date.now();
+    circuitBreakerService.recordOutcome('gpt', false);
     console.warn('[AI_MESSAGES_ERROR]', err.message);
     if (err.message === 'TIMEOUT') {
       return `FALLBACK: Tempo esgotado na análise. Tente novamente.`;
@@ -146,13 +200,25 @@ async function chatCompletionMessages(messages, opts = {}) {
 async function embedText(text, opts = {}) {
   if (!client) return null;
   if (isCircuitOpen()) return null;
+  if (!opts.resilienceCircuitBypass && circuitBreakerService.shouldSkip('gpt')) return null;
   try {
     const estTok = Math.min(8000, Math.max(1, Math.ceil(String(text || '').length / 4)));
     const blocked = await nexusWalletPrecheck(opts.billing, 'openai_embed', estTok);
     if (blocked) return null;
 
+    try {
+      await chaosRuntime.maybeRejectProvider('gpt');
+    } catch (_e) {
+      if (chaosRuntime.shouldAffectCircuitBreaker()) {
+        circuitBreakerService.recordOutcome('gpt', false);
+      }
+      return null;
+    }
+    circuitBreakerService.beginCall('gpt');
+
     const r = await client.embeddings.create({ model: 'text-embedding-3-small', input: text });
     failures = 0;
+    circuitBreakerService.recordOutcome('gpt', true);
     const total = r.usage?.total_tokens;
     if (opts.billing?.companyId && total) {
       billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'openai_embed', total);
@@ -161,6 +227,7 @@ async function embedText(text, opts = {}) {
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
+    circuitBreakerService.recordOutcome('gpt', false);
     console.warn('[AI_EMBED_ERROR]', err.message);
     return null;
   }
@@ -279,12 +346,31 @@ async function processIncomingMessage(msg, opts = {}) {
 async function chatWithVision(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  if (!opts.resilienceCircuitBypass && circuitBreakerService.shouldSkip('gpt')) {
+    return `FALLBACK: Serviço de IA temporariamente indisponível (circuito).`;
+  }
+  try {
+    const gate = require('../ai/orchestratorExecutionGate');
+    gate.assertOpenAiInvocation(opts || {});
+  } catch (e) {
+    if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
+  }
 
   const modelVision = opts.model || 'gpt-4o';
   try {
     const maxTok = opts.max_tokens || 1024;
     const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
     if (blocked) return blocked;
+
+    try {
+      await chaosRuntime.maybeRejectProvider('gpt');
+    } catch (chaosErr) {
+      if (chaosRuntime.shouldAffectCircuitBreaker()) {
+        circuitBreakerService.recordOutcome('gpt', false);
+      }
+      return `FALLBACK: ${String(chaosErr.message || chaosErr).slice(0, 120)}`;
+    }
+    circuitBreakerService.beginCall('gpt');
 
     const timeoutMs = opts.timeout || 45000;
     const completionPromise = client.chat.completions.create({
@@ -297,6 +383,7 @@ async function chatWithVision(messages, opts = {}) {
     );
     const res = await Promise.race([completionPromise, timeoutPromise]);
     failures = 0;
+    circuitBreakerService.recordOutcome('gpt', true);
     const out = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
@@ -306,6 +393,7 @@ async function chatWithVision(messages, opts = {}) {
   } catch (err) {
     failures++;
     lastFailureTime = Date.now();
+    circuitBreakerService.recordOutcome('gpt', false);
     console.warn('[AI_VISION_ERROR]', err.message);
     return `FALLBACK: Não foi possível analisar a imagem. Tente novamente.`;
   }

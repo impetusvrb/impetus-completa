@@ -221,7 +221,7 @@ async function buildOrchestrationPlan(companyId, user, scope, profileCode) {
        WHERE ${filter.whereClause}
          AND COALESCE(status, '') NOT IN ('completed', 'rejected', 'done', 'closed')
        ORDER BY
-         CASE WHEN urgency ILIKE '%crit%' OR urgency ILIKE '%urg%' THEN 0 ELSE 1 END,
+         CASE WHEN urgency::text ILIKE '%crit%' OR urgency::text ILIKE '%urg%' THEN 0 ELSE 1 END,
          created_at DESC
        LIMIT ${strategic ? 5 : 12}`,
       filter.params

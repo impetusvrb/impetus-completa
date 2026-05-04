@@ -17,6 +17,7 @@ const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('
 const aiPromptGuardService = require('../../services/aiPromptGuardService');
 const aiEgressGuardService = require('../../services/aiEgressGuardService');
 const adaptiveGovernanceEngine = require('../../services/adaptiveGovernanceEngine');
+const resilienceFallback = require('../../services/resilienceFallback');
 const {
   traceStage,
   vertexDecide,
@@ -590,6 +591,74 @@ function mergeLimitations(arr, msg) {
   if (msg && !arr.includes(msg)) arr.push(msg);
 }
 
+/** IMPETUS_ENFORCE_ROLE_BOUNDARIES — Claude só análise estruturada; aviso se faltar structured_data. */
+function enforceRoleBoundariesForClaude(dossier, limitations) {
+  if (String(process.env.IMPETUS_ENFORCE_ROLE_BOUNDARIES || '').toLowerCase() !== 'true') {
+    return;
+  }
+  const gi = dossier.meta && dossier.meta.gemini_ingress;
+  const sd =
+    (gi && gi.structured_data) ||
+    (dossier.meta.gemini_ingress_structured && typeof dossier.meta.gemini_ingress_structured === 'object'
+      ? dossier.meta.gemini_ingress_structured
+      : null);
+  const hasStructured =
+    (sd && typeof sd === 'object' && Object.keys(sd).length > 0) ||
+    (dossier.data && typeof dossier.data === 'object' && Object.keys(dossier.data).length > 0);
+  const rq = (dossier.context && dossier.context.request) || '';
+  const clean = String(dossier.meta.gemini_ingress_clean_hint || '').trim();
+  const textSignal = String(rq || clean || '').trim();
+  if (!hasStructured && textSignal.length < 8) {
+    dossier.meta.role_boundary_downgrade_claude = true;
+    mergeLimitations(
+      limitations,
+      'Limite de papel (Claude): sem dados estruturados de ingress — análise só com o texto do pedido.'
+    );
+  }
+}
+
+/** IMPETUS_ENFORCE_ROLE_BOUNDARIES — ChatGPT só conversação; reforço quando só há structured_data do ingress. */
+function enforceRoleBoundariesForGpt(dossier, limitations) {
+  if (String(process.env.IMPETUS_ENFORCE_ROLE_BOUNDARIES || '').toLowerCase() !== 'true') {
+    return;
+  }
+  const gi = dossier.meta && dossier.meta.gemini_ingress;
+  if (!gi) return;
+  const sd = dossier.meta.gemini_ingress_structured || gi.structured_data;
+  const hasStruct = sd && typeof sd === 'object' && Object.keys(sd).length > 0;
+  const userText = String((dossier.context && dossier.context.request) || '').trim();
+  const clean = String(dossier.meta.gemini_ingress_clean_hint || '').trim();
+  if (hasStruct && userText.length < 4 && clean.length < 4) {
+    dossier.meta.role_boundary_gpt_structured_only = true;
+    mergeLimitations(
+      limitations,
+      'Limite de papel (ChatGPT): produzir resposta conversacional a partir dos dados estruturados do ingress (input livre mínimo).'
+    );
+  }
+}
+
+function isAdaptiveLimited(dossier) {
+  return !!(dossier && dossier.meta && dossier.meta.adaptive_limited);
+}
+
+function degradationTierFactor(dossier) {
+  const t = dossier && dossier.meta && dossier.meta.resilience && dossier.meta.resilience.degradation_intensity;
+  if (!isAdaptiveLimited(dossier)) return 1;
+  if (t === 'light') return 0.9;
+  if (t === 'moderate') return 0.75;
+  if (t === 'aggressive') return 0.58;
+  return 0.82;
+}
+
+function adaptiveTimeoutMs(baseMs, dossier) {
+  let ms = Number(baseMs);
+  if (isAdaptiveLimited(dossier)) {
+    ms = Math.max(12000, Math.floor(ms * 0.5));
+    ms = Math.floor(ms * degradationTierFactor(dossier));
+  }
+  return ms;
+}
+
 function buildStagesArray(dossier) {
   return (dossier.logs || []).map((l) => ({
     name: l.stage,
@@ -603,8 +672,21 @@ async function stagePerception(dossier, billing, limitations) {
   const strict = !!dossier.meta.strict_pipeline;
   const vTrace = dossier.meta.vertex_run_trace || null;
 
-  const images = normalizeImageList(dossier.data.images);
-  dossier.data.images = images;
+  let images = normalizeImageList(dossier.data.images);
+  const skipVision =
+    !!dossier.meta.resilience?.degraded_mode &&
+    !strict &&
+    String(process.env.IMPETUS_RESILIENCE_SKIP_VISION_ON_DEGRADED_HEAVY || '').toLowerCase() === 'true';
+  if (skipVision && images.length) {
+    mergeLimitations(
+      limitations,
+      'Modo degradado (HEAVY→suave): processamento multimodal reduzido a percepção textual.'
+    );
+    images = [];
+    dossier.data.images = [];
+  } else {
+    dossier.data.images = images;
+  }
 
   const dataHint = JSON.stringify({
     kpis: dossier.data.kpis,
@@ -742,6 +824,7 @@ async function stagePerception(dossier, billing, limitations) {
 async function stageTechnical(dossier, limitations) {
   const strict = !!dossier.meta.strict_pipeline;
   const vTrace = dossier.meta.vertex_run_trace || null;
+  enforceRoleBoundariesForClaude(dossier, limitations);
   const perceptionBlock = JSON.stringify(
     dossier.analysis.perception_structured || dossier.analysis.perception || {}
   ).slice(0, 12000);
@@ -781,9 +864,9 @@ ${dataBlock}
   }
 
   const g = dossier.meta._council_ai_gate;
-  const raw = await claudeService.analyze(TECHNICAL_SYSTEM, userContent, {
-    max_tokens: 4096,
-    timeout: 55000,
+  const raw = await resilienceFallback.claudeAnalyzeTiered(TECHNICAL_SYSTEM, userContent, {
+    max_tokens: isAdaptiveLimited(dossier) ? 2800 : 4096,
+    timeout: adaptiveTimeoutMs(55000, dossier),
     ...(g && g.claudeToken ? { _councilClaudeToken: g.claudeToken } : {})
   });
 
@@ -878,9 +961,9 @@ ${JSON.stringify({
     aiPromptGuardService.appendSecuritySignature(dossier.user.company_id, dossier.user.id);
 
   const gPlan = dossier.meta._council_ai_gate;
-  const raw = await claudeService.analyze(CLAUDE_INTERNAL_PLAN_SYSTEM, userContent, {
-    max_tokens: 1200,
-    timeout: 45000,
+  const raw = await resilienceFallback.claudeAnalyzeTiered(CLAUDE_INTERNAL_PLAN_SYSTEM, userContent, {
+    max_tokens: isAdaptiveLimited(dossier) ? 800 : 1200,
+    timeout: adaptiveTimeoutMs(45000, dossier),
     model: process.env.COGNITIVE_CLAUDE_PLAN_MODEL || process.env.ANTHROPIC_MODEL || undefined,
     ...(gPlan && gPlan.claudeToken ? { _councilClaudeToken: gPlan.claudeToken } : {})
   });
@@ -935,9 +1018,9 @@ async function stageCrossValidation(dossier) {
   ).slice(0, 8000)}`;
 
   const gX = dossier.meta._council_ai_gate;
-  const raw = await claudeService.analyze(CROSS_VALIDATION_SYSTEM, usr, {
-    max_tokens: 1200,
-    timeout: 35000,
+  const raw = await resilienceFallback.claudeAnalyzeTiered(CROSS_VALIDATION_SYSTEM, usr, {
+    max_tokens: isAdaptiveLimited(dossier) ? 700 : 1200,
+    timeout: adaptiveTimeoutMs(35000, dossier),
     ...(gX && gX.claudeToken ? { _councilClaudeToken: gX.claudeToken } : {})
   });
   if (!raw) return null;
@@ -953,8 +1036,9 @@ async function stageCrossValidation(dossier) {
   return dossier.analysis.cross_validation;
 }
 
-async function stageGptFinal(dossier, userScope, billing) {
+async function stageGptFinal(dossier, userScope, billing, limitations = []) {
   setContextualDataUsageFlags(dossier);
+  enforceRoleBoundariesForGpt(dossier, limitations);
 
   const cdRaw =
     dossier.data?.contextual_data && typeof dossier.data.contextual_data === 'object'
@@ -975,7 +1059,12 @@ async function stageGptFinal(dossier, userScope, billing) {
     (cdRaw && Array.isArray(cdRaw.learning_summary) && cdRaw.learning_summary.length > 0) ||
     (cdRaw && cdRaw.operational_decisions != null && typeof cdRaw.operational_decisions === 'object') ||
     hasOperationalPlanHorizons;
-  const contextualDataMaxLen = hasRichContextualData ? 14000 : 2000;
+  let contextualDataMaxLen = hasRichContextualData ? 14000 : 2000;
+  const tier = dossier.meta.resilience && dossier.meta.resilience.degradation_intensity;
+  if (isAdaptiveLimited(dossier) && tier === 'light') contextualDataMaxLen = Math.floor(contextualDataMaxLen * 0.88);
+  if (isAdaptiveLimited(dossier) && tier === 'moderate') contextualDataMaxLen = Math.floor(contextualDataMaxLen * 0.68);
+  if (isAdaptiveLimited(dossier) && tier === 'aggressive') contextualDataMaxLen = Math.floor(contextualDataMaxLen * 0.45);
+
   const contextualDataBlock = JSON.stringify(dossier.data?.contextual_data || {}).slice(
     0,
     contextualDataMaxLen
@@ -1045,6 +1134,16 @@ REGRAS CRÍTICAS:
   * Seja objetivo (ex.: 'revisar máquina X', 'verificar operador Y')
 * Modo consultor operacional: só sugerir com base nos dados presentes (contextual_data e dossiê); não invente máquinas, pessoas, eventos, leituras nem ações sem suporte explícito nos dados.
 ${contextualAntiGenericBlock}
+${
+  isAdaptiveLimited(dossier)
+    ? `
+MODO LIMITADO (capacidade reduzida):
+* Responda de forma mais curta e directa: "content" com no máximo ~2 parágrafos curtos ou equivalente.
+* "reasoning_trace": no máximo 2 frases.
+* Priorize só o essencial operacional; omita digressões e camadas secundárias de detalhe.
+`
+    : ''
+}
 Você é a INTERFACE CONVERSACIONAL IMPETUS (${AI_ROLES.GPT}).
 
 SAÍDA OBRIGATÓRIA: um único objeto JSON válido (sem markdown, sem texto fora do JSON). Chaves de nível superior EXATAMENTE: "content" e "explanation_layer".
@@ -1088,15 +1187,20 @@ Regras:
     ) + aiPromptGuardService.appendSecuritySignature(userScope.company_id, userScope.id);
 
   const gateTok = dossier.meta._council_ai_gate;
-  const text = await ai.chatCompletionMessages(
+  const lim = isAdaptiveLimited(dossier);
+  const finalOpts = {
+    max_tokens: lim ? 1200 : 2600,
+    timeout: lim ? adaptiveTimeoutMs(28000, dossier) : 45000,
+    billing,
+    response_format: { type: 'json_object' },
+    model: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini',
+    ...(gateTok && gateTok.openaiToken ? { _councilOpenAiToken: gateTok.openaiToken } : {})
+  };
+  const dossierLite = { requestText: dossier.context.request };
+  const text = await resilienceFallback.chatCompletionMessagesWithOptionalModelFallback(
     [{ role: 'system', content: sys }, { role: 'user', content: usr }],
-    {
-      max_tokens: 2600,
-      billing,
-      response_format: { type: 'json_object' },
-      model: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini',
-      ...(gateTok && gateTok.openaiToken ? { _councilOpenAiToken: gateTok.openaiToken } : {})
-    }
+    finalOpts,
+    dossierLite
   );
 
   recordStage(dossier, {
@@ -1142,7 +1246,11 @@ async function runCouncilExecution(ctx) {
   await stageTechnical(dossier, limitations);
   if (vTrace) vertexDecide(vTrace, 'apos_claude_tecnico', 'claude_plano_interno');
 
-  const wantCross = shouldRequireCrossValidation(risk, options);
+  let wantCross = shouldRequireCrossValidation(risk, options);
+  if (dossier.meta.adaptive_limited) {
+    wantCross = false;
+    mergeLimitations(limitations, 'Modo LIMITADO: validação cruzada omitida para reduzir latência e custo.');
+  }
 
   const draft = await stageClaudeInternalPlan(dossier, limitations);
   if (!draft && !strict) {
@@ -1160,7 +1268,7 @@ async function runCouncilExecution(ctx) {
 
   if (vTrace) vertexDecide(vTrace, 'antes_resposta_final', 'chatgpt_openai');
 
-  let finalText = await stageGptFinal(dossier, scope, billing);
+  let finalText = await stageGptFinal(dossier, scope, billing, limitations);
   if (typeof finalText === 'string' && finalText.startsWith('FALLBACK')) {
     throw strictPipelineError(
       'STRICT_CHATGPT_FINAL_FALLBACK',

@@ -91,7 +91,8 @@ async function processMultimodalChat(opts) {
     fileContext,
     companyId,
     userName,
-    systemPromptExtra = ''
+    systemPromptExtra = '',
+    _councilOpenAiToken
   } = opts;
 
   const messages = [];
@@ -134,7 +135,11 @@ Responda de forma natural, direta e técnica quando apropriado. Se houver imagem
     });
   }
 
-  return ai.chatWithVision(messages, { max_tokens: 1024, timeout: 60000 });
+  return ai.chatWithVision(messages, {
+    max_tokens: 1024,
+    timeout: 60000,
+    ...(_councilOpenAiToken ? { _councilOpenAiToken } : {})
+  });
 }
 
 /**

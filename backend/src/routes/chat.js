@@ -6,6 +6,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
+const { runWithRequestContext } = require('../services/requestAsyncContext');
 const executiveMode = require('../services/executiveMode');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 
@@ -77,7 +78,12 @@ router.post('/conversations/:id/messages', async (req, res) => {
     const msg = await chatService.saveMessage({ conversationId: req.params.id, senderId: req.user.id, type: 'text', content: content.trim(), replyTo });
     const io = getIo(req);
     if (io) io.to(req.params.id).emit('new_message', msg);
-    if (mentionsAI(content)) setImmediate(() => handleAIMessage(req.params.id, content, io));
+    if (mentionsAI(content)) {
+      const cls = req.impetusRequestClass || 'NORMAL';
+      setImmediate(() =>
+        runWithRequestContext({ requestClass: cls }, () => handleAIMessage(req.params.id, content, io))
+      );
+    }
     setImmediate(() => operationalRealtimeCoordinator.processChatMessage({
       companyId: req.user.company_id,
       conversationId: req.params.id,

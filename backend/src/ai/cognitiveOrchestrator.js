@@ -107,8 +107,13 @@ async function runCognitiveCouncil(params) {
     requestText: rt,
     data,
     module,
-    options
+    options,
+    impetusRequestClass: impetusRequestClassParam
   } = norm;
+  const requestAsyncContext = require('../services/requestAsyncContext');
+  const systemRuntimeState = require('../services/systemRuntimeState');
+  const impetusRequestClass =
+    impetusRequestClassParam || requestAsyncContext.getRequestClass();
 
   const t0 = Date.now();
   const traceId = uuidv4();
@@ -420,6 +425,37 @@ async function runCognitiveCouncil(params) {
     dossier.meta.strict_pipeline = vertexCentralOrchestrator.isStrictAiPipeline();
     dossier.meta.orchestration = vertexCentralOrchestrator.getOrchestrationContext();
 
+    const ac = requestAsyncContext.getAdaptiveContext();
+    const reqClassUpper = String(impetusRequestClass).toUpperCase();
+    dossier.meta.impetus_request_class = impetusRequestClass;
+    dossier.meta.resilience = {
+      degraded_mode: !!ac.degradedMode,
+      original_request_class: ac.originalHeavyClass,
+      cost_score: ac.costScore,
+      adaptation_tier: ac.degradedMode ? 'HEAVY_SOFT' : systemRuntimeState.isLimited() ? 'LIMITED_GLOBAL' : 'FULL'
+    };
+
+    const limitedGlobal = systemRuntimeState.isLimited() && reqClassUpper !== 'CRITICAL';
+    dossier.meta.adaptive_limited =
+      limitedGlobal ||
+      !!ac.degradedMode ||
+      (systemRuntimeState.isLimited() && ac.costScore >= 42);
+
+    dossier.meta.resilience.allow_model_fallback =
+      !!(
+        dossier.meta.adaptive_limited &&
+        String(process.env.IMPETUS_RESILIENCE_MODEL_FALLBACK || '').toLowerCase() === 'true'
+      );
+
+    const costTier = Number(ac.costScore) || 0;
+    let degradation_intensity = 'none';
+    if (dossier.meta.adaptive_limited || ac.degradedMode) {
+      if (costTier < 42) degradation_intensity = 'light';
+      else if (costTier < 72) degradation_intensity = 'moderate';
+      else degradation_intensity = 'aggressive';
+    }
+    dossier.meta.resilience.degradation_intensity = degradation_intensity;
+
     let risk = riskIngress;
 
     const policyGate = await policyLayer.runPolicyGates({
@@ -504,6 +540,12 @@ async function runCognitiveCouncil(params) {
         impetus_flow:
           dossier.meta.orchestration || vertexCentralOrchestrator.getOrchestrationContext(),
         vertex_run_trace: dossier.meta.vertex_run_trace || null,
+        system_adaptive: {
+          status: systemRuntimeState.getSnapshot().status,
+          request_class: dossier.meta.impetus_request_class,
+          adaptive_limited: !!dossier.meta.adaptive_limited,
+          resilience: dossier.meta.resilience || null
+        },
         ...(adaptiveGovernanceEngine.ADAPTIVE_ENABLED
           ? {
               adaptive_governance: {
@@ -756,6 +798,95 @@ async function runCognitiveCouncil(params) {
           degraded: true
         };
       }
+
+      const rf = require('../services/resilienceFallback');
+      const { parseFinalStructuredResponse, synthesize } = require('./responseSynthesizer');
+      if (rf.isPipelineFallbackEnabled() && !vertexCentralOrchestrator.isStrictAiPipeline()) {
+        try {
+          const billing = user?.company_id ? { companyId: user.company_id, userId: user.id } : null;
+          const raw = await rf.generateSoftPipelineAnswer({
+            requestText: rt,
+            userScope: scope,
+            billing
+          });
+          const { finalRaw, structuredFinal } = parseFinalStructuredResponse(raw);
+          dossier.meta.degraded = true;
+          const synthesisFb = synthesize({
+            finalRaw,
+            structuredFinal,
+            dossier,
+            validation: null,
+            modelsUsed: ['openai'],
+            degraded: true,
+            limitations: ['Pipeline cognitivo simplificado (fallback L3).'],
+            extraBusinessRules: ['Contingência IMPETUS — não estrito']
+          });
+          const durationFb = Date.now() - t0;
+          const explanationLayerFb = {
+            trace_id: traceId,
+            ...synthesisFb.explanation_layer,
+            orchestration: {
+              intent: dossier.context.intent,
+              risk_level: risk,
+              pipeline_fallback_soft: true,
+              impetus_flow: vertexCentralOrchestrator.getOrchestrationContext(),
+              vertex_run_trace: dossier.meta.vertex_run_trace || null
+            }
+          };
+          const stagesFb = [
+            {
+              name: 'pipeline_fallback_soft',
+              provider: 'openai',
+              summary: 'Resposta única (contingência)',
+              at: new Date().toISOString()
+            }
+          ];
+          const layersPublicFb = sanitizeLayersForHttpResponse(dossier);
+          vertexCentralOrchestrator.traceComplete(vertexRunTrace, true, 'fallback_soft');
+          observabilityService.markCouncilSuccess({
+            traceId,
+            companyId: user?.company_id,
+            userId: user?.id,
+            durationMs: durationFb,
+            riskLevel: risk,
+            responseMode: adaptiveResponseMode,
+            policyEffect: 'none',
+            policyViolation: false,
+            complianceIncident: false,
+            degraded: true,
+            module: module || 'cognitive_council'
+          });
+          return {
+            ok: true,
+            traceId,
+            trace_id: traceId,
+            processing_transparency: null,
+            result: {
+              content: synthesisFb.content,
+              answer: synthesisFb.answer,
+              confidence: synthesisFb.confidence,
+              confidence_score: synthesisFb.confidence_score,
+              explanation_layer: synthesisFb.explanation_layer,
+              warnings: synthesisFb.warnings,
+              based_on: synthesisFb.based_on,
+              requires_action: synthesisFb.requires_action,
+              degraded: true,
+              explanation: synthesisFb.explanation
+            },
+            stages: stagesFb,
+            layers: layersPublicFb,
+            dossier: redactForPersistence(dossier),
+            synthesis: synthesisFb,
+            explanation_layer: explanationLayerFb,
+            duration_ms: durationFb,
+            degraded: true,
+            vertex_run_trace: vertexRunTrace
+          };
+        } catch (fbErr) {
+          console.warn('[PIPELINE_SOFT_FALLBACK]', fbErr && fbErr.message ? fbErr.message : fbErr);
+        }
+      }
+
       throw pipeErr;
     }
   };

@@ -31,6 +31,7 @@ const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynt
 const dataLineageService = require('../services/dataLineageService');
 const secureContextBuilder = require('../services/secureContextBuilder');
 const strategicLearningService = require('../services/strategicLearningService');
+const orchestratorExecutionGate = require('../ai/orchestratorExecutionGate');
 const { getUnifiedSessionContext } = require('../services/unifiedSessionContextService');
 const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
@@ -613,11 +614,6 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     const { v4: uuidv4 } = require('uuid');
     const traceId = uuidv4();
-    const {
-      buildProactiveContextFromSession,
-      formatAutonomousContextAppendixForPrompt
-    } = require('../services/proactiveRetrievalService');
-    const { runAutonomousPreflight } = require('../ai/cognitiveOrchestrator');
 
     const miniDossier = {
       trace_id: traceId,
@@ -639,14 +635,9 @@ router.post('/chat', requireAuth, async (req, res) => {
     let autonomousAppendix = '';
     if (u.company_id && u.id) {
       try {
-        const sessionContext = await getUnifiedSessionContext(u);
-        const proactiveCtx = buildProactiveContextFromSession(u, sessionContext || {});
-        const pre = await runAutonomousPreflight({ user: u, dossier: miniDossier, context: proactiveCtx });
-        if (pre.enriched) {
-          autonomousAppendix = formatAutonomousContextAppendixForPrompt(miniDossier);
-        }
+        await getUnifiedSessionContext(u);
       } catch (e) {
-        console.warn('[DASHBOARD_CHAT] autonomous_preflight', e && e.message ? e.message : e);
+        console.warn('[DASHBOARD_CHAT] session_context', e && e.message ? e.message : e);
       }
     }
 
@@ -735,7 +726,11 @@ router.post('/chat', requireAuth, async (req, res) => {
       useCognitiveCouncil = true;
     }
 
-    if (useCognitiveCouncil && u.company_id) {
+    /** Com gate do orquestrador activo, o chat deve passar pelo Conselho Cognitivo (pipeline canónico). */
+    const forceCouncilForArchitecture =
+      orchestratorExecutionGate.isEnforceGate() && !!u.company_id;
+
+    if (u.company_id && (useCognitiveCouncil || forceCouncilForArchitecture)) {
       try {
         const { runCognitiveCouncil } = require('../ai/cognitiveOrchestrator');
         const councilData = {
@@ -758,7 +753,8 @@ router.post('/chat', requireAuth, async (req, res) => {
             dashboard_history_turns: history.length
           },
           module: 'dashboard_chat',
-          options: { skipRecursiveUnified: true }
+          options: { skipRecursiveUnified: true },
+          impetusRequestClass: req.impetusRequestClass || 'NORMAL'
         });
         if (councilResult && councilResult.ok && councilResult.result) {
           const cr = councilResult.result;
@@ -890,12 +886,26 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
     ];
 
     const billing = u.company_id ? { companyId: u.company_id, userId: u.id } : null;
-    const raw = await ai.chatCompletionMessages(messages, {
-      max_tokens: 1600,
-      billing,
-      response_format: { type: 'json_object' },
-      model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini'
-    });
+    let councilGateSession = null;
+    if (orchestratorExecutionGate.isEnforceGate()) {
+      councilGateSession = orchestratorExecutionGate.beginCouncilAiSession(traceId);
+    }
+    let raw;
+    try {
+      raw = await ai.chatCompletionMessages(messages, {
+        max_tokens: 1600,
+        billing,
+        response_format: { type: 'json_object' },
+        model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini',
+        ...(councilGateSession && councilGateSession.openaiToken
+          ? { _councilOpenAiToken: councilGateSession.openaiToken }
+          : {})
+      });
+    } finally {
+      if (councilGateSession) {
+        orchestratorExecutionGate.endCouncilAiSession();
+      }
+    }
 
     const degraded = typeof raw === 'string' && raw.startsWith('FALLBACK');
     const limitations = degraded && raw ? [raw] : [];
@@ -922,7 +932,7 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
       degraded,
       limitations,
       extraBusinessRules: [
-        'IMPETUS — Canal chat assistente (GPT); Conselho Cognitivo só quando UNIFIED_DECISION_USE_TRIADE + cognitive_escalation.',
+        'IMPETUS — Chat dashboard: OpenAI apenas dentro da sessão do orquestrador quando o gate está activo; conselho cognitivo quando configurado ou exigido pela arquitectura.',
         'Governança: perfil e papel do utilizador restringem o conteúdo operacional.',
         ...(unifiedDecision && unifiedDecision.ok === true && !unifiedDecision.skipped
           ? ['Motor unificado consultado (dashboard_chat) antes da síntese.']
@@ -1114,14 +1124,29 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
 
     const multimodalChatService = require('../services/multimodalChatService');
     const userName = u.name || u.email || 'Usuário';
-    const rawOut = await multimodalChatService.processMultimodalChat({
-      message: message || 'Analise o conteúdo anexado.',
-      history,
-      imageBase64: hasImage ? req.body.imageBase64 : null,
-      fileContext: fileCtx,
-      companyId: u.company_id,
-      userName
-    });
+    const mmTraceId = require('uuid').v4();
+    let mmGateSession = null;
+    if (orchestratorExecutionGate.isEnforceGate()) {
+      mmGateSession = orchestratorExecutionGate.beginCouncilAiSession(mmTraceId);
+    }
+    let rawOut;
+    try {
+      rawOut = await multimodalChatService.processMultimodalChat({
+        message: message || 'Analise o conteúdo anexado.',
+        history,
+        imageBase64: hasImage ? req.body.imageBase64 : null,
+        fileContext: fileCtx,
+        companyId: u.company_id,
+        userName,
+        ...(mmGateSession && mmGateSession.openaiToken
+          ? { _councilOpenAiToken: mmGateSession.openaiToken }
+          : {})
+      });
+    } finally {
+      if (mmGateSession) {
+        orchestratorExecutionGate.endCouncilAiSession();
+      }
+    }
 
     let text = '';
     if (typeof rawOut === 'string') text = rawOut;
@@ -1141,7 +1166,6 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
     });
     text = egressMm.text;
 
-    const traceId = require('uuid').v4();
     const lineageCtx = dataLineageService.buildLineageForChatContext({
       messagePreview: (message || 'multimodal').slice(0, 2000),
       historyTurns: history.length,
@@ -1150,7 +1174,7 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
 
     const aiAnalytics = require('../services/aiAnalyticsService');
     aiAnalytics.enqueueAiTrace({
-      trace_id: traceId,
+      trace_id: mmTraceId,
       user_id: u.id,
       company_id: u.company_id,
       module_name: 'dashboard_chat_multimodal',
@@ -1184,7 +1208,7 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       governance_tags: egressMm.blocked ? ['SECURITY_ALERT'] : undefined
     });
 
-    res.setHeader('X-AI-Trace-ID', traceId);
+    res.setHeader('X-AI-Trace-ID', mmTraceId);
     let processing_transparency = null;
     try {
       processing_transparency = await require('../services/aiProviderService').getProcessingDisclosure(

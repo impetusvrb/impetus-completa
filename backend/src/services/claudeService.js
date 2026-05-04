@@ -69,6 +69,12 @@ async function nexusWalletPrecheckPanel(billing, estimatedUnits) {
 async function completeOpenAIStyleMessages(messages, opts = {}) {
   if (!client) return null;
   if (isPanelCircuitOpen()) return null;
+  try {
+    const circuitBreakerService = require('./circuitBreakerService');
+    if (circuitBreakerService.shouldSkip('claude')) return null;
+  } catch (_e) {
+    /* ignore */
+  }
 
   const maxTok = opts.max_tokens || 1200;
   const blocked = await nexusWalletPrecheckPanel(opts.billing, maxTok);
@@ -98,6 +104,25 @@ async function completeOpenAIStyleMessages(messages, opts = {}) {
     'claude-sonnet-4-20250514';
 
   try {
+    try {
+      await require('../middleware/chaosRuntime').maybeRejectProvider('claude');
+    } catch (_chaos) {
+      try {
+        const chaosRt = require('../middleware/chaosRuntime');
+        if (chaosRt.shouldAffectCircuitBreaker()) {
+          require('./circuitBreakerService').recordOutcome('claude', false);
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+      return null;
+    }
+    try {
+      require('./circuitBreakerService').beginCall('claude');
+    } catch (_e) {
+      /* ignore */
+    }
+
     /* A API Messages não aceita `signal` no body (400: Extra inputs are not permitted). */
     const createPromise = client.messages.create({
       model,
@@ -125,11 +150,24 @@ async function completeOpenAIStyleMessages(messages, opts = {}) {
     }
 
     const textBlock = message.content?.find((b) => b.type === 'text');
-    return textBlock?.text?.trim() || null;
+    const panelOut = textBlock?.text?.trim() || null;
+    try {
+      const circuitBreakerService = require('./circuitBreakerService');
+      circuitBreakerService.recordOutcome('claude', !!panelOut);
+    } catch (_e) {
+      /* ignore */
+    }
+    return panelOut;
   } catch (err) {
     panelFailures++;
     panelLastFailureTime = Date.now();
     console.warn('[CLAUDE_PANEL]', (err.message || String(err)).slice(0, 160));
+    try {
+      const circuitBreakerService = require('./circuitBreakerService');
+      circuitBreakerService.recordOutcome('claude', false);
+    } catch (_e) {
+      /* ignore */
+    }
     return null;
   }
 }
@@ -150,6 +188,15 @@ async function analyze(systemPrompt, userContent, opts = {}) {
     console.warn('[CLAUDE] Circuit breaker (análise) aberto, pausando chamadas');
     return null;
   }
+  try {
+    const circuitBreakerService = require('./circuitBreakerService');
+    if (circuitBreakerService.shouldSkip('claude')) {
+      console.warn('[CLAUDE] Circuit breaker (provider) OPEN — análise ignorada');
+      return null;
+    }
+  } catch (_e) {
+    /* ignore optional CB */
+  }
 
   try {
     const gate = require('../ai/orchestratorExecutionGate');
@@ -158,10 +205,30 @@ async function analyze(systemPrompt, userContent, opts = {}) {
     if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
   }
 
+  try {
+    await require('../middleware/chaosRuntime').maybeRejectProvider('claude');
+  } catch (_chaos) {
+    try {
+      const chaosRt = require('../middleware/chaosRuntime');
+      if (chaosRt.shouldAffectCircuitBreaker()) {
+        require('./circuitBreakerService').recordOutcome('claude', false);
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    return null;
+  }
+  try {
+    require('./circuitBreakerService').beginCall('claude');
+  } catch (_e) {
+    /* ignore */
+  }
+
   const timeoutMs = opts.timeout || 45000;
   const maxTokens = opts.max_tokens || 2048;
   const model = opts.model || 'claude-sonnet-4-20250514';
 
+  const t0 = Date.now();
   try {
     const createPromise = client.messages.create({
       model,
@@ -176,12 +243,35 @@ async function analyze(systemPrompt, userContent, opts = {}) {
     analyzeFailures = 0;
 
     const textBlock = message.content?.find((b) => b.type === 'text');
-    return textBlock?.text?.trim() || null;
+    try {
+      require('./aiLatencyMonitor').recordLatency('claude', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
+    const outText = textBlock?.text?.trim() || null;
+    try {
+      const circuitBreakerService = require('./circuitBreakerService');
+      circuitBreakerService.recordOutcome('claude', !!outText);
+    } catch (_e) {
+      /* ignore */
+    }
+    return outText;
   } catch (err) {
+    try {
+      require('./aiLatencyMonitor').recordLatency('claude', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
     analyzeFailures++;
     analyzeLastFailureTime = Date.now();
     const msg = err.message || String(err);
     console.warn('[CLAUDE_ERROR]', msg.slice(0, 150), '| failures:', analyzeFailures);
+    try {
+      const circuitBreakerService = require('./circuitBreakerService');
+      circuitBreakerService.recordOutcome('claude', false);
+    } catch (_e) {
+      /* ignore */
+    }
     return null;
   }
 }

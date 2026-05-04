@@ -105,7 +105,8 @@ router.post('/execute', async (req, res) => {
       data,
       context,
       module: String(moduleName).slice(0, 96),
-      options
+      options,
+      impetusRequestClass: req.impetusRequestClass || 'NORMAL'
     });
 
     const tid = result.trace_id || result.traceId;

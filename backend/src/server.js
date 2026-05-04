@@ -22,7 +22,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
 const { apiByIpLimiter, apiByUserLimiter } = require('./middleware/globalRateLimit');
+const {
+  requestCapacityClassifyMiddleware,
+  requestCapacityRefineMiddleware
+} = require('./middleware/requestCapacityClassify');
+const { impetusAsyncContextBindMiddleware } = require('./middleware/impetusAsyncContextBind');
 const { systemDegradedGuard } = require('./middleware/systemDegradedGuard');
+const { limitedHeavyGuard } = require('./middleware/limitedHeavyGuard');
+const { chaosRuntimeMiddleware } = require('./middleware/chaosRuntime');
+const { geminiIngressMiddleware } = require('./middleware/geminiIngressMiddleware');
 const secureStaticUploads = require('./middleware/secureStaticUploads');
 const compression = require('compression');
 const bodyParser = require('body-parser');
@@ -121,6 +129,25 @@ app.use((req, res, next) => {
   return urlEncDefault(req, res, next);
 });
 
+/** Classificação por rota + refinamento por custo do payload (HEAVY dinâmico). */
+app.use(requestCapacityClassifyMiddleware);
+app.use(requestCapacityRefineMiddleware);
+
+/** Ingress Gemini: modos passthrough / light / full (IMPETUS_GEMINI_INGRESS_ENABLED). */
+app.use(geminiIngressMiddleware);
+
+app.use((req, res, next) => {
+  const orig = String(req.originalUrl || req.url || '');
+  if (orig.startsWith('/api')) {
+    try {
+      require('./services/resilienceMetricsService').recordApiRequest();
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+  next();
+});
+
 /** Rate limit por IP em /api (utilizadores autenticados são ignorados no limiter; webhooks excluídos). */
 app.use((req, res, next) => {
   const orig = String(req.originalUrl || req.url || '');
@@ -130,6 +157,15 @@ app.use((req, res, next) => {
 
 /** Modo DEGRADED: bloqueia /api excepto rotas de sistema, auth e webhooks. */
 app.use(systemDegradedGuard);
+
+/** LIMITED: HEAVY → modo degradado (req.degradedMode), não bloqueio duro. */
+app.use(limitedHeavyGuard);
+
+/** AsyncLocalStorage: classe + modo degradado disponíveis no pipeline IA. */
+app.use(impetusAsyncContextBindMiddleware);
+
+/** Chaos / latência injectada (só com IMPETUS_CHAOS_ENABLED=true). */
+app.use(chaosRuntimeMiddleware);
 
 /** Probe rápido TTS (paridade impetus_complete/app.js) + estado Google/credenciais sem chamada extra à API Google. */
 async function voiceHealthProbe() {
@@ -222,9 +258,43 @@ app.get('/api/system/architecture-health', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const { getArchitectureHealth } = require('./services/architectureHealthService');
     const { getSnapshot: getSystemStateSnapshot } = require('./services/systemRuntimeState');
+    const { getSnapshot: getLatencySnapshot } = require('./services/aiLatencyMonitor');
+    const { getPublicSnapshot: getResilienceMetrics } = require('./services/resilienceMetricsService');
     const expose = allowHealthDetails(req);
     const body = getArchitectureHealth({ exposeDetails: expose });
     body.system_state = getSystemStateSnapshot();
+    body.ai_latency = getLatencySnapshot();
+    body.resilience_metrics = getResilienceMetrics();
+    try {
+      body.resilience_feedback = require('./services/resilienceFeedbackLoop').getSnapshot();
+    } catch (_e) {
+      body.resilience_feedback = null;
+    }
+    try {
+      body.circuit_breakers = require('./services/circuitBreakerService').getSnapshot();
+    } catch (_e) {
+      body.circuit_breakers = null;
+    }
+    try {
+      body.chaos_injection = require('./middleware/chaosRuntime').getChaosStatus();
+    } catch (_e) {
+      body.chaos_injection = null;
+    }
+    try {
+      const ge = require('./services/geminiIngressEngine');
+      body.gemini_ingress_policy = {
+        enabled: ge.isIngressEnabled(),
+        passthrough_prefixes: ge.getPassthroughPrefixes(),
+        enforce_ingress: require('./ai/orchestratorExecutionGate').isEnforceGeminiIngress()
+      };
+    } catch (_e) {
+      body.gemini_ingress_policy = null;
+    }
+    try {
+      body.gemini_ingress_metrics = require('./services/geminiIngressMetrics').getSnapshot();
+    } catch (_e) {
+      body.gemini_ingress_metrics = null;
+    }
     if (!expose) {
       body.violations_recent = [];
       body.last_failures = body.last_failures.slice(0, 3).map((f) => ({

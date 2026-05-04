@@ -34,14 +34,61 @@ function isAvailable() {
 async function generateText(prompt, opts = {}) {
   const client = getClient();
   if (!client) return null;
-  const model = opts.model || DEFAULT_MODEL;
   try {
+    const circuitBreakerService = require('./circuitBreakerService');
+    if (circuitBreakerService.shouldSkip('gemini')) return null;
+  } catch (_e) {
+    /* ignore */
+  }
+  const model = opts.model || DEFAULT_MODEL;
+  const t0 = Date.now();
+  try {
+    try {
+      await require('../middleware/chaosRuntime').maybeRejectProvider('gemini');
+    } catch (_chaos) {
+      try {
+        const chaosRt = require('../middleware/chaosRuntime');
+        if (chaosRt.shouldAffectCircuitBreaker()) {
+          require('./circuitBreakerService').recordOutcome('gemini', false);
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+      return null;
+    }
+    try {
+      require('./circuitBreakerService').beginCall('gemini');
+    } catch (_e) {
+      /* ignore */
+    }
+
     const response = await client.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [{ text: String(prompt || '') }] }]
     });
-    return response?.text || null;
+    try {
+      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
+    const out = response?.text || null;
+    try {
+      require('./circuitBreakerService').recordOutcome('gemini', !!out);
+    } catch (_e) {
+      /* ignore */
+    }
+    return out;
   } catch (err) {
+    try {
+      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
+    try {
+      require('./circuitBreakerService').recordOutcome('gemini', false);
+    } catch (_e) {
+      /* ignore */
+    }
     console.warn('[GEMINI] generateText:', err?.message);
     return null;
   }
@@ -51,6 +98,32 @@ async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.', mimeTy
   const client = getClient();
   if (!client) return null;
   try {
+    const circuitBreakerService = require('./circuitBreakerService');
+    if (circuitBreakerService.shouldSkip('gemini')) return null;
+  } catch (_e) {
+    /* ignore */
+  }
+  const t0 = Date.now();
+  try {
+    try {
+      await require('../middleware/chaosRuntime').maybeRejectProvider('gemini');
+    } catch (_chaos) {
+      try {
+        const chaosRt = require('../middleware/chaosRuntime');
+        if (chaosRt.shouldAffectCircuitBreaker()) {
+          require('./circuitBreakerService').recordOutcome('gemini', false);
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+      return null;
+    }
+    try {
+      require('./circuitBreakerService').beginCall('gemini');
+    } catch (_e) {
+      /* ignore */
+    }
+
     const raw = String(imageBase64 || '');
     const fromDataUrl = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
     const resolvedMime = fromDataUrl ? fromDataUrl[1] : mimeType;
@@ -65,8 +138,29 @@ async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.', mimeTy
         ]
       }]
     });
-    return response?.text || null;
+    try {
+      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
+    const imgOut = response?.text || null;
+    try {
+      require('./circuitBreakerService').recordOutcome('gemini', !!imgOut);
+    } catch (_e) {
+      /* ignore */
+    }
+    return imgOut;
   } catch (err) {
+    try {
+      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
+    } catch (_e) {
+      /* ignore */
+    }
+    try {
+      require('./circuitBreakerService').recordOutcome('gemini', false);
+    } catch (_e) {
+      /* ignore */
+    }
     console.warn('[GEMINI] analyzeImage:', err?.message);
     return null;
   }

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
+const { runWithRequestContext } = require('../services/requestAsyncContext');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 const onlineUsers = new Map();
 
@@ -51,7 +52,34 @@ function initChatSocket(io) {
         const msg = await chatService.saveMessage({ conversationId, senderId: user.id, type: type||'text', content, fileUrl, fileName, fileSize, replyTo });
         io.to(conversationId).emit('new_message', msg);
         if (ack) ack({ ok: true, message: msg });
-        if (mentionsAI(content)) setImmediate(() => handleAIMessage(conversationId, content, io));
+        if (mentionsAI(content)) {
+          setImmediate(() =>
+            (async () => {
+              try {
+                const ge = require('../services/geminiIngressEngine');
+                const gi = await ge.runGeminiIngressForContext({
+                  path: '/socket/chat/ai',
+                  method: 'POST',
+                  bodyPreview: JSON.stringify({
+                    content: String(content || '').slice(0, 12000),
+                    conversationId
+                  }),
+                  requestClass: 'NORMAL',
+                  costScore: 12,
+                  source: 'socket_chat'
+                });
+                runWithRequestContext({ requestClass: 'NORMAL', geminiIngress: gi }, () => {
+                  const p = handleAIMessage(conversationId, content, io);
+                  if (p && typeof p.then === 'function') {
+                    p.catch((e) => console.warn('[CHAT_SOCKET_AI]', e && e.message ? e.message : e));
+                  }
+                });
+              } catch (e) {
+                console.warn('[CHAT_SOCKET_AI_INGRESS]', e && e.message ? e.message : e);
+              }
+            })()
+          );
+        }
         // Captura todas as conversas do chat Impetus para automações operacionais em tempo real.
         if (type === 'text' && content && String(content).trim().length >= 3) {
           setImmediate(() => operationalRealtimeCoordinator.processChatMessage({
