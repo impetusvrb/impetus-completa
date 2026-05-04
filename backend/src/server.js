@@ -7,9 +7,11 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
 
 try {
-  require('./config/configValidator').validateConfigOrThrow();
+  const cv = require('./config/configValidator');
+  cv.validateConfigOrThrow();
+  cv.validateArchitectureBootOrThrow();
 } catch (e) {
-  console.error(e.name === 'ConfigError' ? e.message : e);
+  console.error(e.name === 'ConfigError' || e.name === 'ArchitectureConfigError' ? e.message : e);
   process.exit(1);
 }
 
@@ -20,6 +22,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
 const { apiByIpLimiter, apiByUserLimiter } = require('./middleware/globalRateLimit');
+const { systemDegradedGuard } = require('./middleware/systemDegradedGuard');
 const secureStaticUploads = require('./middleware/secureStaticUploads');
 const compression = require('compression');
 const bodyParser = require('body-parser');
@@ -125,6 +128,9 @@ app.use((req, res, next) => {
   return apiByIpLimiter(req, res, next);
 });
 
+/** Modo DEGRADED: bloqueia /api excepto rotas de sistema, auth e webhooks. */
+app.use(systemDegradedGuard);
+
 /** Probe rápido TTS (paridade impetus_complete/app.js) + estado Google/credenciais sem chamada extra à API Google. */
 async function voiceHealthProbe() {
   const voz = { openai: false };
@@ -206,6 +212,32 @@ app.get('/api/system/health/deep', async (req, res) => {
     return res.status(500).json({
       ready: false,
       issues: [`[crítico] READINESS: ${msg}`]
+    });
+  }
+});
+
+/** Integridade da arquitectura de IA (pipeline estrito, gate, violações recentes). */
+app.get('/api/system/architecture-health', (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const { getArchitectureHealth } = require('./services/architectureHealthService');
+    const { getSnapshot: getSystemStateSnapshot } = require('./services/systemRuntimeState');
+    const expose = allowHealthDetails(req);
+    const body = getArchitectureHealth({ exposeDetails: expose });
+    body.system_state = getSystemStateSnapshot();
+    if (!expose) {
+      body.violations_recent = [];
+      body.last_failures = body.last_failures.slice(0, 3).map((f) => ({
+        at: f.at,
+        code: f.code
+      }));
+    }
+    const status = body.pipeline_integrity === 'OK' ? 200 : 503;
+    return res.status(status).json(body);
+  } catch (e) {
+    return res.status(500).json({
+      pipeline_integrity: 'BROKEN',
+      error: e && e.message ? String(e.message) : 'architecture_health_error'
     });
   }
 });
@@ -491,6 +523,12 @@ function gracefulShutdown(signal) {
   clearOperationalBrainInterval();
   clearDataLifecycleInterval();
   try {
+    const wd = require('./services/architectureWatchdogService');
+    wd.stopArchitectureWatchdog();
+  } catch (e) {
+    console.warn('[SHUTDOWN] architectureWatchdog:', e?.message);
+  }
+  try {
     if (typeof reminderScheduler.stop === 'function') reminderScheduler.stop();
   } catch (e) {
     console.warn('[SHUTDOWN] reminderScheduler:', e?.message);
@@ -595,6 +633,12 @@ httpServer.on('error', (err) => {
       console.log(
         `[impetus-backend] http://0.0.0.0:${PORT}  (health: /health  deep: /api/system/health/deep)`
       );
+      try {
+        const wd = require('./services/architectureWatchdogService');
+        wd.startArchitectureWatchdog();
+      } catch (e) {
+        console.warn('[ARCHITECTURE_WATCHDOG] não iniciado:', e && e.message ? e.message : e);
+      }
     });
   })();
 })();

@@ -265,14 +265,17 @@ function resetConsecutiveErrors() {
   consecutiveErrors = 0;
 }
 
-function markCouncilStart({ traceId, companyId, userId, module }) {
+function markCouncilStart({ traceId, companyId, userId, module, orchestration }) {
   incrementMetric('total_requests');
   bumpTenant(companyId, 'requests');
   logEvent('INFO', 'AI_REQUEST', {
     trace_id: traceId,
     company_id: companyId || undefined,
     user_id: userId || undefined,
-    details: { module: module || 'cognitive_council' }
+    details: {
+      module: module || 'cognitive_council',
+      ...(orchestration && typeof orchestration === 'object' ? { orchestration } : {})
+    }
   });
 }
 

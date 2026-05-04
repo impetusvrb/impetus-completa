@@ -15,6 +15,7 @@ function skipWebhookAndPreflight(req) {
     p === '/api/health' ||
     p === '/api/health/settings-module' ||
     p === '/api/system/health/deep' ||
+    p === '/api/system/architecture-health' ||
     p === '/health'
   )
     return true;

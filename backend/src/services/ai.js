@@ -54,6 +54,13 @@ async function chatCompletion(prompt, opts = {}) {
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
   try {
+    const gate = require('../ai/orchestratorExecutionGate');
+    gate.assertOpenAiInvocation(opts || {});
+  } catch (e) {
+    if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
+  }
+
+  try {
     const maxTok = opts.max_tokens || 800;
     const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);
     if (blocked) return blocked;
@@ -93,6 +100,12 @@ async function chatCompletion(prompt, opts = {}) {
 async function chatCompletionMessages(messages, opts = {}) {
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
+  try {
+    const gate = require('../ai/orchestratorExecutionGate');
+    gate.assertOpenAiInvocation(opts || {});
+  } catch (e) {
+    if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
+  }
   try {
     const maxTok = opts.max_tokens || 800;
     const blocked = await nexusWalletPrecheck(opts.billing, 'chat', maxTok);

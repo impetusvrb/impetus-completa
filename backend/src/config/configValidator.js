@@ -102,8 +102,35 @@ function validateConfigOrThrow() {
   throw err;
 }
 
+/**
+ * Arquitectura obrigatória IMPETUS: IMPETUS_STRICT_AI_PIPELINE deve ser true em arranque
+ * (salvo relax explícito para testes/CI).
+ * @returns {void}
+ */
+function validateArchitectureBootOrThrow() {
+  const relax = /^(1|true|yes)$/i.test(String(process.env.IMPETUS_ARCHITECTURE_BOOT_RELAX || '').trim());
+  if (relax) {
+    console.warn(
+      '[ARCHITECTURE] IMPETUS_ARCHITECTURE_BOOT_RELAX ativo — validação estrita de arranque ignorada (não use em produção).'
+    );
+    return;
+  }
+  const s = String(process.env.IMPETUS_STRICT_AI_PIPELINE || '').trim().toLowerCase();
+  if (s === 'true' || s === '1' || s === 'yes') {
+    return;
+  }
+  const msg =
+    '[ARCHITECTURE_BOOT_FAILURE] IMPETUS_STRICT_AI_PIPELINE tem de ser true (contrato IMPETUS: Gemini → Orquestrador → Claude → ChatGPT). ' +
+    'Corrija o .env e reinicie. Para testes automatizados apenas: IMPETUS_ARCHITECTURE_BOOT_RELAX=true';
+  console.error(msg);
+  const err = new Error(msg);
+  err.name = 'ArchitectureConfigError';
+  throw err;
+}
+
 module.exports = {
   validateConfigOrThrow,
+  validateArchitectureBootOrThrow,
   isAllowPartialEnv,
   isValidPostgresUrl,
   isDatabaseConfigured,

@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Orquestrador de eventos IMPETUS — Node.js controla o fluxo; Vertex AI apoia (Gemini).
+ * Orquestrador de eventos IMPETUS — Node.js coordena o fluxo; Gemini pode usar Vertex AI
+ * (GOOGLE_GENAI_USE_VERTEXAI) ou Google AI Studio para refinamento de intenção nos eventos.
  *
  * Mapeamento intent → acção (regras explícitas, sem múltiplas IAs por evento sem motivo):
  *   conversation   → send_to_chatgpt(...)
@@ -20,18 +21,25 @@ const { callWithRetry } = require('../resilience/aiResilience');
 const _handlers = {
   /** @type {(input: object) => Promise<object>} */
   send_to_chatgpt: async function defaultSendToChatGPT(input) {
-    console.info('[ROUTER_NOOP_CHATGPT]', JSON.stringify({ event_id: input.event_id }));
-    return { ok: true, channel: 'chatgpt', noop: true, content: '' };
+    console.warn('[ROUTER_NOOP_CHATGPT]', JSON.stringify({ event_id: input.event_id }));
+    return {
+      ok: false,
+      channel: 'chatgpt',
+      noop: true,
+      content: '',
+      error: 'integration_noop',
+      silent_integration_noop: true
+    };
   },
   /** @type {(input: object) => Promise<object>} */
   execute_task: async function defaultExecuteTask(input) {
     console.info('[ROUTER_NOOP_TASK]', JSON.stringify({ event_id: input.event_id }));
-    return { ok: true, channel: 'task', noop: true };
+    return { ok: true, channel: 'task', noop: true, silent_integration_noop: true };
   },
   /** @type {(input: object) => Promise<object>} */
   call_external_api: async function defaultCallExternalApi(input) {
     console.info('[ROUTER_NOOP_EXTERNAL]', JSON.stringify({ event_id: input.event_id }));
-    return { ok: true, channel: 'external_api', noop: true, data: null };
+    return { ok: true, channel: 'external_api', noop: true, data: null, silent_integration_noop: true };
   }
 };
 
@@ -99,10 +107,11 @@ async function routeRefinedEvent(processed, refined) {
       const reply = await callWithRetry(() => _handlers.send_to_chatgpt(composed), {
         metadata: { ...meta, ia_chamada: 'chatgpt' },
         fallback: async () => ({
-          ok: true,
+          ok: false,
           channel: 'chatgpt',
           noop: false,
-          content: 'Resposta indisponível no momento. Tente novamente em alguns instantes.'
+          content: '',
+          error: 'chatgpt_handler_exhausted'
         })
       });
       return {
@@ -117,10 +126,11 @@ async function routeRefinedEvent(processed, refined) {
     const out = await callWithRetry(() => _handlers.send_to_chatgpt(input), {
       metadata: { ...meta, ia_chamada: 'chatgpt' },
       fallback: async () => ({
-        ok: true,
+        ok: false,
         channel: 'chatgpt',
         noop: false,
-        content: 'Resposta indisponível no momento. Tente novamente em alguns instantes.'
+        content: '',
+        error: 'chatgpt_handler_exhausted'
       })
     });
     return { ok: !!out.ok, channel: 'chatgpt', intent: refined.intent, output: out };

@@ -97,7 +97,7 @@ function normalizeExplanationLayer(raw, dossier, limitations, heuristic01, extra
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   const baseRules = [
-    'IMPETUS — Conselho Cognitivo: percepção (Gemini quando disponível) → análise técnica (Claude) → formulação final (GPT).',
+    'IMPETUS — Conselho Cognitivo: Gemini (intenção+percepção) → orquestração vertex_central_sim → Claude (técnico+plano) → ChatGPT (final).',
     'Diretriz: distinguir factos do dossiê de inferências e recomendações na resposta ao utilizador.'
   ];
   const modelRules = Array.isArray(raw?.business_rules)

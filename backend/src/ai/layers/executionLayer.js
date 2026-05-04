@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Camada de execução — percepção, análise técnica, rascunho, validação cruzada, resposta final,
- * síntese, egresso e modo adaptativo na resposta.
+ * Camada de execução — percepção (Gemini), análise e plano (Claude), resposta final (ChatGPT),
+ * síntese, egresso e modo adaptativo. Ordem controlada por vertexCentralOrchestrator (trace no dossiê).
  */
 
 const geminiService = require('../../services/geminiService');
@@ -17,6 +17,11 @@ const { synthesize, extractJsonBlock, parseFinalStructuredResponse } = require('
 const aiPromptGuardService = require('../../services/aiPromptGuardService');
 const aiEgressGuardService = require('../../services/aiEgressGuardService');
 const adaptiveGovernanceEngine = require('../../services/adaptiveGovernanceEngine');
+const {
+  traceStage,
+  vertexDecide,
+  strictPipelineError
+} = require('../vertexCentralOrchestrator');
 
 const CONTEXTUAL_DATA_OPERATIONS_FALLBACK_PT =
   'Dados operacionais indicam riscos identificados. Apresente análise com base nas previsões disponíveis.';
@@ -562,7 +567,7 @@ Retorne APENAS JSON válido:
 
 const CROSS_VALIDATION_SYSTEM = `${IMPETUS_DATA_SCOPE_DIRECTIVE}
 
-Você valida coerência entre rascunho operacional interno e análise técnica.
+Você valida coerência entre plano operacional interno (Claude) e análise técnica (Claude).
 Retorne APENAS JSON:
 {"aligned":boolean,"inconsistencias":[],"ajustes_sugeridos":[],"gaps":[],"severity":"low|medium|high","notes":""}`;
 
@@ -595,6 +600,9 @@ function buildStagesArray(dossier) {
 }
 
 async function stagePerception(dossier, billing, limitations) {
+  const strict = !!dossier.meta.strict_pipeline;
+  const vTrace = dossier.meta.vertex_run_trace || null;
+
   const images = normalizeImageList(dossier.data.images);
   dossier.data.images = images;
 
@@ -606,53 +614,72 @@ async function stagePerception(dossier, billing, limitations) {
   }).slice(0, 12000);
 
   if (!images.length) {
-    if (geminiService.isAvailable()) {
-      const sig = aiPromptGuardService.appendSecuritySignature(
-        dossier.user.company_id,
-        dossier.user.id
-      );
-      const prompt = `${PERCEPTION_TEXT_PROMPT}\n\nPEDIDO:\n${dossier.context.request.slice(0, 8000)}\n\nDADOS:\n${dataHint}${sig}`;
-      const txt = await geminiService.generateText(prompt, {});
-      let parsed = extractJsonBlock(txt);
-      if (!parsed && txt && txt.trim().startsWith('{')) {
-        try {
-          parsed = JSON.parse(txt);
-        } catch {
-          parsed = null;
-        }
+    if (!geminiService.isAvailable()) {
+      if (strict) {
+        throw strictPipelineError(
+          'STRICT_GEMINI_PERCEPTION_UNAVAILABLE',
+          'Percepção textual exige Gemini (pipeline estrito).'
+        );
       }
-      const structured = mergePerceptionStructured(parsed, txt || dossier.context.request);
+      const fb = sanitizeTextInput(dossier.context.request).slice(0, 4000);
+      const structured = mergePerceptionStructured(null, fb);
       dossier.analysis.perception_structured = structured;
-      dossier.analysis.perception = {
-        mode: 'text_only_gemini',
-        summary: structured.resumo_objetivo,
-        structured
-      };
-      dossier.layers.perception = { ...structured, modo: 'texto_gemini' };
+      dossier.analysis.perception = { mode: 'text_only_fallback', summary: fb, structured };
+      dossier.layers.perception = { ...structured, modo: 'fallback' };
+      dossier.meta.degraded = true;
+      mergeLimitations(limitations, 'Gemini indisponível — percepção textual reduzida.');
       recordStage(dossier, {
         stage: 'perception',
-        provider: Provider.GEMINI,
-        model_hint: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-        summary: 'Percepção textual estruturada (Gemini).'
+        provider: 'none',
+        summary: 'Percepção degradada (sem Gemini).'
       });
       return;
     }
-    const fb = sanitizeTextInput(dossier.context.request).slice(0, 4000);
-    const structured = mergePerceptionStructured(null, fb);
+    const sig = aiPromptGuardService.appendSecuritySignature(
+      dossier.user.company_id,
+      dossier.user.id
+    );
+    const prompt = `${PERCEPTION_TEXT_PROMPT}\n\nPEDIDO:\n${dossier.context.request.slice(0, 8000)}\n\nDADOS:\n${dataHint}${sig}`;
+    const txt = await geminiService.generateText(prompt, {});
+    if (strict && (!txt || !String(txt).trim())) {
+      throw strictPipelineError(
+        'STRICT_GEMINI_PERCEPTION_EMPTY',
+        'Gemini não devolveu percepção textual estruturada.'
+      );
+    }
+    let parsed = extractJsonBlock(txt);
+    if (!parsed && txt && txt.trim().startsWith('{')) {
+      try {
+        parsed = JSON.parse(txt);
+      } catch {
+        parsed = null;
+      }
+    }
+    const structured = mergePerceptionStructured(parsed, txt || dossier.context.request);
     dossier.analysis.perception_structured = structured;
-    dossier.analysis.perception = { mode: 'text_only_fallback', summary: fb, structured };
-    dossier.layers.perception = { ...structured, modo: 'fallback' };
-    dossier.meta.degraded = true;
-    mergeLimitations(limitations, 'Gemini indisponível — percepção textual reduzida.');
+    dossier.analysis.perception = {
+      mode: 'text_only_gemini',
+      summary: structured.resumo_objetivo,
+      structured
+    };
+    dossier.layers.perception = { ...structured, modo: 'texto_gemini' };
     recordStage(dossier, {
       stage: 'perception',
-      provider: 'none',
-      summary: 'Percepção degradada (sem Gemini).'
+      provider: Provider.GEMINI,
+      model_hint: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      summary: 'Percepção textual estruturada (Gemini).'
     });
+    if (vTrace) traceStage(vTrace, 'gemini_percepcao', { modo: 'texto' });
     return;
   }
 
   if (!geminiService.isAvailable()) {
+    if (strict) {
+      throw strictPipelineError(
+        'STRICT_GEMINI_VISION_UNAVAILABLE',
+        'Percepção multimodal exige Gemini (pipeline estrito).'
+      );
+    }
     dossier.analysis.perception = {
       mode: 'degraded',
       summary: 'Imagens recebidas mas Gemini não configurado — percepção não executada.'
@@ -703,9 +730,18 @@ async function stagePerception(dossier, billing, limitations) {
     model_hint: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     summary: `Análise visual ${maxFrames} frame(s).`
   });
+  if (vTrace) traceStage(vTrace, 'gemini_percepcao', { modo: 'multimodal', frames: maxFrames });
+  if (strict && (!consolidated || !String(consolidated).trim())) {
+    throw strictPipelineError(
+      'STRICT_GEMINI_VISION_EMPTY',
+      'Gemini não devolveu saída de visão utilizável.'
+    );
+  }
 }
 
 async function stageTechnical(dossier, limitations) {
+  const strict = !!dossier.meta.strict_pipeline;
+  const vTrace = dossier.meta.vertex_run_trace || null;
   const perceptionBlock = JSON.stringify(
     dossier.analysis.perception_structured || dossier.analysis.perception || {}
   ).slice(0, 12000);
@@ -736,17 +772,28 @@ ${dataBlock}
     aiPromptGuardService.appendSecuritySignature(dossier.user.company_id, dossier.user.id);
 
   if (!claudeService.analyze) {
+    if (strict) {
+      throw strictPipelineError('STRICT_CLAUDE_UNAVAILABLE', 'Serviço Claude não está disponível.');
+    }
     dossier.meta.degraded = true;
     mergeLimitations(limitations, 'Claude indisponível no serviço.');
     return;
   }
 
+  const g = dossier.meta._council_ai_gate;
   const raw = await claudeService.analyze(TECHNICAL_SYSTEM, userContent, {
     max_tokens: 4096,
-    timeout: 55000
+    timeout: 55000,
+    ...(g && g.claudeToken ? { _councilClaudeToken: g.claudeToken } : {})
   });
 
   if (!raw) {
+    if (strict) {
+      throw strictPipelineError(
+        'STRICT_CLAUDE_TECHNICAL_FAILED',
+        'Claude não executou análise técnica (saída vazia ou erro).'
+      );
+    }
     dossier.meta.degraded = true;
     mergeLimitations(limitations, 'Falha na análise técnica (Claude).');
     recordStage(dossier, {
@@ -790,14 +837,30 @@ ${dataBlock}
     model_hint: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
     summary: 'Análise técnica estruturada.'
   });
+  if (vTrace) traceStage(vTrace, 'claude_analise_tecnica', { ok: true });
 }
 
-async function stageGptDraft(dossier, billing) {
-  const sys = `${IMPETUS_DATA_SCOPE_DIRECTIVE}
+const CLAUDE_INTERNAL_PLAN_SYSTEM = `${IMPETUS_DATA_SCOPE_DIRECTIVE}
 
-Você gera um RASCUNHO interno (JSON) — NÃO é mensagem ao usuário.
+Você é o motor ${AI_ROLES.CLAUDE} — produza um PLANO interno estruturado (JSON). NÃO escreva mensagem ao utilizador final.
 Formato obrigatório JSON:
 {"interpretacao_consolidada":"","plano_resposta":{"prioridade":"baixa|media|alta|critica","passos":[]},"prioridade":"baixa|media|alta|critica","bullets":["..."],"acao_sugerida":"","requer_validacao_humana":true}`;
+
+/**
+ * Plano de resposta interno (Claude) — mesmo contrato que o antigo rascunho GPT, sem usar GPT nesta etapa.
+ */
+async function stageClaudeInternalPlan(dossier, limitations) {
+  const strict = !!dossier.meta.strict_pipeline;
+  const vTrace = dossier.meta.vertex_run_trace || null;
+
+  if (!claudeService.analyze) {
+    if (strict) {
+      throw strictPipelineError('STRICT_CLAUDE_PLAN_UNAVAILABLE', 'Claude indisponível para plano interno.');
+    }
+    dossier.meta.degraded = true;
+    mergeLimitations(limitations, 'Claude indisponível — plano interno não gerado.');
+    return null;
+  }
 
   const usr = `Com base apenas no dossiê abaixo, produza o JSON.
 ${JSON.stringify({
@@ -810,17 +873,25 @@ ${JSON.stringify({
     risks: dossier.analysis.risks
 }).slice(0, 24000)}`;
 
-  const raw = await ai.chatCompletionMessages(
-    [{ role: 'system', content: sys }, { role: 'user', content: usr }],
-    {
-      max_tokens: 900,
-      billing,
-      response_format: { type: 'json_object' },
-      model: process.env.COGNITIVE_GPT_DRAFT_MODEL || 'gpt-4o-mini'
-    }
-  );
+  const userContent =
+    aiPromptGuardService.wrapUserContentInSecurityEnvelope(usr) +
+    aiPromptGuardService.appendSecuritySignature(dossier.user.company_id, dossier.user.id);
 
-  if (typeof raw === 'string' && raw.startsWith('FALLBACK')) {
+  const gPlan = dossier.meta._council_ai_gate;
+  const raw = await claudeService.analyze(CLAUDE_INTERNAL_PLAN_SYSTEM, userContent, {
+    max_tokens: 1200,
+    timeout: 45000,
+    model: process.env.COGNITIVE_CLAUDE_PLAN_MODEL || process.env.ANTHROPIC_MODEL || undefined,
+    ...(gPlan && gPlan.claudeToken ? { _councilClaudeToken: gPlan.claudeToken } : {})
+  });
+
+  if (!raw) {
+    if (strict) {
+      throw strictPipelineError(
+        'STRICT_CLAUDE_PLAN_FAILED',
+        'Claude não gerou plano interno estruturado (saída vazia).'
+      );
+    }
     return null;
   }
   let parsed = extractJsonBlock(raw);
@@ -831,18 +902,25 @@ ${JSON.stringify({
       parsed = null;
     }
   }
+  if (strict && !parsed) {
+    throw strictPipelineError(
+      'STRICT_CLAUDE_PLAN_INVALID',
+      'Claude devolveu plano interno inválido (JSON esperado).'
+    );
+  }
   dossier.analysis.draft_recommendation = parsed;
   dossier.layers.draft = {
     interno: true,
-    etapa: 'rascunho_gpt',
+    etapa: 'plano_claude_interno',
     gerado_em: new Date().toISOString()
   };
   recordStage(dossier, {
     stage: 'draft_recommendation',
-    provider: Provider.GPT,
-    model_hint: process.env.COGNITIVE_GPT_DRAFT_MODEL || 'gpt-4o-mini',
-    summary: 'Rascunho interno GPT (não mostrado ao usuário).'
+    provider: Provider.CLAUDE,
+    model_hint: process.env.COGNITIVE_CLAUDE_PLAN_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    summary: 'Plano interno Claude (não mostrado ao utilizador).'
   });
+  if (vTrace) traceStage(vTrace, 'claude_plano_interno', { ok: true });
   return parsed;
 }
 
@@ -852,13 +930,15 @@ async function stageCrossValidation(dossier) {
     dossier.analysis.technical_structured || dossier.analysis.technical_analysis;
   if (!draft || !technical) return null;
 
-  const usr = `RASCUNHO:\n${JSON.stringify(draft).slice(0, 8000)}\n\nANÁLISE TÉCNICA:\n${String(
+  const usr = `PLANO_INTERNO:\n${JSON.stringify(draft).slice(0, 8000)}\n\nANÁLISE TÉCNICA:\n${String(
     typeof technical === 'object' ? JSON.stringify(technical) : technical
   ).slice(0, 8000)}`;
 
+  const gX = dossier.meta._council_ai_gate;
   const raw = await claudeService.analyze(CROSS_VALIDATION_SYSTEM, usr, {
     max_tokens: 1200,
-    timeout: 35000
+    timeout: 35000,
+    ...(gX && gX.claudeToken ? { _councilClaudeToken: gX.claudeToken } : {})
   });
   if (!raw) return null;
   const parsed = extractJsonBlock(raw);
@@ -868,7 +948,7 @@ async function stageCrossValidation(dossier) {
   recordStage(dossier, {
     stage: 'cross_validation',
     provider: Provider.CLAUDE,
-    summary: 'Validação cruzada Claude sobre rascunho GPT.'
+    summary: 'Validação cruzada Claude (plano interno vs análise técnica).'
   });
   return dossier.analysis.cross_validation;
 }
@@ -1007,13 +1087,15 @@ Regras:
       `DOSSIÊ RESUMIDO PARA RESPOSTA FINAL:\n${dossierJson}`
     ) + aiPromptGuardService.appendSecuritySignature(userScope.company_id, userScope.id);
 
+  const gateTok = dossier.meta._council_ai_gate;
   const text = await ai.chatCompletionMessages(
     [{ role: 'system', content: sys }, { role: 'user', content: usr }],
     {
       max_tokens: 2600,
       billing,
       response_format: { type: 'json_object' },
-      model: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini'
+      model: process.env.COGNITIVE_GPT_FINAL_MODEL || 'gpt-4o-mini',
+      ...(gateTok && gateTok.openaiToken ? { _councilOpenAiToken: gateTok.openaiToken } : {})
     }
   );
 
@@ -1042,18 +1124,33 @@ async function runCouncilExecution(ctx) {
     user,
     data,
     adaptiveResponseMode,
-    traceId
+    traceId,
+    vertexRunTrace
   } = ctx;
 
+  const strict = !!dossier.meta.strict_pipeline;
+  const vTrace = vertexRunTrace || dossier.meta.vertex_run_trace || null;
+
+  const execGate = require('../orchestratorExecutionGate');
+  if (strict) {
+    dossier.meta._council_ai_gate = execGate.beginCouncilAiSession(traceId);
+  }
+  try {
   await stagePerception(dossier, billing, limitations);
+  if (vTrace) vertexDecide(vTrace, 'apos_gemini_percepcao', 'claude_analise_tecnica');
+
   await stageTechnical(dossier, limitations);
+  if (vTrace) vertexDecide(vTrace, 'apos_claude_tecnico', 'claude_plano_interno');
 
   const wantCross = shouldRequireCrossValidation(risk, options);
 
-  const draft = await stageGptDraft(dossier, billing);
-  if (!draft) {
+  const draft = await stageClaudeInternalPlan(dossier, limitations);
+  if (!draft && !strict) {
     dossier.meta.degraded = true;
-    mergeLimitations(limitations, 'Rascunho GPT indisponível — possível falha OpenAI ou fallback.');
+    mergeLimitations(
+      limitations,
+      'Plano interno Claude indisponível — continuará só com percepção/análise técnica e resposta final GPT.'
+    );
   }
 
   if (wantCross && draft) {
@@ -1061,23 +1158,34 @@ async function runCouncilExecution(ctx) {
     if (!cross) mergeLimitations(limitations, 'Validação cruzada não executada (Claude).');
   }
 
+  if (vTrace) vertexDecide(vTrace, 'antes_resposta_final', 'chatgpt_openai');
+
   let finalText = await stageGptFinal(dossier, scope, billing);
   if (typeof finalText === 'string' && finalText.startsWith('FALLBACK')) {
-    dossier.meta.degraded = true;
-    mergeLimitations(limitations, finalText);
-    finalText =
-      'Não foi possível gerar a resposta assistida completa no momento. Utilize os dados já registrados no IMPETUS e envolva seu supervisor técnico.';
+    throw strictPipelineError(
+      'STRICT_CHATGPT_FINAL_FALLBACK',
+      String(finalText).slice(0, 400)
+    );
   }
 
   const { finalRaw, structuredFinal } = parseFinalStructuredResponse(finalText);
+
+  if (strict && (!structuredFinal || !String(structuredFinal.content || '').trim())) {
+    throw strictPipelineError(
+      'STRICT_CHATGPT_FINAL_INVALID',
+      'ChatGPT não devolveu JSON final válido com campo content.'
+    );
+  }
+
+  if (vTrace) traceStage(vTrace, 'chatgpt_resposta_final', { ok: true });
 
   const extraBusinessRules = [
     `Intent classificado: ${dossier.context.intent}`,
     `Política de risco operacional (heurística): nível ${risk}`,
     wantCross
-      ? 'Validação cruzada Claude↔GPT solicitada nesta execução.'
+      ? 'Validação cruzada Claude (plano vs técnica) solicitada nesta execução.'
       : 'Validação cruzada omitida pelos critérios do motor ou configuração.',
-    'Pipeline IMPETUS: percepção (Gemini quando disponível) → análise técnica (Claude) → rascunho (GPT) → resposta final explicável (GPT JSON).'
+    'Pipeline IMPETUS: Gemini (intenção+percepção) → Vertex (orquestração simulada) → Claude (técnico+plano) → ChatGPT/OpenAI (resposta final JSON).'
   ];
   if (dossier.analysis.cross_validation && typeof dossier.analysis.cross_validation.aligned === 'boolean') {
     extraBusinessRules.push(
@@ -1096,7 +1204,20 @@ async function runCouncilExecution(ctx) {
     extraBusinessRules
   });
 
-  applyContextualOperationsFallback(synthesis, dossier);
+  if (
+    strict &&
+    (!synthesis.answer || !String(synthesis.answer).trim()) &&
+    (!synthesis.content || !String(synthesis.content).trim())
+  ) {
+    throw strictPipelineError(
+      'STRICT_SYNTHESIS_EMPTY',
+      'Síntese final vazia após etapa ChatGPT.'
+    );
+  }
+
+  if (!strict) {
+    applyContextualOperationsFallback(synthesis, dossier);
+  }
 
   const egressAllow = aiEgressGuardService.buildTenantAllowlist(user, data);
   const egress = await aiEgressGuardService.scanModelOutput({
@@ -1136,12 +1257,30 @@ async function runCouncilExecution(ctx) {
     });
   }
 
+  if (strict) {
+    const m = dossier.meta.models_touched || [];
+    const need = [Provider.GEMINI, Provider.CLAUDE, Provider.GPT];
+    const miss = need.filter((x) => !m.includes(x));
+    if (miss.length) {
+      throw strictPipelineError(
+        'STRICT_PIPELINE_MODELS_INCOMPLETE',
+        `Antes de responder: trace incompleto — faltam ${miss.join(', ')}.`
+      );
+    }
+  }
+
   return {
     synthesis,
     wantCross,
     egress,
     finalText
   };
+  } finally {
+    if (strict) {
+      execGate.endCouncilAiSession();
+      delete dossier.meta._council_ai_gate;
+    }
+  }
 }
 
 module.exports = {

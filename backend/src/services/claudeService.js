@@ -151,6 +151,13 @@ async function analyze(systemPrompt, userContent, opts = {}) {
     return null;
   }
 
+  try {
+    const gate = require('../ai/orchestratorExecutionGate');
+    gate.assertAnthropicInvocation(opts || {});
+  } catch (e) {
+    if (e && e.code === 'ARCHITECTURE_VIOLATION') throw e;
+  }
+
   const timeoutMs = opts.timeout || 45000;
   const maxTokens = opts.max_tokens || 2048;
   const model = opts.model || 'claude-sonnet-4-20250514';

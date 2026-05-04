@@ -16,6 +16,8 @@ const { PIPELINE_VERSION, INTENT } = require('../aiRoles');
 const humanValidationClosureService = require('../../services/humanValidationClosureService');
 const aiPromptGuardService = require('../../services/aiPromptGuardService');
 const dataLineageService = require('../../services/dataLineageService');
+const { refineCouncilIntentWithGemini } = require('../cognitiveIntentIngress');
+const { vertexDecide } = require('../vertexCentralOrchestrator');
 
 /**
  * Normaliza entradas legadas (requestText + data) e o contrato novo (input + context).
@@ -174,7 +176,14 @@ async function prepareCouncilIngress({ user, requestText: rt, data, module, opti
     data
   });
 
-  dossier.context.intent = classifyIntent(sanitized, dossier);
+  const heuristicIntent = classifyIntent(sanitized, dossier);
+  const vertexTrace = options && options.vertex_run_trace ? options.vertex_run_trace : null;
+  dossier.context.intent = await refineCouncilIntentWithGemini(sanitized, dossier, heuristicIntent, {
+    trace: vertexTrace
+  });
+  if (vertexTrace) {
+    vertexDecide(vertexTrace, 'intencao_classificada_gemini', 'gemini_percepcao');
+  }
   seedLayerInput(dossier);
   dataLineageService.attachToDossier(dossier);
 

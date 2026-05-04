@@ -248,6 +248,19 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
         options: councilOptions
       });
 
+      if (councilOut && councilOut.ok === false) {
+        const code = councilOut.error_code || 'PIPELINE_STRICT';
+        const msg = councilOut.error_message || 'Encadeamento obrigatório das IAs não concluído.';
+        const savedErr = await chatService.saveMessage({
+          conversationId,
+          senderId: AI_USER_ID,
+          type: 'ai',
+          content: `Assistência indisponível (${code}). ${msg}`.slice(0, 3500)
+        });
+        if (io) io.to(conversationId).emit('new_message', savedErr);
+        return savedErr;
+      }
+
       const result = councilOut && councilOut.result ? councilOut.result : null;
       let raw = '';
       if (councilOut && councilOut.ok && result) {

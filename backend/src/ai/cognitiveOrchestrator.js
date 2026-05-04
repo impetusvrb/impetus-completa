@@ -5,7 +5,8 @@
  *
  * Princípios:
  * - Sem conversação livre entre modelos; apenas dossiê compartilhado + etapas ordenadas.
- * - Papéis fixos: Gemini (percepção), Claude (análise profunda), GPT (interface final).
+ * - Papéis fixos: Gemini (única classificação de intenção + percepção), Claude (análise técnica + plano interno),
+ *   GPT/OpenAI (única resposta final). Orquestração: vertex_central_sim (controlo de etapas; Gemini pode usar Vertex).
  * - Auditoria em ai_decision_logs; HITL em cognitive_hitl_feedback.
  * - Nenhuma IA invoca outra: só o backend encadeia chamadas com estado explícito.
  *
@@ -40,6 +41,7 @@ const ingressLayer = require('./layers/ingressLayer');
 const policyLayer = require('./layers/policyLayer');
 const complianceLayer = require('./layers/complianceLayer');
 const executionLayer = require('./layers/executionLayer');
+const vertexCentralOrchestrator = require('./vertexCentralOrchestrator');
 
 /** Mínimo de intenções com confiança para agregação multi (máx. 3 pedidos a retrieveContextualData). */
 const AUTO_DATA_MULTI_CONFIDENCE_MIN = 0.5;
@@ -110,11 +112,19 @@ async function runCognitiveCouncil(params) {
 
   const t0 = Date.now();
   const traceId = uuidv4();
+  const vertexRunTrace = vertexCentralOrchestrator.createCouncilRunTrace(traceId, {
+    entrada_preview: rt
+  });
+  vertexCentralOrchestrator.traceStage(vertexRunTrace, 'entrada_recebida', {
+    module: module || 'cognitive_council'
+  });
+
   observabilityService.markCouncilStart({
     traceId,
     companyId: user?.company_id,
     userId: user?.id,
-    module: module || 'cognitive_council'
+    module: module || 'cognitive_council',
+    orchestration: vertexCentralOrchestrator.getOrchestrationContext()
   });
   if (user?.company_id && user?.id) {
     behavioralIntelligenceService.trackUserAction('ACCESS_ATTEMPT', {
@@ -126,6 +136,7 @@ async function runCognitiveCouncil(params) {
   }
 
   const executeCouncil = async () => {
+    try {
     const sessionCtx =
       user?.company_id && user?.id ? await getUnifiedSessionContext(user) : null;
     const advPipeline = detectIntentAdvanced(rt);
@@ -401,9 +412,13 @@ async function runCognitiveCouncil(params) {
         requestText: rt,
         data: enrichedData,
         module,
-        options,
+        options: { ...options, vertex_run_trace: vertexRunTrace },
         traceId
       });
+
+    dossier.meta.vertex_run_trace = vertexRunTrace;
+    dossier.meta.strict_pipeline = vertexCentralOrchestrator.isStrictAiPipeline();
+    dossier.meta.orchestration = vertexCentralOrchestrator.getOrchestrationContext();
 
     let risk = riskIngress;
 
@@ -439,13 +454,15 @@ async function runCognitiveCouncil(params) {
       billing,
       limitations,
       risk,
-      options,
+      options: { ...options, vertex_run_trace: vertexRunTrace },
       scope,
       module,
       user,
       data: enrichedData,
       adaptiveResponseMode,
-      traceId
+      traceId,
+      vertexRunTrace,
+      strictPipeline: dossier.meta.strict_pipeline
     });
 
     const { compliancePack } = await complianceLayer.applyComplianceAfterExecution({
@@ -484,6 +501,9 @@ async function runCognitiveCouncil(params) {
         cross_validation_requested: wantCross,
         risk_level: risk,
         based_on: synthesis.based_on,
+        impetus_flow:
+          dossier.meta.orchestration || vertexCentralOrchestrator.getOrchestrationContext(),
+        vertex_run_trace: dossier.meta.vertex_run_trace || null,
         ...(adaptiveGovernanceEngine.ADAPTIVE_ENABLED
           ? {
               adaptive_governance: {
@@ -677,6 +697,11 @@ async function runCognitiveCouncil(params) {
 
     commitContextSessionFromCouncil(user, { intentData, multiIntentList, enrichedData });
 
+    vertexCentralOrchestrator.traceStage(vertexRunTrace, 'trace_concluido', {
+      models: dossier.meta.models_touched || []
+    });
+    vertexCentralOrchestrator.traceComplete(vertexRunTrace, true, null);
+
     return {
       ok: true,
       traceId,
@@ -700,8 +725,39 @@ async function runCognitiveCouncil(params) {
       synthesis,
       explanation_layer: explanationLayer,
       duration_ms: duration,
-      degraded: dossier.meta.degraded
+      degraded: dossier.meta.degraded,
+      vertex_run_trace: vertexRunTrace
     };
+    } catch (pipeErr) {
+      const c = pipeErr && pipeErr.code != null ? String(pipeErr.code) : '';
+      if (c.startsWith('STRICT_')) {
+        try {
+          const execGate = require('./orchestratorExecutionGate');
+          execGate.recordCouncilFailure(c, pipeErr && pipeErr.message ? String(pipeErr.message) : c);
+        } catch (_e) {
+          /* ignore */
+        }
+        vertexCentralOrchestrator.traceComplete(vertexRunTrace, false, c);
+        observabilityService.markCouncilException({
+          traceId,
+          companyId: user?.company_id,
+          userId: user?.id,
+          err: pipeErr
+        });
+        return {
+          ok: false,
+          traceId,
+          trace_id: traceId,
+          error_code: c,
+          error_message: pipeErr && pipeErr.message ? String(pipeErr.message) : c,
+          vertex_run_trace: vertexRunTrace,
+          result: null,
+          stages: vertexRunTrace && vertexRunTrace.stages ? vertexRunTrace.stages : [],
+          degraded: true
+        };
+      }
+      throw pipeErr;
+    }
   };
 
   try {

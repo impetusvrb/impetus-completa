@@ -24,8 +24,17 @@ function buildDefaultPipelineHandlers() {
             const prompt = `Responda de forma breve (máximo 4 frases) ao contexto abaixo. Não invente factos nem dados de sensores.\n\nResumo anonimizado:\n${String(
               input.summary || ''
             ).slice(0, 2000)}`;
-            const content = await ai.chatCompletion(prompt, { max_tokens: 400 });
-            return { ok: true, channel: 'chatgpt', noop: false, content: content || '' };
+            const content = await ai.chatCompletion(prompt, {
+              max_tokens: 400,
+              orchestrator_exempt: true
+            });
+            return {
+              ok: true,
+              channel: 'chatgpt',
+              noop: false,
+              content: content || '',
+              silent_integration_noop: false
+            };
           }
         } catch (e) {
           console.warn('[PIPELINE_CHATGPT]', e && e.message ? e.message : e);
@@ -35,17 +44,30 @@ function buildDefaultPipelineHandlers() {
         event_id: input.event_id,
         intent: input.intent
       });
-      return { ok: true, channel: 'chatgpt', noop: true, content: '' };
+      return {
+        ok: false,
+        channel: 'chatgpt',
+        noop: true,
+        content: '',
+        error: 'integration_noop',
+        silent_integration_noop: true
+      };
     },
 
     execute_task: async (input) => {
       _safeJsonLog('[PIPELINE_TASK_NOOP]', { event_id: input.event_id, intent: input.intent });
-      return { ok: true, channel: 'task', noop: true };
+      return { ok: true, channel: 'task', noop: true, silent_integration_noop: true };
     },
 
     call_external_api: async (input) => {
       _safeJsonLog('[PIPELINE_EXTERNAL_NOOP]', { event_id: input.event_id, intent: input.intent });
-      return { ok: true, channel: 'external_api', noop: true, data: null };
+      return {
+        ok: true,
+        channel: 'external_api',
+        noop: true,
+        data: null,
+        silent_integration_noop: true
+      };
     },
 
     claude_handler: async (job) => {
@@ -56,7 +78,10 @@ function buildDefaultPipelineHandlers() {
             const sys =
               'És analista industrial IMPETUS. Responde APENAS JSON válido com chaves: status (string), kpis (array de {label,value}), alerts (array de {severity,message}), recommendations (array de strings), generated_at (ISO8601).';
             const user = `Intent: ${job.intent}\nResumo: ${String(job.summary || '').slice(0, 4000)}\nEntidades: ${(job.entities || []).join(', ')}`;
-            const raw = await claudeService.analyze(sys, user, { max_tokens: 1800 });
+            const raw = await claudeService.analyze(sys, user, {
+              max_tokens: 1800,
+              orchestrator_exempt: true
+            });
             if (raw && String(raw).trim()) {
               try {
                 const m = String(raw).match(/\{[\s\S]*\}/);
@@ -89,7 +114,8 @@ function buildDefaultPipelineHandlers() {
         alerts: [],
         recommendations: [],
         generated_at: new Date().toISOString(),
-        note: 'NOOP_HANDLER'
+        note: 'NOOP_HANDLER',
+        silent_integration_noop: true
       };
     }
   };
