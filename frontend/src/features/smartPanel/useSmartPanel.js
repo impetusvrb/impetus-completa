@@ -6,6 +6,7 @@ import { inferVoiceVisualIntent, buildVoicePanelVisual } from '../../voice/voice
 import {
   SMART_PANEL_VOICE_EVENT,
   CLAUDE_PANEL_BRIDGE_EVENT,
+  dispatchSmartPanelContextUpdated,
   registerVoicePanelMetaHandler
 } from './smartPanelEvents';
 import { dashboard } from '../../services/api';
@@ -15,6 +16,63 @@ import { sendPanelTextToImpetusChatTargets } from './panelShareToImpetusChat';
 import { downloadPanelXlsx, downloadPanelPdf, printPanel, panelOutputToPlainText } from './panelExport';
 
 const HISTORY_MAX = 5;
+const VOICE_PANEL_CONTEXT_KEY = 'impetus_voice_last_panel_context';
+
+function buildPanelVoiceContextSummary(output) {
+  if (!output || output.permissionGranted === false) return '';
+
+  const title =
+    output.schema === 'impetus_claude_v1'
+      ? output.claudePayload?.title || 'Painel visual'
+      : output.title || 'Painel visual';
+  const type =
+    output.schema === 'impetus_claude_v1'
+      ? output.claudePayload?.type || 'visual'
+      : output.type || 'visual';
+
+  const lines = [`Painel atual: ${String(title).slice(0, 120)} (${String(type).slice(0, 32)}).`];
+
+  const reportText = output.reportContent ? String(output.reportContent).slice(0, 600) : '';
+  if (reportText) lines.push(`Resumo: ${reportText}`);
+
+  const table = output.table;
+  if (table?.columns?.length || table?.rows?.length) {
+    lines.push(`Tabela: colunas=${(table.columns || []).join(', ').slice(0, 200)}; linhas=${table.rows?.length || 0}.`);
+  }
+  if (Array.isArray(output?.kpiCards) && output.kpiCards.length) {
+    const sample = output.kpiCards
+      .slice(0, 5)
+      .map((k) => `${k.title || k.label}: ${k.value}`)
+      .join(' | ');
+    lines.push(`KPIs: ${sample.slice(0, 300)}`);
+  }
+  if (Array.isArray(output?.chartData) && output.chartData.length) {
+    const sample = output.chartData
+      .slice(0, 6)
+      .map((p) => `${p.name}: ${p.valor}`)
+      .join(' | ');
+    lines.push(`Gráfico: ${sample.slice(0, 300)}`);
+  }
+
+  if (output.schema === 'impetus_claude_v1' && output.claudePayload?.output) {
+    const p = output.claudePayload;
+    if (p.type === 'chart') {
+      const labels = (p.output.labels || []).slice(0, 8).join(', ');
+      lines.push(`Gráfico renderizado: tipo=${p.output.chartType || 'bar'}, eixos=${String(labels).slice(0, 260)}.`);
+    } else if (p.type === 'table') {
+      lines.push(`Tabela renderizada: colunas=${(p.output.columns || []).join(', ').slice(0, 200)}, linhas=${(p.output.rows || []).length}.`);
+    } else if (p.type === 'kpi') {
+      const cards = (p.output.cards || [])
+        .slice(0, 6)
+        .map((c) => `${c.label}: ${c.value}`)
+        .join(' | ');
+      lines.push(`Cards renderizados: ${cards.slice(0, 320)}`);
+    }
+    if (p.description) lines.push(`Descrição do painel: ${String(p.description).slice(0, 360)}`);
+  }
+
+  return lines.join('\n').slice(0, 1800);
+}
 
 /**
  * Texto para o painel legado quando a transcrição do utilizador vem vazia no Realtime
@@ -46,6 +104,61 @@ function shouldFallbackVoiceClaudeToLegacy(userTranscript, assistantResponse, er
   );
 }
 
+function hasNonZeroSeries(items) {
+  const arr = Array.isArray(items) ? items : [];
+  return arr.some((it) => Number(it?.valor ?? it?.value ?? 0) > 0);
+}
+
+function hasUsefulRows(rows) {
+  const rr = Array.isArray(rows) ? rows : [];
+  return rr.some((row) =>
+    Array.isArray(row) &&
+    row.some((cell) => {
+      const v = String(cell ?? '').trim().toLowerCase();
+      return v && v !== '0' && v !== '—' && v !== 'sem dados';
+    })
+  );
+}
+
+function hasRenderableSignal(output) {
+  if (!output || output.permissionGranted === false) return false;
+
+  if (output.schema === 'impetus_claude_v1') {
+    const p = output.claudePayload;
+    if (!p || p.shouldRender === false) return false;
+    if (p.type === 'chart') {
+      const ds = Array.isArray(p.output?.datasets) ? p.output.datasets : [];
+      return ds.some((d) => Array.isArray(d?.data) && d.data.some((n) => Number(n) > 0));
+    }
+    if (p.type === 'table') return hasUsefulRows(p.output?.rows);
+    if (p.type === 'kpi') {
+      const cards = Array.isArray(p.output?.cards) ? p.output.cards : [];
+      return cards.some((c) => Number(String(c?.value ?? '').replace(',', '.').replace(/[^\d.-]/g, '')) > 0);
+    }
+    if (p.type === 'report') return String(p.description || '').trim().length > 20;
+    if (p.type === 'alert') return Array.isArray(p.output?.items) && p.output.items.length > 0;
+    return false;
+  }
+
+  if (output.type === 'legacy_voice_visual') {
+    const v = output.legacyVisual || {};
+    if (v.kind === 'empty' || v.kind === 'error' || v.kind === 'clear') return false;
+    if (hasNonZeroSeries(v.barData) || hasNonZeroSeries(v.trendData)) return true;
+    if (Array.isArray(v.extraTables) && v.extraTables.some((t) => hasUsefulRows(t?.rows))) return true;
+    return false;
+  }
+
+  if (hasNonZeroSeries(output.chartData) || hasNonZeroSeries(output.barData) || hasNonZeroSeries(output.trendData)) {
+    return true;
+  }
+  if (hasUsefulRows(output.table?.rows)) return true;
+  if (Array.isArray(output.extraTables) && output.extraTables.some((t) => hasUsefulRows(t?.rows))) return true;
+  if (Array.isArray(output.kpiCards) && output.kpiCards.some((k) => Number(String(k?.value ?? '').replace(',', '.').replace(/[^\d.-]/g, '')) > 0)) {
+    return true;
+  }
+  return false;
+}
+
 export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
   const notify = useNotification();
   const [userContext, setUserContext] = useState(null);
@@ -60,6 +173,18 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
 
   useEffect(() => {
     currentOutputRef.current = currentOutput;
+  }, [currentOutput]);
+
+  useEffect(() => {
+    const summary = buildPanelVoiceContextSummary(currentOutput);
+    try {
+      if (summary) {
+        sessionStorage.setItem(VOICE_PANEL_CONTEXT_KEY, summary);
+      } else {
+        sessionStorage.removeItem(VOICE_PANEL_CONTEXT_KEY);
+      }
+    } catch (_) {}
+    dispatchSmartPanelContextUpdated(summary);
   }, [currentOutput]);
 
   useEffect(() => {
@@ -99,6 +224,11 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
     setLoading(true);
     try {
       const out = await processPanelCommand(text);
+      if (!hasRenderableSignal(out)) {
+        setCurrentOutput(null);
+        setError(null);
+        return;
+      }
       setCurrentOutput(out);
       setHistory((h) => {
         const next = [{ input: text, output: out, at: Date.now() }, ...h];
@@ -122,6 +252,11 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
               legacyVisual: vis,
               exportOptions: ['excel', 'pdf', 'print']
             };
+            if (!hasRenderableSignal(legacyOut)) {
+              setCurrentOutput(null);
+              setError(null);
+              return;
+            }
             setCurrentOutput(legacyOut);
             setHistory((h) => {
               const next = [{ input: text, output: legacyOut, at: Date.now() }, ...h];
@@ -306,12 +441,18 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
             setError(null);
             return;
           }
-          setCurrentOutput({
+          const claudeOut = {
             schema: 'impetus_claude_v1',
             permissionGranted: true,
             claudePayload: data.panel,
             exportOptions: ['excel', 'pdf', 'print']
-          });
+          };
+          if (!hasRenderableSignal(claudeOut)) {
+            setCurrentOutput(null);
+            setError(null);
+            return;
+          }
+          setCurrentOutput(claudeOut);
         } catch (e) {
           const st = e?.response?.status;
           const errMsg = String(e?.response?.data?.error || e?.message || '');

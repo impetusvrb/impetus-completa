@@ -19,7 +19,8 @@ import { applyPronunciation } from '../constants/pronunciationMap';
 import { calcPcmChunkVolumeNorm } from '../utils/pcmChunkVolume';
 import {
   dispatchClaudePanelBridge,
-  runVoicePanelMetaIfHandled
+  runVoicePanelMetaIfHandled,
+  SMART_PANEL_CONTEXT_UPDATED_EVENT
 } from '../features/smartPanel/smartPanelEvents';
 import { dashboard } from '../services/api';
 import { parsePanelVoiceMetaCommand } from '../features/smartPanel/panelVoiceMetaCommands';
@@ -48,6 +49,12 @@ async function buildRealtimeSessionUpdate() {
   } catch (_) {
     /* Sem contexto: mantém só instruções locais (governança ainda no prompt base). */
   }
+  try {
+    const panelCtx = String(sessionStorage.getItem('impetus_voice_last_panel_context') || '').trim();
+    if (panelCtx) {
+      append = `${append}\n\nCONTEXTO DO ÚLTIMO PAINEL VISUAL MOSTRADO AO UTILIZADOR:\n${panelCtx}\n\nSe a pergunta mencionar "esse gráfico", "esse painel" ou "isso que apareceu", use este contexto para responder com precisão.`;
+    }
+  } catch (_) {}
   return buildImpetusRealtimeSessionUpdate(envInstr, append);
 }
 
@@ -715,6 +722,7 @@ export function useVoiceEngine(options = {}) {
   const lastCompletedUserPhraseRef = useRef('');
   /** Capturado em response.created — sobrevive a speech_started limpar o buffer ao vivo. */
   const responseTurnUserPhraseRef = useRef('');
+  const realtimeSessionUpdateInFlightRef = useRef(false);
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
@@ -1940,6 +1948,27 @@ export function useVoiceEngine(options = {}) {
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  useEffect(() => {
+    const onPanelContextUpdated = () => {
+      if (!continuousRef.current) return;
+      if (!realtimeSessionRef.current?.connected) return;
+      if (realtimeSessionUpdateInFlightRef.current) return;
+      realtimeSessionUpdateInFlightRef.current = true;
+      void (async () => {
+        try {
+          const update = await buildRealtimeSessionUpdate();
+          realtimeSessionRef.current?.send(update);
+        } catch (_) {
+          // mantém sessão ativa mesmo se o update falhar
+        } finally {
+          realtimeSessionUpdateInFlightRef.current = false;
+        }
+      })();
+    };
+    window.addEventListener(SMART_PANEL_CONTEXT_UPDATED_EVENT, onPanelContextUpdated);
+    return () => window.removeEventListener(SMART_PANEL_CONTEXT_UPDATED_EVENT, onPanelContextUpdated);
   }, []);
 
   useEffect(() => {

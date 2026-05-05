@@ -66,7 +66,17 @@ export default function ImpetusVoiceProvider({ children }) {
     };
 
     const sentimentContext = inferSentimentContext();
-    const r = await dashboard.chat(text, history, { voiceMode: true, sentimentContext });
+    let panelContext = '';
+    try {
+      panelContext = String(sessionStorage.getItem('impetus_voice_last_panel_context') || '').trim();
+    } catch (_) {
+      panelContext = '';
+    }
+    const r = await dashboard.chat(text, history, {
+      voiceMode: true,
+      sentimentContext,
+      panelContext
+    });
     const reply =
       r.data?.ok && r.data?.reply ? r.data.reply : r.data?.fallback || 'Resposta temporariamente indisponível.';
     // atualiza histórico interno do modo voz (não interfere no chat UI)

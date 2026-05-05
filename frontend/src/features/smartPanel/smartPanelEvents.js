@@ -29,6 +29,7 @@ export async function runVoicePanelMetaIfHandled(text) {
  * Não substitui a OpenAI na conversação.
  */
 export const CLAUDE_PANEL_BRIDGE_EVENT = 'impetus-claude-panel-bridge';
+export const SMART_PANEL_CONTEXT_UPDATED_EVENT = 'impetus-smart-panel-context-updated';
 
 export function dispatchSmartPanelVoiceCommand(text) {
   if (typeof window === 'undefined') return;
@@ -67,6 +68,15 @@ export function dispatchClaudePanelBridge(detail) {
   window.dispatchEvent(
     new CustomEvent(CLAUDE_PANEL_BRIDGE_EVENT, {
       detail: { userTranscript, assistantResponse }
+    })
+  );
+}
+
+export function dispatchSmartPanelContextUpdated(contextText) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(SMART_PANEL_CONTEXT_UPDATED_EVENT, {
+      detail: { contextText: String(contextText || '') }
     })
   );
 }

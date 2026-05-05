@@ -573,6 +573,9 @@ router.post('/claude-panel', requireAuth, userRateLimit('executive_query'), asyn
 router.post('/chat', requireAuth, async (req, res) => {
   try {
     const message = String(req.body?.message ?? '').trim();
+    const voicePanelContext = String(req.body?.voice_panel_context ?? '')
+      .trim()
+      .slice(0, 6000);
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Mensagem vazia.' });
     }
@@ -880,6 +883,9 @@ explanation_layer deve incluir: facts_used, business_rules, confidence_score 0�
       if (snippet.length > 2) {
         userTurnContent = `Contexto operacional (resumo fornecido pelo sistema):\n${snippet}\n\nPergunta do utilizador:\n${message}`;
       }
+    }
+    if (voicePanelContext) {
+      userTurnContent = `${userTurnContent}\n\nContexto do último painel visual mostrado ao utilizador:\n${voicePanelContext}\n\nSe a pergunta referir "esse gráfico/painel", baseie a resposta neste contexto visual.`;
     }
 
     const messages = [

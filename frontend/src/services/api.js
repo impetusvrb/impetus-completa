@@ -319,7 +319,10 @@ export const dashboard = {
       history,
       ...(last_ai_trace_id ? { last_ai_trace_id } : {}),
       ...(opts.voiceMode ? { voiceMode: true } : {}),
-      ...(opts.sentimentContext ? { sentimentContext: opts.sentimentContext } : {})
+      ...(opts.sentimentContext ? { sentimentContext: opts.sentimentContext } : {}),
+      ...(opts.panelContext
+        ? { voice_panel_context: String(opts.panelContext).slice(0, 6000) }
+        : {})
     });
   },
   chatWithHeader: (message, history = [], headers = {}, opts = {}) => {
