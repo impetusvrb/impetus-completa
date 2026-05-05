@@ -94,6 +94,10 @@ async function refineIntent(processed) {
   if (!processed || typeof processed !== 'object') {
     throw new Error('refineIntent: processed inválido');
   }
+  /** Shadow: sem chamadas a modelos externos (só heurística local). */
+  if (process.env.IMPETUS_EVENT_PIPELINE_SHADOW === 'true') {
+    return _fallback(processed);
+  }
   if (!geminiService.isAvailable()) {
     return _fallback(processed);
   }

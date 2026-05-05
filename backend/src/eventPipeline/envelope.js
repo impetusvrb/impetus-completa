@@ -18,7 +18,13 @@ const EVENT_TYPES = Object.freeze([
   'system_health_snapshot'
 ]);
 
-const EVENT_SOURCES = Object.freeze(['whatsapp', 'system', 'machine', 'api_externa']);
+const EVENT_SOURCES = Object.freeze([
+  'whatsapp',
+  'system',
+  'machine',
+  'api_externa',
+  'dashboard_chat'
+]);
 
 const PRIORITIES = Object.freeze(['high', 'medium', 'low']);
 

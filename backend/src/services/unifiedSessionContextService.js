@@ -171,8 +171,37 @@ function updateUnifiedSessionContext(user, patch) {
   });
 }
 
+const _fingerprintWindows = new Map();
+const MAX_FINGERPRINTS = 8;
+const FINGERPRINT_TTL_MS = 30 * 60 * 1000; // 30 min
+
+function addResponseFingerprint(user, hash) {
+  if (!user || !user.id || !hash) return;
+  const key = `${user.company_id}:${user.id}`;
+  let entry = _fingerprintWindows.get(key);
+  if (!entry || Date.now() - entry.ts > FINGERPRINT_TTL_MS) {
+    entry = { hashes: [], ts: Date.now() };
+  }
+  entry.hashes.push(String(hash));
+  if (entry.hashes.length > MAX_FINGERPRINTS) {
+    entry.hashes = entry.hashes.slice(-MAX_FINGERPRINTS);
+  }
+  entry.ts = Date.now();
+  _fingerprintWindows.set(key, entry);
+}
+
+function getResponseFingerprints(user) {
+  if (!user || !user.id) return [];
+  const key = `${user.company_id}:${user.id}`;
+  const entry = _fingerprintWindows.get(key);
+  if (!entry || Date.now() - entry.ts > FINGERPRINT_TTL_MS) return [];
+  return entry.hashes;
+}
+
 module.exports = {
   getUnifiedSessionContext,
   updateUnifiedSessionContext,
-  mergeContexts
+  mergeContexts,
+  addResponseFingerprint,
+  getResponseFingerprints
 };

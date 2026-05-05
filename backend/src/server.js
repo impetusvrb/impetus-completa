@@ -692,6 +692,14 @@ httpServer.on('error', (err) => {
       const pipeBoot = eps.bootIfEnabled();
       if (pipeBoot.ok) {
         console.info('[EVENT_PIPELINE_BOOT]', pipeBoot.types ? { types: pipeBoot.types } : pipeBoot);
+        if (process.env.IMPETUS_EVENT_PIPELINE_SHADOW === 'true') {
+          console.info('[EVENT_PIPELINE_BOOT]', {
+            mode: 'shadow',
+            sample_pct: process.env.IMPETUS_EVENT_PIPELINE_SHADOW_SAMPLE_PCT || '0.3',
+            timeout_ms: process.env.IMPETUS_EVENT_PIPELINE_TIMEOUT_MS || '6000',
+            metrics_log: process.env.IMPETUS_EVENT_PIPELINE_METRICS_LOG ?? 'true'
+          });
+        }
       } else if (pipeBoot.reason && pipeBoot.reason !== 'disabled_by_env') {
         console.warn('[EVENT_PIPELINE_BOOT]', pipeBoot.reason);
       }

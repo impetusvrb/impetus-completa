@@ -13,6 +13,33 @@ function _safeJsonLog(prefix, obj) {
   } catch (_e) {}
 }
 
+/**
+ * Handlers estritamente NOOP — sem flags LIVE, sem chamadas externas.
+ * Usado quando IMPETUS_EVENT_PIPELINE_SHADOW=true.
+ */
+function buildShadowNoopHandlers() {
+  return {
+    send_to_chatgpt: async () => ({ noop: true, ok: true, channel: 'chatgpt', content: '', silent_integration_noop: true }),
+    execute_task: async () => ({ noop: true, ok: true, channel: 'task', silent_integration_noop: true }),
+    call_external_api: async () => ({
+      noop: true,
+      ok: true,
+      channel: 'external_api',
+      data: null,
+      silent_integration_noop: true
+    }),
+    claude_handler: async () => ({
+      noop: true,
+      status: 'ok',
+      kpis: [],
+      alerts: [],
+      recommendations: [],
+      generated_at: new Date().toISOString(),
+      silent_integration_noop: true
+    })
+  };
+}
+
 function buildDefaultPipelineHandlers() {
   return {
     send_to_chatgpt: async (input) => {
@@ -128,7 +155,8 @@ function bootIfEnabled() {
   if (process.env.IMPETUS_EVENT_PIPELINE_ENABLED !== 'true') {
     return { ok: false, reason: 'disabled_by_env' };
   }
-  const handlers = buildDefaultPipelineHandlers();
+  const shadow = process.env.IMPETUS_EVENT_PIPELINE_SHADOW === 'true';
+  const handlers = shadow ? buildShadowNoopHandlers() : buildDefaultPipelineHandlers();
   const out = bootEventPipeline({ handlers });
   if (out && out.already_booted) {
     return { ok: true, already_booted: true };
@@ -138,5 +166,6 @@ function bootIfEnabled() {
 
 module.exports = {
   bootIfEnabled,
-  buildDefaultPipelineHandlers
+  buildDefaultPipelineHandlers,
+  buildShadowNoopHandlers
 };

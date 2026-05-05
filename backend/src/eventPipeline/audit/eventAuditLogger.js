@@ -70,8 +70,11 @@ async function _insertDb(payload) {
  */
 async function audit(payload) {
   const enriched = { ...payload, timestamp: new Date().toISOString() };
-  _stdout(enriched);
-  if (process.env.IMPETUS_EVENT_AUDIT_DB_TABLE) {
+  /** Shadow: observabilidade via EVENT_PIPELINE_SHADOW; não duplicar nem persistir auditoria canónica. */
+  if (process.env.IMPETUS_EVENT_PIPELINE_SHADOW !== 'true') {
+    _stdout(enriched);
+  }
+  if (process.env.IMPETUS_EVENT_PIPELINE_SHADOW !== 'true' && process.env.IMPETUS_EVENT_AUDIT_DB_TABLE) {
     await _insertDb(enriched);
   }
 }

@@ -972,6 +972,40 @@ async function decide(params) {
       temporal: temporalInsights
     };
 
+    // Modo cooperativo para tenant sem dados
+    const contextDataState = norm.raw?.data_state || 
+      (norm.raw?.contextual_data?.data_state) || null;
+    if (contextDataState === 'tenant_empty' || contextDataState === 'tenant_inactive') {
+      const cooperativeActions = [];
+      if (contextDataState === 'tenant_empty') {
+        cooperativeActions.push(
+          { id: 'open_machine_registration', label: 'Cadastrar máquinas', intent: 'open_wizard', module: 'intelligent_registration' },
+          { id: 'open_dashboard_onboarding', label: 'Personalizar meu painel', intent: 'start_questionnaire', module: 'dashboard_onboarding' },
+          { id: 'see_integration_guide', label: 'Como integrar PLC/MES', intent: 'show_doc', module: 'docs' }
+        );
+      } else {
+        cooperativeActions.push(
+          { id: 'check_integrations', label: 'Verificar integrações', intent: 'open_integrations', module: 'integrations' },
+          { id: 'open_machine_registration', label: 'Cadastrar mais máquinas', intent: 'open_wizard', module: 'intelligent_registration' }
+        );
+      }
+      console.info('[UNIFIED_COOPERATIVE_MODE]', { data_state: contextDataState, actions: cooperativeActions.length });
+      return {
+        ok: true,
+        skipped: false,
+        source_engine: 'unified',
+        cooperative_mode: true,
+        cooperative_actions: cooperativeActions,
+        data_state: contextDataState,
+        decision: 'cooperative_guidance',
+        risk_level: 'none',
+        recommended_action: cooperativeActions[0]?.label || 'Configurar sistema',
+        unified_decision_id: unifiedDecisionId,
+        elapsed_ms: Date.now() - t0,
+        fallback_used: false
+      };
+    }
+
     let optionListRaw =
       params && Array.isArray(params.options) && params.options.length ? params.options : null;
     if (!optionListRaw) {

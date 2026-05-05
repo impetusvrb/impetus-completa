@@ -433,6 +433,10 @@ function enqueueAiTrace(record) {
     compliance_incident: record.compliance_incident,
     policy_incident: record.policy_incident,
     trace_policy_rules: record.trace_policy_rules,
+    data_state: record.data_state,
+    narrative_mode: record.narrative_mode,
+    briefing_signature: record.briefing_signature,
+    cooperative_actions_offered: record.cooperative_actions_offered,
     force_encryption: record.force_encryption
   };
   setImmediate(() => {

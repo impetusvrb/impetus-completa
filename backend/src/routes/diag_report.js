@@ -46,4 +46,40 @@ Só prossiga após confirmar que as condições de segurança (LOTO, EPI, desene
   }
 });
 
+router.get('/cognitive-health', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.role !== 'diretor') {
+      return res.status(403).json({ ok: false, error: 'Acesso restrito a administradores' });
+    }
+    let cognitiveMetrics = {};
+    try {
+      const observabilityService = require('../services/observabilityService');
+      const allMetrics = observabilityService.getMetrics();
+      cognitiveMetrics = {
+        data_state_distribution: {
+          tenant_empty: allMetrics.chat_data_state_tenant_empty || 0,
+          tenant_inactive: allMetrics.chat_data_state_tenant_inactive || 0,
+          production_paused: allMetrics.chat_data_state_production_paused || 0,
+          production_active: allMetrics.chat_data_state_production_active || 0
+        },
+        no_data_mode_responses: allMetrics.chat_no_data_mode_responses || 0,
+        forbidden_phrase_blocks: allMetrics.chat_forbidden_phrase_blocks || 0,
+        briefing_injected: allMetrics.chat_briefing_injected || 0,
+        incidents_phantom_blocked: allMetrics.incidents_phantom_blocked || 0,
+        cooperative_actions: {
+          offered: allMetrics.cooperative_actions_offered || 0,
+          accepted: allMetrics.cooperative_actions_accepted || 0
+        },
+        generated_at: new Date().toISOString()
+      };
+    } catch (metricsErr) {
+      cognitiveMetrics = { error: 'Métricas indisponíveis', detail: String(metricsErr?.message || '') };
+    }
+    res.json({ ok: true, cognitive_health: cognitiveMetrics });
+  } catch (err) {
+    console.error('[COGNITIVE_HEALTH_ERROR]', err);
+    res.status(500).json({ ok: false, error: 'Erro ao obter métricas cognitivas' });
+  }
+});
+
 module.exports = router;

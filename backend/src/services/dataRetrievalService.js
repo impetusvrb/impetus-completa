@@ -34,6 +34,7 @@ const { getLearningSummary } = require('./operationalLearningService');
 const { generateOperationalPlan, deriveTemporalInsights, mergeTemporalInsights } = require('./operationalPlanningService');
 const operationalDecisionEngine = require('./operationalDecisionEngine');
 const { executeOperationalActions } = require('./operationalActionExecutor');
+const dataStateClassifier = require('./dataStateClassifier');
 
 function emptyResult() {
   return {
@@ -220,6 +221,124 @@ function productRiskLevelFromContext(ctx) {
 }
 
 /**
+ * Resumo curto para injeção no chat (legível por LLM), derivado do mesmo núcleo que operational_overview.
+ *
+ * @param {{
+ *   machines?: unknown[],
+ *   events?: unknown[],
+ *   predictions?: { predictions?: unknown[] } | null,
+ *   prioritized_actions?: unknown[],
+ *   temporal_insights?: { trend_direction?: string } | null
+ * }} p
+ * @returns {{
+ *   production_status: 'normal'|'attention'|'critical',
+ *   active_processes: number,
+ *   recent_events: number,
+ *   risk_level: 'low'|'medium'|'high',
+ *   efficiency_trend: 'stable'|'declining'|'improving',
+ *   alerts: string[]
+ * }}
+ */
+function composeOperationalOverviewBrief(p) {
+  const machines = Array.isArray(p.machines) ? p.machines : [];
+  const events = Array.isArray(p.events) ? p.events : [];
+  const data_state = p.data_state || null;
+  const predWrap = p.predictions && typeof p.predictions === 'object' ? p.predictions : {};
+  const predList = Array.isArray(predWrap.predictions) ? predWrap.predictions : [];
+  const priList = Array.isArray(p.prioritized_actions) ? p.prioritized_actions : [];
+  const ti = p.temporal_insights && typeof p.temporal_insights === 'object' ? p.temporal_insights : {};
+
+  if (data_state === 'tenant_empty' || data_state === 'tenant_inactive') {
+    return {
+      production_status: 'unknown',
+      active_processes: machines.length,
+      recent_events: events.length,
+      risk_level: 'unknown',
+      efficiency_trend: 'unknown',
+      alerts: [],
+      data_state
+    };
+  }
+
+  const RISK_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, OK: 0 };
+  let maxR = 0;
+  let maxLabel = 'OK';
+  for (const row of predList) {
+    if (!row || typeof row !== 'object') continue;
+    const r = String(row.risk_level != null ? row.risk_level : 'OK')
+      .toUpperCase()
+      .trim();
+    const rank = RISK_RANK[r] != null ? RISK_RANK[r] : 0;
+    if (rank > maxR) {
+      maxR = rank;
+      maxLabel = r;
+    }
+  }
+
+  let risk_level = 'low';
+  if (maxLabel === 'CRITICAL' || maxLabel === 'HIGH') risk_level = 'high';
+  else if (maxLabel === 'MEDIUM') risk_level = 'medium';
+
+  const highCount = predList.filter((x) => x && String(x.risk_level).toUpperCase() === 'HIGH').length;
+  let production_status = 'normal';
+  if (maxLabel === 'CRITICAL' || (maxLabel === 'HIGH' && highCount >= 2)) {
+    production_status = 'critical';
+  } else if (maxLabel === 'HIGH' || maxLabel === 'MEDIUM' || events.length >= 5) {
+    production_status = 'attention';
+  }
+
+  const td = String(ti.trend_direction || 'stable').toLowerCase();
+  let efficiency_trend = 'stable';
+  if (td === 'increasing') efficiency_trend = 'declining';
+  else if (td === 'decreasing') efficiency_trend = 'improving';
+
+  const alerts = [];
+  const seen = new Set();
+  function pushAlert(s) {
+    const t = String(s || '').trim();
+    if (t.length < 4) return;
+    const key = t.slice(0, 160);
+    if (seen.has(key)) return;
+    seen.add(key);
+    alerts.push(t.slice(0, 220));
+  }
+
+  for (const row of priList.slice(0, 6)) {
+    if (alerts.length >= 8) break;
+    if (row && typeof row === 'object') {
+      const reason = row.reason != null ? String(row.reason) : '';
+      const action = row.action != null ? String(row.action) : '';
+      if (reason) pushAlert(reason);
+      else if (action) pushAlert(action);
+    }
+  }
+  for (const pr of predList) {
+    if (alerts.length >= 8) break;
+    if (!pr || typeof pr !== 'object') continue;
+    const r = String(pr.risk_level || '').toUpperCase();
+    if (r === 'CRITICAL' || r === 'HIGH' || r === 'MEDIUM') {
+      if (pr.reason) pushAlert(String(pr.reason));
+    }
+  }
+  if (!alerts.length && events.length) {
+    pushAlert(`${events.length} evento(s) recente(s) na janela operacional.`);
+  }
+  if (!alerts.length) {
+    pushAlert('Sem alertas prioritários na fila corrente; operação estável face aos indicadores observados.');
+  }
+
+  return {
+    production_status,
+    active_processes: machines.length,
+    recent_events: events.length,
+    risk_level,
+    efficiency_trend,
+    alerts: alerts.slice(0, 8),
+    data_state
+  };
+}
+
+/**
  * @param {object} params
  * @param {{ id?: string, company_id?: string, role?: string }|null|undefined} params.user
  * @param {string|null|undefined} params.intent
@@ -240,6 +359,13 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
 
     if (safeIntent === 'get_sensitive_data') {
       return result;
+    }
+
+    if (safeIntent === 'get_operational_metrics') {
+      if (!isValidUUID(String(safeUser.company_id).trim())) {
+        return result;
+      }
+      return retrieveContextualData({ user: safeUser, intent: 'operational_overview', entities: safeEntities });
     }
 
     if (safeIntent === 'operational_overview') {
@@ -296,6 +422,21 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         safeIntent,
         operational_plan
       );
+      const dataClassification = dataStateClassifier.classify({
+        machines: machines || [],
+        events: events || [],
+        workOrders: [],
+        kpis: []
+      });
+      const operational_overview = composeOperationalOverviewBrief({
+        machines,
+        events,
+        predictions,
+        prioritized_actions: prioritized.prioritized_actions,
+        temporal_insights,
+        data_state: dataClassification.data_state
+      });
+      const failuresCompat = countFailureLikeEvents(events || []);
       result.contextual_data = {
         users,
         machines,
@@ -308,8 +449,21 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         operational_decisions,
         learning_summary,
         correlation_insights: correlationBundle.insights,
-        learned_patterns: correlationBundle.learned_patterns
+        learned_patterns: correlationBundle.learned_patterns,
+        operational_overview,
+        metrics: {
+          machines_active: (machines || []).length,
+          events_recent_count: (events || []).length,
+          failures: failuresCompat,
+          overview_risk_level: operational_overview.risk_level,
+          production_status: operational_overview.production_status,
+          data_state: dataClassification.data_state,
+          data_completeness: dataClassification.data_completeness
+        }
       };
+      result.contextual_data.data_state = dataClassification.data_state;
+      result.contextual_data.data_completeness = dataClassification.data_completeness;
+      result.contextual_data.data_coverage = dataClassification.coverage;
       return result;
     }
 
@@ -517,32 +671,6 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         return result;
       } catch (err) {
         console.warn('[dataRetrievalService][get_work_orders]', err?.message ?? err);
-        return emptyResult();
-      }
-    }
-
-    if (safeIntent === 'get_operational_metrics') {
-      try {
-        if (!isValidUUID(String(safeUser.company_id).trim())) {
-          return result;
-        }
-        const [machines, events] = await Promise.all([
-          findMachinesByCompany(safeUser.company_id),
-          findRecentEvents(safeUser.company_id)
-        ]);
-        const failures = countFailureLikeEvents(events || []);
-        result.contextual_data = {
-          users: [],
-          work_orders: [],
-          metrics: {
-            machines_active: (machines || []).length,
-            events_recent_count: (events || []).length,
-            failures: failures
-          }
-        };
-        return result;
-      } catch (err) {
-        console.warn('[dataRetrievalService][get_operational_metrics]', err?.message ?? err);
         return emptyResult();
       }
     }

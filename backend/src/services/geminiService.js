@@ -384,14 +384,23 @@ confidence: 0-100 (quão certa estás da classificação).`;
  * @returns {Promise<{ is_complaint: boolean, incident_type: string, confidence: number, reason_pt?: string }|null>}
  */
 async function classifyQualityComplaint(userMessage, opts = {}) {
+  const assistantBlock = opts.assistantSummary
+    ? `\nÚltima resposta do assistente (contexto):\n"""\n${String(opts.assistantSummary).slice(0, 1500)}\n"""\n`
+    : '';
+  const dataStateBlock = opts.dataStateHint
+    ? `\nEstado de dados do tenant: ${opts.dataStateHint}. Se o tenant está vazio (tenant_empty), a frustração do utilizador pode ser com o produto, não com a IA.\n`
+    : '';
+
   const prompt = `És um classificador de reclamações sobre respostas de IA numa plataforma industrial (IMPETUS).
 
 Mensagem do utilizador:
 """
 ${String(userMessage || '').slice(0, 2000)}
 """
-
+${assistantBlock}${dataStateBlock}
 Decide se o utilizador está a REPORTAR um problema com a resposta anterior do assistente (ex.: alucinação, dados inventados ou incorretos, viés, tom inadequado, "isso está errado", "não confere", "estás a inventar").
+
+Se a mensagem é uma pergunta hipotética, exploratória ou analítica (ex: "Se você tivesse que...", "Qual seria o impacto...", "Considerando um aumento..."), NÃO é reclamação.
 
 NÃO é reclamação: nova pergunta técnica, pedido de explicação neutro, cumprimento, ou assunto diferente sem crítica à IA.
 

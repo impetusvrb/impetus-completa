@@ -42,6 +42,7 @@ const policyLayer = require('./layers/policyLayer');
 const complianceLayer = require('./layers/complianceLayer');
 const executionLayer = require('./layers/executionLayer');
 const vertexCentralOrchestrator = require('./vertexCentralOrchestrator');
+const contextInterpretationLayer = require('./contextInterpretationLayer');
 
 /** Mínimo de intenções com confiança para agregação multi (máx. 3 pedidos a retrieveContextualData). */
 const AUTO_DATA_MULTI_CONFIDENCE_MIN = 0.5;
@@ -484,6 +485,29 @@ async function runCognitiveCouncil(params) {
     risk = riskAfterPolicy;
 
     const billing = user?.company_id ? { companyId: user.company_id, userId: user.id } : null;
+
+    // Camada de interpretação contextual
+    try {
+      const ctxData = dossier.data?.contextual_data || {};
+      const interpretResult = contextInterpretationLayer.interpret({
+        user,
+        intent: dossier.context?.intent || 'operational_overview',
+        data_state: ctxData.data_state || null,
+        data_completeness: ctxData.data_completeness || null,
+        coverage: ctxData.data_coverage || null,
+        session_context: { response_fingerprints: [] }
+      });
+      dossier.meta = dossier.meta || {};
+      dossier.meta.briefing = interpretResult.briefing;
+      dossier.meta.briefing_signature = interpretResult.briefing_signature;
+      dossier.meta.narrative_mode = interpretResult.narrative_mode;
+      dossier.meta.must_avoid_phrases = interpretResult.must_avoid_phrases;
+      dossier.meta.must_propose_actions = interpretResult.must_propose_actions;
+      dossier.meta.confidence_floor = interpretResult.confidence_floor;
+      dossier.meta.confidence_ceiling = interpretResult.confidence_ceiling;
+    } catch (interpErr) {
+      console.warn('[COGNITIVE_INTERPRETATION]', interpErr?.message ?? interpErr);
+    }
 
     const { synthesis, wantCross, egress } = await executionLayer.runCouncilExecution({
       dossier,

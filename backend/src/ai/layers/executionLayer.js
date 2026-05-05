@@ -409,6 +409,26 @@ function appendAuditLimitation(limitations) {
  */
 function applyContextualOperationsFallback(synthesis, dossier) {
   if (!synthesis || !dossier) return;
+
+  const metaDataState = dossier.meta?.data_state || 
+    dossier.data?.contextual_data?.data_state || null;
+  if (metaDataState === 'tenant_empty' || metaDataState === 'tenant_inactive') {
+    const answer = synthesis.answer || '';
+    const forbidden = ['operação parada', 'produção descontinuada', 'atrasos nas entregas', 
+      'perda de receita', 'parada total', 'paralisação'];
+    const lower = answer.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const hasForbidden = forbidden.some(f => lower.includes(f.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+    if (hasForbidden) {
+      const fallbackText = metaDataState === 'tenant_empty'
+        ? 'No momento, esta organização ainda não possui máquinas ou fontes de dados conectadas ao Impetus. Para que eu possa oferecer análises operacionais reais, o primeiro passo é cadastrar os equipamentos e configurar as integrações.'
+        : 'As máquinas cadastradas nesta organização não apresentam telemetria recente. Recomendo verificar o estado das integrações (PLC/gateway) para garantir que os dados estão a fluir corretamente.';
+      synthesis.answer = fallbackText;
+      synthesis.content = fallbackText;
+      console.info('[FORBIDDEN_NARRATIVE_FALLBACK]', { data_state: metaDataState });
+    }
+    return;
+  }
+
   const cd = dossier.data?.contextual_data;
   const answer = synthesis.answer != null ? String(synthesis.answer) : '';
   const mp = dossier.meta && dossier.meta.must_use_predictions === true;
@@ -1170,6 +1190,19 @@ Regras:
 - Se a validação cruzada indicar inconsistências ou gaps, reduza confidence_score, preencha limitations e mantenha cautela em "content".
 - Em português, tom profissional.`;
 
+  let briefingBlock = '';
+  if (dossier.meta?.briefing) {
+    briefingBlock = `\n\n[BRIEFING DO BACKEND — autoridade máxima]\n${dossier.meta.briefing}`;
+    if (Array.isArray(dossier.meta.must_avoid_phrases) && dossier.meta.must_avoid_phrases.length > 0) {
+      briefingBlock += `\nFRASES PROIBIDAS (nunca usar na resposta): ${dossier.meta.must_avoid_phrases.join('; ')}`;
+    }
+    if (Array.isArray(dossier.meta.must_propose_actions) && dossier.meta.must_propose_actions.length > 0) {
+      briefingBlock += `\nAÇÕES SUGERIDAS: ${dossier.meta.must_propose_actions.map(a => a.label).join(', ')}`;
+    }
+    briefingBlock += '\nEm caso de conflito entre os dados crus e este briefing, prevaleça o briefing.';
+  }
+  const sysWithBriefing = sys + briefingBlock;
+
   const dossierJson = JSON.stringify({
     intent: dossier.context.intent,
     pedido: dossier.context.request,
@@ -1198,7 +1231,7 @@ Regras:
   };
   const dossierLite = { requestText: dossier.context.request };
   const text = await resilienceFallback.chatCompletionMessagesWithOptionalModelFallback(
-    [{ role: 'system', content: sys }, { role: 'user', content: usr }],
+    [{ role: 'system', content: sysWithBriefing }, { role: 'user', content: usr }],
     finalOpts,
     dossierLite
   );
@@ -1351,6 +1384,22 @@ async function runCouncilExecution(ctx) {
       ...lim,
       'Resposta substituída pela política de egresso IMPETUS (possível exfiltração).'
     ];
+  }
+
+  if (Array.isArray(dossier.meta?.must_avoid_phrases) && dossier.meta.must_avoid_phrases.length > 0) {
+    const answerLower = (synthesis.answer || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (const phrase of dossier.meta.must_avoid_phrases) {
+      const phraseLower = phrase.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (answerLower.includes(phraseLower)) {
+        const metaDS = dossier.meta?.data_state || dossier.data?.contextual_data?.data_state;
+        synthesis.answer = metaDS === 'tenant_empty'
+          ? 'No momento, esta organização ainda não possui máquinas ou fontes de dados conectadas. Posso ajudá-lo a iniciar o cadastro de equipamentos e a configurar as integrações necessárias.'
+          : 'Sem dados operacionais suficientes para esta análise. Verifique o estado das integrações ou cadastre equipamentos para que o sistema possa fornecer insights reais.';
+        synthesis.content = synthesis.answer;
+        console.info('[POST_EGRESS_FORBIDDEN_BLOCK]', { phrase, data_state: metaDS });
+        break;
+      }
+    }
   }
 
   adaptiveGovernanceEngine.applyAdaptiveResponse(synthesis, adaptiveResponseMode);
