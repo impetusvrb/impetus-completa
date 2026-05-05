@@ -2,26 +2,10 @@
 
 /**
  * Acesso ao painel GET /api/internal/unified-health.
- * Qualquer perfil operacional autenticado pode aceder (API controla profundidade dos dados).
- * Rejeitado apenas para papéis sem contexto no sistema (ai_system, colaborador puro sem hierarquia).
+ * internal_admin: visão completa | ceo, diretor, gerente, coordenador: visão restrita (filtrada no handler).
  */
 
-const ALLOWED = new Set([
-  'internal_admin',
-  'admin',
-  'tenant_admin',
-  'company_admin',
-  'administrator',
-  'system_admin',
-  'super_admin',
-  'administrador',
-  'administradora',
-  'ceo',
-  'diretor',
-  'gerente',
-  'coordenador',
-  'supervisor'
-]);
+const ALLOWED = new Set(['internal_admin', 'ceo', 'diretor', 'gerente', 'coordenador']);
 
 function normalizeRole(role) {
   if (role == null) return '';
@@ -38,22 +22,7 @@ function requireHealthAccess(req, res, next) {
   }
 
   const userRole = normalizeRole(req.user.role);
-  const profile =
-    req.user.dashboard_profile != null
-      ? String(req.user.dashboard_profile).trim().toLowerCase()
-      : '';
-  const okRole        = userRole && ALLOWED.has(userRole);
-  const okProfile     = profile === 'admin_system';
-  const okCompanyRoot = req.user.is_company_root === true;
-  const okHierarchy   = Number.isFinite(Number(req.user.hierarchy_level)) && Number(req.user.hierarchy_level) <= 2;
-
-  if (!okRole && !okProfile && !okCompanyRoot && !okHierarchy) {
-    console.warn('[HEALTH_ACCESS_DENIED]', {
-      userId:    req.user.id,
-      role:      userRole || '(empty)',
-      profile:   profile || '(empty)',
-      hierarchy: req.user.hierarchy_level
-    });
+  if (!userRole || !ALLOWED.has(userRole)) {
     return res.status(403).json({
       ok: false,
       error: 'FORBIDDEN_HEALTH_ACCESS'

@@ -109,76 +109,14 @@ async function registerEdgeAgent(companyId, { edge_id, name }) {
     INSERT INTO edge_agents (company_id, edge_id, name, token_hash, enabled)
     VALUES ($1, $2, $3, $4, true)
     ON CONFLICT (company_id, edge_id) DO UPDATE SET
-      name = EXCLUDED.name,
-      token_hash = EXCLUDED.token_hash,
-      enabled = true
+      name = EXCLUDED.name, token_hash = EXCLUDED.token_hash, updated_at = now()
     RETURNING id
   `, [companyId, edge_id, name || edge_id, tokenHash]);
 
   return { edge_id, token };
 }
 
-const ONLINE_MS = 5 * 60 * 1000;
-
-/**
- * Lista agentes edge da empresa (sem expor token_hash)
- */
-async function listEdgeAgents(companyId) {
-  try {
-    const r = await db.query(
-      `
-      SELECT id, edge_id, name, enabled, last_seen_at, created_at
-      FROM edge_agents
-      WHERE company_id = $1
-      ORDER BY created_at DESC
-    `,
-      [companyId]
-    );
-    const now = Date.now();
-    return (r.rows || []).map((row) => {
-      const seen = row.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
-      const online = row.enabled && seen && now - seen < ONLINE_MS;
-      return {
-        id: row.id,
-        edge_id: row.edge_id,
-        name: row.name || null,
-        enabled: row.enabled !== false,
-        last_seen_at: row.last_seen_at || null,
-        status: online ? 'online' : 'offline'
-      };
-    });
-  } catch (e) {
-    const msg = e.message || '';
-    if (msg.includes('edge_agents') && msg.includes('does not exist')) {
-      return [];
-    }
-    throw e;
-  }
-}
-
-/**
- * Revoga agente (disable); ingest passa a falhar até novo register (novo token).
- */
-async function revokeEdgeAgent(companyId, agentId) {
-  const r = await db.query(
-    `
-    UPDATE edge_agents SET enabled = false
-    WHERE id = $1 AND company_id = $2
-    RETURNING id
-  `,
-    [agentId, companyId]
-  );
-  if (!r.rows?.length) {
-    const err = new Error('Agente não encontrado');
-    err.status = 404;
-    throw err;
-  }
-  return { ok: true };
-}
-
 module.exports = {
   ingest,
-  registerEdgeAgent,
-  listEdgeAgents,
-  revokeEdgeAgent
+  registerEdgeAgent
 };

@@ -11,7 +11,6 @@ function requireIndustrialAdmin(req, res, next) {
   }
   if (req.user.is_company_root) return next();
   const role = String(req.user.role || '').toLowerCase();
-  if (role === 'ceo' || role === 'internal_admin') return next();
   const ok = ['admin', 'diretor', 'gestor', 'engenharia', 'manutenção', 'industrial'].some((k) =>
     role.includes(k)
   );

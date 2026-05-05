@@ -16,8 +16,6 @@ const { PIPELINE_VERSION, INTENT } = require('../aiRoles');
 const humanValidationClosureService = require('../../services/humanValidationClosureService');
 const aiPromptGuardService = require('../../services/aiPromptGuardService');
 const dataLineageService = require('../../services/dataLineageService');
-const { refineCouncilIntentWithGemini } = require('../cognitiveIntentIngress');
-const { vertexDecide } = require('../vertexCentralOrchestrator');
 
 /**
  * Normaliza entradas legadas (requestText + data) e o contrato novo (input + context).
@@ -85,17 +83,12 @@ function normalizeRunInput(params) {
   if (!mergedData.contextual_data) {
     mergedData.contextual_data = {};
   }
-  const prc = params.impetusRequestClass;
-  const impetusRequestClass =
-    prc === 'CRITICAL' || prc === 'NORMAL' || prc === 'HEAVY' ? prc : null;
-
   return {
     user,
     requestText: merged,
     data: mergedData,
     module: module || 'cognitive_council',
-    options: options && typeof options === 'object' ? options : {},
-    impetusRequestClass
+    options: options && typeof options === 'object' ? options : {}
   };
 }
 
@@ -181,38 +174,7 @@ async function prepareCouncilIngress({ user, requestText: rt, data, module, opti
     data
   });
 
-  try {
-    const rac = require('../../services/requestAsyncContext');
-    const gi = typeof rac.getGeminiIngress === 'function' ? rac.getGeminiIngress() : null;
-    if (gi && dossier.meta) {
-      dossier.meta.gemini_ingress = {
-        mode: gi.mode,
-        intent: gi.intent,
-        priority: gi.priority,
-        registered_at: gi.registered_at,
-        request_class: gi.request_class,
-        system_state: gi.system_state,
-        cost_score: gi.cost_score
-      };
-      if (typeof gi.clean_text === 'string' && gi.clean_text.trim()) {
-        dossier.meta.gemini_ingress_clean_hint = gi.clean_text.slice(0, 2000);
-      }
-      if (gi.structured_data && typeof gi.structured_data === 'object') {
-        dossier.meta.gemini_ingress_structured = gi.structured_data;
-      }
-    }
-  } catch (_e) {
-    /* execução fora de HTTP / sem ALS */
-  }
-
-  const heuristicIntent = classifyIntent(sanitized, dossier);
-  const vertexTrace = options && options.vertex_run_trace ? options.vertex_run_trace : null;
-  dossier.context.intent = await refineCouncilIntentWithGemini(sanitized, dossier, heuristicIntent, {
-    trace: vertexTrace
-  });
-  if (vertexTrace) {
-    vertexDecide(vertexTrace, 'intencao_classificada_gemini', 'gemini_percepcao');
-  }
+  dossier.context.intent = classifyIntent(sanitized, dossier);
   seedLayerInput(dossier);
   dataLineageService.attachToDossier(dossier);
 

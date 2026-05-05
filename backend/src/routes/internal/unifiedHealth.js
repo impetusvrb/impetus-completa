@@ -3,7 +3,7 @@
 /**
  * GET /api/internal/unified-health
  * Painel de saúde do motor unificado + auditorias recentes.
- * internal_admin | admin (tenant): resposta completa | ceo, diretor, gerente, coordenador: executiva (sem auditoria completa).
+ * internal_admin: resposta completa | ceo, diretor, gerente, coordenador: resposta executiva (sem auditoria).
  */
 
 const express = require('express');
@@ -23,29 +23,11 @@ router.get('/', (req, res) => {
   try {
     const userRoleRaw = req.user && req.user.role != null ? String(req.user.role) : '';
     const userRole = userRoleRaw.trim().toLowerCase();
-    const profileRaw =
-      req.user && req.user.dashboard_profile != null ? String(req.user.dashboard_profile) : '';
-    const profile = profileRaw.trim().toLowerCase();
-    const hierarchy = Number(req.user?.hierarchy_level);
-
-    const ADMIN_ROLES = new Set([
-      'internal_admin', 'admin', 'tenant_admin', 'company_admin',
-      'administrator', 'system_admin', 'super_admin',
-      'administrador', 'administradora'
-    ]);
-
     const isFull =
-      ADMIN_ROLES.has(userRole) ||
-      profile === 'admin_system' ||
-      req.user?.is_company_root === true ||
-      (Number.isFinite(hierarchy) && hierarchy <= 1);
-
+      userRole === 'internal_admin';
     try {
       console.info('[UNIFIED_HEALTH_ACCESS]', {
         role: userRoleRaw || '(undefined)',
-        dashboard_profile: profileRaw || '(undefined)',
-        is_company_root: req.user?.is_company_root === true,
-        hierarchy_level: req.user?.hierarchy_level,
         level: isFull ? 'full' : 'restricted'
       });
     } catch (_log) {}

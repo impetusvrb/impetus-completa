@@ -39,81 +39,6 @@ const HUMAN_RISK_RANK = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 const HUMAN_RISK_KEYWORDS =
   /\b(emerg(ê|e)ncia|acidente|evacua|vazamento|inc(ê|e)ndio|explos|morte|falec|ferid|choque el(é|e)trico|arco el(é|e)trico|qu(í|i)mico t(ó|o)xico)\b/i;
 
-/** Hints ambientais — desvio acima do limiar (não altera decisão final nesta fase). */
-const ENV_DEVIATION_HINT_THRESHOLD = 0.1;
-const ENV_HIGH_RISK_DEVIATION_THRESHOLD = 0.3;
-
-/**
- * @param {object|null|undefined} metrics
- * @returns {boolean}
- */
-function detectDeviation(metrics) {
-  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) return false;
-  return Object.values(metrics).some((m) => {
-    const d = m && typeof m === 'object' ? Number(m.deviation) : NaN;
-    return Number.isFinite(d) && d > ENV_DEVIATION_HINT_THRESHOLD;
-  });
-}
-
-/**
- * @param {object|null|undefined} metrics
- * @returns {boolean}
- */
-function detectEnvironmentalRisk(metrics) {
-  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) return false;
-  return Object.values(metrics).some((m) => {
-    const d = m && typeof m === 'object' ? Number(m.deviation) : NaN;
-    return Number.isFinite(d) && d > ENV_HIGH_RISK_DEVIATION_THRESHOLD;
-  });
-}
-
-/**
- * @param {object|null|undefined} raw
- * @returns {object|null}
- */
-function getEnvironmentalMetricsFromRawContext(raw) {
-  if (!raw || typeof raw !== 'object') return null;
-  if (raw.metrics != null && typeof raw.metrics === 'object' && !Array.isArray(raw.metrics)) {
-    return raw.metrics;
-  }
-  const cap = raw.cognitive_attachment_payload;
-  if (cap && typeof cap === 'object' && cap.metrics != null && typeof cap.metrics === 'object') {
-    return cap.metrics;
-  }
-  const att = raw.cognitive_attachment;
-  if (
-    att &&
-    typeof att === 'object' &&
-    att.payload &&
-    att.payload.metrics != null &&
-    typeof att.payload.metrics === 'object'
-  ) {
-    return att.payload.metrics;
-  }
-  return null;
-}
-
-/**
- * @param {object|null|undefined} raw
- * @returns {{ environmental?: { hasDeviation: boolean, hasHighRisk: boolean } }}
- */
-function buildEnvironmentalDecisionContext(raw) {
-  /** @type {{ environmental?: { hasDeviation: boolean, hasHighRisk: boolean } }} */
-  const decisionContext = {};
-  if (!raw || typeof raw !== 'object') return decisionContext;
-  const att = raw.cognitive_attachment;
-  const isEnvironmental =
-    raw.cognitive_attachment_kind === 'environmental' ||
-    (att && typeof att === 'object' && att.kind === 'environmental');
-  if (!isEnvironmental) return decisionContext;
-  const metrics = getEnvironmentalMetricsFromRawContext(raw);
-  decisionContext.environmental = {
-    hasDeviation: detectDeviation(metrics),
-    hasHighRisk: detectEnvironmentalRisk(metrics)
-  };
-  return decisionContext;
-}
-
 function isEnabled() {
   return process.env.UNIFIED_DECISION_ENGINE === 'true';
 }
@@ -938,7 +863,6 @@ async function decide(params) {
     const t0 = Date.now();
 
     const norm = normalizeContext((params && params.context) || {});
-    const decisionContext = buildEnvironmentalDecisionContext(norm.raw);
     const signalBundle = await loadDecisionSignals(user, norm);
 
     if ((signalBundle.knowledge || []).length > 0) {
@@ -971,40 +895,6 @@ async function decide(params) {
       aggregator: signalBundle.aggregator,
       temporal: temporalInsights
     };
-
-    // Modo cooperativo para tenant sem dados
-    const contextDataState = norm.raw?.data_state || 
-      (norm.raw?.contextual_data?.data_state) || null;
-    if (contextDataState === 'tenant_empty' || contextDataState === 'tenant_inactive') {
-      const cooperativeActions = [];
-      if (contextDataState === 'tenant_empty') {
-        cooperativeActions.push(
-          { id: 'open_machine_registration', label: 'Cadastrar máquinas', intent: 'open_wizard', module: 'intelligent_registration' },
-          { id: 'open_dashboard_onboarding', label: 'Personalizar meu painel', intent: 'start_questionnaire', module: 'dashboard_onboarding' },
-          { id: 'see_integration_guide', label: 'Como integrar PLC/MES', intent: 'show_doc', module: 'docs' }
-        );
-      } else {
-        cooperativeActions.push(
-          { id: 'check_integrations', label: 'Verificar integrações', intent: 'open_integrations', module: 'integrations' },
-          { id: 'open_machine_registration', label: 'Cadastrar mais máquinas', intent: 'open_wizard', module: 'intelligent_registration' }
-        );
-      }
-      console.info('[UNIFIED_COOPERATIVE_MODE]', { data_state: contextDataState, actions: cooperativeActions.length });
-      return {
-        ok: true,
-        skipped: false,
-        source_engine: 'unified',
-        cooperative_mode: true,
-        cooperative_actions: cooperativeActions,
-        data_state: contextDataState,
-        decision: 'cooperative_guidance',
-        risk_level: 'none',
-        recommended_action: cooperativeActions[0]?.label || 'Configurar sistema',
-        unified_decision_id: unifiedDecisionId,
-        elapsed_ms: Date.now() - t0,
-        fallback_used: false
-      };
-    }
 
     let optionListRaw =
       params && Array.isArray(params.options) && params.options.length ? params.options : null;
@@ -1492,18 +1382,12 @@ async function decide(params) {
       _knowledge_alignment: o._knowledge_alignment
     }));
 
-    const envReasonHint =
-      decisionContext.environmental != null
-        ? `[Hints ambientais] desvio_acima_limiar=${decisionContext.environmental.hasDeviation}; risco_ambiental_elevado=${decisionContext.environmental.hasHighRisk}.`
-        : '';
-
     const reasoning = [
       buildStructuredReasoning({ ...evaluated, chosen: finalChosen }, norm, globalSnap),
       ...gov.governance_notes,
       cognitive_validation && cognitive_validation.answer
         ? `Validação tríade (resumo): ${cognitive_validation.answer}`
-        : '',
-      envReasonHint
+        : ''
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -1662,9 +1546,7 @@ async function decide(params) {
             : 'latency',
         health_recommendation: metricsHealth.recommendation,
         behavior_drift: behaviorDriftSilent,
-        behavior_guard_applied: behaviorGuardApplied,
-        decisionContext:
-          decisionContext && Object.keys(decisionContext).length > 0 ? decisionContext : undefined
+        behavior_guard_applied: behaviorGuardApplied
       }
     };
 

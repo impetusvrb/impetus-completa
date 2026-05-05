@@ -34,61 +34,14 @@ function isAvailable() {
 async function generateText(prompt, opts = {}) {
   const client = getClient();
   if (!client) return null;
-  try {
-    const circuitBreakerService = require('./circuitBreakerService');
-    if (circuitBreakerService.shouldSkip('gemini')) return null;
-  } catch (_e) {
-    /* ignore */
-  }
   const model = opts.model || DEFAULT_MODEL;
-  const t0 = Date.now();
   try {
-    try {
-      await require('../middleware/chaosRuntime').maybeRejectProvider('gemini');
-    } catch (_chaos) {
-      try {
-        const chaosRt = require('../middleware/chaosRuntime');
-        if (chaosRt.shouldAffectCircuitBreaker()) {
-          require('./circuitBreakerService').recordOutcome('gemini', false);
-        }
-      } catch (_e) {
-        /* ignore */
-      }
-      return null;
-    }
-    try {
-      require('./circuitBreakerService').beginCall('gemini');
-    } catch (_e) {
-      /* ignore */
-    }
-
     const response = await client.models.generateContent({
       model,
       contents: [{ role: 'user', parts: [{ text: String(prompt || '') }] }]
     });
-    try {
-      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
-    } catch (_e) {
-      /* ignore */
-    }
-    const out = response?.text || null;
-    try {
-      require('./circuitBreakerService').recordOutcome('gemini', !!out);
-    } catch (_e) {
-      /* ignore */
-    }
-    return out;
+    return response?.text || null;
   } catch (err) {
-    try {
-      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
-    } catch (_e) {
-      /* ignore */
-    }
-    try {
-      require('./circuitBreakerService').recordOutcome('gemini', false);
-    } catch (_e) {
-      /* ignore */
-    }
     console.warn('[GEMINI] generateText:', err?.message);
     return null;
   }
@@ -98,32 +51,6 @@ async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.', mimeTy
   const client = getClient();
   if (!client) return null;
   try {
-    const circuitBreakerService = require('./circuitBreakerService');
-    if (circuitBreakerService.shouldSkip('gemini')) return null;
-  } catch (_e) {
-    /* ignore */
-  }
-  const t0 = Date.now();
-  try {
-    try {
-      await require('../middleware/chaosRuntime').maybeRejectProvider('gemini');
-    } catch (_chaos) {
-      try {
-        const chaosRt = require('../middleware/chaosRuntime');
-        if (chaosRt.shouldAffectCircuitBreaker()) {
-          require('./circuitBreakerService').recordOutcome('gemini', false);
-        }
-      } catch (_e) {
-        /* ignore */
-      }
-      return null;
-    }
-    try {
-      require('./circuitBreakerService').beginCall('gemini');
-    } catch (_e) {
-      /* ignore */
-    }
-
     const raw = String(imageBase64 || '');
     const fromDataUrl = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
     const resolvedMime = fromDataUrl ? fromDataUrl[1] : mimeType;
@@ -138,29 +65,8 @@ async function analyzeImage(imageBase64, prompt = 'Analise esta imagem.', mimeTy
         ]
       }]
     });
-    try {
-      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
-    } catch (_e) {
-      /* ignore */
-    }
-    const imgOut = response?.text || null;
-    try {
-      require('./circuitBreakerService').recordOutcome('gemini', !!imgOut);
-    } catch (_e) {
-      /* ignore */
-    }
-    return imgOut;
+    return response?.text || null;
   } catch (err) {
-    try {
-      require('./aiLatencyMonitor').recordLatency('gemini', Date.now() - t0);
-    } catch (_e) {
-      /* ignore */
-    }
-    try {
-      require('./circuitBreakerService').recordOutcome('gemini', false);
-    } catch (_e) {
-      /* ignore */
-    }
     console.warn('[GEMINI] analyzeImage:', err?.message);
     return null;
   }
@@ -384,23 +290,14 @@ confidence: 0-100 (quão certa estás da classificação).`;
  * @returns {Promise<{ is_complaint: boolean, incident_type: string, confidence: number, reason_pt?: string }|null>}
  */
 async function classifyQualityComplaint(userMessage, opts = {}) {
-  const assistantBlock = opts.assistantSummary
-    ? `\nÚltima resposta do assistente (contexto):\n"""\n${String(opts.assistantSummary).slice(0, 1500)}\n"""\n`
-    : '';
-  const dataStateBlock = opts.dataStateHint
-    ? `\nEstado de dados do tenant: ${opts.dataStateHint}. Se o tenant está vazio (tenant_empty), a frustração do utilizador pode ser com o produto, não com a IA.\n`
-    : '';
-
   const prompt = `És um classificador de reclamações sobre respostas de IA numa plataforma industrial (IMPETUS).
 
 Mensagem do utilizador:
 """
 ${String(userMessage || '').slice(0, 2000)}
 """
-${assistantBlock}${dataStateBlock}
-Decide se o utilizador está a REPORTAR um problema com a resposta anterior do assistente (ex.: alucinação, dados inventados ou incorretos, viés, tom inadequado, "isso está errado", "não confere", "estás a inventar").
 
-Se a mensagem é uma pergunta hipotética, exploratória ou analítica (ex: "Se você tivesse que...", "Qual seria o impacto...", "Considerando um aumento..."), NÃO é reclamação.
+Decide se o utilizador está a REPORTAR um problema com a resposta anterior do assistente (ex.: alucinação, dados inventados ou incorretos, viés, tom inadequado, "isso está errado", "não confere", "estás a inventar").
 
 NÃO é reclamação: nova pergunta técnica, pedido de explicação neutro, cumprimento, ou assunto diferente sem crítica à IA.
 

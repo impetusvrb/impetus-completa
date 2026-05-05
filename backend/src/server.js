@@ -7,11 +7,9 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
 
 try {
-  const cv = require('./config/configValidator');
-  cv.validateConfigOrThrow();
-  cv.validateArchitectureBootOrThrow();
+  require('./config/configValidator').validateConfigOrThrow();
 } catch (e) {
-  console.error(e.name === 'ConfigError' || e.name === 'ArchitectureConfigError' ? e.message : e);
+  console.error(e.name === 'ConfigError' ? e.message : e);
   process.exit(1);
 }
 
@@ -22,15 +20,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
 const { apiByIpLimiter, apiByUserLimiter } = require('./middleware/globalRateLimit');
-const {
-  requestCapacityClassifyMiddleware,
-  requestCapacityRefineMiddleware
-} = require('./middleware/requestCapacityClassify');
-const { impetusAsyncContextBindMiddleware } = require('./middleware/impetusAsyncContextBind');
-const { systemDegradedGuard } = require('./middleware/systemDegradedGuard');
-const { limitedHeavyGuard } = require('./middleware/limitedHeavyGuard');
-const { chaosRuntimeMiddleware } = require('./middleware/chaosRuntime');
-const { geminiIngressMiddleware } = require('./middleware/geminiIngressMiddleware');
 const secureStaticUploads = require('./middleware/secureStaticUploads');
 const compression = require('compression');
 const bodyParser = require('body-parser');
@@ -129,43 +118,12 @@ app.use((req, res, next) => {
   return urlEncDefault(req, res, next);
 });
 
-/** Classificação por rota + refinamento por custo do payload (HEAVY dinâmico). */
-app.use(requestCapacityClassifyMiddleware);
-app.use(requestCapacityRefineMiddleware);
-
-/** Ingress Gemini: modos passthrough / light / full (IMPETUS_GEMINI_INGRESS_ENABLED). */
-app.use(geminiIngressMiddleware);
-
-app.use((req, res, next) => {
-  const orig = String(req.originalUrl || req.url || '');
-  if (orig.startsWith('/api')) {
-    try {
-      require('./services/resilienceMetricsService').recordApiRequest();
-    } catch (_e) {
-      /* ignore */
-    }
-  }
-  next();
-});
-
 /** Rate limit por IP em /api (utilizadores autenticados são ignorados no limiter; webhooks excluídos). */
 app.use((req, res, next) => {
   const orig = String(req.originalUrl || req.url || '');
   if (!orig.startsWith('/api')) return next();
   return apiByIpLimiter(req, res, next);
 });
-
-/** Modo DEGRADED: bloqueia /api excepto rotas de sistema, auth e webhooks. */
-app.use(systemDegradedGuard);
-
-/** LIMITED: HEAVY → modo degradado (req.degradedMode), não bloqueio duro. */
-app.use(limitedHeavyGuard);
-
-/** AsyncLocalStorage: classe + modo degradado disponíveis no pipeline IA. */
-app.use(impetusAsyncContextBindMiddleware);
-
-/** Chaos / latência injectada (só com IMPETUS_CHAOS_ENABLED=true). */
-app.use(chaosRuntimeMiddleware);
 
 /** Probe rápido TTS (paridade impetus_complete/app.js) + estado Google/credenciais sem chamada extra à API Google. */
 async function voiceHealthProbe() {
@@ -227,16 +185,6 @@ app.get('/api/health', async (req, res) => {
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
-/** Smoke check para o módulo de configurações do app (conta / perfil). Sem BD; só confirma rota montada. */
-app.get('/api/health/settings-module', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.json({
-    ok: true,
-    module: 'user_settings_account',
-    account_get: '/api/usuarios/conta/account'
-  });
-});
-
 /** Prontidão: BD, schema, cifra (sem chamadas a APIs de IA). */
 app.get('/api/system/health/deep', async (req, res) => {
   try {
@@ -248,66 +196,6 @@ app.get('/api/system/health/deep', async (req, res) => {
     return res.status(500).json({
       ready: false,
       issues: [`[crítico] READINESS: ${msg}`]
-    });
-  }
-});
-
-/** Integridade da arquitectura de IA (pipeline estrito, gate, violações recentes). */
-app.get('/api/system/architecture-health', (req, res) => {
-  try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    const { getArchitectureHealth } = require('./services/architectureHealthService');
-    const { getSnapshot: getSystemStateSnapshot } = require('./services/systemRuntimeState');
-    const { getSnapshot: getLatencySnapshot } = require('./services/aiLatencyMonitor');
-    const { getPublicSnapshot: getResilienceMetrics } = require('./services/resilienceMetricsService');
-    const expose = allowHealthDetails(req);
-    const body = getArchitectureHealth({ exposeDetails: expose });
-    body.system_state = getSystemStateSnapshot();
-    body.ai_latency = getLatencySnapshot();
-    body.resilience_metrics = getResilienceMetrics();
-    try {
-      body.resilience_feedback = require('./services/resilienceFeedbackLoop').getSnapshot();
-    } catch (_e) {
-      body.resilience_feedback = null;
-    }
-    try {
-      body.circuit_breakers = require('./services/circuitBreakerService').getSnapshot();
-    } catch (_e) {
-      body.circuit_breakers = null;
-    }
-    try {
-      body.chaos_injection = require('./middleware/chaosRuntime').getChaosStatus();
-    } catch (_e) {
-      body.chaos_injection = null;
-    }
-    try {
-      const ge = require('./services/geminiIngressEngine');
-      body.gemini_ingress_policy = {
-        enabled: ge.isIngressEnabled(),
-        passthrough_prefixes: ge.getPassthroughPrefixes(),
-        enforce_ingress: require('./ai/orchestratorExecutionGate').isEnforceGeminiIngress()
-      };
-    } catch (_e) {
-      body.gemini_ingress_policy = null;
-    }
-    try {
-      body.gemini_ingress_metrics = require('./services/geminiIngressMetrics').getSnapshot();
-    } catch (_e) {
-      body.gemini_ingress_metrics = null;
-    }
-    if (!expose) {
-      body.violations_recent = [];
-      body.last_failures = body.last_failures.slice(0, 3).map((f) => ({
-        at: f.at,
-        code: f.code
-      }));
-    }
-    const status = body.pipeline_integrity === 'OK' ? 200 : 503;
-    return res.status(status).json(body);
-  } catch (e) {
-    return res.status(500).json({
-      pipeline_integrity: 'BROKEN',
-      error: e && e.message ? String(e.message) : 'architecture_health_error'
     });
   }
 });
@@ -593,12 +481,6 @@ function gracefulShutdown(signal) {
   clearOperationalBrainInterval();
   clearDataLifecycleInterval();
   try {
-    const wd = require('./services/architectureWatchdogService');
-    wd.stopArchitectureWatchdog();
-  } catch (e) {
-    console.warn('[SHUTDOWN] architectureWatchdog:', e?.message);
-  }
-  try {
     if (typeof reminderScheduler.stop === 'function') reminderScheduler.stop();
   } catch (e) {
     console.warn('[SHUTDOWN] reminderScheduler:', e?.message);
@@ -687,36 +569,10 @@ httpServer.on('error', (err) => {
       console.warn('[SYSTEM_READINESS] Exceção no check (dev: continua):', msg);
     }
 
-    try {
-      const eps = require('./services/eventPipelineBootstrapService');
-      const pipeBoot = eps.bootIfEnabled();
-      if (pipeBoot.ok) {
-        console.info('[EVENT_PIPELINE_BOOT]', pipeBoot.types ? { types: pipeBoot.types } : pipeBoot);
-        if (process.env.IMPETUS_EVENT_PIPELINE_SHADOW === 'true') {
-          console.info('[EVENT_PIPELINE_BOOT]', {
-            mode: 'shadow',
-            sample_pct: process.env.IMPETUS_EVENT_PIPELINE_SHADOW_SAMPLE_PCT || '0.3',
-            timeout_ms: process.env.IMPETUS_EVENT_PIPELINE_TIMEOUT_MS || '6000',
-            metrics_log: process.env.IMPETUS_EVENT_PIPELINE_METRICS_LOG ?? 'true'
-          });
-        }
-      } else if (pipeBoot.reason && pipeBoot.reason !== 'disabled_by_env') {
-        console.warn('[EVENT_PIPELINE_BOOT]', pipeBoot.reason);
-      }
-    } catch (e) {
-      console.warn('[EVENT_PIPELINE_BOOT] excepção (processo continua):', e && e.message ? e.message : e);
-    }
-
     httpServer.listen(PORT, () => {
       console.log(
         `[impetus-backend] http://0.0.0.0:${PORT}  (health: /health  deep: /api/system/health/deep)`
       );
-      try {
-        const wd = require('./services/architectureWatchdogService');
-        wd.startArchitectureWatchdog();
-      } catch (e) {
-        console.warn('[ARCHITECTURE_WATCHDOG] não iniciado:', e && e.message ? e.message : e);
-      }
     });
   })();
 })();

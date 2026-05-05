@@ -16,7 +16,6 @@ const prefetchMap = {
   '/app/mapa-vazamento-financeiro': () => import('../pages/MapaVazamentoFinanceiro'),
   '/app/biblioteca': () => import('../features/biblioteca'),
   '/app/operacional': () => import('../pages/Operacional'),
-  '/app/admin/system-health': () => import('../pages/SystemHealthPage'),
 };
 
 const prefetched = new Set();

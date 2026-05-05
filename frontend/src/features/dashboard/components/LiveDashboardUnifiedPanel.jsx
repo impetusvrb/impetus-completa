@@ -22,21 +22,6 @@ function groupPlanItems(items) {
   return g;
 }
 
-/** Mensagem legível quando o backend devolve SYSTEM_DEGRADED (503). */
-function explainLiveDashboardFailure(err, payload) {
-  const code = payload?.error ?? err?.response?.data?.error;
-  if (code === 'SYSTEM_DEGRADED') {
-    return 'Modo degradado: o motor cognitivo está a proteger o sistema. Consulte Saúde do Sistema ou aguarde recuperação automática.';
-  }
-  return (
-    payload?.error ||
-    err?.response?.data?.message ||
-    err?.response?.data?.error ||
-    err?.message ||
-    'Não foi possível carregar o painel inteligente.'
-  );
-}
-
 /** Resumo com blocos (\\n\\n) e **negrito** simples — alinhado ao motor executivo do backend. */
 function FormattedIntelligentSummary({ text }) {
   if (!text || typeof text !== 'string') return null;
@@ -102,14 +87,14 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
     try {
       const { data } = await liveDashboard.getState();
       if (!data?.ok) {
-        setErr(explainLiveDashboardFailure(null, data));
+        setErr(data?.error || 'Não foi possível carregar o painel inteligente.');
         setLive(null);
         return;
       }
       setLive(data);
       setHistorical(null);
     } catch (e) {
-      setErr(explainLiveDashboardFailure(e));
+      setErr(e.response?.data?.error || e.message || 'Erro de rede');
       setLive(null);
     } finally {
       setLoading(false);
@@ -144,7 +129,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
     try {
       const { data } = await liveDashboard.getSnapshotAt(iso);
       if (!data?.ok) {
-        setErr(explainLiveDashboardFailure(null, data));
+        setErr(data?.error || 'Falha ao buscar snapshot');
         return;
       }
       if (!data.snapshot) {
@@ -153,7 +138,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       }
       setHistorical(data.snapshot);
     } catch (e) {
-      setErr(explainLiveDashboardFailure(e));
+      setErr(e.response?.data?.error || e.message);
     }
   };
 
@@ -174,14 +159,14 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
         confirm: true
       });
       if (!data?.ok) {
-        setErr(explainLiveDashboardFailure(null, data));
+        setErr(data?.error || 'Ação não executada');
         return;
       }
       setPending(null);
       await loadLive();
       await loadSnapshotsList();
     } catch (e) {
-      setErr(explainLiveDashboardFailure(e));
+      setErr(e.response?.data?.error || e.message);
     } finally {
       setExecBusy(false);
     }

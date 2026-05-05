@@ -3,14 +3,14 @@
  *
  * mentionsAI: deteção central (mentionsAI util).
  * handleAIMessage: resposta mínima funcional quando o fluxo consolidado não está ativo
- * (sem flags novas, sem motor unificado). Usa secureContextBuilder + ai.chatCompletionMessages.
+ * (sem flags novas). Usa secureContextBuilder + orchestrator central.
  */
 const db = require('../db');
 const chatService = require('./chatService');
 const documentContext = require('./documentContext');
-const ai = require('./ai');
 const { detectAIMention } = require('../utils/mentionsAI');
 const secureContextBuilder = require('./secureContextBuilder');
+const { runAI } = require('../ai/orchestrator');
 
 const AI_USER_ID = chatService.AI_USER_ID;
 
@@ -143,35 +143,22 @@ async function handleAIMessage(conversationId, content, io) {
   }
 
   const lgpd = documentContext.getImpetusLGPDComplianceProtocol();
-  const systemParts = [
-    'Você é a Impetus IA no chat interno da empresa. Responda em português do Brasil, de forma clara e útil.',
-    'Se não houver contexto suficiente, diga o que falta e faça no máximo uma pergunta objetiva.',
-    lgpd ? `Protocolo LGPD e ética:\n${lgpd}` : ''
-  ];
-  if (governanceBlock) {
-    systemParts.push(governanceBlock);
-  }
-  const systemContent = systemParts.filter(Boolean).join('\n\n');
-
-  const messages = [
-    { role: 'system', content: systemContent },
-    { role: 'user', content: normalizedMessage.slice(0, 12000) }
-  ];
-
-  const billing =
-    userContext.company_id && userContext.id
-      ? { companyId: userContext.company_id, userId: userContext.id }
-      : companyId && userContext.id
-        ? { companyId: String(companyId), userId: userContext.id }
-        : null;
-
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   let rawReply = '';
   try {
-    rawReply = await ai.chatCompletionMessages(messages, {
-      model,
-      max_tokens: 700,
-      billing: billing || undefined
+    rawReply = await runAI({
+      input: normalizedMessage.slice(0, 12000),
+      user: {
+        id: userContext.id || null,
+        company_id: userContext.company_id || companyId || null
+      },
+      context: {
+        complianceBlock: lgpd ? `Protocolo LGPD e ética:\n${lgpd}` : '',
+        governanceBlock
+      },
+      mode: 'assistant',
+      maxTokens: 700,
+      model
     });
   } catch (e) {
     console.warn('[CHAT_LEGACY_FALLBACK][chatCompletionMessages]', e?.message ?? e);

@@ -40,8 +40,8 @@ export function getRealtimeVoiceRuntimeConfig() {
   const delayRaw = envInt('VITE_REALTIME_RESPONSE_DELAY_MS', 380);
   return {
     voiceSpeed: clampVoiceSpeed(envFloat('VITE_REALTIME_VOICE_SPEED', 0.9)),
-    maxSpeechMs: Math.max(2000, envInt('VITE_REALTIME_MAX_SPEECH_MS', REALTIME_MAX_SPEECH_MS)),
-    maxResponseTokens: Math.max(16, envInt('VITE_REALTIME_MAX_RESPONSE_TOKENS', 88)),
+    maxSpeechMs: Math.max(2000, envInt('VITE_REALTIME_MAX_SPEECH_MS', 16000)),
+    maxResponseTokens: Math.max(16, envInt('VITE_REALTIME_MAX_RESPONSE_TOKENS', 140)),
     interruptResponse: envBool('VITE_REALTIME_INTERRUPT_RESPONSE', true),
     voiceDebug: envBool('VITE_REALTIME_VOICE_DEBUG', false),
     localBargeRms: envFloat('VITE_REALTIME_LOCAL_BARGE_RMS', 0.03),

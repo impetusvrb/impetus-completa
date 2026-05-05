@@ -1,6 +1,5 @@
 'use strict';
 
-const crypto = require('crypto');
 const aiComplaintDetectionService = require('./aiComplaintDetectionService');
 const aiIncidentService = require('./aiIncidentService');
 const aiProviderService = require('./aiProviderService');
@@ -25,12 +24,9 @@ async function withProcessingTransparency(user, base) {
  * @param {string|null} params.lastAiTraceId - último trace (sessionStorage / corpo)
  * @param {import('express').Response} params.res
  * @param {'dashboard'|'cognitive'} [params.format='dashboard'] - cognitive inclui result/synthesis para ChatApp
- * @param {string} [params.assistantSummary] - resumo da última resposta da IA
- * @param {string} [params.dataStateHint] - data_state atual do tenant
- * @param {string} [params.lastTraceCreatedAt] - timestamp de criação do último trace
  * @returns {Promise<boolean>} true se a resposta HTTP já foi enviada
  */
-async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, format = 'dashboard', assistantSummary, dataStateHint, lastTraceCreatedAt }) {
+async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, format = 'dashboard' }) {
   const u = user;
   if (!u?.company_id) return false;
 
@@ -41,13 +37,14 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
   if (!text) return false;
 
   try {
-    const complaint = await aiComplaintDetectionService.evaluateComplaint(text, {
-      assistantSummary,
-      dataStateHint,
-      lastAiTraceId: lastTrace,
-      lastTraceCreatedAt
-    });
+    const complaint = await aiComplaintDetectionService.evaluateComplaint(text);
     if (!complaint.is_complaint) return false;
+
+    const traceForIncident = await aiIncidentService.resolveTraceIdForComplaint({
+      companyId: u.company_id,
+      userId: u.id,
+      preferredTraceId: lastTrace
+    });
 
     const wrap = async (base) => {
       const withPt = await withProcessingTransparency(u, base);
@@ -61,43 +58,7 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
       };
     };
 
-    if (complaint.requires_hitl) {
-      const hitlToken = crypto.randomUUID();
-      const confirmMsg = 'Parece que pretende reportar um problema com a resposta anterior. Confirma que está a reportar uma resposta incorreta da IA?';
-      res.json(
-        await wrap({
-          ok: true,
-          kind: 'complaint_confirmation_request',
-          hitl_token: hitlToken,
-          original_message: text,
-          reply: confirmMsg,
-          message: confirmMsg,
-          content: confirmMsg,
-          incident_reported: false,
-          explanation_layer: {
-            facts_used: ['Pedido de confirmação HITL antes de registar incidente.'],
-            business_rules: ['Em caso de dúvida (tenant vazio ou sem contexto do assistente), solicitar confirmação humana.'],
-            confidence_score: 100,
-            limitations: ['Incidente só será criado após confirmação explícita do utilizador.'],
-            reasoning_trace: 'Gate HITL activado — aguardar confirmação.',
-            data_lineage: []
-          }
-        })
-      );
-      return true;
-    }
-
-    const traceForIncident = await aiIncidentService.resolveTraceIdForComplaint({
-      companyId: u.company_id,
-      userId: u.id,
-      preferredTraceId: lastTrace
-    });
-
     if (traceForIncident) {
-      const severity = dataStateHint === 'tenant_empty'
-        ? 'LOW'
-        : aiIncidentService.severityForType(complaint.incident_type);
-
       let incident;
       try {
         incident = await aiIncidentService.createIncident({
@@ -106,11 +67,7 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
           companyId: u.company_id,
           incidentType: complaint.incident_type,
           userComment: text,
-          severity,
-          metadata: {
-            assistant_summary_snapshot: assistantSummary || null,
-            data_state_at_complaint: dataStateHint || null
-          }
+          severity: aiIncidentService.severityForType(complaint.incident_type)
         });
       } catch (err) {
         console.error('[COMPLAINT_CREATE]', err);

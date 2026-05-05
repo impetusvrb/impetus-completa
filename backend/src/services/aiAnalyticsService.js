@@ -238,6 +238,49 @@ async function insertAiTrace(row) {
   const legalBasis =
     row.legal_basis != null ? String(row.legal_basis).slice(0, 48) : null;
   const dataClassificationJson = JSON.stringify(redactForTrace(row.data_classification || {}));
+  const mode = row.mode != null ? String(row.mode).slice(0, 24) : null;
+  const intent = row.intent != null ? String(row.intent).slice(0, 32) : null;
+  const inputText =
+    row.input != null
+      ? String(row.input).slice(0, 20000)
+      : row.input_payload && row.input_payload.input
+        ? String(row.input_payload.input).slice(0, 20000)
+        : null;
+  const responseText =
+    row.response != null
+      ? String(row.response).slice(0, 40000)
+      : row.output_response && row.output_response.response
+        ? String(row.output_response.response).slice(0, 40000)
+        : null;
+  const responseTimeRaw =
+    row.response_time != null
+      ? Number(row.response_time)
+      : Number(row.output_response && row.output_response.response_time);
+  const responseTime = Number.isFinite(responseTimeRaw) ? Math.max(0, Math.round(responseTimeRaw)) : null;
+  const tokensRaw =
+    row.tokens != null ? Number(row.tokens) : Number(row.output_response && row.output_response.tokens);
+  const tokens = Number.isFinite(tokensRaw) ? Math.max(0, Math.round(tokensRaw)) : null;
+  const qualityScoreRaw =
+    row.quality_score != null
+      ? Number(row.quality_score)
+      : Number(row.output_response && row.output_response.quality_score);
+  const qualityScore = Number.isFinite(qualityScoreRaw)
+    ? Math.max(0, Math.min(10, qualityScoreRaw))
+    : null;
+  const userFeedback =
+    row.user_feedback != null
+      ? String(row.user_feedback).slice(0, 4000)
+      : row.output_response && row.output_response.user_feedback
+        ? String(row.output_response.user_feedback).slice(0, 4000)
+        : null;
+  const failureFlag =
+    row.failure_flag != null
+      ? row.failure_flag === true
+      : row.output_response && row.output_response.failure_flag === true;
+  const correctionNeeded =
+    row.correction_needed != null
+      ? row.correction_needed === true
+      : row.output_response && row.output_response.correction_needed === true;
 
   const schedulePostTraceIncidents = () => {
     const aiIncidentService = require('./aiIncidentService');
@@ -315,12 +358,57 @@ async function insertAiTrace(row) {
         legal_basis, data_classification
       ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13::jsonb,$14,$15::jsonb)
     `;
+    const q26 = `
+      INSERT INTO ai_interaction_traces (
+        trace_id, user_id, company_id, module_name,
+        input_payload, output_response, model_info, system_fingerprint,
+        human_validation_status, validation_modality, validation_evidence, validated_at, validation_audit,
+        legal_basis, data_classification,
+        mode, intent, "input", response, response_time, tokens,
+        quality_score, user_feedback, failure_flag, correction_needed
+      ) VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12,$13::jsonb,$14,$15::jsonb,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+    `;
     const params15 = [...params, legalBasis, dataClassificationJson];
+    const params26 = [
+      ...params15,
+      mode,
+      intent,
+      inputText,
+      responseText,
+      responseTime,
+      tokens,
+      qualityScore,
+      userFeedback,
+      failureFlag,
+      correctionNeeded
+    ];
     try {
-      await db.query(q15, params15);
+      await db.query(q26, params26);
     } catch (e) {
       const msg = String(e.message || '');
-      if (msg.includes('legal_basis') || msg.includes('data_classification')) {
+      if (
+        msg.includes('mode') ||
+        msg.includes('intent') ||
+        msg.includes('input') ||
+        msg.includes('response') ||
+        msg.includes('response_time') ||
+        msg.includes('tokens') ||
+        msg.includes('quality_score') ||
+        msg.includes('user_feedback') ||
+        msg.includes('failure_flag') ||
+        msg.includes('correction_needed')
+      ) {
+        try {
+          await db.query(q15, params15);
+        } catch (inner) {
+          const innerMsg = String(inner.message || '');
+          if (innerMsg.includes('legal_basis') || innerMsg.includes('data_classification')) {
+            await db.query(q13, params);
+          } else {
+            throw inner;
+          }
+        }
+      } else if (msg.includes('legal_basis') || msg.includes('data_classification')) {
         await db.query(q13, params);
       } else {
         throw e;
@@ -418,6 +506,16 @@ function enqueueAiTrace(record) {
     user_id: record.user_id,
     company_id: record.company_id,
     module_name: record.module_name,
+    mode: record.mode,
+    intent: record.intent,
+    input: record.input,
+    response: record.response,
+    response_time: record.response_time,
+    tokens: record.tokens,
+    quality_score: record.quality_score,
+    user_feedback: record.user_feedback,
+    failure_flag: record.failure_flag,
+    correction_needed: record.correction_needed,
     input_payload: record.input_payload,
     output_response: record.output_response,
     model_info: record.model_info,
@@ -433,10 +531,6 @@ function enqueueAiTrace(record) {
     compliance_incident: record.compliance_incident,
     policy_incident: record.policy_incident,
     trace_policy_rules: record.trace_policy_rules,
-    data_state: record.data_state,
-    narrative_mode: record.narrative_mode,
-    briefing_signature: record.briefing_signature,
-    cooperative_actions_offered: record.cooperative_actions_offered,
     force_encryption: record.force_encryption
   };
   setImmediate(() => {

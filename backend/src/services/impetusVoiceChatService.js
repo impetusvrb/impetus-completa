@@ -1,12 +1,12 @@
 /**
  * Um turno do modo conversa por voz: contexto Impetus + histórico em sessão + TTS.
  */
-const ai = require('./ai');
 const chatUserContext = require('./chatUserContext');
 const documentContext = require('./documentContext');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const voiceSession = require('./impetusVoiceSession');
+const { runAI } = require('../ai/orchestrator');
 
 const MAINTENANCE_PROFILES = new Set([
   'technician_maintenance',
@@ -93,18 +93,15 @@ async function processVoiceTurn(user, message, { reset } = {}) {
   const { systemPrompt } = await buildSystemPrompt(user, trimmed);
   const history = voiceSession.getMessages(user.id);
 
-  const openaiMessages = [{ role: 'system', content: systemPrompt }];
-  for (const h of history) {
-    if (h.role === 'user' || h.role === 'assistant') {
-      openaiMessages.push({ role: h.role, content: h.content });
-    }
-  }
-  openaiMessages.push({ role: 'user', content: trimmed });
-
-  let reply = await ai.chatCompletionMessages(openaiMessages, {
-    max_tokens: 500,
-    billing:
-      user.company_id ? { companyId: user.company_id, userId: user.id } : undefined
+  let reply = await runAI({
+    input: trimmed,
+    user,
+    context: {
+      extraContext: systemPrompt
+    },
+    mode: 'voice',
+    history,
+    maxTokens: 500
   });
   if (!reply || (reply || '').startsWith('FALLBACK:')) {
     reply = CHAT_FALLBACK;

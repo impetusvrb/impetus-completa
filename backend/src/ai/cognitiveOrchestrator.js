@@ -5,8 +5,7 @@
  *
  * Princípios:
  * - Sem conversação livre entre modelos; apenas dossiê compartilhado + etapas ordenadas.
- * - Papéis fixos: Gemini (única classificação de intenção + percepção), Claude (análise técnica + plano interno),
- *   GPT/OpenAI (única resposta final). Orquestração: vertex_central_sim (controlo de etapas; Gemini pode usar Vertex).
+ * - Papéis fixos: Gemini (percepção), Claude (análise profunda), GPT (interface final).
  * - Auditoria em ai_decision_logs; HITL em cognitive_hitl_feedback.
  * - Nenhuma IA invoca outra: só o backend encadeia chamadas com estado explícito.
  *
@@ -35,14 +34,15 @@ const { retrieveContextualData } = require('../services/dataRetrievalService');
 const { mergeContextualData } = require('../services/contextualDataMergeService');
 const { recordOperationalOutcome } = require('../services/operationalLearningService');
 const { getUnifiedSessionContext, updateUnifiedSessionContext } = require('../services/unifiedSessionContextService');
-const { shouldTriggerProactiveRetrieval } = require('../services/proactiveRetrievalService');
+const {
+  shouldTriggerProactiveRetrieval,
+  enrichDossierIfTriggered
+} = require('../services/proactiveRetrievalService');
 
 const ingressLayer = require('./layers/ingressLayer');
 const policyLayer = require('./layers/policyLayer');
 const complianceLayer = require('./layers/complianceLayer');
 const executionLayer = require('./layers/executionLayer');
-const vertexCentralOrchestrator = require('./vertexCentralOrchestrator');
-const contextInterpretationLayer = require('./contextInterpretationLayer');
 
 /** Mínimo de intenções com confiança para agregação multi (máx. 3 pedidos a retrieveContextualData). */
 const AUTO_DATA_MULTI_CONFIDENCE_MIN = 0.5;
@@ -108,29 +108,16 @@ async function runCognitiveCouncil(params) {
     requestText: rt,
     data,
     module,
-    options,
-    impetusRequestClass: impetusRequestClassParam
+    options
   } = norm;
-  const requestAsyncContext = require('../services/requestAsyncContext');
-  const systemRuntimeState = require('../services/systemRuntimeState');
-  const impetusRequestClass =
-    impetusRequestClassParam || requestAsyncContext.getRequestClass();
 
   const t0 = Date.now();
   const traceId = uuidv4();
-  const vertexRunTrace = vertexCentralOrchestrator.createCouncilRunTrace(traceId, {
-    entrada_preview: rt
-  });
-  vertexCentralOrchestrator.traceStage(vertexRunTrace, 'entrada_recebida', {
-    module: module || 'cognitive_council'
-  });
-
   observabilityService.markCouncilStart({
     traceId,
     companyId: user?.company_id,
     userId: user?.id,
-    module: module || 'cognitive_council',
-    orchestration: vertexCentralOrchestrator.getOrchestrationContext()
+    module: module || 'cognitive_council'
   });
   if (user?.company_id && user?.id) {
     behavioralIntelligenceService.trackUserAction('ACCESS_ATTEMPT', {
@@ -142,7 +129,6 @@ async function runCognitiveCouncil(params) {
   }
 
   const executeCouncil = async () => {
-    try {
     const sessionCtx =
       user?.company_id && user?.id ? await getUnifiedSessionContext(user) : null;
     const advPipeline = detectIntentAdvanced(rt);
@@ -418,44 +404,9 @@ async function runCognitiveCouncil(params) {
         requestText: rt,
         data: enrichedData,
         module,
-        options: { ...options, vertex_run_trace: vertexRunTrace },
+        options,
         traceId
       });
-
-    dossier.meta.vertex_run_trace = vertexRunTrace;
-    dossier.meta.strict_pipeline = vertexCentralOrchestrator.isStrictAiPipeline();
-    dossier.meta.orchestration = vertexCentralOrchestrator.getOrchestrationContext();
-
-    const ac = requestAsyncContext.getAdaptiveContext();
-    const reqClassUpper = String(impetusRequestClass).toUpperCase();
-    dossier.meta.impetus_request_class = impetusRequestClass;
-    dossier.meta.resilience = {
-      degraded_mode: !!ac.degradedMode,
-      original_request_class: ac.originalHeavyClass,
-      cost_score: ac.costScore,
-      adaptation_tier: ac.degradedMode ? 'HEAVY_SOFT' : systemRuntimeState.isLimited() ? 'LIMITED_GLOBAL' : 'FULL'
-    };
-
-    const limitedGlobal = systemRuntimeState.isLimited() && reqClassUpper !== 'CRITICAL';
-    dossier.meta.adaptive_limited =
-      limitedGlobal ||
-      !!ac.degradedMode ||
-      (systemRuntimeState.isLimited() && ac.costScore >= 42);
-
-    dossier.meta.resilience.allow_model_fallback =
-      !!(
-        dossier.meta.adaptive_limited &&
-        String(process.env.IMPETUS_RESILIENCE_MODEL_FALLBACK || '').toLowerCase() === 'true'
-      );
-
-    const costTier = Number(ac.costScore) || 0;
-    let degradation_intensity = 'none';
-    if (dossier.meta.adaptive_limited || ac.degradedMode) {
-      if (costTier < 42) degradation_intensity = 'light';
-      else if (costTier < 72) degradation_intensity = 'moderate';
-      else degradation_intensity = 'aggressive';
-    }
-    dossier.meta.resilience.degradation_intensity = degradation_intensity;
 
     let risk = riskIngress;
 
@@ -486,43 +437,18 @@ async function runCognitiveCouncil(params) {
 
     const billing = user?.company_id ? { companyId: user.company_id, userId: user.id } : null;
 
-    // Camada de interpretação contextual
-    try {
-      const ctxData = dossier.data?.contextual_data || {};
-      const interpretResult = contextInterpretationLayer.interpret({
-        user,
-        intent: dossier.context?.intent || 'operational_overview',
-        data_state: ctxData.data_state || null,
-        data_completeness: ctxData.data_completeness || null,
-        coverage: ctxData.data_coverage || null,
-        session_context: { response_fingerprints: [] }
-      });
-      dossier.meta = dossier.meta || {};
-      dossier.meta.briefing = interpretResult.briefing;
-      dossier.meta.briefing_signature = interpretResult.briefing_signature;
-      dossier.meta.narrative_mode = interpretResult.narrative_mode;
-      dossier.meta.must_avoid_phrases = interpretResult.must_avoid_phrases;
-      dossier.meta.must_propose_actions = interpretResult.must_propose_actions;
-      dossier.meta.confidence_floor = interpretResult.confidence_floor;
-      dossier.meta.confidence_ceiling = interpretResult.confidence_ceiling;
-    } catch (interpErr) {
-      console.warn('[COGNITIVE_INTERPRETATION]', interpErr?.message ?? interpErr);
-    }
-
     const { synthesis, wantCross, egress } = await executionLayer.runCouncilExecution({
       dossier,
       billing,
       limitations,
       risk,
-      options: { ...options, vertex_run_trace: vertexRunTrace },
+      options,
       scope,
       module,
       user,
       data: enrichedData,
       adaptiveResponseMode,
-      traceId,
-      vertexRunTrace,
-      strictPipeline: dossier.meta.strict_pipeline
+      traceId
     });
 
     const { compliancePack } = await complianceLayer.applyComplianceAfterExecution({
@@ -561,15 +487,6 @@ async function runCognitiveCouncil(params) {
         cross_validation_requested: wantCross,
         risk_level: risk,
         based_on: synthesis.based_on,
-        impetus_flow:
-          dossier.meta.orchestration || vertexCentralOrchestrator.getOrchestrationContext(),
-        vertex_run_trace: dossier.meta.vertex_run_trace || null,
-        system_adaptive: {
-          status: systemRuntimeState.getSnapshot().status,
-          request_class: dossier.meta.impetus_request_class,
-          adaptive_limited: !!dossier.meta.adaptive_limited,
-          resilience: dossier.meta.resilience || null
-        },
         ...(adaptiveGovernanceEngine.ADAPTIVE_ENABLED
           ? {
               adaptive_governance: {
@@ -763,11 +680,6 @@ async function runCognitiveCouncil(params) {
 
     commitContextSessionFromCouncil(user, { intentData, multiIntentList, enrichedData });
 
-    vertexCentralOrchestrator.traceStage(vertexRunTrace, 'trace_concluido', {
-      models: dossier.meta.models_touched || []
-    });
-    vertexCentralOrchestrator.traceComplete(vertexRunTrace, true, null);
-
     return {
       ok: true,
       traceId,
@@ -791,128 +703,8 @@ async function runCognitiveCouncil(params) {
       synthesis,
       explanation_layer: explanationLayer,
       duration_ms: duration,
-      degraded: dossier.meta.degraded,
-      vertex_run_trace: vertexRunTrace
+      degraded: dossier.meta.degraded
     };
-    } catch (pipeErr) {
-      const c = pipeErr && pipeErr.code != null ? String(pipeErr.code) : '';
-      if (c.startsWith('STRICT_')) {
-        try {
-          const execGate = require('./orchestratorExecutionGate');
-          execGate.recordCouncilFailure(c, pipeErr && pipeErr.message ? String(pipeErr.message) : c);
-        } catch (_e) {
-          /* ignore */
-        }
-        vertexCentralOrchestrator.traceComplete(vertexRunTrace, false, c);
-        observabilityService.markCouncilException({
-          traceId,
-          companyId: user?.company_id,
-          userId: user?.id,
-          err: pipeErr
-        });
-        return {
-          ok: false,
-          traceId,
-          trace_id: traceId,
-          error_code: c,
-          error_message: pipeErr && pipeErr.message ? String(pipeErr.message) : c,
-          vertex_run_trace: vertexRunTrace,
-          result: null,
-          stages: vertexRunTrace && vertexRunTrace.stages ? vertexRunTrace.stages : [],
-          degraded: true
-        };
-      }
-
-      const rf = require('../services/resilienceFallback');
-      const { parseFinalStructuredResponse, synthesize } = require('./responseSynthesizer');
-      if (rf.isPipelineFallbackEnabled() && !vertexCentralOrchestrator.isStrictAiPipeline()) {
-        try {
-          const billing = user?.company_id ? { companyId: user.company_id, userId: user.id } : null;
-          const raw = await rf.generateSoftPipelineAnswer({
-            requestText: rt,
-            userScope: scope,
-            billing
-          });
-          const { finalRaw, structuredFinal } = parseFinalStructuredResponse(raw);
-          dossier.meta.degraded = true;
-          const synthesisFb = synthesize({
-            finalRaw,
-            structuredFinal,
-            dossier,
-            validation: null,
-            modelsUsed: ['openai'],
-            degraded: true,
-            limitations: ['Pipeline cognitivo simplificado (fallback L3).'],
-            extraBusinessRules: ['Contingência IMPETUS — não estrito']
-          });
-          const durationFb = Date.now() - t0;
-          const explanationLayerFb = {
-            trace_id: traceId,
-            ...synthesisFb.explanation_layer,
-            orchestration: {
-              intent: dossier.context.intent,
-              risk_level: risk,
-              pipeline_fallback_soft: true,
-              impetus_flow: vertexCentralOrchestrator.getOrchestrationContext(),
-              vertex_run_trace: dossier.meta.vertex_run_trace || null
-            }
-          };
-          const stagesFb = [
-            {
-              name: 'pipeline_fallback_soft',
-              provider: 'openai',
-              summary: 'Resposta única (contingência)',
-              at: new Date().toISOString()
-            }
-          ];
-          const layersPublicFb = sanitizeLayersForHttpResponse(dossier);
-          vertexCentralOrchestrator.traceComplete(vertexRunTrace, true, 'fallback_soft');
-          observabilityService.markCouncilSuccess({
-            traceId,
-            companyId: user?.company_id,
-            userId: user?.id,
-            durationMs: durationFb,
-            riskLevel: risk,
-            responseMode: adaptiveResponseMode,
-            policyEffect: 'none',
-            policyViolation: false,
-            complianceIncident: false,
-            degraded: true,
-            module: module || 'cognitive_council'
-          });
-          return {
-            ok: true,
-            traceId,
-            trace_id: traceId,
-            processing_transparency: null,
-            result: {
-              content: synthesisFb.content,
-              answer: synthesisFb.answer,
-              confidence: synthesisFb.confidence,
-              confidence_score: synthesisFb.confidence_score,
-              explanation_layer: synthesisFb.explanation_layer,
-              warnings: synthesisFb.warnings,
-              based_on: synthesisFb.based_on,
-              requires_action: synthesisFb.requires_action,
-              degraded: true,
-              explanation: synthesisFb.explanation
-            },
-            stages: stagesFb,
-            layers: layersPublicFb,
-            dossier: redactForPersistence(dossier),
-            synthesis: synthesisFb,
-            explanation_layer: explanationLayerFb,
-            duration_ms: durationFb,
-            degraded: true,
-            vertex_run_trace: vertexRunTrace
-          };
-        } catch (fbErr) {
-          console.warn('[PIPELINE_SOFT_FALLBACK]', fbErr && fbErr.message ? fbErr.message : fbErr);
-        }
-      }
-
-      throw pipeErr;
-    }
   };
 
   try {
@@ -961,8 +753,14 @@ function exampleMaintenancePayload() {
   };
 }
 
+/** Pré-fetch autónomo para rotas de chat (delega em enrichDossierIfTriggered). */
+async function runAutonomousPreflight(params) {
+  return enrichDossierIfTriggered(params);
+}
+
 module.exports = {
   runCognitiveCouncil,
+  runAutonomousPreflight,
   classifyIntent: ingressLayer.classifyIntent,
   exampleMaintenancePayload,
   normalizeRunInput: ingressLayer.normalizeRunInput,

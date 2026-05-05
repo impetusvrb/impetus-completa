@@ -27,14 +27,12 @@ const ROLE_CONSTRAINTS = Object.freeze({
   [AI_ROLES.GPT]: [
     'Nunca executar raciocínio técnico profundo isolado sem insumos do dossiê (Claude/percepção).',
     'Nunca inferir causa raiz apenas por estilo conversacional.',
-    'Papel exclusivo na pipeline cognitiva: resposta final ao utilizador (JSON explicável); plano interno é Claude.',
     'Sempre responder em linguagem operacional adequada ao perfil do usuário.',
     'Se o dossiê estiver incompleto, declarar limitações explicitamente.'
   ],
   [AI_ROLES.CLAUDE]: [
     'Nunca produzir resposta final dirigida ao usuário final.',
     'Saída deve ser estruturada (JSON ou texto técnico) para consumo interno.',
-    'Inclui análise técnica profunda e plano interno de resposta; a interface final é sempre GPT.',
     'Nunca decidir sozinho ações críticas sem marcação para validação humana quando risk_level alto.'
   ],
   [AI_ROLES.GEMINI]: [

@@ -3,7 +3,7 @@
  * Sidebar + Header + Conteúdo
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -48,7 +48,8 @@ import {
 } from 'lucide-react';
 import { companies, auth } from '../services/api';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
-import { mergeUserRoleFromJwt } from '../utils/systemHealthAccess';
+import SystemHealthDrawer from './SystemHealthDrawer';
+import { userCanAccessSystemHealth } from './SystemHealthPanel';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu, isStrictAdminRole } from '../utils/roleUtils';
@@ -77,18 +78,6 @@ function dedupeMenuItemsByPath(items) {
     out.push(item);
   }
   return out;
-}
-
-function parseImpetusUser() {
-  try {
-    const userStr = localStorage.getItem('impetus_user');
-    if (!userStr || !userStr.trim()) return { name: 'Usuário', role: 'colaborador' };
-    const u = JSON.parse(userStr);
-    if (!u || typeof u !== 'object') return { name: 'Usuário', role: 'colaborador' };
-    return mergeUserRoleFromJwt(u);
-  } catch {
-    return { name: 'Usuário', role: 'colaborador' };
-  }
 }
 
 /** max-width: 1023px — sidebar em overlay/drawer (tablet + mobile). */
@@ -145,6 +134,7 @@ export default function Layout({ children }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSystemHealth, setShowSystemHealth] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -221,15 +211,6 @@ export default function Layout({ children }) {
     }
   }, []);
 
-  const { filterMenu, canAccessPath, loading: modulesLoading, maintenanceFromProfile, visibleModules } =
-    useVisibleModules();
-
-  /** Recarrega quando o dashboard gravar perfil no localStorage ou ao mudar de rota (evita menu admin errado). */
-  const user = useMemo(
-    () => parseImpetusUser(),
-    [location.pathname, modulesLoading, visibleModules]
-  );
-
   useEffect(() => {
     companies.getMe().then((r) => {
       if (r?.data?.company?.subscription_status === 'overdue') {
@@ -237,6 +218,10 @@ export default function Layout({ children }) {
       }
     }).catch(() => {});
   }, []);
+
+  // Pegar dados do usuário do localStorage
+  const userStr = localStorage.getItem('impetus_user');
+  const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
 
   const role = resolveMenuRole(user);
   const dashboardProfile = String(user?.dashboard_profile || '').toLowerCase();
@@ -255,6 +240,7 @@ export default function Layout({ children }) {
     '/app/cerebro-operacional',
     '/app/insights'
   ]);
+  const { filterMenu, canAccessPath, loading: modulesLoading, maintenanceFromProfile } = useVisibleModules();
   const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
   const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
 
@@ -274,8 +260,7 @@ export default function Layout({ children }) {
       '/app/registro-inteligente',
       '/app/chatbot',
       '/chat',
-      '/app/settings',
-      '/app/admin/system-health'
+      '/app/settings'
     ];
     pathOk =
       allowedOperacional.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
@@ -291,8 +276,7 @@ export default function Layout({ children }) {
       '/app/manutencao/manuia',
       '/app/manutencao/manuia-app',
       '/app/biblioteca',
-      '/app/settings',
-      '/app/admin/system-health'
+      '/app/settings'
     ];
     pathOk = allowMaint.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
   }
@@ -322,7 +306,6 @@ export default function Layout({ children }) {
     { path: '/app/validacao-organizacional', icon: Shield, label: 'Validação organizacional' },
     { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
     { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
-    { path: '/app/admin/system-health', icon: Activity, label: 'Saúde do Sistema' },
     { path: '/app/settings', icon: Settings, label: 'Configurações' }
   ];
 
@@ -376,7 +359,6 @@ export default function Layout({ children }) {
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/ai-incidents', icon: AlertTriangle, label: 'Incidentes de IA' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
-      { path: '/app/admin/system-health', icon: Activity, label: 'Saúde do Sistema' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
       { path: '/app/admin/help-center', icon: HelpCircle, label: 'Central de Ajuda do Admin' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
@@ -483,30 +465,6 @@ export default function Layout({ children }) {
       (item) => (item.path || '').replace(/\/+$/, '') !== '/app/admin/implantacao-guia'
     );
   }
-
-  const SYSTEM_HEALTH_PATH = '/app/admin/system-health';
-  /** Qualquer sessão /app com JWT: injeta entrada no menu lateral se faltar. */
-  const hasAppSession =
-    typeof window !== 'undefined' && !!localStorage.getItem('impetus_token');
-  if (hasAppSession) {
-    const hasHealth = menuItems.some(
-      (item) => (item.path || '').replace(/\/+$/, '') === SYSTEM_HEALTH_PATH
-    );
-    if (!hasHealth) {
-      const entry = { path: SYSTEM_HEALTH_PATH, icon: Activity, label: 'Saúde do Sistema' };
-      const settingsIdx = menuItems.findIndex(
-        (item) => (item.path || '').replace(/\/+$/, '') === '/app/settings'
-      );
-      if (settingsIdx >= 0) menuItems.splice(settingsIdx, 0, entry);
-      else menuItems.push(entry);
-    }
-  }
-
-  const healthPresentInSidebar = menuItems.some(
-    (item) => item.path && (item.path || '').replace(/\/+$/, '') === SYSTEM_HEALTH_PATH
-  );
-  const showPinnedSystemHealthNav =
-    !isUserSettingsFocus && hasAppSession && !healthPresentInSidebar;
 
   if (isUserSettingsFocus) {
     menuItems = [
@@ -668,12 +626,11 @@ export default function Layout({ children }) {
             const Icon = item.icon;
             const itemNorm = item.path.replace(/\/+$/, '') || '/';
             const isActive = pathNorm === itemNorm;
-            const systemHealthLink = itemNorm === '/app/admin/system-health';
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`nav-item${systemHealthLink ? ' nav-item--system-health' : ''}${isActive ? ' active' : ''}`}
+                className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}
                 onMouseEnter={() => prefetchRoute(item.path)}
                 onClick={closeSidebarAfterNav}
@@ -700,19 +657,22 @@ export default function Layout({ children }) {
               </Link>
             );
           })}
-          {showPinnedSystemHealthNav && (
-            <Link
-              key="system-health-pinned"
-              to={SYSTEM_HEALTH_PATH}
-              className={`nav-item nav-item--system-health${pathNormRoot === SYSTEM_HEALTH_PATH ? ' active' : ''}`}
+          {!isUserSettingsFocus && userCanAccessSystemHealth(user) && (
+            <button
+              type="button"
+              key="system-health-nav"
+              className={`nav-item nav-item--system-health${showSystemHealth ? ' active' : ''}`}
               title="Saúde do Sistema"
-              onMouseEnter={() => prefetchRoute(SYSTEM_HEALTH_PATH)}
-              onClick={closeSidebarAfterNav}
+              aria-current={showSystemHealth ? 'true' : undefined}
+              onClick={() => {
+                setShowSystemHealth(true);
+                closeSidebarAfterNav();
+              }}
             >
               <span className="nav-dot" />
               <Activity size={18} aria-hidden />
               {sidebarOpen && <span>Saúde do Sistema</span>}
-            </Link>
+            </button>
           )}
         </nav>
 
@@ -752,20 +712,6 @@ export default function Layout({ children }) {
           </div>
 
           <div className="header-right" ref={headerDropdownRef}>
-            {!isUserSettingsFocus && hasAppSession && (
-              <Link
-                to={SYSTEM_HEALTH_PATH}
-                className={`topbar-health-link${pathNormRoot === SYSTEM_HEALTH_PATH ? ' topbar-health-link--active' : ''}`}
-                title="Saúde do Sistema"
-                onClick={() => {
-                  prefetchRoute(SYSTEM_HEALTH_PATH);
-                  closeSidebarAfterNav();
-                }}
-              >
-                <Activity size={16} aria-hidden />
-                <span>Saúde do Sistema</span>
-              </Link>
-            )}
             <div className="sys-status" title="Status do sistema">
               <span className="pulse" />
               SISTEMA ATIVO
@@ -917,6 +863,10 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
+
+      {showSystemHealth && (
+        <SystemHealthDrawer onClose={() => setShowSystemHealth(false)} />
+      )}
 
       <ImpetusPulseModal
         isOpen={pulseUi.promptOpen}

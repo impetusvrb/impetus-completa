@@ -50,12 +50,7 @@
     "test:intent-advanced": "node src/tests/intentDetectionAdvancedScenarios.js",
     "test:contextual-merge": "node src/tests/contextualDataMergeScenarios.js",
     "test:cognitive-e2e-db": "node src/tests/cognitiveUserRoleDbIntegration.js",
-    "test:cognitive-controller": "node src/tests/cognitiveControllerE2e.js",
-    "test:cognitive-attachment": "node src/tests/cognitiveAttachmentContractScenarios.js",
-    "test:cognitive-attachment-comparison": "node src/tests/cognitiveAttachmentComparisonTest.js",
-    "test:strategic-learning": "node src/tests/strategicLearningIntegrationTest.js",
-    "test:event-pipeline": "node src/tests/eventPipelineScenarios.js",
-    "test:cognitive-overlay": "node src/tests/cognitiveAttachmentOverlayScenarios.js"
+    "test:strategic-learning": "node src/tests/strategicLearningIntegrationTest.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

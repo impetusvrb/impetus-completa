@@ -191,7 +191,7 @@ router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
     const suspicious = await roleVerification.detectSuspiciousPatterns(req.user.company_id);
     res.json({ ok: true, users: list, suspicious_alerts: suspicious });
   } catch (e) {
-    console.error('[ROLE_VERIFICATION_PANEL]', e?.message || e);
+    console.error('[ROLE_VERIFICATION_PANEL]', e);
     res.status(500).json({ ok: false, error: 'Erro ao carregar painel' });
   }
 });
@@ -202,10 +202,9 @@ router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
  */
 router.get('/check-email', requireAuth, requireCompanyActive, async (req, res) => {
   try {
-    const companyRes = await db.query(
-      `SELECT company_domain, email_responsavel FROM companies WHERE id = $1`,
-      [req.user.company_id]
-    );
+    const companyRes = await db.query(`
+      SELECT company_domain, data_controller_email FROM companies WHERE id = $1
+    `, [req.user.company_id]);
     const company = companyRes.rows[0] || {};
     const isCorporate = await roleVerification.checkCorporateEmail(req.user, company);
     res.json({ ok: true, is_corporate: isCorporate });

@@ -79,38 +79,6 @@ router.post('/mes-erp/connectors', requireAuth, requireCompanyActive, requireInd
   }
 });
 
-router.get(
-  '/mes-erp/connectors/:connectorId/logs',
-  requireAuth,
-  requireCompanyActive,
-  async (req, res) => {
-    try {
-      const limit = req.query.limit || 50;
-      const logs = await mesErp.listSyncLogs(req.user.company_id, req.params.connectorId, limit);
-      res.json({ ok: true, logs });
-    } catch (err) {
-      res.status(500).json({ ok: false, error: err?.message });
-    }
-  }
-);
-
-router.post(
-  '/mes-erp/connectors/:connectorId/test',
-  requireAuth,
-  requireCompanyActive,
-  requireIndustrialAdmin,
-  async (req, res) => {
-    try {
-      const out = await mesErp.testConnectorOutbound(req.user.company_id, req.params.connectorId);
-      res.json({ ok: true, ...out });
-    } catch (err) {
-      const status =
-        Number(err.status) >= 400 && Number(err.status) < 600 ? Number(err.status) : 500;
-      res.status(status).json({ ok: false, error: err?.message || 'Erro no teste' });
-    }
-  }
-);
-
 // ---- Produção em tempo real (registro manual) ----
 
 router.post('/production/shift', requireAuth, requireCompanyActive, async (req, res) => {
@@ -168,32 +136,6 @@ router.post('/edge/register', requireAuth, requireCompanyActive, requireIndustri
     res.status(500).json({ ok: false, error: err?.message });
   }
 });
-
-router.get('/edge/agents', requireAuth, requireCompanyActive, async (req, res) => {
-  try {
-    const agents = await edgeIngest.listEdgeAgents(req.user.company_id);
-    res.json({ ok: true, agents });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err?.message });
-  }
-});
-
-router.post(
-  '/edge/agents/:agentId/revoke',
-  requireAuth,
-  requireCompanyActive,
-  requireIndustrialAdmin,
-  async (req, res) => {
-    try {
-      await edgeIngest.revokeEdgeAgent(req.user.company_id, req.params.agentId);
-      const agents = await edgeIngest.listEdgeAgents(req.user.company_id);
-      res.json({ ok: true, agents });
-    } catch (err) {
-      const status = Number(err.status) === 404 ? 404 : 500;
-      res.status(status).json({ ok: false, error: err?.message });
-    }
-  }
-);
 
 // ---- Digital Twin ----
 

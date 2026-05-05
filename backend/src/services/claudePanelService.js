@@ -124,6 +124,25 @@ function validateAndNormalizePanel(parsed) {
   return { shouldRender: true, type: 'alert', title, description, output: { items } };
 }
 
+function hasNoDataSignal(text) {
+  const t = String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .trim();
+  if (!t) return false;
+  return (
+    t.includes('nao encontrei') ||
+    t.includes('nao encontrado') ||
+    t.includes('sem dados') ||
+    t.includes('nao localizei') ||
+    t.includes('informacao indisponivel') ||
+    t.includes('informacao nao disponivel') ||
+    t.includes('nao ha dados') ||
+    t.includes('nao tenho dados')
+  );
+}
+
 function buildSystemPrompt(user) {
   const perms = (dashboardAccessService.getEffectivePermissions(user) || []).slice(0, 40);
   const role = String(user?.role || 'colaborador');
@@ -140,7 +159,8 @@ REGRAS:
 1. Responda APENAS um JSON válido, sem markdown, sem texto fora do JSON.
 2. Se a conversa for só saudação, despedida ou sem pedido de dados/visualização, retorne exatamente: {"shouldRender":false}
 3. Caso contrário shouldRender: true e preencha type, title, description, output conforme o pedido.
-4. Gere dados plausíveis para o contexto industrial/operacional quando não houver números explícitos na conversa — nunca deixe labels vazios para gráficos pedidos.
+4. NÃO invente números/dados. Se a resposta da IA de voz indicar que não encontrou informação no sistema, retorne {"shouldRender":false}.
+5. Se shouldRender=true, evite labels vazios e mantenha coerência com o pedido do utilizador.
 
 Schema obrigatório quando shouldRender é true:
 {
@@ -191,6 +211,10 @@ async function generateVisualPanel(user, body) {
   const assistantResponse = String(body?.assistantResponse || '').trim();
   if (!userTranscript && !assistantResponse) {
     return { ok: false, error: 'Transcrição vazia.', shouldRender: false };
+  }
+
+  if (hasNoDataSignal(assistantResponse)) {
+    return { ok: true, shouldRender: false };
   }
 
   if (!claudeService.isAvailable()) {

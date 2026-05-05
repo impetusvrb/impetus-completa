@@ -30,17 +30,7 @@ const ALLOWED_INCREMENT_METRICS = new Set([
   'ai_responses_blocked',
   'policy_violations_count',
   'compliance_incidents_count',
-  'errors_count',
-  'chat_data_state_tenant_empty',
-  'chat_data_state_tenant_inactive',
-  'chat_data_state_production_paused',
-  'chat_data_state_production_active',
-  'chat_no_data_mode_responses',
-  'chat_forbidden_phrase_blocks',
-  'chat_briefing_injected',
-  'incidents_phantom_blocked',
-  'cooperative_actions_offered',
-  'cooperative_actions_accepted'
+  'errors_count'
 ]);
 
 const metrics = {
@@ -49,17 +39,7 @@ const metrics = {
   ai_responses_blocked: 0,
   policy_violations_count: 0,
   compliance_incidents_count: 0,
-  errors_count: 0,
-  chat_data_state_tenant_empty: 0,
-  chat_data_state_tenant_inactive: 0,
-  chat_data_state_production_paused: 0,
-  chat_data_state_production_active: 0,
-  chat_no_data_mode_responses: 0,
-  chat_forbidden_phrase_blocks: 0,
-  chat_briefing_injected: 0,
-  incidents_phantom_blocked: 0,
-  cooperative_actions_offered: 0,
-  cooperative_actions_accepted: 0
+  errors_count: 0
 };
 
 const latencyCognitive = { sum: 0, count: 0 };
@@ -285,17 +265,14 @@ function resetConsecutiveErrors() {
   consecutiveErrors = 0;
 }
 
-function markCouncilStart({ traceId, companyId, userId, module, orchestration }) {
+function markCouncilStart({ traceId, companyId, userId, module }) {
   incrementMetric('total_requests');
   bumpTenant(companyId, 'requests');
   logEvent('INFO', 'AI_REQUEST', {
     trace_id: traceId,
     company_id: companyId || undefined,
     user_id: userId || undefined,
-    details: {
-      module: module || 'cognitive_council',
-      ...(orchestration && typeof orchestration === 'object' ? { orchestration } : {})
-    }
+    details: { module: module || 'cognitive_council' }
   });
 }
 
@@ -466,44 +443,6 @@ function resetAllMetrics() {
   resetRollingWindows();
 }
 
-function markChatDataState(dataState, companyId) {
-  const key = `chat_data_state_${dataState}`;
-  if (ALLOWED_INCREMENT_METRICS.has(key)) {
-    metrics[key] = (metrics[key] || 0) + 1;
-  }
-  bumpTenant(companyId, 'requests');
-}
-
-function markBriefingInjected(companyId) {
-  metrics.chat_briefing_injected = (metrics.chat_briefing_injected || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
-function markNoDataModeUsed(companyId) {
-  metrics.chat_no_data_mode_responses = (metrics.chat_no_data_mode_responses || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
-function markForbiddenPhraseBlocked(companyId) {
-  metrics.chat_forbidden_phrase_blocks = (metrics.chat_forbidden_phrase_blocks || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
-function markPhantomIncidentBlocked(companyId) {
-  metrics.incidents_phantom_blocked = (metrics.incidents_phantom_blocked || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
-function markCooperativeActionOffered(companyId) {
-  metrics.cooperative_actions_offered = (metrics.cooperative_actions_offered || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
-function markCooperativeActionAccepted(companyId) {
-  metrics.cooperative_actions_accepted = (metrics.cooperative_actions_accepted || 0) + 1;
-  bumpTenant(companyId, 'requests');
-}
-
 module.exports = {
   logEvent,
   scanLogForSecrets,
@@ -522,12 +461,5 @@ module.exports = {
   resetRollingWindows,
   resetAllMetrics,
   resetConsecutiveErrors,
-  DEFAULT_THRESHOLDS,
-  markChatDataState,
-  markBriefingInjected,
-  markNoDataModeUsed,
-  markForbiddenPhraseBlocked,
-  markPhantomIncidentBlocked,
-  markCooperativeActionOffered,
-  markCooperativeActionAccepted
+  DEFAULT_THRESHOLDS
 };

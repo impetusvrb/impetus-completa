@@ -285,6 +285,15 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
           if (!data?.ok) {
             const errMsg = String(data?.error || '');
             const leg = voiceBridgeLegacyPrompt(userTranscript, assistantResponse);
+            const noDataSemantic =
+              /nao encontrei|não encontrei|sem dados|nao localizado|não localizado|informacao indisponivel|informação indisponível/i.test(
+                `${errMsg} ${assistantResponse}`
+              );
+            if (noDataSemantic) {
+              setCurrentOutput(null);
+              setError(null);
+              return;
+            }
             if (shouldFallbackVoiceClaudeToLegacy(userTranscript, assistantResponse, errMsg, r?.status)) {
               void sendCommand(leg);
               return;
@@ -293,8 +302,8 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
             return;
           }
           if (!data.shouldRender) {
-            const leg = voiceBridgeLegacyPrompt(userTranscript, assistantResponse);
-            if (leg.length >= 4) void sendCommand(leg);
+            setCurrentOutput(null);
+            setError(null);
             return;
           }
           setCurrentOutput({

@@ -529,46 +529,6 @@
   position: relative;
 }
 
-.topbar-health-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  margin-right: 4px;
-  font-family: var(--font-mono, 'Share Tech Mono', monospace);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--cyan, #00d4ff);
-  text-decoration: none;
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  border-radius: 6px;
-  background: rgba(0, 212, 255, 0.06);
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.topbar-health-link:hover {
-  border-color: rgba(0, 212, 255, 0.55);
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--cyan);
-}
-
-.topbar-health-link--active {
-  border-color: rgba(0, 212, 255, 0.65);
-  background: rgba(0, 212, 255, 0.14);
-}
-
-@media (max-width: 900px) {
-  .topbar-health-link span {
-    display: none;
-  }
-  .topbar-health-link {
-    padding: 8px;
-    margin-right: 0;
-  }
-}
-
 .header-dropdown-wrapper {
   position: relative;
 }
