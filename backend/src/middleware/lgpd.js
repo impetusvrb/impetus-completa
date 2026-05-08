@@ -273,8 +273,8 @@ async function exportUserData(userId) {
             OR description ILIKE '%role%'
             OR description ILIKE '%cargo%'
           )
-        ORDER BY created_at DESC
-        LIMIT 500
+      ORDER BY created_at DESC
+      LIMIT 500
       `,
         [companyId, userId]
       );

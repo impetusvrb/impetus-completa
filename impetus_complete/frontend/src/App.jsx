@@ -222,7 +222,7 @@ export default function App() {
     <NotificationProvider>
       <ErrorOffline />
       <ErrorBoundary>
-      <BrowserRouter>
+        <BrowserRouter>
           <ImpetusVoiceProvider>
           <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -261,9 +261,9 @@ export default function App() {
             <SetupGuard>
               <LiveDashboardVivoGuard>
                 <CEORouteGuard>
-                  <ColaboradorRouteGuard>
+              <ColaboradorRouteGuard>
                     <LiveIntelligentDashboard />
-                  </ColaboradorRouteGuard>
+              </ColaboradorRouteGuard>
                 </CEORouteGuard>
               </LiveDashboardVivoGuard>
             </SetupGuard>
@@ -362,7 +362,7 @@ export default function App() {
           </Suspense>
           </ImpetusVoiceProvider>
         </BrowserRouter>
-        </ErrorBoundary>
+      </ErrorBoundary>
     </NotificationProvider>
   );
 }

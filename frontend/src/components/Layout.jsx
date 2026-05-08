@@ -51,6 +51,7 @@ import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
 import { useVisibleModules } from '../hooks/useVisibleModules';
+import { buildHybridMenu } from '../utils/contextualSidebarBuilder';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu, isStrictAdminRole } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
@@ -218,7 +219,7 @@ export default function Layout({ children }) {
       }
     }).catch(() => {});
   }, []);
-
+  
   // Pegar dados do usuário do localStorage
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
@@ -240,7 +241,14 @@ export default function Layout({ children }) {
     '/app/cerebro-operacional',
     '/app/insights'
   ]);
-  const { filterMenu, canAccessPath, loading: modulesLoading, maintenanceFromProfile } = useVisibleModules();
+  const {
+    filterMenu,
+    canAccessPath,
+    loading: modulesLoading,
+    maintenanceFromProfile,
+    contextualModules,
+    contextualMeta
+  } = useVisibleModules();
   const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
   const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
 
@@ -452,7 +460,18 @@ export default function Layout({ children }) {
     }
   }
 
-  let menuItems = filterMenu(baseMenuItems);
+  // Phase 8 — Camada contextual híbrida (aditiva, off-by-default no servidor).
+  //
+  // Em produção `IMPETUS_CONTEXTUAL_MODULES=off` → backend NÃO emite
+  // `contextual_modules` no payload e `contextualModules` aqui é []. Logo
+  // `buildHybridMenu` devolve `baseMenuItems` intacto e o comportamento legacy
+  // é 100% preservado. Quando o flag for `enrich` (rollout por empresa/perfil),
+  // os módulos contextualmente eligíveis (CFO → centro de custos, mapa de
+  // vazamento, centro de previsão, etc.) são injectados após o item /app, sem
+  // duplicação e respeitando policies/capabilities (já filtrado no backend).
+  const baseMenuItemsHybrid = buildHybridMenu(baseMenuItems, contextualModules);
+
+  let menuItems = filterMenu(baseMenuItemsHybrid);
   menuItems = menuItems.filter((item) => {
     const p = (item.path || '').replace(/\/+$/, '') || '/';
     if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
@@ -712,10 +731,6 @@ export default function Layout({ children }) {
           </div>
 
           <div className="header-right" ref={headerDropdownRef}>
-            <div className="sys-status" title="Status do sistema">
-              <span className="pulse" />
-              SISTEMA ATIVO
-            </div>
             {voiceUiEnabled && (
               <button
                 type="button"

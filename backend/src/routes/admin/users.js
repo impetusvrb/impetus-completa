@@ -8,6 +8,8 @@ const router = express.Router();
 const db = require('../../db');
 const { requireAuth, requireHierarchy, hashPassword, generateToken, createSession } = require('../../middleware/auth');
 const { invalidateScopeCache } = require('../../middleware/hierarchyScope');
+const userIdentitySync = require('../../services/userIdentitySync');
+const userIdentityCacheBus = require('../../services/userIdentityCacheBus');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
 const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
@@ -349,7 +351,18 @@ router.post('/',
 
       const area = validatedData.area || null;
       const isCustomArea = area && !AREA_OPTIONS.includes(area);
-      const hierarchyLevel = validatedData.role === 'ceo' ? 0 : (area ? (AREA_TO_LEVEL[area] ?? 5) : (validatedData.hierarchy_level ?? 5));
+      const fallbackLevelByArea = validatedData.role === 'ceo'
+        ? 0
+        : (area ? (AREA_TO_LEVEL[area] ?? null) : (validatedData.hierarchy_level ?? null));
+      // Phase 7: company_roles é a fonte canónica. Se o admin escolheu um
+      // company_role_id válido, herdamos o nível dele; senão caímos no
+      // mapeamento legado por area / role / default.
+      const resolvedLevel = await userIdentitySync.resolveLevelForPersistence({
+        companyRoleId,
+        fallbackLevel: fallbackLevelByArea,
+        role: validatedData.role
+      });
+      const hierarchyLevel = resolvedLevel.level;
       const functionalArea = validatedData.functional_area || (isCustomArea ? inferFunctionalAreaFromArea(area) : null) || null;
 
       let hrResponsibilitiesParsed = [];
@@ -388,7 +401,7 @@ router.post('/',
         validatedData.supervisor_id || null,
         validatedData.phone || null,
         validatedData.whatsapp_number || null,
-        validatedData.role === 'ceo' ? 0 : hierarchyLevel,
+        hierarchyLevel,
         JSON.stringify(validatedData.permissions || []),
         false,
         functionalArea,
@@ -422,6 +435,29 @@ router.post('/',
             err && err.message ? err.message : err
           );
         }
+      }
+
+      // Phase 7: garantir que users.hierarchy_level reflecte company_roles
+      // mesmo se algum caminho legado tiver gravado outro valor; invalidar
+      // todos os caches dependentes da identidade.
+      try {
+        await userIdentitySync.syncHierarchyFromCompanyRole({
+          userId: result.rows[0].id,
+          companyRoleId,
+          reason: 'admin_create_user'
+        });
+      } catch (err) {
+        console.warn('[admin/users][hierarchy_sync_create]', err && err.message ? err.message : err);
+      }
+      try {
+        await userIdentityCacheBus.invalidateUserIdentity({
+          userId: result.rows[0].id,
+          companyId: req.user.company_id,
+          reason: 'admin_create_user',
+          force: true
+        });
+      } catch (err) {
+        console.warn('[admin/users][cache_invalidate_create]', err && err.message ? err.message : err);
       }
 
       try {
@@ -537,6 +573,23 @@ router.put('/:id',
         }
       }
 
+      // Phase 7: company_roles é a fonte canónica. Se o admin escolheu (ou
+      // já tinha) um company_role_id válido, ele sobrepõe qualquer cálculo
+      // baseado em area/role acima.
+      try {
+        const effectiveCompanyRoleId = Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')
+          ? validatedData.company_role_id
+          : (beforeRow && beforeRow.company_role_id) || null;
+        if (effectiveCompanyRoleId) {
+          const crLevel = await userIdentitySync.getCompanyRoleHierarchy(effectiveCompanyRoleId);
+          if (crLevel !== null) {
+            validatedData.hierarchy_level = crLevel;
+          }
+        }
+      } catch (err) {
+        console.warn('[admin/users][hierarchy_canonical_update]', err && err.message ? err.message : err);
+      }
+
       // Construir query de update
       const updateFields = [];
       const params = [];
@@ -599,6 +652,27 @@ router.put('/:id',
             err && err.message ? err.message : err
           );
         }
+      }
+
+      // Phase 7: re-sincronizar idempotentemente e invalidar todos os
+      // caches dependentes da identidade do utilizador.
+      try {
+        await userIdentitySync.syncHierarchyFromCompanyRole({
+          userId: req.params.id,
+          reason: 'admin_update_user'
+        });
+      } catch (err) {
+        console.warn('[admin/users][hierarchy_sync_update]', err && err.message ? err.message : err);
+      }
+      try {
+        await userIdentityCacheBus.invalidateUserIdentity({
+          userId: req.params.id,
+          companyId: req.user.company_id,
+          reason: 'admin_update_user',
+          fieldsChanged: Object.keys(validatedData)
+        });
+      } catch (err) {
+        console.warn('[admin/users][cache_invalidate_update]', err && err.message ? err.message : err);
       }
 
       // Log de auditoria

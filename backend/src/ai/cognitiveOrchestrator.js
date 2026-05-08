@@ -452,7 +452,7 @@ async function runCognitiveCouncil(params) {
     });
 
     const { compliancePack } = await complianceLayer.applyComplianceAfterExecution({
-      traceId,
+    traceId,
       user,
       synthesis,
       dossier,
@@ -471,16 +471,16 @@ async function runCognitiveCouncil(params) {
       options,
       traceId,
       synthesis,
-      dossier,
+    dossier,
       effectivePolicyBundle
-    });
+  });
 
-    dossier.decision.recommendation = synthesis.answer;
-    dossier.decision.confidence = synthesis.confidence;
+  dossier.decision.recommendation = synthesis.answer;
+  dossier.decision.confidence = synthesis.confidence;
     finalizeLayerFinal(dossier, { synthesis, finalText: synthesis.answer });
 
-    const explanationLayer = {
-      trace_id: traceId,
+  const explanationLayer = {
+    trace_id: traceId,
       ...synthesis.explanation_layer,
       orchestration: {
         intent: dossier.context.intent,
@@ -496,40 +496,40 @@ async function runCognitiveCouncil(params) {
             }
           : {})
       }
-    };
+  };
 
-    const duration = Date.now() - t0;
+  const duration = Date.now() - t0;
     const stages = executionLayer.buildStagesArray(dossier);
     const layersPublic = sanitizeLayersForHttpResponse(dossier);
 
-    try {
-      await cognitiveAudit.insertDecisionLog({
-        trace_id: traceId,
-        company_id: user.company_id,
-        user_id: user.id,
-        pipeline_version: PIPELINE_VERSION,
-        module,
-        intent: dossier.context.intent,
-        risk_level: risk,
-        models_used: dossier.meta.models_touched,
-        dossier_summary: redactForPersistence(dossier),
-        stages_detail: {
-          logs: dossier.logs,
-          cross_validation: dossier.analysis.cross_validation || null,
+  try {
+    await cognitiveAudit.insertDecisionLog({
+      trace_id: traceId,
+      company_id: user.company_id,
+      user_id: user.id,
+      pipeline_version: PIPELINE_VERSION,
+      module,
+      intent: dossier.context.intent,
+      risk_level: risk,
+      models_used: dossier.meta.models_touched,
+      dossier_summary: redactForPersistence(dossier),
+      stages_detail: {
+        logs: dossier.logs,
+        cross_validation: dossier.analysis.cross_validation || null,
           degraded: dossier.meta.degraded,
           layers: layersPublic
-        },
-        final_output: synthesis,
-        explanation_layer: explanationLayer,
-        confidence: synthesis.confidence,
-        requires_human_validation: dossier.decision.requires_human_validation !== false,
-        requires_cross_validation: wantCross,
-        degraded_mode: dossier.meta.degraded,
-        duration_ms: duration
-      });
-    } catch (err) {
-      console.warn('[COGNITIVE_AUDIT]', err.message);
-    }
+      },
+      final_output: synthesis,
+      explanation_layer: explanationLayer,
+      confidence: synthesis.confidence,
+      requires_human_validation: dossier.decision.requires_human_validation !== false,
+      requires_cross_validation: wantCross,
+      degraded_mode: dossier.meta.degraded,
+      duration_ms: duration
+    });
+  } catch (err) {
+    console.warn('[COGNITIVE_AUDIT]', err.message);
+  }
 
     aiAnalytics.enqueueAiTrace({
       trace_id: traceId,
@@ -680,10 +680,10 @@ async function runCognitiveCouncil(params) {
 
     commitContextSessionFromCouncil(user, { intentData, multiIntentList, enrichedData });
 
-    return {
-      ok: true,
+  return {
+    ok: true,
       traceId,
-      trace_id: traceId,
+    trace_id: traceId,
       processing_transparency,
       result: {
         content: synthesis.content,
@@ -700,11 +700,11 @@ async function runCognitiveCouncil(params) {
       stages,
       layers: layersPublic,
       dossier: dossierForClient,
-      synthesis,
-      explanation_layer: explanationLayer,
-      duration_ms: duration,
-      degraded: dossier.meta.degraded
-    };
+    synthesis,
+    explanation_layer: explanationLayer,
+    duration_ms: duration,
+    degraded: dossier.meta.degraded
+  };
   };
 
   try {

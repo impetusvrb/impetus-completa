@@ -9,6 +9,7 @@
 const db = require('../db');
 const { isValidUUID } = require('../utils/security');
 const { detectFallbackQuality } = require('../utils/detectFallbackQuality');
+const { getRecentInteractions } = require('./learningMemoryService');
 
 const MAX_CONTEXT_TAGS = 8;
 const INTENT_MAX = 160;
@@ -411,6 +412,66 @@ function scheduleStrategicLearningAfterCognitiveRun({ user, dossier, synthesis }
   }
 }
 
+/** Fase 8 — confiança na memória operacional (0–1 ou 0–100). */
+function memoryConfidenceToPercent(c) {
+  if (c == null || !Number.isFinite(Number(c))) return null;
+  const n = Number(c);
+  if (n >= 0 && n <= 1) return n * 100;
+  return n;
+}
+
+function interactionDataState(i) {
+  const ctx = i && typeof i.context === 'object' ? i.context : {};
+  if (ctx.metrics && ctx.metrics.data_state != null) return String(ctx.metrics.data_state);
+  if (ctx.contextual_pack && ctx.contextual_pack.metrics && ctx.contextual_pack.metrics.data_state != null) {
+    return String(ctx.contextual_pack.metrics.data_state);
+  }
+  return undefined;
+}
+
+/**
+ * Padrões globais a partir da memória operacional (processo) — sem alterar pipeline nem decisão.
+ * @returns {Array<{ type: string, severity: string }>}
+ */
+function analyzeSystemPatterns() {
+  const data = getRecentInteractions();
+
+  if (data.length < 50) return [];
+
+  const withScore = data.filter((i) => memoryConfidenceToPercent(i.confidence) != null);
+  if (withScore.length < 50) return [];
+
+  const lowConfidenceRate =
+    withScore.filter((i) => memoryConfidenceToPercent(i.confidence) < 50).length / withScore.length;
+
+  const noDataRate =
+    data.filter((i) => interactionDataState(i) !== 'production_active').length / data.length;
+
+  const patterns = [];
+
+  if (lowConfidenceRate > 0.4) {
+    patterns.push({
+      type: 'low_confidence_global',
+      severity: 'medium'
+    });
+  }
+
+  if (noDataRate > 0.5) {
+    patterns.push({
+      type: 'high_no_data_usage',
+      severity: 'high'
+    });
+  }
+
+  try {
+    if (patterns.length) {
+      console.log('[STRATEGIC_PATTERN]', patterns);
+    }
+  } catch (_e) {}
+
+  return patterns;
+}
+
 module.exports = {
   recordDecisionTrace,
   recordDecisionTraceAsync,
@@ -419,5 +480,6 @@ module.exports = {
   getStrategicInsights,
   recordDecisionTraceFromCognitiveRun,
   onCognitiveExecutionComplete,
-  scheduleStrategicLearningAfterCognitiveRun
+  scheduleStrategicLearningAfterCognitiveRun,
+  analyzeSystemPatterns
 };

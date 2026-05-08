@@ -19,6 +19,13 @@ backend/.env
 frontend/.env
 **/.env
 !**/.env.example
+# Backups de .env (.env.bkp*, .env.backup*, .env.*.bak) — nunca versionar
+.env.bkp*
+.env.backup*
+.env.*.bak
+**/.env.bkp*
+**/.env.backup*
+**/.env.*.bak
 
 # Chaves e credenciais (nunca versionar)
 *.pem

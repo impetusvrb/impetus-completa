@@ -576,6 +576,69 @@ async function listTracesForCompany(companyId, limit = 50) {
   return r.rows.map((row) => hydrateTracePayloadsForRead(row));
 }
 
+function complaintStatsRecordingEnabled() {
+  const v = String(process.env.IMPETUS_COMPLAINT_STATS_ENABLED ?? 'true')
+    .trim()
+    .toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'no';
+}
+
+/** Contagem em memória por processo (sem BD). */
+let complaintStats = {
+  total: 0,
+  falsePositives: 0
+};
+
+/**
+ * @param {{ isFalsePositive?: boolean }} p
+ */
+function registerComplaint({ isFalsePositive = false } = {}) {
+  if (!complaintStatsRecordingEnabled()) return;
+  complaintStats.total += 1;
+  if (isFalsePositive) complaintStats.falsePositives += 1;
+  try {
+    console.log('[COMPLAINT_STATS]', getRecentComplaintStats());
+  } catch (_e) {}
+}
+
+/**
+ * @returns {{ falsePositives: number, total: number }}
+ */
+function getRecentComplaintStats() {
+  return { ...complaintStats };
+}
+
+const { generateInsights } = require('./learningInsightsService');
+
+function getLearningInsights() {
+  return generateInsights();
+}
+
+const supervisedLearningService = require('./supervisedLearningService');
+const strategicLearningService = require('./strategicLearningService');
+const adaptiveTuningService = require('./adaptiveTuningService');
+
+function getSupervisedLearningProposals() {
+  return supervisedLearningService.getProposals();
+}
+
+function scanSupervisedLearningProposals() {
+  return supervisedLearningService.scanAndStorePendingProposals();
+}
+
+function analyzeOperationalSystemPatterns() {
+  return strategicLearningService.analyzeSystemPatterns();
+}
+
+function generateStrategicAdjustmentProposals() {
+  return supervisedLearningService.generateStrategicProposals();
+}
+
+/** Pós-processamento seguro do texto do assistente (Fase 8 — só com aprovação + rollout). */
+function applyStrategicAssistantTextTail(text, context) {
+  return adaptiveTuningService.applyStrategicAdjustments({ text, context });
+}
+
 module.exports = {
   redactForTrace,
   summarizeDossierData,
@@ -584,5 +647,13 @@ module.exports = {
   updateTraceHumanValidation,
   getLatestPendingTraceForUser,
   listTracesForCompany,
-  hydrateTracePayloadsForRead
+  hydrateTracePayloadsForRead,
+  getRecentComplaintStats,
+  registerComplaint,
+  getLearningInsights,
+  getSupervisedLearningProposals,
+  scanSupervisedLearningProposals,
+  analyzeOperationalSystemPatterns,
+  generateStrategicAdjustmentProposals,
+  applyStrategicAssistantTextTail
 };

@@ -15,8 +15,8 @@
 const REALTIME_PATH = import.meta.env.VITE_REALTIME_WS_PATH || '/impetus-realtime';
 const OUTPUT_SAMPLE_RATE = 24000;
 
-/** Limite máximo de fala por resposta (~10 s de áudio). Sobrescrevível por VITE_REALTIME_MAX_SPEECH_MS. */
-export const REALTIME_MAX_SPEECH_MS = 10000;
+/** Limite máximo de fala por resposta (~30 s de áudio). Sobrescrevível por VITE_REALTIME_MAX_SPEECH_MS. */
+export const REALTIME_MAX_SPEECH_MS = 30000;
 
 function envBool(key, defaultVal) {
   const raw = import.meta.env[key];
@@ -40,12 +40,15 @@ export function getRealtimeVoiceRuntimeConfig() {
   const delayRaw = envInt('VITE_REALTIME_RESPONSE_DELAY_MS', 380);
   return {
     voiceSpeed: clampVoiceSpeed(envFloat('VITE_REALTIME_VOICE_SPEED', 0.9)),
-    maxSpeechMs: Math.max(2000, envInt('VITE_REALTIME_MAX_SPEECH_MS', 16000)),
-    maxResponseTokens: Math.max(16, envInt('VITE_REALTIME_MAX_RESPONSE_TOKENS', 140)),
+    maxSpeechMs: Math.max(2000, envInt('VITE_REALTIME_MAX_SPEECH_MS', REALTIME_MAX_SPEECH_MS)),
+    maxResponseTokens: Math.max(16, envInt('VITE_REALTIME_MAX_RESPONSE_TOKENS', 420)),
     interruptResponse: envBool('VITE_REALTIME_INTERRUPT_RESPONSE', true),
     voiceDebug: envBool('VITE_REALTIME_VOICE_DEBUG', false),
-    localBargeRms: envFloat('VITE_REALTIME_LOCAL_BARGE_RMS', 0.03),
-    localBargeBlocks: Math.max(2, envInt('VITE_REALTIME_LOCAL_BARGE_BLOCKS', 4)),
+    // Barge-in local por RMS pode cortar a fala da IA por falso positivo (eco/retorno).
+    // Mantido desativado por padrão; ative apenas se precisar interrupção agressiva por voz.
+    localBargeEnabled: envBool('VITE_REALTIME_LOCAL_BARGE_ENABLED', false),
+    localBargeRms: envFloat('VITE_REALTIME_LOCAL_BARGE_RMS', 0.07),
+    localBargeBlocks: Math.max(2, envInt('VITE_REALTIME_LOCAL_BARGE_BLOCKS', 8)),
     /** Pausa após o utilizador parar de falar antes de pedir/generar resposta (naturalidade). */
     responseDelayMs: Math.min(2200, Math.max(0, delayRaw))
   };
@@ -350,6 +353,8 @@ export class OpenaiRealtimeVoiceSession {
     this._lastInterruptAt = 0;
     /** Duração PCM agendada na resposta atual (corte mesmo com poucos deltas). */
     this._assistantPcmSecondsAccumulated = 0;
+    /** Tolerância para não cortar no limite exato e truncar fim da frase. */
+    this._maxSpeechGraceMs = 1400;
     /** `response.create` diferido após speech_stopped (pausa antes da IA falar). */
     this._pendingResponseTimer = null;
   }
@@ -513,10 +518,10 @@ export class OpenaiRealtimeVoiceSession {
       return;
     }
     const elapsed = now - this._speechStartedAtFirstDelta;
-    if (elapsed >= cfg.maxSpeechMs) {
+    if (elapsed >= cfg.maxSpeechMs + this._maxSpeechGraceMs) {
       console.info('[impetus-realtime-voice] speech cut — wall-clock limit', {
         assistantSpeechElapsedMs: elapsed,
-        maxMs: cfg.maxSpeechMs,
+        maxMs: cfg.maxSpeechMs + this._maxSpeechGraceMs,
         speed: cfg.voiceSpeed
       });
       this._interruptAssistantForUserSpeech('max_speech_ms');
@@ -684,7 +689,13 @@ export class OpenaiRealtimeVoiceSession {
 
         if (t === 'input_audio_buffer.speech_started') {
           this._clearPendingResponseTimer();
-          if (this.phase === 'speaking' || !this.appendMicToApi) {
+          const cfgSpeechStarted = getRealtimeVoiceRuntimeConfig();
+          // Só interrompe por speech_started quando barge-in local estiver explicitamente ativo.
+          if (
+            cfgSpeechStarted.interruptResponse &&
+            cfgSpeechStarted.localBargeEnabled &&
+            (this.phase === 'speaking' || !this.appendMicToApi)
+          ) {
             this._interruptAssistantForUserSpeech('server_speech_started');
           }
         }
@@ -739,10 +750,10 @@ export class OpenaiRealtimeVoiceSession {
               const ab = base64ToArrayBuffer(ev.delta);
               const pcmSec = new Int16Array(ab).length / OUTPUT_SAMPLE_RATE;
               this._assistantPcmSecondsAccumulated += pcmSec;
-              if (this._assistantPcmSecondsAccumulated * 1000 >= cfgAudio.maxSpeechMs) {
+              if (this._assistantPcmSecondsAccumulated * 1000 >= cfgAudio.maxSpeechMs + this._maxSpeechGraceMs) {
                 console.info('[impetus-realtime-voice] speech cut — PCM limit reached', {
                   pcmSeconds: this._assistantPcmSecondsAccumulated,
-                  maxMs: cfgAudio.maxSpeechMs,
+                  maxMs: cfgAudio.maxSpeechMs + this._maxSpeechGraceMs,
                   speed: cfgAudio.voiceSpeed
                 });
                 this._interruptAssistantForUserSpeech('max_speech_pcm');
@@ -836,7 +847,7 @@ export class OpenaiRealtimeVoiceSession {
       }
 
       /* Barge-in local: durante playback a API não recebe mic — VAD do servidor não corta a tempo. */
-      if (!this.appendMicToApi && this.phase === 'speaking' && cfg.interruptResponse) {
+      if (!this.appendMicToApi && this.phase === 'speaking' && cfg.interruptResponse && cfg.localBargeEnabled) {
         if (rms > cfg.localBargeRms) {
           this._bargeInBlockStreak += 1;
         } else {

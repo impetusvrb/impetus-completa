@@ -104,8 +104,8 @@ async function handleAIMessage(conversationId, content, io) {
         type: 'ai',
         content: 'Mensagem inválida ou vazia. Escreva um texto para eu poder ajudar.'
       });
-      if (io) io.to(conversationId).emit('new_message', fallback);
-      return fallback;
+    if (io) io.to(conversationId).emit('new_message', fallback);
+    return fallback;
     } catch (e) {
       console.error('[CHAT_LEGACY_FALLBACK] saveMessage invalid_message', e?.message ?? e);
       return { ok: false, message: 'Falha ao processar mensagem de IA' };

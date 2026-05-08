@@ -287,15 +287,48 @@ confidence: 0-100 (quão certa estás da classificação).`;
 
 /**
  * Classifica se a mensagem é reclamação sobre qualidade da resposta da IA (supervisora).
+ * @param {{ userMessage: string, lastAiResponse?: string|null }|string} input - objeto preferido; string mantida por compatibilidade
  * @returns {Promise<{ is_complaint: boolean, incident_type: string, confidence: number, reason_pt?: string }|null>}
  */
-async function classifyQualityComplaint(userMessage, opts = {}) {
+async function classifyQualityComplaint(input, opts = {}) {
+  let userMessage = '';
+  let lastAiResponse = null;
+  if (input != null && typeof input === 'object' && !Array.isArray(input)) {
+    userMessage = String(input.userMessage ?? '').slice(0, 2000);
+    lastAiResponse =
+      input.lastAiResponse != null && String(input.lastAiResponse).trim() !== ''
+        ? String(input.lastAiResponse).slice(0, 3000)
+        : null;
+  } else {
+    userMessage = String(input ?? '').slice(0, 2000);
+  }
+
+  const lastBlock =
+    lastAiResponse != null
+      ? `Resposta anterior da IA (se existir):
+"""
+${lastAiResponse}
+"""
+`
+      : `Resposta anterior da IA (se existir):
+"""
+N/A
+"""
+`;
+
   const prompt = `És um classificador de reclamações sobre respostas de IA numa plataforma industrial (IMPETUS).
 
 Mensagem do utilizador:
 """
-${String(userMessage || '').slice(0, 2000)}
+${userMessage}
 """
+
+${lastBlock}
+
+IMPORTANTE:
+- Só classifique como reclamação se houver crítica explícita à resposta anterior ou à qualidade/correção da IA.
+- Perguntas hipotéticas, estratégicas ou operacionais NÃO são reclamações.
+- Pedidos de recomendação, de decisão ou de avaliação de risco/situação NÃO são reclamações, a menos que incluam acusação explícita (ex.: "inventaste", "está errado").
 
 Decide se o utilizador está a REPORTAR um problema com a resposta anterior do assistente (ex.: alucinação, dados inventados ou incorretos, viés, tom inadequado, "isso está errado", "não confere", "estás a inventar").
 

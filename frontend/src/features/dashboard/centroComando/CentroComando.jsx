@@ -7,6 +7,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Layout from '../../../components/Layout';
 import { getLayoutPorCargo } from './LayoutPorCargo';
 import { dashboard } from '../../../services/api';
+import useDashboardContext from '../contextAdapter/useDashboardContext';
 import WidgetKpiCards from './WidgetKpiCards';
 import WidgetResumoExecutivo from './WidgetResumoExecutivo';
 import WidgetAlertas from './WidgetAlertas';
@@ -78,24 +79,12 @@ export default function CentroComando() {
   const department = user?.functional_area ?? user?.area ?? '';
   const dashboardProfile = user?.dashboard_profile ?? '';
 
-  const [personalizado, setPersonalizado] = useState(null);
   const [liveSurface, setLiveSurface] = useState(null);
   const layoutTrackSig = useRef('');
 
-  useEffect(() => {
-    dashboard.getPersonalizado()
-      .then((r) => {
-        if (r?.data?.ok) {
-          if (import.meta.env.DEV && r.data.layout_rules_version != null) {
-            console.debug('[CentroComando] layout_rules_version', r.data.layout_rules_version);
-          }
-          setPersonalizado(r.data);
-        }
-      })
-      .catch((err) => {
-        if (import.meta.env.DEV) console.warn('[CentroComando] /dashboard/personalizado falhou:', err?.response?.status ?? err?.message);
-      });
-  }, []);
+  // DashboardContextAdapter: prefere engine_v2 → personalizado → LayoutPorCargo (fallback).
+  // Mantém compatibilidade total com o fluxo anterior.
+  const { context: dashboardCtx } = useDashboardContext({ legacyLayoutFn: getLayoutPorCargo });
 
   useEffect(() => {
     dashboard.getLiveSurface()
@@ -130,29 +119,27 @@ export default function CentroComando() {
     };
   }, []);
 
-  const widgets = useMemo(() => {
-    if (personalizado?.layout?.length) return personalizado.layout;
-    return getLayoutPorCargo(role, department, dashboardProfile);
-  }, [personalizado, role, department, dashboardProfile]);
+  const widgets = useMemo(() => dashboardCtx.widgets, [dashboardCtx]);
 
   useEffect(() => {
     if (!widgets?.length || !user?.id || !user?.company_id) return;
-    const source = personalizado?.layout?.length ? 'personalizado_api' : 'layout_fallback';
+    const source = dashboardCtx.source;
     const sig = `${source}:${widgets.map((w) => w.id).join(',')}`;
     if (layoutTrackSig.current === sig) return;
     layoutTrackSig.current = sig;
     dashboard.trackInteraction('centro_comando_layout', 'dashboard_layout', dashboardProfile || role, {
       source,
-      widget_count: widgets.length
+      engine: dashboardCtx.engine,
+      trace_id: dashboardCtx.trace_id,
+      widget_count: widgets.length,
+      is_contextual: dashboardCtx.is_contextual
     }).catch(() => {});
-  }, [widgets, personalizado, user, role, dashboardProfile]);
+  }, [widgets, dashboardCtx, user, role, dashboardProfile]);
 
-  const titulo = personalizado?.perfil?.titulo_dashboard ?? 'Centro de Comando Industrial';
-  const subtitulo = personalizado?.perfil?.subtitulo
-    ? personalizado.perfil.subtitulo
-    : `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
-  const smartQuestions = personalizado?.assistente_ia?.exemplos_perguntas || [];
-  const fallbackMessages = personalizado?.assistente_ia?.mensagens_fallback || [];
+  const titulo = dashboardCtx.perfil.titulo;
+  const subtitulo = dashboardCtx.perfil.subtitulo || `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
+  const smartQuestions = dashboardCtx.assistente_ia.exemplos_perguntas;
+  const fallbackMessages = dashboardCtx.assistente_ia.mensagens_fallback;
 
   const showUnifiedLive = canAccessLiveDashboardUser(user);
 
@@ -178,26 +165,34 @@ export default function CentroComando() {
             </div>
           )}
         </header>
+        {/*
+          Phase 8 — Composição híbrida CentroComando.
+          Antes: liveSurface OR Grid (LiveSurface escondia totalmente o grid
+          executivo, fazendo desaparecer Centro de Custos / Mapa de
+          Vazamento / Centro de Previsão para CFO e widgets executivos para
+          CEO sempre que o backend devolvia qualquer bloco live).
+          Agora: liveSurface (no topo, se existir) + Grid (sempre).
+          Sem qualquer alteração de CSS, spacing, animações, tokens, DS.
+        */}
         {liveSurface?.blocks?.length ? (
           <LiveSurfacePanel surface={liveSurface} />
-        ) : (
-          <div className="cc__grid">
-            {widgets.map((w) => {
-              const Component = getWidgetComponent(w.id);
-              if (!Component) return null;
-              const span = w.position?.width === 2 ? 2 : 1;
-              return (
-                <div
-                  key={w.id}
-                  className="cc__cell"
-                  style={{ gridColumn: `span ${span}` }}
-                >
-                  <Component />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        ) : null}
+        <div className="cc__grid">
+          {widgets.map((w) => {
+            const Component = getWidgetComponent(w.id);
+            if (!Component) return null;
+            const span = w.position?.width === 2 ? 2 : 1;
+            return (
+              <div
+                key={w.id}
+                className="cc__cell"
+                style={{ gridColumn: `span ${span}` }}
+              >
+                <Component />
+              </div>
+            );
+          })}
+        </div>
         <footer className="ticker">
           <div className="ticker-label">// LIVE</div>
           <div className="ticker-items">

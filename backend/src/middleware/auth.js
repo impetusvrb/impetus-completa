@@ -7,6 +7,7 @@ const db = require('../db');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
+const { applyCanonicalHierarchy } = require('../services/hierarchyResolver');
 const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
 const { isAllowPartialEnv } = require('../config/configValidator');
@@ -73,7 +74,9 @@ async function validateSession(token) {
              u.temporary_password_expires_at, u.role_verified, u.role_verification_status, u.is_company_root,
              u.company_role_id, u.is_factory_team_account, u.operational_team_id,
              d.name AS department_resolved_name,
-             cr.dashboard_functional_hint AS company_role_dashboard_hint
+             cr.dashboard_functional_hint AS company_role_dashboard_hint,
+             cr.hierarchy_level AS company_role_hierarchy_level,
+             cr.name AS company_role_name
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
@@ -100,7 +103,7 @@ async function validateSession(token) {
       UPDATE users SET last_seen = now() WHERE id = $1
     `, [session.user_id]);
 
-    return {
+    const sessionUser = applyCanonicalHierarchy({
       id: session.id,
       name: session.name,
       email: session.email,
@@ -108,6 +111,8 @@ async function validateSession(token) {
       company_id: session.company_id,
       department_id: session.department_id,
       hierarchy_level: session.hierarchy_level,
+      company_role_hierarchy_level: session.company_role_hierarchy_level,
+      company_role_name: session.company_role_name,
       supervisor_id: session.supervisor_id,
       area: session.area,
       job_title: session.job_title,
@@ -135,7 +140,8 @@ async function validateSession(token) {
       factory_member_confirmed_at: session.factory_member_confirmed_at || null,
       department_resolved_name: session.department_resolved_name || null,
       company_role_dashboard_hint: session.company_role_dashboard_hint || null
-    };
+    });
+    return sessionUser;
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
     return null;
@@ -174,7 +180,9 @@ async function validateJWTAndLoadUser(token) {
              u.role_verified, u.role_verification_status, u.is_company_root, u.company_role_id,
              u.is_factory_team_account, u.operational_team_id,
              d.name AS department_resolved_name,
-             cr.dashboard_functional_hint AS company_role_dashboard_hint
+             cr.dashboard_functional_hint AS company_role_dashboard_hint,
+             cr.hierarchy_level AS company_role_hierarchy_level,
+             cr.name AS company_role_name
       FROM users u
       LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
       LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
@@ -184,7 +192,7 @@ async function validateJWTAndLoadUser(token) {
     if (r.rows.length === 0) return null;
     const u = r.rows[0];
     const companyId = u.company_id || decoded.company_id || null;
-    return {
+    return applyCanonicalHierarchy({
       id: u.id,
       name: u.name,
       email: u.email,
@@ -192,6 +200,8 @@ async function validateJWTAndLoadUser(token) {
       company_id: companyId,
       department_id: u.department_id,
       hierarchy_level: u.hierarchy_level,
+      company_role_hierarchy_level: u.company_role_hierarchy_level,
+      company_role_name: u.company_role_name,
       supervisor_id: u.supervisor_id,
       area: u.area,
       job_title: u.job_title,
@@ -219,7 +229,7 @@ async function validateJWTAndLoadUser(token) {
       sessionId: null,
       department_resolved_name: u.department_resolved_name || null,
       company_role_dashboard_hint: u.company_role_dashboard_hint || null
-    };
+    });
   } catch {
     return null;
   }

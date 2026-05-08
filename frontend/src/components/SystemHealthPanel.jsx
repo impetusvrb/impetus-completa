@@ -10,7 +10,7 @@ import './SystemHealthPanel.css';
 
 const POLL_MS = 30000;
 
-const HEALTH_ROLES = new Set(['internal_admin', 'ceo', 'diretor', 'gerente', 'coordenador']);
+const HEALTH_ROLES = new Set(['admin', 'internal_admin', 'ceo', 'diretor', 'gerente', 'coordenador']);
 
 /** Mesma regra de visibilidade do painel — reutilizável no menu lateral. */
 export function userCanAccessSystemHealth(user) {

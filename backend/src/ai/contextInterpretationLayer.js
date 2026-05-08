@@ -145,4 +145,67 @@ function interpret({ user, intent, data_state, data_completeness, coverage, sess
   };
 }
 
-module.exports = { interpret };
+/**
+ * Entrada para rotas REST: deriva briefing determinístico a partir de metrics.data_state (operational_overview).
+ * @param {object} [params]
+ * @param {string|null|undefined} params.data_state
+ * @param {object|null|undefined} params.metrics
+ * @returns {object} interpret + campo data_state canónico
+ */
+function interpretContext({ data_state, metrics } = {}) {
+  const fromMetrics = metrics && typeof metrics === 'object' ? metrics : {};
+  const dsRaw =
+    data_state != null && String(data_state).trim() !== ''
+      ? String(data_state).trim()
+      : fromMetrics.data_state != null
+        ? String(fromMetrics.data_state).trim()
+        : '';
+  const ds = dsRaw && DECISION_TABLE[dsRaw] ? dsRaw : null;
+
+  if (!ds) {
+    const label = dsRaw || 'unknown';
+    const fallbackBriefing = `Estado de dados: ${label}. Sem interpretação completa — assumir cautela e ausência de visibilidade operacional.`;
+    return {
+      data_state: label,
+      briefing: fallbackBriefing,
+      briefing_signature: md5(fallbackBriefing),
+      narrative_mode: 'unknown',
+      must_avoid_phrases: [],
+      must_propose_actions: [],
+      confidence_floor: 0,
+      confidence_ceiling: 0,
+      briefing_schema_version: 'v1',
+      expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    };
+  }
+
+  const coverage = {
+    machines_known:
+      typeof fromMetrics.machines_count === 'number' ? fromMetrics.machines_count : 0,
+    machines_with_recent_telemetry:
+      typeof fromMetrics.machines_with_recent_telemetry === 'number'
+        ? fromMetrics.machines_with_recent_telemetry
+        : typeof fromMetrics.machines_count === 'number'
+          ? fromMetrics.machines_count
+          : 0,
+    events_count:
+      typeof fromMetrics.events_count === 'number' ? fromMetrics.events_count : 0,
+    last_event_at: fromMetrics.last_event_at
+  };
+
+  const interpreted = interpret({
+    user: null,
+    intent: 'operational_overview',
+    data_state: ds,
+    data_completeness: {},
+    coverage,
+    session_context: null
+  });
+
+  return {
+    data_state: ds,
+    ...interpreted
+  };
+}
+
+module.exports = { interpret, interpretContext };

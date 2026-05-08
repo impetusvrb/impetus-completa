@@ -9,6 +9,17 @@ const userContext = require('./userContext');
 const dashboardKPIs = require('./dashboardKPIs');
 const { inferAreaFromJobTitle } = require('../config/dashboardProfiles');
 
+// Camada contextual (Motor B) — opt-in, READ-ONLY, devolve `legacyState`
+// intocado se o módulo não puder ser carregado ou estiver em fallback.
+let _liveDashboardContextual = null;
+try {
+  _liveDashboardContextual = require('../liveDashboardContextual');
+} catch (e) {
+  if (typeof console !== 'undefined') {
+    console.warn('[LIVE_DASHBOARD_CONTEXTUAL_LOAD_FAIL]', e && e.message ? e.message : e);
+  }
+}
+
 const AREA_LABELS = {
   production: 'Produção',
   maintenance: 'Manutenção',
@@ -355,6 +366,10 @@ async function buildLiveStateForUser(user) {
     };
   }
 
+  // Medição da composição legacy para o circuit-breaker / telemetria do
+  // contextual layer. O cronómetro é parado mesmo em caminho de erro.
+  const __legacyT0 = process.hrtime();
+
   const ctx = userContext.buildUserContext(user);
   const scope = await hierarchicalFilter.resolveHierarchyScope(user);
   const dashConfig = dashboardProfileResolver.getDashboardConfigForUser(user);
@@ -454,7 +469,7 @@ async function buildLiveStateForUser(user) {
 
   const captured_at = new Date().toISOString();
 
-  return {
+  const __legacyState = {
     ok: true,
     captured_at,
     intelligent_summary,
@@ -501,6 +516,28 @@ async function buildLiveStateForUser(user) {
             : 'Personalização limitada: faltam dados de cadastro ou de integração; abaixo está o que foi possível inferir com segurança.'
     }
   };
+
+  // Latência da composição legacy (ms)
+  const __legacyMs = (() => {
+    try { const [s, ns] = process.hrtime(__legacyT0); return Math.round((s * 1000 + ns / 1e6) * 100) / 100; }
+    catch (_) { return null; }
+  })();
+
+  // Camada contextual (Motor B) — sempre devolve um estado válido. Se a
+  // camada estiver em fallback (default seguro), devolve `__legacyState`
+  // sem mutações. NUNCA lança e NUNCA remove campos consumidos pelo JSX.
+  if (!_liveDashboardContextual) return __legacyState;
+  try {
+    const { state: enhanced } = _liveDashboardContextual.enhanceLiveStateWithContext(
+      __legacyState, user, { kpiByKey, legacyLatencyMs: __legacyMs }
+    );
+    return enhanced || __legacyState;
+  } catch (err) {
+    if (typeof console !== 'undefined') {
+      console.warn('[LIVE_DASHBOARD_CONTEXTUAL_FAIL]', err && err.message ? err.message : err);
+    }
+    return __legacyState;
+  }
 }
 
 async function executeOrchestrationStash(user, body) {

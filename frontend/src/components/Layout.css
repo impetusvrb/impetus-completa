@@ -425,6 +425,7 @@
   color: var(--cyan);
   opacity: 0.9;
   line-height: 1;
+  display: inline;
 }
 
 .topbar::after {
@@ -452,6 +453,9 @@
   font-weight: 600;
   color: var(--text1);
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .welcome.greeting span {
@@ -467,6 +471,9 @@
   color: var(--text3);
   margin-top: 1px;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sys-status {
@@ -479,6 +486,7 @@
   padding: 3px 9px;
   border: 1px solid rgba(0, 255, 136, 0.2);
   background: rgba(0, 255, 136, 0.04);
+  margin-left: 14px;
 }
 
 .pulse {
@@ -769,6 +777,10 @@
   .topbar-brand-center__text {
     font-size: 15px;
     letter-spacing: 2px;
+  }
+
+  .sys-status {
+    display: none;
   }
 
   .content {

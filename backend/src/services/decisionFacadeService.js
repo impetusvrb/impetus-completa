@@ -6,6 +6,57 @@
  * DECISION_FACADE_VALIDATE=true — logs [DECISION_FACADE_COHERENCE] / violações de contrato.
  */
 
+const { decideWithPipeline } = require('../eventPipeline/pipeline');
+const {
+  isAdaptiveTuningEnabled,
+  adjustConfidence
+} = require('./adaptiveTuningService');
+
+function extractMetricsFromFacadeContext(context) {
+  if (!context || typeof context !== 'object') {
+    return { data_state: undefined, completeness: undefined };
+  }
+  const pack =
+    context.contextual_pack && typeof context.contextual_pack === 'object'
+      ? context.contextual_pack
+      : context;
+  const m =
+    pack.metrics && typeof pack.metrics === 'object'
+      ? pack.metrics
+      : typeof context.metrics === 'object'
+        ? context.metrics
+        : {};
+  return {
+    data_state: m.data_state != null ? m.data_state : undefined,
+    completeness: typeof m.completeness === 'number' ? m.completeness : undefined
+  };
+}
+
+/**
+ * Ajusta apenas `confidence` exposto na fachada (escala preservada: 0–1 ou 0–100).
+ * Não altera unified_result nem decisão.
+ */
+function applyAdaptiveConfidencePayload(payload, context) {
+  if (!isAdaptiveTuningEnabled() || !payload || typeof payload !== 'object') return payload;
+  if (payload.confidence == null) return payload;
+  const { data_state, completeness } = extractMetricsFromFacadeContext(context);
+  const before = payload.confidence;
+  payload.confidence = adjustConfidence({
+    baseScore: before,
+    data_state,
+    completeness
+  });
+  try {
+    console.log('[ADAPTIVE_TUNING]', {
+      confidence: payload.confidence,
+      confidence_before: before,
+      data_state: data_state ?? null,
+      source: 'decision_facade'
+    });
+  } catch (_e) {}
+  return payload;
+}
+
 function decisionFingerprint(d) {
   if (!d || typeof d !== 'object') return 'null';
   try {
@@ -105,6 +156,38 @@ function logFacadeCoherence(payload, result, source) {
  */
 async function decideWithFacade({ user, context, options, source, skipCognitiveInvocation }) {
   const src = source != null ? String(source) : 'unknown';
+  const usePipeline = process.env.IMPETUS_PIPELINE_PRIMARY === 'true';
+  let pipelineResult = null;
+
+  if (usePipeline) {
+    try {
+      const message =
+        context && context.message != null
+          ? String(context.message)
+          : '';
+      const pack =
+        context && context.contextual_pack && typeof context.contextual_pack === 'object'
+          ? context.contextual_pack
+          : context && typeof context === 'object'
+            ? context
+            : {};
+      pipelineResult = await decideWithPipeline({
+        user,
+        message,
+        context: pack
+      });
+    } catch (err) {
+      console.error('[PIPELINE_FALLBACK]', err);
+    }
+    console.log('[PIPELINE_DECISION]', {
+      used: usePipeline,
+      fallback: !pipelineResult
+    });
+    if (pipelineResult) {
+      return applyAdaptiveConfidencePayload(pipelineResult, context);
+    }
+  }
+
   try {
     console.info('[DECISION_FACADE_START]', { source: src });
 
@@ -154,6 +237,8 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
 
     logFacadeCoherence(payload, result, src);
 
+    applyAdaptiveConfidencePayload(payload, context);
+
     setImmediate(() => {
       (async () => {
         try {
@@ -202,7 +287,106 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
   }
 }
 
+/**
+ * Entrada unificada para consumidores HTTP (ex.: dashboard chat): pipeline primário opcional + facade ou motor directo.
+ * @param {object} params
+ * @param {object|null} [params.user]
+ * @param {string} [params.message]
+ * @param {object|null} [params.context] — ex.: pack operational_overview
+ * @param {string} [params.source]
+ * @param {boolean} [params.skipCognitiveInvocation]
+ * @param {number} [params.historyLength]
+ * @param {object[]|null} [params.options]
+ * @returns {Promise<object>}
+ */
+async function decide(params = {}) {
+  const {
+    user,
+    message,
+    context,
+    source = 'dashboard_chat',
+    skipCognitiveInvocation = true,
+    historyLength = 0,
+    options = null
+  } = params;
+
+  const ctx = {
+    message,
+    company_id: user?.company_id,
+    module: source,
+    dashboard_history_turns: historyLength
+  };
+  if (context && typeof context === 'object') {
+    ctx.contextual_pack = context;
+  }
+
+  if (process.env.USE_DECISION_FACADE === 'true') {
+    return decideWithFacade({
+      user,
+      context: ctx,
+      options: Array.isArray(options) ? options : undefined,
+      source,
+      skipCognitiveInvocation
+    });
+  }
+
+  const usePipeline = process.env.IMPETUS_PIPELINE_PRIMARY === 'true';
+  if (usePipeline) {
+    try {
+      const pipelineResult = await decideWithPipeline({
+        user,
+        message: message != null ? String(message) : '',
+        context: context && typeof context === 'object' ? context : {}
+      });
+      console.log('[PIPELINE_DECISION]', {
+        used: usePipeline,
+        fallback: !pipelineResult
+      });
+      if (pipelineResult) {
+        return applyAdaptiveConfidencePayload(pipelineResult, ctx);
+      }
+    } catch (err) {
+      console.error('[PIPELINE_FALLBACK]', err);
+      console.log('[PIPELINE_DECISION]', { used: usePipeline, fallback: true });
+    }
+  }
+
+  const unifiedDecisionEngine = require('./unifiedDecisionEngine');
+  const unified_result = await unifiedDecisionEngine.decide({
+    user: user != null ? user : null,
+    context: ctx,
+    options: Array.isArray(options) ? options : undefined,
+    source: source != null ? String(source) : 'unknown',
+    skipCognitiveInvocation: !!skipCognitiveInvocation
+  });
+
+  const engineResolved = !!(unified_result && unified_result.ok !== false && !unified_result.skipped);
+
+  const out = {
+    success: engineResolved,
+    decision: unified_result?.decision || null,
+    reasoning: unified_result?.reasoning || '',
+    confidence: unified_result?.meta?.decision_score ?? null,
+    risk_level: unified_result?.meta?.risk_level ?? 'unknown',
+    pipeline: unified_result?.meta?.pipeline_recommended ?? 'unknown',
+    signals: {
+      requires_attention: unified_result?.control_signals?.requires_attention ?? false,
+      should_alert: unified_result?.control_signals?.should_alert ?? false
+    },
+    metadata: {
+      source_engine: 'unified',
+      used_fallback: unified_result?.meta?.fallback_used ?? unified_result?.fallback_used ?? false,
+      cognitive_escalation: !!(unified_result && unified_result.meta && unified_result.meta.cognitive_escalation),
+      engine_resolved: engineResolved,
+      skipped_engine: !!(unified_result && unified_result.skipped)
+    },
+    unified_result
+  };
+  return applyAdaptiveConfidencePayload(out, ctx);
+}
+
 module.exports = {
+  decide,
   decideWithFacade,
   decisionFingerprint,
   logFacadeCoherence

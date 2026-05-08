@@ -286,10 +286,94 @@ function publishEventDeferred(input) {
   });
 }
 
+/**
+ * Converte execução síncrona do pipeline num payload compatível com decisionFacade
+ * apenas quando há saída executável real (não NOOP silencioso).
+ * @param {{ event?: object, processed: object, refined: object|null, route: object|null }} run
+ * @returns {object|null}
+ */
+function mapPipelineRunToFacadePayload(run) {
+  if (!run || typeof run !== 'object') return null;
+  const { processed, refined, route } = run;
+  if (!processed || processed.filtered) return null;
+  if (!route || !route.ok) return null;
+  const out = route.output;
+  if (out && out.silent_integration_noop) return null;
+  if (route.channel === 'claude_background' || route.channel === 'external_then_chatgpt') return null;
+  if (route.channel === 'orchestrator') return null;
+  const content = out && typeof out.content === 'string' ? out.content.trim() : '';
+  if (route.channel === 'chatgpt' && !content) return null;
+
+  return {
+    success: true,
+    decision: {
+      label: 'event_pipeline',
+      justification: refined && refined.intent != null ? String(refined.intent) : 'pipeline',
+      reason: 'pipeline_primary',
+      humanRisk: 'low',
+      scores: {}
+    },
+    reasoning: String(processed.summary || '').slice(0, 2000),
+    confidence: refined && typeof refined.confidence === 'number' ? refined.confidence : null,
+    risk_level: 'unknown',
+    pipeline: route.channel,
+    signals: { requires_attention: false, should_alert: false },
+    metadata: {
+      source_engine: 'event_pipeline',
+      used_fallback: false,
+      cognitive_escalation: false,
+      engine_resolved: true,
+      skipped_engine: false,
+      pipeline_route_channel: route.channel,
+      pipeline_intent: refined && refined.intent
+    },
+    unified_result: null,
+    pipeline_reply: content || null
+  };
+}
+
+/**
+ * Ponto de decisão via pipeline (caminho síncrono, sem bus).
+ * Requer envelope válido: chat_message + dashboard_chat.
+ *
+ * @param {{ user: { id?: string, company_id?: string }, message: string, context?: object }} params
+ * @returns {Promise<object|null>}
+ */
+async function decideWithPipeline({ user, message, context }) {
+  if (process.env.IMPETUS_EVENT_PIPELINE_ENABLED !== 'true') return null;
+
+  const uid = user && user.id != null ? String(user.id).trim() : '';
+  if (!uid) return null;
+
+  const input = {
+    type: 'chat_message',
+    source: 'dashboard_chat',
+    user: uid,
+    payload: {
+      text: message != null ? String(message) : '',
+      company_id: user && user.company_id != null ? user.company_id : null,
+      context: context && typeof context === 'object' && !Array.isArray(context) ? context : {}
+    }
+  };
+
+  try {
+    const run = await processAndRouteEvent(input);
+    return mapPipelineRunToFacadePayload(run);
+  } catch (err) {
+    if (err && err.code === 'EVENT_PIPELINE_TIMEOUT') {
+      console.warn('[decideWithPipeline]', err.message);
+    } else {
+      console.error('[decideWithPipeline]', err);
+    }
+    return null;
+  }
+}
+
 module.exports = {
   bootEventPipeline,
   processAndRouteEvent,
   publishEvent,
   publishEventDeferred,
-  validateEvent
+  validateEvent,
+  decideWithPipeline
 };

@@ -83,6 +83,15 @@ router.post('/execute', async (req, res) => {
       return;
     }
 
+    if (process.env.IMPETUS_PIPELINE_PRIMARY === 'true') {
+      return res.status(503).json({
+        ok: false,
+        error:
+          'Execução directa do Conselho Cognitivo está desactivada enquanto IMPETUS_PIPELINE_PRIMARY=true. Desactive a variável para usar este endpoint, ou utilize o fluxo orquestrado (ex.: dashboard).',
+        code: 'COGNITIVE_COUNCIL_DIRECT_DISABLED'
+      });
+    }
+
     const data =
       req.body?.data && typeof req.body.data === 'object' ? req.body.data : {};
     const context =
@@ -106,6 +115,39 @@ router.post('/execute', async (req, res) => {
       context,
       module: String(moduleName).slice(0, 96),
       options
+    });
+
+    const { applyUnifiedPostProcessing } = require('../middleware/forbiddenNarrativeAuditor');
+    const dataState =
+      result?.meta?.decisionContext?.environmental?.data_state ||
+      data?.metrics?.data_state ||
+      data?.data_state ||
+      context?.metrics?.data_state ||
+      context?.data_state ||
+      req?.body?.data?.metrics?.data_state ||
+      req?.body?.context?.metrics?.data_state ||
+      req?.context?.metrics?.data_state ||
+      res?.locals?.context?.metrics?.data_state ||
+      'unknown';
+
+    if (result && typeof result === 'object' && result.result) {
+      if (typeof result.result.answer === 'string') {
+        result.result.answer = applyUnifiedPostProcessing({
+          text: result.result.answer,
+          data_state: dataState
+        });
+      }
+      if (typeof result.result.content === 'string') {
+        result.result.content = applyUnifiedPostProcessing({
+          text: result.result.content,
+          data_state: dataState
+        });
+      }
+    }
+
+    console.log('[POST_PROCESSING]', {
+      data_state: dataState,
+      applied: true
     });
 
     const tid = result.trace_id || result.traceId;

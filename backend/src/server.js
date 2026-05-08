@@ -246,6 +246,7 @@ useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/ai-audit', './routes/admin/aiAudit');
 useRoute('/api/admin/incidents', './routes/admin/incidents');
 useRoute('/api/admin/ai-policies', './routes/admin/aiPolicies');
+useRoute('/api/admin/learning', './routes/adminLearning');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
 useRoute('/api/admin/warehouse', './routes/admin/warehouse');
@@ -265,6 +266,7 @@ useRoute('/api/vision', './routes/vision', requireAuth, apiByUserLimiter);
 useRoute('/api/proacao', './routes/proacao');
 useRoute('/api/cadastrar-com-ia', './routes/cadastrarComIA');
 useRoute('/api/chat/metrics', './routes/chatMetrics', requireAuth);
+useRoute('/api/feedback', './routes/feedback');
 useRoute('/api/chat', './routes/chat', requireAuth);
 useRoute('/api/tpm', './routes/tpm', requireAuth);
 useRoute('/api/tasks', './routes/tasks', requireAuth);
@@ -567,6 +569,19 @@ httpServer.on('error', (err) => {
         return;
       }
       console.warn('[SYSTEM_READINESS] Exceção no check (dev: continua):', msg);
+    }
+
+    try {
+      const eventPipelineBootstrapService = require('./services/eventPipelineBootstrapService');
+      const epOut = eventPipelineBootstrapService.bootIfEnabled();
+      console.info(
+        '[EVENT_PIPELINE_BOOT]',
+        epOut.ok
+          ? JSON.stringify(epOut)
+          : JSON.stringify({ ok: false, reason: epOut.reason || 'unknown' })
+      );
+    } catch (e) {
+      console.warn('[EVENT_PIPELINE_BOOT]', e && e.message ? e.message : e);
     }
 
     httpServer.listen(PORT, () => {

@@ -2,6 +2,8 @@
 
 const geminiService = require('./geminiService');
 const aiIncidentService = require('./aiIncidentService');
+const { isAdaptiveTuningEnabled, adjustComplaintThreshold } = require('./adaptiveTuningService');
+const { getRecentComplaintStats } = require('./aiAnalyticsService');
 
 /** Padrões fortes (PT-BR) — evita chamada ao modelo quando a intenção é óbvia. */
 const STRONG_COMPLAINT_PATTERNS = [
@@ -38,9 +40,11 @@ function heuristicComplaint(message) {
 }
 
 /**
+ * @param {string} userMessage
+ * @param {string|null} [lastAiResponse] - última resposta do assistente (quando disponível)
  * @returns {Promise<{ is_complaint: boolean, incident_type: string, confidence: number }>}
  */
-async function evaluateComplaint(userMessage) {
+async function evaluateComplaint(userMessage, lastAiResponse = null) {
   const text = String(userMessage || '').trim();
   const h = heuristicComplaint(text);
   if (h.hit) {
@@ -55,12 +59,30 @@ async function evaluateComplaint(userMessage) {
     return { is_complaint: false, incident_type: 'UNKNOWN', confidence: 0 };
   }
 
-  const parsed = await geminiService.classifyQualityComplaint(text);
+  const parsed = await geminiService.classifyQualityComplaint({
+    userMessage: text,
+    lastAiResponse: lastAiResponse != null ? String(lastAiResponse) : null
+  });
   if (!parsed) {
     return { is_complaint: false, incident_type: 'UNKNOWN', confidence: 0 };
   }
   const conf = typeof parsed.confidence === 'number' ? parsed.confidence : 0;
-  const isComplaint = !!parsed.is_complaint && conf >= 58;
+  let dynamicThreshold = 82;
+  if (isAdaptiveTuningEnabled()) {
+    const stats = getRecentComplaintStats();
+    const fp = Math.max(0, Math.floor(Number(stats.falsePositives) || 0));
+    dynamicThreshold = adjustComplaintThreshold(82, fp);
+  }
+  const isComplaint = !!parsed.is_complaint && conf >= dynamicThreshold;
+  if (isAdaptiveTuningEnabled()) {
+    try {
+      console.log('[ADAPTIVE_TUNING]', {
+        confidence: conf,
+        threshold: dynamicThreshold,
+        channel: 'complaint_detection'
+      });
+    } catch (_e) {}
+  }
   return {
     is_complaint: isComplaint,
     incident_type: aiIncidentService.normType(parsed.incident_type),

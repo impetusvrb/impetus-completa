@@ -44,6 +44,12 @@ function emptyResult() {
   };
 }
 
+function classifyDataState({ machines = [], events = [] }) {
+  if (machines.length === 0) return 'tenant_empty';
+  if (machines.length > 0 && events.length === 0) return 'tenant_inactive';
+  return 'production_active';
+}
+
 /**
  * Plano operacional + avaliação do motor de decisões (só sinalização; efeitos via logs / strategic_learning assíncronos).
  * @param {object} p
@@ -309,6 +315,11 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         learning_summary,
         correlation_insights: correlationBundle.insights,
         learned_patterns: correlationBundle.learned_patterns
+      };
+      result.metrics = {
+        data_state: classifyDataState({ machines, events }),
+        machines_count: machines.length,
+        events_count: events.length
       };
       return result;
     }

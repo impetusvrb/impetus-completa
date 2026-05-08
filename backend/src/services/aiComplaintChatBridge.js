@@ -3,6 +3,41 @@
 const aiComplaintDetectionService = require('./aiComplaintDetectionService');
 const aiIncidentService = require('./aiIncidentService');
 const aiProviderService = require('./aiProviderService');
+const { registerComplaint } = require('./aiAnalyticsService');
+
+/** Crítica explícita — não suprimir mesmo quando a mensagem parece operacional. */
+function detectStrongComplaint(message = '') {
+  const text = String(message || '').toLowerCase();
+
+  return [
+    'errado',
+    'incorreto',
+    'inventou',
+    'não faz sentido',
+    'nao faz sentido',
+    'isso está errado',
+    'isso esta errado',
+    'resposta errada'
+  ].some((term) => text.includes(term));
+}
+
+/** Perguntas operacionais legítimas — não passar pelo classificador de reclamação. */
+function isOperationalQuery(message = '') {
+  const text = String(message || '').toLowerCase();
+
+  return [
+    'risco',
+    'decisão',
+    'recomenda',
+    'melhorar',
+    'ações',
+    'informações suficientes',
+    'o que fazer',
+    'qual estratégia',
+    'como melhorar',
+    'situação atual'
+  ].some((term) => text.includes(term));
+}
 
 async function withProcessingTransparency(user, base) {
   let processing_transparency = null;
@@ -22,11 +57,19 @@ async function withProcessingTransparency(user, base) {
  * @param {object} params.user - req.user
  * @param {string} params.message - texto do utilizador
  * @param {string|null} params.lastAiTraceId - último trace (sessionStorage / corpo)
+ * @param {string|null} [params.lastAiResponse] - última resposta do assistente (ex.: corpo anterior), quando disponível
  * @param {import('express').Response} params.res
  * @param {'dashboard'|'cognitive'} [params.format='dashboard'] - cognitive inclui result/synthesis para ChatApp
  * @returns {Promise<boolean>} true se a resposta HTTP já foi enviada
  */
-async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, format = 'dashboard' }) {
+async function respondIfQualityComplaint({
+  user,
+  message,
+  lastAiTraceId,
+  lastAiResponse = null,
+  res,
+  format = 'dashboard'
+}) {
   const u = user;
   if (!u?.company_id) return false;
 
@@ -37,7 +80,25 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
   if (!text) return false;
 
   try {
-    const complaint = await aiComplaintDetectionService.evaluateComplaint(text);
+    const isOperational = isOperationalQuery(text);
+    const hasStrongComplaintSignal = detectStrongComplaint(text);
+    if (isOperational && !hasStrongComplaintSignal) {
+      console.log('[COMPLAINT_CHECK]', {
+        message: text.slice(0, 400),
+        skipped: true,
+        reason: 'operational_without_strong_complaint',
+        confidence: null
+      });
+      return false;
+    }
+
+    const complaint = await aiComplaintDetectionService.evaluateComplaint(text, lastAiResponse);
+    /* Log temporário FASE 1 — remover após validação em produção */
+    console.log('[COMPLAINT_CHECK]', {
+      message: text.slice(0, 400),
+      skipped: false,
+      confidence: complaint.confidence
+    });
     if (!complaint.is_complaint) return false;
 
     const traceForIncident = await aiIncidentService.resolveTraceIdForComplaint({
@@ -93,6 +154,8 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
         return true;
       }
 
+      registerComplaint({ isFalsePositive: false });
+
       const shortId = String(incident.id).replace(/-/g, '').slice(0, 8).toUpperCase();
       const reply = `Sinto muito pelo erro. Registrei um incidente de qualidade (ID: ${shortId}) para a nossa equipa técnica analisar a origem desse dado.`;
       res.json(
@@ -147,6 +210,14 @@ async function respondIfQualityComplaint({ user, message, lastAiTraceId, res, fo
   }
 }
 
+/** Hook interno para falso positivo (sem exposição HTTP nesta fase). */
+function markFalsePositive() {
+  registerComplaint({ isFalsePositive: true });
+}
+
 module.exports = {
-  respondIfQualityComplaint
+  respondIfQualityComplaint,
+  detectStrongComplaint,
+  isOperationalQuery,
+  markFalsePositive
 };

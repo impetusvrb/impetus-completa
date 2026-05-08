@@ -62,7 +62,7 @@ router.post('/upload', requireAuth, requireCompanyId, upload.single('file'), asy
 
     const manualId = result.rows[0].id;
     if (text && text.length >= 20) {
-      await manualsService.chunkAndEmbedManual(manualId, text);
+    await manualsService.chunkAndEmbedManual(manualId, text);
       await db.query('UPDATE manuals SET embedding_processed = true WHERE id = $1', [manualId]);
     }
 
