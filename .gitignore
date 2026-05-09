@@ -71,6 +71,10 @@ temp/
 uploads/
 **/uploads/
 
+# Memória cognitiva persistente local (auditoria — não versionar por defeito)
+backend/storage/cognitive-memory.json
+backend/storage/cognitive-memory.json.tmp
+
 # IDE e editores
 .idea/
 .vscode/

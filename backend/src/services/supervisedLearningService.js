@@ -7,6 +7,15 @@
 
 const crypto = require('crypto');
 const { getRecentInteractions } = require('./learningMemoryService');
+const cognitivePersistence = require('./cognitivePersistenceService');
+const cognitiveDbPersistence = require('./cognitiveDbPersistenceService');
+
+function persistProposalsNow() {
+  if (!cognitivePersistence.isPersistenceEnabled()) return;
+  try {
+    cognitivePersistence.saveProposalsSnapshot(proposals);
+  } catch (_e) {}
+}
 
 /** decision_score em memória: 0–1 ou 0–100 */
 function confidenceToPercent(c) {
@@ -58,6 +67,8 @@ function storeProposal(proposal) {
     audit: [{ at: new Date().toISOString(), action: 'created' }]
   };
   proposals.push(row);
+  persistProposalsNow();
+  cognitiveDbPersistence.schedulePersistProposalToDb(row);
   try {
     console.log('[LEARNING_PROPOSAL]', { id, proposal, status: 'pending' });
   } catch (_e) {}
@@ -66,6 +77,18 @@ function storeProposal(proposal) {
 
 function getProposals() {
   return proposals.map((p) => ({ ...p, proposal: { ...p.proposal } }));
+}
+
+/**
+ * Estratégias aprovadas nesta sessão (sessionApproved) — evita reactivar autonomia só com histórico reidratado do disco.
+ */
+function getPreviouslyApprovedStrategies() {
+  return getProposals().filter(
+    (p) =>
+      p.status === 'approved' &&
+      p.proposal?.type === 'strategy_adjustment' &&
+      p.sessionApproved === true
+  );
 }
 
 function findProposal(id) {
@@ -155,6 +178,10 @@ function approveProposal(id, meta = {}) {
     });
   }
 
+  p.sessionApproved = true;
+  persistProposalsNow();
+  cognitiveDbPersistence.schedulePersistProposalToDb(p);
+
   return p;
 }
 
@@ -167,16 +194,40 @@ function rejectProposal(id, meta = {}) {
     action: 'rejected',
     user_id: meta.userId != null ? String(meta.userId) : null
   });
+  persistProposalsNow();
+  cognitiveDbPersistence.schedulePersistProposalToDb(p);
   return p;
 }
+
+function rehydrateProposals() {
+  if (!cognitivePersistence.isPersistenceEnabled()) return;
+  try {
+    const persisted = cognitivePersistence.loadCognitiveMemory();
+    if (Array.isArray(persisted.proposals)) {
+      proposals.splice(0, proposals.length, ...persisted.proposals);
+      for (const p of proposals) {
+        p.sessionApproved = false;
+      }
+      try {
+        console.log('[COGNITIVE_REHYDRATION]', { proposals: proposals.length, scope: 'supervised_proposals' });
+      } catch (_e) {}
+    }
+  } catch (err) {
+    console.warn('[COGNITIVE_REHYDRATION]', err?.message || err);
+  }
+}
+
+rehydrateProposals();
 
 module.exports = {
   generateAdjustmentSuggestions,
   generateStrategicProposals,
   storeProposal,
   getProposals,
+  getPreviouslyApprovedStrategies,
   findProposal,
   scanAndStorePendingProposals,
   approveProposal,
-  rejectProposal
+  rejectProposal,
+  rehydrateProposals
 };

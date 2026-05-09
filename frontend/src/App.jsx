@@ -68,6 +68,7 @@ const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinancei
 const SelectTeamMember = lazy(() => import('./pages/SelectTeamMember'));
 const AdminOperationalTeams = lazy(() => import('./pages/AdminOperationalTeams'));
 const AdminHelpCenter = lazy(() => import('./pages/AdminHelpCenter'));
+const CognitiveGovernanceDashboard = lazy(() => import('./pages/admin/CognitiveGovernanceDashboard'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -437,6 +438,7 @@ export default function App() {
         <Route path="/app/admin/structural" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminStructural /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audit-logs" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminAuditLogs /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/ai-incidents" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminAiIncidents /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/cognitive-governance" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><CognitiveGovernanceDashboard /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/equipment-library" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminEquipmentLibrary /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * IMPETUS - Executor de migrations
- * Executa arquivos .sql em src/models/ (CREATE TABLE IF NOT EXISTS)
+ * Executa arquivos .sql em src/models/ e, em seguida, backend/migrations/
  * Uso: node scripts/run-all-migrations.js
  * Ou: npm run migrate
  */
@@ -11,6 +11,7 @@ const path = require('path');
 const db = require('../src/db');
 
 const MODELS_DIR = path.join(__dirname, '../src/models');
+const EXTRA_MIGRATIONS_DIR = path.join(__dirname, '../migrations');
 const MIGRATIONS_ORDER = [
   'auth_middleware_schema_migration.sql',
   'structural_knowledge_documents_context_migration.sql',
@@ -37,10 +38,9 @@ const MIGRATIONS_ORDER = [
   'system_metrics_migration.sql'
 ];
 
-async function runMigration(fileName) {
-  const filePath = path.join(MODELS_DIR, fileName);
+async function runMigrationFile(filePath, label) {
   if (!fs.existsSync(filePath)) {
-    console.log(`[SKIP] ${fileName} não encontrado`);
+    console.log(`[SKIP] ${label} não encontrado`);
     return;
   }
   const sql = fs.readFileSync(filePath, 'utf8')
@@ -53,15 +53,19 @@ async function runMigration(fileName) {
     try {
       await db.query(stmt);
       const preview = stmt.substring(0, 60).replace(/\s+/g, ' ');
-      console.log(`[OK] ${fileName}: ${preview}...`);
+      console.log(`[OK] ${label}: ${preview}...`);
     } catch (err) {
       if (err.message?.includes('already exists') || err.message?.includes('duplicate key')) {
-        console.log(`[SKIP] ${fileName}: objeto já existe`);
+        console.log(`[SKIP] ${label}: objeto já existe`);
       } else {
-        console.warn(`[WARN] ${fileName}:`, err.message);
+        console.warn(`[WARN] ${label}:`, err.message);
       }
     }
   }
+}
+
+async function runMigration(fileName) {
+  await runMigrationFile(path.join(MODELS_DIR, fileName), fileName);
 }
 
 async function main() {
@@ -80,6 +84,16 @@ async function main() {
 
   for (const f of [...toRun, ...rest]) {
     await runMigration(f);
+  }
+
+  if (fs.existsSync(EXTRA_MIGRATIONS_DIR)) {
+    const extraSql = fs
+      .readdirSync(EXTRA_MIGRATIONS_DIR)
+      .filter((f) => f.endsWith('.sql'))
+      .sort();
+    for (const f of extraSql) {
+      await runMigrationFile(path.join(EXTRA_MIGRATIONS_DIR, f), `migrations/${f}`);
+    }
   }
 
   console.log('[MIGRATE] Concluído');

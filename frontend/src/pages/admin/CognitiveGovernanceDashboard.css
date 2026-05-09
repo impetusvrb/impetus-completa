@@ -1,0 +1,117 @@
+/* Governança cognitiva — tokens Industrial 4.0 */
+.cgov-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 2rem;
+}
+
+.cgov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.cgov-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+}
+
+.cgov-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+}
+
+.cgov-card__icon {
+  color: var(--cyan, #00d4ff);
+  flex-shrink: 0;
+}
+
+.cgov-card__title {
+  flex: 1;
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary, #e8f0ff);
+}
+
+.cgov-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cgov-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.cgov-metric--block {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.cgov-metric__label {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-tertiary, #8a9bb8);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cgov-metric__value {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-accent, #00d4ff);
+  text-align: right;
+}
+
+.cgov-mono {
+  text-align: left;
+  word-break: break-word;
+}
+
+.cgov-severity {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-default);
+}
+
+.cgov-severity--healthy {
+  color: var(--green, #00ff88);
+  border-color: rgba(0, 255, 136, 0.35);
+}
+
+.cgov-severity--warning {
+  color: var(--amber, #ffaa00);
+  border-color: rgba(255, 170, 0, 0.35);
+}
+
+.cgov-severity--critical {
+  color: var(--red, #ff4040);
+  border-color: rgba(255, 64, 64, 0.45);
+}
+
+.cgov-code {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+
+.cgov-error {
+  color: var(--red);
+}

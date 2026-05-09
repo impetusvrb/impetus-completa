@@ -154,6 +154,37 @@ function clearApprovedLearningAdjustments() {
   } catch (_e) {}
 }
 
+/**
+ * Fase 9 — patch só com IMPETUS_AUTONOMOUS_OPTIMIZATION_ENABLED=true (independente do flag de aprendizagem supervisionada).
+ * `factor` já deve vir limitado pelo chamador (passo e piso globais).
+ * @param {{ confidenceFactor: number }} patch
+ * @returns {boolean}
+ */
+function mergeAutonomousOptimizationPatch(patch) {
+  if (process.env.IMPETUS_AUTONOMOUS_OPTIMIZATION_ENABLED !== 'true') {
+    try {
+      console.log('[AUTONOMOUS_SKIPPED]', { reason: 'IMPETUS_AUTONOMOUS_OPTIMIZATION_ENABLED', patch });
+    } catch (_e) {}
+    return false;
+  }
+  if (!patch || patch.confidenceFactor == null) return false;
+  const n = Number(patch.confidenceFactor);
+  if (!Number.isFinite(n)) return false;
+  approvedAdjustments.confidenceFactor = Math.max(0.5, Math.min(1, n));
+  try {
+    console.log('[LEARNING_APPLIED]', { ...approvedAdjustments, source: 'autonomous_optimization' });
+  } catch (_e) {}
+  return true;
+}
+
+/** Reversão de segurança — repõe factor 1 (Fase 9). */
+function rollbackAutonomousOptimizationConfidence() {
+  approvedAdjustments.confidenceFactor = 1;
+  try {
+    console.log('[LEARNING_APPLIED]', { ...approvedAdjustments, source: 'autonomous_rollback' });
+  } catch (_e) {}
+}
+
 function getApprovedLearningAdjustments() {
   return { ...approvedAdjustments };
 }
@@ -222,6 +253,8 @@ module.exports = {
   adjustConfidence,
   adjustComplaintThreshold,
   mergeApprovedAdjustments,
+  mergeAutonomousOptimizationPatch,
+  rollbackAutonomousOptimizationConfidence,
   clearApprovedLearningAdjustments,
   getApprovedLearningAdjustments,
   applyApprovedAdjustments,

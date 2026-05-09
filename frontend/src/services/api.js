@@ -1115,6 +1115,11 @@ export const adminIncidents = {
   update: (id, body) => api.patch(`/admin/incidents/${encodeURIComponent(id)}`, body)
 };
 
+/** Governança cognitiva — painel só leitura (backend: /api/admin/learning/dashboard) */
+export const adminCognitiveGovernance = {
+  getDashboard: () => api.get('/admin/learning/dashboard')
+};
+
 export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
   /** Alias de getAll */

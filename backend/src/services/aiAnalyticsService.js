@@ -639,6 +639,276 @@ function applyStrategicAssistantTextTail(text, context) {
   return adaptiveTuningService.applyStrategicAdjustments({ text, context });
 }
 
+/**
+ * Contagens para observabilidade / auditoria (ficheiro quando persistência activa; senão contagens em RAM).
+ */
+function getCognitiveSnapshot() {
+  const cognitivePersistence = require('./cognitivePersistenceService');
+  if (!cognitivePersistence.isPersistenceEnabled()) {
+    const learningMemoryService = require('./learningMemoryService');
+    return {
+      interactions: learningMemoryService.getRecentInteractions().length,
+      proposals: supervisedLearningService.getProposals().length,
+      autonomousEvents: 0,
+      persistedToDisk: false
+    };
+  }
+  const persisted = cognitivePersistence.loadCognitiveMemory();
+  return {
+    interactions: persisted.interactions.length,
+    proposals: persisted.proposals.length,
+    autonomousEvents: persisted.autonomousEvents.length,
+    persistedToDisk: true
+  };
+}
+
+/**
+ * Snapshot temporal no PostgreSQL (created_at <= date). Requer IMPETUS_COGNITIVE_REPLAY_ENABLED + DB.
+ * @param {string} isoDate
+ */
+async function getCognitiveSnapshotAsOf(isoDate) {
+  const cognitiveReplayService = require('./cognitiveReplayService');
+  return cognitiveReplayService.getCognitiveSnapshotAt(isoDate);
+}
+
+/**
+ * Replay só leitura de uma interacção persistida (sem IA).
+ * @param {string} interactionId
+ * @param {string|null} [companyId]
+ */
+async function replayCognitiveInteraction(interactionId, companyId = null) {
+  const cognitiveReplayService = require('./cognitiveReplayService');
+  return cognitiveReplayService.replayInteraction(interactionId, companyId);
+}
+
+/** Relatório de drift cognitivo (observacional). */
+async function generateCognitiveDriftReport(params) {
+  const cognitiveDriftService = require('./cognitiveDriftService');
+  return cognitiveDriftService.generateDriftReport(params);
+}
+
+function isGovernanceDashboardEnabled() {
+  return String(process.env.IMPETUS_COGNITIVE_DASHBOARD_ENABLED ?? '')
+    .trim()
+    .toLowerCase() === 'true';
+}
+
+function _governanceHealthLevel({ driftAlerts, lowConfidenceRate }) {
+  const da = Number(driftAlerts) || 0;
+  const lr = Number(lowConfidenceRate) || 0;
+  if (da > 10 || lr > 0.5) return 'critical';
+  if (da > 3 || lr > 0.21) return 'warning';
+  return 'healthy';
+}
+
+/** Nível visual do card de consenso: >80 saudável, 50–79 aviso, <50 crítico. */
+function _consensusGovernanceLevel(score) {
+  if (score == null || !Number.isFinite(Number(score))) return 'healthy';
+  const s = Number(score);
+  if (s > 80) return 'healthy';
+  if (s >= 50) return 'warning';
+  return 'critical';
+}
+
+/**
+ * Severidade do card de calibração: calibrado / leve distorção / overconfidence elevado.
+ * @param {{ overconfidence_events?: number, underconfidence_events?: number }} m
+ */
+function _calibrationGovernanceLevel(m) {
+  const oc = Number(m?.overconfidence_events) || 0;
+  const uc = Number(m?.underconfidence_events) || 0;
+  if (oc >= 4) return 'critical';
+  if (oc >= 1 || uc >= 3) return 'warning';
+  return 'healthy';
+}
+
+/**
+ * Painel de governança cognitiva — só leitura; não altera runtime.
+ * @param {string|null|undefined} companyId
+ */
+async function getCognitiveGovernanceDashboard(companyId) {
+  const cognitiveDbPersistence = require('./cognitiveDbPersistenceService');
+  const cognitiveReplayService = require('./cognitiveReplayService');
+  const cognitiveDriftService = require('./cognitiveDriftService');
+  const cognitiveConsensusService = require('./cognitiveConsensusService');
+  const confidenceCalibrationService = require('./confidenceCalibrationService');
+  const autonomousOptimizationService = require('./autonomousOptimizationService');
+
+  const memory = getCognitiveSnapshot();
+  const proposals = supervisedLearningService.getProposals();
+  const pending = proposals.filter((p) => p.status === 'pending').length;
+  const approved = proposals.filter((p) => p.status === 'approved').length;
+  const adjustments = adaptiveTuningService.getApprovedLearningAdjustments();
+  const activeStrategies = [];
+  if (adjustments.strategy) activeStrategies.push(String(adjustments.strategy));
+
+  let hub = null;
+  try {
+    hub = await cognitiveDbPersistence.getTenantGovernanceHub(companyId);
+  } catch (_e) {
+    hub = null;
+  }
+
+  let consensusMetrics = null;
+  if (cognitiveConsensusService.isConsensusEngineEnabled() && companyId) {
+    try {
+      consensusMetrics = await cognitiveDbPersistence.getConsensusDashboardMetrics(companyId);
+    } catch (_e) {
+      consensusMetrics = null;
+    }
+  }
+
+  let calibrationMetrics = null;
+  if (confidenceCalibrationService.isConfidenceCalibrationEnabled() && companyId) {
+    try {
+      calibrationMetrics = await cognitiveDbPersistence.getCalibrationDashboardMetrics(companyId);
+    } catch (_e) {
+      calibrationMetrics = null;
+    }
+  }
+
+  const consensus = {
+    engine_enabled: cognitiveConsensusService.isConsensusEngineEnabled(),
+    consensus_score:
+      consensusMetrics && consensusMetrics.consensus_score != null
+        ? consensusMetrics.consensus_score
+        : null,
+    divergence_events: consensusMetrics ? consensusMetrics.divergence_events : 0,
+    last_divergence_at: consensusMetrics ? consensusMetrics.last_divergence_at : null,
+    level: _consensusGovernanceLevel(consensusMetrics && consensusMetrics.consensus_score)
+  };
+
+  const calibration = {
+    engine_enabled: confidenceCalibrationService.isConfidenceCalibrationEnabled(),
+    average_calibrated_confidence:
+      calibrationMetrics && calibrationMetrics.average_calibrated_confidence != null
+        ? calibrationMetrics.average_calibrated_confidence
+        : null,
+    overconfidence_events: calibrationMetrics ? calibrationMetrics.overconfidence_events : 0,
+    underconfidence_events: calibrationMetrics ? calibrationMetrics.underconfidence_events : 0,
+    level: _calibrationGovernanceLevel(calibrationMetrics || {})
+  };
+
+  const avgConf =
+    hub && hub.avg_confidence_pct != null ? hub.avg_confidence_pct : null;
+  const lowRate = hub && typeof hub.low_confidence_rate === 'number' ? hub.low_confidence_rate : 0;
+  const driftAlerts = hub ? hub.drift_recent_30d : 0;
+  const autonomousAdjustments =
+    hub && typeof hub.autonomous_events_total === 'number'
+      ? hub.autonomous_events_total
+      : memory.autonomousEvents;
+
+  const health = {
+    average_confidence: avgConf,
+    low_confidence_rate: lowRate,
+    drift_alerts: driftAlerts,
+    autonomous_adjustments: autonomousAdjustments,
+    active_proposals: pending,
+    level: _governanceHealthLevel({ driftAlerts, lowConfidenceRate: lowRate })
+  };
+
+  const drift = {
+    recent_drift_events: driftAlerts,
+    high_severity: hub ? hub.drift_high_30d : 0,
+    last_drift_at: hub ? hub.last_drift_at : null
+  };
+
+  const state = autonomousOptimizationService.autonomousState || {};
+  const rollbacks = Array.isArray(state.rollbackHistory) ? state.rollbackHistory : [];
+  const adjustmentsList = Array.isArray(state.activeAdjustments) ? state.activeAdjustments : [];
+  const lastAdjTs = adjustmentsList.length
+    ? adjustmentsList[adjustmentsList.length - 1].timestamp
+    : null;
+
+  const autonomy = {
+    enabled: autonomousOptimizationService.isAutonomousOptimizationEnabled(),
+    confidence_factor:
+      adjustments.confidenceFactor != null ? Number(adjustments.confidenceFactor) : 1,
+    rollback_count: rollbacks.length,
+    last_adjustment_at: lastAdjTs != null ? new Date(lastAdjTs).toISOString() : null
+  };
+
+  const strategies = {
+    approved,
+    pending,
+    active: activeStrategies.slice()
+  };
+
+  const replayEnabled = cognitiveReplayService.isReplayEnabled();
+  const availableInteractions =
+    hub && typeof hub.interaction_count === 'number' ? hub.interaction_count : memory.interactions;
+
+  const replay = {
+    enabled: replayEnabled,
+    available_interactions: availableInteractions
+  };
+
+  const runtime = {
+    drift_detection: cognitiveDriftService.isDriftDetectionEnabled(),
+    replay: replayEnabled,
+    autonomy: autonomousOptimizationService.isAutonomousOptimizationEnabled(),
+    strategic_learning: adaptiveTuningService.isStrategicLearningApplyEnabled(),
+    consensus_engine: cognitiveConsensusService.isConsensusEngineEnabled(),
+    calibration_engine: confidenceCalibrationService.isConfidenceCalibrationEnabled()
+  };
+
+  const out = {
+    health,
+    consensus,
+    calibration,
+    memory: {
+      interactions: memory.interactions,
+      proposals: memory.proposals,
+      autonomous_events: memory.autonomousEvents,
+      persisted_to_disk: !!memory.persistedToDisk
+    },
+    drift,
+    autonomy,
+    strategies,
+    replay,
+    runtime,
+    tenant: {
+      company_id: companyId != null ? String(companyId) : null
+    }
+  };
+
+  try {
+    console.log('[GOVERNANCE_DASHBOARD]', {
+      company_id: out.tenant.company_id,
+      health_level: health.level
+    });
+  } catch (_e) {}
+
+  return out;
+}
+
+/**
+ * Fase 9 — ciclo de avaliação (não agendado aqui; invocar a partir de cron/worker quando necessário).
+ * @param {{ lowConfidenceRate?: number }} [metrics]
+ */
+function runAutonomousEvaluationCycle(metrics = {}) {
+  const {
+    evaluateAutonomousOptimization,
+    shouldRollback,
+    rollbackAutonomousAdjustments,
+    isAutonomousOptimizationEnabled
+  } = require('./autonomousOptimizationService');
+
+  if (!isAutonomousOptimizationEnabled()) {
+    try {
+      console.log('[AUTONOMOUS_SKIPPED]', { reason: 'IMPETUS_AUTONOMOUS_OPTIMIZATION_ENABLED', cycle: true });
+    } catch (_e) {}
+    return;
+  }
+
+  if (shouldRollback(metrics)) {
+    rollbackAutonomousAdjustments();
+    return;
+  }
+
+  evaluateAutonomousOptimization();
+}
+
 module.exports = {
   redactForTrace,
   summarizeDossierData,
@@ -655,5 +925,12 @@ module.exports = {
   scanSupervisedLearningProposals,
   analyzeOperationalSystemPatterns,
   generateStrategicAdjustmentProposals,
-  applyStrategicAssistantTextTail
+  applyStrategicAssistantTextTail,
+  getCognitiveSnapshot,
+  getCognitiveSnapshotAsOf,
+  replayCognitiveInteraction,
+  generateCognitiveDriftReport,
+  isGovernanceDashboardEnabled,
+  getCognitiveGovernanceDashboard,
+  runAutonomousEvaluationCycle
 };
