@@ -3,6 +3,9 @@
  * Normaliza roles do backend (PT/EN, compostos) para chaves de menu/layout.
  */
 
+/** Capability contextual: administrador de sistema (company_role), sem users.role = diretor */
+export const CAP_SYSTEM_ADMINISTRATION = 'system_administration';
+
 const MAINTENANCE_PATTERN = /maintenance|manuten|mecan|eletric|eletromecan|soldad|tecnic|technician_maintenance|manager_maintenance|coordinator_maintenance|supervisor_maintenance/i;
 
 /**
@@ -94,14 +97,28 @@ export function canAccessPulseRhRoute(user) {
   return shouldOfferPulseRhMenu(user);
 }
 
-/** Conta técnica com `role === 'admin'` (não diretor/gerente/coordenador). */
+export function userHasSystemAdministrationCapability(user) {
+  if (!user) return false;
+  if (String(user.role || '').toLowerCase() === 'admin') return true;
+  return (
+    Array.isArray(user.contextual_capabilities) &&
+    user.contextual_capabilities.includes(CAP_SYSTEM_ADMINISTRATION)
+  );
+}
+
+/** Conta técnica `role === 'admin'` OU administrador contextual (cargo na base estrutural) OU admin de tenant (Fase 1). */
 export function isStrictAdminRole(user) {
   if (!user) return false;
-  return String(user.role || '').toLowerCase() === 'admin';
+  const role = String(user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'internal_admin') return true;
+  if (user.is_tenant_admin === true) return true;
+  return userHasSystemAdministrationCapability(user);
 }
 
 export function resolveMenuRole(user) {
   if (!user) return 'colaborador';
+  if (user.is_tenant_admin === true) return 'admin';
+  if (userHasSystemAdministrationCapability(user)) return 'admin';
   let role = (user.role || '').toLowerCase();
   const profile = (user.dashboard_profile || '').toLowerCase();
   const jobTitle = (user.job_title || '').toLowerCase();
@@ -163,4 +180,16 @@ export function isExecutiveLeadershipRole(user) {
   if (!user) return false;
   const key = resolveMenuRole(user);
   return ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(key);
+}
+
+/**
+ * Portal administrativo do tenant (governança / cadastro) — alinhado a backend/tenantAdminPortalScope.
+ * Não inclui perfis operacionais (director, CFO, supervisor) sem capability de administração sistémica.
+ */
+export function isAdministrativePortalOnlyUser(user) {
+  if (!user) return false;
+  const role = String(user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'internal_admin') return true;
+  if (user.is_tenant_admin === true) return true;
+  return userHasSystemAdministrationCapability(user);
 }

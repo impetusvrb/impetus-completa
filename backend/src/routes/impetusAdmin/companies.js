@@ -364,6 +364,13 @@ router.post('/', requireAdminAuth, requireCommercialOrSuper, async (req, res) =>
       console.error('[impetusAdmin/companies markCompanyRoot]', e.message);
     }
 
+    try {
+      const tenantAdminService = require('../../services/tenantAdminService');
+      await tenantAdminService.runBootstrapForCompany(row.id);
+    } catch (e) {
+      console.warn('[impetusAdmin/companies tenant_admin_bootstrap]', e.message);
+    }
+
     const baseUrl = getPublicAppBaseUrl();
     const activateUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 

@@ -365,7 +365,26 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
     }
 
     const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
-    const systemContent = buildLiveChatSystemPrompt(lgpdProtocol);
+    let systemContent = buildLiveChatSystemPrompt(lgpdProtocol);
+
+    try {
+      const memoryBinding = require('./operational/operationalMemoryBindingService');
+      if (memoryBinding.isEnabled()) {
+        const participantsForMem = await loadParticipantRows(conversationId);
+        const humanForMem = participantsForMem.find(p => String(p.user_id) !== String(AI_USER_ID));
+        const memCtx = await memoryBinding.buildOperationalContext({
+          companyId,
+          userId: humanForMem?.user_id || null,
+          query: normalizedMessage.slice(0, 2000)
+        });
+        if (memCtx.block) {
+          systemContent = `${systemContent}\n\n${memCtx.block}`;
+          console.info('[MEMORY_BINDING]', JSON.stringify(memCtx.meta));
+        }
+      }
+    } catch (memErr) {
+      console.warn('[MEMORY_BINDING_SKIP]', memErr?.message || String(memErr));
+    }
 
     if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
       try {
@@ -399,17 +418,69 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       })),
       { role: 'user', content: sanitizeContent(normalizedMessage) }
     ];
-    const r = await openai.chat.completions.create({
+
+    let toolDefs = [];
+    let toolRegistry = null;
+    try {
+      toolRegistry = require('./operational/operationalToolRegistry');
+      toolDefs = toolRegistry.getToolDefinitions();
+    } catch (_) {}
+
+    const completionParams = {
       model: LIVE_CHAT_MODEL,
       messages: msgs,
       max_tokens: 700,
       temperature: 0.45,
       top_p: 0.9,
       presence_penalty: 0.2
-    });
-    const txt = r.choices[0]?.message?.content || 'Não consegui processar.';
+    };
+    if (toolDefs.length > 0) {
+      completionParams.tools = toolDefs;
+      completionParams.tool_choice = 'auto';
+    }
+
+    const r = await openai.chat.completions.create(completionParams);
+    const choice = r.choices[0];
+
+    if (choice?.message?.tool_calls?.length && toolRegistry) {
+      const toolResults = [];
+      const participantsForTools = await loadParticipantRows(conversationId);
+      const humanForTools = participantsForTools.find(p => String(p.user_id) !== String(AI_USER_ID));
+      const toolCtx = { companyId, userId: humanForTools?.user_id || null, conversationId };
+
+      for (const tc of choice.message.tool_calls) {
+        let args = {};
+        try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
+        const result = await toolRegistry.executeTool(tc.function.name, args, toolCtx);
+        toolResults.push({
+          tool_call_id: tc.id,
+          role: 'tool',
+          content: JSON.stringify(result)
+        });
+      }
+
+      msgs.push(choice.message);
+      msgs.push(...toolResults);
+
+      const r2 = await openai.chat.completions.create({
+        model: LIVE_CHAT_MODEL,
+        messages: msgs,
+        max_tokens: 700,
+        temperature: 0.45
+      });
+      const txt2 = r2.choices[0]?.message?.content || 'Ação processada.';
+      const saved2 = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt2 });
+      if (io) io.to(conversationId).emit('new_message', saved2);
+
+      _ingestAfterReply(companyId, normalizedMessage, conversationId);
+      return saved2;
+    }
+
+    const txt = choice?.message?.content || 'Não consegui processar.';
     const saved = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt });
     if (io) io.to(conversationId).emit('new_message', saved);
+
+    _ingestAfterReply(companyId, normalizedMessage, conversationId);
     return saved;
   } catch (err) {
     console.error('[CHAT_AI_ERROR]', err.message);
@@ -427,6 +498,21 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       return { ok: false, message: 'Falha ao processar mensagem de IA' };
     }
   }
+}
+
+function _ingestAfterReply(companyId, message, conversationId) {
+  if (!companyId || !message) return;
+  try {
+    const ingestion = require('./operational/unifiedOperationalIngestionService');
+    if (ingestion.isEnabled()) {
+      ingestion.ingest({
+        content: message,
+        companyId,
+        sourceType: ingestion.SOURCE_TYPES.CHAT_IMPETUS,
+        sourceId: conversationId
+      });
+    }
+  } catch (_) {}
 }
 
 /**

@@ -5,6 +5,11 @@
   padding: 1rem 1.25rem 2rem;
 }
 
+/* Votação cognitiva ponderada — acento técnico discreto */
+.cgov-card--weighted-voting {
+  border-left: 2px solid var(--border-focus, rgba(0, 212, 255, 0.45));
+}
+
 .cgov-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -96,6 +101,11 @@
   border-color: rgba(0, 255, 136, 0.35);
 }
 
+.cgov-severity--stable {
+  color: var(--green, #00ff88);
+  border-color: rgba(0, 255, 136, 0.45);
+}
+
 .cgov-severity--warning {
   color: var(--amber, #ffaa00);
   border-color: rgba(255, 170, 0, 0.35);
@@ -110,6 +120,21 @@
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.8rem;
   color: var(--cyan);
+}
+
+.cgov-policy-discovery__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #a8b8d0);
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.cgov-signal-preview {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  word-break: break-word;
+  color: var(--text-secondary, #a8b8d0);
 }
 
 .cgov-error {

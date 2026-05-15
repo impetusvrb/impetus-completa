@@ -3,7 +3,7 @@
  */
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireRole, requireRhManagementAccess } = require('../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireRhManagementAccess } = require('../middleware/auth');
 const pulseService = require('../services/pulseService');
 
 const jsonBody = express.json({ limit: '256kb' });
@@ -13,7 +13,7 @@ function billingFromReq(req) {
 }
 
 /** Configuração global (admin) */
-router.get('/admin/settings', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/settings', requireAuth, requireTenantAdminRole, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
@@ -25,7 +25,7 @@ router.get('/admin/settings', requireAuth, requireRole('admin'), async (req, res
   }
 });
 
-router.put('/admin/settings', requireAuth, requireRole('admin'), jsonBody, async (req, res) => {
+router.put('/admin/settings', requireAuth, requireTenantAdminRole, jsonBody, async (req, res) => {
   try {
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });

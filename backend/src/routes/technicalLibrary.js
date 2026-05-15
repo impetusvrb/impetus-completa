@@ -8,7 +8,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { requireAuth, requireRole, requireCompanyId } = require('../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireCompanyId } = require('../middleware/auth');
 const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const ctrl = require('../modules/technicalLibrary/controllers/technicalLibraryController');
 const fieldCtrl = require('../modules/technicalLibrary/controllers/fieldAnalysisController');
@@ -16,7 +16,7 @@ const fieldCtrl = require('../modules/technicalLibrary/controllers/fieldAnalysis
 const router = express.Router();
 
 const companyUser = [requireAuth, requireCompanyId];
-const adminCompany = [requireAuth, requireRole('admin'), requireCompanyId];
+const adminCompany = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
 const baseUpload = path.join(__dirname, '../../../uploads/technical-library');
 

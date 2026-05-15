@@ -55,6 +55,9 @@ backend/dist/
 # Frontend - build de produção
 frontend/dist/
 
+# Snapshots locais de dist (rollback manual de build — não versionar)
+frontend/dist.prev.*/
+
 # Logs e arquivos temporários
 *.log
 npm-debug.log*

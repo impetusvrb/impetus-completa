@@ -10,6 +10,7 @@
 const documentContext = require('./documentContext');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const { getUserPermissions } = require('../middleware/authorize');
+const contextIntegrityService = require('./contextIntegrityService');
 
 async function buildContext(user, opts) {
   const options = opts || {};
@@ -48,11 +49,27 @@ async function buildContext(user, opts) {
     parts.push('\nRestrição: usuário sem VIEW_STRATEGIC. Não mencione clientes estratégicos.');
   }
 
-  return {
+  const base = {
     context: parts.join('\n'),
     permissions,
     scope: { financial: hasFinancial, hr: hasHR, strategic: hasStrategic }
   };
+  const dataState =
+    options.data_state != null
+      ? String(options.data_state)
+      : options.dataState != null
+        ? String(options.dataState)
+        : options.metrics && typeof options.metrics === 'object' && options.metrics.data_state != null
+          ? String(options.metrics.data_state)
+          : 'unknown';
+  const channel =
+    options.channel != null ? String(options.channel).slice(0, 128) : 'secure_context';
+  return contextIntegrityService.attachIntegrityToBundle(base, {
+    user: options.user || user || null,
+    companyId,
+    channel,
+    data_state: dataState
+  });
 }
 
-module.exports = { buildContext };
+module.exports = { buildContext, build: buildContext };

@@ -130,6 +130,28 @@ function buildOptions(context) {
       scores: { people_safety: 9, health_wellbeing: 9, ethics_compliance: 9, financial: 5, operational: 6 },
       justification: 'Prioriza saúde das pessoas, custo pontual justificado.',
     });
+  } else if (context.type === 'environmental') {
+    opts.push({
+      label: 'Monitorar indicadores e documentar tendências',
+      reason: 'Resposta conservadora — domínio ambiental (observação)',
+      humanRisk: 'low',
+      scores: { people_safety: 8, health_wellbeing: 8, ethics_compliance: 9, financial: 7, operational: 7 },
+      justification: 'Prioriza conformidade ambiental sem acção operacional automática.'
+    });
+    opts.push({
+      label: 'Solicitar revisão técnica dos dados de intensidade',
+      reason: 'Validar métricas antes de qualquer plano',
+      humanRisk: 'low',
+      scores: { people_safety: 8, health_wellbeing: 8, ethics_compliance: 9, financial: 6, operational: 6 },
+      justification: 'Reduz risco de decisão com dados incompletos.'
+    });
+    opts.push({
+      label: 'Escalar para equipe EHS / sustentabilidade',
+      reason: 'Canal humano para risco ou desvio relevante',
+      humanRisk: 'none',
+      scores: { people_safety: 9, health_wellbeing: 9, ethics_compliance: 10, financial: 5, operational: 6 },
+      justification: 'Adequado quando desvios sugerem risco regulatório ou operacional.'
+    });
   } else if (context.type === 'financial_risk') {
     opts.push({
       label: 'Cortar custos operacionais imediatamente',

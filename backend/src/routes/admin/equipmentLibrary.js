@@ -8,14 +8,14 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { requireAuth, requireRole, requireCompanyId } = require('../../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireCompanyId } = require('../../middleware/auth');
 const { auditMiddleware } = require('../../middleware/audit');
 const { isValidUUID } = require('../../utils/security');
 const svc = require('../../services/equipmentLibraryAdminService');
 
 const router = express.Router();
 
-const adminOnly = [requireAuth, requireRole('admin'), requireCompanyId];
+const adminOnly = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
 function cid(req) {
   return req.user.company_id;

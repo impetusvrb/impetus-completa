@@ -831,22 +831,270 @@ async function listCalibrationEventsForCompany(companyId, limit = 50) {
   }
 }
 
+/**
+ * Event store do Cognitive Stability Index (observacional).
+ * @param {{ id?: string, companyId?: string|null, csi: number, status: string, payload: object, createdAt?: string|number }} event
+ */
+async function persistCsiEventToDb(event) {
+  if (!isCognitiveDbEnabled()) return;
+  let csiSvc;
+  try {
+    csiSvc = require('./cognitiveStabilityService');
+  } catch (err) {
+    try {
+      console.warn('[CSI_ERROR]', {
+        op: 'persistCsiEventToDb',
+        phase: 'load_service',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+    return;
+  }
+  if (!csiSvc.isCsiEnabled()) return;
+  if (!event || event.csi == null || !event.status) return;
+  if (!event.payload || typeof event.payload !== 'object') return;
+
+  try {
+    const db = require('../db');
+    const id =
+      event.id != null && toUuidOrNull(String(event.id)) ? String(event.id).trim() : crypto.randomUUID();
+    const ts =
+      event.createdAt != null && String(event.createdAt).length > 0
+        ? new Date(Number.isFinite(Number(event.createdAt)) ? Number(event.createdAt) : Date.parse(event.createdAt))
+        : new Date();
+    const createdIso = Number.isNaN(ts.getTime()) ? new Date().toISOString() : ts.toISOString();
+    const body = safePayload(event.payload);
+    let json = JSON.stringify(body);
+    if (json.length > 50000) {
+      json = JSON.stringify({
+        _truncated: true,
+        approx_bytes: json.length,
+        preview: json.slice(0, 40000)
+      });
+    }
+    const csiRaw = Number(event.csi);
+    const csiVal = Number.isFinite(csiRaw) ? csiRaw : 0;
+    const statusStr = String(event.status).slice(0, 32);
+
+    await db.query(
+      `INSERT INTO cognitive_stability_events (id, created_at, company_id, csi, status, payload)
+       VALUES ($1::uuid, $2::timestamptz, $3::uuid, $4, $5, $6::jsonb)`,
+      [id, createdIso, toUuidOrNull(event.companyId), csiVal, statusStr, json]
+    );
+    try {
+      console.log('[CSI_EVENT_STORE]', { table: 'cognitive_stability_events', id, csi: csiVal, status: statusStr });
+    } catch (_e) {}
+  } catch (err) {
+    try {
+      console.warn('[CSI_ERROR]', {
+        op: 'persistCsiEventToDb',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+  }
+}
+
+/**
+ * @param {string} companyId
+ * @param {number|string} [limit]
+ */
+async function listCsiEventsForCompany(companyId, limit = 50) {
+  if (!isCognitiveDbEnabled()) return [];
+  const cid = toUuidOrNull(companyId);
+  if (!cid) return [];
+  const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+
+  try {
+    const db = require('../db');
+    const q = await db.query(
+      `SELECT id, created_at, company_id, csi, status, payload
+       FROM cognitive_stability_events
+       WHERE company_id = $1::uuid
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [cid, lim]
+    );
+    return q.rows.map((row) => ({
+      id: String(row.id),
+      created_at: row.created_at,
+      company_id: row.company_id != null ? String(row.company_id) : null,
+      csi: row.csi != null ? Number(row.csi) : null,
+      status: row.status != null ? String(row.status) : null,
+      payload: truncatePayloadForAdmin(row.payload, 32000)
+    }));
+  } catch (err) {
+    try {
+      console.warn('[CSI_ERROR]', {
+        op: 'listCsiEventsForCompany',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+    return [];
+  }
+}
+
+/**
+ * @param {{ id?: string, companyId?: string|null, risk_level: string, risk_score: number, payload: object, createdAt?: string|number }} event
+ */
+async function persistSafetyEventToDb(event) {
+  if (!isCognitiveDbEnabled()) return;
+  let safetySvc;
+  try {
+    safetySvc = require('./cognitiveSafetyRuntimeService');
+  } catch (err) {
+    try {
+      console.warn('[COGNITIVE_SAFETY_ERROR]', {
+        op: 'persistSafetyEventToDb',
+        phase: 'load_service',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+    return;
+  }
+  if (!safetySvc.isCognitiveSafetyEnabled()) return;
+  if (!event || !event.risk_level || event.risk_score == null) return;
+  if (!event.payload || typeof event.payload !== 'object') return;
+
+  try {
+    const db = require('../db');
+    const id =
+      event.id != null && toUuidOrNull(String(event.id)) ? String(event.id).trim() : crypto.randomUUID();
+    const ts =
+      event.createdAt != null && String(event.createdAt).length > 0
+        ? new Date(Number.isFinite(Number(event.createdAt)) ? Number(event.createdAt) : Date.parse(event.createdAt))
+        : new Date();
+    const createdIso = Number.isNaN(ts.getTime()) ? new Date().toISOString() : ts.toISOString();
+    const body = safePayload(event.payload);
+    let json = JSON.stringify(body);
+    if (json.length > 50000) {
+      json = JSON.stringify({
+        _truncated: true,
+        approx_bytes: json.length,
+        preview: json.slice(0, 40000)
+      });
+    }
+    const rs = Number(event.risk_score);
+    const riskScore = Number.isFinite(rs) ? rs : 0;
+    const level = String(event.risk_level).slice(0, 32);
+
+    await db.query(
+      `INSERT INTO cognitive_safety_events (id, created_at, company_id, risk_level, risk_score, payload)
+       VALUES ($1::uuid, $2::timestamptz, $3::uuid, $4, $5, $6::jsonb)`,
+      [id, createdIso, toUuidOrNull(event.companyId), level, riskScore, json]
+    );
+    try {
+      console.log('[COGNITIVE_SAFETY]', {
+        table: 'cognitive_safety_events',
+        id,
+        risk_level: level,
+        risk_score: riskScore
+      });
+    } catch (_e) {}
+  } catch (err) {
+    try {
+      console.warn('[COGNITIVE_SAFETY_ERROR]', {
+        op: 'persistSafetyEventToDb',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+  }
+}
+
+function schedulePersistSafetyEventToDb(event) {
+  if (!isCognitiveDbEnabled()) return;
+  Promise.resolve()
+    .then(() => persistSafetyEventToDb(event))
+    .catch((err) => {
+      try {
+        console.warn('[COGNITIVE_SAFETY_ERROR]', {
+          op: 'schedulePersistSafetyEventToDb',
+          message: err?.message || err
+        });
+      } catch (_e) {}
+    });
+}
+
+/**
+ * @param {string} companyId
+ * @returns {Promise<{ risk_level: string|null, risk_score: number|null, safety_blocks: number }|null>}
+ */
+async function getSafetyDashboardMetrics(companyId) {
+  if (!isCognitiveDbEnabled()) return null;
+  const cid = toUuidOrNull(companyId);
+  if (!cid) return null;
+
+  try {
+    const db = require('../db');
+    const r = await db.query(
+      `
+      SELECT
+        (SELECT risk_score::float8
+         FROM cognitive_safety_events
+         WHERE company_id = $1::uuid
+         ORDER BY created_at DESC
+         LIMIT 1) AS latest_score,
+        (SELECT risk_level
+         FROM cognitive_safety_events
+         WHERE company_id = $1::uuid
+         ORDER BY created_at DESC
+         LIMIT 1) AS latest_level,
+        (SELECT COUNT(*)::bigint
+         FROM cognitive_safety_events
+         WHERE company_id = $1::uuid
+           AND risk_level = 'critical'
+           AND created_at >= NOW() - INTERVAL '30 days') AS block_cnt
+      `,
+      [cid]
+    );
+    const row = r.rows[0];
+    const sc = row.latest_score != null ? Number(row.latest_score) : null;
+    return {
+      risk_level: row.latest_level != null ? String(row.latest_level) : null,
+      risk_score: sc != null && Number.isFinite(sc) ? Math.round(sc) : null,
+      safety_blocks: Number(row.block_cnt) || 0
+    };
+  } catch (err) {
+    try {
+      console.warn('[COGNITIVE_SAFETY_ERROR]', {
+        op: 'getSafetyDashboardMetrics',
+        message: err?.message || err
+      });
+    } catch (_e) {}
+    return null;
+  }
+}
+
+/**
+ * Backbone de eventos cognitivos — delega em cognitiveEventBackboneService (INSERT + métricas).
+ * @param {object} partial — envelope publishCognitiveEvent
+ */
+async function persistCognitiveBackboneEvent(partial) {
+  const backbone = require('./cognitiveEventBackboneService');
+  return backbone.publishCognitiveEvent(partial);
+}
+
 module.exports = {
   isCognitiveDbEnabled,
+  persistCognitiveBackboneEvent,
   persistInteractionToDb,
   persistProposalToDb,
   persistAutonomousEventToDb,
   persistDriftEventToDb,
   persistConsensusEventToDb,
   persistCalibrationEventToDb,
+  persistCsiEventToDb,
+  persistSafetyEventToDb,
+  schedulePersistSafetyEventToDb,
   getCognitiveDbSnapshot,
   getInteractionById,
   getCognitiveSnapshotAt,
   listDriftEventsForCompany,
   listConsensusEventsForCompany,
   listCalibrationEventsForCompany,
+  listCsiEventsForCompany,
   getConsensusDashboardMetrics,
   getCalibrationDashboardMetrics,
+  getSafetyDashboardMetrics,
   getTenantGovernanceHub,
   schedulePersistInteractionToDb,
   schedulePersistProposalToDb,

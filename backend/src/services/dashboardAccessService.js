@@ -7,6 +7,27 @@
  */
 const { getProfile } = require('../config/dashboardProfiles');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
+const tenantAdminPortalScope = require('./tenantAdminPortalScope');
+
+/**
+ * Módulos de acesso universal seguro — liberados explicitamente para TODOS os usuários.
+ * Allowlist controlada: SOMENTE estes 3 módulos têm acesso universal.
+ * NÃO ativa fail-open global nem abre orchestration/telemetry.
+ */
+const UNIVERSAL_SAFE_ACCESS_MODULES = Object.freeze([
+  'proaction',          // PróAção — registro de ações e propostas
+  'registro_inteligente', // Registro Inteligente — captura de registros
+  'cadastrar_com_ia'    // Cadastrar com IA — entrada de dados com suporte de IA
+]);
+
+/**
+ * Módulos explicitamente excluídos do perfil CEO (executive experience refinement).
+ * O CEO consome síntese estratégica — módulos operacionais/táticos são ruído cognitivo.
+ * Deny-only: não afeta nenhum outro perfil; módulo continua universal para os demais.
+ */
+const CEO_DENIED_MODULES = Object.freeze(new Set([
+  'proaction'
+]));
 
 /** Módulos que exigem permissões específicas */
 const MODULE_PERMISSIONS = {
@@ -19,12 +40,18 @@ const MODULE_PERMISSIONS = {
   audit: ['audit.view', 'VIEW_AUDIT_LOGS'],
   admin: ['admin.manage', 'MANAGE_USERS'],
   settings: ['settings.view', 'VIEW_SETTINGS']
+  // registro_inteligente e cadastrar_com_ia não exigem permissões específicas
+  // (sem entrada em MODULE_PERMISSIONS → sempre passam quando em visible_modules)
 };
 
-const UNIVERSAL_MODULES = ['dashboard', 'proaction', 'operational', 'ai', 'chat', 'settings'];
+/**
+ * Baseline mínimo (entrada ao painel). NÃO incluir domínios operacionais/financeiros/RH aqui —
+ * isso causava vazamento cross-domain em todos os perfis (união com visible_modules do perfil).
+ */
+const PROFILE_BASELINE_MODULE_KEYS = ['dashboard'];
 
-function withUniversalModules(modules) {
-  return [...new Set([...(Array.isArray(modules) ? modules : []), ...UNIVERSAL_MODULES])];
+function withBaselineModules(modules) {
+  return [...new Set([...(Array.isArray(modules) ? modules : []), ...PROFILE_BASELINE_MODULE_KEYS])];
 }
 
 /** KPIs/cards sensíveis (estratégicos/financeiros) - exigem VIEW_STRATEGIC ou VIEW_FINANCIAL */
@@ -45,16 +72,46 @@ function getAllowedModules(user) {
   const profileModules = config.profile_config?.visible_modules || [];
   const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
   const role = String(user.role || '').toLowerCase();
+
+  if (tenantAdminPortalScope.isAdministrativePortalOnlyUser(user)) {
+    const { filtered, removed } = tenantAdminPortalScope.filterModulesForAdministrativePortal(profileModules);
+    const withAdmin = [...new Set([...filtered, 'admin', 'audit'])];
+    // Inclui módulos universais seguros também para o portal administrativo.
+    const merged = [...new Set([...withAdmin, ...tenantAdminPortalScope.ADMIN_PORTAL_UNIVERSAL_MODULES, ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    try {
+      console.log(
+        '[ADMIN_PORTAL_SCOPE]',
+        JSON.stringify({
+          tag: 'TENANT_ADMIN_CONTEXT',
+          user_id: user.id,
+          company_id: user.company_id,
+          allowed_modules: merged,
+          suppressed_universal: [...tenantAdminPortalScope.SUPPRESS_UNIVERSAL_FOR_ADMIN_PORTAL],
+          removed_from_profile: removed
+        })
+      );
+      if (removed.length) {
+        console.log(
+          '[OPERATIONAL_MODULE_SUPPRESSED]',
+          JSON.stringify({ user_id: user.id, module_keys: removed, reason: 'administrative_portal_scope' })
+        );
+      }
+    } catch (_) {
+      /* never throw */
+    }
+    return merged;
+  }
   const leadershipRoles = new Set(['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor']);
   // Compatibilidade: se permissions não vierem populadas para liderança,
   // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
   if (leadershipRoles.has(role) && userPerms.length === 0) {
-    return withUniversalModules(profileModules);
+    const leaderMerged = [...new Set([...withBaselineModules(profileModules), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    return _applyCeoExclusions(leaderMerged, role);
   }
 
   const perms = new Set([
     ...userPerms,
-    ...(role === 'admin' || role === 'ceo' ? ['*'] : [])
+    ...(role === 'admin' || role === 'ceo' || role === 'internal_admin' ? ['*'] : [])
   ]);
   const hasWildcard = perms.has('*');
 
@@ -64,7 +121,11 @@ function getAllowedModules(user) {
     const hasAny = required.some(p => perms.has(p));
     return hasWildcard || hasAny;
   });
-  return withUniversalModules(filtered);
+  // Garante que os 3 módulos universais seguras sempre fazem parte do resultado,
+  // independentemente de perfil, cargo ou permissões. Não afeta orchestration,
+  // telemetry, dashboards operacionais ou qualquer outro módulo.
+  const merged = [...new Set([...withBaselineModules(filtered), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+  return _applyCeoExclusions(merged, role);
 }
 
 /**
@@ -126,6 +187,18 @@ function getEffectivePermissions(user) {
   return [...new Set([...base, ...fromModules])];
 }
 
+/**
+ * Estágio final: remove módulos proibidos para CEO.
+ * Executa depois de TODA composição (perfil + universal + baseline).
+ * @param {string[]} modules
+ * @param {string} role
+ * @returns {string[]}
+ */
+function _applyCeoExclusions(modules, role) {
+  if (role !== 'ceo') return modules;
+  return modules.filter(m => !CEO_DENIED_MODULES.has(m));
+}
+
 module.exports = {
   getAllowedModules,
   getAllowedKpis,
@@ -134,5 +207,7 @@ module.exports = {
   getIADataDepth,
   getEffectivePermissions,
   MODULE_PERMISSIONS,
-  SENSITIVE_KPI_KEYS
+  SENSITIVE_KPI_KEYS,
+  UNIVERSAL_SAFE_ACCESS_MODULES,
+  CEO_DENIED_MODULES
 };

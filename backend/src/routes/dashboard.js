@@ -36,6 +36,17 @@ const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
 
+function userHasDirectorOrAdminInsightsAccess(u) {
+  const role = String((u && u.role) || '').toLowerCase();
+  if (['admin', 'ceo', 'diretor', 'director'].includes(role) || role.includes('diretor')) return true;
+  try {
+    const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+    return contextualSystemAdmin.userHasSystemAdministrationCapability(u || {});
+  } catch {
+    return false;
+  }
+}
+
 // Dashboard Engine V2 (aditivo, controlado por feature flag).
 // Em `IMPETUS_DASHBOARD_ENGINE_V2=off` (default) este import existe mas
 // nenhum efeito é produzido — o comportamento da rota mantém-se idêntico ao
@@ -233,13 +244,17 @@ router.get('/me', requireAuth, async (req, res) => {
       profile_label: profileConfig.label || config.profile_code,
       profile_config: profileConfig,
       visible_modules: _legacyVisibleModules,
+      contextual_capabilities: Array.isArray(user.contextual_capabilities) ? user.contextual_capabilities : [],
       user_context: userContext.buildUserContext(user),
       sections,
       kpis,
       functional_area: config.functional_area,
       personalization: personalization || undefined,
       ia_data_depth: dashboardAccessService.getIADataDepth(user),
-      effective_permissions: dashboardAccessService.getEffectivePermissions(user)
+      effective_permissions: dashboardAccessService.getEffectivePermissions(user),
+      is_tenant_admin: !!user.is_tenant_admin,
+      tenant_admin_type: user.tenant_admin_type || null,
+      tenant_admin_can_manage: !!user.tenant_admin_can_manage
     };
 
     // Phase 6 — Contextual Module Orchestration (invisível por defeito).
@@ -472,8 +487,7 @@ router.get('/v2/decision-trace', requireAuth, async (req, res) => {
   try {
     if (!_dashboardDecisionTrace) return res.status(503).json({ ok: false, error: 'trace_disabled' });
     const u = req.user || {};
-    const role = String(u.role || '').toLowerCase();
-    if (!['admin', 'ceo', 'diretor', 'director'].includes(role) && !role.includes('diretor')) {
+    if (!userHasDirectorOrAdminInsightsAccess(u)) {
       return res.status(403).json({ ok: false, error: 'forbidden' });
     }
     const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
@@ -496,8 +510,7 @@ router.get('/v2/divergence', requireAuth, async (req, res) => {
   try {
     if (!_divergenceIntelligence) return res.status(503).json({ ok: false, error: 'divergence_disabled' });
     const u = req.user || {};
-    const role = String(u.role || '').toLowerCase();
-    if (!['admin', 'ceo', 'diretor', 'director'].includes(role) && !role.includes('diretor')) {
+    if (!userHasDirectorOrAdminInsightsAccess(u)) {
       return res.status(403).json({ ok: false, error: 'forbidden' });
     }
     const fn = req.query.function_type ? String(req.query.function_type) : null;
@@ -548,7 +561,16 @@ router.get('/v2/identity-audit', requireAuth, async (req, res) => {
     if (!_contextIdentityAudit) return res.status(503).json({ ok: false, error: 'audit_disabled' });
     const u = req.user || {};
     const role = String(u.role || '').toLowerCase();
-    if (!['admin', 'ceo'].includes(role)) {
+    let okAudit = ['admin', 'ceo'].includes(role);
+    if (!okAudit) {
+      try {
+        const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+        okAudit = contextualSystemAdmin.userHasSystemAdministrationCapability(u);
+      } catch {
+        okAudit = false;
+      }
+    }
+    if (!okAudit) {
       return res.status(403).json({ ok: false, error: 'forbidden' });
     }
     const limit = Math.min(2000, Math.max(1, Number(req.query.limit) || 500));
@@ -1327,9 +1349,15 @@ router.post('/chat', requireAuth, async (req, res) => {
               text: textCouncil,
               data_state: interpretation?.data_state
             });
+            const cognitiveSafetyRuntimeService = require('../services/cognitiveSafetyRuntimeService');
+            const safetyCouncil = await cognitiveSafetyRuntimeService.applySafetyToChatText(textCouncil, u);
+            textCouncil = safetyCouncil.text;
             const tidCouncil = councilResult.trace_id || councilResult.traceId || traceId;
             res.setHeader('X-AI-Trace-ID', String(tidCouncil));
-            if (cr.requires_action || (cr.confidence_score != null && cr.confidence_score < 70)) {
+            if (safetyCouncil.safety_blocked) {
+              res.setHeader('X-AI-Cognitive-Safety', 'blocked');
+              res.setHeader('X-AI-HITL-Pending', '1');
+            } else if (cr.requires_action || (cr.confidence_score != null && cr.confidence_score < 70)) {
               res.setHeader('X-AI-HITL-Pending', '1');
             }
             let processingTransparencyCouncil = councilResult.processing_transparency || null;
@@ -1372,7 +1400,9 @@ router.post('/chat', requireAuth, async (req, res) => {
               hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined,
               processing_transparency: processingTransparencyCouncil,
               cognitive_council: true,
-              system_influence: systemInfluenceMessage || null
+              system_influence: systemInfluenceMessage || null,
+              safety_blocked: !!safetyCouncil.safety_blocked,
+              safety_reason: safetyCouncil.reason || undefined
             });
           }
         }
@@ -1463,7 +1493,9 @@ router.post('/chat', requireAuth, async (req, res) => {
       max_tokens: 1600,
       billing,
       response_format: { type: 'json_object' },
-      model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini'
+      model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini',
+      user: u,
+      channel: 'dashboard_chat'
     });
 
     const degraded = typeof raw === 'string' && raw.startsWith('FALLBACK');
@@ -1506,17 +1538,22 @@ router.post('/chat', requireAuth, async (req, res) => {
     });
 
     let text = synthesis.answer || '';
-    const aiEgressGuard = require('../services/aiEgressGuardService');
-    const allowChat = aiEgressGuard.buildTenantAllowlist(u, {});
-    const egressChat = await aiEgressGuard.scanModelOutput({
-      text,
-      allowlist: allowChat,
-      user: u,
-      moduleName: 'dashboard_chat',
-      channel: 'dashboard_chat'
-    });
-    text = egressChat.text;
-    if (typeof synthesis.content === 'string') synthesis.content = egressChat.text;
+    const aiSecurityGateway = require('../services/aiSecurityGateway');
+    const gatewayAiEnabled = aiSecurityGateway.isGatewayEnabled();
+    let egressChat = { blocked: false, redacted: false, reasons: [] };
+    if (!gatewayAiEnabled) {
+      const aiEgressGuard = require('../services/aiEgressGuardService');
+      const allowChat = aiEgressGuard.buildTenantAllowlist(u, {});
+      egressChat = await aiEgressGuard.scanModelOutput({
+        text,
+        allowlist: allowChat,
+        user: u,
+        moduleName: 'dashboard_chat',
+        channel: 'dashboard_chat'
+      });
+      text = egressChat.text;
+      if (typeof synthesis.content === 'string') synthesis.content = egressChat.text;
+    } else if (typeof synthesis.content === 'string') synthesis.content = text;
     text = applyUnifiedPostProcessing({
       text,
       data_state: interpretation?.data_state
@@ -1531,8 +1568,16 @@ router.post('/chat', requireAuth, async (req, res) => {
       contextual_pack: dashboardContextualPack || undefined
     });
     if (typeof synthesis.content === 'string') synthesis.content = text;
+    const cognitiveSafetyRuntimeService = require('../services/cognitiveSafetyRuntimeService');
+    const safetyChat = gatewayAiEnabled
+      ? { text, safety_blocked: false }
+      : await cognitiveSafetyRuntimeService.applySafetyToChatText(text, u);
+    text = safetyChat.text;
+    if (typeof synthesis.content === 'string') synthesis.content = text;
     const needsHitlPending =
-      !!synthesis.requires_action || (synthesis.confidence_score != null && synthesis.confidence_score < 70);
+      !!synthesis.requires_action ||
+      (synthesis.confidence_score != null && synthesis.confidence_score < 70) ||
+      !!safetyChat.safety_blocked;
     aiAnalytics.enqueueAiTrace({
       trace_id: traceId,
       user_id: u.id,
@@ -1562,7 +1607,7 @@ router.post('/chat', requireAuth, async (req, res) => {
       model_info: {
         provider: 'openai',
         model: process.env.IMPETUS_CHAT_MODEL || 'gpt-4o-mini',
-        channel: 'chatCompletionMessages',
+        channel: 'dashboard_chat',
         max_tokens: 1600,
         response_format: 'json_object',
         ...(egressChat.blocked || egressChat.redacted ? { egress_filter: egressChat.reasons || [] } : {})
@@ -1576,6 +1621,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     });
     res.setHeader('X-AI-Trace-ID', traceId);
     if (needsHitlPending) res.setHeader('X-AI-HITL-Pending', '1');
+    if (safetyChat.safety_blocked) res.setHeader('X-AI-Cognitive-Safety', 'blocked');
     let processing_transparency = null;
     try {
       if (u.company_id) {
@@ -1617,7 +1663,9 @@ router.post('/chat', requireAuth, async (req, res) => {
       hitl_closed: hitlClosure?.closed === true,
       hitl_closed_trace: hitlClosure?.closed ? hitlClosure.trace_id : undefined,
       processing_transparency,
-      system_influence: systemInfluenceMessage || null
+      system_influence: systemInfluenceMessage || null,
+      safety_blocked: !!safetyChat.safety_blocked,
+      safety_reason: safetyChat.reason || undefined
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);

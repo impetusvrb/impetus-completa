@@ -11,6 +11,7 @@ const {
   isAdaptiveTuningEnabled,
   adjustConfidence
 } = require('./adaptiveTuningService');
+const cognitiveSafetyRuntimeService = require('./cognitiveSafetyRuntimeService');
 
 function extractMetricsFromFacadeContext(context) {
   if (!context || typeof context !== 'object') {
@@ -184,7 +185,9 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
       fallback: !pipelineResult
     });
     if (pipelineResult) {
-      return applyAdaptiveConfidencePayload(pipelineResult, context);
+      let pr = applyAdaptiveConfidencePayload(pipelineResult, context);
+      pr = await cognitiveSafetyRuntimeService.applySafetyToFacadePayload(pr, { user, context });
+      return pr;
     }
   }
 
@@ -239,6 +242,11 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
 
     applyAdaptiveConfidencePayload(payload, context);
 
+    const guardedPayload = await cognitiveSafetyRuntimeService.applySafetyToFacadePayload(payload, {
+      user,
+      context
+    });
+
     setImmediate(() => {
       (async () => {
         try {
@@ -251,7 +259,7 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
                   ? context.company_id
                   : null;
             await auditSvc.auditDecision({
-              facadeResult: payload,
+              facadeResult: guardedPayload,
               unifiedResult: result,
               outcome: null,
               context: { source: src, company_id: companyId, companyId }
@@ -261,7 +269,7 @@ async function decideWithFacade({ user, context, options, source, skipCognitiveI
       })();
     });
 
-    return payload;
+    return guardedPayload;
   } catch (err) {
     console.warn('[DECISION_FACADE_FAIL]', err?.message || err);
     return {
@@ -310,6 +318,49 @@ async function decide(params = {}) {
     options = null
   } = params;
 
+  try {
+    const contextIntegrityService = require('./contextIntegrityService');
+    if (
+      contextIntegrityService.isContextIntegrityEnabled() &&
+      user?.company_id &&
+      context &&
+      typeof context === 'object' &&
+      context.company_id != null &&
+      String(context.company_id).trim() !== '' &&
+      String(context.company_id).trim() !== String(user.company_id).trim()
+    ) {
+      try {
+        console.warn(
+          '[CONTEXT_CROSS_TENANT]',
+          JSON.stringify({
+            source: 'decision_facade',
+            user_company: String(user.company_id),
+            context_company: String(context.company_id)
+          })
+        );
+      } catch (_e) {}
+    }
+  } catch (_e0) {}
+
+  try {
+    const unifiedOrch = require('./unifiedOrchestrator');
+    if (unifiedOrch.isUnifiedOrchestratorEnabled()) {
+      const path = unifiedOrch.resolveExecutionPath({
+        channel: source || 'dashboard_chat',
+        metadata: {}
+      });
+      console.info(
+        '[UNIFIED_ROUTING]',
+        JSON.stringify({
+          scope: 'decision_facade',
+          channel: path.channel,
+          runtime: path.runtime,
+          source
+        })
+      );
+    }
+  } catch (_e) {}
+
   const ctx = {
     message,
     company_id: user?.company_id,
@@ -343,7 +394,9 @@ async function decide(params = {}) {
         fallback: !pipelineResult
       });
       if (pipelineResult) {
-        return applyAdaptiveConfidencePayload(pipelineResult, ctx);
+        let pr = applyAdaptiveConfidencePayload(pipelineResult, ctx);
+        pr = await cognitiveSafetyRuntimeService.applySafetyToFacadePayload(pr, { user, context: ctx });
+        return pr;
       }
     } catch (err) {
       console.error('[PIPELINE_FALLBACK]', err);
@@ -382,7 +435,8 @@ async function decide(params = {}) {
     },
     unified_result
   };
-  return applyAdaptiveConfidencePayload(out, ctx);
+  applyAdaptiveConfidencePayload(out, ctx);
+  return cognitiveSafetyRuntimeService.applySafetyToFacadePayload(out, { user, context: ctx });
 }
 
 module.exports = {

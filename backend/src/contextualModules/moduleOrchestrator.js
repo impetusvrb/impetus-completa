@@ -112,28 +112,38 @@ function _scoreModule(mod, identity, capsSet) {
 
 /**
  * Decide se um módulo é elegível a aparecer (gate, separado do score).
- * Universals passam sempre. Caso contrário exige capabilities + alinhamento
- * mínimo (axes OR functions OR areas).
+ * Ordem: `required_capabilities` (se existirem) → `universal` → alinhamento
+ * área/eixo/função. Sem o atalho "área vazia = alinhado" para módulos com eixos.
  */
 function _isEligible(mod, identity, capsSet) {
-  if (mod.universal === true) return { ok: true };
+  // Capabilities explícitas do módulo têm prioridade sobre o atributo `universal`
+  // (evita módulos marcados como universal com required_capabilities a contornarem o gate).
   if (mod.required_capabilities && mod.required_capabilities.length > 0) {
     if (!_hasAll(capsSet, mod.required_capabilities)) {
       return { ok: false, reason: 'capability_missing', caps: mod.required_capabilities.slice() };
     }
   }
-  // alinhamento mínimo (qualquer um dos eixos/área/função)
+  if (mod.universal === true) return { ok: true };
+
+  const hasArea = Array.isArray(mod.compatible_areas) && mod.compatible_areas.length > 0;
+  const hasAxes = Array.isArray(mod.compatible_axes) && mod.compatible_axes.length > 0;
+  const hasFn = Array.isArray(mod.compatible_functions) && mod.compatible_functions.length > 0;
+
+  if (!hasArea && !hasAxes && !hasFn) {
+    return { ok: true };
+  }
+
   let aligned = false;
-  if (Array.isArray(mod.compatible_areas) && mod.compatible_areas.length > 0) {
-    if (identity.area && mod.compatible_areas.includes(identity.area)) aligned = true;
-  } else {
-    aligned = aligned || true; // sem restrição
+  if (hasArea && identity.area && mod.compatible_areas.includes(identity.area)) {
+    aligned = true;
   }
-  if (!aligned && Array.isArray(mod.compatible_axes) && mod.compatible_axes.length > 0) {
+  if (!aligned && hasAxes) {
     const axes = identity.axes_priority || [];
-    if (axes.some((a) => mod.compatible_axes.includes(a))) aligned = true;
+    const primary = identity.primary_axis || axes[0] || null;
+    if (primary && mod.compatible_axes.includes(primary)) aligned = true;
+    else if (axes.some((a) => mod.compatible_axes.includes(a))) aligned = true;
   }
-  if (!aligned && Array.isArray(mod.compatible_functions) && mod.compatible_functions.length > 0) {
+  if (!aligned && hasFn) {
     if (mod.compatible_functions.includes(identity.function_type)) aligned = true;
   }
   // se compatible_levels excluir explicitamente, recusa

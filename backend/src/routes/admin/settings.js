@@ -9,7 +9,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const db = require('../../db');
-const { requireAuth, requireHierarchy } = require('../../middleware/auth');
+const { requireAuth, requireHierarchy, requireTenantAdminRole } = require('../../middleware/auth');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
 const manualsService = require('../../services/manuals');
 const dashboardVisibility = require('../../services/dashboardVisibility');
@@ -58,6 +58,7 @@ const upload = multer({
  */
 router.get('/company', 
   requireAuth,
+  requireTenantAdminRole,
   async (req, res) => {
     try {
       const result = await db.query(`
@@ -153,6 +154,7 @@ router.put('/dashboard-visibility/:level',
  */
 router.put('/company', 
   requireAuth,
+  requireTenantAdminRole,
   auditMiddleware({ 
     action: 'company_settings_updated', 
     entityType: 'company',

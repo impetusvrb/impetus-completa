@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { liveDashboard } from '../../../services/api';
+import { isStrictAdminRole } from '../../../utils/roleUtils';
 import { Zap, Clock, RefreshCw, History, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import '../../../pages/LiveIntelligentDashboard.css';
 
@@ -181,7 +182,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       return {};
     }
   })();
-  if ((user?.role || '').toLowerCase() === 'admin') return null;
+  if (isStrictAdminRole(user)) return null;
 
   const rootClass = `live-intelligent-dashboard live-dash-unified live-dash-unified--${variant}`;
 

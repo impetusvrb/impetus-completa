@@ -10,6 +10,9 @@ export default function AdminLayout() {
     ['/empresas', 'Empresas'],
     ['/usuarios-internos', 'Usuários internos'],
     ['/logs', 'Logs'],
+    ...(user?.perfil === 'super_admin' || user?.perfil === 'admin_suporte'
+      ? [['/recuperacao-tenant', 'Recuperação tenant']]
+      : []),
     ...(user?.perfil === 'super_admin'
       ? [
           ['/governanca-ia', 'Governança IA'],

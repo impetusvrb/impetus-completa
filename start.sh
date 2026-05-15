@@ -1,26 +1,39 @@
 #!/bin/bash
-# IMPETUS COMUNICA IA - Script de subida
-# Conecta e inicia backend + frontend
+# IMPETUS COMUNICA IA - Script de subida (DEV-FOCUSED)
+# Conecta e inicia backend + frontend.
+# Enterprise Hardening Bloco 4 (C11 / B1):
+#   • set -euo pipefail garante fail-fast em qualquer comando ou pipe falhado.
+#   • `npm run migrate` deixa de ser silenciado: erros são visíveis e abortam o
+#     script (preserva o invariante schema-alinhado antes de subir o backend).
+#   • Mantido como script DE DESENVOLVIMENTO. Para produção usar PM2 + deploy
+#     pipeline (ver documentação interna; este ficheiro não substitui ecosystem).
 
-set -e
+set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "══════════════════════════════════════════════"
-echo "  IMPETUS COMUNICA IA - Iniciando"
+echo "  IMPETUS COMUNICA IA - Iniciando (dev)"
 echo "══════════════════════════════════════════════"
 
 # 1. Verificar .env
 if [ ! -f .env ]; then
   echo "⚠ .env não encontrado. Copiando de .env.example..."
-  cp .env.example .env 2>/dev/null || true
+  if [ -f .env.example ]; then
+    cp .env.example .env
+  else
+    echo "✗ .env.example também ausente — abortando."
+    exit 1
+  fi
   echo "▶ Edite .env com suas credenciais (DB, OPENAI_API_KEY)"
 fi
 
-# 2. Migrations
+# 2. Migrations (fail-fast — não usar '|| true', não redireccionar stderr)
 echo ""
 echo "[1/3] Executando migrations..."
-cd backend && npm run migrate 2>/dev/null || true
-cd ..
+(
+  cd backend
+  npm run migrate
+)
 
 # 3. Backend
 echo ""

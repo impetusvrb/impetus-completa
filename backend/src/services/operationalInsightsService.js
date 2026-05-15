@@ -51,8 +51,40 @@ async function listRecent(companyId, opts = {}) {
   return r.rows || [];
 }
 
-async function markAsRead(id, userId) {
-  await db.query(`UPDATE operational_insights SET lido = true, lido_por = $2, lido_em = now() WHERE id = $1`, [id, userId]);
+/**
+ * Marca insight como lido — Enterprise Hardening Bloco 2 (C5):
+ * exige `companyId` para garantir isolamento multi-tenant. A assinatura legada
+ * (id, userId) continua a funcionar mas regista um warning estruturado e
+ * retorna `false` (não executa cross-tenant UPDATE).
+ */
+async function markAsRead(id, userId, companyId) {
+  if (!id || !userId) return false;
+  if (!companyId) {
+    try {
+      console.warn(
+        '[TENANT_ISOLATION_LEGACY_CALL]',
+        JSON.stringify({
+          event: 'TENANT_ISOLATION_LEGACY_CALL',
+          service: 'operationalInsightsService.markAsRead',
+          message: 'companyId omitido — chamada bloqueada por hardening multi-tenant.',
+          id: String(id),
+          user_id: String(userId),
+          at: new Date().toISOString()
+        })
+      );
+    } catch (_e) {
+      /* ignore */
+    }
+    return false;
+  }
+  const r = await db.query(
+    `UPDATE operational_insights
+       SET lido = true, lido_por = $2, lido_em = now()
+     WHERE id = $1 AND company_id = $3
+     RETURNING id`,
+    [id, userId, companyId]
+  );
+  return !!(r.rows && r.rows[0]);
 }
 
 async function getProducaoSummary(companyId, opts = {}) {

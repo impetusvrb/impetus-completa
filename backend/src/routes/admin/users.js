@@ -15,6 +15,7 @@ const { validate, resetPasswordSchema } = require('../../utils/validation');
 const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
 const { z } = require('zod');
 const orgVal = require('../../services/organizationalValidationService');
+const tenantAdminService = require('../../services/tenantAdminService');
 
 async function assertStructuralRoleForCompany(companyId, roleId) {
   if (!roleId) return null;
@@ -590,6 +591,20 @@ router.put('/:id',
         console.warn('[admin/users][hierarchy_canonical_update]', err && err.message ? err.message : err);
       }
 
+      if (Object.prototype.hasOwnProperty.call(validatedData, 'active') && validatedData.active === false) {
+        const gate = await tenantAdminService.assertNotLastGovernanceAdmin(
+          req.user.company_id,
+          req.params.id
+        );
+        if (!gate.ok) {
+          return res.status(400).json({
+            ok: false,
+            error: gate.error,
+            code: gate.code
+          });
+        }
+      }
+
       // Construir query de update
       const updateFields = [];
       const params = [];
@@ -698,6 +713,18 @@ router.put('/:id',
         console.warn('[ORG_VALIDATION_SYNC]', e.message);
       }
 
+      if (Object.prototype.hasOwnProperty.call(validatedData, 'active') && validatedData.active === false) {
+        try {
+          await tenantAdminService.revokeAllActiveForUser(
+            req.user.company_id,
+            req.params.id,
+            req.user.id
+          );
+        } catch (e) {
+          console.warn('[admin/users][tenant_admin_revoke]', e.message);
+        }
+      }
+
       res.json({
         ok: true,
         user: result.rows[0],
@@ -744,6 +771,18 @@ router.delete('/:id',
         });
       }
 
+      const lastGate = await tenantAdminService.assertNotLastGovernanceAdmin(
+        req.user.company_id,
+        req.params.id
+      );
+      if (!lastGate.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: lastGate.error,
+          code: lastGate.code
+        });
+      }
+
       const result = await db.query(`
         UPDATE users
         SET active = false, deleted_at = now()
@@ -760,6 +799,16 @@ router.delete('/:id',
 
       // Invalidar todas as sessões do usuário
       await db.query('DELETE FROM sessions WHERE user_id = $1', [req.params.id]);
+
+      try {
+        await tenantAdminService.revokeAllActiveForUser(
+          req.user.company_id,
+          req.params.id,
+          req.user.id
+        );
+      } catch (e) {
+        console.warn('[admin/users][tenant_admin_revoke_delete]', e.message);
+      }
 
       // Log de auditoria
       await logAction({

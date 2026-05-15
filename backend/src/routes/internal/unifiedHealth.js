@@ -16,6 +16,7 @@ const unifiedSystemHealthService = require('../../services/unifiedSystemHealthSe
 const unifiedLearningFeedbackService = require('../../services/unifiedLearningFeedbackService');
 const unifiedPerformanceService = require('../../services/unifiedPerformanceService');
 const unifiedSystemInfluenceSummaryService = require('../../services/unifiedSystemInfluenceSummaryService');
+const contextualSystemAdmin = require('../../services/contextualSystemAdminService');
 
 router.use(requireAuth, requireHealthAccess);
 
@@ -24,10 +25,15 @@ router.get('/', (req, res) => {
     const userRoleRaw = req.user && req.user.role != null ? String(req.user.role) : '';
     const userRole = userRoleRaw.trim().toLowerCase();
     const isFull =
-      userRole === 'internal_admin';
+      userRole === 'internal_admin' ||
+      userRole === 'admin' ||
+      req.user.is_tenant_admin === true ||
+      (contextualSystemAdmin.isContextualSystemAdminGateEnabled() &&
+        contextualSystemAdmin.userHasSystemAdministrationCapability(req.user));
     try {
       console.info('[UNIFIED_HEALTH_ACCESS]', {
         role: userRoleRaw || '(undefined)',
+        is_tenant_admin: !!req.user.is_tenant_admin,
         level: isFull ? 'full' : 'restricted'
       });
     } catch (_log) {}

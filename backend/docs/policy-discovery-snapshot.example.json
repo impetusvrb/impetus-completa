@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-05-10T12:00:00.000Z",
+  "taxonomy": {
+    "POLICY_SOURCE_TYPES": { "SECURITY": "SECURITY", "OBSERVABILITY": "OBSERVABILITY" },
+    "POLICY_SIGNAL_TYPES": { "SAFETY": "SAFETY", "TRACE": "TRACE" },
+    "POLICY_EFFECT_TYPES": { "BLOCK": "BLOCK", "ROUTE": "ROUTE" },
+    "POLICY_EXECUTOR_TYPES": { "GATEWAY": "GATEWAY", "GOVERNANCE": "GOVERNANCE" }
+  },
+  "policy_sources": {
+    "aiSecurityGateway": {
+      "id": "aiSecurityGateway",
+      "source_type": "SECURITY",
+      "executor_type": "GATEWAY",
+      "signal_types": ["RISK", "SAFETY"],
+      "effect_types": ["BLOCK", "REDACT"]
+    }
+  },
+  "distributed_summary": {
+    "source_count": 12,
+    "overlap_count": 5,
+    "shadow_policy_count": 6,
+    "capability_rule_count": 9,
+    "env_catalog_size": 31
+  }
+}

@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound';
 import AiGovernance from './pages/AiGovernance';
 import AiRiskIntelligence from './pages/AiRiskIntelligence';
 import AiCompliance from './pages/AiCompliance';
+import SupportRecovery from './pages/SupportRecovery';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="governanca-ia/:incidentId" element={<AiGovernance />} />
         <Route path="risco-ia" element={<AiRiskIntelligence />} />
         <Route path="conformidade-ia" element={<AiCompliance />} />
+        <Route path="recuperacao-tenant" element={<SupportRecovery />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

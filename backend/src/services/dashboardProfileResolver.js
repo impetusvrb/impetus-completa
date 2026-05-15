@@ -41,7 +41,8 @@ function inferAreaFromFreeText(text) {
   if (/(manutenc|pcm|mttr|mtbf|ordem de servico|mecanic|eletric)/.test(t)) return 'maintenance';
   if (/(qualidade|nao conform|inspec|laboratorio|microbio|desvio)/.test(t)) return 'quality';
   if (/\bpcp\b|planejamento/.test(t)) return 'pcp';
-  if (/(operac|industrial|diretoria|executiv)/.test(t)) return 'operations';
+  // Não usar "diretoria" isolado — risco de cross-domain (ex.: diretoria não-operacional).
+  if (/(operac|industrial|executiv)/.test(t)) return 'operations';
   if (/(produc|linha|turno|refugo|eficiencia)/.test(t)) return 'production';
   if (/(administra|administrativo)/.test(t)) return 'admin';
   return null;
@@ -60,7 +61,7 @@ function normalizeRoleForDashboardProfile(roleRaw) {
 
 /** Perfis válidos (whitelist) */
 const VALID_PROFILES = new Set([
-  'ceo_executive', 'director_operations', 'director_industrial',
+  'ceo_executive', 'director_operations', 'director_industrial', 'director_unassigned',
   'manager_production', 'manager_maintenance', 'manager_quality',
   'coordinator_production', 'coordinator_maintenance', 'coordinator_quality',
   'supervisor_production', 'supervisor_maintenance', 'supervisor_quality',
@@ -96,11 +97,14 @@ function resolveFunctionalArea(user) {
   const inferred = inferAreaFromJobTitle(user.job_title) || inferAreaFromFreeText(user.job_title);
   if (inferred) return inferred;
   const role = normalizeText(user.role);
-  if (role === 'ceo' || role === 'diretor') return 'operations';
   if (role === 'admin') return 'admin';
   if (role === 'rh') return 'hr';
   if (role === 'financeiro') return 'finance';
-  return 'production'; // fallback
+  // Liderança sem sinal explícito: não inferir "operations" (vazamento contextual V2).
+  if (['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(role)) {
+    return null;
+  }
+  return 'production';
 }
 
 /**
@@ -112,9 +116,15 @@ function resolveFunctionalArea(user) {
 function resolveDashboardProfile(user) {
   if (!user) return 'operator_floor';
 
-  // Override só é respeitado quando não há contexto funcional suficiente.
-  // Isso evita perfil "travado" antigo que diverge do cargo/função atual.
   const override = (user.dashboard_profile || '').trim();
+  const role = normalizeRoleForDashboardProfile(user.role);
+  const area = resolveFunctionalArea(user);
+
+  // Perfil persistido (ex.: finance_management) ganha prioridade quando a área não foi inferida.
+  if ((area == null || area === '') && override && VALID_PROFILES.has(override)) {
+    return override;
+  }
+
   const hasStrongContext =
     String(user.job_title || '').trim().length > 1 ||
     String(user.functional_area || user.company_role_dashboard_hint || '').trim().length > 0 ||
@@ -122,9 +132,6 @@ function resolveDashboardProfile(user) {
   if (!hasStrongContext && override && VALID_PROFILES.has(override)) {
     return override;
   }
-
-  const role = normalizeRoleForDashboardProfile(user.role);
-  const area = resolveFunctionalArea(user);
 
   const roleMap = ROLE_AREA_TO_PROFILE[role];
   if (!roleMap) {

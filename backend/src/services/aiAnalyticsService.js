@@ -723,6 +723,120 @@ function _calibrationGovernanceLevel(m) {
 }
 
 /**
+ * Cognitive Stability Index — snapshot observacional (opcional `preloaded` para evitar consultas duplicadas no dashboard).
+ * @param {string|null|undefined} companyId
+ * @param {null|{ hub: object|null, consensusMetrics: object|null, calibrationMetrics: object|null, driftAlerts: number, rollbackCount: number }} [preloaded]
+ */
+async function getCognitiveStabilitySnapshot(companyId, preloaded = null) {
+  const cognitiveStabilityService = require('./cognitiveStabilityService');
+
+  if (!cognitiveStabilityService.isCsiEnabled()) {
+    return {
+      engine_enabled: false,
+      unavailable: true,
+      csi: null,
+      status: null,
+      consensus: null,
+      drift: null,
+      calibration: null,
+      autonomy: null,
+      explanation: {
+        summary: 'CSI indisponível: defina IMPETUS_CSI_ENABLED=true no backend.',
+        status_label: 'Indisponível'
+      }
+    };
+  }
+
+  let hub;
+  let consensusMetrics;
+  let calibrationMetrics;
+  let driftAlerts;
+  let rollbackCount;
+
+  if (preloaded && typeof preloaded === 'object') {
+    hub = preloaded.hub;
+    consensusMetrics = preloaded.consensusMetrics;
+    calibrationMetrics = preloaded.calibrationMetrics;
+    driftAlerts = Number(preloaded.driftAlerts) || 0;
+    rollbackCount = Number(preloaded.rollbackCount) || 0;
+  } else {
+    const cognitiveDbPersistence = require('./cognitiveDbPersistenceService');
+    const cognitiveConsensusService = require('./cognitiveConsensusService');
+    const confidenceCalibrationService = require('./confidenceCalibrationService');
+    const autonomousOptimizationService = require('./autonomousOptimizationService');
+
+    hub = null;
+    try {
+      hub = await cognitiveDbPersistence.getTenantGovernanceHub(companyId);
+    } catch (_e) {
+      hub = null;
+    }
+
+    consensusMetrics = null;
+    if (cognitiveConsensusService.isConsensusEngineEnabled() && companyId) {
+      try {
+        consensusMetrics = await cognitiveDbPersistence.getConsensusDashboardMetrics(companyId);
+      } catch (_e) {
+        consensusMetrics = null;
+      }
+    }
+
+    calibrationMetrics = null;
+    if (confidenceCalibrationService.isConfidenceCalibrationEnabled() && companyId) {
+      try {
+        calibrationMetrics = await cognitiveDbPersistence.getCalibrationDashboardMetrics(companyId);
+      } catch (_e) {
+        calibrationMetrics = null;
+      }
+    }
+
+    driftAlerts = hub ? hub.drift_recent_30d : 0;
+    const state = autonomousOptimizationService.autonomousState || {};
+    const rollbacks = Array.isArray(state.rollbackHistory) ? state.rollbackHistory : [];
+    rollbackCount = rollbacks.length;
+  }
+
+  const consensusScoreRaw =
+    consensusMetrics && consensusMetrics.consensus_score != null
+      ? consensusMetrics.consensus_score
+      : hub && hub.avg_confidence_pct != null
+        ? hub.avg_confidence_pct
+        : 70;
+
+  const overconfidenceEvents = calibrationMetrics ? calibrationMetrics.overconfidence_events : 0;
+  const underconfidenceEvents = calibrationMetrics ? calibrationMetrics.underconfidence_events : 0;
+
+  const { csi, breakdown } = cognitiveStabilityService.calculateCognitiveStabilityIndex({
+    consensusScore: cognitiveStabilityService.clamp(Number(consensusScoreRaw) || 0),
+    recentDriftEvents: driftAlerts,
+    overconfidenceEvents,
+    underconfidenceEvents,
+    rollbackCount
+  });
+
+  const status = cognitiveStabilityService.classifyCsiStatus(csi);
+  cognitiveStabilityService.logCsiObservability(csi, status);
+
+  const explanation = cognitiveStabilityService.buildCsiExplanation({
+    csi,
+    status,
+    breakdown
+  });
+
+  return {
+    engine_enabled: true,
+    unavailable: false,
+    csi,
+    status,
+    consensus: breakdown.consensus,
+    drift: breakdown.drift,
+    calibration: breakdown.calibration,
+    autonomy: breakdown.autonomy,
+    explanation
+  };
+}
+
+/**
  * Painel de governança cognitiva — só leitura; não altera runtime.
  * @param {string|null|undefined} companyId
  */
@@ -828,6 +942,63 @@ async function getCognitiveGovernanceDashboard(companyId) {
     last_adjustment_at: lastAdjTs != null ? new Date(lastAdjTs).toISOString() : null
   };
 
+  const cognitiveStabilityService = require('./cognitiveStabilityService');
+  const cognitiveSafetyRuntimeService = require('./cognitiveSafetyRuntimeService');
+  const cognitiveVotingService = require('./cognitiveVotingService');
+  const csi = await getCognitiveStabilitySnapshot(companyId, {
+    hub,
+    consensusMetrics,
+    calibrationMetrics,
+    driftAlerts,
+    rollbackCount: rollbacks.length
+  });
+
+  let safetyMetrics = null;
+  if (companyId && cognitiveDbPersistence.isCognitiveDbEnabled()) {
+    try {
+      safetyMetrics = await cognitiveDbPersistence.getSafetyDashboardMetrics(companyId);
+    } catch (_e) {
+      safetyMetrics = null;
+    }
+  }
+
+  const safety = {
+    engine_enabled: cognitiveSafetyRuntimeService.isCognitiveSafetyEnabled(),
+    risk_level: safetyMetrics && safetyMetrics.risk_level != null ? safetyMetrics.risk_level : null,
+    risk_score: safetyMetrics && safetyMetrics.risk_score != null ? safetyMetrics.risk_score : null,
+    safety_blocks: safetyMetrics ? safetyMetrics.safety_blocks : 0
+  };
+
+  let votingWeighted = null;
+  let votingDominant = null;
+  if (
+    companyId &&
+    cognitiveDbPersistence.isCognitiveDbEnabled() &&
+    cognitiveConsensusService.isConsensusEngineEnabled() &&
+    cognitiveVotingService.isWeightedVotingEnabled()
+  ) {
+    try {
+      const evts = await cognitiveDbPersistence.listConsensusEventsForCompany(companyId, 1);
+      const wv = evts[0]?.payload?.report?.weighted_voting;
+      if (wv && typeof wv === 'object') {
+        votingWeighted = wv.weighted_consensus != null ? Number(wv.weighted_consensus) : null;
+        if (wv.dominant_engine != null) votingDominant = String(wv.dominant_engine);
+        else if (wv.dominance && wv.dominance.dominant_engine != null) {
+          votingDominant = String(wv.dominance.dominant_engine);
+        }
+      }
+    } catch (_e) {
+      votingWeighted = null;
+      votingDominant = null;
+    }
+  }
+
+  const voting = {
+    engine_enabled: cognitiveVotingService.isWeightedVotingEnabled(),
+    weighted_consensus: votingWeighted,
+    dominant_engine: votingDominant
+  };
+
   const strategies = {
     approved,
     pending,
@@ -849,13 +1020,56 @@ async function getCognitiveGovernanceDashboard(companyId) {
     autonomy: autonomousOptimizationService.isAutonomousOptimizationEnabled(),
     strategic_learning: adaptiveTuningService.isStrategicLearningApplyEnabled(),
     consensus_engine: cognitiveConsensusService.isConsensusEngineEnabled(),
-    calibration_engine: confidenceCalibrationService.isConfidenceCalibrationEnabled()
+    calibration_engine: confidenceCalibrationService.isConfidenceCalibrationEnabled(),
+    csi_enabled: cognitiveStabilityService.isCsiEnabled(),
+    cognitive_safety: cognitiveSafetyRuntimeService.isCognitiveSafetyEnabled(),
+    weighted_voting: cognitiveVotingService.isWeightedVotingEnabled()
+  };
+
+  const unifiedOrchestrator = require('./unifiedOrchestrator');
+  const aiSecurityGateway = require('./aiSecurityGateway');
+  const legacyRuntime = unifiedOrchestrator.getLegacyRuntimeDashboard();
+  const unified_orchestration = {
+    enabled: unifiedOrchestrator.isUnifiedOrchestratorEnabled(),
+    legacy_paths_detected: legacyRuntime.legacy_paths_detected,
+    legacy_paths_last_24h: legacyRuntime.legacy_paths_last_24h,
+    legacy_block_mode_ready: legacyRuntime.legacy_block_mode_ready,
+    runtime_channels: unifiedOrchestrator.getSupportedChannelCount(),
+    gateway_enforced: aiSecurityGateway.isGatewayEnabled()
+  };
+
+  const contextIntegrityService = require('./contextIntegrityService');
+  const context_integrity = contextIntegrityService.getDashboardMetrics();
+  const integrity_rollout_readiness = contextIntegrityService.evaluateIntegrityBlockReadiness({ silent_logs: true });
+
+  const cognitiveEventBackboneService = require('./cognitiveEventBackboneService');
+  const event_backbone = cognitiveEventBackboneService.getDashboardSnapshot();
+  const event_queue_health = cognitiveEventBackboneService.getEventQueueHealth();
+  const secure_context_bypass = aiSecurityGateway.getSecureContextBypassMetrics();
+
+  const operational_hardening = {
+    legacy_runtime: {
+      legacy_paths_detected: legacyRuntime.legacy_paths_detected,
+      legacy_paths_last_24h: legacyRuntime.legacy_paths_last_24h,
+      legacy_block_mode_ready: legacyRuntime.legacy_block_mode_ready,
+      legacy_zero_window_hours: legacyRuntime.legacy_zero_window_hours
+    },
+    integrity_rollout_readiness,
+    event_queue_health,
+    secure_context_bypass
   };
 
   const out = {
     health,
+    csi,
+    safety,
+    voting,
     consensus,
     calibration,
+    unified_orchestration,
+    context_integrity,
+    event_backbone,
+    operational_hardening,
     memory: {
       interactions: memory.interactions,
       proposals: memory.proposals,
@@ -932,5 +1146,6 @@ module.exports = {
   generateCognitiveDriftReport,
   isGovernanceDashboardEnabled,
   getCognitiveGovernanceDashboard,
+  getCognitiveStabilitySnapshot,
   runAutonomousEvaluationCycle
 };

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 let socketInstance = null;
+let socketTokenSnapshot = null;
 
 function socketBase() {
   const api = import.meta.env.VITE_API_URL || '/api';
@@ -9,20 +10,55 @@ function socketBase() {
   return '';
 }
 
+/**
+ * Enterprise Hardening Bloco 8 (M9): garante que mudança/limpeza de token
+ * (logout, troca de conta) recicla a ligação. Se não houver token, devolve
+ * `null` em vez de manter uma ligação stale.
+ */
 function getSocket() {
+  const token = localStorage.getItem('impetus_token');
+  if (!token) {
+    if (socketInstance) {
+      try { socketInstance.removeAllListeners(); } catch (_) {}
+      try { socketInstance.disconnect(); } catch (_) {}
+      socketInstance = null;
+      socketTokenSnapshot = null;
+    }
+    return null;
+  }
+  if (socketInstance && socketTokenSnapshot && socketTokenSnapshot !== token) {
+    try { socketInstance.removeAllListeners(); } catch (_) {}
+    try { socketInstance.disconnect(); } catch (_) {}
+    socketInstance = null;
+  }
   if (!socketInstance || !socketInstance.connected) {
-    const token = localStorage.getItem('impetus_token');
     const base = socketBase();
     socketInstance = io(base || window.location.origin, { auth: { token }, path: '/socket.io', transports: ['websocket','polling'], reconnectionAttempts: 10 });
+    socketTokenSnapshot = token;
   }
   return socketInstance;
+}
+
+export function disconnectChatSocket() {
+  try {
+    if (socketInstance) {
+      try { socketInstance.removeAllListeners(); } catch (_) {}
+      try { socketInstance.disconnect(); } catch (_) {}
+    }
+  } finally {
+    socketInstance = null;
+    socketTokenSnapshot = null;
+  }
 }
 export function useChatSocket({ onMessage, onTyping, onStopTyping, onOnline, onOffline, onReaction, onRead, onProfileUpdate, onMessageDeleted }) {
   const socketRef = useRef(null);
   const h = useRef({});
   useEffect(() => { h.current = { onMessage, onTyping, onStopTyping, onOnline, onOffline, onReaction, onRead, onProfileUpdate, onMessageDeleted }; });
   useEffect(() => {
-    const s = getSocket(); socketRef.current = s; s.emit('join_conversations');
+    const s = getSocket();
+    socketRef.current = s;
+    if (!s) return; // sem token: não há socket — caller perderá silenciosamente até relogin.
+    s.emit('join_conversations');
     s.on('new_message', m => h.current.onMessage && h.current.onMessage(m));
     s.on('user_typing', d => h.current.onTyping && h.current.onTyping(d));
     s.on('user_stop_typing', d => h.current.onStopTyping && h.current.onStopTyping(d));
@@ -32,7 +68,9 @@ export function useChatSocket({ onMessage, onTyping, onStopTyping, onOnline, onO
     s.on('messages_read', d => h.current.onRead && h.current.onRead(d));
     s.on('user_profile_updated', d => h.current.onProfileUpdate && h.current.onProfileUpdate(d));
     s.on('message_deleted', d => h.current.onMessageDeleted && h.current.onMessageDeleted(d));
-    return () => { ['new_message','user_typing','user_stop_typing','user_online','user_offline','message_reaction','messages_read','user_profile_updated','message_deleted'].forEach(e => s.off(e)); };
+    return () => {
+      ['new_message','user_typing','user_stop_typing','user_online','user_offline','message_reaction','messages_read','user_profile_updated','message_deleted'].forEach(e => s.off(e));
+    };
   }, []);
   const sendMessage = useCallback((data) => new Promise((res,rej) => { socketRef.current && socketRef.current.emit('send_message', data, r => r && r.error ? rej(new Error(r.error)) : res(r)); }), []);
   const emitTyping = useCallback((id) => { socketRef.current && socketRef.current.emit('typing', { conversationId: id }); }, []);

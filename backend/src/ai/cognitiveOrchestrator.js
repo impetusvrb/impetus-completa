@@ -119,6 +119,16 @@ async function runCognitiveCouncil(params) {
     userId: user?.id,
     module: module || 'cognitive_council'
   });
+  if (module === 'environmental') {
+    try {
+      console.info('[COGNITIVE_ORCHESTRATOR_ENVIRONMENTAL]', {
+        trace_id: traceId,
+        company_id: user?.company_id,
+        module: 'environmental',
+        note: 'leitura_data_context_sem_novo_fluxo'
+      });
+    } catch (_e) {}
+  }
   if (user?.company_id && user?.id) {
     behavioralIntelligenceService.trackUserAction('ACCESS_ATTEMPT', {
       userId: user.id,
@@ -502,8 +512,8 @@ async function runCognitiveCouncil(params) {
     const stages = executionLayer.buildStagesArray(dossier);
     const layersPublic = sanitizeLayersForHttpResponse(dossier);
 
-  try {
-    await cognitiveAudit.insertDecisionLog({
+  {
+    const auditPayload = {
       trace_id: traceId,
       company_id: user.company_id,
       user_id: user.id,
@@ -516,8 +526,8 @@ async function runCognitiveCouncil(params) {
       stages_detail: {
         logs: dossier.logs,
         cross_validation: dossier.analysis.cross_validation || null,
-          degraded: dossier.meta.degraded,
-          layers: layersPublic
+        degraded: dossier.meta.degraded,
+        layers: layersPublic
       },
       final_output: synthesis,
       explanation_layer: explanationLayer,
@@ -526,9 +536,37 @@ async function runCognitiveCouncil(params) {
       requires_cross_validation: wantCross,
       degraded_mode: dossier.meta.degraded,
       duration_ms: duration
-    });
-  } catch (err) {
-    console.warn('[COGNITIVE_AUDIT]', err.message);
+    };
+    // Enterprise Hardening Bloco 9 (A10): em vez de engolir o erro com
+    // `console.warn`, registamos via outbox que tenta retries com backoff.
+    try {
+      const outbox = require('../services/auditOutboxService');
+      const r = await outbox.enqueueAuditWrite(
+        'ai_decision_logs',
+        auditPayload,
+        (p) => cognitiveAudit.insertDecisionLog(p)
+      );
+      if (!r.ok) {
+        console.warn(
+          '[COGNITIVE_AUDIT_DEFERRED]',
+          JSON.stringify({
+            event: 'COGNITIVE_AUDIT_DEFERRED',
+            trace_id: traceId,
+            outbox_id: r.id || null
+          })
+        );
+      }
+    } catch (err) {
+      // Mesmo o outbox a falhar é registado estruturadamente — nunca silenciado.
+      console.error(
+        '[COGNITIVE_AUDIT_FAIL]',
+        JSON.stringify({
+          event: 'COGNITIVE_AUDIT_FAIL',
+          trace_id: traceId,
+          error: err && err.message ? err.message : String(err)
+        })
+      );
+    }
   }
 
     aiAnalytics.enqueueAiTrace({

@@ -50,6 +50,12 @@ function isCircuitOpen() {
 }
 
 async function chatCompletion(prompt, opts = {}) {
+  if (String(process.env.IMPETUS_AI_GATEWAY_ENABLED || '').trim().toLowerCase() === 'true') {
+    return chatCompletionMessages([{ role: 'user', content: String(prompt || '') }], {
+      ...opts,
+      channel: opts.channel || 'chat_completion_prompt'
+    });
+  }
   if (!client) return `FALLBACK: IA não configurada. Prompt: ${prompt.slice(0, 300)}`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
 
@@ -89,8 +95,30 @@ async function chatCompletion(prompt, opts = {}) {
 /**
  * Chat com histórico (messages OpenAI). Usado pelo modo voz e outros fluxos.
  * opts.billing: { companyId, userId } — regista tokens NexusIA quando houver usage.
+ * opts.user: recomendado quando IMPETUS_AI_GATEWAY_ENABLED=true (identidade + firewall).
+ * opts.channel: canal lógico para auditoria (ex.: dashboard_chat, orchestrator).
  */
-async function chatCompletionMessages(messages, opts = {}) {
+async function rawChatCompletionMessages(messages, opts = {}) {
+  const unifiedOrchestrator = require('./unifiedOrchestrator');
+  if (unifiedOrchestrator.isUnifiedOrchestratorEnabled() && !opts._unifiedRawAllowed) {
+    if (unifiedOrchestrator.isBlockLegacyEnabled()) {
+      unifiedOrchestrator.detectLegacyExecution({
+        source: 'rawChatCompletionMessages',
+        action: 'blocked'
+      });
+      try {
+        console.warn(
+          '[UNIFIED_BYPASS_BLOCK]',
+          JSON.stringify({ source: 'rawChatCompletionMessages', reason: 'direct_raw_disallowed' })
+        );
+      } catch (_e) {}
+      return `FALLBACK: execução cognitiva directa bloqueada (orquestrador unificado).`;
+    }
+    unifiedOrchestrator.detectLegacyExecution({
+      source: 'rawChatCompletionMessages',
+      action: 'observed'
+    });
+  }
   if (!client) return `FALLBACK: IA não configurada.`;
   if (isCircuitOpen()) return `FALLBACK: Serviço de IA temporariamente indisponível.`;
   try {
@@ -128,6 +156,67 @@ async function chatCompletionMessages(messages, opts = {}) {
     }
     return `FALLBACK: IA indisponível. Erro: ${err.message?.slice(0, 100)}`;
   }
+}
+
+async function chatCompletionMessages(messages, opts = {}) {
+  const unifiedOrchestrator = require('./unifiedOrchestrator');
+  if (unifiedOrchestrator.isUnifiedOrchestratorEnabled()) {
+    try {
+      const user =
+        opts.user ||
+        (opts.billing?.userId && opts.billing?.companyId
+          ? { id: opts.billing.userId, company_id: opts.billing.companyId }
+          : null);
+      const companyId = opts.billing?.companyId || user?.company_id || null;
+      const metaIn = opts.metadata && typeof opts.metadata === 'object' ? opts.metadata : {};
+      const res = await unifiedOrchestrator.executeCognitiveFlow({
+        channel: opts.channel || 'chat_completion_messages',
+        user,
+        companyId,
+        messages,
+        model: opts.model,
+        metadata: {
+          ...metaIn,
+          module: metaIn.module || opts.module || null,
+          traceId: opts.traceId
+        },
+        llmOpts: opts
+      });
+      return res.content;
+    } catch (e) {
+      console.warn('[UNIFIED_ORCHESTRATOR_WRAP]', e?.message || e);
+      return rawChatCompletionMessages(messages, { ...opts, _unifiedRawAllowed: true });
+    }
+  }
+  if (String(process.env.IMPETUS_AI_GATEWAY_ENABLED || '').trim().toLowerCase() === 'true') {
+    try {
+      const { runLlm } = require('./runLlm');
+      const user =
+        opts.user ||
+        (opts.billing?.userId && opts.billing?.companyId
+          ? { id: opts.billing.userId, company_id: opts.billing.companyId }
+          : null);
+      const companyId = opts.billing?.companyId || user?.company_id || null;
+      return await runLlm({
+        channel: opts.channel || 'chat_completion_messages',
+        user,
+        companyId,
+        model: opts.model,
+        messages,
+        metadata: {
+          ...(opts.metadata && typeof opts.metadata === 'object' ? opts.metadata : {}),
+          module: opts.metadata?.module || opts.module || null
+        },
+        traceId: opts.traceId,
+        llmOpts: opts,
+        executeFn: (m, o) => rawChatCompletionMessages(m, o)
+      });
+    } catch (e) {
+      console.warn('[AI_GATEWAY_WRAP]', e?.message || e);
+      return rawChatCompletionMessages(messages, opts);
+    }
+  }
+  return rawChatCompletionMessages(messages, opts);
 }
 
 async function embedText(text, opts = {}) {
@@ -226,6 +315,8 @@ async function searchManualsForText(query, companyId = null) {
  * Classifica, cria diagnóstico (falha) ou tarefa conforme tipo
  */
 async function processIncomingMessage(msg, opts = {}) {
+  const unifiedOrchestrator = require('./unifiedOrchestrator');
+  const run = async () => {
   const { companyId = null } = opts;
   const text = msg.text || msg.body || '';
   const sender = msg.sender || msg.phone || 'Desconhecido';
@@ -256,6 +347,11 @@ async function processIncomingMessage(msg, opts = {}) {
   }
 
   return { kind };
+  };
+  if (unifiedOrchestrator.isUnifiedOrchestratorEnabled()) {
+    return unifiedOrchestrator.runWithRequestChannel('webhook_message', run);
+  }
+  return run();
 }
 
 /**
@@ -320,6 +416,8 @@ async function analyzeImage(imageBase64, userPrompt, opts = {}) {
 module.exports = {
   chatCompletion,
   chatCompletionMessages,
+  /** Execução OpenAI directa (sem gateway). Reservado ao runLlm / gateway. */
+  rawChatCompletionMessages,
   chatWithVision,
   analyzeImage,
   embedText,

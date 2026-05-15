@@ -39,7 +39,7 @@ const MODULE_CAPABILITY_ALIASES = Object.freeze({
  */
 const RULES = Object.freeze([
   // CFO / diretor financeiro
-  { match: { function_type: 'decisao_estrategica', area: 'finance' }, unlock: ['financial_intelligence', 'losses_map', 'cost_center', 'cerebro_operacional', 'insights', 'centro_operacoes_industrial', 'centro_previsao_operacional', 'manuia', 'hr_intelligence', 'anomaly_detection', 'audit'] },
+  { match: { function_type: 'decisao_estrategica', area: 'finance' }, unlock: ['financial_intelligence', 'losses_map', 'cost_center', 'cerebro_operacional', 'insights', 'centro_operacoes_industrial', 'centro_previsao_operacional', 'anomaly_detection', 'audit'] },
   { match: { function_type: 'governanca', area: 'finance' }, unlock: ['financial_intelligence', 'losses_map', 'cost_center', 'audit', 'insights'] },
   // Diretor industrial
   { match: { function_type: 'decisao_estrategica', area: 'industrial' }, unlock: ['cerebro_operacional', 'centro_operacoes_industrial', 'manuia', 'insights', 'losses_map', 'anomaly_detection', 'quality_intelligence'] },
@@ -52,7 +52,7 @@ const RULES = Object.freeze([
   { match: { function_type: 'execucao', area: 'maintenance' }, unlock: ['manuia'] },
   { match: { function_type: 'execucao', area: 'production' }, unlock: ['operational'] },
   { match: { function_type: 'execucao', area: 'quality' }, unlock: ['quality_intelligence'] },
-  // RH BP — pulse_rh é sempre prioridade (definido como universal no registry)
+  // RH BP — pulse_rh exige view:hr + área hr (registry); regras abaixo desbloqueiam módulos.
   { match: { function_type: 'analise', area: 'hr' }, unlock: ['hr_intelligence', 'pulse_rh', 'pulse_gestao'] },
   { match: { function_type: 'decisao_estrategica', area: 'hr' }, unlock: ['hr_intelligence', 'pulse_rh', 'pulse_gestao', 'audit'] },
   { match: { function_type: 'governanca', area: 'hr' }, unlock: ['hr_intelligence', 'pulse_rh', 'audit'] },
@@ -114,14 +114,6 @@ function deriveModuleCapabilities(args) {
       out.add(`view:module:${id}`);
     }
     rationale.push({ rule: rule.match, unlock: rule.unlock.slice() });
-  }
-
-  // Universals sempre adicionam o seu cap-id (descritivo).
-  for (const m of registry.getAllModules()) {
-    if (m.universal === true) {
-      unlocked.add(m.module_id);
-      out.add(`view:module:${m.module_id}`);
-    }
   }
 
   return {

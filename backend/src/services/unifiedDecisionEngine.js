@@ -95,7 +95,11 @@ function normalizeContext(ctx) {
         : c.text != null
           ? String(c.text)
           : '';
-  const type = inferDecisionTypeFromMessage(message, c.type);
+  let explicitType = c.type;
+  if (c.module === 'environmental') {
+    explicitType = 'environmental';
+  }
+  const type = inferDecisionTypeFromMessage(message, explicitType);
   const situation =
     c.situation != null && String(c.situation).trim()
       ? String(c.situation).trim()

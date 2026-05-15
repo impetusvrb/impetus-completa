@@ -2,10 +2,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireRole, requireCompanyId } = require('../../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireCompanyId } = require('../../middleware/auth');
 const aiPolicyService = require('../../services/aiPolicyService');
 
-const mw = [requireAuth, requireRole('admin'), requireCompanyId];
+const mw = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
 router.get('/', mw, async (req, res) => {
   try {

@@ -51,9 +51,16 @@ import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
 import { useVisibleModules } from '../hooks/useVisibleModules';
-import { buildHybridMenu } from '../utils/contextualSidebarBuilder';
+import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
 import { prefetchRoute } from '../utils/prefetchRoutes';
-import { resolveMenuRole, isMaintenanceProfile, isColaboradorSimples, shouldOfferPulseRhMenu, isStrictAdminRole } from '../utils/roleUtils';
+import {
+  resolveMenuRole,
+  isMaintenanceProfile,
+  isColaboradorSimples,
+  shouldOfferPulseRhMenu,
+  isStrictAdminRole,
+  isAdministrativePortalOnlyUser
+} from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
 import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
@@ -220,9 +227,17 @@ export default function Layout({ children }) {
     }).catch(() => {});
   }, []);
   
-  // Pegar dados do usuário do localStorage
+  // Pegar dados do usuário do localStorage (JSON inválido não pode derrubar o layout inteiro)
   const userStr = localStorage.getItem('impetus_user');
-  const user = userStr ? JSON.parse(userStr) : { name: 'Usuário', role: 'colaborador' };
+  let user = { name: 'Usuário', role: 'colaborador' };
+  if (userStr) {
+    try {
+      const parsed = JSON.parse(userStr);
+      if (parsed && typeof parsed === 'object') user = parsed;
+    } catch {
+      user = { name: 'Usuário', role: 'colaborador' };
+    }
+  }
 
   const role = resolveMenuRole(user);
   const dashboardProfile = String(user?.dashboard_profile || '').toLowerCase();
@@ -290,7 +305,7 @@ export default function Layout({ children }) {
   }
 
   if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
-    if ((user.role || '').toLowerCase() === 'admin') return <Navigate to="/app/admin/implantacao-guia" replace state={{ from: location }} />;
+    if (isStrictAdminRole(user)) return <Navigate to="/app/admin/implantacao-guia" replace state={{ from: location }} />;
     if (isColaboradorSimples(user)) return <Navigate to="/app" replace state={{ from: location }} />;
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
@@ -391,6 +406,8 @@ export default function Layout({ children }) {
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/pulse-rh', icon: Activity, label: 'Impetus Pulse (RH)' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
+      { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
+      { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
       { path: '/app/chatbot', icon: null, label: 'Impetus IA', aiIcon: true },
       { path: '/chat', icon: null, chatIcon: true, label: 'Chat Impetus' },
       { path: '/app/settings', icon: Settings, label: 'Configurações' }
@@ -422,6 +439,7 @@ export default function Layout({ children }) {
   /** RH explícito, perfil hr_management ou liderança com setor/cargo de RH (dashboard_profile por vezes não vem no token). */
   if (
     shouldOfferPulseRhMenu(user) &&
+    !isAdministrativePortalOnlyUser(user) &&
     !baseMenuItems.some((item) => item.path === '/app/pulse-rh')
   ) {
     const cloned = [...baseMenuItems];
@@ -436,7 +454,7 @@ export default function Layout({ children }) {
   }
 
   // Regra: manutenção (supervisor e técnicos do depto de manutenção) sempre vê ManuIA e ManuIA Campo.
-  if (maintenanceProfile && !maintenanceTechnicianMenu) {
+  if (maintenanceProfile && !maintenanceTechnicianMenu && !isAdministrativePortalOnlyUser(user)) {
     const cloned = [...baseMenuItems];
     const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
     const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
@@ -470,7 +488,10 @@ export default function Layout({ children }) {
   // os módulos contextualmente eligíveis (CFO → centro de custos, mapa de
   // vazamento, centro de previsão, etc.) são injectados após o item /app, sem
   // duplicação e respeitando policies/capabilities (já filtrado no backend).
-  const baseMenuItemsHybrid = buildHybridMenu(baseMenuItems, contextualModules);
+  const hybridMenuOpts = isAdministrativePortalOnlyUser(user)
+    ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
+    : undefined;
+  const baseMenuItemsHybrid = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
 
   let menuItems = filterMenu(baseMenuItemsHybrid);
   menuItems = menuItems.filter((item) => {
@@ -513,6 +534,16 @@ export default function Layout({ children }) {
     try {
       sessionStorage.removeItem('impetus_factory_operator_gate');
     } catch (_) {}
+    // Enterprise Hardening Bloco 8 (M9): fechar socket de chat antes de
+    // navegar — evita que o socket continue ligado com token obsoleto.
+    try {
+      const mod = await import('../chat-module/hooks/useChatSocket');
+      if (mod && typeof mod.disconnectChatSocket === 'function') {
+        mod.disconnectChatSocket();
+      }
+    } catch (_) {
+      /* import dinâmico opcional */
+    }
     navigate('/');
   };
 

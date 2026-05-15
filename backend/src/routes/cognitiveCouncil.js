@@ -107,7 +107,8 @@ router.post('/execute', async (req, res) => {
       options.related_operational_insight_id = req.body.related_operational_insight_id;
     }
 
-    const result = await runCognitiveCouncil({
+    const unifiedOrchestrator = require('../services/unifiedOrchestrator');
+    const councilPayload = {
       user,
       requestText,
       input,
@@ -115,7 +116,12 @@ router.post('/execute', async (req, res) => {
       context,
       module: String(moduleName).slice(0, 96),
       options
-    });
+    };
+    const result = unifiedOrchestrator.isUnifiedOrchestratorEnabled()
+      ? await unifiedOrchestrator.runWithRequestChannel('cognitive_council', () =>
+          runCognitiveCouncil(councilPayload)
+        )
+      : await runCognitiveCouncil(councilPayload);
 
     const { applyUnifiedPostProcessing } = require('../middleware/forbiddenNarrativeAuditor');
     const dataState =
@@ -143,6 +149,22 @@ router.post('/execute', async (req, res) => {
           data_state: dataState
         });
       }
+
+      const aiSecurityGateway = require('../services/aiSecurityGateway');
+      if (!aiSecurityGateway.isGatewayEnabled()) {
+        const cognitiveSafetyRuntimeService = require('../services/cognitiveSafetyRuntimeService');
+        const primary =
+          (typeof result.result.answer === 'string' && result.result.answer) ||
+          (typeof result.result.content === 'string' && result.result.content) ||
+          '';
+        const s = await cognitiveSafetyRuntimeService.applySafetyToChatText(primary, user);
+        if (typeof result.result.answer === 'string') result.result.answer = s.text;
+        if (typeof result.result.content === 'string') result.result.content = s.text;
+        if (s.safety_blocked) {
+          result.safety_blocked = true;
+          result.reason = s.reason;
+        }
+      }
     }
 
     console.log('[POST_PROCESSING]', {
@@ -153,6 +175,9 @@ router.post('/execute', async (req, res) => {
     const tid = result.trace_id || result.traceId;
     if (tid) res.setHeader('X-AI-Trace-ID', String(tid));
     res.setHeader('X-AI-HITL-Pending', '1');
+    if (result && result.safety_blocked) {
+      res.setHeader('X-AI-Cognitive-Safety', 'blocked');
+    }
     res.json(result);
   } catch (err) {
     if (err.code === 'PROMPT_SECURITY_INGRESS') {

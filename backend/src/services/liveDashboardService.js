@@ -232,7 +232,7 @@ async function buildOrchestrationPlan(companyId, user, scope, profileCode) {
        WHERE ${filter.whereClause}
          AND COALESCE(status, '') NOT IN ('completed', 'rejected', 'done', 'closed')
        ORDER BY
-         CASE WHEN urgency ILIKE '%crit%' OR urgency ILIKE '%urg%' THEN 0 ELSE 1 END,
+         CASE WHEN COALESCE(urgency::text, '') ILIKE '%crit%' OR COALESCE(urgency::text, '') ILIKE '%urg%' THEN 0 ELSE 1 END,
          created_at DESC
        LIMIT ${strategic ? 5 : 12}`,
       filter.params
@@ -308,12 +308,19 @@ function buildLayoutWidgets(profileConfig, kpiByKey) {
   return widgets;
 }
 
-function canOrchestrate(user, profileCode) {
+function canOrchestrate(user, profileCode, functionalArea) {
+  const code = String(profileCode || '');
+  const fa = functionalArea != null && functionalArea !== '' ? String(functionalArea).toLowerCase() : '';
+  // Domain-safe: não planear orquestração operacional para perfis de domínio financeiro/RH ou direção não atribuída.
+  const nonOperationalOrchProfiles = new Set(['finance_management', 'hr_management', 'director_unassigned']);
+  if (nonOperationalOrchProfiles.has(code)) return false;
+  if (fa === 'finance' || fa === 'hr' || fa === 'rh' || fa === 'recursos_humanos') return false;
+
   const role = String(user?.role || '').toLowerCase();
   if (role === 'ceo' || role === 'diretor') return true;
   const level = user?.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
   if (level <= 4) return true;
-  return /supervisor_|coordinator_|manager_|director_|ceo_/.test(profileCode);
+  return /supervisor_|coordinator_|manager_|director_|ceo_/.test(code);
 }
 
 function buildIntelligentSummary({
@@ -324,8 +331,20 @@ function buildIntelligentSummary({
   jobTitle,
   signals,
   gaps,
-  sufficiency
+  sufficiency,
+  profileCode,
+  functionalArea
 }) {
+  const financeLike = profileCode === 'finance_management' || functionalArea === 'finance';
+  const hrLike =
+    profileCode === 'hr_management' ||
+    ['hr', 'rh', 'recursos_humanos'].includes(String(functionalArea || '').toLowerCase());
+  // director_unassigned e admin_system não têm domínio operacional definido —
+  // evitar frase "alertas operacionais" para perfis sem escopo operacional inferido.
+  const unassignedLike = profileCode === 'director_unassigned' || profileCode === 'admin_system' ||
+    (functionalArea == null || functionalArea === '');
+  const domainSafeAlerts = financeLike || hrLike || unassignedLike;
+
   const parts = [
     `${userName ? `${userName}, ` : ''}esta leitura é **personalizada** para o perfil **${profileLabel}**`
   ];
@@ -334,7 +353,9 @@ function buildIntelligentSummary({
   if (jobTitle) parts.push(`função declarada: *${jobTitle}*`);
 
   parts.push(
-    `Indicadores rápidos no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas operacionais abertos.`
+    domainSafeAlerts
+      ? `Indicadores rápidos no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas relevantes ao seu domínio.`
+      : `Indicadores rápidos no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas operacionais abertos.`
   );
 
   if (sufficiency === 'minimal') {
@@ -375,8 +396,9 @@ async function buildLiveStateForUser(user) {
   const dashConfig = dashboardProfileResolver.getDashboardConfigForUser(user);
   const profileConfig = dashConfig.profile_config || {};
   const profileCode = dashConfig.profile_code;
-  const functionalArea = dashConfig.functional_area || 'production';
-  const areaLabel = AREA_LABELS[functionalArea] || functionalArea;
+  const rawFa = dashConfig.functional_area;
+  const functionalArea = rawFa != null && rawFa !== '' ? rawFa : null;
+  const areaLabel = functionalArea && AREA_LABELS[functionalArea] ? AREA_LABELS[functionalArea] : null;
 
   const [deptName, kpisRaw, tasks, alertsPreview, plc, chatM, auditN, commOpen] = await Promise.all([
     getDepartmentName(user.id),
@@ -424,7 +446,7 @@ async function buildLiveStateForUser(user) {
   else if (gaps.length >= 2) data_sufficiency = 'partial';
 
   const userName = user.name || user.email?.split('@')[0] || 'Usuário';
-  const orchestrationAllowed = canOrchestrate(user, profileCode);
+  const orchestrationAllowed = canOrchestrate(user, profileCode, functionalArea);
   const orch = orchestrationAllowed
     ? await buildOrchestrationPlan(companyId, user, scope, profileCode)
     : { items: [], suggestions: [] };
@@ -450,7 +472,9 @@ async function buildLiveStateForUser(user) {
       alertsOpen: alertsPreview.length
     },
     gaps,
-    sufficiency: data_sufficiency
+    sufficiency: data_sufficiency,
+    profileCode,
+    functionalArea
   });
 
   const layout = { widgets: buildLayoutWidgets(profileConfig, kpiByKey) };
@@ -500,7 +524,7 @@ async function buildLiveStateForUser(user) {
       profile_code: profileCode,
       profile_label: profileConfig.label || profileCode,
       functional_area: functionalArea,
-      functional_area_label: areaLabel,
+      functional_area_label: areaLabel || undefined,
       role: user.role || null,
       hierarchy_level: ctx?.hierarchy_level ?? user.hierarchy_level ?? null,
       job_title: user.job_title || null,
@@ -553,5 +577,8 @@ async function executeOrchestrationStash(user, body) {
 
 module.exports = {
   buildLiveStateForUser,
-  executeOrchestrationStash
+  executeOrchestrationStash,
+  /** expostos para cenários de teste (isolamento contextual / domain-safe) */
+  buildIntelligentSummary,
+  canOrchestrate
 };

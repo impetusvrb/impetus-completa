@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const ai = require('../services/ai');
+const unifiedOrchestrator = require('../services/unifiedOrchestrator');
 const aiAnalyticsService = require('../services/aiAnalyticsService');
 const { buildSystemPrompt } = require('./core/systemPrompt');
 const { buildPersonalityBlock } = require('./core/personality');
@@ -39,7 +40,7 @@ function parseEvaluation(raw) {
   }
 }
 
-async function evaluateResponse({ input, response }) {
+async function evaluateResponse({ input, response, user }) {
   const evalPrompt = [
     'Avalie a resposta da IA e retorne APENAS JSON válido.',
     'Critérios (0-10): clareza, utilidade, aderencia_formato, resolveu_problema.',
@@ -49,9 +50,20 @@ async function evaluateResponse({ input, response }) {
     `Resposta da IA: ${String(response || '').slice(0, 6000)}`
   ].join('\n\n');
 
+  const billing =
+    user && user.company_id && user.id
+      ? { companyId: user.company_id, userId: user.id }
+      : undefined;
   const raw = await ai.chatCompletionMessages(
     [{ role: 'user', content: evalPrompt }],
-    { max_tokens: 260, model: process.env.OPENAI_MODEL || 'gpt-4o-mini' }
+    {
+      max_tokens: 260,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      billing,
+      user: user || null,
+      channel: 'orchestrator_eval',
+      metadata: { skipIngress: true }
+    }
   );
   const parsed = parseEvaluation(raw) || {};
   const qualityScoreRaw = Number(parsed.quality_score);
@@ -97,18 +109,39 @@ async function runAI({ input, user, context = {}, mode = 'text', history = [], m
       ? { companyId: user.company_id, userId: user.id }
       : undefined;
 
-  const response = await ai.chatCompletionMessages(messages, {
-    model,
-    max_tokens: maxTokens,
-    billing
-  });
+  let responseText = '';
+  if (unifiedOrchestrator.isUnifiedOrchestratorEnabled()) {
+    const flow = await unifiedOrchestrator.executeCognitiveFlow({
+      channel: 'internal_chat',
+      user,
+      companyId: user?.company_id || null,
+      messages,
+      model: model || process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      metadata: { intent, mode },
+      llmOpts: {
+        model,
+        max_tokens: maxTokens,
+        billing,
+        user
+      }
+    });
+    responseText = String(flow?.content || '');
+  } else {
+    const response = await ai.chatCompletionMessages(messages, {
+      model,
+      max_tokens: maxTokens,
+      billing,
+      user,
+      channel: 'ai_orchestrator'
+    });
+    responseText = String(response || '');
+  }
 
-  const responseText = String(response || '');
   const estimatedTokens = Math.max(1, Math.ceil((String(input || '').length + responseText.length) / 4));
   const responseTime = Date.now() - startedAt;
   let quality = null;
   try {
-    quality = await evaluateResponse({ input, response: responseText });
+    quality = await evaluateResponse({ input, response: responseText, user });
   } catch (err) {
     console.warn('[AI_ORCHESTRATOR_EVAL]', err?.message || err);
   }
@@ -168,7 +201,7 @@ async function runAI({ input, user, context = {}, mode = 'text', history = [], m
     correction_needed: quality?.correctionNeeded === true
   });
 
-  return response;
+  return responseText;
 }
 
 module.exports = {

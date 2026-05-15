@@ -5,11 +5,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check } from 'lucide-react';
+import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check, Users } from 'lucide-react';
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
-import { adminSettings, appImpetus, pulse } from '../services/api';
+import { adminSettings, appImpetus, pulse, tenantAdmins, adminUsers } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import { isStrictAdminRole } from '../utils/roleUtils';
 import './AdminSettings.css';
 
 const SECTION_LABELS = {
@@ -32,7 +33,7 @@ const HIERARCHY_LABELS = {
   5: 'Colaborador'
 };
 
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility', 'pulse'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility', 'pulse', 'tenant-admins'];
 const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function CompanyAdminSettings() {
@@ -50,8 +51,9 @@ export default function CompanyAdminSettings() {
     }
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-  const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1;
-  const isStrictAdmin = (user.role || '').toString().toLowerCase() === 'admin';
+  const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1 || isStrictAdminRole(user);
+  const isStrictAdmin = isStrictAdminRole(user);
+  const showTenantGovernanceTab = !!(user.is_tenant_admin || isStrictAdminRole(user));
   const [connectionStatus, setConnectionStatus] = useState(null);
 
   useEffect(() => {
@@ -84,6 +86,23 @@ export default function CompanyAdminSettings() {
       } else if (activeTab === 'pulse' && isStrictAdmin) {
         const r = await pulse.getAdminSettings();
         setPulseEnabled(!!r.data?.settings?.pulse_enabled);
+      } else if (activeTab === 'tenant-admins' && showTenantGovernanceTab) {
+        setTenantGovLoading(true);
+        try {
+          const [ta, ul] = await Promise.all([
+            tenantAdmins.list(),
+            adminUsers.list({ limit: 200, active: 'true' })
+          ]);
+          setTenantAdminList(ta.data?.admins || []);
+          setTenantCanManage(!!ta.data?.tenant_admin_can_manage);
+          setGovernanceEnabled(ta.data?.governance_enabled !== false);
+          setAllUsersPick(ul.data?.users || []);
+        } catch (e) {
+          console.error(e);
+          notify.error(e.response?.data?.error || 'Erro ao carregar governança do tenant');
+        } finally {
+          setTenantGovLoading(false);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -100,7 +119,13 @@ export default function CompanyAdminSettings() {
   const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
   const [visibilityConfigs, setVisibilityConfigs] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [pulseEnabled, setPulseEnabled] = useState(false);
+  const [tenantAdminList, setTenantAdminList] = useState([]);
+  const [tenantGovLoading, setTenantGovLoading] = useState(false);
+  const [tenantCanManage, setTenantCanManage] = useState(false);
+  const [governanceEnabled, setGovernanceEnabled] = useState(true);
+  const [promoteUserId, setPromoteUserId] = useState('');
+  const [promoteType, setPromoteType] = useState('secondary');
+  const [allUsersPick, setAllUsersPick] = useState([]);
 
   const handleSaveNotifications = async () => {
     try {
@@ -251,6 +276,38 @@ export default function CompanyAdminSettings() {
     }
   };
 
+  const handlePromoteTenantAdmin = async () => {
+    if (!promoteUserId) {
+      notify.warning('Seleccione um utilizador');
+      return;
+    }
+    try {
+      setSaving(true);
+      await tenantAdmins.promote({ user_id: promoteUserId, admin_type: promoteType });
+      notify.success('Administrador do tenant actualizado.');
+      setPromoteUserId('');
+      loadData();
+    } catch (e) {
+      notify.error(e.response?.data?.error || e.apiMessage || 'Erro ao promover');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRevokeTenantAdmin = async (rowId) => {
+    if (!window.confirm('Revogar este administrador de tenant? (O utilizador permanece na empresa.)')) return;
+    try {
+      setSaving(true);
+      await tenantAdmins.revoke(rowId);
+      notify.success('Registo revogado.');
+      loadData();
+    } catch (e) {
+      notify.error(e.response?.data?.error || e.apiMessage || 'Erro ao revogar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="admin-settings-page">
@@ -276,6 +333,9 @@ export default function CompanyAdminSettings() {
           )}
           {isStrictAdmin && (
             <button className={`stab ${activeTab === 'pulse' ? 'active' : ''}`} onClick={() => setActiveTab('pulse')}><Shield size={18} /> Impetus Pulse</button>
+          )}
+          {showTenantGovernanceTab && (
+            <button className={`stab ${activeTab === 'tenant-admins' ? 'active' : ''}`} onClick={() => setActiveTab('tenant-admins')}><Users size={18} /> Admins do tenant</button>
           )}
         </div>
 
@@ -453,6 +513,86 @@ export default function CompanyAdminSettings() {
                       Salvar
                     </button>
                   </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'tenant-admins' && showTenantGovernanceTab && (
+            <div className="settings-panel">
+              <h3>Governança administrativa do tenant</h3>
+              <p className="form-hint">
+                Camada independente do cargo organizacional: define quem pode administrar o tenant na plataforma.
+                Um supervisor ou colaborador pode ser admin de recuperação ou secundário.
+              </p>
+              {tenantGovLoading ? (
+                <p>Carregando...</p>
+              ) : !governanceEnabled ? (
+                <p className="form-hint">Governança de tenant desactivada no servidor (IMPETUS_TENANT_ADMIN_GOVERNANCE).</p>
+              ) : (
+                <>
+                  <div className="list-section">
+                    <h4>Administradores activos</h4>
+                    {tenantAdminList.length === 0 ? (
+                      <p className="form-hint">Nenhum registo — execute a migration ou bootstrap no servidor.</p>
+                    ) : (
+                      <ul className="simple-list">
+                        {tenantAdminList.map((row) => (
+                          <li key={row.id}>
+                            <strong>{row.user_name}</strong> ({row.user_email}) — {row.admin_type}
+                            {tenantCanManage && (
+                              <button
+                                type="button"
+                                className="btn-link"
+                                style={{ marginLeft: 8 }}
+                                onClick={() => handleRevokeTenantAdmin(row.id)}
+                                disabled={saving}
+                              >
+                                Revogar
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {tenantCanManage && (
+                    <div className="list-section" style={{ marginTop: 16 }}>
+                      <h4>Promover / alterar tipo</h4>
+                      <p className="form-hint">Primário: um por empresa. Recuperação: um por empresa (substitui o anterior).</p>
+                      <select
+                        className="form-input"
+                        value={promoteUserId}
+                        onChange={(e) => setPromoteUserId(e.target.value)}
+                        style={{ maxWidth: 420, marginBottom: 8 }}
+                      >
+                        <option value="">— Utilizador —</option>
+                        {allUsersPick.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.email}) — {u.role}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="form-input"
+                        value={promoteType}
+                        onChange={(e) => setPromoteType(e.target.value)}
+                        style={{ maxWidth: 220, marginLeft: 8, marginBottom: 8 }}
+                      >
+                        <option value="secondary">Secundário</option>
+                        <option value="recovery">Recuperação</option>
+                        <option value="primary">Primário</option>
+                      </select>
+                      <div className="panel-actions">
+                        <button type="button" className="btn btn-primary" onClick={handlePromoteTenantAdmin} disabled={saving}>
+                          Aplicar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {!tenantCanManage && (
+                    <p className="form-hint">Apenas o administrador primário ou de recuperação pode promover ou revogar.</p>
+                  )}
                 </>
               )}
             </div>

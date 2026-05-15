@@ -2,11 +2,11 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireRole, requireCompanyId } = require('../../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireCompanyId } = require('../../middleware/auth');
 const aiIncidentService = require('../../services/aiIncidentService');
 const unifiedMessagingService = require('../../services/unifiedMessagingService');
 
-const adminCompany = [requireAuth, requireRole('admin'), requireCompanyId];
+const adminCompany = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
 router.get('/stats', ...adminCompany, async (req, res) => {
   try {

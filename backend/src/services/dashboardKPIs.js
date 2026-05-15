@@ -236,7 +236,7 @@ async function getDashboardKPIs(user, hierarchyScope) {
 
     if (level <= 1) {
       // DIRETOR / CEO: Indicadores estratégicos
-      if (['director_industrial', 'director_operations'].includes(profileCode) || functionalArea === 'production') {
+      if (['director_industrial', 'director_operations', 'director_unassigned'].includes(profileCode) || functionalArea === 'production') {
         const prodKpis = await getProductionKpis(companyId);
         if (prodKpis.length) kpis.push(...prodKpis);
       }

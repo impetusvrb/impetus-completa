@@ -82,10 +82,17 @@ router.get('/insights', requireAuth, async (req, res) => {
 router.post('/insights/:id/read', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    const companyId = req.user?.company_id;
     if (!id || !operationalInsights?.markAsRead) {
       return res.status(400).json({ ok: false, error: 'Pedido inválido.' });
     }
-    await operationalInsights.markAsRead(id, req.user.id);
+    if (!companyId) {
+      return res.status(403).json({ ok: false, error: 'TENANT_CONTEXT_MISSING', code: 'TENANT_CONTEXT_MISSING' });
+    }
+    const ok = await operationalInsights.markAsRead(id, req.user.id, companyId);
+    if (!ok) {
+      return res.status(404).json({ ok: false, error: 'Insight não encontrado neste tenant.', code: 'NOT_FOUND' });
+    }
     res.json({ ok: true });
   } catch (err) {
     console.error('[DASHBOARD_OP_BRAIN_INSIGHT_READ]', err);
@@ -114,10 +121,17 @@ router.get('/alerts', requireAuth, async (req, res) => {
 router.post('/alerts/:id/resolve', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    const companyId = req.user?.company_id;
     if (!id || !operationalAlerts?.resolve) {
       return res.status(400).json({ ok: false, error: 'Pedido inválido.' });
     }
-    await operationalAlerts.resolve(id, req.user.id);
+    if (!companyId) {
+      return res.status(403).json({ ok: false, error: 'TENANT_CONTEXT_MISSING', code: 'TENANT_CONTEXT_MISSING' });
+    }
+    const ok = await operationalAlerts.resolve(id, req.user.id, companyId);
+    if (!ok) {
+      return res.status(404).json({ ok: false, error: 'Alerta não encontrado neste tenant.', code: 'NOT_FOUND' });
+    }
     res.json({ ok: true });
   } catch (err) {
     console.error('[DASHBOARD_OP_BRAIN_ALERT_RESOLVE]', err);

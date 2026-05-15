@@ -256,7 +256,7 @@ export const realtimePresence = {
 
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
-  getMe: () => api.get('/dashboard/me'),
+  getMe: (config = {}) => api.get('/dashboard/me', config),
   /** Contexto interno + regras de acesso para o system prompt da voz OpenAI Realtime */
   getVoiceRealtimeContext: () => api.get('/dashboard/voice-realtime-context'),
   /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
@@ -728,6 +728,13 @@ export const adminUsers = {
     api.patch(`/admin/users/${userId}/profile-context`, data)
 };
 
+/** Governança administrativa do tenant (primary / secondary / recovery) */
+export const tenantAdmins = {
+  list: () => api.get('/admin/tenant-admins'),
+  promote: (body) => api.post('/admin/tenant-admins', body),
+  revoke: (id) => api.delete(`/admin/tenant-admins/${id}`)
+};
+
 // ============================================================================
 // ADMINISTRAÇÃO - DEPARTAMENTOS
 // ============================================================================
@@ -1117,7 +1124,31 @@ export const adminIncidents = {
 
 /** Governança cognitiva — painel só leitura (backend: /api/admin/learning/dashboard) */
 export const adminCognitiveGovernance = {
-  getDashboard: () => api.get('/admin/learning/dashboard')
+  getDashboard: () => api.get('/admin/learning/dashboard'),
+  /** Inventário normativo completo — admin sistema; requer IMPETUS_POLICY_DISCOVERY_ENABLED=true */
+  getPolicyDiscovery: () => api.get('/admin/learning/policy-discovery'),
+  /** Catálogo PDC — admin sistema; requer IMPETUS_POLICY_CONTRACT_ENABLED=true */
+  getPolicyContract: () => api.get('/admin/learning/policy-contract'),
+  /** PSA — sinais universais; requer IMPETUS_POLICY_SIGNALS_ENABLED=true */
+  getPolicySignals: () => api.get('/admin/learning/policy-signals'),
+  /** Policy Facade — agregação passiva; requer IMPETUS_POLICY_FACADE_ENABLED=true */
+  getPolicyFacade: () => api.get('/admin/learning/policy-facade'),
+  /** Policy Arbitration — read-only; requer IMPETUS_POLICY_ARBITRATION_ENABLED=true */
+  getPolicyArbitration: () => api.get('/admin/learning/policy-arbitration'),
+  /** Policy Obligations — declarativas; requer IMPETUS_POLICY_OBLIGATIONS_ENABLED=true */
+  getPolicyObligations: () => api.get('/admin/learning/policy-obligations'),
+  /** Policy Governance Graph — topologia normativa read-only; requer IMPETUS_POLICY_GRAPH_ENABLED=true */
+  getPolicyGraph: () => api.get('/admin/learning/policy-graph'),
+  /** Policy Execution Readiness — prontidão normativa read-only; requer IMPETUS_POLICY_READINESS_ENABLED=true */
+  getPolicyReadiness: () => api.get('/admin/learning/policy-readiness'),
+  /** Policy Simulation Runtime — dry-run normativo read-only; requer IMPETUS_POLICY_SIMULATION_ENABLED=true */
+  getPolicySimulation: () => api.get('/admin/learning/policy-simulation'),
+  /** Policy Sandbox shadow — twin governance read-only; requer IMPETUS_POLICY_SANDBOX_ENABLED=true */
+  getPolicySandbox: () => api.get('/admin/learning/policy-sandbox'),
+  /** Policy Governance Diff — produção vs sandbox read-only; requer IMPETUS_POLICY_DIFF_ENABLED=true */
+  getPolicyGovernanceDiff: () => api.get('/admin/learning/policy-diff'),
+  /** Policy Governance Evolution — trajetória normativa read-only; requer IMPETUS_POLICY_EVOLUTION_ENABLED=true */
+  getPolicyGovernanceEvolution: () => api.get('/admin/learning/policy-evolution')
 };
 
 export const intelligentRegistration = {

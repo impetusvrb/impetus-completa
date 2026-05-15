@@ -7,6 +7,7 @@ const companies = require('./companies');
 const logs = require('./logs');
 const users = require('./users');
 const incidents = require('./incidents');
+const supportRecovery = require('./supportRecovery');
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/companies', companies);
 router.use('/logs', logs);
 router.use('/users', users);
 router.use('/incidents', incidents);
+router.use('/support-recovery', supportRecovery);
 
 module.exports = router;

@@ -113,14 +113,18 @@ function testEnrichMode() {
   const out = facade.enhanceVisibleModulesWithContext(LEGACY_FINANCE, CFO);
   assert(setSubset(LEGACY_FINANCE, out.visibleModules), '2a. legacy ⊆ enriched (nada removido)', { legacy: LEGACY_FINANCE, enriched: out.visibleModules });
   assert(out.visibleModules.length >= LEGACY_FINANCE.length, '2b. enriched.length >= legacy.length');
-  // CFO esperado: ganhar manuia, hr_intelligence, anomaly_detection, audit
-  const expectedAdds = ['manuia', 'hr_intelligence', 'anomaly_detection', 'audit'];
-  for (const k of expectedAdds) {
-    assert(out.visibleModules.includes(k), `2c. CFO em enrich recebe '${k}'`);
+  // Segregação: CFO não recebe domínio manutenção/RH via enrich (incidente cross-domain).
+  const forbiddenCross = ['manuia', 'hr_intelligence'];
+  for (const k of forbiddenCross) {
+    assert(!out.visibleModules.includes(k), `2c. CFO enrich NÃO recebe cross-domain '${k}'`, { got: out.visibleModules });
   }
-  assert(out.meta.mode === 'enrich', '2d. meta.mode === enrich');
-  assert(Array.isArray(out.meta.diff?.added), '2e. diff.added é array');
-  assert(out.contextualModules.length > 0, '2f. contextualModules populado');
+  const expectedAdds = ['anomaly_detection', 'audit'];
+  for (const k of expectedAdds) {
+    assert(out.visibleModules.includes(k), `2d. CFO em enrich pode receber '${k}' (domínio alinhado)`);
+  }
+  assert(out.meta.mode === 'enrich', '2e. meta.mode === enrich');
+  assert(Array.isArray(out.meta.diff?.added), '2f. diff.added é array');
+  assert(out.contextualModules.length > 0, '2g. contextualModules populado');
   delete process.env.IMPETUS_CONTEXTUAL_MODULES;
 }
 
@@ -194,11 +198,11 @@ function testOrchestratorPersonas() {
   section('5. Orchestrator — 7 personas');
 
   const cases = [
-    { name: 'CFO', user: CFO, mustHave: ['dashboard', 'operational', 'ai'], expectIn: ['financial_intelligence', 'losses_map', 'cost_center', 'cerebro_operacional'] },
+    { name: 'CFO', user: CFO, mustHave: ['dashboard', 'operational', 'ai'], expectIn: ['financial_intelligence', 'losses_map', 'cost_center', 'cerebro_operacional'], mustNotHave: ['manuia', 'hr_intelligence', 'pulse_rh'] },
     { name: 'Diretor Industrial', user: DIR_IND, mustHave: ['dashboard', 'operational'], expectIn: ['cerebro_operacional', 'centro_operacoes_industrial', 'manuia'] },
     { name: 'Supervisor', user: SUPERVISOR, mustHave: ['dashboard', 'operational'], expectIn: ['centro_operacoes_industrial'] },
     { name: 'Operador', user: OPERADOR, mustHave: ['dashboard', 'operational'], mustNotHave: ['financial_intelligence', 'losses_map', 'cost_center', 'admin'] },
-    { name: 'RH BP', user: RH_BP, mustHave: ['dashboard', 'operational', 'pulse_rh'], expectIn: ['hr_intelligence'] },
+    { name: 'RH BP', user: RH_BP, mustHave: ['dashboard', 'pulse_rh'], mustHaveMenuKeys: ['operational'], expectIn: ['hr_intelligence'] },
     { name: 'Segurança', user: SAFETY, mustHave: ['dashboard', 'operational'], expectIn: ['cerebro_operacional', 'anomaly_detection'] },
     { name: 'Auditor', user: AUDITOR, mustHave: ['dashboard', 'operational'], expectIn: ['audit'] }
   ];
@@ -207,6 +211,11 @@ function testOrchestratorPersonas() {
     const ident = buildContextualIdentity(c.user);
     const out = orchestrator.orchestrate(ident);
     const ids = out.allowed_module_ids;
+    if (c.mustHaveMenuKeys) {
+      for (const mk of c.mustHaveMenuKeys) {
+        assert(out.menu_keys.includes(mk), `5m.${c.name}.menu_keys inclui '${mk}'`, { menu_keys: out.menu_keys });
+      }
+    }
     if (c.mustHave) {
       for (const id of c.mustHave) {
         assert(ids.includes(id), `5a.${c.name}.mustHave('${id}')`, { allowed: ids });

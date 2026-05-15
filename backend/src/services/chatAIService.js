@@ -4,6 +4,8 @@
  * mentionsAI: deteção central (mentionsAI util).
  * handleAIMessage: resposta mínima funcional quando o fluxo consolidado não está ativo
  * (sem flags novas). Usa secureContextBuilder + orchestrator central.
+ * LLM: runAI → com IMPETUS_UNIFIED_ORCHESTRATOR_ENABLED=true passa por unifiedOrchestrator.executeCognitiveFlow;
+ * com gateway activo, enforcement completo (ingress/egress/safety) via runLlm.
  */
 const db = require('../db');
 const chatService = require('./chatService');

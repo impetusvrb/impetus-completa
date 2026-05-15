@@ -1,21 +1,23 @@
 /**
  * Painel de saúde do motor cognitivo unificado (GET /api/internal/unified-health).
  * Widget lateral fixo — não substitui conteúdo do dashboard operacional.
- * internal_admin: visão completa | demais perfis autorizados: visão executiva.
+ * Admin do tenant + internal_admin: visão completa (alinhado ao backend) | liderança: visão executiva.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
+import {
+  mergeUserRoleFromJwt,
+  userCanAccessSystemHealth as userCanAccessSystemHealthGate,
+  userSeesFullHealthPayload
+} from '../utils/systemHealthAccess';
 import './SystemHealthPanel.css';
 
 const POLL_MS = 30000;
 
-const HEALTH_ROLES = new Set(['admin', 'internal_admin', 'ceo', 'diretor', 'gerente', 'coordenador']);
-
-/** Mesma regra de visibilidade do painel — reutilizável no menu lateral. */
+/** Re-export: Layout e outros importam daqui; lógica canónica em systemHealthAccess. */
 export function userCanAccessSystemHealth(user) {
-  const role = user?.role != null ? String(user.role).trim().toLowerCase() : '';
-  return HEALTH_ROLES.has(role);
+  return userCanAccessSystemHealthGate(user);
 }
 
 /** Alinhado ao contrato do backend: good | warning | critical */
@@ -39,13 +41,14 @@ function readAccessSnapshot() {
   try {
     const token = localStorage.getItem('impetus_token');
     const s = localStorage.getItem('impetus_user');
-    const u = s ? JSON.parse(s) : null;
-    const role = u?.role != null ? String(u.role).trim().toLowerCase() : '';
+    const raw = s ? JSON.parse(s) : null;
+    const u = mergeUserRoleFromJwt(raw);
+    if (!token || !u) return { token: null, role: '', companyId: null, allowed: false };
     return {
       token,
-      role,
+      role: u?.role != null ? String(u.role).trim().toLowerCase() : '',
       companyId: u?.company_id != null ? u.company_id : null,
-      allowed: !!(token && role && HEALTH_ROLES.has(role))
+      allowed: !!userCanAccessSystemHealthGate(u)
     };
   } catch {
     return { token: null, role: '', companyId: null, allowed: false };
@@ -145,7 +148,7 @@ function renderExecutive(ctx) {
   );
 }
 
-/** Visão completa — internal_admin */
+/** Visão completa — admin do tenant / internal_admin (contrato backend isFull) */
 function renderFull(ctx) {
   const { presentation, stability, payload, fallbackPct } = ctx;
   const sis = payload?.system_influence_summary;
@@ -196,7 +199,7 @@ export default function SystemHealthPanel({ embedded = false }) {
   const [payload, setPayload] = useState(null);
   const [expanded, setExpanded] = useState(true);
 
-  const user = useMemo(() => parseUser(), [location.pathname]);
+  const user = useMemo(() => mergeUserRoleFromJwt(parseUser()), [location.pathname]);
 
   useEffect(() => {
     setAccess(readAccessSnapshot());
@@ -236,7 +239,7 @@ export default function SystemHealthPanel({ embedded = false }) {
   const presentation = useMemo(() => {
     if (!payload?.health) return { key: 'unknown', color: statusPresentation.unknown.color, label: statusPresentation.unknown.label };
     const h = payload.health;
-    const adminFull = String(user?.role ?? '').trim().toLowerCase() === 'internal_admin';
+    const adminFull = userSeesFullHealthPayload(user);
     const statusRaw = adminFull ? h.system_health ?? h.status : h.status ?? h.system_health;
     const key = normalizeStatusKey(statusRaw);
     const preset = statusPresentation[key] || statusPresentation.unknown;
@@ -280,11 +283,7 @@ export default function SystemHealthPanel({ embedded = false }) {
 
       {showBody && (
         <div className="impetus-sys-health__body">
-          {(() => {
-            const role = user?.role;
-            if (String(role ?? '').trim().toLowerCase() === 'internal_admin') return renderFull(ctx);
-            return renderExecutive(ctx);
-          })()}
+          {userSeesFullHealthPayload(user) ? renderFull(ctx) : renderExecutive(ctx)}
           {!payload && <p className="impetus-sys-health__muted">A aguardar dados…</p>}
         </div>
       )}

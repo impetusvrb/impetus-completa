@@ -170,6 +170,18 @@ function buildContextualIdentity(user) {
     output: { capabilities_count: capRes.capabilities.length, implicit_count: capRes.implicit.length }
   });
 
+  let contextualOrgCaps = [];
+  try {
+    const contextualSystemAdmin = require('../../services/contextualSystemAdminService');
+    contextualOrgCaps = contextualSystemAdmin.resolveContextualAdminCapabilities(safe);
+    if (contextualOrgCaps.length > 0) {
+      trace.push({ step: 'capabilities:contextual_system_admin', output: contextualOrgCaps });
+    }
+  } catch (_e) {
+    contextualOrgCaps = [];
+  }
+  const capabilitiesMerged = [...new Set([...(capRes.capabilities || []), ...contextualOrgCaps])].sort();
+
   // 6) scope
   const scope = _resolveScope(safe, fnRes.function_type);
   trace.push({ step: 'scope:resolve', output: scope });
@@ -187,7 +199,8 @@ function buildContextualIdentity(user) {
     axes_priority: axes,
     primary_axis: axes[0] || null,
     unlocked_axes: unlockedAxes,
-    capabilities: capRes.capabilities,
+    capabilities: capabilitiesMerged,
+    contextual_org_capabilities: contextualOrgCaps,
     job_title_text: safe.job_title || null,
     department_text: safe.department || safe.department_resolved_name || null,
     sources: {

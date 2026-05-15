@@ -58,6 +58,43 @@ function unityManuIaViewerStrict404() {
   };
 }
 
+/**
+ * Vite remove filhos personalizados de #root no HTML final da build; injectamos splash fixo
+ * antes do root para haver feedback visível até ao primeiro paint do React (evita “só grade”).
+ */
+function injectBootSplashPlugin() {
+  const splashBlock = `    <div
+      id="impetus-boot-splash"
+      style="position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#070c14;color:rgba(232,244,255,0.92);font-family:system-ui,sans-serif;"
+    >
+      <div
+        style="width:44px;height:44px;border:3px solid rgba(0,212,255,0.18);border-top-color:#00d4ff;border-radius:50%;box-shadow:0 0 14px rgba(0,212,255,0.35);animation:impetus-boot-spin 0.85s linear infinite;"
+      ></div>
+      <p style="margin:0;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.88;">A carregar o sistema…</p>
+    </div>
+    <style>
+      @keyframes impetus-boot-spin { to { transform: rotate(360deg); } }
+    </style>
+    <noscript>
+      <div style="padding:2rem;background:#070c14;color:#e8f4ff;font-family:system-ui,sans-serif;">
+        Ative JavaScript para utilizar o Impetus.
+      </div>
+    </noscript>`;
+
+  return {
+    name: 'inject-boot-splash',
+    transformIndexHtml(html) {
+      if (html.includes('id="impetus-boot-splash"')) return html;
+      let out = html;
+      if (!/style\s*=\s*["']margin:0;background:#070c14/.test(out)) {
+        out = out.replace('<body>', '<body style="margin:0;background:#070c14;">');
+      }
+      out = out.replace('<div id="root"></div>', `${splashBlock}\n    <div id="root"></div>`);
+      return out;
+    }
+  };
+}
+
 /** Cache-Control: no-store só em *.html (avatar-impetus.html sempre fresco). */
 function htmlNoCachePlugin() {
   const set = (_req, res, next) => {
@@ -93,7 +130,7 @@ export default defineConfig(({ mode }) => {
   const devPort = Number(process.env.PORT || env.VITE_DEV_PORT || 3000);
 
   return {
-  plugins: [unityManuIaViewerStrict404(), react(), htmlNoCachePlugin()],
+  plugins: [unityManuIaViewerStrict404(), react(), injectBootSplashPlugin(), htmlNoCachePlugin()],
   root: '.',
   publicDir: 'public',
   server: {

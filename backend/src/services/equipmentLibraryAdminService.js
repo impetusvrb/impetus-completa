@@ -1,6 +1,6 @@
 /**
  * Biblioteca técnica de equipamentos — operações de dados (company-scoped).
- * Usado apenas por rotas com requireRole('admin') + requireCompanyId.
+ * Usado apenas por rotas com requireTenantAdminRole + requireCompanyId.
  */
 const db = require('../db');
 const { isValidUUID } = require('../utils/security');

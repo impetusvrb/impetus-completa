@@ -191,8 +191,39 @@ async function listPending(companyId, opts = {}) {
   return r.rows || [];
 }
 
-async function resolve(id, userId) {
-  await db.query(`UPDATE operational_alerts SET resolvido = true, resolvido_por = $2, resolvido_em = now() WHERE id = $1`, [id, userId]);
+/**
+ * Resolve alerta operacional — Enterprise Hardening Bloco 2 (C6):
+ * exige `companyId` para garantir isolamento multi-tenant. Assinatura legada
+ * (id, userId) é detetada e bloqueada com warning estruturado.
+ */
+async function resolve(id, userId, companyId) {
+  if (!id || !userId) return false;
+  if (!companyId) {
+    try {
+      console.warn(
+        '[TENANT_ISOLATION_LEGACY_CALL]',
+        JSON.stringify({
+          event: 'TENANT_ISOLATION_LEGACY_CALL',
+          service: 'operationalAlertsService.resolve',
+          message: 'companyId omitido — chamada bloqueada por hardening multi-tenant.',
+          id: String(id),
+          user_id: String(userId),
+          at: new Date().toISOString()
+        })
+      );
+    } catch (_e) {
+      /* ignore */
+    }
+    return false;
+  }
+  const r = await db.query(
+    `UPDATE operational_alerts
+       SET resolvido = true, resolvido_por = $2, resolvido_em = now()
+     WHERE id = $1 AND company_id = $3
+     RETURNING id`,
+    [id, userId, companyId]
+  );
+  return !!(r.rows && r.rows[0]);
 }
 
 /**

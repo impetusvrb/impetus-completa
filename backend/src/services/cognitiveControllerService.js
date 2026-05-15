@@ -33,6 +33,43 @@ const {
 } = require('./cognitiveAttachmentIngress');
 const { formatCognitiveBlock } = require('../cognitive/promptBlock');
 
+const ALLOWED_STRUCTURED_TYPES = ['environmental'];
+
+/**
+ * Prompt sintético determinístico para domínio ambiental (structured_input).
+ * @param {object} payload
+ * @returns {string}
+ */
+function buildEnvironmentalStructuredSyntheticPrompt(payload) {
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const m = p.metrics && typeof p.metrics === 'object' ? p.metrics : {};
+  const w = m.water_intensity && typeof m.water_intensity === 'object' ? m.water_intensity : {};
+  const e = m.energy_intensity && typeof m.energy_intensity === 'object' ? m.energy_intensity : {};
+  const r = m.waste_ratio && typeof m.waste_ratio === 'object' ? m.waste_ratio : {};
+
+  return `
+Analise o seguinte cenário ambiental industrial.
+
+Consumo de água (intensidade): ${w.value ?? 'N/D'}
+Energia (intensidade): ${e.value ?? 'N/D'}
+Resíduos (intensidade): ${r.value ?? 'N/D'}
+
+Desvios:
+Água: ${w.deviation ?? 'N/D'}
+Energia: ${e.deviation ?? 'N/D'}
+Resíduos: ${r.deviation ?? 'N/D'}
+
+Contexto:
+Janela: ${p.window ?? 'N/D'}
+Qualidade dos dados: ${p.data_quality ?? 'N/D'}
+
+Avalie:
+- eficiência operacional
+- risco ambiental
+- possíveis ações
+`.trim();
+}
+
 /**
  * Texto auxiliar com unidade, janela temporal e referência temporal para o conselho.
  *
@@ -124,6 +161,7 @@ function buildEnvironmentalSyntheticPrompt(councilData) {
  *        Overlay opcional vinda do event-pipeline (`cognitive/cognitiveAttachment`).
  *        Não altera roteamento — apenas prepende um bloco "COGNITIVE ANALYSIS"
  *        ao texto enviado ao conselho, como dica para a IA.
+ * @param {{ type: string, payload: object }} [params.structured_input] Domínio cognitivo estruturado (ex.: environmental).
  * @param {{ skipPromptFirewall?: boolean }} [params.options]
  * @returns {Promise<object>}
  */
@@ -131,11 +169,13 @@ async function handleCognitiveRequest({
   user,
   message,
   context: _context,
+  structured_input: structuredInput,
   cognitiveAttachment,
   cognitiveSnapshot,
   options
 } = {}) {
   let councilResult;
+  let environmentalStructuredActive = false;
 
   if (!user || !user.id || !user.company_id) {
     return {
@@ -149,8 +189,76 @@ async function handleCognitiveRequest({
     };
   }
 
+  if (structuredInput != null && cognitiveAttachment != null) {
+    return {
+      ok: false,
+      trace_id: null,
+      error: {
+        code: 'STRUCTURED_INPUT_ATTACHMENT_CONFLICT',
+        message: 'Use structured_input ou cognitiveAttachment, não ambos.',
+        stage: 'validation'
+      }
+    };
+  }
+
+  if (structuredInput != null) {
+    if (!structuredInput.type) {
+      return {
+        ok: false,
+        trace_id: null,
+        error: {
+          code: 'INVALID_STRUCTURED_INPUT_TYPE',
+          message: 'structured_input.type é obrigatório',
+          stage: 'validation'
+        }
+      };
+    }
+    if (!structuredInput.payload) {
+      return {
+        ok: false,
+        trace_id: null,
+        error: {
+          code: 'INVALID_STRUCTURED_INPUT_PAYLOAD',
+          message: 'structured_input.payload é obrigatório',
+          stage: 'validation'
+        }
+      };
+    }
+    if (!ALLOWED_STRUCTURED_TYPES.includes(structuredInput.type)) {
+      return {
+        ok: false,
+        trace_id: null,
+        error: {
+          code: 'STRUCTURED_INPUT_TYPE_NOT_ALLOWED',
+          message: `Tipo não permitido: ${String(structuredInput.type)}`,
+          stage: 'validation'
+        }
+      };
+    }
+    if (structuredInput.type === 'environmental') {
+      if (!structuredInput.payload.metrics || typeof structuredInput.payload.metrics !== 'object') {
+        return {
+          ok: false,
+          trace_id: null,
+          error: {
+            code: 'INVALID_ENVIRONMENTAL_PAYLOAD',
+            message: 'payload.metrics é obrigatório para domínio ambiental',
+            stage: 'validation'
+          }
+        };
+      }
+    }
+  }
+
+  const effectiveOptions =
+    structuredInput != null
+      ? { ...(options && typeof options === 'object' ? options : {}), skipPromptFirewall: true }
+      : options && typeof options === 'object'
+        ? { ...options }
+        : {};
+
   const text = message != null ? String(message) : '';
-  const skipPromptFirewall = !!(options && options.skipPromptFirewall);
+  const skipPromptFirewall = !!effectiveOptions.skipPromptFirewall;
 
   try {
     if (!skipPromptFirewall) {
@@ -171,8 +279,32 @@ async function handleCognitiveRequest({
     let councilData = {};
     let councilContext;
     let councilModule = 'cognitive_council';
+    let useEnvironmentalStructured = false;
 
-    if (cognitiveAttachment != null) {
+    if (structuredInput != null && structuredInput.type === 'environmental') {
+      useEnvironmentalStructured = true;
+      environmentalStructuredActive = true;
+      const payload =
+        structuredInput.payload && typeof structuredInput.payload === 'object'
+          ? structuredInput.payload
+          : {};
+      councilData = {
+        ...payload,
+        kpis: Array.isArray(payload.kpis) ? payload.kpis : [],
+        events: Array.isArray(payload.events) ? payload.events : [],
+        assets: Array.isArray(payload.assets) ? payload.assets : [],
+        contextual_data:
+          payload.contextual_data && typeof payload.contextual_data === 'object'
+            ? payload.contextual_data
+            : {}
+      };
+      councilContext = {
+        module: 'environmental',
+        source: 'cognitive_controller_structured_input',
+        structured_input_type: 'environmental'
+      };
+      councilModule = 'environmental';
+    } else if (cognitiveAttachment != null) {
       try {
         const mapped = attachmentToCouncilIngress(cognitiveAttachment);
         councilData = mapped.data;
@@ -195,8 +327,21 @@ async function handleCognitiveRequest({
     }
 
     const sensorTrace =
-      (options && options.traceId && String(options.traceId)) ||
+      (effectiveOptions && effectiveOptions.traceId && String(effectiveOptions.traceId)) ||
       (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `tmp-${Date.now()}`);
+
+    if (useEnvironmentalStructured) {
+      try {
+        console.info(
+          JSON.stringify({
+            event: 'ENVIRONMENTAL_COGNITIVE_REQUEST',
+            trace_id: sensorTrace,
+            company_id: user.company_id,
+            module: 'environmental'
+          })
+        );
+      } catch (_log) {}
+    }
 
     let pipelineSensor = null;
     if (process.env.IMPETUS_PIPELINE_HTTP_SENSOR !== 'false') {
@@ -228,13 +373,16 @@ async function handleCognitiveRequest({
       conflict: intentConflict
     });
 
-    const rawOpts = options && typeof options === 'object' ? { ...options } : {};
+    const rawOpts = effectiveOptions && typeof effectiveOptions === 'object' ? { ...effectiveOptions } : {};
     delete rawOpts.skipPromptFirewall;
     const councilOptions = { ...rawOpts, skipRecursiveUnified: true };
     councilOptions._pipelineGovernance = pipelineGovernance;
 
     let requestPayloadText = text;
-    if (
+    if (useEnvironmentalStructured && structuredInput) {
+      const syntheticText = buildEnvironmentalStructuredSyntheticPrompt(structuredInput.payload);
+      requestPayloadText = text.trim() ? `${text.trim()}\n\n${syntheticText}` : syntheticText;
+    } else if (
       cognitiveAttachment != null &&
       councilContext &&
       councilData &&
@@ -269,6 +417,20 @@ async function handleCognitiveRequest({
     });
 
     const trace_id = councilResult.trace_id || councilResult.traceId || null;
+
+    if (useEnvironmentalStructured) {
+      try {
+        console.info(
+          JSON.stringify({
+            event: 'ENVIRONMENTAL_COGNITIVE_RESPONSE',
+            trace_id,
+            company_id: user.company_id,
+            module: 'environmental',
+            ok: true
+          })
+        );
+      } catch (_log) {}
+    }
     const resPart = councilResult.result || {};
     const rawContent =
       resPart.content != null && resPart.content !== '' ? resPart.content : resPart.answer;
@@ -321,6 +483,19 @@ async function handleCognitiveRequest({
     const trace_id =
       (councilResult && (councilResult.trace_id || councilResult.traceId)) || null;
     const msg = err && err.message ? String(err.message) : String(err);
+    if (environmentalStructuredActive) {
+      try {
+        console.warn(
+          JSON.stringify({
+            event: 'ENVIRONMENTAL_COGNITIVE_ERROR',
+            trace_id,
+            company_id: user.company_id,
+            module: 'environmental',
+            message: msg.slice(0, 500)
+          })
+        );
+      } catch (_log) {}
+    }
     console.error('[COGNITIVE_CONTROLLER_ERROR]', msg, err && err.code ? { code: err.code } : {});
 
     try {
@@ -364,5 +539,7 @@ module.exports = {
   handleCognitiveRequest,
   runCognitiveController,
   buildEnvironmentalAttachmentFromDashboardPack,
-  buildEnvironmentalSyntheticPrompt
+  buildEnvironmentalSyntheticPrompt,
+  buildEnvironmentalStructuredSyntheticPrompt,
+  ALLOWED_STRUCTURED_TYPES
 };

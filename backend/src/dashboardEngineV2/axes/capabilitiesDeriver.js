@@ -46,13 +46,14 @@ const ALL_CAPABILITIES = Object.freeze([
  */
 const IMPLICIT_BY_FUNCTION_AREA = Object.freeze({
   decisao_estrategica: {
-    finance:      ['view:financial', 'view:strategic', 'view:operational', 'view:maintenance', 'view:hr', 'view:audit', 'view:quality', 'view:safety', 'act:approve', 'data:export', 'data:cross_sector'],
+    // Domínio financeiro: visão financeira + auditoria + operacional (KPIs/custos) — sem manutenção/RH implícitos
+    finance:      ['view:financial', 'view:strategic', 'view:operational', 'view:audit', 'act:approve', 'data:export', 'data:cross_sector'],
     operations:   ['view:operational', 'view:strategic', 'view:financial', 'view:safety', 'view:quality', 'view:maintenance', 'act:approve', 'data:cross_sector'],
     industrial:   ['view:operational', 'view:strategic', 'view:financial', 'view:maintenance', 'view:safety', 'view:quality', 'act:approve', 'data:cross_sector'],
     production:   ['view:operational', 'view:strategic', 'view:quality', 'act:approve', 'data:cross_sector'],
     maintenance:  ['view:maintenance', 'view:operational', 'view:strategic', 'view:safety', 'act:approve', 'data:cross_sector'],
     quality:      ['view:quality', 'view:strategic', 'view:operational', 'act:approve', 'data:cross_sector'],
-    hr:           ['view:hr', 'view:strategic', 'act:approve', 'data:cross_sector'],
+    hr:           ['view:hr', 'view:strategic', 'view:operational', 'act:approve', 'data:cross_sector'],
     pcp:          ['view:operational', 'view:strategic', 'act:approve'],
     admin:        ['view:operational', 'view:strategic', 'view:audit', 'act:approve', 'act:configure', 'data:export', 'data:cross_sector'],
     _default:     ['view:operational', 'view:strategic']
@@ -64,7 +65,7 @@ const IMPLICIT_BY_FUNCTION_AREA = Object.freeze({
     production:   ['view:operational', 'view:quality'],
     maintenance:  ['view:maintenance', 'view:operational', 'view:safety'],
     quality:      ['view:quality', 'view:operational'],
-    hr:           ['view:hr', 'data:export'],
+    hr:           ['view:hr', 'view:operational', 'data:export'],
     pcp:          ['view:operational'],
     admin:        ['view:operational', 'view:audit', 'act:configure'],
     _default:     ['view:operational']
@@ -76,7 +77,7 @@ const IMPLICIT_BY_FUNCTION_AREA = Object.freeze({
     production:   ['view:operational', 'view:quality', 'view:safety'],
     maintenance:  ['view:maintenance', 'view:operational', 'view:safety', 'act:execute'],
     quality:      ['view:quality', 'view:operational'],
-    hr:           ['view:hr'],
+    hr:           ['view:hr', 'view:operational'],
     pcp:          ['view:operational'],
     admin:        ['view:operational', 'view:safety'],
     _default:     ['view:operational']
@@ -88,7 +89,7 @@ const IMPLICIT_BY_FUNCTION_AREA = Object.freeze({
     production:   ['view:operational', 'act:execute'],
     maintenance:  ['view:maintenance', 'view:operational', 'act:execute'],
     quality:      ['view:quality', 'act:execute'],
-    hr:           ['view:hr'],
+    hr:           ['view:hr', 'view:operational'],
     pcp:          ['view:operational'],
     admin:        ['view:operational'],
     _default:     ['view:operational', 'act:execute']
@@ -100,7 +101,7 @@ const IMPLICIT_BY_FUNCTION_AREA = Object.freeze({
     production:   ['view:operational', 'view:audit', 'view:quality'],
     maintenance:  ['view:maintenance', 'view:audit', 'view:safety'],
     quality:      ['view:quality', 'view:audit'],
-    hr:           ['view:hr', 'view:audit'],
+    hr:           ['view:hr', 'view:operational', 'view:audit'],
     pcp:          ['view:operational', 'view:audit'],
     admin:        ['view:operational', 'view:audit', 'view:strategic', 'act:configure', 'data:export'],
     _default:     ['view:operational', 'view:audit']
@@ -162,7 +163,7 @@ function deriveCapabilities({ functionType, area, role, permissions }) {
   }
 
   // 2) CEO/admin: superset (mantém compatibilidade com regra '*' do Motor A)
-  if (role === 'ceo' || role === 'admin') {
+  if (role === 'ceo' || role === 'admin' || role === 'internal_admin') {
     for (const c of ALL_CAPABILITIES) {
       if (!set.has(c)) {
         set.add(c);

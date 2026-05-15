@@ -33,10 +33,11 @@ import {
   ImageIcon
 } from 'lucide-react';
 import './ManuIA.css';
+import { isStrictAdminRole } from '../utils/roleUtils';
 
 function isStrictAdmin() {
   try {
-    return (JSON.parse(localStorage.getItem('impetus_user') || '{}').role || '').toLowerCase() === 'admin';
+    return isStrictAdminRole(JSON.parse(localStorage.getItem('impetus_user') || '{}'));
   } catch {
     return false;
   }

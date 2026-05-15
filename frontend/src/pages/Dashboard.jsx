@@ -10,7 +10,7 @@ import {
   DashboardMecanico,
   DashboardOperador
 } from '../features/dashboard';
-import { isMaintenanceProfile } from '../utils/roleUtils';
+import { isMaintenanceProfile, isStrictAdminRole } from '../utils/roleUtils';
 import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
 import './Dashboard.css';
 
@@ -42,8 +42,7 @@ function isStaffCentroProfile(user) {
 export default function Dashboard() {
   const userStr = localStorage.getItem('impetus_user');
   const user = userStr ? (() => { try { return JSON.parse(userStr); } catch { return null; } })() : null;
-  const role = (user?.role || '').toString().toLowerCase();
-  const isAdmin = role === 'admin';
+  const isAdmin = isStrictAdminRole(user);
   const intelligentActivated = useRef(false);
   useEffect(() => {
     if (isAdmin) return;

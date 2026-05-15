@@ -5,11 +5,11 @@
  */
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireRole, requireCompanyId } = require('../../middleware/auth');
+const { requireAuth, requireTenantAdminRole, requireCompanyId } = require('../../middleware/auth');
 const aiAnalytics = require('../../services/aiAnalyticsService');
 const dataLineageService = require('../../services/dataLineageService');
 
-const adminCompany = [requireAuth, requireRole('admin'), requireCompanyId];
+const adminCompany = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
 function parseInputPayloadObject(inputPayload) {
   if (inputPayload == null) return {};

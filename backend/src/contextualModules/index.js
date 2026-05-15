@@ -34,6 +34,7 @@ const validator = require('./moduleValidator');
 const telemetry = require('./moduleTelemetry');
 const guard = require('./modulePromotionGuard');
 const registry = require('./moduleRegistry');
+const tenantAdminPortalScope = require('../services/tenantAdminPortalScope');
 
 let _learningHooks = null;
 function _getLearningHooks() {
@@ -90,6 +91,27 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
   const t0 = process.hrtime();
   const legacy = Array.isArray(legacyVisibleModules) ? legacyVisibleModules.slice() : [];
   const safeUser = user || {};
+  if (tenantAdminPortalScope.isAdministrativePortalOnlyUser(safeUser)) {
+    try {
+      console.log(
+        '[ADMIN_CONTEXT_RESOLVED]',
+        JSON.stringify({
+          user_id: safeUser.id,
+          company_id: safeUser.company_id,
+          contextual_orchestration: 'skipped',
+          reason: 'administrative_portal_only',
+          legacy_module_count: legacy.length
+        })
+      );
+    } catch (_) {
+      /* never throw */
+    }
+    return {
+      visibleModules: legacy.slice(),
+      contextualModules: [],
+      meta: { mode: 'off', administrative_portal: true }
+    };
+  }
   let mode = 'off';
   let directiveDetail = null;
 

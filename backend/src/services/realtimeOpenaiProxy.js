@@ -23,8 +23,11 @@
  */
 
 const WebSocket = require('ws');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../middleware/auth');
+const aiSecurityGateway = require('./aiSecurityGateway');
+const unifiedOrchestrator = require('./unifiedOrchestrator');
 const {
   createRealtimeResponseLipsyncTap,
   isLipsyncEnabled
@@ -101,8 +104,9 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       return;
     }
 
+    let tokenPayload;
     try {
-      jwt.verify(token, JWT_SECRET);
+      tokenPayload = jwt.verify(token, JWT_SECRET);
     } catch (err) {
       console.warn('[realtimeOpenaiProxy][jwt_verify]', err?.message ?? err);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -110,13 +114,30 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       return;
     }
 
+    const rtUser =
+      tokenPayload && typeof tokenPayload === 'object'
+        ? {
+            id: tokenPayload.sub || tokenPayload.user_id || tokenPayload.userId || null,
+            company_id: tokenPayload.company_id || tokenPayload.companyId || null
+          }
+        : null;
+
     const modelParam = String(searchParams.get('model') || '').trim();
     const model = modelParam || defaultModel();
     const upstreamUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
 
+    if (unifiedOrchestrator.isUnifiedOrchestratorEnabled()) {
+      unifiedOrchestrator.traceRealtimeVoiceAttach({
+        user: rtUser,
+        model,
+        traceId: crypto.randomUUID()
+      });
+    }
+
     wss.handleUpgrade(request, socket, head, (clientWs) => {
       const pending = [];
       let cleaned = false;
+      const rtEgressState = { buf: '', lastScanAt: 0, lastScanLen: 0, blocked: false };
       const lipsyncTap = createRealtimeResponseLipsyncTap(
         options.avatarLipsyncNamespace || null
       );
@@ -175,7 +196,44 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       });
 
       upstream.on('message', (data, isBinary) => {
-        if (clientWs.readyState === WebSocket.OPEN) {
+        const enforceRt =
+          String(process.env.IMPETUS_AI_GATEWAY_REALTIME_ENFORCE || '')
+            .trim()
+            .toLowerCase() === 'true';
+        let forwardToClient = true;
+        if (
+          aiSecurityGateway.isRealtimeGatewayEnabled() &&
+          !isBinary &&
+          rtUser &&
+          (rtUser.id || rtUser.company_id)
+        ) {
+          try {
+            const text = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+            const msg = JSON.parse(text);
+            const chunk = typeof msg.delta === 'string' ? msg.delta : '';
+            if (chunk) {
+              rtEgressState.buf += chunk;
+              const now = Date.now();
+              if (
+                rtEgressState.buf.length - rtEgressState.lastScanLen >= 500 ||
+                now - rtEgressState.lastScanAt > 500
+              ) {
+                rtEgressState.lastScanAt = now;
+                rtEgressState.lastScanLen = rtEgressState.buf.length;
+                void realtimeEgressGuard({
+                  state: rtEgressState,
+                  user: rtUser
+                }).then((r) => {
+                  if (r && r.blocked) rtEgressState.blocked = true;
+                });
+              }
+            }
+            if (enforceRt && rtEgressState.blocked) forwardToClient = false;
+          } catch (_e) {
+            /* frame não-JSON ou parse opcional */
+          }
+        }
+        if (forwardToClient && clientWs.readyState === WebSocket.OPEN) {
           clientWs.send(data, { binary: !!isBinary });
         }
         if (
@@ -210,9 +268,22 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
   return true;
 }
 
+/**
+ * Varredura egress incremental sobre texto acumulado (Realtime). Não substitui o frame WebSocket.
+ */
+async function realtimeEgressGuard({ state, user, channel }) {
+  const accumulated = state && state.buf != null ? String(state.buf) : '';
+  return aiSecurityGateway.realtimeEgressScan({
+    accumulatedText: accumulated,
+    user: user || null,
+    channel: channel || 'realtime_ws'
+  });
+}
+
 module.exports = {
   attachRealtimeOpenaiProxy,
   isProxyEnabled,
   DEFAULT_PATH,
-  isLipsyncEnabled
+  isLipsyncEnabled,
+  realtimeEgressGuard
 };

@@ -70,15 +70,21 @@ export default function CompanyDetail() {
   }
 
   const canManage = user?.perfil === 'super_admin' || user?.perfil === 'admin_comercial';
+  const canSupportRecovery = user?.perfil === 'super_admin' || user?.perfil === 'admin_suporte';
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <h1 style={{ margin: 0 }}>{c.razao_social}</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" className="btn" onClick={copyId}>
             Copiar company_id
           </button>
+          {canSupportRecovery && (
+            <Link to={`/recuperacao-tenant?company=${encodeURIComponent(c.company_id || id)}`} className="btn">
+              Governança / recuperação
+            </Link>
+          )}
           {canManage && (
             <Link to={`/empresas/${id}/editar`} className="btn btn--primary">
               Editar

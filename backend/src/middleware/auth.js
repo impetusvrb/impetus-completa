@@ -12,6 +12,15 @@ const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
 const { isAllowPartialEnv } = require('../config/configValidator');
 
+/**
+ * JWT_SECRET — Enterprise Hardening Bloco 6 (A4):
+ *   • Produção: secret real OBRIGATÓRIO; ausência aborta processo.
+ *   • Dev/CI: aceita placeholder apenas se ALLOW_PARTIAL_ENV (legado).
+ *   • Comprimento mínimo de 32 chars recomendado — aviso em produção se
+ *     secret < 32 caracteres (mantemos arranque por compatibilidade).
+ *   • IMPETUS_JWT_FAIL_CLOSED_PLACEHOLDER=true (default em produção) garante
+ *     que qualquer placeholder previsível em produção causa exit.
+ */
 const _rawJwt = (process.env.JWT_SECRET || '').trim();
 let JWT_SECRET = _rawJwt;
 if (!_rawJwt) {
@@ -25,6 +34,28 @@ if (!_rawJwt) {
     process.exit(1);
   }
 }
+{
+  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  const failClosed =
+    String(process.env.IMPETUS_JWT_FAIL_CLOSED_PLACEHOLDER || (isProd ? 'true' : 'false'))
+      .toLowerCase() === 'true';
+  const isPlaceholder =
+    JWT_SECRET === 'ALLOW_PARTIAL_INSECURE_JWT_NOT_FOR_PROD' ||
+    /^(changeme|placeholder|dev-secret|insecure|test-?secret)$/i.test(JWT_SECRET);
+  if (isProd && (isPlaceholder || JWT_SECRET.length < 16)) {
+    console.error(
+      '[AUTH] JWT_SECRET inseguro em produção (placeholder ou comprimento < 16). Defina segredo forte.'
+    );
+    if (failClosed) process.exit(1);
+  }
+  if (JWT_SECRET.length < 32) {
+    console.warn(
+      '[AUTH] Aviso: JWT_SECRET com menos de 32 caracteres. Reforce a entropia em ambientes externos.'
+    );
+  }
+}
+/** Algoritmo único aceite (defesa em profundidade contra confusão de algoritmo). */
+const JWT_ALGORITHMS = Object.freeze(['HS256']);
 
 /**
  * Gera token de sessão
@@ -164,11 +195,13 @@ async function destroySession(token) {
 }
 
 /**
- * Valida JWT e carrega usuário do banco (fallback quando login retorna JWT)
+ * Valida JWT e carrega usuário do banco (fallback quando login retorna JWT).
+ * Enterprise Hardening Bloco 6: `algorithms` fixados (HS256) para evitar
+ * downgrade/confusão de algoritmo se o cabeçalho `alg` for adulterado.
  */
 async function validateJWTAndLoadUser(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
     if (!decoded?.id) return null;
 
     const r = await db.query(`
@@ -275,18 +308,58 @@ function readCompanyIdFromJwt(decoded) {
 async function attachCompanyIdFromFallbacks(user, rawToken) {
   if (!user || user.company_id) return user;
 
-  if (rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3) {
+  // Enterprise Hardening Bloco 6 (A2):
+  //   IMPETUS_STRICT_TENANT_FROM_DB (default 'true') — proíbe usar `company_id`
+  //   proveniente do JWT/claim para preencher tenant ausente na BD. JWT continua
+  //   a poder ser usado para autenticar, mas NUNCA para alargar escopo de dados.
+  const strictTenant =
+    String(process.env.IMPETUS_STRICT_TENANT_FROM_DB || 'true').toLowerCase() !== 'false';
+
+  if (!strictTenant && rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3) {
     try {
-      const decoded = jwt.verify(rawToken, JWT_SECRET);
+      const decoded = jwt.verify(rawToken, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
       const claimCompanyId = readCompanyIdFromJwt(decoded);
       if (claimCompanyId) {
+        console.warn(
+          '[TENANT_FROM_JWT_FALLBACK_USED]',
+          JSON.stringify({
+            event: 'TENANT_FROM_JWT_FALLBACK_USED',
+            user_id: user.id,
+            claim_company_id: claimCompanyId,
+            at: new Date().toISOString()
+          })
+        );
         return { ...user, company_id: claimCompanyId };
       }
     } catch (err) {
       console.warn('[middleware/auth][jwt_company_fallback]', err?.message ?? err);
     }
+  } else if (strictTenant) {
+    // Em modo strict, registamos a tentativa para diagnóstico — mas não usamos o claim.
+    if (rawToken && typeof rawToken === 'string' && rawToken.split('.').length === 3) {
+      try {
+        const decoded = jwt.verify(rawToken, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
+        const claimCompanyId = readCompanyIdFromJwt(decoded);
+        if (claimCompanyId) {
+          console.warn(
+            '[TENANT_FROM_JWT_FALLBACK_BLOCKED]',
+            JSON.stringify({
+              event: 'TENANT_FROM_JWT_FALLBACK_BLOCKED',
+              user_id: user.id,
+              claim_company_id: claimCompanyId,
+              note: 'STRICT_TENANT_FROM_DB activa — JWT NÃO alarga escopo de tenant.',
+              at: new Date().toISOString()
+            })
+          );
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+    }
   }
 
+  // company_roles é a única origem de tenant tolerada além de users.company_id:
+  // baseada em dados persistidos da própria BD.
   if (user.company_role_id) {
     try {
       const r = await db.query(
@@ -310,9 +383,36 @@ async function attachCompanyIdFromFallbacks(user, rawToken) {
  * Aceita: token de sessão (tabela sessions) OU JWT (login retorna JWT)
  */
 function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '') ||
-                req.headers['x-access-token'] ||
-                req.query.token;
+  // Enterprise Hardening Bloco 6 (A1):
+  //   Authorization Bearer / x-access-token apenas. `req.query.token` deixa de
+  //   ser fonte de credenciais por defeito (era vetor de leakage em logs/
+  //   Referer/screenshots/proxy access logs).
+  //
+  //   IMPETUS_ALLOW_TOKEN_IN_QUERY=true reativa o caminho legado se algum
+  //   cliente embebido ainda depender dele — neste caso, logamos um WARN
+  //   estruturado em cada uso para mapear chamadas remanescentes.
+  let token = req.headers.authorization?.replace('Bearer ', '') ||
+              req.headers['x-access-token'] ||
+              null;
+  if (!token && req.query?.token) {
+    const allowQueryToken =
+      String(process.env.IMPETUS_ALLOW_TOKEN_IN_QUERY || 'false').toLowerCase() === 'true';
+    if (allowQueryToken) {
+      token = req.query.token;
+      try {
+        console.warn(
+          '[AUTH_TOKEN_IN_QUERY_USED]',
+          JSON.stringify({
+            event: 'AUTH_TOKEN_IN_QUERY_USED',
+            path: req.originalUrl || req.path,
+            at: new Date().toISOString()
+          })
+        );
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+  }
 
   if (!token) {
     return res.status(401).json({
@@ -335,7 +435,20 @@ function requireAuth(req, res, next) {
       });
     }
 
-    req.user = await attachCompanyIdFromFallbacks(user, token);
+    let hydrated = await attachCompanyIdFromFallbacks(user, token);
+    try {
+      const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+      hydrated = contextualSystemAdmin.enrichUserWithContextualCapabilities(hydrated);
+    } catch (_e) {
+      /* preserva sessão se serviço indisponível */
+    }
+    try {
+      const tenantAdminService = require('../services/tenantAdminService');
+      hydrated = await tenantAdminService.attachTenantAdminToUser(hydrated);
+    } catch (_e) {
+      /* não bloquear auth */
+    }
+    req.user = hydrated;
     req.session = { id: user.sessionId };
     next();
   }).catch(err => {
@@ -370,6 +483,14 @@ function requireHierarchy(minLevel) {
     // 5 = Colaborador (mais baixo)
     
     if (user.hierarchy_level > minLevel) {
+      try {
+        const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+        if (contextualSystemAdmin.userPassesDirectorLevelHierarchyGate(user, minLevel)) {
+          return next();
+        }
+      } catch (_e) {
+        /* fallback ao comportamento legado */
+      }
       logAction({
         companyId: user.company_id,
         userId: user.id,
@@ -396,6 +517,58 @@ function requireHierarchy(minLevel) {
 
     next();
   };
+}
+
+/**
+ * Administração tenant: role legacy `admin` OU capability contextual system_administration (híbrido).
+ */
+function requireTenantAdminRole(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      ok: false,
+      error: AUTH.NOT_AUTHENTICATED,
+      code: 'AUTH_REQUIRED'
+    });
+  }
+  const role = String(req.user.role || '').toLowerCase();
+  if (role === 'admin') {
+    return next();
+  }
+  try {
+    const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+    if (
+      contextualSystemAdmin.isContextualSystemAdminGateEnabled() &&
+      contextualSystemAdmin.userHasSystemAdministrationCapability(req.user)
+    ) {
+      return next();
+    }
+  } catch (_e) {
+    /* deny */
+  }
+  if (req.user.is_tenant_admin === true) {
+    return next();
+  }
+  logAction({
+    companyId: req.user.company_id,
+    userId: req.user.id,
+    userName: req.user.name,
+    userRole: req.user.role,
+    action: 'access_denied',
+    entityType: 'role',
+    description: 'Acesso negado: requer role admin ou capability system_administration',
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+    severity: 'warning',
+    success: false
+  }).catch((err) => {
+    console.warn('[middleware/auth][log_action_access_denied_tenant_admin]', err?.message ?? err);
+  });
+  return res.status(403).json({
+    ok: false,
+    error: AUTH.ACCESS_DENIED_ROLE,
+    code: 'AUTH_ROLE_DENIED',
+    required_roles: ['admin', 'contextual:system_administration']
+  });
 }
 
 /**
@@ -676,6 +849,7 @@ function verifyPassword(password, hash) {
 
 module.exports = {
   JWT_SECRET,
+  JWT_ALGORITHMS,
   generateToken,
   createSession,
   validateSession,
@@ -683,6 +857,7 @@ module.exports = {
   requireAuth,
   requireHierarchy,
   requireRole,
+  requireTenantAdminRole,
   requireRhManagementAccess,
   requireCompanyId,
   requirePermission,

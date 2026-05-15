@@ -3,7 +3,10 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
-const { JWT_SECRET, destroySession } = require('../middleware/auth');
+const { JWT_SECRET, JWT_ALGORITHMS, destroySession } = require('../middleware/auth');
+const { resolveHierarchyLevel } = require('../services/hierarchyResolver');
+const contextualSystemAdmin = require('../services/contextualSystemAdminService');
+const tenantAdminService = require('../services/tenantAdminService');
 const roleVerification = require('../services/roleVerificationService');
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const { sendPasswordResetEmail } = require('../services/emailService');
@@ -23,7 +26,9 @@ router.post('/login', async (req, res) => {
     const result = await db.query(
       `SELECT u.*,
               d.name AS department_resolved_name,
-              cr.dashboard_functional_hint AS company_role_dashboard_hint
+              cr.dashboard_functional_hint AS company_role_dashboard_hint,
+              cr.hierarchy_level AS company_role_hierarchy_level,
+              cr.name AS company_role_name
        FROM users u
        LEFT JOIN departments d ON d.id = u.department_id AND d.company_id = u.company_id
        LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id AND cr.active = true
@@ -59,11 +64,17 @@ router.post('/login', async (req, res) => {
         company_id: user.company_id
       },
       JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '8h', algorithm: (JWT_ALGORITHMS && JWT_ALGORITHMS[0]) || 'HS256' }
     );
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 8);
+    // Enterprise Hardening Bloco 6 (A13):
+    //   Não emitimos token se a sessão não persistir. Default: strict (true).
+    //   IMPETUS_LOGIN_REQUIRE_SESSION_PERSISTENCE=false reativa o comportamento
+    //   legado (warn-only) caso seja necessário rollback urgente.
+    const requireSessionPersistence =
+      String(process.env.IMPETUS_LOGIN_REQUIRE_SESSION_PERSISTENCE || 'true').toLowerCase() !== 'false';
     try {
       await db.query(
         'INSERT INTO sessions (user_id, token, expires_at) VALUES ($1, $2, $3)',
@@ -71,6 +82,14 @@ router.post('/login', async (req, res) => {
       );
     } catch (e) {
       console.error('[SESSION_INSERT_ERROR]', e.message);
+      if (requireSessionPersistence) {
+        return res.status(503).json({
+          ok: false,
+          error: 'SESSION_PERSIST_FAILED',
+          code: 'SESSION_PERSIST_FAILED',
+          message: 'Falha temporária ao registar sessão. Tente novamente.'
+        });
+      }
     }
 
     const needsVerification = roleVerification.needsVerification({
@@ -90,6 +109,41 @@ router.post('/login', async (req, res) => {
 
     const roleNormalized = (user.role || 'colaborador').toString().toLowerCase();
     const isFactoryTeam = user.is_factory_team_account === true;
+
+    const canonicalLevel = resolveHierarchyLevel(
+      {
+        hierarchy_level: user.hierarchy_level,
+        company_role_hierarchy_level: user.company_role_hierarchy_level,
+        company_role_id: user.company_role_id,
+        role: user.role
+      },
+      { silent: true }
+    );
+
+    const forCaps = contextualSystemAdmin.enrichUserWithContextualCapabilities({
+      id: user.id,
+      role: roleNormalized,
+      company_role_name: user.company_role_name || null,
+      company_role_id: user.company_role_id || null,
+      hierarchy_level: canonicalLevel,
+      company_role_hierarchy_level: user.company_role_hierarchy_level ?? null
+    });
+
+    let taFlags = {
+      is_tenant_admin: false,
+      tenant_admin_type: null,
+      tenant_admin_can_manage: false
+    };
+    try {
+      taFlags = await tenantAdminService.attachTenantAdminToUser({
+        id: user.id,
+        company_id: user.company_id,
+        ...forCaps
+      });
+    } catch (e) {
+      console.warn('[LOGIN][tenant_admin]', e.message);
+    }
+
     return res.json({
       message: 'Login realizado com sucesso',
       token,
@@ -110,12 +164,20 @@ router.post('/login', async (req, res) => {
         department: user.department || null,
         area: user.area || null,
         hr_responsibilities: user.hr_responsibilities || null,
-        hierarchy_level: user.hierarchy_level ?? null,
+        hierarchy_level: canonicalLevel,
         is_factory_team_account: isFactoryTeam,
         operational_team_id: user.operational_team_id || null,
         needs_factory_member_selection: isFactoryTeam,
         department_resolved_name: user.department_resolved_name || null,
-        company_role_dashboard_hint: user.company_role_dashboard_hint || null
+        company_role_dashboard_hint: user.company_role_dashboard_hint || null,
+        company_role_name: user.company_role_name || null,
+        company_role_id: user.company_role_id || null,
+        contextual_capabilities: Array.isArray(forCaps.contextual_capabilities)
+          ? forCaps.contextual_capabilities
+          : [],
+        is_tenant_admin: !!taFlags.is_tenant_admin,
+        tenant_admin_type: taFlags.tenant_admin_type || null,
+        tenant_admin_can_manage: !!taFlags.tenant_admin_can_manage
       }
     });
   } catch (err) {

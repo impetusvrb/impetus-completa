@@ -159,9 +159,20 @@ function bootIfEnabled() {
   const handlers = shadow ? buildShadowNoopHandlers() : buildDefaultPipelineHandlers();
   const out = bootEventPipeline({ handlers });
   if (out && out.already_booted) {
+    try {
+      const backbone = require('./cognitiveEventBackboneService');
+      backbone.attachPipelineBusHooks();
+    } catch (_e) {}
     return { ok: true, already_booted: true };
   }
-  return out && out.ok ? { ok: true, types: out.types } : { ok: false, reason: out && out.reason };
+  if (out && out.ok) {
+    try {
+      const backbone = require('./cognitiveEventBackboneService');
+      backbone.attachPipelineBusHooks();
+    } catch (_e) {}
+    return { ok: true, types: out.types };
+  }
+  return { ok: false, reason: out && out.reason };
 }
 
 module.exports = {

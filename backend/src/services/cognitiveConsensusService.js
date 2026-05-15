@@ -115,6 +115,23 @@ async function generateConsensusReport({ participants }) {
     } catch (_e) {}
   }
 
+  let weighted_voting = null;
+  try {
+    const cognitiveVotingService = require('./cognitiveVotingService');
+    if (cognitiveVotingService.isWeightedVotingEnabled()) {
+      weighted_voting = await cognitiveVotingService.generateWeightedVotingReport({
+        participants: list
+      });
+    }
+  } catch (e) {
+    try {
+      console.warn('[COGNITIVE_VOTING_ERROR]', {
+        op: 'generateConsensusReport',
+        message: e?.message || e
+      });
+    } catch (_e2) {}
+  }
+
   return {
     confidence,
     narrative,
@@ -123,7 +140,8 @@ async function generateConsensusReport({ participants }) {
     participants_summary: list.map((p) => ({
       engine: p && p.engine != null ? String(p.engine).slice(0, 128) : 'unknown',
       confidence_pct: toConfidencePercent(p && p.confidence)
-    }))
+    })),
+    weighted_voting
   };
 }
 

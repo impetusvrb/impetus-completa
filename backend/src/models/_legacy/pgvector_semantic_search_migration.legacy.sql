@@ -1,3 +1,15 @@
+-- =============================================================================
+-- LEGACY / DESTRUCTIVE MIGRATION — DO NOT EXECUTE IN PRODUCTION
+-- =============================================================================
+-- Estado: CONGELADA (SAFE VECTOR MIGRATION CORRECTION).
+-- Motivo: DROP COLUMN embedding apaga dados semânticos; índice IVFFLAT sem
+--         CONCURRENTLY; execução automática foi desactivada permanentemente
+--         no runner (denylist MANUAL_ONLY + ficheiro fora da descoberta forward).
+--
+-- Evolução segura: ver backend/docs/safe-vector-migration-strategy.md
+-- Auditoria:      backend/docs/pgvector-semantic-search-audit.md
+-- =============================================================================
+
 -- Ativa busca semântica em manual_chunks
 -- Extensão vector já deve estar instalada: CREATE EXTENSION vector;
 -- Dimensões: text-embedding-3-small = 1536

@@ -46,6 +46,29 @@ const DASHBOARD_PROFILES = {
     default_filters: {}
   },
 
+  /**
+   * Direção sem área funcional inferida com segurança — evita rótulo "Diretor de Operações"
+   * e setor "Operações" para perfis que não são de operações (V2 domain leak).
+   */
+  director_unassigned: {
+    profile_code: 'director_unassigned',
+    label: 'Direção',
+    insights_mode: 'strategic_analytical',
+    default_period: '7d',
+    data_depth: 'consolidated',
+    visible_modules: ['dashboard', 'operational', 'proaction', 'chat', 'biblioteca', 'ai', 'hr_intelligence', 'anomaly_detection', 'audit', 'settings'],
+    cards: [
+      { key: 'interactions_week', title: 'Interações (semana)', icon: 'message', color: 'blue' },
+      { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red' },
+      { key: 'weekly_growth', title: 'Crescimento semanal', icon: 'trending', color: 'green' },
+      { key: 'open_proposals', title: 'Propostas em aberto', icon: 'target', color: 'purple' }
+    ],
+    charts: ['trend'],
+    alerts: ['critical', 'high'],
+    widgets: ['smart_summary', 'ai_insights', 'recent_interactions', 'communication_panel'],
+    default_filters: {}
+  },
+
   director_industrial: {
     profile_code: 'director_industrial',
     label: 'Diretor Industrial',
@@ -406,7 +429,7 @@ const ROLE_AREA_TO_PROFILE = {
     finance: 'finance_management',
     financeiro: 'finance_management',
     operacoes: 'director_operations',
-    _default: 'director_operations'
+    _default: 'director_unassigned'
   },
   gerente: {
     production: 'manager_production',
@@ -495,6 +518,10 @@ const JOB_TITLE_TO_AREA = {
   'gerente de produção': 'production',
   'gerente de producao': 'production',
   'diretor industrial': 'industrial',
+  'diretor financeiro': 'finance',
+  'diretor financeira': 'finance',
+  'chief financial': 'finance',
+  cfo: 'finance',
   'diretor de operações': 'operations',
   'diretor de operacoes': 'operations',
   produção: 'production',
@@ -512,7 +539,6 @@ const JOB_TITLE_TO_AREA = {
   técnico: 'maintenance',
   tecnico: 'maintenance',
   inspetor: 'quality',
-  diretor: 'operations',
   gerente: 'production',
   coordenador: 'production',
   supervisor: 'production',

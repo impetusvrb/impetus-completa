@@ -19,8 +19,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
-const { apiByIpLimiter, apiByUserLimiter } = require('./middleware/globalRateLimit');
+const { apiByIpLimiter, apiByUserLimiter, heavyRouteLimiter } = require('./middleware/globalRateLimit');
 const secureStaticUploads = require('./middleware/secureStaticUploads');
+const { requireInternalAccess } = require('./middleware/internalRouteGuard');
 const compression = require('compression');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
@@ -49,6 +50,14 @@ app.use((req, res, next) => {
 });
 
 app.use(helmet(buildHelmetOptions()));
+// Enterprise Hardening Bloco 10: Correlation ID antes de tudo — propaga req.id
+// para handlers e responde com X-Request-Id (clientes podem correlacionar).
+try {
+  const { correlationIdMiddleware } = require('./middleware/correlationId');
+  app.use(correlationIdMiddleware);
+} catch (_e) {
+  /* never break boot */
+}
 app.use(compression());
 const corsOptions = buildCorsOptions();
 app.use(cors(corsOptions));
@@ -185,18 +194,61 @@ app.get('/api/health', async (req, res) => {
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
 });
 
-/** Prontidão: BD, schema, cifra (sem chamadas a APIs de IA). */
+/**
+ * Prontidão: BD, schema, cifra (sem chamadas a APIs de IA).
+ *
+ * Enterprise Hardening Bloco 1 (A12):
+ *   • Acesso anónimo passa a receber payload reduzido (apenas { ready }).
+ *   • Detalhes técnicos só com header X-Health-Key OU loopback OU
+ *     utilizador autenticado com role internal_admin/admin do tenant.
+ *   • Comportamento aditivo: callers existentes que enviem X-Health-Key
+ *     continuam a obter o payload completo (zero quebra).
+ */
 app.get('/api/system/health/deep', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const r = await systemReadinessService.checkSystemReadiness();
-    return res.json(systemReadinessService.toPublicPayload(r));
+    const fullPayload = systemReadinessService.toPublicPayload(r);
+
+    // 1) chave/loopback: mantém compatibilidade total.
+    if (allowHealthDetails(req)) {
+      return res.json(fullPayload);
+    }
+
+    // 2) sessão autenticada + role admin/internal: devolve completo + log auditável.
+    try {
+      const token =
+        (req.headers.authorization || '').replace('Bearer ', '').trim() ||
+        req.headers['x-access-token'] ||
+        null;
+      if (token) {
+        const { validateSession } = require('./middleware/auth');
+        const { userIsInternalAdmin } = require('./middleware/internalRouteGuard');
+        const user = await validateSession(token);
+        if (user && userIsInternalAdmin(user)) {
+          console.info(
+            '[INTERNAL_ROUTE_ACCESS]',
+            JSON.stringify({
+              event: 'INTERNAL_ROUTE_ACCESS',
+              decision: 'allowed',
+              path: '/api/system/health/deep',
+              user_id: user.id,
+              company_id: user.company_id || null,
+              at: new Date().toISOString()
+            })
+          );
+          return res.json(fullPayload);
+        }
+      }
+    } catch (_e) {
+      /* never break health endpoint by auth glitch */
+    }
+
+    // 3) público: apenas estado binário (sem revelar configs/issues).
+    return res.json({ ready: !!fullPayload.ready });
   } catch (e) {
     const msg = e && e.message ? String(e.message) : 'erro interno';
-    return res.status(500).json({
-      ready: false,
-      issues: [`[crítico] READINESS: ${msg}`]
-    });
+    return res.status(500).json({ ready: false, error: 'READINESS_ERROR' });
   }
 });
 
@@ -231,6 +283,7 @@ useRoute('/api/live-dashboard', './routes/liveDashboard', requireAuth);
 useRoute('/api/communications', './routes/communications');
 useRoute('/api/impetus-admin', './routes/impetusAdmin');
 useRoute('/api/admin-portal', './routes/adminPortalGovernance');
+useRoute('/api/admin/tenant-admins', './routes/admin/tenantAdmins');
 useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
@@ -297,9 +350,33 @@ useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
 useRoute('/api/operational', './routes/operational', requireAuth);
 useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');
-useRoute('/api/internal/sales', './routes/internal/sales');
-useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics');
-useRoute('/api/internal/unified-health', './routes/internal/unifiedHealth');
+/**
+ * Internals — Enterprise Hardening Bloco 1.
+ *
+ * Política: requireAuth + requireInternalAccess (role internal_admin OU admin
+ *           OU capability system_administration). Rate limit por utilizador.
+ *           Vector-health/rebuild adiciona heavyRouteLimiter.
+ *
+ * Feature flag: IMPETUS_INTERNAL_ROUTES_ENABLED (default true). Quando posto a
+ * 'false', todas as rotas internas respondem 503 com INTERNAL_ROUTES_DISABLED.
+ *
+ * unifiedHealth mantém o requireHealthAccess existente porque tem semântica
+ * mais permissiva (líderes do tenant); apenas adicionamos requireAuth aqui
+ * caso o router não o aplique por dentro — duplo-cinto é seguro.
+ */
+useRoute('/api/internal/sales', './routes/internal/sales', requireAuth, requireInternalAccess({ label: 'sales' }), apiByUserLimiter);
+useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics', requireAuth, requireInternalAccess({ label: 'unified-metrics' }), apiByUserLimiter);
+useRoute('/api/internal/unified-health', './routes/internal/unifiedHealth', requireAuth, apiByUserLimiter);
+useRoute('/api/internal/vector-health', './routes/internal/vectorHealth', requireAuth, requireInternalAccess({ label: 'vector-health' }), heavyRouteLimiter);
+useRoute(
+  '/api/internal/test-environmental-cognitive',
+  './routes/internal/environmentalCognitiveTest',
+  requireAuth,
+  requireInternalAccess({ label: 'env-cognitive-test' }),
+  apiByUserLimiter
+);
+useRoute('/api/internal/enterprise', './routes/internal/enterpriseConsolidation', requireAuth, requireInternalAccess({ label: 'enterprise' }), apiByUserLimiter);
+useRoute('/api/internal/operational-runtime', './routes/internal/operationalRuntime', requireAuth, requireInternalAccess({ label: 'operational-runtime' }), apiByUserLimiter);
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';
@@ -374,7 +451,17 @@ machineMonitoring.start();
 setImmediate(() => {
   try {
     const operationalLearningService = require('./services/operationalLearningService');
-    operationalLearningService.loadAllOperationalLearningFromDB().catch(() => {});
+    operationalLearningService
+      .loadAllOperationalLearningFromDB()
+      .then(() => {
+        console.info('[OPERATIONAL_LEARNING_BOOT]', JSON.stringify({ event: 'OPERATIONAL_LEARNING_BOOT', status: 'ok' }));
+      })
+      .catch((err) => {
+        console.warn(
+          '[OPERATIONAL_LEARNING_BOOT_WARN]',
+          JSON.stringify({ event: 'OPERATIONAL_LEARNING_BOOT_WARN', error: err?.message || String(err) })
+        );
+      });
   } catch (e) {
     console.warn('[OPERATIONAL_LEARNING] bootstrap:', e?.message);
   }
@@ -474,6 +561,16 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
   }
 }
 
+/**
+ * Enterprise Hardening Bloco 12 — graceful shutdown completo:
+ *   • para intervals (systemMetrics, operationalBrain, dataLifecycle)
+ *   • para reminderScheduler / machineMonitoring
+ *   • fecha Socket.io (drena ligações antes de matar HTTP)
+ *   • para crons node-cron registados
+ *   • fecha httpServer + db.pool
+ *   • watchdog de 12s para forçar exit
+ */
+const _nodeCronTasks = [];
 function gracefulShutdown(signal) {
   console.log(`[${signal}] Encerrando graciosamente...`);
   if (systemMetricsIntervalId) {
@@ -492,14 +589,49 @@ function gracefulShutdown(signal) {
   } catch (e) {
     console.warn('[SHUTDOWN] machineMonitoring:', e?.message);
   }
-  httpServer.close(() => {
-    if (db.pool) {
-      db.pool.end().then(() => process.exit(0)).catch(() => process.exit(1));
-    } else {
-      process.exit(0);
+  // Cron jobs registados (Nexus billing, etc.)
+  try {
+    for (const t of _nodeCronTasks) {
+      try { typeof t.stop === 'function' && t.stop(); } catch (_) { /* ignore */ }
     }
-  });
-  setTimeout(() => process.exit(1), 10000);
+  } catch (e) {
+    console.warn('[SHUTDOWN] cron tasks:', e?.message);
+  }
+  // Socket.io — drena antes de fechar HTTP
+  try {
+    if (io && typeof io.close === 'function') {
+      io.close(() => {
+        try {
+          httpServer.close(() => {
+            if (db.pool) {
+              db.pool.end().then(() => process.exit(0)).catch(() => process.exit(1));
+            } else {
+              process.exit(0);
+            }
+          });
+        } catch (e) {
+          console.warn('[SHUTDOWN] httpServer close after io.close:', e?.message);
+          process.exit(1);
+        }
+      });
+    } else {
+      httpServer.close(() => {
+        if (db.pool) {
+          db.pool.end().then(() => process.exit(0)).catch(() => process.exit(1));
+        } else {
+          process.exit(0);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[SHUTDOWN] sequence error:', e?.message);
+    process.exit(1);
+  }
+  // Watchdog mais generoso (12s) e logging final.
+  setTimeout(() => {
+    console.warn('[SHUTDOWN] watchdog timeout — forçando exit');
+    process.exit(1);
+  }, 12000);
 }
 
 process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
@@ -510,13 +642,15 @@ if (String(process.env.ENABLE_NEXUS_TOKEN_BILLING_CRON || '').toLowerCase() === 
     const cron = require('node-cron');
     const billingTokenService = require('./services/billingTokenService');
     const tz = process.env.TZ || 'America/Sao_Paulo';
-    cron.schedule(
+    const task = cron.schedule(
       '0 8 1 * *',
       () => {
         billingTokenService.runMonthlyTokenBilling().catch((e) => console.error('[NEXUS_CRON]', e));
       },
       { timezone: tz }
     );
+    // Registar para shutdown gracioso (Enterprise Hardening Bloco 12).
+    try { _nodeCronTasks.push(task); } catch (_e) { /* ignore */ }
     console.log('[server] NexusIA token billing: cron dia 1 às 08:00 (' + tz + ')');
   } catch (e) {
     console.warn('[server] NexusIA cron não iniciado:', e.message);
@@ -584,9 +718,28 @@ httpServer.on('error', (err) => {
       console.warn('[EVENT_PIPELINE_BOOT]', e && e.message ? e.message : e);
     }
 
+    // Enterprise Hardening Bloco 11: snapshot + validação de feature flags.
+    try {
+      const featureGovernance = require('./services/featureGovernanceService');
+      const { validation } = featureGovernance.bootstrap();
+      if (validation && Array.isArray(validation.findings) && validation.findings.length) {
+        console.info(
+          '[FEATURE_GOVERNANCE_BOOT]',
+          JSON.stringify({
+            event: 'FEATURE_GOVERNANCE_BOOT',
+            findings_count: validation.findings.length,
+            ok: validation.ok
+          })
+        );
+      }
+    } catch (e) {
+      console.warn('[FEATURE_GOVERNANCE_BOOT]', e && e.message ? e.message : e);
+    }
+
     httpServer.listen(PORT, () => {
+      const env = String(process.env.NODE_ENV || 'development').toLowerCase();
       console.log(
-        `[impetus-backend] http://0.0.0.0:${PORT}  (health: /health  deep: /api/system/health/deep)`
+        `[impetus-backend] http://0.0.0.0:${PORT}  env=${env}  (health: /health  deep: /api/system/health/deep)`
       );
     });
   })();

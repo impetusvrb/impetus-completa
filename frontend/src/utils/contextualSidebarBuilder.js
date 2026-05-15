@@ -46,6 +46,23 @@ const { buildHybridMenu: _buildHybridMenu, logContextualDebugSummary: _logSummar
  * a entrada de menu correspondente. Usar APENAS ícones já importados em
  * `Layout.jsx` para não introduzir dependências novas.
  */
+/** Módulos injectados pelo Motor B que não podem aparecer no menu do portal administrativo do tenant. */
+export const ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS = Object.freeze([
+  'cost_center',
+  'losses_map',
+  'centro_previsao_operacional',
+  'financial_intelligence',
+  'centro_operacoes_industrial',
+  'cerebro_operacional',
+  'insights',
+  'pulse_rh',
+  'pulse_gestao',
+  'manuia',
+  'hr_intelligence',
+  'quality_intelligence',
+  'proaction'
+]);
+
 export const CONTEXTUAL_MODULE_TO_MENU_ITEM = Object.freeze({
   cost_center: {
     icon: DollarSign,

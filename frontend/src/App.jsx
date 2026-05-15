@@ -14,7 +14,13 @@ import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
 import ImpetusVoiceProvider from './voice/ImpetusVoiceProvider';
-import { isColaboradorSimples, isMaintenanceTechnicianMenu, canAccessPulseRhRoute } from './utils/roleUtils';
+import {
+  isColaboradorSimples,
+  isMaintenanceTechnicianMenu,
+  canAccessPulseRhRoute,
+  isStrictAdminRole,
+  userHasSystemAdministrationCapability
+} from './utils/roleUtils';
 import { factoryTeam } from './services/api';
 import './components/FactoryTeamOperatorBar.css';
 
@@ -93,6 +99,32 @@ function getUserRole() {
   try { return (JSON.parse(localStorage.getItem('impetus_user') || '{}').role || 'colaborador').toLowerCase(); } catch { return 'colaborador'; }
 }
 
+function readStoredUserSafe() {
+  try {
+    return JSON.parse(localStorage.getItem('impetus_user') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+/** RBAC textual OU administrador contextual (system_administration). */
+function roleGuardAllows(allowedRoles) {
+  const user = readStoredUserSafe();
+  const role = (user.role || 'colaborador').toLowerCase();
+  if (allowedRoles.includes(role)) {
+    console.debug('[LEGACY_ADMIN_FALLBACK] roleGuardAllows: role=%s aprovado por RBAC textual', role);
+    return true;
+  }
+  if (!userHasSystemAdministrationCapability(user)) return false;
+  const capabilityGrants = allowedRoles.some((ar) =>
+    ['diretor', 'gerente', 'coordenador', 'supervisor', 'ceo', 'admin', 'internal_admin'].includes(ar)
+  );
+  if (capabilityGrants) {
+    console.debug('[ADMIN_CAPABILITY_ALLOW] roleGuardAllows: system_administration concede acesso a allowedRoles=%o', allowedRoles);
+  }
+  return capabilityGrants;
+}
+
 function canAccessIndustrialCore() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -126,10 +158,11 @@ function PulseRhRouteGuard({ children }) {
 
 function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    // Padrão pós-login: liderança entra no Dashboard (/app). Colaborador segue fluxo operacional.
+  if (allowedRoles && !roleGuardAllows(allowedRoles)) {
+    console.debug('[ROLE_GUARD_BLOCK] RoleGuard bloqueou — role=%s allowedRoles=%o', role, allowedRoles);
     const defaults = { admin: '/app/admin/implantacao-guia', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
-    return <Navigate to={defaults[role] || '/app'} replace />;
+    const dest = isStrictAdminRole(readStoredUserSafe()) ? '/app/admin/implantacao-guia' : defaults[role] || '/app';
+    return <Navigate to={dest} replace />;
   }
   return children;
 }
@@ -182,6 +215,20 @@ function ColaboradorRouteGuard({ children }) {
 }
 
 const FACTORY_OPERATOR_GATE_KEY = 'impetus_factory_operator_gate';
+const FACTORY_GATE_TIMEOUT_MS = 15000;
+
+function withTimeout(promise, ms, label = 'timeout') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        const err = new Error(label);
+        err.code = 'GATE_TIMEOUT';
+        reject(err);
+      }, ms);
+    })
+  ]);
+}
 
 /** Contas de equipe (login coletivo): verificação secundária + membro ativo na sessão */
 function FactoryTeamMemberGate({ children }) {
@@ -211,21 +258,30 @@ function FactoryTeamMemberGate({ children }) {
     setGateError(null);
     setReady(false);
     try {
-      try {
-        if (!sessionStorage.getItem(FACTORY_OPERATOR_GATE_KEY)) {
-          await factoryTeam.clearActiveMember();
+      const runGate = async () => {
+        try {
+          if (!sessionStorage.getItem(FACTORY_OPERATOR_GATE_KEY)) {
+            await factoryTeam.clearActiveMember();
+          }
+        } catch (_) {
+          /* segue para contexto */
         }
-      } catch (_) {
-        /* segue para contexto */
-      }
-      const r = await factoryTeam.getContext();
+        return factoryTeam.getContext();
+      };
+      const r = await withTimeout(runGate(), FACTORY_GATE_TIMEOUT_MS, 'factory_gate_timeout');
       if (r.data?.needs_selection || !sessionStorage.getItem(FACTORY_OPERATOR_GATE_KEY)) {
         navigate('/app/equipe-operacional', { replace: true });
         return;
       }
       setReady(true);
     } catch (e) {
-      setGateError(e.apiMessage || e.response?.data?.error || 'Não foi possível validar a sessão da equipe');
+      if (e && e.code === 'GATE_TIMEOUT') {
+        setGateError(
+          'O servidor não respondeu a tempo. Confirme que a API está em execução (ex.: porta 4000) e que o proxy /api no front está correcto.'
+        );
+      } else {
+        setGateError(e.apiMessage || e.response?.data?.error || 'Não foi possível validar a sessão da equipe');
+      }
     }
   }, [navigate]);
 
@@ -271,51 +327,91 @@ function isCEO() {
     return false;
   }
 }
+/**
+ * Módulos de acesso universal seguro permitidos ao CEO.
+ * Pró-Ação removido (executive experience refinement — módulo operacional/tático).
+ */
+const UNIVERSAL_SAFE_ACCESS_CEO_PATHS = [
+  '/app',
+  '/app/chatbot',
+  '/app/registro-inteligente',
+  '/app/cadastrar-com-ia'
+];
+
 function CEORouteGuard({ children }) {
   if (!isCEO()) return children;
-  const allowed = ['/app', '/app/chatbot', '/app/registro-inteligente', '/app/cadastrar-com-ia'];
-  if (allowed.some(p => window.location.pathname.startsWith(p))) return children;
+  if (UNIVERSAL_SAFE_ACCESS_CEO_PATHS.some(p => window.location.pathname.startsWith(p))) return children;
   return <Navigate to="/app" replace />;
 }
 
-// Administrador (hierarchy 0 ou 1): CEO ou Diretor — única função que pode cadastrar documentos
+/**
+ * Gate administrativo híbrido: hierarchy <= 1, role de liderança
+ * OU administrador contextual (system_administration capability).
+ * Preserva compatibilidade legacy e permite Admin do Sistema (company_role).
+ */
 function isAdministrador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return (user.hierarchy_level ?? 5) <= 1 || ['admin','diretor','gerente','coordenador'].includes(user.role);
+    if (userHasSystemAdministrationCapability(user)) {
+      console.debug('[ADMIN_CAPABILITY_ALLOW] isAdministrador: system_administration capability presente');
+      return true;
+    }
+    const hierarchyOk = (user.hierarchy_level ?? 5) <= 1;
+    const roleOk = ['admin', 'diretor', 'gerente', 'coordenador'].includes(
+      String(user.role || '').toLowerCase()
+    );
+    if (!hierarchyOk && !roleOk) {
+      console.debug('[ROLE_GUARD_BLOCK] isAdministrador: bloqueado — role=%s hierarchy=%s', user.role, user.hierarchy_level);
+    }
+    return hierarchyOk || roleOk;
   } catch {
     return false;
   }
 }
 function AdminRouteGuard({ children }) {
-  if (isAdministrador()) return children;
+  const ok = isAdministrador();
+  if (!ok) {
+    console.debug('[ADMIN_ROUTE_TRACE] AdminRouteGuard bloqueou — redirecting /app');
+  }
+  if (ok) return children;
   return <Navigate to="/app" replace />;
 }
 
 function isStrictAdmin() {
   try {
-    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return (user.role || '').toString().toLowerCase() === 'admin';
+    return isStrictAdminRole(JSON.parse(localStorage.getItem('impetus_user') || '{}'));
   } catch {
     return false;
   }
 }
 function StrictAdminRouteGuard({ children }) {
-  if (isStrictAdmin()) return children;
+  const ok = isStrictAdmin();
+  if (!ok) console.debug('[ADMIN_ROUTE_TRACE] StrictAdminRouteGuard bloqueou — redirecting /app');
+  else console.debug('[ADMIN_CAPABILITY_ALLOW] StrictAdminRouteGuard: acesso permitido');
+  if (ok) return children;
   return <Navigate to="/app" replace />;
 }
 
-// Logs de Áudio: acesso exclusivo CEO e diretoria (conteúdo sensível)
+/**
+ * Logs de Áudio: CEO, admin, diretor — OU administrador contextual (conteúdo sensível).
+ * Híbrido: preserva legacy e aceita system_administration capability.
+ */
 function isDirectorOrCEO() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    return ['ceo', 'admin', 'diretor'].includes(user.role);
+    if (userHasSystemAdministrationCapability(user)) {
+      console.debug('[ADMIN_CAPABILITY_ALLOW] isDirectorOrCEO: system_administration capability presente');
+      return true;
+    }
+    return ['ceo', 'admin', 'diretor'].includes(String(user.role || '').toLowerCase());
   } catch {
     return false;
   }
 }
 function DirectorOrCEORouteGuard({ children }) {
-  if (isDirectorOrCEO()) return children;
+  const ok = isDirectorOrCEO();
+  if (!ok) console.debug('[ADMIN_ROUTE_TRACE] DirectorOrCEORouteGuard bloqueou — redirecting /app');
+  if (ok) return children;
   return <Navigate to="/app" replace />;
 }
 
@@ -448,11 +544,16 @@ export default function App() {
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/equipe-operacional" element={<PrivateRoute><SetupGuard><ColaboradorRouteGuard><SelectTeamMember /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><UserSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
+        {/* Enterprise Hardening Bloco 8 (A17): /chat passa a respeitar SetupGuard
+            (utilizador novo precisa concluir setup-empresa antes de aceder a
+            qualquer rota autenticada). */}
         <Route path="/chat" element={
           <PrivateRoute>
-            <ColaboradorRouteGuard>
-              <ChatPage />
-            </ColaboradorRouteGuard>
+            <SetupGuard>
+              <ColaboradorRouteGuard>
+                <ChatPage />
+              </ColaboradorRouteGuard>
+            </SetupGuard>
           </PrivateRoute>
         } />
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
