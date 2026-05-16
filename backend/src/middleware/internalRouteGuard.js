@@ -6,7 +6,7 @@
  * Protege rotas internas (/api/internal/*, /api/system/health/deep) com:
  *   • requireAuth obrigatório
  *   • role/capability internal_admin (ou admin do tenant)
- *   • IP allowlist opcional (IMPETUS_INTERNAL_IP_ALLOWLIST)
+ *   • IP/CIDR: delegado a internalNetworkGuard + internalNetworkGovernance
  *   • feature flag global (IMPETUS_INTERNAL_ROUTES_ENABLED; default true mas
  *     pode ser desligado em produção para sealar surface; em produção sem flag
  *     explícita comporta-se como "habilitado" para não quebrar uptime do legado
@@ -37,33 +37,15 @@ function isDevOpen() {
   return env !== 'production' && (flag === 'true' || flag === '1' || flag === 'yes');
 }
 
-function getAllowlist() {
-  const raw = process.env.IMPETUS_INTERNAL_IP_ALLOWLIST;
-  if (!raw) return null;
-  const list = String(raw)
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return list.length > 0 ? list : null;
-}
-
 function clientIp(req) {
-  const fwd = (req.get && req.get('x-forwarded-for')) || '';
-  const first = String(fwd).split(',')[0].trim();
-  return first || req.ip || (req.socket && req.socket.remoteAddress) || '';
-}
-
-function ipMatches(ip, allowlist) {
-  if (!allowlist || allowlist.length === 0) return true;
-  if (!ip) return false;
-  const norm = String(ip).replace(/^::ffff:/, '');
-  return allowlist.some((entry) => {
-    if (!entry) return false;
-    if (entry === norm || entry === ip) return true;
-    // CIDR /32 ou /128 igual literal — não fazemos parsing CIDR pesado aqui;
-    // delegamos confiança a infra (firewall, mesh) para CIDR amplo.
-    return false;
-  });
+  try {
+    const governance = require('../services/internalNetworkGovernance');
+    return governance.resolveClientNetwork(req).ip || '';
+  } catch (_e) {
+    const fwd = (req.get && req.get('x-forwarded-for')) || '';
+    const first = String(fwd).split(',')[0].trim();
+    return first || req.ip || (req.socket && req.socket.remoteAddress) || '';
+  }
 }
 
 function userIsInternalAdmin(user) {
@@ -135,19 +117,7 @@ function requireInternalAccess(opts = {}) {
       return next();
     }
 
-    // 3) IP allowlist (se definida) — bloqueia antes mesmo de auth.
-    const allowlist = getAllowlist();
-    if (allowlist) {
-      const ip = clientIp(req);
-      if (!ipMatches(ip, allowlist)) {
-        logInternalAccess(req, 'denied_ip', { label, ip });
-        return res.status(403).json({
-          ok: false,
-          error: 'IP not allowed for internal route.',
-          code: 'INTERNAL_IP_DENIED'
-        });
-      }
-    }
+    // 3) IP/CIDR — internalNetworkGuard (montado em server.js antes deste middleware).
 
     // 4) Auth obrigatória — delegamos a requireAuth para preencher req.user.
     if (!req.user) {
@@ -189,5 +159,5 @@ function requireInternalAccess(opts = {}) {
 module.exports = {
   requireInternalAccess,
   userIsInternalAdmin,
-  __internal: { isExplicitlyDisabled, isDevOpen, ipMatches, clientIp }
+  __internal: { isExplicitlyDisabled, isDevOpen, clientIp }
 };

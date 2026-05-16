@@ -1,0 +1,11 @@
+{
+  "contract": "quality.ncr.opened",
+  "version": 1,
+  "required": [
+    "company_id",
+    "ncr_id"
+  ],
+  "optional": [
+    "correlation_id"
+  ]
+}

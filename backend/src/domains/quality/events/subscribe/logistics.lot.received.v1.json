@@ -1,0 +1,6 @@
+{
+  "contract": "logistics.lot.received",
+  "version": 1,
+  "consumer": "quality",
+  "via": "acl"
+}

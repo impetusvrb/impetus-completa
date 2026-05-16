@@ -21,6 +21,12 @@ const KNOWN_FLAGS = [
   'IMPETUS_INTERNAL_ROUTES_ENABLED',
   'IMPETUS_INTERNAL_ROUTES_DEV_OPEN',
   'IMPETUS_INTERNAL_IP_ALLOWLIST',
+  'IMPETUS_INTERNAL_ROUTE_CIDR_ALLOWLIST',
+  'IMPETUS_INTERNAL_ROUTE_ALLOW_LOCALHOST',
+  'IMPETUS_INTERNAL_ROUTE_DENY_BY_DEFAULT',
+  'IMPETUS_INTERNAL_ROUTE_TRUST_PROXY',
+  'IMPETUS_TRUSTED_PROXY_CIDRS',
+  'IMPETUS_INTERNAL_NETWORK_DEV_BYPASS',
   'IMPETUS_ALLOW_TOKEN_IN_QUERY',
   'IMPETUS_STRICT_TENANT_FROM_DB',
   'IMPETUS_LOGIN_REQUIRE_SESSION_PERSISTENCE',
@@ -46,6 +52,102 @@ const KNOWN_FLAGS = [
   'IMPETUS_GOVERNANCE_ENABLED',
   'IMPETUS_EVENT_PIPELINE_ENABLED',
   'IMPETUS_EVENT_PIPELINE_SHADOW',
+  // WAVE 1 — backbone industrial
+  'IMPETUS_INDUSTRIAL_EVENTS_ENABLED',
+  'IMPETUS_INDUSTRIAL_OUTBOX_ENABLED',
+  'IMPETUS_INDUSTRIAL_DLQ_ENABLED',
+  'IMPETUS_INDUSTRIAL_REPLAY_SHADOW',
+  'IMPETUS_EVENT_CATALOG_STRICT',
+  'IMPETUS_EVENT_THROTTLE_PER_TENANT',
+  // WAVE 2 — observabilidade enterprise
+  'IMPETUS_OBSERVABILITY_V2_ENABLED',
+  'IMPETUS_WORKFLOW_TRACING_ENABLED',
+  'IMPETUS_CORRELATION_PROPAGATION_ENABLED',
+  'IMPETUS_OTEL_EXPORTER_ENABLED',
+  'IMPETUS_OTEL_ENDPOINT',
+  'IMPETUS_PROMETHEUS_ENDPOINT_ENABLED',
+  'IMPETUS_TENANT_METRICS_CARDINALITY_CAP',
+  'IMPETUS_SLO_MONITORING_ENABLED',
+  'IMPETUS_SATURATION_MONITORING_ENABLED',
+  'IMPETUS_EVENT_LAG_MONITORING_ENABLED',
+  'IMPETUS_DLQ_MONITORING_ENABLED',
+  'IMPETUS_COGNITIVE_PRESSURE_OBS_ENABLED',
+  'IMPETUS_WORKFLOW_OBSERVABILITY_ENABLED',
+  'IMPETUS_OBSERVABILITY_ALERTS_ENFORCE',
+  // WAVE 3 — storage temporal
+  'IMPETUS_STORAGE_V3_ENABLED',
+  'IMPETUS_TIMESCALE_ENABLED',
+  'IMPETUS_TIMESCALE_PREPARE_EXTENSION',
+  'IMPETUS_PARTITIONING_STRATEGY',
+  'IMPETUS_COLD_STORAGE_ENABLED',
+  'IMPETUS_RETENTION_PROFILE',
+  'IMPETUS_TELEMETRY_ISOLATED_INGEST_ENABLED',
+  'IMPETUS_PARTITION_MAINTENANCE_ENABLED',
+  'IMPETUS_RETENTION_PURGE_ENABLED',
+  // WAVE 4 — contexto cognitivo seguro
+  'IMPETUS_AI_CONTEXT_BUDGET_ENABLED',
+  'IMPETUS_AI_SUMMARIZER_ENABLED',
+  'IMPETUS_AI_AUTOLOOP_GUARD',
+  'IMPETUS_AI_AUTOLOOP_GUARD_ENFORCE',
+  'IMPETUS_AI_AUTOLOOP_MAX_DEPTH',
+  'IMPETUS_AI_TOKEN_QUOTA_PER_TENANT',
+  'IMPETUS_AI_SATURATION_PROTECTION_ENABLED',
+  'IMPETUS_AI_TOKEN_GOVERNANCE_ENFORCE',
+  // WAVE 5 — bounded contexts
+  'IMPETUS_DOMAINS_V5_ENABLED',
+  'IMPETUS_DOMAIN_ISOLATION_STRICT',
+  // Quality universal runtime (dual-layer; default off)
+  'IMPETUS_QUALITY_UNIVERSAL_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_UNIVERSAL_SHADOW_MODE',
+  // Quality operational UX runtime (etapa mobile/offline; default off)
+  'IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_OFFLINE_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_SCANNER_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_REALTIME_COLLECTION_ENABLED',
+  'IMPETUS_QUALITY_KIOSK_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_ATTACHMENT_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_GOVERNANCE_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_SPC_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_CAPA_INTELLIGENCE_ENABLED',
+  'IMPETUS_QUALITY_SUPPLIER_ANALYTICS_ENABLED',
+  'IMPETUS_QUALITY_RISK_INTELLIGENCE_ENABLED',
+  'IMPETUS_QUALITY_EXECUTIVE_EXPLAINABILITY_ENABLED',
+  'IMPETUS_QUALITY_EXECUTIVE_DASHBOARDS_ENABLED',
+  'IMPETUS_QUALITY_AI_ASSISTANCE_ENABLED',
+  'IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_TELEMETRY_BACKBONE_EVENTS_ENABLED',
+  'IMPETUS_QUALITY_TELEMETRY_RANGE_EVENTS_ENABLED',
+  'IMPETUS_QUALITY_TELEMETRY_SAMPLE_RATIO',
+  'IMPETUS_QUALITY_TELEMETRY_BATCH_MAX',
+  'IMPETUS_QUALITY_TELEMETRY_PRIMARY_TABLE',
+  'IMPETUS_QUALITY_COGNITIVE_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_DRIFT_PREDICTION_ENABLED',
+  'IMPETUS_QUALITY_RECURRENCE_ANALYSIS_ENABLED',
+  'IMPETUS_QUALITY_SUPPLIER_SCORING_ENABLED',
+  'IMPETUS_QUALITY_ANOMALY_PREDICTION_ENABLED',
+  'IMPETUS_QUALITY_PROCESS_DETERIORATION_ENABLED',
+  'IMPETUS_QUALITY_CONTEXTUAL_RECOMMENDATIONS_ENABLED',
+  'IMPETUS_QUALITY_EXECUTIVE_NARRATIVES_ENABLED',
+  'IMPETUS_QUALITY_COGNITIVE_PUBLISH_EVENTS_ENABLED',
+  'IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_TENANT_ROLLOUT_ENABLED',
+  'IMPETUS_QUALITY_PLANT_ROLLOUT_ENABLED',
+  'IMPETUS_QUALITY_WORKFLOW_ROLLOUT_ENABLED',
+  'IMPETUS_QUALITY_MATURITY_SCORING_ENABLED',
+  'IMPETUS_QUALITY_ADOPTION_ANALYTICS_ENABLED',
+  'IMPETUS_QUALITY_SATURATION_PROTECTION_ENABLED',
+  'IMPETUS_QUALITY_READINESS_ENGINE_ENABLED',
+  'IMPETUS_QUALITY_ROLLOUT_PUBLISH_EVENTS_ENABLED',
+  // WAVE 7 — governança industrial
+  'IMPETUS_GOVERNANCE_V7_ENABLED',
+  'IMPETUS_ABAC_ENFORCE',
+  'IMPETUS_INDUSTRIAL_AUDIT_ENABLED',
+  'IMPETUS_AUDIT_HASH_CHAIN_ENABLED',
+  'IMPETUS_LGPD_CLASSIFICATION_ENABLED',
+  'IMPETUS_TRACEABILITY_ENABLED',
+  'IMPETUS_WORKFLOW_CAPABILITY_MATRIX_ENABLED',
+  'IMPETUS_WORKFLOW_PERMISSION_ENFORCE',
+  'IMPETUS_DOMAIN_CAPABILITY_GOVERNANCE_ENABLED',
   // Enterprise authority
   'IMPETUS_COGNITIVE_AUTHORITY_ROUTER_ENABLED',
   'AI_POLICY_ENGINE_ENABLED',
@@ -129,6 +231,236 @@ const RULES = [
       String(process.env.IMPETUS_EVENT_PIPELINE_ENABLED || '').toLowerCase() !== 'true',
     message:
       'IMPETUS_EVENT_PIPELINE_SHADOW=true sem IMPETUS_EVENT_PIPELINE_ENABLED=true — shadow não é amostrado.'
+  },
+  {
+    id: 'INDUSTRIAL_OUTBOX_WITHOUT_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_INDUSTRIAL_OUTBOX_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_INDUSTRIAL_OUTBOX_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — outbox industrial inerte.'
+  },
+  {
+    id: 'INDUSTRIAL_DLQ_WITHOUT_OUTBOX',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_INDUSTRIAL_DLQ_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_OUTBOX_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_INDUSTRIAL_DLQ_ENABLED=true sem outbox — DLQ só recebe via memória/shadow.'
+  },
+  {
+    id: 'EVENT_CATALOG_STRICT_WITHOUT_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_EVENT_CATALOG_STRICT || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_EVENT_CATALOG_STRICT=true sem eventos industriais ligados — strict não tem efeito.'
+  },
+  {
+    id: 'OTEL_WITHOUT_V2',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_OTEL_EXPORTER_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_OBSERVABILITY_V2_ENABLED || '').toLowerCase() !== 'true',
+    message: 'IMPETUS_OTEL_EXPORTER_ENABLED=true sem OBSERVABILITY_V2 — export inerte.'
+  },
+  {
+    id: 'OTEL_WITHOUT_ENDPOINT',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_OTEL_EXPORTER_ENABLED || '').toLowerCase() === 'true' &&
+      !String(process.env.IMPETUS_OTEL_ENDPOINT || '').trim(),
+    message: 'IMPETUS_OTEL_EXPORTER_ENABLED=true sem IMPETUS_OTEL_ENDPOINT.'
+  },
+  {
+    id: 'WORKFLOW_TRACING_WITHOUT_V2',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_WORKFLOW_TRACING_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_OBSERVABILITY_V2_ENABLED || '').toLowerCase() !== 'true',
+    message: 'WORKFLOW_TRACING sem OBSERVABILITY_V2 — tracing inerte.'
+  },
+  {
+    id: 'TIMESCALE_WITHOUT_STORAGE_V3',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_TIMESCALE_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_STORAGE_V3_ENABLED || '').toLowerCase() !== 'true',
+    message: 'IMPETUS_TIMESCALE_ENABLED sem STORAGE_V3 — Timescale inerte.'
+  },
+  {
+    id: 'RETENTION_PURGE_WITHOUT_V3',
+    severity: 'error',
+    when: () =>
+      String(process.env.IMPETUS_RETENTION_PURGE_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_STORAGE_V3_ENABLED || '').toLowerCase() !== 'true',
+    message: 'RETENTION_PURGE sem STORAGE_V3 — perigoso; desligue RETENTION_PURGE.'
+  },
+  {
+    id: 'TELEMETRY_INGEST_WITHOUT_V3',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_TELEMETRY_ISOLATED_INGEST_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_STORAGE_V3_ENABLED || '').toLowerCase() !== 'true',
+    message: 'TELEMETRY_ISOLATED_INGEST sem STORAGE_V3 — ingest inerte.'
+  },
+  {
+    id: 'SUMMARIZER_WITHOUT_CONTEXT_BUDGET',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_AI_SUMMARIZER_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_AI_CONTEXT_BUDGET_ENABLED || '').toLowerCase() !== 'true',
+    message: 'IMPETUS_AI_SUMMARIZER_ENABLED sem CONTEXT_BUDGET — summarizer inerte.'
+  },
+  {
+    id: 'TOKEN_GOVERNANCE_ENFORCE_WITHOUT_BUDGET',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_AI_TOKEN_GOVERNANCE_ENFORCE || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_AI_CONTEXT_BUDGET_ENABLED || '').toLowerCase() !== 'true',
+    message: 'TOKEN_GOVERNANCE_ENFORCE sem CONTEXT_BUDGET.'
+  },
+  // WAVE 7 — governança industrial
+  {
+    id: 'ABAC_ENFORCE_WITHOUT_GOVERNANCE_V7',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_ABAC_ENFORCE || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_GOVERNANCE_V7_ENABLED || '').toLowerCase() !== 'true',
+    message: 'ABAC_ENFORCE=true sem GOVERNANCE_V7_ENABLED — políticas ABAC ineficazes.'
+  },
+  {
+    id: 'WORKFLOW_PERMISSION_ENFORCE_WITHOUT_CAPABILITY_MATRIX',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_WORKFLOW_PERMISSION_ENFORCE || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_WORKFLOW_CAPABILITY_MATRIX_ENABLED || '').toLowerCase() !== 'true',
+    message: 'WORKFLOW_PERMISSION_ENFORCE=true sem CAPABILITY_MATRIX_ENABLED — permissões de workflow ineficazes.'
+  },
+  {
+    id: 'AUDIT_HASH_CHAIN_WITHOUT_INDUSTRIAL_AUDIT',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_AUDIT_HASH_CHAIN_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_AUDIT_ENABLED || '').toLowerCase() !== 'true',
+    message: 'AUDIT_HASH_CHAIN_ENABLED=true sem INDUSTRIAL_AUDIT_ENABLED — hash chain sem eventos de auditoria a encadear.'
+  },
+  {
+    id: 'QUALITY_UNIVERSAL_WITHOUT_INDUSTRIAL_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_UNIVERSAL_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_UNIVERSAL_RUNTIME_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — módulo qualidade não publica no backbone.'
+  },
+  {
+    id: 'QUALITY_OPERATIONAL_WITHOUT_INDUSTRIAL_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — colecta operacional não chega ao backbone.'
+  },
+  {
+    id: 'QUALITY_GOVERNANCE_WITHOUT_INDUSTRIAL_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_GOVERNANCE_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_GOVERNANCE_RUNTIME_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — governança qualidade não publica no backbone.'
+  },
+  {
+    id: 'QUALITY_TELEMETRY_WITHOUT_W3_INGEST',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_TELEMETRY_ISOLATED_INGEST_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED=true sem IMPETUS_TELEMETRY_ISOLATED_INGEST_ENABLED — ingest WAVE3 inerte (persistência indisponível).'
+  },
+  {
+    id: 'QUALITY_TELEMETRY_BACKBONE_WITHOUT_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_TELEMETRY_BACKBONE_EVENTS_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_TELEMETRY_BACKBONE_EVENTS_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — marcadores de telemetria não chegam ao backbone.'
+  },
+  {
+    id: 'QUALITY_TELEMETRY_WITHOUT_STORAGE_V3',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_STORAGE_V3_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED=true sem IMPETUS_STORAGE_V3_ENABLED — storage temporal desligado.'
+  },
+  {
+    id: 'QUALITY_COGNITIVE_PUBLISH_WITHOUT_INDUSTRIAL_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_COGNITIVE_PUBLISH_EVENTS_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_COGNITIVE_PUBLISH_EVENTS_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — sinais cognitivos não entram no backbone.'
+  },
+  {
+    id: 'QUALITY_COGNITIVE_SUBFLAGS_WITHOUT_MASTER',
+    severity: 'warn',
+    when: () => {
+      const master = String(process.env.IMPETUS_QUALITY_COGNITIVE_RUNTIME_ENABLED || '').toLowerCase() === 'true';
+      if (master) return false;
+      const subs = [
+        'IMPETUS_QUALITY_DRIFT_PREDICTION_ENABLED',
+        'IMPETUS_QUALITY_RECURRENCE_ANALYSIS_ENABLED',
+        'IMPETUS_QUALITY_SUPPLIER_SCORING_ENABLED',
+        'IMPETUS_QUALITY_ANOMALY_PREDICTION_ENABLED',
+        'IMPETUS_QUALITY_PROCESS_DETERIORATION_ENABLED',
+        'IMPETUS_QUALITY_CONTEXTUAL_RECOMMENDATIONS_ENABLED',
+        'IMPETUS_QUALITY_EXECUTIVE_NARRATIVES_ENABLED',
+        'IMPETUS_QUALITY_COGNITIVE_PUBLISH_EVENTS_ENABLED'
+      ];
+      return subs.some((k) => String(process.env[k] || '').toLowerCase() === 'true');
+    },
+    message:
+      'Flag cognitiva de sub-motor activa sem IMPETUS_QUALITY_COGNITIVE_RUNTIME_ENABLED — motores ficam inacessíveis pela API.'
+  },
+  {
+    id: 'QUALITY_ROLLOUT_PUBLISH_WITHOUT_INDUSTRIAL_EVENTS',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_ROLLOUT_PUBLISH_EVENTS_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_INDUSTRIAL_EVENTS_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_ROLLOUT_PUBLISH_EVENTS_ENABLED=true sem IMPETUS_INDUSTRIAL_EVENTS_ENABLED — eventos de rollout não entram no backbone.'
+  },
+  {
+    id: 'QUALITY_ROLLOUT_SUBFLAGS_WITHOUT_MASTER',
+    severity: 'warn',
+    when: () => {
+      const master = String(process.env.IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED || '').toLowerCase() === 'true';
+      if (master) return false;
+      const subs = [
+        'IMPETUS_QUALITY_TENANT_ROLLOUT_ENABLED',
+        'IMPETUS_QUALITY_PLANT_ROLLOUT_ENABLED',
+        'IMPETUS_QUALITY_WORKFLOW_ROLLOUT_ENABLED',
+        'IMPETUS_QUALITY_MATURITY_SCORING_ENABLED',
+        'IMPETUS_QUALITY_ADOPTION_ANALYTICS_ENABLED',
+        'IMPETUS_QUALITY_SATURATION_PROTECTION_ENABLED',
+        'IMPETUS_QUALITY_READINESS_ENGINE_ENABLED',
+        'IMPETUS_QUALITY_ROLLOUT_PUBLISH_EVENTS_ENABLED'
+      ];
+      return subs.some((k) => String(process.env[k] || '').toLowerCase() === 'true');
+    },
+    message:
+      'Sub-flag de rollout activa sem IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED — API de rollout inacessível.'
   }
 ];
 

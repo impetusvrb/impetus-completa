@@ -5,11 +5,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:atomic": "node scripts/atomic-deploy-build.cjs",
     "preview": "vite preview",
     "preview:prod": "node serveDist.cjs",
+    "serve:dist": "node serveDist.cjs",
     "serve:static": "node server.cjs",
     "security:audit": "npm audit --production",
-    "security:audit:ci": "npm audit --production --audit-level=high"
+    "security:audit:ci": "npm audit --production --audit-level=high",
+    "test:wave6-frontend-enterprise": "node src/tests/wave6FrontendEnterpriseScenarios.cjs",
+    "test:enterprise:chunks": "node src/tests/enterprise/chunkLoadingStress.cjs",
+    "test:enterprise:realtime": "node src/tests/enterprise/realtimeReconnectStress.cjs",
+    "test:enterprise:offline": "node src/tests/enterprise/offlineQueueStress.cjs",
+    "test:enterprise:workflow": "node src/tests/enterprise/workflowRenderingStress.cjs",
+    "test:enterprise-soak": "node src/tests/enterprise/chunkLoadingStress.cjs && node src/tests/enterprise/realtimeReconnectStress.cjs && node src/tests/enterprise/offlineQueueStress.cjs && node src/tests/enterprise/workflowRenderingStress.cjs",
+    "test:quality-operational-runtime": "node src/tests/quality-operational-runtime/qualityOperationalFrontendScenarios.mjs",
+    "test:quality-enterprise-runtime": "node src/tests/quality-enterprise-runtime/qualityEnterpriseRuntimeScenarios.mjs",
+    "test:quality-governance-runtime": "node src/tests/quality-governance-runtime/qualityGovernanceRuntimeScenarios.mjs",
+    "test:quality-cognitive-runtime": "node src/tests/quality-cognitive-runtime/qualityCognitiveRuntimeScenarios.mjs",
+    "test:quality-rollout-runtime": "node src/tests/quality-rollout-runtime/qualityRolloutRuntimeScenarios.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.0",

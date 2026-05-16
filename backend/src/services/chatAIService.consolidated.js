@@ -378,7 +378,31 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
           query: normalizedMessage.slice(0, 2000)
         });
         if (memCtx.block) {
-          systemContent = `${systemContent}\n\n${memCtx.block}`;
+          let memoryBlock = memCtx.block;
+          try {
+            const safePipeline = require('../cognitiveBudget/safeCognitiveContextPipeline');
+            const budgeted = await safePipeline.applyMemoryBlockBudget({
+              block: memCtx.block,
+              meta: memCtx.meta,
+              companyId,
+              userId: humanForMem?.user_id || null,
+              persona: humanForMem?.dashboard_profile || null,
+              domain: 'operational',
+              module: 'dashboard_chat',
+              conversationId
+            });
+            if (budgeted.block) memoryBlock = budgeted.block;
+            if (budgeted.applied) {
+              console.info('[COGNITIVE_BUDGET_APPLIED]', JSON.stringify({
+                tokens_before: budgeted.tokens_before,
+                tokens_after: budgeted.tokens_after,
+                autoloop_blocked: budgeted.autoloop_blocked || false
+              }));
+            }
+          } catch (_budgetErr) {
+            /* budget nunca bloqueia memory binding legado */
+          }
+          systemContent = `${systemContent}\n\n${memoryBlock}`;
           console.info('[MEMORY_BINDING]', JSON.stringify(memCtx.meta));
         }
       }

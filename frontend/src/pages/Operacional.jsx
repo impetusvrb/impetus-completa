@@ -10,7 +10,22 @@ import { Lightbulb, FolderOpen, FileEdit, Wrench, MessageSquare, ChevronRight, C
 import Layout from '../components/Layout';
 import './Operacional.css';
 
+const qualityOpCardOn =
+  import.meta.env.VITE_IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED === 'true' ||
+  import.meta.env.VITE_IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED === '1';
+
 const OPERACIONAL_CARDS = [
+  ...(qualityOpCardOn
+    ? [
+        {
+          path: '/app/quality/operational',
+          icon: ClipboardList,
+          title: 'Qualidade — runtime operacional',
+          description: 'Coleta industrial, offline e scanner (pilotagem controlada)',
+          color: 'blue'
+        }
+      ]
+    : []),
   { path: '/app/proacao', icon: Lightbulb, title: 'Pró-Ação', description: 'Envie propostas de melhoria e acompanhe as suas sugestões', color: 'teal' },
   { path: '/app/biblioteca', icon: FolderOpen, title: 'Instruções e Procedimentos', description: 'Manuais, POPs e procedimentos operacionais', color: 'blue' },
   { path: '/app/registro-inteligente', icon: FileEdit, title: 'Registro de Atividades', description: 'Registre suas atividades e ocorrências do turno', color: 'purple' },

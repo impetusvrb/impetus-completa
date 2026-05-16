@@ -33,7 +33,8 @@ const {
 } = require('./cognitiveAttachmentIngress');
 const { formatCognitiveBlock } = require('../cognitive/promptBlock');
 
-const ALLOWED_STRUCTURED_TYPES = ['environmental'];
+const structuredInputSchemaRegistry = require('./structuredInputSchemaRegistry');
+const ALLOWED_STRUCTURED_TYPES = structuredInputSchemaRegistry.ALLOWED_TYPES;
 
 /**
  * Prompt sintético determinístico para domínio ambiental (structured_input).
@@ -201,57 +202,50 @@ async function handleCognitiveRequest({
     };
   }
 
+  let normalizedStructuredInput = structuredInput;
   if (structuredInput != null) {
-    if (!structuredInput.type) {
-      return {
-        ok: false,
-        trace_id: null,
-        error: {
-          code: 'INVALID_STRUCTURED_INPUT_TYPE',
-          message: 'structured_input.type é obrigatório',
-          stage: 'validation'
-        }
-      };
-    }
-    if (!structuredInput.payload) {
-      return {
-        ok: false,
-        trace_id: null,
-        error: {
-          code: 'INVALID_STRUCTURED_INPUT_PAYLOAD',
-          message: 'structured_input.payload é obrigatório',
-          stage: 'validation'
-        }
-      };
-    }
-    if (!ALLOWED_STRUCTURED_TYPES.includes(structuredInput.type)) {
-      return {
-        ok: false,
-        trace_id: null,
-        error: {
-          code: 'STRUCTURED_INPUT_TYPE_NOT_ALLOWED',
-          message: `Tipo não permitido: ${String(structuredInput.type)}`,
-          stage: 'validation'
-        }
-      };
-    }
-    if (structuredInput.type === 'environmental') {
-      if (!structuredInput.payload.metrics || typeof structuredInput.payload.metrics !== 'object') {
-        return {
-          ok: false,
-          trace_id: null,
-          error: {
-            code: 'INVALID_ENVIRONMENTAL_PAYLOAD',
-            message: 'payload.metrics é obrigatório para domínio ambiental',
-            stage: 'validation'
-          }
-        };
+    const schemaResult = structuredInputSchemaRegistry.validateStructuredInput(structuredInput);
+    if (!schemaResult.ok) {
+      let errorCode = schemaResult.error?.code || 'STRUCTURED_INPUT_INVALID';
+      if (
+        structuredInput.type === 'environmental' &&
+        errorCode === 'STRUCTURED_INPUT_SCHEMA_VIOLATION' &&
+        (!structuredInput.payload?.metrics ||
+          typeof structuredInput.payload.metrics !== 'object')
+      ) {
+        errorCode = 'INVALID_ENVIRONMENTAL_PAYLOAD';
       }
+      return {
+        ok: false,
+        trace_id: null,
+        error: {
+          code: errorCode,
+          message: schemaResult.error?.message || 'structured_input inválido',
+          issues: schemaResult.error?.issues,
+          stage: 'validation'
+        }
+      };
+    }
+    normalizedStructuredInput = schemaResult.normalized || structuredInput;
+    if (
+      normalizedStructuredInput?.type === 'environmental' &&
+      (!normalizedStructuredInput.payload?.metrics ||
+        typeof normalizedStructuredInput.payload.metrics !== 'object')
+    ) {
+      return {
+        ok: false,
+        trace_id: null,
+        error: {
+          code: 'INVALID_ENVIRONMENTAL_PAYLOAD',
+          message: 'payload.metrics é obrigatório para domínio ambiental',
+          stage: 'validation'
+        }
+      };
     }
   }
 
   const effectiveOptions =
-    structuredInput != null
+    normalizedStructuredInput != null
       ? { ...(options && typeof options === 'object' ? options : {}), skipPromptFirewall: true }
       : options && typeof options === 'object'
         ? { ...options }
@@ -281,12 +275,12 @@ async function handleCognitiveRequest({
     let councilModule = 'cognitive_council';
     let useEnvironmentalStructured = false;
 
-    if (structuredInput != null && structuredInput.type === 'environmental') {
+    if (normalizedStructuredInput != null && normalizedStructuredInput.type === 'environmental') {
       useEnvironmentalStructured = true;
       environmentalStructuredActive = true;
       const payload =
-        structuredInput.payload && typeof structuredInput.payload === 'object'
-          ? structuredInput.payload
+        normalizedStructuredInput.payload && typeof normalizedStructuredInput.payload === 'object'
+          ? normalizedStructuredInput.payload
           : {};
       councilData = {
         ...payload,
@@ -379,8 +373,8 @@ async function handleCognitiveRequest({
     councilOptions._pipelineGovernance = pipelineGovernance;
 
     let requestPayloadText = text;
-    if (useEnvironmentalStructured && structuredInput) {
-      const syntheticText = buildEnvironmentalStructuredSyntheticPrompt(structuredInput.payload);
+    if (useEnvironmentalStructured && normalizedStructuredInput) {
+      const syntheticText = buildEnvironmentalStructuredSyntheticPrompt(normalizedStructuredInput.payload);
       requestPayloadText = text.trim() ? `${text.trim()}\n\n${syntheticText}` : syntheticText;
     } else if (
       cognitiveAttachment != null &&

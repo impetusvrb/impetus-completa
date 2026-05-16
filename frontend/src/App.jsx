@@ -10,6 +10,7 @@ import React, { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import BuildVersionGuard from './components/BuildVersionGuard';
 import PageLoader from './components/PageLoader';
 import ErrorOffline from './pages/ErrorOffline';
 import './styles.css';
@@ -68,6 +69,10 @@ const NexusIACustos = lazy(() => import('./pages/NexusIACustos'));
 const AdminEquipmentLibrary = lazy(() => import('./pages/AdminEquipmentLibrary'));
 const ManuIA = lazy(() => import('./pages/ManuIA'));
 const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'));
+const QualityOperationalLayout = lazy(() => import('./domains/quality/routes/QualityOperationalLayout.jsx'));
+const QualityOperationalWorkspacePage = lazy(() => import('./domains/quality/routes/QualityOperationalWorkspacePage.jsx'));
+const QualityInspectionRuntimePage = lazy(() => import('./domains/quality/routes/QualityInspectionRuntimePage.jsx'));
+const QualityKioskRuntimePage = lazy(() => import('./domains/quality/routes/QualityKioskRuntimePage.jsx'));
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
@@ -197,14 +202,14 @@ function ColaboradorRouteGuard({ children }) {
         '/chat',
         '/app/settings'
       ];
-      const ok = allowOp.includes(path) || path.startsWith('/app/proacao/');
+      const ok = allowOp.includes(path) || path.startsWith('/app/proacao/') || path.startsWith('/app/quality/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
     }
 
     if (isMaintenanceTechnicianMenu(user)) {
       const allow = ['/app', '/app/equipe-operacional', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
-      const ok = allow.includes(path) || path.startsWith('/app/proacao/');
+      const ok = allow.includes(path) || path.startsWith('/app/proacao/') || path.startsWith('/app/quality/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
     }
@@ -421,6 +426,7 @@ export default function App() {
       <ErrorOffline />
       <ErrorBoundary>
       <BrowserRouter>
+          <BuildVersionGuard>
           <ImpetusVoiceProvider>
           <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -544,6 +550,55 @@ export default function App() {
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/equipe-operacional" element={<PrivateRoute><SetupGuard><ColaboradorRouteGuard><SelectTeamMember /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><UserSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />
+        <Route
+          path="/app/quality/operational"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <FactoryTeamMemberGate>
+                    <Suspense fallback={<PageLoader />}>
+                      <QualityOperationalLayout />
+                    </Suspense>
+                  </FactoryTeamMemberGate>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <QualityOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="workspace"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <QualityOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="inspection"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <QualityInspectionRuntimePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="kiosk"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <QualityKioskRuntimePage />
+              </Suspense>
+            }
+          />
+        </Route>
         {/* Enterprise Hardening Bloco 8 (A17): /chat passa a respeitar SetupGuard
             (utilizador novo precisa concluir setup-empresa antes de aceder a
             qualquer rota autenticada). */}
@@ -565,6 +620,7 @@ export default function App() {
           </Routes>
           </Suspense>
           </ImpetusVoiceProvider>
+          </BuildVersionGuard>
         </BrowserRouter>
         </ErrorBoundary>
     </NotificationProvider>

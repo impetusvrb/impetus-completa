@@ -22,6 +22,7 @@ const { buildCorsOptions, buildHelmetOptions } = require('./config/security');
 const { apiByIpLimiter, apiByUserLimiter, heavyRouteLimiter } = require('./middleware/globalRateLimit');
 const secureStaticUploads = require('./middleware/secureStaticUploads');
 const { requireInternalAccess } = require('./middleware/internalRouteGuard');
+const { requireInternalNetworkAccess } = require('./middleware/internalNetworkGuard');
 const compression = require('compression');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
@@ -32,6 +33,7 @@ const { attachRealtimeOpenaiProxy } =
 const { initChatSocket } = require('./socket/chatSocket');
 const { initVoiceStreamSocket } = require('./socket/voiceStreamSocket');
 const { requireAuth } = require('./middleware/auth');
+const { requireCompanyActive } = require('./middleware/multiTenant');
 const { sendSafeError } = require('./utils/sendSafeError');
 const { allowHealthDetails } = require('./middleware/healthExposure');
 const { getAiIntegrationsHealth } = require('./services/aiIntegrationsHealthService');
@@ -57,6 +59,12 @@ try {
   app.use(correlationIdMiddleware);
 } catch (_e) {
   /* never break boot */
+}
+try {
+  const { observabilityMiddleware } = require('./middleware/observabilityMiddleware');
+  app.use(observabilityMiddleware);
+} catch (_e) {
+  /* WAVE 2 opt-in — never break boot */
 }
 app.use(compression());
 const corsOptions = buildCorsOptions();
@@ -192,6 +200,23 @@ app.get('/api/health', async (req, res) => {
     });
   }
   return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
+});
+
+/** Versão do build frontend — negociação runtime (cache busting seguro). Sem auth. */
+app.get('/api/system/frontend-build', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  try {
+    const frontendBuildVersionService = require('./services/frontendBuildVersionService');
+    return res.json({ ok: true, ...frontendBuildVersionService.getPublicBuildInfo() });
+  } catch (err) {
+    return res.json({
+      ok: true,
+      build_id: process.env.IMPETUS_BUILD_ID || 'unknown',
+      built_at: null,
+      server_time: new Date().toISOString(),
+      source: 'fallback'
+    });
+  }
 });
 
 /**
@@ -343,6 +368,41 @@ useRoute('/api/app-communications', './routes/appCommunications');
 useRoute('/api/audit', './routes/audit');
 useRoute('/api/warehouse-intelligence', './routes/warehouseIntelligence');
 useRoute('/api/quality-intelligence', './routes/qualityIntelligence');
+useRoute(
+  '/api/quality-operational',
+  './routes/qualityOperational',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/quality-governance',
+  './routes/qualityGovernance',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/quality-telemetry',
+  './routes/qualityTelemetry',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/quality-cognitive',
+  './routes/qualityCognitive',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/quality-rollout',
+  './routes/qualityRollout',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
 useRoute('/api/pulse', './routes/pulse', requireAuth);
 useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth, apiByUserLimiter);
@@ -364,19 +424,81 @@ useRoute('/api/logistics-intelligence', './routes/logisticsIntelligence');
  * mais permissiva (líderes do tenant); apenas adicionamos requireAuth aqui
  * caso o router não o aplique por dentro — duplo-cinto é seguro.
  */
-useRoute('/api/internal/sales', './routes/internal/sales', requireAuth, requireInternalAccess({ label: 'sales' }), apiByUserLimiter);
-useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics', requireAuth, requireInternalAccess({ label: 'unified-metrics' }), apiByUserLimiter);
-useRoute('/api/internal/unified-health', './routes/internal/unifiedHealth', requireAuth, apiByUserLimiter);
-useRoute('/api/internal/vector-health', './routes/internal/vectorHealth', requireAuth, requireInternalAccess({ label: 'vector-health' }), heavyRouteLimiter);
+const internalNet = (label) => requireInternalNetworkAccess({ label });
+const internalAcl = (label) => requireInternalAccess({ label });
+
+useRoute('/api/internal/governance', './routes/internal/governance', requireAuth, internalNet('governance'), internalAcl('governance'), apiByUserLimiter);
+useRoute('/api/internal/sales', './routes/internal/sales', requireAuth, internalNet('sales'), internalAcl('sales'), apiByUserLimiter);
+useRoute('/api/internal/unified-metrics', './routes/internal/unifiedMetrics', requireAuth, internalNet('unified-metrics'), internalAcl('unified-metrics'), apiByUserLimiter);
+useRoute('/api/internal/unified-health', './routes/internal/unifiedHealth', requireAuth, internalNet('unified-health'), apiByUserLimiter);
+useRoute('/api/internal/vector-health', './routes/internal/vectorHealth', requireAuth, internalNet('vector-health'), internalAcl('vector-health'), heavyRouteLimiter);
 useRoute(
   '/api/internal/test-environmental-cognitive',
   './routes/internal/environmentalCognitiveTest',
   requireAuth,
-  requireInternalAccess({ label: 'env-cognitive-test' }),
+  internalNet('env-cognitive-test'),
+  internalAcl('env-cognitive-test'),
   apiByUserLimiter
 );
-useRoute('/api/internal/enterprise', './routes/internal/enterpriseConsolidation', requireAuth, requireInternalAccess({ label: 'enterprise' }), apiByUserLimiter);
-useRoute('/api/internal/operational-runtime', './routes/internal/operationalRuntime', requireAuth, requireInternalAccess({ label: 'operational-runtime' }), apiByUserLimiter);
+useRoute('/api/internal/enterprise', './routes/internal/enterpriseConsolidation', requireAuth, internalNet('enterprise'), internalAcl('enterprise'), apiByUserLimiter);
+useRoute('/api/internal/operational-runtime', './routes/internal/operationalRuntime', requireAuth, internalNet('operational-runtime'), internalAcl('operational-runtime'), apiByUserLimiter);
+useRoute('/api/internal/shadow-routes', './routes/internal/shadowRoutes', requireAuth, internalNet('shadow-routes'), internalAcl('shadow-routes'), apiByUserLimiter);
+useRoute(
+  '/api/internal/industrial-event-backbone',
+  './routes/internal/industrialEventBackbone',
+  requireAuth,
+  internalNet('industrial-event-backbone'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/observability',
+  './routes/internal/enterpriseObservability',
+  requireAuth,
+  internalNet('observability'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/storage',
+  './routes/internal/industrialStorage',
+  requireAuth,
+  internalNet('storage'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/cognitive-budget',
+  './routes/internal/cognitiveBudget',
+  requireAuth,
+  internalNet('cognitive-budget'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/domains',
+  './routes/internal/boundedDomains',
+  requireAuth,
+  internalNet('domains'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/quality-universal',
+  './routes/internal/qualityUniversalRuntime',
+  requireAuth,
+  internalNet('quality-universal'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/industrialGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('enterprise'),
+  apiByUserLimiter
+);
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';
@@ -734,6 +856,46 @@ httpServer.on('error', (err) => {
       }
     } catch (e) {
       console.warn('[FEATURE_GOVERNANCE_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // WAVE 2 — observabilidade enterprise (opt-in via IMPETUS_OBSERVABILITY_V2_ENABLED).
+    try {
+      const obsV2 = require('./observability/enterpriseObservabilityV2Runtime');
+      obsV2.bootstrap();
+    } catch (e) {
+      console.warn('[OBSERVABILITY_V2_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // WAVE 3 — storage temporal foundation (opt-in via IMPETUS_STORAGE_V3_ENABLED).
+    try {
+      const storageV3 = require('./storage/industrialStorageRuntime');
+      storageV3.bootstrap();
+    } catch (e) {
+      console.warn('[STORAGE_V3_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // WAVE 4 — contexto cognitivo seguro (budget off por defeito; autoloop guard on).
+    try {
+      const cognitiveBudget = require('./cognitiveBudget/cognitiveBudgetRuntime');
+      cognitiveBudget.bootstrap();
+    } catch (e) {
+      console.warn('[COGNITIVE_BUDGET_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // WAVE 5 — bounded contexts (scaffolding; runtime legado intocado).
+    try {
+      const domainsV5 = require('./domains/_core/boundedContextRuntime');
+      domainsV5.bootstrap();
+    } catch (e) {
+      console.warn('[DOMAINS_V5_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // WAVE 7 — governança industrial enterprise.
+    try {
+      const govV7 = require('./governance/industrialGovernanceRuntime');
+      govV7.bootstrap();
+    } catch (e) {
+      console.warn('[GOVERNANCE_V7_BOOT]', e && e.message ? e.message : e);
     }
 
     httpServer.listen(PORT, () => {

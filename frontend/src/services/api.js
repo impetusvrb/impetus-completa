@@ -1000,6 +1000,46 @@ export const adminHelpManual = {
     })
 };
 
+/** Quality Universal — operational UX runtime (WAVE 6 + backbone events). */
+export const qualityOperational = {
+  health: () => api.get('/quality-operational/health'),
+  publishEvent: (body) => api.post('/quality-operational/events', body)
+};
+
+/** Quality — governance & intelligence (Etapa 3). */
+export const qualityGovernance = {
+  health: () => api.get('/quality-governance/health'),
+  screenSpc: (body) => api.post('/quality-governance/intelligence/spc/screen', body),
+  screenDrift: (body) => api.post('/quality-governance/intelligence/drift/screen', body),
+  rankFmea: (body) => api.post('/quality-governance/intelligence/fmea/rank', body),
+  analyticsPack: (body) => api.post('/quality-governance/intelligence/analytics-pack', body),
+  narrative: (body) => api.post('/quality-governance/intelligence/narrative', body),
+  insightPack: (body) => api.post('/quality-governance/intelligence/insight-pack', body),
+  supplierScorecard: (body) => api.post('/quality-governance/intelligence/supplier/scorecard', body),
+  auditExplore: (params) => api.get('/quality-governance/audit/explore', { params })
+};
+
+/** Quality — industrial telemetry runtime (Etapa 4). */
+export const qualityTelemetry = {
+  health: () => api.get('/quality-telemetry/health'),
+  ingestV1: (body) => api.post('/quality-telemetry/ingest/v1', body),
+  ingestDimensional: (body) => api.post('/quality-telemetry/ingest/dimensional', body),
+  ingestBatch: (body) => api.post('/quality-telemetry/ingest/batch', body)
+};
+
+/** Quality — cognitive industrial intelligence (Etapa 5). */
+export const qualityCognitive = {
+  health: () => api.get('/quality-cognitive/health'),
+  runInsights: (body) => api.post('/quality-cognitive/insights/run', body)
+};
+
+/** Quality — controlled enterprise rollout (Etapa 6). */
+export const qualityRollout = {
+  health: () => api.get('/quality-rollout/health'),
+  runAssessment: (body) => api.post('/quality-rollout/assessment/run', body),
+  memorySnapshot: () => api.get('/quality-rollout/snapshot/memory')
+};
+
 export default api;
 
 const structuralProductionLinesApi = {

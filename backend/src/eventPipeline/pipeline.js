@@ -19,6 +19,15 @@ const { audit } = require('./audit/eventAuditLogger');
 
 let _booted = false;
 
+function _maybeMirrorIndustrial(event) {
+  try {
+    const backbone = require('./industrialEventBackbone');
+    backbone.mirrorLegacyEventToIndustrial(event);
+  } catch (_e) {
+    /* mirror nunca bloqueia pipeline legado */
+  }
+}
+
 function _pipelineTimeoutMs() {
   const n = Number(process.env.IMPETUS_EVENT_PIPELINE_TIMEOUT_MS);
   if (Number.isFinite(n) && n > 0) return Math.min(Math.floor(n), 120000);
@@ -234,6 +243,7 @@ async function _processAndRouteEventCore(input) {
     summary: processed.summary,
     meta: { priority: refined.priority, confidence: refined.confidence }
   });
+  _maybeMirrorIndustrial(event);
   return { event, processed, refined, route };
 }
 
@@ -264,6 +274,7 @@ async function publishEvent(input) {
   const event = createEvent(input);
   const bus = getEventBus();
   await bus.publish(event);
+  _maybeMirrorIndustrial(event);
   return event;
 }
 

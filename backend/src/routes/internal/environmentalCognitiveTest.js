@@ -10,22 +10,17 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../../middleware/auth');
 const { requireHealthAccess } = require('../../middleware/requireHealthAccess');
+const { requireShadowRoute } = require('../../middleware/shadowRouteRegistry');
 const { handleCognitiveRequest } = require('../../services/cognitiveControllerService');
 const { getMockEnvironmentalSnapshot } = require('../../services/environmentalMockService');
 
-router.use(requireAuth, requireHealthAccess);
+const shadowGuard = requireShadowRoute('env-cognitive-test');
+
+router.use(requireAuth, requireHealthAccess, shadowGuard);
 
 /** POST / — montado em /api/internal/test-environmental-cognitive */
 router.post('/', async (req, res) => {
   try {
-    if (String(process.env.IMPETUS_ENVIRONMENTAL_COGNITIVE_SHADOW ?? '').trim() !== 'true') {
-      return res.status(403).json({
-        ok: false,
-        code: 'ENVIRONMENTAL_SHADOW_DISABLED',
-        error: 'Defina IMPETUS_ENVIRONMENTAL_COGNITIVE_SHADOW=true para activar (shadow).'
-      });
-    }
-
     const user = req.user;
     if (!user?.id || !user?.company_id) {
       return res.status(401).json({ ok: false, error: 'Utilizador inválido' });

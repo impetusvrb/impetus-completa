@@ -14,7 +14,7 @@ const app = express();
 // passa a escutar na mesma porta da API (EADDRINUSE + site em :3000 inacessível).
 const PORT = Number(process.env.SERVE_DIST_PORT || process.env.FRONTEND_PORT || 3000);
 const HOST = process.env.SERVE_DIST_HOST || process.env.HOST || '0.0.0.0';
-const distDir = path.join(__dirname, 'dist');
+const distDir = path.resolve(__dirname, process.env.DIST_DIR || process.env.IMPETUS_DIST_DIR || 'dist');
 const unitySentinel = path.resolve(distDir, 'unity', 'manu-ia-viewer');
 
 const API_TARGET = process.env.VITE_API_BASE || process.env.API_PROXY_TARGET || 'http://127.0.0.1:4000';

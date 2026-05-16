@@ -33,6 +33,8 @@ function runWithRequestContext(store, fn) {
         : store && store.requestId != null
           ? String(store.requestId)
           : undefined,
+    workflow_id:
+      store && store.workflow_id != null ? String(store.workflow_id) : undefined,
     geminiIngress: store && store.geminiIngress !== undefined ? store.geminiIngress : null
   };
   return asyncLocalStorage.run(merged, fn);

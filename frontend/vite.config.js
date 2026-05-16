@@ -95,6 +95,39 @@ function injectBootSplashPlugin() {
   };
 }
 
+/** Emite build-meta.json + define __IMPETUS_BUILD_ID__ para negociação de versão no runtime. */
+function buildMetaPlugin() {
+  const buildId =
+    process.env.IMPETUS_BUILD_ID ||
+    process.env.GIT_COMMIT?.slice(0, 12) ||
+    `b${Date.now().toString(36)}`;
+
+  return {
+    name: 'impetus-build-meta',
+    config() {
+      return {
+        define: {
+          __IMPETUS_BUILD_ID__: JSON.stringify(buildId)
+        }
+      };
+    },
+    closeBundle() {
+      try {
+        const outDir = path.resolve(process.cwd(), process.env.VITE_OUT_DIR || 'dist');
+        const meta = {
+          build_id: buildId,
+          built_at: new Date().toISOString(),
+          assets_hash: buildId
+        };
+        fs.mkdirSync(outDir, { recursive: true });
+        fs.writeFileSync(path.join(outDir, 'build-meta.json'), JSON.stringify(meta, null, 2));
+      } catch (err) {
+        console.warn('[build-meta] write failed:', err?.message || err);
+      }
+    }
+  };
+}
+
 /** Cache-Control: no-store só em *.html (avatar-impetus.html sempre fresco). */
 function htmlNoCachePlugin() {
   const set = (_req, res, next) => {
@@ -130,7 +163,7 @@ export default defineConfig(({ mode }) => {
   const devPort = Number(process.env.PORT || env.VITE_DEV_PORT || 3000);
 
   return {
-  plugins: [unityManuIaViewerStrict404(), react(), injectBootSplashPlugin(), htmlNoCachePlugin()],
+  plugins: [unityManuIaViewerStrict404(), react(), injectBootSplashPlugin(), htmlNoCachePlugin(), buildMetaPlugin()],
   root: '.',
   publicDir: 'public',
   server: {
@@ -182,15 +215,37 @@ export default defineConfig(({ mode }) => {
     },
   },
   build: {
-    outDir: 'dist',
-    emptyOutDir: true,
+    outDir: process.env.VITE_OUT_DIR || 'dist',
+    emptyOutDir: process.env.VITE_ATOMIC_BUILD !== 'true',
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-          three: ['three', '@react-three/fiber', '@react-three/drei'],
+        /*
+         * WAVE 6 — Bundle isolation por domínio.
+         * ops-core  : páginas operacionais principais
+         * mgmt-core : páginas de gestão / admin
+         * voice-core: pipeline de voz (pesado, carregar só quando necessário)
+         * domain-*  : chunks de domínios industriais futuros
+         */
+        manualChunks(id) {
+          // Vendor base (react / router)
+          if (id.includes('node_modules/react') && !id.includes('react-router') && !id.includes('recharts')) return 'vendor';
+          if (id.includes('react-router-dom') || id.includes('react-router')) return 'vendor';
+          // Charts
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) return 'charts';
+          // Three.js
+          if (id.includes('node_modules/three') || id.includes('@react-three')) return 'three';
+          // Voice pipeline (pesado)
+          if (id.includes('/voice/') || id.includes('/voiceEngine') || id.includes('wakeWordDetector') || id.includes('speechRecognition')) return 'voice-core';
+          // Admin / management chunk
+          if (id.includes('/pages/Admin') || id.includes('/pages/admin') || id.includes('/pages/UserSettings') || id.includes('/pages/CompanyAdmin')) return 'mgmt-core';
+          // Domain placeholders (lazy, criam chunk separado)
+          if (id.includes('/domains/placeholders/Quality')) return 'domain-quality';
+          if (id.includes('/domains/placeholders/Safety')) return 'domain-safety';
+          if (id.includes('/domains/placeholders/Environment')) return 'domain-environment';
+          if (id.includes('/domains/placeholders/Logistics')) return 'domain-logistics';
+          // Operational core (demais páginas /app)
+          if (id.includes('/pages/Dashboard') || id.includes('/pages/Operacional') || id.includes('/features/dashboard')) return 'ops-core';
         },
       },
     },

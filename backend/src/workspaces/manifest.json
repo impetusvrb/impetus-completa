@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "workspaces": [
+    {
+      "name": "@impetus/shared",
+      "path": "src/shared"
+    },
+    {
+      "name": "@impetus/domain-quality",
+      "path": "src/domains/quality"
+    },
+    {
+      "name": "@impetus/domain-logistics",
+      "path": "src/domains/logistics"
+    },
+    {
+      "name": "@impetus/events-core",
+      "path": "src/eventPipeline"
+    }
+  ],
+  "note": "Logical workspaces; npm workspaces optional future"
+}

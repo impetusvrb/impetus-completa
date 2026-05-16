@@ -666,7 +666,7 @@ async function runCognitiveCouncil(params) {
       if (user.company_id) {
         processing_transparency = await aiProviderService.getCognitivePipelineDisclosure(user.company_id);
       }
-    } catch (err) {
+  } catch (err) {
       console.warn('[ai/cognitiveOrchestrator][processing_transparency]', err?.message ?? err);
     }
 
