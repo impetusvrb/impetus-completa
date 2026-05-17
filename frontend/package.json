@@ -26,7 +26,11 @@
     "test:quality-publication-runtime": "node src/tests/quality-publication-runtime/qualityPublicationMenuScenarios.mjs",
     "test:quality-publication-activation": "node --experimental-vm-modules src/tests/quality-publication-activation/qualityPublicationActivationScenarios.mjs",
     "test:quality-navigation-stabilization": "node --experimental-vm-modules src/tests/quality-navigation-stabilization/qualityNavigationStabilizationScenarios.mjs",
-    "test:enterprise-runtime-stability": "node --experimental-vm-modules src/tests/runtime-stability/enterpriseRuntimeStabilityScenarios.mjs"
+    "test:enterprise-runtime-stability": "node --experimental-vm-modules src/tests/runtime-stability/enterpriseRuntimeStabilityScenarios.mjs",
+    "test:safety-publication-runtime": "node --experimental-vm-modules src/tests/safety-publication-runtime/safetyPublicationRuntimeScenarios.mjs",
+    "test:safety-operational-validation": "node --experimental-vm-modules src/tests/safety-operational-validation/safetyOperationalValidationScenarios.mjs",
+    "test:enterprise-runtime-validation": "node --experimental-vm-modules src/tests/enterprise-runtime-validation/enterpriseRuntimeValidationScenarios.mjs",
+    "test:logistics-runtime-validation": "node --experimental-vm-modules src/tests/logistics-runtime-validation/logisticsRuntimeValidationScenarios.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.0",

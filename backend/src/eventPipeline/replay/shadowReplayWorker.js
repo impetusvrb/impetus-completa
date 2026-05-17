@@ -57,7 +57,7 @@ async function runShadowReplay(opts = {}) {
 
   if (isIndustrialOutboxEnabled() && (opts.source === 'outbox' || !opts.source)) {
     try {
-      const db = require('../../../db');
+      const db = require('../../db');
       const r = await db.query(
         `SELECT id, envelope FROM industrial_event_outbox
          WHERE status IN ('pending', 'delivered')

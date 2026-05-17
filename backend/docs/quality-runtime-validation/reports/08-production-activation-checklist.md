@@ -1,8 +1,8 @@
 # Production Activation Checklist — Quality Universal Runtime
 
-**Timestamp:** 2026-05-16T17:39:20.429Z
+**Timestamp:** 2026-05-17T02:30:36.416Z
 
-- [ ] Migração `impetus_quality_universal_runtime_migration.sql` aplicada
+- [x] Migração `impetus_quality_universal_runtime_migration.sql` aplicada
 - [ ] IMPETUS_QUALITY_UNIVERSAL_RUNTIME_ENABLED=true em staging
 - [ ] IMPETUS_INDUSTRIAL_EVENTS_ENABLED=true + outbox/DLQ monitorizados
 - [x] Shadow rollout: IMPETUS_QUALITY_UNIVERSAL_SHADOW_MODE=true inicial
@@ -12,4 +12,4 @@
 
 ---
 
-Readiness score: **78** / 100
+Readiness score: **100** / 100

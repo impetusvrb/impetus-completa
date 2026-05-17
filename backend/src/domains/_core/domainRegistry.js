@@ -19,10 +19,16 @@ const DOMAINS = Object.freeze({
     id: 'safety',
     label: 'SST / EHS',
     legacy_services: [],
-    legacy_routes: [],
+    legacy_routes: [
+      '/api/safety-operational',
+      '/api/safety-governance',
+      '/api/safety-navigation',
+      '/api/safety-activation'
+    ],
     event_prefix: 'safety.',
     scaffold_path: 'domains/safety',
-    status: 'scaffold'
+    status: 'active',
+    runtime_internal: null
   },
   environment: {
     id: 'environment',
@@ -37,10 +43,16 @@ const DOMAINS = Object.freeze({
     id: 'logistics',
     label: 'Logística',
     legacy_services: ['logisticsIntelligenceService'],
-    legacy_routes: ['/api/logistics-intelligence'],
+    legacy_routes: [
+      '/api/logistics-intelligence',
+      '/api/logistics-navigation',
+      '/api/logistics-activation',
+      '/api/logistics-operational-validation'
+    ],
     event_prefix: 'logistics.',
     scaffold_path: 'domains/logistics',
-    status: 'scaffold'
+    status: 'shadow',
+    runtime_internal: null
   },
   operational: {
     id: 'operational',

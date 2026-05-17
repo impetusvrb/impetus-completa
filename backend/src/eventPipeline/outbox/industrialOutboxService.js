@@ -46,7 +46,7 @@ function _safeJson(obj) {
 async function _persistRow(row) {
   if (!isIndustrialOutboxEnabled()) return { ok: true, persisted: false };
   try {
-    const db = require('../../../db');
+    const db = require('../../db');
     await db.query(
       `INSERT INTO industrial_event_outbox
        (id, event_name, domain, company_id, partition_key, idempotency_key,
@@ -148,7 +148,7 @@ async function drainOutboxBatch(defaultHandler) {
 
   if (isIndustrialOutboxEnabled()) {
     try {
-      const db = require('../../../db');
+      const db = require('../../db');
       const r = await Promise.race([
         db.query(
           `SELECT id, envelope, attempts, idempotency_key, event_name, domain, company_id
@@ -231,7 +231,7 @@ async function drainOutboxBatch(defaultHandler) {
 async function _markDelivered(item) {
   if (!item.from_db || !isIndustrialOutboxEnabled()) return;
   try {
-    const db = require('../../../db');
+    const db = require('../../db');
     await db.query(
       `UPDATE industrial_event_outbox SET status = 'delivered', delivered_at = now(), updated_at = now() WHERE id = $1::uuid`,
       [item.id]
@@ -242,7 +242,7 @@ async function _markDelivered(item) {
 async function _markFailed(item, attempts, status) {
   if (!item.from_db || !isIndustrialOutboxEnabled()) return;
   try {
-    const db = require('../../../db');
+    const db = require('../../db');
     await db.query(
       `UPDATE industrial_event_outbox SET status = $2, attempts = $3, updated_at = now() WHERE id = $1::uuid`,
       [item.id, status, attempts]
@@ -253,7 +253,7 @@ async function _markFailed(item, attempts, status) {
 async function _markRetry(item, attempts, dueAt, lastError) {
   if (item.from_db && isIndustrialOutboxEnabled()) {
     try {
-      const db = require('../../../db');
+      const db = require('../../db');
       await db.query(
         `UPDATE industrial_event_outbox
          SET attempts = $2, next_attempt_at = $3::timestamptz, last_error = $4, updated_at = now()

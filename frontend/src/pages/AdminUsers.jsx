@@ -319,7 +319,14 @@ export default function AdminUsers() {
     setShowCreateModal(true);
   };
 
+  const isSoftwareAdminLockedRow = (user) =>
+    user?.software_admin_locked === true || user?.software_admin === true;
+
   const openEditModal = (user) => {
+    if (isSoftwareAdminLockedRow(user)) {
+      notify.error('Conta de administrador do software IMPETUS — protegida contra edição.');
+      return;
+    }
     setSelectedUser(user);
     const userArea = user.area || (user.hierarchy_level <= 1 ? 'Direção' : user.hierarchy_level === 2 ? 'Gerência' : user.hierarchy_level === 3 ? 'Coordenação' : user.hierarchy_level === 4 ? 'Supervisão' : 'Colaborador');
     const isCustomArea = userArea && !AREA_FIXED.includes(userArea);
@@ -348,11 +355,19 @@ export default function AdminUsers() {
   };
 
   const openDeleteModal = (user) => {
+    if (isSoftwareAdminLockedRow(user)) {
+      notify.error('Não é permitido desactivar o administrador do software IMPETUS.');
+      return;
+    }
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
 
   const openResetPasswordModal = (user) => {
+    if (isSoftwareAdminLockedRow(user)) {
+      notify.error('Reset de senha bloqueado para administrador do software IMPETUS.');
+      return;
+    }
     setSelectedUser(user);
     setFormData({ ...formData, password: '' });
     setShowResetPasswordModal(true);
@@ -432,6 +447,11 @@ export default function AdminUsers() {
           <span className={`badge badge-${getRoleBadgeColor(value)}`}>
             {getRoleLabel(value)}
           </span>
+          {row.software_admin_locked && (
+            <span className="badge badge-info" title="Administrador do software — conta protegida">
+              Admin software
+            </span>
+          )}
           {value === 'ceo' && (
             <span className={`badge badge-${row.executive_verified ? 'success' : 'warning'}`} title={row.executive_verified ? 'Executivo verificado' : 'Aguardando verificação'}>
               {row.executive_verified ? '✓ Verificado' : 'Pendente'}
@@ -468,31 +488,37 @@ export default function AdminUsers() {
     {
       key: 'actions',
       label: 'Ações',
-      render: (_, row) => (
+      render: (_, row) => {
+        const locked = isSoftwareAdminLockedRow(row);
+        return (
         <div className="table-actions">
           <button 
             className="action-btn edit" 
+            disabled={locked}
             onClick={(e) => { e.stopPropagation(); openEditModal(row); }}
-            title="Editar"
+            title={locked ? 'Conta protegida (admin do software)' : 'Editar'}
           >
             <Edit size={16} />
           </button>
           <button 
             className="action-btn password" 
+            disabled={locked}
             onClick={(e) => { e.stopPropagation(); openResetPasswordModal(row); }}
-            title="Resetar senha"
+            title={locked ? 'Conta protegida' : 'Resetar senha'}
           >
             <Key size={16} />
           </button>
           <button 
             className="action-btn delete" 
+            disabled={locked}
             onClick={(e) => { e.stopPropagation(); openDeleteModal(row); }}
-            title="Desativar"
+            title={locked ? 'Conta protegida' : 'Desativar'}
           >
             <Trash2 size={16} />
           </button>
         </div>
-      )
+        );
+      }
     }
   ];
 

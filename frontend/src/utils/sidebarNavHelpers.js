@@ -45,6 +45,8 @@ export function sidebarNavItemKey(item, index) {
   if (!item || item.settingsBack) return 'settings-back';
   if (item.settingsAnchor && item.hash) return `settings-${item.hash}`;
   if (item._quality_manifest_id) return `qnav-${item._quality_manifest_id}`;
+  if (item._safety_manifest_id) return `snav-${item._safety_manifest_id}`;
+  if (item._logistics_manifest_id) return `lnav-${item._logistics_manifest_id}`;
   if (item._module_id) return `ctx-${item._module_id}`;
   if (item.path) return `p-${item.path}`;
   return `idx-${index}`;

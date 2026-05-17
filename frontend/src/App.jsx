@@ -73,6 +73,11 @@ const QualityOperationalLayout = lazy(() => import('./domains/quality/routes/Qua
 const QualityOperationalWorkspacePage = lazy(() => import('./domains/quality/routes/QualityOperationalWorkspacePage.jsx'));
 const QualityInspectionRuntimePage = lazy(() => import('./domains/quality/routes/QualityInspectionRuntimePage.jsx'));
 const QualityKioskRuntimePage = lazy(() => import('./domains/quality/routes/QualityKioskRuntimePage.jsx'));
+const SafetyOperationalLayout = lazy(() => import('./domains/safety/routes/SafetyOperationalLayout.jsx'));
+const SafetyOperationalWorkspacePage = lazy(() => import('./domains/safety/routes/SafetyOperationalWorkspacePage.jsx'));
+const SafetyFieldInspectionPage = lazy(() => import('./domains/safety/routes/SafetyFieldInspectionPage.jsx'));
+const LogisticsOperationalLayout = lazy(() => import('./domains/logistics/routes/LogisticsOperationalLayout.jsx'));
+const LogisticsOperationalWorkspacePage = lazy(() => import('./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx'));
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
@@ -175,6 +180,9 @@ function RoleGuard({ children, allowedRoles }) {
 function isColaborador() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    if (userHasSystemAdministrationCapability(user) || isStrictAdminRole(user) || user.is_tenant_admin === true) {
+      return false;
+    }
     const role = (user.role || '').toString().toLowerCase();
     return ['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role);
   } catch {
@@ -187,6 +195,9 @@ function ColaboradorRouteGuard({ children }) {
   if (!isColaborador()) return children;
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    if (userHasSystemAdministrationCapability(user) || isStrictAdminRole(user) || user.is_tenant_admin === true) {
+      return children;
+    }
     const raw = typeof window !== 'undefined' ? window.location.pathname : '';
     const path = raw.replace(/\/+$/, '') || '/';
 
@@ -202,14 +213,22 @@ function ColaboradorRouteGuard({ children }) {
         '/chat',
         '/app/settings'
       ];
-      const ok = allowOp.includes(path) || path.startsWith('/app/proacao/') || path.startsWith('/app/quality/');
+      const ok =
+        allowOp.includes(path) ||
+        path.startsWith('/app/proacao/') ||
+        path.startsWith('/app/quality/') ||
+        path.startsWith('/app/safety/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
     }
 
     if (isMaintenanceTechnicianMenu(user)) {
       const allow = ['/app', '/app/equipe-operacional', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
-      const ok = allow.includes(path) || path.startsWith('/app/proacao/') || path.startsWith('/app/quality/');
+      const ok =
+        allow.includes(path) ||
+        path.startsWith('/app/proacao/') ||
+        path.startsWith('/app/quality/') ||
+        path.startsWith('/app/safety/');
       if (!ok) return <Navigate to="/app" replace />;
       return children;
     }
@@ -595,6 +614,80 @@ export default function App() {
             element={
               <Suspense fallback={<PageLoader />}>
                 <QualityKioskRuntimePage />
+              </Suspense>
+            }
+          />
+        </Route>
+        <Route
+          path="/app/safety/operational"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <FactoryTeamMemberGate>
+                    <Suspense fallback={<PageLoader />}>
+                      <SafetyOperationalLayout />
+                    </Suspense>
+                  </FactoryTeamMemberGate>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <SafetyOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="workspace"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <SafetyOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="inspection"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <SafetyFieldInspectionPage />
+              </Suspense>
+            }
+          />
+        </Route>
+        <Route
+          path="/app/logistics/operational"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <FactoryTeamMemberGate>
+                    <Suspense fallback={<PageLoader />}>
+                      <LogisticsOperationalLayout />
+                    </Suspense>
+                  </FactoryTeamMemberGate>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <LogisticsOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="workspace"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <LogisticsOperationalWorkspacePage />
               </Suspense>
             }
           />

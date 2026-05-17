@@ -1,6 +1,6 @@
 # Governance Integrity Report
 
-**Timestamp:** 2026-05-16T17:39:20.429Z
+**Timestamp:** 2026-05-17T02:30:36.416Z
 
 - ABAC evaluate: decision=allow, mode=observe
 - Capability matrix CAPA/manager: {"allowed":true,"mode":"disabled","reason":"capability_matrix_disabled"}…

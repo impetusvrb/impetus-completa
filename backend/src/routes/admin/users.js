@@ -16,6 +16,7 @@ const { sanitizeSearchTerm, isValidUUID } = require('../../utils/security');
 const { z } = require('zod');
 const orgVal = require('../../services/organizationalValidationService');
 const tenantAdminService = require('../../services/tenantAdminService');
+const adminAccountProtection = require('../../services/adminAccountProtectionService');
 
 async function assertStructuralRoleForCompany(companyId, roleId) {
   if (!roleId) return null;
@@ -92,7 +93,8 @@ const createUserSchema = z.object({
     if (v === '' || v === null || v === undefined) return undefined;
     const s = typeof v === 'string' ? v.trim() : String(v).trim();
     return s === '' ? undefined : s;
-  }, z.string().uuid().optional())
+  }, z.string().uuid().optional()),
+  software_admin: z.boolean().optional()
 }).refine((data) => {
   if (data.role === 'ceo') {
     const w = (data.whatsapp_number || '').trim();
@@ -206,10 +208,15 @@ router.get('/',
           u.company_role_id,
           u.company_role_id as structural_role_id,
           u.department_id,
+          u.is_company_root,
           u.created_at, u.last_login, u.last_seen,
           u.lgpd_consent, u.lgpd_consent_date,
           d.name as department_name,
           cr.name as structural_role_name,
+          (EXISTS (
+            SELECT 1 FROM tenant_admins ta
+            WHERE ta.user_id = u.id AND ta.company_id = u.company_id AND ta.status = 'active'
+          )) AS is_tenant_admin,
           (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.expires_at > now()) as active_sessions
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
@@ -230,9 +237,14 @@ router.get('/',
       const total = parseInt(countResult.rows[0]?.total ?? 0, 10) || 0;
       const estimated = total >= COUNT_CAP;
 
+      const users = (result.rows || []).map((row) => ({
+        ...row,
+        ...adminAccountProtection.flagsFromUserRow(row, row.is_tenant_admin)
+      }));
+
       res.json({
         ok: true,
-        users: result.rows,
+        users,
         pagination: {
           total,
           limit: safeLimit,
@@ -281,9 +293,14 @@ router.get('/:id',
         });
       }
 
+      const user = await adminAccountProtection.enrichUserAdminFlags(
+        result.rows[0],
+        req.user.company_id
+      );
+
       res.json({
         ok: true,
-        user: result.rows[0]
+        user
       });
 
     } catch (err) {
@@ -318,7 +335,7 @@ router.post('/',
       }
 
       // Validar dados
-      const validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
+      let validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
 
       let companyRoleId = null;
       if (validatedData.company_role_id) {
@@ -331,6 +348,29 @@ router.post('/',
             code: 'INVALID_STRUCTURAL_ROLE'
           });
         }
+      }
+
+      const normalizedCreate = await adminAccountProtection.normalizeCreatePayloadForSoftwareAdmin(
+        req.user.company_id,
+        { ...validatedData, company_role_id: companyRoleId || validatedData.company_role_id }
+      );
+      validatedData = normalizedCreate.data;
+      if (normalizedCreate.companyRoleId) {
+        companyRoleId = normalizedCreate.companyRoleId;
+        validatedData.company_role_id = companyRoleId;
+      }
+
+      const createRoleGate = await adminAccountProtection.assertCreateRoleCompatibleWithStructuralRole(
+        req.user.company_id,
+        validatedData.role,
+        companyRoleId
+      );
+      if (!createRoleGate.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: createRoleGate.error,
+          code: createRoleGate.code
+        });
       }
 
       // Verificar se email já existe
@@ -386,9 +426,9 @@ router.post('/',
           company_id, name, email, password_hash, role,
           area, job_title, department, department_id, supervisor_id, phone, whatsapp_number,
           hierarchy_level, permissions, active, executive_verified, functional_area,
-          hr_responsibilities, hr_responsibilities_parsed, company_role_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19)
-        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, company_role_id, created_at
+          hr_responsibilities, hr_responsibilities_parsed, company_role_id, dashboard_profile
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, true, $15, $16, $17, $18::jsonb, $19, $20)
+        RETURNING id, name, email, role, hierarchy_level, area, job_title, department, functional_area, hr_responsibilities, company_role_id, dashboard_profile, created_at
       `, [
         req.user.company_id,
         validatedData.name,
@@ -408,8 +448,22 @@ router.post('/',
         functionalArea,
         hrText || null,
         JSON.stringify(hrResponsibilitiesParsed),
-        companyRoleId
+        companyRoleId,
+        validatedData.dashboard_profile || null
       ]);
+
+      if (normalizedCreate.provision) {
+        try {
+          await adminAccountProtection.provisionSoftwareAdminAfterCreate({
+            companyId: req.user.company_id,
+            userId: result.rows[0].id,
+            actorUserId: req.user.id,
+            companyRoleId
+          });
+        } catch (e) {
+          console.warn('[admin/users][software_admin_provision]', e.message || e);
+        }
+      }
 
       // Log de auditoria
       await logAction({
@@ -549,6 +603,20 @@ router.put('/:id',
       const beforeRow = await orgVal.loadUserForValidation(req.params.id, req.user.company_id);
       const beforeSnapshot = beforeRow ? orgVal.snapshotFromUserRow(beforeRow) : null;
 
+      const mutableGate = await adminAccountProtection.assertSoftwareAdminAccountMutable({
+        companyId: req.user.company_id,
+        targetUserId: req.params.id,
+        patch: validatedData
+      });
+      if (!mutableGate.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: mutableGate.error,
+          code: mutableGate.code,
+          locked_fields: mutableGate.locked_fields
+        });
+      }
+
       // Se está mudando email, verificar se já existe
       if (validatedData.email && validatedData.email !== existingUser.rows[0].email) {
         const emailExists = await db.query(
@@ -592,6 +660,18 @@ router.put('/:id',
       }
 
       if (Object.prototype.hasOwnProperty.call(validatedData, 'active') && validatedData.active === false) {
+        const deactivateGate = await adminAccountProtection.assertSoftwareAdminAccountNotDeactivated({
+          companyId: req.user.company_id,
+          targetUserId: req.params.id,
+          deactivating: true
+        });
+        if (!deactivateGate.ok) {
+          return res.status(400).json({
+            ok: false,
+            error: deactivateGate.error,
+            code: deactivateGate.code
+          });
+        }
         const gate = await tenantAdminService.assertNotLastGovernanceAdmin(
           req.user.company_id,
           req.params.id
@@ -771,6 +851,19 @@ router.delete('/:id',
         });
       }
 
+      const deactivateGate = await adminAccountProtection.assertSoftwareAdminAccountNotDeactivated({
+        companyId: req.user.company_id,
+        targetUserId: req.params.id,
+        deactivating: true
+      });
+      if (!deactivateGate.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: deactivateGate.error,
+          code: deactivateGate.code
+        });
+      }
+
       const lastGate = await tenantAdminService.assertNotLastGovernanceAdmin(
         req.user.company_id,
         req.params.id
@@ -863,6 +956,13 @@ router.patch('/:id/profile-context',
   async (req, res) => {
     try {
       const { id } = req.params;
+      const mutableGate = await adminAccountProtection.assertSoftwareAdminManagementBlocked({
+        companyId: req.user.company_id,
+        targetUserId: id
+      });
+      if (!mutableGate.ok) {
+        return res.status(400).json({ ok: false, error: mutableGate.error, code: mutableGate.code });
+      }
       const parsed = profileContextSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ ok: false, error: parsed.error.errors?.[0]?.message || 'Dados inválidos' });
@@ -927,6 +1027,14 @@ router.post('/:id/reset-password',
   }),
   async (req, res) => {
     try {
+      const mutableGate = await adminAccountProtection.assertSoftwareAdminManagementBlocked({
+        companyId: req.user.company_id,
+        targetUserId: req.params.id
+      });
+      if (!mutableGate.ok) {
+        return res.status(400).json({ ok: false, error: mutableGate.error, code: mutableGate.code });
+      }
+
       const { new_password } = req.body;
       const passwordHash = hashPassword(new_password);
 

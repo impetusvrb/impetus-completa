@@ -6,6 +6,7 @@ import QualityMaturityPanel from './QualityMaturityPanel.jsx';
 import QualityAdoptionAnalytics from './QualityAdoptionAnalytics.jsx';
 import QualityGovernanceRolloutPanel from './QualityGovernanceRolloutPanel.jsx';
 import QualityOperationalSaturationPanel from './QualityOperationalSaturationPanel.jsx';
+import EnterpriseOperationalMaturityDashboard from '../../../runtime-validation/EnterpriseOperationalMaturityDashboard.jsx';
 import { getQualityRolloutFlagSnapshot, isQualityRolloutRuntimeEnabled } from './qualityRolloutFeatureFlags.js';
 
 export default function QualityRolloutHub({ companyId }) {
@@ -66,6 +67,7 @@ export default function QualityRolloutHub({ companyId }) {
         <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
         <div style={{ marginTop: 8, opacity: 0.85 }}>tenant {String(companyId).slice(0, 8)}…</div>
       </div>
+      <EnterpriseOperationalMaturityDashboard compact />
       {pack ? (
         <>
           <QualityGovernanceRolloutPanel pack={pack} />

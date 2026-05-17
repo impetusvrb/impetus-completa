@@ -55,7 +55,7 @@ async function moveToDlq(envelope, meta = {}) {
   } catch (_e) {}
 
   try {
-    const db = require('../../../db');
+    const db = require('../../db');
     await db.query(
       `INSERT INTO industrial_event_dlq
        (id, event_name, domain, company_id, idempotency_key, correlation_id, envelope,

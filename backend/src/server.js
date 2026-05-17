@@ -417,6 +417,90 @@ useRoute(
   requireCompanyActive,
   apiByUserLimiter
 );
+useRoute(
+  '/api/safety-operational',
+  './routes/safetyOperational',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-governance',
+  './routes/safetyGovernance',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-telemetry',
+  './routes/safetyTelemetry',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-cognitive',
+  './routes/safetyCognitive',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-rollout',
+  './routes/safetyRollout',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-navigation',
+  './routes/safetyNavigation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-activation',
+  './routes/safetyActivation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/safety-operational-validation',
+  './routes/safetyOperationalValidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/enterprise-runtime-validation',
+  './routes/enterpriseRuntimeValidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/logistics-navigation',
+  './routes/logisticsNavigation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/logistics-activation',
+  './routes/logisticsActivation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/logistics-operational-validation',
+  './routes/logisticsOperationalValidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
 useRoute('/api/pulse', './routes/pulse', requireAuth);
 useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth, apiByUserLimiter);

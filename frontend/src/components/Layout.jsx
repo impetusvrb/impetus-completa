@@ -54,6 +54,10 @@ import { useVisibleModules } from '../hooks/useVisibleModules';
 import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
 import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
 import { fetchQualityPublicationContext } from '../domains/quality/navigation/qualityDomainPublicationRuntime.js';
+import { safeMergeSafetyPublicationIntoMenu } from '../domains/safety/navigation/safetyMenuPublicationEngine.js';
+import { fetchSafetyPublicationContext } from '../domains/safety/navigation/safetyDomainPublicationRuntime.js';
+import { safeMergeLogisticsPublicationIntoMenu } from '../domains/logistics/navigation/logisticsMenuPublicationEngine.js';
+import { fetchLogisticsPublicationContext } from '../domains/logistics/navigation/logisticsDomainPublicationRuntime.js';
 import {
   dedupeSidebarMenuItems,
   isSidebarMenuItemActive,
@@ -256,13 +260,23 @@ export default function Layout({ children }) {
     contextualMeta
   } = useVisibleModules();
   const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
+  const [safetyPublicationServerCtx, setSafetyPublicationServerCtx] = useState(null);
+  const [logisticsPublicationServerCtx, setLogisticsPublicationServerCtx] = useState(null);
 
   useEffect(() => {
     if (modulesLoading) return undefined;
     let alive = true;
     (async () => {
-      const ctx = await fetchQualityPublicationContext();
-      if (alive) setQualityPublicationServerCtx(ctx);
+      const [qCtx, sCtx, lCtx] = await Promise.all([
+        fetchQualityPublicationContext(),
+        fetchSafetyPublicationContext(),
+        fetchLogisticsPublicationContext()
+      ]);
+      if (alive) {
+        setQualityPublicationServerCtx(qCtx);
+        setSafetyPublicationServerCtx(sCtx);
+        setLogisticsPublicationServerCtx(lCtx);
+      }
     })();
     return () => {
       alive = false;
@@ -279,7 +293,8 @@ export default function Layout({ children }) {
     (normalizedPath.startsWith('/app/manutencao/manuia') || normalizedPath.startsWith('/app/manutencao/manuia-app'));
 
   let pathOk = canAccessPath(location.pathname);
-  if (isColaboradorSimples(user)) {
+  const adminPortalUser = isAdministrativePortalOnlyUser(user);
+  if (isColaboradorSimples(user) && !adminPortalUser) {
     const allowedOperacional = [
       '/app',
       '/app/proacao',
@@ -293,7 +308,8 @@ export default function Layout({ children }) {
     pathOk =
       allowedOperacional.includes(normalizedPath) ||
       normalizedPath.startsWith('/app/proacao/') ||
-      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath));
+      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath)) ||
+      (normalizedPath.startsWith('/app/safety/') && canAccessPath(normalizedPath));
   } else if (maintenanceTechnicianMenu) {
     const allowMaint = [
       '/app',
@@ -311,7 +327,8 @@ export default function Layout({ children }) {
     pathOk =
       allowMaint.includes(normalizedPath) ||
       normalizedPath.startsWith('/app/proacao/') ||
-      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath));
+      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath)) ||
+      (normalizedPath.startsWith('/app/safety/') && canAccessPath(normalizedPath));
   }
 
   if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
@@ -508,16 +525,28 @@ export default function Layout({ children }) {
     const hybridMenuOpts = isAdministrativePortalOnlyUser(user)
       ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
       : undefined;
-    const baseMenuItemsHybrid = safeMergeQualityPublicationIntoMenu(
-      buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts),
-      {
-        user,
-        visibleModules,
-        contextualModules,
-        modulesLoading,
-        serverPublication: qualityPublicationServerCtx
-      }
-    );
+    const hybridBase = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
+    const withQuality = safeMergeQualityPublicationIntoMenu(hybridBase, {
+      user,
+      visibleModules,
+      contextualModules,
+      modulesLoading,
+      serverPublication: qualityPublicationServerCtx
+    });
+    const withSafety = safeMergeSafetyPublicationIntoMenu(withQuality, {
+      user,
+      visibleModules,
+      contextualModules,
+      modulesLoading,
+      serverPublication: safetyPublicationServerCtx
+    });
+    const baseMenuItemsHybrid = safeMergeLogisticsPublicationIntoMenu(withSafety, {
+      user,
+      visibleModules,
+      contextualModules,
+      modulesLoading,
+      serverPublication: logisticsPublicationServerCtx
+    });
     menuItems = filterMenu(baseMenuItemsHybrid);
     menuItems = menuItems.filter((item) => {
       const p = (item.path || '').replace(/\/+$/, '') || '/';

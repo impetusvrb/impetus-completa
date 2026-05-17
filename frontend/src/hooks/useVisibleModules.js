@@ -78,6 +78,11 @@ const PATH_TO_MODULE = {
   '/app/quality/operational/inspection': 'quality_intelligence',
   '/app/quality/operational/kiosk': 'quality_intelligence',
   '/app/quality/operational/workspace': 'quality_intelligence',
+  '/app/safety/operational': 'safety_intelligence',
+  '/app/safety/operational/inspection': 'safety_intelligence',
+  '/app/safety/operational/workspace': 'safety_intelligence',
+  '/app/logistics/operational': 'logistics_intelligence',
+  '/app/logistics/operational/workspace': 'logistics_intelligence',
   '/chat': 'chat'
 };
 
@@ -121,6 +126,8 @@ function getModuleForPath(path) {
   const n = base.replace(/\/+$/, '') || '/';
   if (PATH_TO_MODULE[n]) return PATH_TO_MODULE[n];
   if (n.startsWith('/app/quality/')) return 'quality_intelligence';
+  if (n.startsWith('/app/safety/')) return 'safety_intelligence';
+  if (n.startsWith('/app/logistics/')) return 'logistics_intelligence';
   if (n.startsWith('/app/admin')) return 'admin';
   if (n.startsWith('/diagnostic')) return 'operational';
   return null;
@@ -186,6 +193,16 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
 
     if (item && item._quality_publication === true) {
       if (set.has('quality_intelligence')) return true;
+      return false;
+    }
+
+    if (item && item._safety_publication === true) {
+      if (set.has('safety_intelligence')) return true;
+      return false;
+    }
+
+    if (item && item._logistics_publication === true) {
+      if (set.has('logistics_intelligence')) return true;
       return false;
     }
 

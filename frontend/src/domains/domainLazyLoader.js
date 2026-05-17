@@ -37,7 +37,7 @@ export function prefetchDomainChunk(factory, domainId) {
  */
 export const DOMAIN_CHUNK_FACTORIES = {
   quality: () => import(/* webpackChunkName: "domain-quality" */ './quality/routes/qualityDomainPrefetch.js'),
-  safety: () => import(/* webpackChunkName: "domain-safety" */ './placeholders/SafetyPlaceholder'),
+  safety: () => import(/* webpackChunkName: "domain-safety" */ './safety/routes/safetyDomainPrefetch.js'),
   environment: () =>
     import(/* webpackChunkName: "domain-environment" */ './placeholders/EnvironmentPlaceholder'),
   logistics: () =>

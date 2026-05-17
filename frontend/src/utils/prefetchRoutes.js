@@ -17,6 +17,7 @@ const prefetchMap = {
   '/app/biblioteca': () => import('../features/biblioteca'),
   '/app/operacional': () => import('../pages/Operacional'),
   '/app/quality/operational': () => import('../domains/quality/routes/QualityOperationalLayout.jsx'),
+  '/app/safety/operational': () => import('../domains/safety/routes/SafetyOperationalLayout.jsx'),
 };
 
 const prefetched = new Set();

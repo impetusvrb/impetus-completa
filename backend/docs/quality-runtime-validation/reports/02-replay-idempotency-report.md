@@ -1,10 +1,16 @@
 # Replay & Idempotency Report
 
-**Timestamp:** 2026-05-16T17:39:20.429Z
+**Timestamp:** 2026-05-17T02:30:36.416Z
 
 ## Fase 2 — Workflow / idempotência
 
-- Tabelas de workflow não encontradas — fase 2 parcialmente skip.
+- Definição **ncr_universal**: OK
+- Definição **capa_universal**: OK
+- Definição **pdca_universal**: OK
+- Definição **approval_universal**: OK
+- Definição **escalation_universal**: OK
+- Transações: transição usa `SELECT … FOR UPDATE` (anti corrida).
+- Shadow: payloads de evento incluem `shadow_mode` via publisher.
 
 
 ## Fase 3 — Event backbone
