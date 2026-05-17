@@ -291,7 +291,15 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
 
           <section className="live-dash-summary" aria-live="polite">
             <h2 className="live-dash-visually-hidden">Resumo inteligente</h2>
-            <FormattedIntelligentSummary text={display.intelligent_summary} />
+            <FormattedIntelligentSummary
+              text={
+                typeof display.intelligent_summary === 'string'
+                  ? display.intelligent_summary
+                  : display.intelligent_summary != null
+                    ? String(display.intelligent_summary)
+                    : ''
+              }
+            />
             <div className="live-dash-signals">
               <span>
                 Tarefas abertas: <strong>{display.signals?.tasks?.open ?? '—'}</strong>

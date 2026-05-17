@@ -74,6 +74,10 @@ const PATH_TO_MODULE = {
   '/app/pulse-gestao': 'operational',
   '/app/manutencao/manuia': 'manuia',
   '/app/manutencao/manuia-app': 'manuia',
+  '/app/quality/operational': 'quality_intelligence',
+  '/app/quality/operational/inspection': 'quality_intelligence',
+  '/app/quality/operational/kiosk': 'quality_intelligence',
+  '/app/quality/operational/workspace': 'quality_intelligence',
   '/chat': 'chat'
 };
 
@@ -113,9 +117,12 @@ function readStoredUser() {
 }
 
 function getModuleForPath(path) {
-  if (PATH_TO_MODULE[path]) return PATH_TO_MODULE[path];
-  if (path.startsWith('/app/admin')) return 'admin';
-  if (path.startsWith('/diagnostic')) return 'operational';
+  const base = String(path || '').split('?')[0];
+  const n = base.replace(/\/+$/, '') || '/';
+  if (PATH_TO_MODULE[n]) return PATH_TO_MODULE[n];
+  if (n.startsWith('/app/quality/')) return 'quality_intelligence';
+  if (n.startsWith('/app/admin')) return 'admin';
+  if (n.startsWith('/diagnostic')) return 'operational';
   return null;
 }
 
@@ -177,6 +184,11 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
       }
     }
 
+    if (item && item._quality_publication === true) {
+      if (set.has('quality_intelligence')) return true;
+      return false;
+    }
+
     if (item && item._contextual === true) {
       if (adminPortal) {
         const mod = getModuleForPath(item.path);
@@ -227,7 +239,7 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
   } catch {
     isMaint = false;
   }
-  const norm = path.replace(/\/+$/, '') || '/';
+  const norm = path.replace(/\/+$/, '').split('?')[0] || '/';
   const u = readStoredUser();
 
   // Acesso universal seguro: os 3 módulos sempre acessíveis independentemente de visible_modules.

@@ -52,9 +52,20 @@ function buildXbarEvaluation(subgroups) {
   return evaluateSubgroupsSpc(subgroups, {});
 }
 
+// subgroupStats é re-exportado para compatibilidade com consumidores externos.
+// Guard defensivo: se o import não trouxer a função (dep. parcialmente inicializada
+// em restarts rápidos do Node / require cache), a exportação continua funcional.
+const _subgroupStatsExport =
+  typeof subgroupStats === 'function'
+    ? subgroupStats
+    : function _subgroupStatsFallback(subgroups) {
+        if (!Array.isArray(subgroups)) return [];
+        return subgroups.map((g, i) => ({ index: i, n: Array.isArray(g) ? g.length : 0, mean: null, std_within: null }));
+      };
+
 module.exports = {
   pChartLimits,
   cChartLimits,
   buildXbarEvaluation,
-  subgroupStats
+  subgroupStats: _subgroupStatsExport
 };

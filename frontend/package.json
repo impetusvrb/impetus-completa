@@ -22,7 +22,11 @@
     "test:quality-enterprise-runtime": "node src/tests/quality-enterprise-runtime/qualityEnterpriseRuntimeScenarios.mjs",
     "test:quality-governance-runtime": "node src/tests/quality-governance-runtime/qualityGovernanceRuntimeScenarios.mjs",
     "test:quality-cognitive-runtime": "node src/tests/quality-cognitive-runtime/qualityCognitiveRuntimeScenarios.mjs",
-    "test:quality-rollout-runtime": "node src/tests/quality-rollout-runtime/qualityRolloutRuntimeScenarios.mjs"
+    "test:quality-rollout-runtime": "node src/tests/quality-rollout-runtime/qualityRolloutRuntimeScenarios.mjs",
+    "test:quality-publication-runtime": "node src/tests/quality-publication-runtime/qualityPublicationMenuScenarios.mjs",
+    "test:quality-publication-activation": "node --experimental-vm-modules src/tests/quality-publication-activation/qualityPublicationActivationScenarios.mjs",
+    "test:quality-navigation-stabilization": "node --experimental-vm-modules src/tests/quality-navigation-stabilization/qualityNavigationStabilizationScenarios.mjs",
+    "test:enterprise-runtime-stability": "node --experimental-vm-modules src/tests/runtime-stability/enterpriseRuntimeStabilityScenarios.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.0",

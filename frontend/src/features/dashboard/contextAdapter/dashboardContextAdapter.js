@@ -121,9 +121,15 @@ function buildDashboardContext(args) {
         },
         assistente_ia: {
           especialidade: personalizado.assistente_ia?.especialidade || null,
-          exemplos_perguntas: personalizado.assistente_ia?.exemplos_perguntas || [],
-          alertas_contextuais: personalizado.assistente_ia?.alertas_contextuais || [],
-          mensagens_fallback: personalizado.assistente_ia?.mensagens_fallback || []
+          exemplos_perguntas: Array.isArray(personalizado.assistente_ia?.exemplos_perguntas)
+            ? personalizado.assistente_ia.exemplos_perguntas
+            : [],
+          alertas_contextuais: Array.isArray(personalizado.assistente_ia?.alertas_contextuais)
+            ? personalizado.assistente_ia.alertas_contextuais
+            : [],
+          mensagens_fallback: Array.isArray(personalizado.assistente_ia?.mensagens_fallback)
+            ? personalizado.assistente_ia.mensagens_fallback
+            : []
         },
         identity: null,
         explainability: null,
@@ -139,7 +145,7 @@ function buildDashboardContext(args) {
       const role = user.role || '';
       const dept = user.functional_area || user.area || '';
       const dp = user.dashboard_profile || '';
-      const layout = legacyLayoutFn(role, dept, dp);
+      const layout = legacyLayoutFn(role, dept, dp, user.job_title || user.cargo || '');
       if (Array.isArray(layout) && layout.length > 0) {
         const widgets = layout.map(_coerceWidget).filter(Boolean);
         return {

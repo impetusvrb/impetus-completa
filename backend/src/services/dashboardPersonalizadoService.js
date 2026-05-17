@@ -10,7 +10,7 @@ const dashboardProfileResolver = require('./dashboardProfileResolver');
 const { buildPersonalizedConfig } = require('./dashboardPersonalizationEngine');
 
 /** Versão das regras de layout — incrementar para invalidar cache em `dashboard_configs`. */
-const LAYOUT_RULES_VERSION = 4;
+const LAYOUT_RULES_VERSION = 5;
 
 /** Mapeamento tamanho doc → width no grid (1 ou 2) */
 const TAMANHO_TO_SPAN = { pequeno: 1, medio: 1, grande: 2, full: 2 };
@@ -61,11 +61,37 @@ function getNivel(role, cargo = '') {
  * Gera configuração do dashboard por regras (sem Claude API).
  * Usa role + functional_area/departamento para escolher módulos e ordem.
  */
+function isHrDashboardUser(user) {
+  const profileCode = dashboardProfileResolver.resolveDashboardProfile(user);
+  if (profileCode === 'hr_management') return true;
+  const role = (user.role || '').toLowerCase();
+  if (role === 'rh') return true;
+  const dept = (user.functional_area || user.departamento || user.area || user.department || '').toLowerCase();
+  if (['hr', 'rh', 'recursos_humanos', 'recursos humanos'].some((k) => dept === k || dept.includes(k))) return true;
+  const cargo = `${user.job_title || ''} ${user.cargo || ''} ${user.hr_responsibilities || ''}`.toLowerCase();
+  return /(recursos humanos|gestao de pessoas|gestão de pessoas|human resources|people operations|people and culture|\brh\b|hrbp)/.test(
+    cargo
+  );
+}
+
+function isFinanceDashboardUser(user) {
+  const profileCode = dashboardProfileResolver.resolveDashboardProfile(user);
+  if (profileCode === 'finance_management') return true;
+  const role = (user.role || '').toLowerCase();
+  if (role === 'financeiro') return true;
+  const dept = (user.functional_area || user.departamento || user.area || user.department || '').toLowerCase();
+  if (dept.includes('financ') || dept.includes('controladoria')) return true;
+  const cargo = `${user.job_title || ''} ${user.cargo || ''}`.toLowerCase();
+  return /(financ|cfo|controladoria|chief financial)/.test(cargo);
+}
+
 function gerarConfigPorRegras(user) {
   const role = (user.role || '').toLowerCase();
   const dept = (user.functional_area || user.departamento || user.area || '').toLowerCase();
   const cargo = (user.job_title || user.cargo || role).toString();
   const nivel = getNivel(role, cargo);
+  const hrDashboard = isHrDashboardUser(user);
+  const financeDashboard = !hrDashboard && isFinanceDashboardUser(user);
 
   const perfil = {
     cargo: cargo || role,
@@ -91,8 +117,31 @@ function gerarConfigPorRegras(user) {
     }
   }
 
-  // CEO / Diretoria — todos executivos + resumo IA
-  if (role === 'ceo' || role === 'diretor' || role.includes('execut')) {
+  // RH / Gestão de Pessoas — prioridade sobre "diretor" genérico
+  if (hrDashboard) {
+    add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+    add(WIDGET_IDS.resumo_executivo, 'grande', 'critica');
+    add(WIDGET_IDS.alertas, 'grande', 'alta');
+    add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+    add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    add(WIDGET_IDS.grafico_tendencia, 'grande', 'media');
+    perfil.titulo_dashboard = 'Centro de Comando — Pessoas';
+    perfil.subtitulo = 'Indicadores de equipe, Pulse RH e alertas de gestão de pessoas';
+  }
+  // Financeiro
+  else if (financeDashboard) {
+    add(WIDGET_IDS.centro_custos, 'grande', 'critica');
+    add(WIDGET_IDS.grafico_custos_setor, 'grande', 'critica');
+    add(WIDGET_IDS.kpi_cards, 'grande', 'critica');
+    add(WIDGET_IDS.resumo_executivo, 'grande', 'alta');
+    add(WIDGET_IDS.alertas, 'grande', 'alta');
+    add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
+    add(WIDGET_IDS.insights_ia, 'grande', 'media');
+    perfil.titulo_dashboard = 'Centro de Comando — Financeiro';
+    perfil.subtitulo = 'Custos, indicadores financeiros e tendências';
+  }
+  // CEO / Diretoria industrial — não aplicar a RH/Financeiro
+  else if (role === 'ceo' || role === 'diretor' || role.includes('execut')) {
     add(WIDGET_IDS.resumo_executivo, 'grande', 'critica');
     add(WIDGET_IDS.indicadores_executivos, 'grande', 'critica');
     add(WIDGET_IDS.grafico_producao_demanda, 'grande', 'alta');
@@ -235,14 +284,32 @@ function gerarConfigPorRegras(user) {
     add(WIDGET_IDS.insights_ia, 'grande', 'media');
   }
 
-  const assistente_ia = {
-    especialidade: nivel === 'estratégico' ? 'visão_executiva' : nivel === 'tático' ? 'gestão_operacional' : 'operacional',
-    exemplos_perguntas: [
-      'Quais os principais indicadores do período?',
-      'Onde estão os gargalos?',
-      'Resuma os alertas críticos.'
-    ]
-  };
+  const assistente_ia = hrDashboard
+    ? {
+        especialidade: 'gestao_pessoas',
+        exemplos_perguntas: [
+          'Como está o clima da equipe neste mês?',
+          'Quais setores têm mais alertas de RH abertos?',
+          'Resuma as avaliações do Impetus Pulse.'
+        ]
+      }
+    : financeDashboard
+      ? {
+          especialidade: 'gestao_financeira',
+          exemplos_perguntas: [
+            'Quais setores concentram mais custo no período?',
+            'Resuma os indicadores financeiros da semana.',
+            'Há desvios relevantes em relação ao orçamento?'
+          ]
+        }
+      : {
+          especialidade: nivel === 'estratégico' ? 'visão_executiva' : nivel === 'tático' ? 'gestão_operacional' : 'operacional',
+          exemplos_perguntas: [
+            'Quais os principais indicadores do período?',
+            'Onde estão os gargalos?',
+            'Resuma os alertas críticos.'
+          ]
+        };
 
   return { perfil, modulos, assistente_ia, layout_rules_version: LAYOUT_RULES_VERSION };
 }

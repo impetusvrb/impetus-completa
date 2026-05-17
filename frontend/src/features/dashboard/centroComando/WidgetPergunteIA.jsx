@@ -6,11 +6,18 @@ import React, { useState } from 'react';
 import { dashboard } from '../../../services/api';
 import { Send, Brain } from 'lucide-react';
 
-export default function WidgetPergunteIA() {
+const DEFAULT_EXAMPLES =
+  'Ex.: "Qual setor gera mais custo hoje?" ou "Qual máquina tem maior risco nas próximas 24h?"';
+
+export default function WidgetPergunteIA({ title = 'Cérebro Operacional', exampleHints = [] }) {
   const [pergunta, setPergunta] = useState('');
   const [resposta, setResposta] = useState('');
   const [loading, setLoading] = useState(false);
   const [historico, setHistorico] = useState([]);
+  const hintsText =
+    Array.isArray(exampleHints) && exampleHints.length > 0
+      ? `Ex.: ${exampleHints.slice(0, 2).map((q) => `"${q}"`).join(' ou ')}`
+      : DEFAULT_EXAMPLES;
 
   const enviar = () => {
     const p = pergunta.trim();
@@ -32,12 +39,12 @@ export default function WidgetPergunteIA() {
     <div className="cc-widget cc-ia">
       <div className="cc-ia__header">
         <Brain size={20} />
-        <span>Cérebro Operacional</span>
+        <span>{title}</span>
       </div>
       <div className="cc-ia__body">
         {resposta && <div className="cc-ia__resposta">{resposta}</div>}
         {!resposta && !historico.length && (
-          <p className="cc-widget__empty">Ex.: &quot;Qual setor gera mais custo hoje?&quot; ou &quot;Qual máquina tem maior risco nas próximas 24h?&quot;</p>
+          <p className="cc-widget__empty">{hintsText}</p>
         )}
         <div className="cc-ia__input-wrap">
           <input

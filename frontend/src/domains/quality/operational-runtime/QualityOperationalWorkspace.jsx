@@ -8,6 +8,7 @@ import { isQualityGovernanceRuntimeEnabled } from '../governance/qualityGovernan
 import { isQualityTelemetryRuntimeEnabled } from '../telemetry/qualityTelemetryFeatureFlags.js';
 import { isQualityCognitiveRuntimeEnabled } from '../cognitive/qualityCognitiveFeatureFlags.js';
 import { isQualityRolloutRuntimeEnabled } from '../rollout/qualityRolloutFeatureFlags.js';
+import { resolveQualityAudienceBand, resolveQualityUxDensity } from '../navigation/qualityAudienceNavigation.js';
 
 const QualityGovernanceHub = lazy(() => import('../governance/QualityGovernanceHub.jsx'));
 const QualityTelemetryHub = lazy(() => import('../telemetry/QualityTelemetryHub.jsx'));
@@ -24,44 +25,105 @@ export function QualityOperationalWorkspace({ companyId: companyIdProp, stationI
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
 
+  let userBand = 'operator';
+  try {
+    const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    userBand = resolveQualityAudienceBand(u);
+  } catch {
+    userBand = 'operator';
+  }
+  const uxDensity = resolveQualityUxDensity(userBand);
+  const uxShell = {
+    'data-quality-ux': uxDensity,
+    'data-quality-audience': userBand
+  };
+
   if (!companyId) {
     return <p style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Sessão sem empresa — não é possível abrir o runtime.</p>;
   }
 
+  const viewRuntimeGate = {
+    governance: {
+      label: 'NCR & CAPA / Governança',
+      enabled: isQualityGovernanceRuntimeEnabled(),
+      env: 'VITE_IMPETUS_QUALITY_GOVERNANCE_RUNTIME_ENABLED'
+    },
+    telemetry: {
+      label: 'Telemetria industrial',
+      enabled: isQualityTelemetryRuntimeEnabled(),
+      env: 'VITE_IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED'
+    },
+    cognitive: {
+      label: 'Inteligência contextual',
+      enabled: isQualityCognitiveRuntimeEnabled(),
+      env: 'VITE_IMPETUS_QUALITY_COGNITIVE_RUNTIME_ENABLED'
+    },
+    rollout: {
+      label: 'Rollout enterprise',
+      enabled: isQualityRolloutRuntimeEnabled(),
+      env: 'VITE_IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED'
+    }
+  };
+  const gated = view && viewRuntimeGate[view];
+  if (gated && !gated.enabled) {
+    return (
+      <div className="impetus-card" style={{ padding: 16, borderRadius: 4, borderColor: 'var(--border-active)' }} {...uxShell}>
+        <p style={{ margin: 0, color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Módulo {gated.label} — runtime desligado
+        </p>
+        <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>
+          O item aparece no menu (publicação), mas o runtime deste módulo não está activo no build. Peça ao administrador para activar{' '}
+          <code style={{ color: 'var(--cyan)' }}>{gated.env}=true</code> e voltar a fazer deploy do frontend.
+        </p>
+        <Link to="/app/quality/operational" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', minHeight: 44, alignItems: 'center', borderRadius: 4 }}>
+          Voltar ao operacional
+        </Link>
+      </div>
+    );
+  }
+
   if (view === 'governance' && isQualityGovernanceRuntimeEnabled()) {
     return (
-      <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando governança…</div>}>
-        <QualityGovernanceHub companyId={companyId} />
-      </Suspense>
+      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando governança…</div>}>
+          <QualityGovernanceHub companyId={companyId} />
+        </Suspense>
+      </div>
     );
   }
 
   if (view === 'telemetry' && isQualityTelemetryRuntimeEnabled()) {
     return (
-      <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando telemetria…</div>}>
-        <QualityTelemetryHub companyId={companyId} />
-      </Suspense>
+      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando telemetria…</div>}>
+          <QualityTelemetryHub companyId={companyId} />
+        </Suspense>
+      </div>
     );
   }
 
   if (view === 'cognitive' && isQualityCognitiveRuntimeEnabled()) {
     return (
-      <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando cognitive…</div>}>
-        <CognitiveQualityHub companyId={companyId} />
-      </Suspense>
+      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando cognitive…</div>}>
+          <CognitiveQualityHub companyId={companyId} />
+        </Suspense>
+      </div>
     );
   }
 
   if (view === 'rollout' && isQualityRolloutRuntimeEnabled()) {
     return (
-      <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando rollout…</div>}>
-        <QualityRolloutHub companyId={companyId} />
-      </Suspense>
+      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando rollout…</div>}>
+          <QualityRolloutHub companyId={companyId} />
+        </Suspense>
+      </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {isQualityGovernanceRuntimeEnabled() ? (
           <Link

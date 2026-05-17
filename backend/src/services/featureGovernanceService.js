@@ -138,6 +138,11 @@ const KNOWN_FLAGS = [
   'IMPETUS_QUALITY_SATURATION_PROTECTION_ENABLED',
   'IMPETUS_QUALITY_READINESS_ENGINE_ENABLED',
   'IMPETUS_QUALITY_ROLLOUT_PUBLISH_EVENTS_ENABLED',
+  'IMPETUS_QUALITY_NAVIGATION_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_PUBLICATION_RUNTIME_ENABLED',
+  'IMPETUS_QUALITY_PUBLICATION_SHADOW_MODE',
+  'IMPETUS_QUALITY_PUBLICATION_AUDIENCE_PREVIEW',
+  'IMPETUS_QUALITY_ACTIVATION_STAGE',
   // WAVE 7 — governança industrial
   'IMPETUS_GOVERNANCE_V7_ENABLED',
   'IMPETUS_ABAC_ENFORCE',
@@ -461,6 +466,24 @@ const RULES = [
     },
     message:
       'Sub-flag de rollout activa sem IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED — API de rollout inacessível.'
+  },
+  {
+    id: 'QUALITY_NAVIGATION_WITHOUT_OPERATIONAL',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_NAVIGATION_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_QUALITY_OPERATIONAL_RUNTIME_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_NAVIGATION_RUNTIME_ENABLED sem operational — publicação de menu QUALITY inconsistente.'
+  },
+  {
+    id: 'QUALITY_PUBLICATION_WITHOUT_NAVIGATION',
+    severity: 'warn',
+    when: () =>
+      String(process.env.IMPETUS_QUALITY_PUBLICATION_RUNTIME_ENABLED || '').toLowerCase() === 'true' &&
+      String(process.env.IMPETUS_QUALITY_NAVIGATION_RUNTIME_ENABLED || '').toLowerCase() !== 'true',
+    message:
+      'IMPETUS_QUALITY_PUBLICATION_RUNTIME_ENABLED sem NAVIGATION — cliente não activa publicação no menu.'
   }
 ];
 

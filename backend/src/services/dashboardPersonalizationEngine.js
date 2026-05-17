@@ -8,8 +8,21 @@ const { buildContextualAlerts } = require('./dashboardAlertBuilder');
 const AXIS_PRIORITY = { eixo_executivo: 10, eixo_financeiro: 9, eixo_planejamento: 9, eixo_humano: 8, eixo_operacional: 8, eixo_manutencao: 8, eixo_qualidade: 8, eixo_logistica: 7, eixo_estoque: 7, eixo_laboratorial: 7, eixo_seguranca: 7 };
 const AXIS_WIDGET_POLICY = {
   eixo_humano: {
-    includeFirst: ['kpi_cards', 'alertas', 'insights_ia', 'pergunte_ia', 'grafico_tendencia', 'performance'],
-    exclude: ['centro_custos', 'grafico_custos_setor', 'indicadores_executivos']
+    includeFirst: ['kpi_cards', 'resumo_executivo', 'alertas', 'insights_ia', 'pergunte_ia', 'grafico_tendencia'],
+    exclude: [
+      'centro_custos',
+      'grafico_custos_setor',
+      'indicadores_executivos',
+      'performance',
+      'operacoes',
+      'gargalos',
+      'diagrama_industrial',
+      'grafico_producao_demanda',
+      'centro_previsao',
+      'desperdicio',
+      'manutencao',
+      'energia'
+    ]
   }
 };
 

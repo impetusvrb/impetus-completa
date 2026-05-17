@@ -52,6 +52,13 @@ import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
 import { useVisibleModules } from '../hooks/useVisibleModules';
 import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
+import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
+import { fetchQualityPublicationContext } from '../domains/quality/navigation/qualityDomainPublicationRuntime.js';
+import {
+  dedupeSidebarMenuItems,
+  isSidebarMenuItemActive,
+  sidebarNavItemKey
+} from '../utils/sidebarNavHelpers.js';
 import { prefetchRoute } from '../utils/prefetchRoutes';
 import {
   resolveMenuRole,
@@ -70,23 +77,6 @@ import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
 import './Layout.css';
 
 const IA_FACE_VIDEO = '/ia-face-1.mp4';
-
-/** Garante no máximo um item por rota (evita duplicatas no menu lateral). */
-function dedupeMenuItemsByPath(items) {
-  const seen = new Set();
-  const out = [];
-  for (const item of items) {
-    if (item.settingsBack || item.settingsAnchor) {
-      out.push(item);
-      continue;
-    }
-    const p = (item.path || '').replace(/\/+$/, '') || '/';
-    if (seen.has(p)) continue;
-    seen.add(p);
-    out.push(item);
-  }
-  return out;
-}
 
 /** max-width: 1023px — sidebar em overlay/drawer (tablet + mobile). */
 const MQ_NAV_DRAWER = '(max-width: 1023px)';
@@ -259,11 +249,26 @@ export default function Layout({ children }) {
   const {
     filterMenu,
     canAccessPath,
+    visibleModules,
     loading: modulesLoading,
     maintenanceFromProfile,
     contextualModules,
     contextualMeta
   } = useVisibleModules();
+  const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
+
+  useEffect(() => {
+    if (modulesLoading) return undefined;
+    let alive = true;
+    (async () => {
+      const ctx = await fetchQualityPublicationContext();
+      if (alive) setQualityPublicationServerCtx(ctx);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [modulesLoading]);
+
   const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
   const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
 
@@ -286,7 +291,9 @@ export default function Layout({ children }) {
       '/app/settings'
     ];
     pathOk =
-      allowedOperacional.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
+      allowedOperacional.includes(normalizedPath) ||
+      normalizedPath.startsWith('/app/proacao/') ||
+      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath));
   } else if (maintenanceTechnicianMenu) {
     const allowMaint = [
       '/app',
@@ -301,7 +308,10 @@ export default function Layout({ children }) {
       '/app/biblioteca',
       '/app/settings'
     ];
-    pathOk = allowMaint.includes(normalizedPath) || normalizedPath.startsWith('/app/proacao/');
+    pathOk =
+      allowMaint.includes(normalizedPath) ||
+      normalizedPath.startsWith('/app/proacao/') ||
+      (normalizedPath.startsWith('/app/quality/') && canAccessPath(normalizedPath));
   }
 
   if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
@@ -488,23 +498,46 @@ export default function Layout({ children }) {
   // os módulos contextualmente eligíveis (CFO → centro de custos, mapa de
   // vazamento, centro de previsão, etc.) são injectados após o item /app, sem
   // duplicação e respeitando policies/capabilities (já filtrado no backend).
-  const hybridMenuOpts = isAdministrativePortalOnlyUser(user)
-    ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
-    : undefined;
-  const baseMenuItemsHybrid = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
-
-  let menuItems = filterMenu(baseMenuItemsHybrid);
-  menuItems = menuItems.filter((item) => {
-    const p = (item.path || '').replace(/\/+$/, '') || '/';
-    if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
-    return canAccessIndustrialCoreModules;
-  });
-  menuItems = dedupeMenuItemsByPath(menuItems);
-
-  if (!isStrictAdminRole(user)) {
-    menuItems = menuItems.filter(
-      (item) => (item.path || '').replace(/\/+$/, '') !== '/app/admin/implantacao-guia'
+  //
+  // Barreira: o pipeline inteiro de construção de menu está encapsulado num
+  // try-catch. Se qualquer função auxiliar lançar excepção síncrona inesperada,
+  // o Layout devolve o menu legacy puro (sem itens QUALITY/contextual),
+  // evitando que a falha escale até ao ModuleErrorBoundary ("Erro em Dashboard").
+  let menuItems;
+  try {
+    const hybridMenuOpts = isAdministrativePortalOnlyUser(user)
+      ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
+      : undefined;
+    const baseMenuItemsHybrid = safeMergeQualityPublicationIntoMenu(
+      buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts),
+      {
+        user,
+        visibleModules,
+        contextualModules,
+        modulesLoading,
+        serverPublication: qualityPublicationServerCtx
+      }
     );
+    menuItems = filterMenu(baseMenuItemsHybrid);
+    menuItems = menuItems.filter((item) => {
+      const p = (item.path || '').replace(/\/+$/, '') || '/';
+      if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
+      return canAccessIndustrialCoreModules;
+    });
+    menuItems = dedupeSidebarMenuItems(menuItems);
+    if (!isStrictAdminRole(user)) {
+      menuItems = menuItems.filter(
+        (item) => (item.path || '').replace(/\/+$/, '') !== '/app/admin/implantacao-guia'
+      );
+    }
+  } catch (_menuBuildErr) {
+    // Fallback defensivo: menu legacy sem itens opcionais.
+    // Preserva IA/Chat/Dashboard; não lança excepção para cima do render.
+    try {
+      menuItems = filterMenu(baseMenuItems);
+    } catch {
+      menuItems = baseMenuItems.slice();
+    }
   }
 
   if (isUserSettingsFocus) {
@@ -635,8 +668,7 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="sidebar-nav">
-          {menuItems.map((item) => {
-            const pathNorm = location.pathname.replace(/\/+$/, '') || '/';
+          {menuItems.map((item, itemIndex) => {
             if (item.settingsBack) {
               const Icon = item.icon;
               return (
@@ -675,11 +707,10 @@ export default function Layout({ children }) {
               );
             }
             const Icon = item.icon;
-            const itemNorm = item.path.replace(/\/+$/, '') || '/';
-            const isActive = pathNorm === itemNorm;
+            const isActive = isSidebarMenuItemActive(item.path, location.pathname, location.search);
             return (
               <Link
-                key={item.path}
+                key={sidebarNavItemKey(item, itemIndex)}
                 to={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 title={item.label}

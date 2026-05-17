@@ -35,7 +35,8 @@ import WidgetEnergia from './WidgetEnergia';
 import WidgetRastreabilidade from './WidgetRastreabilidade';
 import WidgetReceitas from './WidgetReceitas';
 import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
-import { canAccessLiveDashboardUser } from '../../../utils/roleUtils';
+import ModuleErrorBoundary from '../../../components/ModuleErrorBoundary';
+import { canAccessLiveDashboardUser, isHrDashboardLayout } from '../../../utils/roleUtils';
 import LiveSurfacePanel from './LiveSurfacePanel';
 import './CentroComando.css';
 
@@ -73,8 +74,15 @@ function getWidgetComponent(id) {
 }
 
 export default function CentroComando() {
-  const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('impetus_user') : null;
-  const user = userStr ? (() => { try { return JSON.parse(userStr); } catch { return null; } })() : null;
+  // Lido uma única vez (stable ref) — localStorage não muda durante a sessão.
+  const user = useMemo(() => {
+    try {
+      const s = typeof localStorage !== 'undefined' ? localStorage.getItem('impetus_user') : null;
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  }, []);
   const role = user?.role ?? '';
   const department = user?.functional_area ?? user?.area ?? '';
   const dashboardProfile = user?.dashboard_profile ?? '';
@@ -119,7 +127,7 @@ export default function CentroComando() {
     };
   }, []);
 
-  const widgets = useMemo(() => dashboardCtx.widgets, [dashboardCtx]);
+  const widgets = useMemo(() => (Array.isArray(dashboardCtx?.widgets) ? dashboardCtx.widgets : []), [dashboardCtx]);
 
   useEffect(() => {
     if (!widgets?.length || !user?.id || !user?.company_id) return;
@@ -134,19 +142,40 @@ export default function CentroComando() {
       widget_count: widgets.length,
       is_contextual: dashboardCtx.is_contextual
     }).catch(() => {});
+  // user é estável (useMemo com deps []); role/dashboardProfile são strings
+  // derivadas de user — incluídos para correctness mas não causam instabilidade.
   }, [widgets, dashboardCtx, user, role, dashboardProfile]);
 
-  const titulo = dashboardCtx.perfil.titulo;
-  const subtitulo = dashboardCtx.perfil.subtitulo || `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
-  const smartQuestions = dashboardCtx.assistente_ia.exemplos_perguntas;
-  const fallbackMessages = dashboardCtx.assistente_ia.mensagens_fallback;
+  const titulo = dashboardCtx?.perfil?.titulo || 'Centro de Comando';
+  const subtitulo = dashboardCtx?.perfil?.subtitulo || `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
+  const smartQuestions = Array.isArray(dashboardCtx?.assistente_ia?.exemplos_perguntas)
+    ? dashboardCtx.assistente_ia.exemplos_perguntas
+    : [];
+  const fallbackMessages = Array.isArray(dashboardCtx?.assistente_ia?.mensagens_fallback)
+    ? dashboardCtx.assistente_ia.mensagens_fallback
+    : [];
+  const hrDashboard = isHrDashboardLayout(user);
+  const iaWidgetTitle = hrDashboard ? 'Assistente de Pessoas' : 'Cérebro Operacional';
+  const iaExampleHints =
+    smartQuestions.length > 0
+      ? smartQuestions
+      : hrDashboard
+        ? [
+            'Como está o clima da equipe neste mês?',
+            'Quais setores têm mais alertas de RH abertos?'
+          ]
+        : [];
 
   const showUnifiedLive = canAccessLiveDashboardUser(user);
 
   return (
     <Layout>
       <div className="cc">
-        {showUnifiedLive && <LiveDashboardUnifiedPanel variant="exec" />}
+        {showUnifiedLive && (
+          <ModuleErrorBoundary moduleName="Painel vivo">
+            <LiveDashboardUnifiedPanel variant="exec" />
+          </ModuleErrorBoundary>
+        )}
         <header className="cc__header">
           <h1 className="cc__title">{titulo}</h1>
           <p className="cc__subtitle">{subtitulo}</p>
@@ -188,11 +217,16 @@ export default function CentroComando() {
                 className="cc__cell"
                 style={{ gridColumn: `span ${span}` }}
               >
-                <Component />
+                {w.id === 'pergunte_ia' ? (
+                  <WidgetPergunteIA title={iaWidgetTitle} exampleHints={iaExampleHints} />
+                ) : (
+                  <Component />
+                )}
               </div>
             );
           })}
         </div>
+        {!hrDashboard && (
         <footer className="ticker">
           <div className="ticker-label">// LIVE</div>
           <div className="ticker-items">
@@ -204,6 +238,7 @@ export default function CentroComando() {
             <div className="ticker-item">UPTIME <span className="val-green">—%</span></div>
           </div>
         </footer>
+        )}
       </div>
     </Layout>
   );

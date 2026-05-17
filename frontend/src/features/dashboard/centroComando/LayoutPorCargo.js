@@ -2,8 +2,22 @@
  * Layout completo por cargo — Prompt v3 Parte 5 + Parte 4 (19 centros como widgets no grid).
  * Cada centro = conteúdo no grid (gráficos, indicadores, relatórios, diagramas). Tudo IA onde aplicável.
  */
+import { isFinanceDashboardLayout, isHrDashboardLayout } from '../../../utils/roleUtils';
+
 function pos(row, col, width = 1) {
   return { row, col, width };
+}
+
+function _layoutUserFromArgs(role, department, dashboardProfile, jobTitle) {
+  return {
+    role,
+    functional_area: department,
+    area: department,
+    department,
+    dashboard_profile: dashboardProfile,
+    job_title: jobTitle,
+    cargo: jobTitle
+  };
 }
 
 export const WIDGET_IDS = {
@@ -42,10 +56,36 @@ export const WIDGET_IDS = {
  * Grid 4 colunas; width 1 ou 2. Conforme Part 5 do prompt.
  * `dashboardProfile` (ex.: supervisor_maintenance) alinha o fallback ao motor em dashboardPersonalizadoService.
  */
-export function getLayoutPorCargo(role = '', department = '', dashboardProfile = '') {
+export function getLayoutPorCargo(role = '', department = '', dashboardProfile = '', jobTitle = '') {
   const r = (role || '').toLowerCase();
   const d = (department || '').toLowerCase();
   const dp = (dashboardProfile || '').toLowerCase();
+  const layoutUser = _layoutUserFromArgs(role, department, dashboardProfile, jobTitle);
+
+  // RH / Gestão de Pessoas — antes de "diretor" genérico (evita OEE, linha de produção, etc.)
+  if (isHrDashboardLayout(layoutUser)) {
+    return [
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores de pessoas', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo RH', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas de RH', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente de Pessoas', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência da equipe', position: pos(2, 2, 2) }
+    ];
+  }
+
+  // Financeiro — antes de diretor genérico
+  if (isFinanceDashboardLayout(layoutUser)) {
+    return [
+      { id: WIDGET_IDS.CENTRO_CUSTOS, label: 'Centro de Custos', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.GRAFICO_CUSTOS_SETOR, label: 'Custos por setor', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores financeiros', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo financeiro', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente financeiro', position: pos(2, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(3, 0, 2) }
+    ];
+  }
 
   // CEO — Prompt: faturamento, lucro, custo industrial, OEE, eficiência, desperdício, previsão 30d;
   // gráficos crescimento, produção vs demanda, custos por setor, margem; centros Custos, Performance, Cérebro

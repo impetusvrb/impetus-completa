@@ -18,7 +18,7 @@
  *     escolhida (engine_v2 / personalizado_api / layout_fallback) para
  *     alimentar a Divergence Intelligence.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { dashboard } from '../../../services/api';
 import { buildDashboardContext, SOURCE } from './dashboardContextAdapter';
 
@@ -73,13 +73,21 @@ export default function useDashboardContext(options) {
     fetchAll();
   }, [fetchAll]);
 
-  const user = _readUserFromStorage();
-  const context = buildDashboardContext({
-    engineV2: meData?.engine_v2 || null,
-    personalizado: personalizadoData,
-    legacyLayoutFn: legacyLayoutFn || null,
-    user
-  });
+  // useMemo garante estabilidade referencial: buildDashboardContext só é
+  // recalculado quando meData / personalizadoData mudam (ambos são state),
+  // evitando que o useEffect de telemetria dispare em todo render.
+  const context = useMemo(() => {
+    const user = _readUserFromStorage();
+    return buildDashboardContext({
+      engineV2: meData?.engine_v2 || null,
+      personalizado: personalizadoData,
+      legacyLayoutFn: legacyLayoutFn || null,
+      user
+    });
+  // legacyLayoutFn é uma função estática (getLayoutPorCargo), não precisa entrar
+  // nos deps do memo — mas meData e personalizadoData sim, pois são state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meData, personalizadoData]);
 
   // Telemetria: regista a fonte escolhida apenas quando muda (evita loop).
   useEffect(() => {

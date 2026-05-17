@@ -97,6 +97,44 @@ export function canAccessPulseRhRoute(user) {
   return shouldOfferPulseRhMenu(user);
 }
 
+/** Layout do Centro de Comando: perfil/cargo/área de RH (evita painel industrial para diretora de RH). */
+export function isHrDashboardLayout(user) {
+  if (!user) return false;
+  const p = String(user.dashboard_profile || '').toLowerCase();
+  if (p === 'hr_management') return true;
+  const r = String(user.role || '').toLowerCase();
+  if (r === 'rh') return true;
+  return isHrFunctionalContext(user);
+}
+
+/** Layout do Centro de Comando: perfil/cargo/área financeira. */
+export function isFinanceFunctionalContext(user) {
+  if (!user) return false;
+  for (const raw of [user.functional_area, user.area, user.department]) {
+    const x = normTxt(raw);
+    if (!x) continue;
+    if (x === 'finance' || x === 'financeiro') return true;
+    if (x.includes('controladoria') || x.includes('financas')) return true;
+  }
+  const job = `${normTxt(user.job_title)} ${normTxt(user.cargo)}`;
+  if (!job.trim()) return false;
+  return (
+    /\bfinanc/.test(job) ||
+    /\bcfo\b/.test(job) ||
+    /chief financial/.test(job) ||
+    /\bcontroladoria\b/.test(job)
+  );
+}
+
+export function isFinanceDashboardLayout(user) {
+  if (!user) return false;
+  const p = String(user.dashboard_profile || '').toLowerCase();
+  if (p === 'finance_management') return true;
+  const r = String(user.role || '').toLowerCase();
+  if (r === 'financeiro') return true;
+  return isFinanceFunctionalContext(user);
+}
+
 export function userHasSystemAdministrationCapability(user) {
   if (!user) return false;
   if (String(user.role || '').toLowerCase() === 'admin') return true;

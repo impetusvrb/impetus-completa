@@ -403,6 +403,20 @@ useRoute(
   requireCompanyActive,
   apiByUserLimiter
 );
+useRoute(
+  '/api/quality-navigation',
+  './routes/qualityNavigation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/quality-activation',
+  './routes/qualityActivation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
 useRoute('/api/pulse', './routes/pulse', requireAuth);
 useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth, apiByUserLimiter);
