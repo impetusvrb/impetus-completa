@@ -27,7 +27,10 @@ const AXES = Object.freeze({
   LOGISTICA: 'eixo_logistica',
   ESTOQUE: 'eixo_estoque',
   LABORATORIAL: 'eixo_laboratorial',
-  SEGURANCA: 'eixo_seguranca'
+  SEGURANCA: 'eixo_seguranca',
+  AMBIENTAL: 'eixo_ambiental',
+  SUSTENTABILIDADE: 'eixo_sustentabilidade',
+  UTILIDADES: 'eixo_utilidades'
 });
 
 const ALL_AXES = Object.freeze(Object.values(AXES));
@@ -112,6 +115,71 @@ const AXES_PRIORITY_BY_AREA_FUNCTION = Object.freeze({
     governanca:          [AXES.PLANEJAMENTO, AXES.OPERACIONAL]
   },
 
+  // ── ENVIRONMENTAL / MEIO AMBIENTE ─────────────────────────────────────
+  environmental: {
+    decisao_estrategica: [AXES.AMBIENTAL, AXES.SUSTENTABILIDADE, AXES.EXECUTIVO, AXES.UTILIDADES, AXES.SEGURANCA],
+    analise:             [AXES.AMBIENTAL, AXES.SUSTENTABILIDADE, AXES.UTILIDADES],
+    supervisao:          [AXES.AMBIENTAL, AXES.UTILIDADES, AXES.SEGURANCA],
+    execucao:            [AXES.AMBIENTAL, AXES.UTILIDADES],
+    governanca:          [AXES.AMBIENTAL, AXES.SUSTENTABILIDADE, AXES.EXECUTIVO]
+  },
+
+  sustainability: {
+    decisao_estrategica: [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL, AXES.EXECUTIVO, AXES.FINANCEIRO],
+    analise:             [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL],
+    supervisao:          [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL],
+    execucao:            [AXES.SUSTENTABILIDADE],
+    governanca:          [AXES.SUSTENTABILIDADE, AXES.EXECUTIVO]
+  },
+
+  environmental_health_safety: {
+    decisao_estrategica: [AXES.AMBIENTAL, AXES.SEGURANCA, AXES.SUSTENTABILIDADE, AXES.EXECUTIVO],
+    analise:             [AXES.AMBIENTAL, AXES.SEGURANCA],
+    supervisao:          [AXES.AMBIENTAL, AXES.SEGURANCA],
+    execucao:            [AXES.AMBIENTAL, AXES.SEGURANCA],
+    governanca:          [AXES.AMBIENTAL, AXES.SEGURANCA]
+  },
+
+  utilities: {
+    decisao_estrategica: [AXES.UTILIDADES, AXES.AMBIENTAL, AXES.OPERACIONAL, AXES.MANUTENCAO],
+    analise:             [AXES.UTILIDADES, AXES.AMBIENTAL, AXES.OPERACIONAL],
+    supervisao:          [AXES.UTILIDADES, AXES.AMBIENTAL],
+    execucao:            [AXES.UTILIDADES, AXES.OPERACIONAL],
+    governanca:          [AXES.UTILIDADES, AXES.AMBIENTAL]
+  },
+
+  esg: {
+    decisao_estrategica: [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL, AXES.EXECUTIVO, AXES.FINANCEIRO],
+    analise:             [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL],
+    supervisao:          [AXES.SUSTENTABILIDADE, AXES.AMBIENTAL],
+    execucao:            [AXES.SUSTENTABILIDADE],
+    governanca:          [AXES.SUSTENTABILIDADE, AXES.EXECUTIVO]
+  },
+
+  logistics: {
+    decisao_estrategica: [AXES.LOGISTICA, AXES.OPERACIONAL, AXES.EXECUTIVO],
+    analise:             [AXES.LOGISTICA, AXES.ESTOQUE, AXES.OPERACIONAL],
+    supervisao:          [AXES.LOGISTICA, AXES.ESTOQUE],
+    execucao:            [AXES.LOGISTICA],
+    governanca:          [AXES.LOGISTICA, AXES.OPERACIONAL]
+  },
+
+  safety: {
+    decisao_estrategica: [AXES.SEGURANCA, AXES.OPERACIONAL, AXES.EXECUTIVO],
+    analise:             [AXES.SEGURANCA, AXES.OPERACIONAL],
+    supervisao:          [AXES.SEGURANCA, AXES.OPERACIONAL],
+    execucao:            [AXES.SEGURANCA],
+    governanca:          [AXES.SEGURANCA, AXES.EXECUTIVO]
+  },
+
+  laboratory: {
+    decisao_estrategica: [AXES.LABORATORIAL, AXES.QUALIDADE, AXES.AMBIENTAL],
+    analise:             [AXES.LABORATORIAL, AXES.QUALIDADE],
+    supervisao:          [AXES.LABORATORIAL, AXES.QUALIDADE],
+    execucao:            [AXES.LABORATORIAL],
+    governanca:          [AXES.LABORATORIAL, AXES.QUALIDADE]
+  },
+
   // ── ADMIN (sistema, governança transversal) ───────────────────────────
   admin: {
     decisao_estrategica: [AXES.EXECUTIVO, AXES.OPERACIONAL, AXES.FINANCEIRO, AXES.HUMANO],
@@ -169,7 +237,22 @@ const AREA_ALIASES = Object.freeze({
   planejamento: 'pcp',
 
   admin: 'admin',
-  administracao: 'admin'
+  administracao: 'admin',
+
+  environmental: 'environmental',
+  meio_ambiente: 'environmental',
+  ambiental: 'environmental',
+  sustentabilidade: 'sustainability',
+  esg: 'esg',
+  ehs: 'environmental_health_safety',
+  utilities: 'utilities',
+  utilidades: 'utilities',
+  logistica: 'logistics',
+  logistics: 'logistics',
+  seguranca: 'safety',
+  safety: 'safety',
+  laboratorio: 'laboratory',
+  laboratory: 'laboratory'
 });
 
 function _normArea(value) {

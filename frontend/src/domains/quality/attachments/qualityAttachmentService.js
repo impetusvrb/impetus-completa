@@ -1,3 +1,4 @@
+import { safeUUID } from '../../../utils/safeUuid.js';
 /**
  * Anexos / evidências — armazenamento local (IndexedDB) + evento backbone (append-only ref).
  * Sem endpoint de upload novo: compatível offline e tenant-isolado.
@@ -15,7 +16,7 @@ async function publishAttached({ companyId, inspectionId, correlationId, workflo
   const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
   const body = {
     event_name: 'quality.evidence.attached',
-    correlation_id: correlationId || crypto.randomUUID(),
+    correlation_id: correlationId || safeUUID(),
     workflow_id: workflowId,
     payload
   };
@@ -75,7 +76,7 @@ export async function stageQualityEvidence({
     meta = { ...meta, compressed: !c.skipped, w: c.width, h: c.height };
   }
 
-  const evidence_ref = crypto.randomUUID();
+  const evidence_ref = safeUUID();
   const buf = await blob.arrayBuffer();
   const sha256 = await sha256HexFromArrayBuffer(buf);
   if (sha256) meta = { ...meta, sha256 };

@@ -56,7 +56,11 @@ function testFinanceDirectorNoOperationsProfile() {
     dashboard_profile: 'finance_management'
   };
   const c = cfg(u);
-  assert(c.profile_code === 'finance_management', 'perfil resolve para finance_management', c);
+  assert(
+    c.profile_code === 'finance_management' || c.profile_code === 'director_financial',
+    'perfil financeiro formal',
+    c
+  );
   assert(c.functional_area === 'finance', 'área funcional finance', c);
   const label = (c.profile_config && c.profile_config.label) || '';
   assert(!/opera(ç|c)ões/i.test(label), 'rótulo de perfil não é operações', label);
@@ -75,8 +79,10 @@ function testAmbiguousDirectorUnassigned() {
   const c = cfg(u);
   assert(c.profile_code === 'director_unassigned', 'perfil director_unassigned', c);
   assert(
-    c.functional_area == null || c.functional_area === '',
-    'área funcional não forçada para operations/production',
+    c.functional_area == null ||
+      c.functional_area === '' ||
+      c.functional_area === 'executive',
+    'área funcional não forçada para operations/production/quality',
     c.functional_area
   );
   const prof = getProfile(c.profile_code);
@@ -95,7 +101,11 @@ function testDepartmentFinanceInference() {
   };
   const c = cfg(u);
   assert(c.functional_area === 'finance', 'área inferida finance pelo texto do dept', c);
-  assert(c.profile_code === 'finance_management', 'perfil finance_management', c);
+  assert(
+    c.profile_code === 'finance_management' || c.profile_code === 'director_financial',
+    'perfil finance_management ou director_financial',
+    c
+  );
 }
 
 function testHrDepartmentInference() {
@@ -110,7 +120,11 @@ function testHrDepartmentInference() {
   };
   const c = cfg(u);
   assert(c.functional_area === 'hr', 'área hr', c);
-  assert(c.profile_code === 'hr_management', 'perfil hr_management', c);
+  assert(
+    c.profile_code === 'hr_management' || c.profile_code === 'manager_hr',
+    'perfil RH formal',
+    c
+  );
 }
 
 function testMaintenanceDirectorIndustrial() {

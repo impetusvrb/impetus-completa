@@ -481,6 +481,27 @@ useRoute(
   apiByUserLimiter
 );
 useRoute(
+  '/api/enterprise-shadow-stabilization',
+  './routes/enterpriseShadowStabilization',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/enterprise-pilot-rollout',
+  './routes/enterprisePilotRollout',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/enterprise-ecosystem-consolidation',
+  './routes/enterpriseEcosystemConsolidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
   '/api/logistics-navigation',
   './routes/logisticsNavigation',
   requireAuth,
@@ -497,6 +518,83 @@ useRoute(
 useRoute(
   '/api/logistics-operational-validation',
   './routes/logisticsOperationalValidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-navigation',
+  './routes/environmentNavigation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-activation',
+  './routes/environmentActivation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-operational',
+  './routes/environmentOperational',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-governance',
+  './routes/environmentGovernance',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-operational-validation',
+  './routes/environmentOperationalValidation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-telemetry',
+  './routes/environmentTelemetry',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-cognitive',
+  './routes/environmentCognitive',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-executive',
+  './routes/environmentExecutive',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/environment-pilot-rollout',
+  './routes/environmentPilotRollout',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/ecosystem-correlation',
+  './routes/ecosystemCorrelation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/enterprise-hardening',
+  './routes/enterpriseHardeningMaturity',
   requireAuth,
   requireCompanyActive,
   apiByUserLimiter

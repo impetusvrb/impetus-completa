@@ -28,8 +28,8 @@ export const DOMAIN_ROUTES = Object.freeze({
     routePrefix: '/app/environment',
     lazyKey: 'domain-environment',
     operational: true,
-    management: false,
-    moduleKeys: []
+    management: true,
+    moduleKeys: ['environment_intelligence']
   },
   logistics: {
     id: 'logistics',

@@ -36,6 +36,15 @@ function readFlagSnapshot() {
       rollout: envBool('IMPETUS_LOGISTICS_ROLLOUT_RUNTIME_ENABLED'),
       publication_shadow: envBool('IMPETUS_LOGISTICS_PUBLICATION_SHADOW_MODE')
     },
+    environment: {
+      operational: envBool('IMPETUS_ENVIRONMENT_OPERATIONAL_RUNTIME_ENABLED'),
+      navigation: envBool('IMPETUS_ENVIRONMENT_NAVIGATION_RUNTIME_ENABLED'),
+      publication: envBool('IMPETUS_ENVIRONMENT_PUBLICATION_RUNTIME_ENABLED'),
+      governance: envBool('IMPETUS_ENVIRONMENT_GOVERNANCE_RUNTIME_ENABLED'),
+      cognitive: envBool('IMPETUS_ENVIRONMENT_COGNITIVE_RUNTIME_ENABLED'),
+      rollout: envBool('IMPETUS_ENVIRONMENT_ROLLOUT_RUNTIME_ENABLED'),
+      publication_shadow: envBool('IMPETUS_ENVIRONMENT_PUBLICATION_SHADOW_MODE')
+    },
     cognitive_budget: envBool('IMPETUS_AI_CONTEXT_BUDGET_ENABLED'),
     observability_v2: envBool('IMPETUS_OBSERVABILITY_V2_ENABLED')
   };
@@ -54,6 +63,10 @@ function loadManifestPaths(domain) {
     if (domain === 'logistics') {
       const m = require('../domains/logistics/navigation/logisticsNavigationManifest');
       return (m.LOGISTICS_NAVIGATION_MANIFEST || []).map((i) => i.path).filter(Boolean);
+    }
+    if (domain === 'environment') {
+      const m = require('../domains/environment/navigation/environmentNavigationManifest');
+      return (m.ENVIRONMENT_NAVIGATION_MANIFEST || []).map((i) => i.path).filter(Boolean);
     }
   } catch {
     return [];
@@ -89,6 +102,8 @@ function validateRouteMounts() {
     const required = [
       '/api/safety-operational-validation',
       '/api/logistics-operational-validation',
+      '/api/environment-operational',
+      '/api/environment-operational-validation',
       '/api/enterprise-runtime-validation'
     ];
     for (const r of required) {
@@ -112,18 +127,27 @@ function validateEnterpriseRuntime(ctx = {}) {
   const qualityPaths = loadManifestPaths('quality');
   const safetyPaths = loadManifestPaths('safety');
   const logisticsPaths = loadManifestPaths('logistics');
+  const environmentPaths = loadManifestPaths('environment');
   const qsCollisions = detectManifestCollisions(qualityPaths, safetyPaths);
   const qlCollisions = detectManifestCollisions(qualityPaths, logisticsPaths);
   const slCollisions = detectManifestCollisions(safetyPaths, logisticsPaths);
-  const crossCollisions = [...new Set([...qsCollisions, ...qlCollisions, ...slCollisions])];
+  const qeCollisions = detectManifestCollisions(qualityPaths, environmentPaths);
+  const seCollisions = detectManifestCollisions(safetyPaths, environmentPaths);
+  const leCollisions = detectManifestCollisions(logisticsPaths, environmentPaths);
+  const crossCollisions = [...new Set([...qsCollisions, ...qlCollisions, ...slCollisions, ...qeCollisions, ...seCollisions, ...leCollisions])];
   const qualityDupes = detectDuplicatePaths(qualityPaths);
   const safetyDupes = detectDuplicatePaths(safetyPaths);
   const logisticsDupes = detectDuplicatePaths(logisticsPaths);
+  const environmentDupes = detectDuplicatePaths(environmentPaths);
   const mountIssues = validateRouteMounts();
 
   const conflicts = [];
   if (crossCollisions.length) {
-    conflicts.push({ code: 'cross_domain_path_collision', paths: crossCollisions, domains: 'quality|safety|logistics' });
+    conflicts.push({
+      code: 'cross_domain_path_collision',
+      paths: crossCollisions,
+      domains: 'quality|safety|logistics|environment'
+    });
   }
   if (qualityDupes.length) {
     conflicts.push({ code: 'quality_manifest_duplicates', paths: qualityDupes });
@@ -134,11 +158,17 @@ function validateEnterpriseRuntime(ctx = {}) {
   if (logisticsDupes.length) {
     conflicts.push({ code: 'logistics_manifest_duplicates', paths: logisticsDupes });
   }
+  if (environmentDupes.length) {
+    conflicts.push({ code: 'environment_manifest_duplicates', paths: environmentDupes });
+  }
   if (flags.safety.publication && flags.safety.publication_shadow && flags.safety.operational === false) {
     conflicts.push({ code: 'safety_publication_without_operational' });
   }
   if (flags.logistics.publication && flags.logistics.publication_shadow && flags.logistics.operational === false) {
     conflicts.push({ code: 'logistics_publication_without_operational' });
+  }
+  if (flags.environment.publication && flags.environment.publication_shadow && flags.environment.operational === false) {
+    conflicts.push({ code: 'environment_publication_without_operational' });
   }
 
   const stable =
@@ -155,14 +185,16 @@ function validateEnterpriseRuntime(ctx = {}) {
       quality_route_count: qualityPaths.length,
       safety_route_count: safetyPaths.length,
       logistics_route_count: logisticsPaths.length,
+      environment_route_count: environmentPaths.length,
       cross_collisions: crossCollisions,
       quality_duplicates: qualityDupes,
       safety_duplicates: safetyDupes,
-      logistics_duplicates: logisticsDupes
+      logistics_duplicates: logisticsDupes,
+      environment_duplicates: environmentDupes
     },
     conflicts,
     mount_issues: mountIssues,
-    bounded_contexts: ['quality', 'safety', 'logistics', 'dashboard', 'chat', 'ia'],
+    bounded_contexts: ['quality', 'safety', 'logistics', 'environment', 'dashboard', 'chat', 'ia'],
     legacy_coexistence: true,
     fallback_navigation_preserved: true
   };

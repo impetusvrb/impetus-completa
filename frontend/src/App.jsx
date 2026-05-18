@@ -78,6 +78,8 @@ const SafetyOperationalWorkspacePage = lazy(() => import('./domains/safety/route
 const SafetyFieldInspectionPage = lazy(() => import('./domains/safety/routes/SafetyFieldInspectionPage.jsx'));
 const LogisticsOperationalLayout = lazy(() => import('./domains/logistics/routes/LogisticsOperationalLayout.jsx'));
 const LogisticsOperationalWorkspacePage = lazy(() => import('./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx'));
+const EnvironmentOperationalLayout = lazy(() => import('./domains/environment/routes/EnvironmentOperationalLayout.jsx'));
+const EnvironmentOperationalWorkspacePage = lazy(() => import('./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx'));
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
@@ -688,6 +690,39 @@ export default function App() {
             element={
               <Suspense fallback={<PageLoader />}>
                 <LogisticsOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+        </Route>
+        <Route
+          path="/app/environment/operational"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <FactoryTeamMemberGate>
+                    <Suspense fallback={<PageLoader />}>
+                      <EnvironmentOperationalLayout />
+                    </Suspense>
+                  </FactoryTeamMemberGate>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <EnvironmentOperationalWorkspacePage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="workspace"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <EnvironmentOperationalWorkspacePage />
               </Suspense>
             }
           />

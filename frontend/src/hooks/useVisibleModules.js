@@ -83,6 +83,8 @@ const PATH_TO_MODULE = {
   '/app/safety/operational/workspace': 'safety_intelligence',
   '/app/logistics/operational': 'logistics_intelligence',
   '/app/logistics/operational/workspace': 'logistics_intelligence',
+  '/app/environment/operational': 'environment_intelligence',
+  '/app/environment/operational/workspace': 'environment_intelligence',
   '/chat': 'chat'
 };
 
@@ -128,6 +130,7 @@ function getModuleForPath(path) {
   if (n.startsWith('/app/quality/')) return 'quality_intelligence';
   if (n.startsWith('/app/safety/')) return 'safety_intelligence';
   if (n.startsWith('/app/logistics/')) return 'logistics_intelligence';
+  if (n.startsWith('/app/environment/')) return 'environment_intelligence';
   if (n.startsWith('/app/admin')) return 'admin';
   if (n.startsWith('/diagnostic')) return 'operational';
   return null;
@@ -203,6 +206,11 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
 
     if (item && item._logistics_publication === true) {
       if (set.has('logistics_intelligence')) return true;
+      return false;
+    }
+
+    if (item && item._environment_publication === true) {
+      if (set.has('environment_intelligence')) return true;
       return false;
     }
 

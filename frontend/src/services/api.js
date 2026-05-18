@@ -723,6 +723,9 @@ export const adminUsers = {
   
   getStats: () => 
     api.get('/admin/users/stats/summary'),
+
+  listFunctionalAreas: () =>
+    api.get('/admin/users/meta/functional-areas'),
   
   updateProfileContext: (userId, data) =>
     api.patch(`/admin/users/${userId}/profile-context`, data)
@@ -1006,6 +1009,26 @@ export const qualityOperational = {
   publishEvent: (body) => api.post('/quality-operational/events', body)
 };
 
+/** Environment — operational UX runtime (SGA/EHS Etapa 1). */
+export const environmentOperational = {
+  health: () => api.get('/environment-operational/health'),
+  publishEvent: (body) => api.post('/environment-operational/events', body),
+  summary: (area) => api.get(`/environment-operational/workspace/${area}/summary`),
+  record: (area, body) => api.post(`/environment-operational/workspace/${area}/record`, body)
+};
+
+/** Environment — governance & strategic intelligence (Etapa 2). */
+export const environmentGovernance = {
+  health: () => api.get('/environment-governance/health'),
+  governancePack: (body) => api.post('/environment-governance/intelligence/pack', body),
+  esgEvaluate: (body) => api.post('/environment-governance/intelligence/esg/evaluate', body),
+  complianceScreen: (body) => api.post('/environment-governance/intelligence/compliance/screen', body),
+  carbonInventory: (body) => api.post('/environment-governance/intelligence/carbon/inventory', body),
+  energyEfficiency: (body) => api.post('/environment-governance/intelligence/energy/efficiency', body),
+  sustainabilityMaturity: (body) => api.post('/environment-governance/intelligence/sustainability/maturity', body),
+  validateGovernance: (body) => api.post('/environment-governance/validation/governance', body)
+};
+
 /** Quality — governance & intelligence (Etapa 3). */
 export const qualityGovernance = {
   health: () => api.get('/quality-governance/health'),
@@ -1025,6 +1048,36 @@ export const qualityTelemetry = {
   ingestV1: (body) => api.post('/quality-telemetry/ingest/v1', body),
   ingestDimensional: (body) => api.post('/quality-telemetry/ingest/dimensional', body),
   ingestBatch: (body) => api.post('/quality-telemetry/ingest/batch', body)
+};
+
+/** Environment — executive cockpit runtime (Etapa 5). */
+export const environmentExecutive = {
+  health: () => api.get('/environment-executive/health'),
+  runCockpit: (body) => api.post('/environment-executive/cockpit/run', body),
+  validationRun: () => api.get('/environment-executive/validation/run')
+};
+
+/** Environment — cognitive intelligence runtime (Etapa 4). */
+export const environmentCognitive = {
+  health: () => api.get('/environment-cognitive/health'),
+  runInsights: (body) => api.post('/environment-cognitive/insights/run', body),
+  validationRun: () => api.get('/environment-cognitive/validation/run')
+};
+
+/** Environment — industrial telemetry runtime (Etapa 3). */
+export const environmentTelemetry = {
+  health: () => api.get('/environment-telemetry/health'),
+  ingestV1: (body) => api.post('/environment-telemetry/ingest/v1', body),
+  ingestDimensional: (body) => api.post('/environment-telemetry/ingest/dimensional', body),
+  ingestBatch: (body) => api.post('/environment-telemetry/ingest/batch', body),
+  ingestRealtime: (body) => api.post('/environment-telemetry/ingest/realtime', body),
+  edgeQueue: () => api.get('/environment-telemetry/edge/queue'),
+  edgeEnqueue: (body) => api.post('/environment-telemetry/edge/enqueue', body),
+  edgeSync: () => api.post('/environment-telemetry/edge/sync'),
+  connectorsStatus: () => api.get('/environment-telemetry/connectors/status'),
+  connectorIngest: (connector, body) => api.post(`/environment-telemetry/connectors/${connector}/ingest`, body),
+  reconnect: (body) => api.post('/environment-telemetry/connectors/reconnect', body),
+  validationRun: () => api.get('/environment-telemetry/validation/run')
 };
 
 /** Quality — cognitive industrial intelligence (Etapa 5). */

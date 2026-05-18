@@ -1,16 +1,22 @@
 'use strict';
 
 const AXIS_KEYWORDS = {
+  eixo_ambiental: [
+    'meio ambiente', 'ambiental', 'environmental', 'emissao', 'emissoes', 'residuo', 'residuos',
+    'efluente', 'eta', 'ete', 'licenca ambiental', 'ibama', 'carbono', 'poluicao'
+  ],
+  eixo_sustentabilidade: ['sustentabil', 'esg', 'asg', 'neutralidade carbono', 'pegada'],
+  eixo_utilidades: ['utilidades', 'utilities', 'vapor', 'ar comprimido', 'agua industrial', 'energia termica'],
   eixo_humano: ['rh', 'pessoas', 'absenteismo', 'turnover', 'treinamento', 'disciplina', 'clima', 'admiss', 'demiss'],
   eixo_operacional: ['producao', 'linha', 'turno', 'meta', 'eficiencia', 'refugo', 'perda', 'gargalo', 'setup', 'oee'],
   eixo_manutencao: ['manutenc', 'preventiv', 'corretiv', 'falha', 'ordem de servico', 'mttr', 'mtbf', 'disponibilidade'],
-  eixo_qualidade: ['qualidade', 'nao conform', 'desvio', 'inspec', 'auditoria', 'pop', 'analise', 'laborat'],
+  eixo_qualidade: ['qualidade', 'nao conform', 'desvio', 'inspec', 'pop'],
   eixo_logistica: ['logistica', 'entrega', 'rota', 'frete', 'transporte', 'armazen', 'expedicao'],
   eixo_estoque: ['estoque', 'almox', 'inventario', 'reposicao', 'sku', 'romaneio'],
   eixo_financeiro: ['financeiro', 'custo', 'despesa', 'fluxo de caixa', 'inadimplencia', 'orcamento', 'margem'],
-  eixo_seguranca: ['seguranca', 'acidente', 'risco', 'epi', 'sso', 'trabalho seguro', 'incidente'],
-  eixo_laboratorial: ['laboratorio', 'amostra', 'laudo', 'microbi', 'analitico', 'coleta'],
-  eixo_executivo: ['estrateg', 'diretoria', 'governanca', 'resultado', 'board', 'portifolio'],
+  eixo_seguranca: ['seguranca do trabalho', 'sst', 'acidente de trabalho', 'epi', 'sso', 'trabalho seguro'],
+  eixo_laboratorial: ['laboratorio', 'laudo', 'microbi'],
+  eixo_executivo: ['estrateg', 'diretoria', 'board', 'portifolio'],
   eixo_planejamento: ['planejamento', 'pcm', 'pcp', 'programacao', 'previsao', 'sequenciamento']
 };
 
@@ -57,12 +63,26 @@ function interpretProfileContext(user = {}) {
   const level = detectLevel(user);
 
   const axisScores = {};
+  const environmentalSignal = /(meio ambiente|ambiental|sustentabil|esg|efluente|residuo|emissao|eta|ete|utilities|utilidades)/.test(
+    baseText
+  );
   for (const [axis, keywords] of Object.entries(AXIS_KEYWORDS)) {
-    const score = computeKeywordScore(baseText, keywords);
+    let score = computeKeywordScore(baseText, keywords);
+    if (environmentalSignal && (axis === 'eixo_qualidade' || axis === 'eixo_laboratorial')) {
+      if (/\b(coleta|amostra|analise)\b/.test(baseText) && !/\bqualidade\b/.test(baseText)) {
+        score = Math.max(0, score - 2);
+      }
+    }
+    if (environmentalSignal && axis === 'eixo_ambiental') score += 4;
     if (score > 0) axisScores[axis] = score;
   }
   if (level <= 2) axisScores.eixo_executivo = (axisScores.eixo_executivo || 0) + 2;
-  if (['gerente', 'coordenador', 'supervisor'].includes(role)) axisScores.eixo_planejamento = (axisScores.eixo_planejamento || 0) + 2;
+  if (['gerente', 'coordenador', 'supervisor'].includes(role) && !environmentalSignal) {
+    axisScores.eixo_planejamento = (axisScores.eixo_planejamento || 0) + 1;
+  }
+  if (environmentalSignal && !axisScores.eixo_ambiental) {
+    axisScores.eixo_ambiental = 3;
+  }
 
   const axes = Object.entries(axisScores).sort((a, b) => b[1] - a[1]).map(([axis]) => axis);
   const responsibilities = Object.entries(RESPONSIBILITY_KEYWORDS).filter(([, keys]) => computeKeywordScore(baseText, keys) > 0).map(([k]) => k);
@@ -70,7 +90,7 @@ function interpretProfileContext(user = {}) {
   return {
     normalized_profile: { role, area, job_title: jobTitle, description, level },
     axes,
-    primary_axis: axes[0] || 'eixo_operacional',
+    primary_axis: axes[0] || (environmentalSignal ? 'eixo_ambiental' : 'eixo_operacional'),
     responsibilities,
     confidence: Math.min(1, 0.35 + (Object.values(axisScores).reduce((s, n) => s + n, 0) / 20)),
     signals: { used_description: Boolean(description), description_tokens: description ? description.split(' ').slice(0, 30) : [] }

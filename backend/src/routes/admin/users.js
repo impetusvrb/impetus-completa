@@ -17,6 +17,7 @@ const { z } = require('zod');
 const orgVal = require('../../services/organizationalValidationService');
 const tenantAdminService = require('../../services/tenantAdminService');
 const adminAccountProtection = require('../../services/adminAccountProtectionService');
+const functionalAreaCatalog = require('../../config/functionalAreaCatalog');
 
 async function assertStructuralRoleForCompany(companyId, roleId) {
   if (!roleId) return null;
@@ -43,21 +44,12 @@ function normalizeRoleAlias(body) {
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
 const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
-/** Área funcional para dashboard inteligente: production, maintenance, quality, etc. */
-const FUNCTIONAL_AREA_OPTIONS = ['production', 'maintenance', 'quality', 'operations', 'pcp', 'hr', 'finance', 'admin'];
+/** Área funcional canónica (catálogo completo — dashboard / IA). */
+const FUNCTIONAL_AREA_OPTIONS = functionalAreaCatalog.FUNCTIONAL_AREA_IDS;
 
-/** Inferir functional_area a partir do nome da área (permite Manutenção, Qualidade, etc.) */
+/** Inferir functional_area a partir do nome da área textual. */
 function inferFunctionalAreaFromArea(area) {
-  if (!area || typeof area !== 'string') return null;
-  const a = area.toLowerCase().trim();
-  if (/manuten|mecan|eletric|eletromecan/.test(a)) return 'maintenance';
-  if (/qualid|qualidade/.test(a)) return 'quality';
-  if (/produ|oper|opera[çc]/i.test(a)) return 'production';
-  if (/pcp|planej/.test(a)) return 'pcp';
-  if (/rh|recursos|pessoas/.test(a)) return 'hr';
-  if (/financ|contab/.test(a)) return 'finance';
-  if (/admin|gest[ãa]o/.test(a)) return 'admin';
-  return null;
+  return functionalAreaCatalog.resolveIdFromText(area);
 }
 
 const areaSchema = z.union([
@@ -261,6 +253,25 @@ router.get('/',
       });
     }
 });
+
+/**
+ * GET /api/admin/users/meta/functional-areas
+ * Catálogo de áreas funcionais para formulário admin (dashboard / IA).
+ */
+router.get(
+  '/meta/functional-areas',
+  requireAuth,
+  requireHierarchy(1),
+  (req, res) => {
+    try {
+      const areas = functionalAreaCatalog.listForAdminSelect();
+      res.json({ ok: true, areas, ids: functionalAreaCatalog.FUNCTIONAL_AREA_IDS });
+    } catch (err) {
+      console.error('[ADMIN_FUNCTIONAL_AREAS_META]', err);
+      res.status(500).json({ ok: false, error: 'Erro ao listar áreas funcionais' });
+    }
+  }
+);
 
 /**
  * GET /api/admin/users/:id

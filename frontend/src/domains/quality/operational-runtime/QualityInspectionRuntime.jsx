@@ -1,3 +1,4 @@
+import { safeUUID } from '../../../utils/safeUuid.js';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { qualityOperational } from '../../../services/api.js';
@@ -33,7 +34,7 @@ export function QualityInspectionRuntime({ companyId: companyIdProp, stationId: 
   const ctx = useOutletContext() || {};
   const companyId = companyIdProp ?? ctx.companyId;
   const stationId = stationIdProp ?? ctx.stationId;
-  const [corr] = useState(() => crypto.randomUUID());
+  const [corr] = useState(() => safeUUID());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');

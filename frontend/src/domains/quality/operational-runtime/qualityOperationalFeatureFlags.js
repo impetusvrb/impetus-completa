@@ -41,10 +41,7 @@ export function isQualityOperationalShadowMode() {
 
 /** Painel diagnostics / saúde de fila (pilotagem). */
 export function isQualityOperationalDiagnosticsEnabled() {
-  return (
-    envTrue(import.meta.env.VITE_IMPETUS_QUALITY_OPERATIONAL_DIAGNOSTICS) ||
-    isQualityOperationalShadowMode()
-  );
+  return envTrue(import.meta.env.VITE_IMPETUS_QUALITY_OPERATIONAL_DIAGNOSTICS);
 }
 
 export function isQualityAttachmentRuntimeEnabled() {

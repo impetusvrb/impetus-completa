@@ -10,6 +10,18 @@ const {
   inferAreaFromJobTitle,
   getProfile
 } = require('../config/dashboardProfiles');
+const functionalAxisResolver = require('./functionalAxisResolver');
+
+let _domainAuthority = null;
+function _getDomainAuthority() {
+  if (_domainAuthority !== null) return _domainAuthority;
+  try {
+    _domainAuthority = require('../domainAuthority');
+  } catch {
+    _domainAuthority = false;
+  }
+  return _domainAuthority;
+}
 
 function normalizeText(v) {
   return String(v || '')
@@ -28,6 +40,9 @@ function contextualTextForInference(user) {
 }
 
 function inferAreaFromFreeText(text) {
+  const catalog = require('../config/functionalAreaCatalog');
+  const fromCatalog = catalog.resolveIdFromText(text);
+  if (fromCatalog) return fromCatalog;
   const t = normalizeText(text);
   if (!t) return null;
   if (
@@ -39,12 +54,13 @@ function inferAreaFromFreeText(text) {
   }
   if (/(finance|custo|despesa|margem|fluxo de caixa|inadimplencia)/.test(t)) return 'finance';
   if (/(manutenc|pcm|mttr|mtbf|ordem de servico|mecanic|eletric)/.test(t)) return 'maintenance';
-  if (/(qualidade|nao conform|inspec|laboratorio|microbio|desvio)/.test(t)) return 'quality';
+  if (/(qualidade|nao conform|inspec|desvio)/.test(t) && !catalog.hasEnvironmentalSemanticSignal(t)) return 'quality';
+  if (/(meio ambiente|ambiental|sustentabil|esg|efluente|residuo|emissao|eta|ete)/.test(t)) return 'environmental';
   if (/\bpcp\b|planejamento/.test(t)) return 'pcp';
-  // Não usar "diretoria" isolado — risco de cross-domain (ex.: diretoria não-operacional).
   if (/(operac|industrial|executiv)/.test(t)) return 'operations';
   if (/(produc|linha|turno|refugo|eficiencia)/.test(t)) return 'production';
   if (/(administra|administrativo)/.test(t)) return 'admin';
+  if (/(laboratorio|microbio)/.test(t) && !catalog.hasEnvironmentalSemanticSignal(t)) return 'laboratory';
   return null;
 }
 
@@ -62,49 +78,28 @@ function normalizeRoleForDashboardProfile(roleRaw) {
 /** Perfis válidos (whitelist) */
 const VALID_PROFILES = new Set([
   'ceo_executive', 'director_operations', 'director_industrial', 'director_unassigned',
-  'manager_production', 'manager_maintenance', 'manager_quality',
-  'coordinator_production', 'coordinator_maintenance', 'coordinator_quality',
-  'supervisor_production', 'supervisor_maintenance', 'supervisor_quality',
+  'director_hr', 'director_financial',
+  'manager_production', 'manager_maintenance', 'manager_quality', 'manager_environmental',
+  'manager_hr', 'manager_financial', 'manager_logistics', 'manager_engineering',
+  'manager_safety', 'manager_compliance', 'manager_legal', 'manager_operations',
+  'coordinator_production', 'coordinator_maintenance', 'coordinator_quality', 'coordinator_environmental',
+  'coordinator_hr', 'coordinator_financial', 'coordinator_logistics', 'coordinator_engineering',
+  'coordinator_safety', 'coordinator_compliance', 'coordinator_legal', 'coordinator_operations',
+  'supervisor_production', 'supervisor_maintenance', 'supervisor_quality', 'supervisor_environmental',
+  'supervisor_hr', 'supervisor_financial', 'supervisor_logistics', 'supervisor_engineering',
+  'supervisor_safety', 'supervisor_compliance', 'supervisor_legal', 'supervisor_operations',
   'analyst_pcp', 'technician_maintenance', 'inspector_quality', 'operator_floor',
   'hr_management', 'finance_management', 'admin_system'
 ]);
 
-const KNOWN_FUNCTIONAL_AREAS = [
-  'production', 'maintenance', 'quality', 'operations', 'pcp',
-  'hr', 'rh', 'recursos_humanos', 'finance', 'admin'
-];
+const { FUNCTIONAL_AREA_IDS } = require('../config/functionalAreaCatalog');
+const KNOWN_FUNCTIONAL_AREAS = FUNCTIONAL_AREA_IDS;
 
 /**
- * Resolve functional_area do usuário
- * Prioridade: functional_area explícita > metadado do cargo estrutural > texto (dept, descrição, job) > role default
+ * Resolve functional_area do usuário (delega ao functionalAxisResolver).
  */
 function resolveFunctionalArea(user) {
-  const explicitNorm = normalizeText(user.functional_area);
-  if (explicitNorm && KNOWN_FUNCTIONAL_AREAS.includes(explicitNorm)) {
-    return explicitNorm;
-  }
-
-  const hintNorm = normalizeText(user.company_role_dashboard_hint);
-  if (hintNorm && KNOWN_FUNCTIONAL_AREAS.includes(hintNorm)) {
-    return hintNorm;
-  }
-
-  const ctxText = contextualTextForInference(user);
-  const inferredByDept = inferAreaFromFreeText(ctxText);
-  if (inferredByDept) return inferredByDept;
-  const inferredByDescription = inferAreaFromFreeText(user.hr_responsibilities || user.descricao || user.descricao_funcional || '');
-  if (inferredByDescription) return inferredByDescription;
-  const inferred = inferAreaFromJobTitle(user.job_title) || inferAreaFromFreeText(user.job_title);
-  if (inferred) return inferred;
-  const role = normalizeText(user.role);
-  if (role === 'admin') return 'admin';
-  if (role === 'rh') return 'hr';
-  if (role === 'financeiro') return 'finance';
-  // Liderança sem sinal explícito: não inferir "operations" (vazamento contextual V2).
-  if (['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'].includes(role)) {
-    return null;
-  }
-  return 'production';
+  return functionalAxisResolver.resolveFunctionalArea(user);
 }
 
 /**
@@ -168,13 +163,27 @@ async function resolveAndPersistProfile(user) {
  * Retorna configuração completa do perfil para o usuário
  */
 function getDashboardConfigForUser(user) {
-  const profileCode = resolveDashboardProfile(user);
+  const da = _getDomainAuthority();
+  const axisPack =
+    da && da.isDomainAuthorityEnabled() ?
+      da.semanticDomainResolver.resolveSemanticAxis(user) :
+      functionalAxisResolver.resolveFunctionalAxis(user);
+  const profileCode = resolveDashboardProfile({ ...user, functional_area: axisPack.functional_area });
   const profile = getProfile(profileCode);
-  return {
+  let config = {
     profile_code: profileCode,
     profile_config: profile,
-    functional_area: resolveFunctionalArea(user)
+    functional_area: axisPack.functional_area,
+    functional_axis: axisPack.functional_axis,
+    functional_area_label: axisPack.functional_area_label,
+    functional_area_source: axisPack.source,
+    contextual_modules_hint: functionalAxisResolver.getContextualModulesForAxis(axisPack.functional_axis),
+    inference_trace: axisPack.inference_trace
   };
+  if (da && da.isDomainAuthorityEnabled()) {
+    config = da.applyGovernanceToDashboardConfig(user, config);
+  }
+  return config;
 }
 
 module.exports = {

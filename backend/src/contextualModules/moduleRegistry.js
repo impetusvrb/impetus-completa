@@ -362,9 +362,26 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     compatible_axes: ['eixo_qualidade', 'eixo_laboratorial', 'eixo_operacional'],
     compatible_functions: ['decisao_estrategica', 'analise', 'supervisao', 'execucao', 'governanca'],
     compatible_levels: { min: 1, max: 5 },
-    compatible_areas: ['quality', 'production', 'industrial'],
+    compatible_areas: ['quality', 'production', 'industrial', 'laboratory'],
     lgpd_scope: 'low',
     criticality: 0.85,
+    dependencies: ['operational'],
+    fallback_behavior: 'soft_hide'
+  },
+  {
+    module_id: 'environment_intelligence',
+    menu_key: 'environment_intelligence',
+    paths: ['/app/environment/operational', '/app/environment'],
+    category: 'environment',
+    label: 'Inteligência Ambiental',
+    description: 'KPIs ambientais, ESG, resíduos, água, energia e utilidades.',
+    required_capabilities: ['view:operational'],
+    compatible_axes: ['eixo_ambiental', 'eixo_sustentabilidade', 'eixo_utilidades'],
+    compatible_functions: ['decisao_estrategica', 'analise', 'supervisao', 'execucao', 'governanca'],
+    compatible_levels: { min: 1, max: 5 },
+    compatible_areas: ['environmental', 'sustainability', 'esg', 'environmental_health_safety', 'utilities'],
+    lgpd_scope: 'low',
+    criticality: 0.9,
     dependencies: ['operational'],
     fallback_behavior: 'soft_hide'
   },
@@ -511,6 +528,7 @@ const CANONICAL_MENU_KEYS = Object.freeze([
   'admin',
   'manuia',
   'quality_intelligence',
+  'environment_intelligence',
   'raw_material_lots',
   'settings'
 ]);
@@ -524,6 +542,11 @@ const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
     production: ['centro_operacoes_industrial', 'quality_intelligence', 'insights'],
     maintenance: ['manuia', 'cerebro_operacional', 'insights'],
     quality: ['quality_intelligence', 'raw_material_lots', 'insights'],
+    environmental: ['environment_intelligence', 'insights'],
+    sustainability: ['environment_intelligence', 'insights'],
+    esg: ['environment_intelligence', 'insights'],
+    environmental_health_safety: ['environment_intelligence', 'insights'],
+    utilities: ['environment_intelligence', 'insights'],
     hr: ['hr_intelligence', 'pulse_rh', 'pulse_gestao'],
     admin: ['audit', 'admin'],
     pcp: ['centro_previsao_operacional']
@@ -535,6 +558,11 @@ const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
     production: ['centro_operacoes_industrial', 'quality_intelligence'],
     maintenance: ['manuia'],
     quality: ['quality_intelligence'],
+    environmental: ['environment_intelligence'],
+    sustainability: ['environment_intelligence'],
+    esg: ['environment_intelligence'],
+    environmental_health_safety: ['environment_intelligence'],
+    utilities: ['environment_intelligence'],
     hr: ['hr_intelligence', 'pulse_rh'],
     admin: ['audit'],
     pcp: ['centro_previsao_operacional']
@@ -545,6 +573,9 @@ const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
     production: ['centro_operacoes_industrial', 'quality_intelligence'],
     maintenance: ['manuia'],
     quality: ['quality_intelligence'],
+    environmental: ['environment_intelligence'],
+    sustainability: ['environment_intelligence'],
+    utilities: ['environment_intelligence'],
     hr: ['hr_intelligence', 'pulse_rh']
   },
   execucao: {
@@ -556,6 +587,9 @@ const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
     finance: ['audit', 'financial_intelligence'],
     operations: ['audit', 'cerebro_operacional'],
     quality: ['audit', 'quality_intelligence'],
+    environmental: ['audit', 'environment_intelligence'],
+    sustainability: ['audit', 'environment_intelligence'],
+    esg: ['audit', 'environment_intelligence'],
     hr: ['audit', 'hr_intelligence'],
     admin: ['audit', 'admin']
   }

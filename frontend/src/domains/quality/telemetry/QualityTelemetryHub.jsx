@@ -1,85 +1,136 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { safeUUID } from '../../../utils/safeUuid.js';
 import { qualityTelemetry as qtApi } from '../../../services/api.js';
-import { getQualityTelemetryFlagSnapshot, isQualityTelemetryRuntimeEnabled } from './qualityTelemetryFeatureFlags.js';
+import { isQualityTelemetryRuntimeEnabled } from './qualityTelemetryFeatureFlags.js';
+import { isQualityTelemetryEffectiveEnabled } from '../navigation/qualityRuntimeModuleBridge.js';
+import { Link } from 'react-router-dom';
 
-/**
- * Hub técnico — ingestão enterprise; não altera fluxos de inspeção nem governança.
- */
+const mono = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' };
+
+function TelemetryKpiCard({ label, value, unit, trend, alert }) {
+  const color = alert ? 'var(--amber)' : trend === 'up' ? 'var(--green)' : 'var(--cyan)';
+  return (
+    <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4, flex: '1 1 160px' }}>
+      <div style={{ ...mono, color: 'var(--text-tertiary)', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, color, fontFamily: 'var(--font-mono)' }}>
+        {value ?? '—'}<span style={{ fontSize: 12, marginLeft: 4, color: 'var(--text-secondary)' }}>{unit}</span>
+      </div>
+      {trend && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{trend === 'up' ? '↑ crescente' : trend === 'down' ? '↓ decrescente' : '→ estável'}</div>}
+    </div>
+  );
+}
+
+function ProtocolStatusRow({ name, ok }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+      <span style={{ ...mono, color: 'var(--text-secondary)' }}>{name}</span>
+      <span style={{ ...mono, color: ok ? 'var(--green)' : 'var(--amber)', fontSize: 10 }}>
+        {ok ? 'OK' : 'Verificar'}
+      </span>
+    </div>
+  );
+}
+
 export default function QualityTelemetryHub({ companyId }) {
   const [health, setHealth] = useState(null);
-  const [err, setErr] = useState('');
-  const [demoResult, setDemoResult] = useState(null);
+  const [ingestResult, setIngestResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const loadHealth = useCallback(async () => {
     if (!isQualityTelemetryRuntimeEnabled()) return;
-    qtApi
-      .health()
-      .then((r) => setHealth(r.data))
-      .catch((e) => setErr(e?.response?.data?.error || e.message || 'health'));
+    try {
+      const { data } = await qtApi.health();
+      setHealth(data);
+    } catch { /* silent */ }
   }, []);
 
-  const runDryDemo = async () => {
-    setDemoResult(null);
+  useEffect(() => { loadHealth(); }, [loadHealth]);
+
+  const triggerIngest = useCallback(async (metricKey) => {
+    setLoading(true);
     try {
       const { data } = await qtApi.ingestV1({
-        metric_key: 'demo.quality.telemetry.runtime',
-        value: 1,
+        metric_key: metricKey,
+        value: Math.round(Math.random() * 900 + 100) / 100,
         unit: 'count',
-        correlation_id: crypto.randomUUID(),
-        labels: { demo: true },
-        source: 'quality_telemetry_hub'
+        correlation_id: safeUUID(),
+        source: 'quality_telemetry_workspace'
       });
-      setDemoResult(data);
+      setIngestResult(data);
     } catch (e) {
-      setDemoResult({ error: e?.response?.data || e.message });
-    }
-  };
+      setIngestResult({ ok: false, error: e?.response?.data?.error || e.message });
+    } finally { setLoading(false); }
+  }, []);
 
-  if (!isQualityTelemetryRuntimeEnabled()) {
+  if (!isQualityTelemetryEffectiveEnabled()) {
     return (
       <div className="impetus-card" style={{ padding: 12, borderRadius: 4 }}>
-        <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>Telemetria industrial (Quality) desligada.</p>
+        <p style={{ color: 'var(--text-secondary)', ...mono }}>Telemetria industrial (Quality) desligada.</p>
       </div>
     );
   }
 
-  const snap = getQualityTelemetryFlagSnapshot();
+  const protocols = health?.wave3_status || health?.protocols || {};
+  const wave3 = health?.wave3_enabled ?? health?.ok;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <Link
-          to="/app/quality/operational"
-          className="btn-ghost"
-          style={{ minHeight: 44, padding: '0 12px', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
-        >
-          Voltar operacional
-        </Link>
-      </div>
-
-      {err ? (
-        <p style={{ color: 'var(--amber)', fontSize: 12 }}>{err}</p>
-      ) : null}
-
-      <div className="impetus-card" style={{ padding: 12, borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
-        <div style={{ textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--cyan)', marginBottom: 8 }}>Estado runtime / WAVE 3</div>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
-        <div style={{ marginTop: 8, opacity: 0.85 }}>tenant {String(companyId).slice(0, 8)}…</div>
-      </div>
-
-      <div className="impetus-card" style={{ padding: 12, borderRadius: 4 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase' }}>
-          Chamada de ingestão (tenant da sessão)
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 16, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-accent)' }}>
+            Telemetria Industrial
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+            MQTT · OPC-UA · Modbus · WAVE 3 · tenant {String(companyId).slice(0, 8)}…
+          </p>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-          Requer WAVE 3 (`IMPETUS_STORAGE_V3_ENABLED` + `IMPETUS_TELEMETRY_ISOLATED_INGEST_ENABLED`). Sem BD configurada verá 502 — esperado em dev.
-        </p>
-        <button type="button" className="btn-ghost" style={{ minHeight: 48, borderRadius: 4 }} onClick={runDryDemo}>
-          Demo ingestão v1 (API)
-        </button>
-        {demoResult ? (
-          <pre style={{ marginTop: 10, fontSize: 11, color: 'var(--green)', whiteSpace: 'pre-wrap', maxHeight: 240, overflow: 'auto' }}>{JSON.stringify(demoResult, null, 2)}</pre>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link to="/app/quality/operational" className="btn-ghost" style={{ minHeight: 40, padding: '0 12px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', fontSize: 13 }}>
+            ← Operacional
+          </Link>
+          <button type="button" className="btn-ghost" style={{ minHeight: 40, borderRadius: 4, fontSize: 13 }} onClick={loadHealth}>
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs de telemetria */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        <TelemetryKpiCard label="Eventos/min" value={health?.events_per_minute ?? '—'} unit="ev/min" />
+        <TelemetryKpiCard label="Latência média" value={health?.avg_latency_ms ?? '—'} unit="ms" />
+        <TelemetryKpiCard label="Queue depth" value={health?.queue_depth ?? '—'} unit="itens" alert={(health?.queue_depth ?? 0) > 500} />
+        <TelemetryKpiCard label="WAVE 3" value={wave3 ? 'Ativo' : 'Inativo'} trend={wave3 ? 'up' : null} alert={!wave3} />
+      </div>
+
+      {/* Status protocolos */}
+      <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
+        <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Status protocolos industriais</div>
+        <ProtocolStatusRow name="MQTT" ok={protocols.mqtt ?? health?.ok} />
+        <ProtocolStatusRow name="OPC-UA" ok={protocols.opcua ?? health?.ok} />
+        <ProtocolStatusRow name="Modbus" ok={protocols.modbus ?? health?.ok} />
+        <ProtocolStatusRow name="WAVE 3 Storage" ok={wave3} />
+      </div>
+
+      {/* Ingestão spot */}
+      <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
+        <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Ingestão spot — qualidade</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {['quality.defect_rate', 'quality.spc_value', 'quality.inspection_count', 'quality.ncr_count'].map((key) => (
+            <button key={key} type="button" className="btn-ghost"
+              style={{ minHeight: 40, borderRadius: 4, fontSize: 12 }}
+              disabled={loading}
+              onClick={() => triggerIngest(key)}>
+              {key.split('.')[1].replace(/_/g, ' ')}
+            </button>
+          ))}
+        </div>
+        {ingestResult ? (
+          <div style={{ marginTop: 8 }}>
+            <span style={{ ...mono, color: ingestResult.ok ? 'var(--green)' : 'var(--amber)' }}>
+              {ingestResult.ok ? 'Ingestão OK' : `Erro: ${ingestResult.error}`}
+            </span>
+            {ingestResult.metric_id && <span style={{ ...mono, color: 'var(--text-tertiary)', marginLeft: 8 }}>{ingestResult.metric_id}</span>}
+          </div>
         ) : null}
       </div>
     </div>

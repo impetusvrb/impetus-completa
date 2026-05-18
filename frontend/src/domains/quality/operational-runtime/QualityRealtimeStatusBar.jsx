@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useOfflineStatus } from '../../../offline/useOfflineStatus.js';
 import { getQualityOperationalTelemetrySnapshot } from '../../../observability/qualityOperationalTelemetry.js';
+import { isQualityOperationalDiagnosticsEnabled } from './qualityOperationalFeatureFlags.js';
 
-export function QualityRealtimeStatusBar({ companyId, flags }) {
+export function QualityRealtimeStatusBar({ companyId, flags, showFlagDump = false }) {
   const { isOnline, queueSize } = useOfflineStatus();
   const [degraded, setDegraded] = useState(false);
   const [telSnap, setTelSnap] = useState(() => getQualityOperationalTelemetrySnapshot());
@@ -51,9 +52,13 @@ export function QualityRealtimeStatusBar({ companyId, flags }) {
       <span>rto {telSnap.unified_reconnect_count}</span>
       {shadowMs ? <span style={{ opacity: 0.75 }}>sh {shadowMs}ms</span> : null}
       {degraded ? <span style={{ color: 'var(--amber)' }}>modo degradado</span> : null}
-      <span style={{ opacity: 0.85 }}>op {flags.operational ? 'on' : 'off'}</span>
-      <span style={{ opacity: 0.85 }}>off {flags.offline ? 'on' : 'off'}</span>
-      <span style={{ opacity: 0.85 }}>rt {flags.realtime ? 'on' : 'off'}</span>
+      {(showFlagDump || isQualityOperationalDiagnosticsEnabled()) && flags ? (
+        <>
+          <span style={{ opacity: 0.85 }}>op {flags.operational ? 'on' : 'off'}</span>
+          <span style={{ opacity: 0.85 }}>off {flags.offline ? 'on' : 'off'}</span>
+          <span style={{ opacity: 0.85 }}>rt {flags.realtime ? 'on' : 'off'}</span>
+        </>
+      ) : null}
     </div>
   );
 }

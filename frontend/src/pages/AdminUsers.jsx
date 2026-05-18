@@ -39,6 +39,7 @@ export default function AdminUsers() {
   const [supervisors, setSupervisors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [structuralRoles, setStructuralRoles] = useState([]);
+  const [functionalAreaOptions, setFunctionalAreaOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 });
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,7 +90,19 @@ export default function AdminUsers() {
     loadDepartments();
     loadSupervisors();
     loadStructuralRoles();
+    loadFunctionalAreas();
   }, [pagination.offset, filters]);
+
+  const loadFunctionalAreas = async () => {
+    try {
+      const r = await adminUsers.listFunctionalAreas();
+      const areas = r.data?.areas ?? [];
+      setFunctionalAreaOptions(areas);
+    } catch (e) {
+      console.warn('Áreas funcionais indisponíveis:', e);
+      setFunctionalAreaOptions([]);
+    }
+  };
 
   const loadStructuralRoles = async () => {
     try {
@@ -612,6 +625,7 @@ export default function AdminUsers() {
             departments={departments}
             users={supervisors}
             structuralRoles={structuralRoles}
+            functionalAreaOptions={functionalAreaOptions}
             onChange={handleFormChange}
             isCreate={true}
           />
@@ -637,6 +651,7 @@ export default function AdminUsers() {
             departments={departments}
             users={supervisors}
             structuralRoles={structuralRoles}
+            functionalAreaOptions={functionalAreaOptions}
             selectedUserId={selectedUser?.id}
             onChange={handleFormChange}
             isCreate={false}
@@ -711,7 +726,35 @@ export default function AdminUsers() {
 /**
  * USER FORM COMPONENT
  */
-function UserForm({ formData, formErrors, departments, users = [], structuralRoles = [], selectedUserId, onChange, isCreate }) {
+function UserForm({
+  formData,
+  formErrors,
+  departments,
+  users = [],
+  structuralRoles = [],
+  functionalAreaOptions = [],
+  selectedUserId,
+  onChange,
+  isCreate
+}) {
+  const functionalSelectOptions = [
+    { value: '', label: 'Automático (inferir pelo cargo, departamento e descrição)' },
+    ...(functionalAreaOptions.length > 0
+      ? functionalAreaOptions.map((a) => ({ value: a.value, label: a.label }))
+      : [
+          { value: 'production', label: 'Produção' },
+          { value: 'maintenance', label: 'Manutenção' },
+          { value: 'quality', label: 'Qualidade' },
+          { value: 'environmental', label: 'Meio Ambiente' },
+          { value: 'sustainability', label: 'Sustentabilidade' },
+          { value: 'environmental_health_safety', label: 'EHS' },
+          { value: 'operations', label: 'Operações' },
+          { value: 'pcp', label: 'PCP' },
+          { value: 'hr', label: 'RH / Recursos humanos' },
+          { value: 'finance', label: 'Finanças' },
+          { value: 'admin', label: 'Administração' }
+        ])
+  ];
   const supervisorOptions = (users || [])
     .filter(u => u.active !== false && (u.hierarchy_level ?? 5) <= 4 && u.id !== selectedUserId)
     .map(u => ({ value: u.id, label: `${u.name} (${getHierarchyLabel(u.hierarchy_level)})` }));
@@ -870,17 +913,7 @@ function UserForm({ formData, formErrors, departments, users = [], structuralRol
           value={formData.functional_area || ''}
           onChange={onChange}
           placeholder=""
-          options={[
-            { value: '', label: 'Automático (inferir pelo cargo, departamento e descrição)' },
-            { value: 'production', label: 'Produção' },
-            { value: 'maintenance', label: 'Manutenção' },
-            { value: 'quality', label: 'Qualidade' },
-            { value: 'operations', label: 'Operações' },
-            { value: 'pcp', label: 'PCP' },
-            { value: 'hr', label: 'RH / Recursos humanos' },
-            { value: 'finance', label: 'Finanças' },
-            { value: 'admin', label: 'Administração' }
-          ]}
+          options={functionalSelectOptions}
           helperText="Para colaboradores de RH ou finanças, escolha a área correspondente para alinhar o Centro de Comando e os módulos. Deixe em automático só se a inferência pelo departamento/cargo já for suficiente."
         />
       </div>

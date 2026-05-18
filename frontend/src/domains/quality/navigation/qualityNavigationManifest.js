@@ -24,7 +24,7 @@ export const QUALITY_NAVIGATION_MANIFEST = Object.freeze([
   {
     id: 'quality_ncr_workspace',
     label: 'NCR & CAPA (workspace)',
-    path: '/app/quality/operational?view=governance',
+    path: '/app/quality/operational?view=ncr',
     requires: { governance: true },
     bands: ['operator', 'coordinator']
   },

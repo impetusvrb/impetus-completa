@@ -34,10 +34,18 @@ const DOMAINS = Object.freeze({
     id: 'environment',
     label: 'Ambiental',
     legacy_services: ['environmentalCognitiveService'],
-    legacy_routes: [],
+    legacy_routes: [
+      '/api/environment-navigation',
+      '/api/environment-activation',
+      '/api/environment-operational',
+      '/api/environment-governance',
+      '/api/environment-operational-validation',
+      '/api/environment-pilot-rollout'
+    ],
     event_prefix: 'environment.',
     scaffold_path: 'domains/environment',
-    status: 'scaffold'
+    status: 'shadow',
+    runtime_internal: null
   },
   logistics: {
     id: 'logistics',

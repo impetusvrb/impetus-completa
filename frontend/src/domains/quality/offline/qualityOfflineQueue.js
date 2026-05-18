@@ -1,3 +1,4 @@
+import { safeUUID } from '../../../utils/safeUuid.js';
 /**
  * Fila offline qualidade — dedupe por idempotency_key, ordenação por enqueuedAt.
  */
@@ -32,7 +33,7 @@ export async function qualityEnqueueMutation(item) {
     kind,
     body,
     idempotencyKey,
-    correlationId: correlationId || crypto.randomUUID(),
+    correlationId: correlationId || safeUUID(),
     enqueuedAt: new Date().toISOString(),
     retries: 0
   };

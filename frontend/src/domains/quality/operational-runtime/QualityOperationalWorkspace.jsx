@@ -2,21 +2,45 @@ import React, { lazy, Suspense } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { QualityInspectionRuntime } from './QualityInspectionRuntime.jsx';
 import { QualityOfflineRuntime } from './QualityOfflineRuntime.jsx';
-import { isQualityKioskRuntimeEnabled } from './qualityOperationalFeatureFlags.js';
 import { QualityOperationalDiagnostics } from './QualityOperationalDiagnostics.jsx';
-import { isQualityGovernanceRuntimeEnabled } from '../governance/qualityGovernanceFeatureFlags.js';
-import { isQualityTelemetryRuntimeEnabled } from '../telemetry/qualityTelemetryFeatureFlags.js';
-import { isQualityCognitiveRuntimeEnabled } from '../cognitive/qualityCognitiveFeatureFlags.js';
-import { isQualityRolloutRuntimeEnabled } from '../rollout/qualityRolloutFeatureFlags.js';
+import { QualityOperationalHub } from './QualityOperationalHub.jsx';
+import { resolveQualityWorkspaceView } from './qualityWorkspaceViewResolver.js';
 import { resolveQualityAudienceBand, resolveQualityUxDensity } from '../navigation/qualityAudienceNavigation.js';
 
 const QualityGovernanceHub = lazy(() => import('../governance/QualityGovernanceHub.jsx'));
 const QualityTelemetryHub = lazy(() => import('../telemetry/QualityTelemetryHub.jsx'));
 const CognitiveQualityHub = lazy(() => import('../cognitive/CognitiveQualityHub.jsx'));
 const QualityRolloutHub = lazy(() => import('../rollout/QualityRolloutHub.jsx'));
+const QualityKioskRuntime = lazy(() => import('./QualityKioskRuntime.jsx'));
+
+const WORKSPACE_BY_VIEW = {
+  governance: QualityGovernanceHub,
+  telemetry: QualityTelemetryHub,
+  cognitive: CognitiveQualityHub,
+  rollout: QualityRolloutHub
+};
+
+function DisabledRuntimeCard({ resolution, uxShell }) {
+  return (
+    <div className="impetus-card" style={{ padding: 16, borderRadius: 4, borderColor: 'var(--border-active)' }} {...uxShell}>
+      <p style={{ margin: 0, color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        Módulo {resolution.label} — runtime desligado
+      </p>
+      {resolution.env ? (
+        <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>
+          O item aparece no menu (publicação), mas o runtime deste módulo não está activo no build. Activar{' '}
+          <code style={{ color: 'var(--cyan)' }}>{resolution.env}=true</code> e rebuild do frontend.
+        </p>
+      ) : null}
+      <Link to="/app/quality/operational" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', minHeight: 44, alignItems: 'center', borderRadius: 4 }}>
+        Voltar ao centro operacional
+      </Link>
+    </div>
+  );
+}
 
 /**
- * Workspace mínimo — composição lazy-friendly.
+ * Workspace operacional — resolução centralizada de vistas (?view=) e hub enterprise por defeito.
  */
 export function QualityOperationalWorkspace({ companyId: companyIdProp, stationId: stationIdProp }) {
   const ctx = useOutletContext() || {};
@@ -24,6 +48,7 @@ export function QualityOperationalWorkspace({ companyId: companyIdProp, stationI
   const stationId = stationIdProp ?? ctx.stationId;
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
+  const resolution = resolveQualityWorkspaceView(view);
 
   let userBand = 'operator';
   try {
@@ -35,152 +60,83 @@ export function QualityOperationalWorkspace({ companyId: companyIdProp, stationI
   const uxDensity = resolveQualityUxDensity(userBand);
   const uxShell = {
     'data-quality-ux': uxDensity,
-    'data-quality-audience': userBand
+    'data-quality-audience': userBand,
+    'data-quality-workspace': resolution.workspaceId || 'quality_operational'
   };
 
   if (!companyId) {
     return <p style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Sessão sem empresa — não é possível abrir o runtime.</p>;
   }
 
-  const viewRuntimeGate = {
-    governance: {
-      label: 'NCR & CAPA / Governança',
-      enabled: isQualityGovernanceRuntimeEnabled(),
-      env: 'VITE_IMPETUS_QUALITY_GOVERNANCE_RUNTIME_ENABLED'
-    },
-    telemetry: {
-      label: 'Telemetria industrial',
-      enabled: isQualityTelemetryRuntimeEnabled(),
-      env: 'VITE_IMPETUS_QUALITY_TELEMETRY_RUNTIME_ENABLED'
-    },
-    cognitive: {
-      label: 'Inteligência contextual',
-      enabled: isQualityCognitiveRuntimeEnabled(),
-      env: 'VITE_IMPETUS_QUALITY_COGNITIVE_RUNTIME_ENABLED'
-    },
-    rollout: {
-      label: 'Rollout enterprise',
-      enabled: isQualityRolloutRuntimeEnabled(),
-      env: 'VITE_IMPETUS_QUALITY_ROLLOUT_RUNTIME_ENABLED'
+  if (resolution.kind === 'disabled') {
+    return <DisabledRuntimeCard resolution={resolution} uxShell={uxShell} />;
+  }
+
+  if (resolution.kind === 'diagnostics') {
+    if (!resolution.enabled) {
+      return <DisabledRuntimeCard resolution={resolution} uxShell={uxShell} />;
     }
-  };
-  const gated = view && viewRuntimeGate[view];
-  if (gated && !gated.enabled) {
     return (
-      <div className="impetus-card" style={{ padding: 16, borderRadius: 4, borderColor: 'var(--border-active)' }} {...uxShell}>
-        <p style={{ margin: 0, color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Módulo {gated.label} — runtime desligado
-        </p>
-        <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>
-          O item aparece no menu (publicação), mas o runtime deste módulo não está activo no build. Peça ao administrador para activar{' '}
-          <code style={{ color: 'var(--cyan)' }}>{gated.env}=true</code> e voltar a fazer deploy do frontend.
-        </p>
-        <Link to="/app/quality/operational" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', minHeight: 44, alignItems: 'center', borderRadius: 4 }}>
-          Voltar ao operacional
+      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <QualityOperationalDiagnostics companyId={companyId} />
+        <QualityOfflineRuntime companyId={companyId} />
+        <Link to="/app/quality/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4 }}>
+          Voltar ao hub
         </Link>
       </div>
     );
   }
 
-  if (view === 'governance' && isQualityGovernanceRuntimeEnabled()) {
+  if (resolution.kind === 'hub') {
     return (
-      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando governança…</div>}>
-          <QualityGovernanceHub companyId={companyId} />
-        </Suspense>
+      <div {...uxShell}>
+        <QualityOperationalHub />
       </div>
     );
   }
 
-  if (view === 'telemetry' && isQualityTelemetryRuntimeEnabled()) {
+  if (resolution.view === 'inspection') {
     return (
       <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando telemetria…</div>}>
-          <QualityTelemetryHub companyId={companyId} />
-        </Suspense>
+        <QualityOfflineRuntime companyId={companyId} />
+        <QualityInspectionRuntime companyId={companyId} stationId={stationId} />
+        <Link to="/app/quality/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4 }}>
+          Voltar ao hub
+        </Link>
       </div>
     );
   }
 
-  if (view === 'cognitive' && isQualityCognitiveRuntimeEnabled()) {
+  if (resolution.view === 'kiosk') {
     return (
-      <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando cognitive…</div>}>
-          <CognitiveQualityHub companyId={companyId} />
+      <div {...uxShell}>
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando kiosk…</div>}>
+          <QualityKioskRuntime companyId={companyId} />
         </Suspense>
+        <Link to="/app/quality/operational" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', borderRadius: 4 }}>
+          Voltar ao hub
+        </Link>
       </div>
     );
   }
 
-  if (view === 'rollout' && isQualityRolloutRuntimeEnabled()) {
+  const HubComponent = resolution.view ? WORKSPACE_BY_VIEW[resolution.view] : null;
+  if (HubComponent) {
     return (
       <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando rollout…</div>}>
-          <QualityRolloutHub companyId={companyId} />
+        <Suspense fallback={<div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>Carregando {resolution.label}…</div>}>
+          <HubComponent companyId={companyId} />
         </Suspense>
+        <Link to="/app/quality/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4 }}>
+          Voltar ao centro operacional
+        </Link>
       </div>
     );
   }
 
   return (
-    <div {...uxShell} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {isQualityGovernanceRuntimeEnabled() ? (
-          <Link
-            to={{ pathname: '/app/quality/operational', search: '?view=governance' }}
-            className="btn-ghost"
-            style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-          >
-            Governança / inteligência
-          </Link>
-        ) : null}
-        {isQualityRolloutRuntimeEnabled() ? (
-          <Link
-            to={{ pathname: '/app/quality/operational', search: '?view=rollout' }}
-            className="btn-ghost"
-            style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-          >
-            Rollout enterprise
-          </Link>
-        ) : null}
-        {isQualityCognitiveRuntimeEnabled() ? (
-          <Link
-            to={{ pathname: '/app/quality/operational', search: '?view=cognitive' }}
-            className="btn-ghost"
-            style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-          >
-            Inteligência cognitiva
-          </Link>
-        ) : null}
-        {isQualityTelemetryRuntimeEnabled() ? (
-          <Link
-            to={{ pathname: '/app/quality/operational', search: '?view=telemetry' }}
-            className="btn-ghost"
-            style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-          >
-            Telemetria industrial
-          </Link>
-        ) : null}
-        <Link
-          to="/app/quality/operational/inspection"
-          className="btn-ghost"
-          style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-        >
-          Inspeção dedicada
-        </Link>
-        {isQualityKioskRuntimeEnabled() ? (
-          <Link
-            to="/app/quality/operational/kiosk"
-            className="btn-ghost"
-            style={{ minHeight: 48, padding: '0 14px', display: 'inline-flex', alignItems: 'center', borderRadius: 4 }}
-          >
-            Kiosk
-          </Link>
-        ) : null}
-      </div>
-      <QualityOperationalDiagnostics companyId={companyId} />
-      <QualityOfflineRuntime companyId={companyId} />
-      <QualityInspectionRuntime companyId={companyId} stationId={stationId} />
+    <div {...uxShell}>
+      <QualityOperationalHub />
     </div>
   );
 }

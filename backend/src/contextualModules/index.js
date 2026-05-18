@@ -254,6 +254,22 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
     });
   }
 
+  // Fase C — Domain Authority: isolamento formal de menu_keys (additive)
+  let domainIsolationMeta = null;
+  try {
+    const da = require('../domainAuthority');
+    if (da.isDomainAuthorityEnabled() && identity?.area) {
+      const isolated = da.domainIsolationGuard.filterModules(resultVisible, identity.area, {
+        user_id: safeUser.id,
+        profile_code: safeUser.dashboard_profile
+      });
+      if (isolated.blocked.length > 0) domainIsolationMeta = { blocked: isolated.blocked };
+      resultVisible = isolated.modules;
+    }
+  } catch (_) {
+    /* never break legacy flow */
+  }
+
   return {
     visibleModules: resultVisible,
     contextualModules: resultContextual,
@@ -281,6 +297,7 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
           }
         : null,
       diff,
+      domain_isolation: domainIsolationMeta,
       latency_ms: latencyMs,
       fallback,
       circuit: guard.getCircuitState()

@@ -66,6 +66,9 @@ function _resolveAreaWithFallback(user, traceOut) {
     const primary = ctx?.primary_axis || null;
     // mapa axis → area canónica (subset que faz sentido para área funcional)
     const AXIS_TO_AREA = {
+      eixo_ambiental: 'environmental',
+      eixo_sustentabilidade: 'sustainability',
+      eixo_utilidades: 'utilities',
       eixo_financeiro: 'finance',
       eixo_executivo: 'operations',
       eixo_operacional: 'operations',
@@ -73,10 +76,10 @@ function _resolveAreaWithFallback(user, traceOut) {
       eixo_qualidade: 'quality',
       eixo_humano: 'hr',
       eixo_planejamento: 'pcp',
-      eixo_seguranca: 'operations',
-      eixo_logistica: 'operations',
-      eixo_estoque: 'operations',
-      eixo_laboratorial: 'quality'
+      eixo_seguranca: 'safety',
+      eixo_logistica: 'logistics',
+      eixo_estoque: 'logistics',
+      eixo_laboratorial: 'laboratory'
     };
     const inferred = primary ? AXIS_TO_AREA[primary] || null : null;
     traceOut.push({ step: 'area:context_interpreter', input: { primary_axis: primary, axes: ctx?.axes }, output: inferred });

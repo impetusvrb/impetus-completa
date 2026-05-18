@@ -58,6 +58,8 @@ import { safeMergeSafetyPublicationIntoMenu } from '../domains/safety/navigation
 import { fetchSafetyPublicationContext } from '../domains/safety/navigation/safetyDomainPublicationRuntime.js';
 import { safeMergeLogisticsPublicationIntoMenu } from '../domains/logistics/navigation/logisticsMenuPublicationEngine.js';
 import { fetchLogisticsPublicationContext } from '../domains/logistics/navigation/logisticsDomainPublicationRuntime.js';
+import { safeMergeEnvironmentPublicationIntoMenu } from '../domains/environment/navigation/environmentMenuPublicationEngine.js';
+import { fetchEnvironmentPublicationContext } from '../domains/environment/navigation/environmentDomainPublicationRuntime.js';
 import {
   dedupeSidebarMenuItems,
   isSidebarMenuItemActive,
@@ -262,20 +264,23 @@ export default function Layout({ children }) {
   const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
   const [safetyPublicationServerCtx, setSafetyPublicationServerCtx] = useState(null);
   const [logisticsPublicationServerCtx, setLogisticsPublicationServerCtx] = useState(null);
+  const [environmentPublicationServerCtx, setEnvironmentPublicationServerCtx] = useState(null);
 
   useEffect(() => {
     if (modulesLoading) return undefined;
     let alive = true;
     (async () => {
-      const [qCtx, sCtx, lCtx] = await Promise.all([
+      const [qCtx, sCtx, lCtx, eCtx] = await Promise.all([
         fetchQualityPublicationContext(),
         fetchSafetyPublicationContext(),
-        fetchLogisticsPublicationContext()
+        fetchLogisticsPublicationContext(),
+        fetchEnvironmentPublicationContext()
       ]);
       if (alive) {
         setQualityPublicationServerCtx(qCtx);
         setSafetyPublicationServerCtx(sCtx);
         setLogisticsPublicationServerCtx(lCtx);
+        setEnvironmentPublicationServerCtx(eCtx);
       }
     })();
     return () => {
@@ -540,12 +545,19 @@ export default function Layout({ children }) {
       modulesLoading,
       serverPublication: safetyPublicationServerCtx
     });
-    const baseMenuItemsHybrid = safeMergeLogisticsPublicationIntoMenu(withSafety, {
+    const withLogistics = safeMergeLogisticsPublicationIntoMenu(withSafety, {
       user,
       visibleModules,
       contextualModules,
       modulesLoading,
       serverPublication: logisticsPublicationServerCtx
+    });
+    const baseMenuItemsHybrid = safeMergeEnvironmentPublicationIntoMenu(withLogistics, {
+      user,
+      visibleModules,
+      contextualModules,
+      modulesLoading,
+      serverPublication: environmentPublicationServerCtx
     });
     menuItems = filterMenu(baseMenuItemsHybrid);
     menuItems = menuItems.filter((item) => {

@@ -1,10 +1,11 @@
 /**
- * Valida estabilidade do pipeline de publicação (quality → safety → logistics).
+ * Valida estabilidade do pipeline de publicação (quality → safety → logistics → environment).
  * Sem side-effects persistentes; uso em testes e diagnóstico assistivo.
  */
 import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
 import { safeMergeSafetyPublicationIntoMenu } from '../domains/safety/navigation/safetyMenuPublicationEngine.js';
 import { safeMergeLogisticsPublicationIntoMenu } from '../domains/logistics/navigation/logisticsMenuPublicationEngine.js';
+import { safeMergeEnvironmentPublicationIntoMenu } from '../domains/environment/navigation/environmentMenuPublicationEngine.js';
 
 const CORE_PATHS = ['/app', '/app/chatbot', '/chat'];
 
@@ -27,9 +28,10 @@ export function runEnterprisePublicationPipelineStability(ctx = {}) {
     const q = safeMergeQualityPublicationIntoMenu(menu, mergeCtx);
     const s = safeMergeSafetyPublicationIntoMenu(q, mergeCtx);
     const l = safeMergeLogisticsPublicationIntoMenu(s, mergeCtx);
-    const again = safeMergeLogisticsPublicationIntoMenu(l, mergeCtx);
-    recursiveRisk = again.length > l.length + 3;
-    menu = l;
+    const e = safeMergeEnvironmentPublicationIntoMenu(l, mergeCtx);
+    const again = safeMergeEnvironmentPublicationIntoMenu(e, mergeCtx);
+    recursiveRisk = again.length > e.length + 3;
+    menu = e;
   } catch (e) {
     return {
       ok: false,
