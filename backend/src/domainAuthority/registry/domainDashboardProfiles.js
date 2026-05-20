@@ -144,7 +144,7 @@ const DOMAIN_DASHBOARD_PROFILES = Object.freeze({
   coordinator_safety: _base(
     'coordinator_safety',
     'Coordenador de Segurança do Trabalho',
-    [...CORE, 'audit'],
+    [...CORE, 'safety_intelligence', 'audit'],
     [
       { key: 'safety_incidents', title: 'Incidentes SST', icon: 'alert', color: 'red' },
       { key: 'epi_compliance', title: 'Conformidade EPI', icon: 'target', color: 'amber' }
@@ -154,14 +154,14 @@ const DOMAIN_DASHBOARD_PROFILES = Object.freeze({
   manager_safety: _base(
     'manager_safety',
     'Gerente de Segurança do Trabalho',
-    [...CORE, 'audit'],
+    [...CORE, 'safety_intelligence', 'audit'],
     [{ key: 'safety_overview', title: 'Visão SST', icon: 'trending', color: 'teal' }],
     'seguranca'
   ),
   supervisor_safety: _base(
     'supervisor_safety',
     'Supervisor de Segurança',
-    [...CORE],
+    [...CORE, 'safety_intelligence'],
     [{ key: 'safety_incidents', title: 'Incidentes', icon: 'alert', color: 'red' }],
     'seguranca'
   ),
@@ -233,6 +233,17 @@ const DOMAIN_DASHBOARD_PROFILES = Object.freeze({
     [...CORE, 'anomaly_detection'],
     [{ key: 'shift_overview', title: 'Turno operacional', icon: 'activity', color: 'cyan' }],
     'operacoes'
+  ),
+
+  director_safety: _base(
+    'director_safety',
+    'Diretor de Segurança do Trabalho',
+    [...CORE, 'safety_intelligence', 'audit'],
+    [
+      { key: 'safety_overview', title: 'Visão SST corporativa', icon: 'trending', color: 'teal' },
+      { key: 'critical_alerts', title: 'Alertas críticos', icon: 'alert', color: 'red' }
+    ],
+    'seguranca'
   )
 });
 

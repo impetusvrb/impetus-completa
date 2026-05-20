@@ -1,0 +1,60 @@
+{
+  "runtime_enrichment": {
+    "phase": "X",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "X",
+      "observability": true,
+      "runtime_enrichment": false,
+      "operational_signal_analysis": false,
+      "contextual_density_engine": false,
+      "dashboard_enrichment": false,
+      "telemetry_gap_detection": false,
+      "global_auto_remediation": false,
+      "invented_data_policy": "forbidden",
+      "telemetry": {
+        "runtime_density_score": 0.7333,
+        "operational_density": 0.65,
+        "contextual_richness": 0.7,
+        "semantic_usefulness": 0.85,
+        "insight_feeding_quality": 0.85,
+        "samples": 8,
+        "ts": "2026-05-20T00:39:59.296Z"
+      }
+    },
+    "consolidated_signals": {
+      "density": {
+        "runtime_density_score": 0.7333,
+        "operational_density": 0.65,
+        "contextual_richness": 0.7,
+        "semantic_usefulness": 0.85,
+        "insight_feeding_quality": 0.85,
+        "entity_count": 2,
+        "invented_metrics": false
+      },
+      "signal_integrity": 1,
+      "telemetry_integrity": 0.92,
+      "insight_utility": 0.5,
+      "enrichment_integrity": 0.9
+    },
+    "low_density": false,
+    "channel": "me",
+    "invented_data": false,
+    "auto_remediate": false
+  },
+  "operational_density": {
+    "runtime_density_score": 0.7333,
+    "operational_density": 0.65,
+    "contextual_richness": 0.7,
+    "entity_count": 2
+  },
+  "operational_signal_quality": {
+    "signal_integrity_score": 1,
+    "insight_utility_score": 0.5,
+    "issues": [],
+    "recommendations": [
+      "Recomendação: rever cards/módulos sem sinal operacional — sem remoção automática"
+    ]
+  }
+}

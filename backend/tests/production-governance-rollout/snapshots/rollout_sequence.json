@@ -1,0 +1,13 @@
+{
+  "sequence": [
+    "kpi",
+    "summary",
+    "chat",
+    "boundary"
+  ],
+  "current_step": 0,
+  "next_channel": "kpi",
+  "completed": [],
+  "last_promoted_at": null,
+  "all_complete": false
+}

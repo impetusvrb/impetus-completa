@@ -1,0 +1,65 @@
+{
+  "runtime_calibration": {
+    "phase": "Y",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "Y",
+      "observability": true,
+      "runtime_calibration": false,
+      "tenant_stabilization": false,
+      "tuning_advisor": false,
+      "pipeline_consolidation": false,
+      "global_auto_apply": false,
+      "human_supervised": true,
+      "telemetry": {
+        "operational_maturity": 0.8116,
+        "rollout_stability": 0.825,
+        "tenant_stability": 0.79,
+        "operational_usefulness": 0.776,
+        "samples": 2,
+        "ts": "2026-05-20T00:53:33.481Z"
+      },
+      "tenant_id": "unstable-tenant"
+    },
+    "calibration_score": 0.7286,
+    "critical_tenant": true,
+    "gap_total": 4,
+    "pipelines": {
+      "active_phase_blocks": 2,
+      "present_phases": [
+        "T",
+        "X"
+      ],
+      "redundancies": [],
+      "legacy_pipelines_preserved": true,
+      "auto_remove": false,
+      "consolidation_recommendations": [],
+      "enforcement_active": false
+    },
+    "auto_apply": false
+  },
+  "tenant_stabilization": {
+    "stable": false,
+    "instability_score": 0.6799999999999999,
+    "operational_pressure": "high",
+    "runtime_degradation": true,
+    "tenant_id": "unstable-tenant"
+  },
+  "operational_maturity": {
+    "operational_maturity": 0.726,
+    "governance_maturity": 0.72,
+    "runtime_maturity": 0.79,
+    "stabilization_maturity": 0.85,
+    "rollout_maturity": 0.8,
+    "composite_maturity": 0.7772
+  },
+  "rollout_stability": {
+    "rollout_stability": 0.8,
+    "rollout_maturity": 0.8,
+    "stabilization_maturity": 0.85,
+    "recommendations": [
+      "Manter shadow-first; pausar promoção de flags até estabilidade ≥ 0.75"
+    ]
+  }
+}

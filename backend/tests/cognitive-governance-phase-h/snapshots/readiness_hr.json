@@ -1,0 +1,9 @@
+{
+  "readiness_score": 96,
+  "activation_recommendation": "full_activation_candidate",
+  "leakage_risk": "low",
+  "overblocking_risk": "low",
+  "context": {
+    "functional_area": "hr"
+  }
+}

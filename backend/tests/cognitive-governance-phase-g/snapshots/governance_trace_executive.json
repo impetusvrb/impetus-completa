@@ -1,0 +1,16 @@
+{
+  "trace_id": "22e18998-87b8-453d-8c7a-915abd36f902",
+  "explanation": {
+    "decision": "allow",
+    "reason": "profile_allow",
+    "winning_layer": "rbac",
+    "winning_layer_label": "Controlo de acesso por perfil (RBAC)",
+    "domain": "executive",
+    "blocked_content": null,
+    "policy_source": "content_exposure_policy_engine",
+    "envelope_scope": null,
+    "channel": "governance_test",
+    "human_summary": "Conteúdo permitido; camada decisória: rbac.",
+    "meta": {}
+  }
+}

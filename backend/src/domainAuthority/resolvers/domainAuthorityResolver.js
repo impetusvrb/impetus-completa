@@ -2,6 +2,8 @@
 
 const domainRegistry = require('../registry/domainRegistry');
 const domainIsolationGuard = require('../guards/domainIsolationGuard');
+const moduleInheritanceGuard = require('../guards/moduleInheritanceGuard');
+const domainFlags = require('../config/domainFeatureFlags');
 const semanticDomainResolver = require('./semanticDomainResolver');
 const tenantOverrideLoader = require('../tenantOverrides/tenantOverrideLoader');
 const functionalAxisResolver = require('../../services/functionalAxisResolver');
@@ -23,10 +25,17 @@ function resolveDomainAuthority(user, dashboardContext = {}) {
   const profileCode = dashboardContext.profile_code || null;
   const rawModules = dashboardContext.profile_config?.visible_modules || [];
 
-  const filtered = domainIsolationGuard.filterModules(rawModules, axis, {
+  let filtered = domainIsolationGuard.filterModules(rawModules, axis, {
     user_id: user?.id,
     profile_code: profileCode
   });
+  if (moduleInheritanceGuard.isEnabled()) {
+    const inh = moduleInheritanceGuard.filterModulesWithInheritance(filtered.modules, axis, {
+      user_id: user?.id,
+      profile_code: profileCode
+    });
+    filtered = { modules: inh.modules, blocked: [...filtered.blocked, ...inh.blocked] };
+  }
 
   const contextualHints = functionalAxisResolver.getContextualModulesForAxis(axis);
   const hintFiltered = domainIsolationGuard.filterModules(contextualHints, axis, {
@@ -82,10 +91,18 @@ function applyGovernanceToDashboardConfig(user, config) {
     profile_config: config.profile_config
   });
 
-  const isolated = domainIsolationGuard.filterModules(config.profile_config.visible_modules || [], authority.domain_axis, {
+  let modList = config.profile_config.visible_modules || [];
+  let isolated = domainIsolationGuard.filterModules(modList, authority.domain_axis, {
     user_id: user?.id,
     profile_code: config.profile_code
   });
+  if (moduleInheritanceGuard.isEnabled()) {
+    const inh = moduleInheritanceGuard.filterModulesWithInheritance(isolated.modules, authority.domain_axis, {
+      user_id: user?.id,
+      profile_code: config.profile_code
+    });
+    isolated = { modules: inh.modules, blocked: [...(isolated.blocked || []), ...inh.blocked] };
+  }
 
   return {
     ...config,

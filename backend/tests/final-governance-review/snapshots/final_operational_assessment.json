@@ -1,0 +1,956 @@
+{
+  "enabled": true,
+  "completed_at": "2026-05-19T17:26:15.922Z",
+  "coverage_matrix": {
+    "channels": [
+      {
+        "id": "dashboard",
+        "phase": "E",
+        "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+        "module": "policyEngine/unifiedExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "kpi",
+        "phase": "F",
+        "flag": "IMPETUS_KPI_GOVERNANCE",
+        "module": "policyEngine/channels/secureKpiExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "summary",
+        "phase": "F",
+        "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+        "module": "policyEngine/channels/summaryExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "chat",
+        "phase": "F",
+        "flag": "IMPETUS_CHAT_GOVERNANCE",
+        "module": "policyEngine/channels/secureChatContextBuilder",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "boundary",
+        "phase": "F",
+        "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+        "module": "policyEngine/cognitiveBoundaryGuard",
+        "flag_on": false,
+        "module_exists": false,
+        "status": "module_missing"
+      },
+      {
+        "id": "contextual_modules",
+        "phase": "E",
+        "flag": "IMPETUS_CONTEXT_SANITIZER",
+        "module": "security/contextExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "explainability",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+        "module": "explainability/governanceExplainabilityEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "oversight",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+        "module": "oversight/governanceOversightService",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "drift",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+        "module": "oversight/governanceDriftDetector",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "audit_feed",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+        "module": "audit/cognitiveGovernanceAuditFeed",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "readiness",
+        "phase": "H",
+        "flag": "IMPETUS_GOVERNANCE_READINESS",
+        "module": "governanceReadiness/governanceReadinessEngine",
+        "flag_on": true,
+        "module_exists": true,
+        "status": "governance_active_env"
+      },
+      {
+        "id": "quality_gates",
+        "phase": "H",
+        "flag": "IMPETUS_GOVERNANCE_QUALITY_GATES",
+        "module": "governanceQuality/governanceQualityGate",
+        "flag_on": true,
+        "module_exists": true,
+        "status": "governance_active_env"
+      },
+      {
+        "id": "controlled_activation",
+        "phase": "I",
+        "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+        "module": "governanceActivation/governanceActivationRuntime",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "operations",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+        "module": "governanceOperations/governanceOperationsService",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "incident_engine",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+        "module": "governanceOperations/governanceIncidentEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "rollout_orchestration",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+        "module": "governanceOperations/governanceActivationOrchestrator",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "telemetry",
+        "phase": "F",
+        "flag": "IMPETUS_GOVERNANCE_SHADOW_MODE",
+        "module": "policyEngine/shadow/governanceShadowComparator",
+        "default_on": true,
+        "flag_on": true,
+        "module_exists": true,
+        "status": "governance_active_env"
+      }
+    ],
+    "coverage_score": 0.9412,
+    "gaps": [
+      {
+        "id": "boundary",
+        "phase": "F",
+        "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+        "module": "policyEngine/cognitiveBoundaryGuard",
+        "flag_on": false,
+        "module_exists": false,
+        "status": "module_missing"
+      }
+    ],
+    "shadow_only_paths": [
+      {
+        "id": "dashboard",
+        "phase": "E",
+        "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+        "module": "policyEngine/unifiedExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "kpi",
+        "phase": "F",
+        "flag": "IMPETUS_KPI_GOVERNANCE",
+        "module": "policyEngine/channels/secureKpiExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "summary",
+        "phase": "F",
+        "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+        "module": "policyEngine/channels/summaryExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "chat",
+        "phase": "F",
+        "flag": "IMPETUS_CHAT_GOVERNANCE",
+        "module": "policyEngine/channels/secureChatContextBuilder",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "contextual_modules",
+        "phase": "E",
+        "flag": "IMPETUS_CONTEXT_SANITIZER",
+        "module": "security/contextExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "explainability",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+        "module": "explainability/governanceExplainabilityEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "oversight",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+        "module": "oversight/governanceOversightService",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "drift",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+        "module": "oversight/governanceDriftDetector",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "audit_feed",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+        "module": "audit/cognitiveGovernanceAuditFeed",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "controlled_activation",
+        "phase": "I",
+        "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+        "module": "governanceActivation/governanceActivationRuntime",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "operations",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+        "module": "governanceOperations/governanceOperationsService",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "incident_engine",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+        "module": "governanceOperations/governanceIncidentEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "rollout_orchestration",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+        "module": "governanceOperations/governanceActivationOrchestrator",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      }
+    ],
+    "potential_bypasses": [
+      {
+        "id": "dashboard",
+        "phase": "E",
+        "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+        "module": "policyEngine/unifiedExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "kpi",
+        "phase": "F",
+        "flag": "IMPETUS_KPI_GOVERNANCE",
+        "module": "policyEngine/channels/secureKpiExposureResolver",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "summary",
+        "phase": "F",
+        "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+        "module": "policyEngine/channels/summaryExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "chat",
+        "phase": "F",
+        "flag": "IMPETUS_CHAT_GOVERNANCE",
+        "module": "policyEngine/channels/secureChatContextBuilder",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "contextual_modules",
+        "phase": "E",
+        "flag": "IMPETUS_CONTEXT_SANITIZER",
+        "module": "security/contextExposureSanitizer",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "explainability",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+        "module": "explainability/governanceExplainabilityEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "oversight",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+        "module": "oversight/governanceOversightService",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "drift",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+        "module": "oversight/governanceDriftDetector",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "audit_feed",
+        "phase": "G",
+        "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+        "module": "audit/cognitiveGovernanceAuditFeed",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "controlled_activation",
+        "phase": "I",
+        "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+        "module": "governanceActivation/governanceActivationRuntime",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "incident_engine",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+        "module": "governanceOperations/governanceIncidentEngine",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      },
+      {
+        "id": "rollout_orchestration",
+        "phase": "J",
+        "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+        "module": "governanceOperations/governanceActivationOrchestrator",
+        "flag_on": false,
+        "module_exists": true,
+        "status": "shadow_only"
+      }
+    ],
+    "inconsistencies": [
+      "missing_modules"
+    ],
+    "auto_activation": false
+  },
+  "regression_audit": {
+    "phase_integration": [
+      {
+        "phase": "E",
+        "path": "policyEngine/index",
+        "integrated": true,
+        "reason": null
+      },
+      {
+        "phase": "F",
+        "path": "policyEngine/config/phaseFFeatureFlags",
+        "integrated": true,
+        "reason": null
+      },
+      {
+        "phase": "G",
+        "path": "explainability/config/phaseGFeatureFlags",
+        "integrated": true,
+        "reason": null
+      },
+      {
+        "phase": "H",
+        "path": "governanceReadiness/governanceReadinessEngine",
+        "integrated": true,
+        "reason": null
+      },
+      {
+        "phase": "I",
+        "path": "governanceActivation/governanceActivationRuntime",
+        "integrated": true,
+        "reason": null
+      },
+      {
+        "phase": "J",
+        "path": "governanceOperations/governanceOperationsService",
+        "integrated": true,
+        "reason": null
+      }
+    ],
+    "deny_first_precedence": {
+      "ok": true,
+      "rule": "deny_first_safe_minimal"
+    },
+    "tenant_isolation": {
+      "ok": true,
+      "rule": "tenant_activation_isolation"
+    },
+    "audit_integrity": {
+      "ok": true,
+      "rule": "audit_append_only"
+    },
+    "regression_count": 0,
+    "passed": true,
+    "auto_activation": false
+  },
+  "health_assessment": {
+    "governance_health": 97,
+    "coverage": {
+      "channels": [
+        {
+          "id": "dashboard",
+          "phase": "E",
+          "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+          "module": "policyEngine/unifiedExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "kpi",
+          "phase": "F",
+          "flag": "IMPETUS_KPI_GOVERNANCE",
+          "module": "policyEngine/channels/secureKpiExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "summary",
+          "phase": "F",
+          "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+          "module": "policyEngine/channels/summaryExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "chat",
+          "phase": "F",
+          "flag": "IMPETUS_CHAT_GOVERNANCE",
+          "module": "policyEngine/channels/secureChatContextBuilder",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "boundary",
+          "phase": "F",
+          "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+          "module": "policyEngine/cognitiveBoundaryGuard",
+          "flag_on": false,
+          "module_exists": false,
+          "status": "module_missing"
+        },
+        {
+          "id": "contextual_modules",
+          "phase": "E",
+          "flag": "IMPETUS_CONTEXT_SANITIZER",
+          "module": "security/contextExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "explainability",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+          "module": "explainability/governanceExplainabilityEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "oversight",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+          "module": "oversight/governanceOversightService",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "drift",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+          "module": "oversight/governanceDriftDetector",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "audit_feed",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+          "module": "audit/cognitiveGovernanceAuditFeed",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "readiness",
+          "phase": "H",
+          "flag": "IMPETUS_GOVERNANCE_READINESS",
+          "module": "governanceReadiness/governanceReadinessEngine",
+          "flag_on": true,
+          "module_exists": true,
+          "status": "governance_active_env"
+        },
+        {
+          "id": "quality_gates",
+          "phase": "H",
+          "flag": "IMPETUS_GOVERNANCE_QUALITY_GATES",
+          "module": "governanceQuality/governanceQualityGate",
+          "flag_on": true,
+          "module_exists": true,
+          "status": "governance_active_env"
+        },
+        {
+          "id": "controlled_activation",
+          "phase": "I",
+          "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+          "module": "governanceActivation/governanceActivationRuntime",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "operations",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+          "module": "governanceOperations/governanceOperationsService",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "incident_engine",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+          "module": "governanceOperations/governanceIncidentEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "rollout_orchestration",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+          "module": "governanceOperations/governanceActivationOrchestrator",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "telemetry",
+          "phase": "F",
+          "flag": "IMPETUS_GOVERNANCE_SHADOW_MODE",
+          "module": "policyEngine/shadow/governanceShadowComparator",
+          "default_on": true,
+          "flag_on": true,
+          "module_exists": true,
+          "status": "governance_active_env"
+        }
+      ],
+      "coverage_score": 0.9412,
+      "gaps": [
+        {
+          "id": "boundary",
+          "phase": "F",
+          "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+          "module": "policyEngine/cognitiveBoundaryGuard",
+          "flag_on": false,
+          "module_exists": false,
+          "status": "module_missing"
+        }
+      ],
+      "shadow_only_paths": [
+        {
+          "id": "dashboard",
+          "phase": "E",
+          "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+          "module": "policyEngine/unifiedExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "kpi",
+          "phase": "F",
+          "flag": "IMPETUS_KPI_GOVERNANCE",
+          "module": "policyEngine/channels/secureKpiExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "summary",
+          "phase": "F",
+          "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+          "module": "policyEngine/channels/summaryExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "chat",
+          "phase": "F",
+          "flag": "IMPETUS_CHAT_GOVERNANCE",
+          "module": "policyEngine/channels/secureChatContextBuilder",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "contextual_modules",
+          "phase": "E",
+          "flag": "IMPETUS_CONTEXT_SANITIZER",
+          "module": "security/contextExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "explainability",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+          "module": "explainability/governanceExplainabilityEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "oversight",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+          "module": "oversight/governanceOversightService",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "drift",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+          "module": "oversight/governanceDriftDetector",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "audit_feed",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+          "module": "audit/cognitiveGovernanceAuditFeed",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "controlled_activation",
+          "phase": "I",
+          "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+          "module": "governanceActivation/governanceActivationRuntime",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "operations",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+          "module": "governanceOperations/governanceOperationsService",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "incident_engine",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+          "module": "governanceOperations/governanceIncidentEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "rollout_orchestration",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+          "module": "governanceOperations/governanceActivationOrchestrator",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        }
+      ],
+      "potential_bypasses": [
+        {
+          "id": "dashboard",
+          "phase": "E",
+          "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+          "module": "policyEngine/unifiedExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "kpi",
+          "phase": "F",
+          "flag": "IMPETUS_KPI_GOVERNANCE",
+          "module": "policyEngine/channels/secureKpiExposureResolver",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "summary",
+          "phase": "F",
+          "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+          "module": "policyEngine/channels/summaryExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "chat",
+          "phase": "F",
+          "flag": "IMPETUS_CHAT_GOVERNANCE",
+          "module": "policyEngine/channels/secureChatContextBuilder",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "contextual_modules",
+          "phase": "E",
+          "flag": "IMPETUS_CONTEXT_SANITIZER",
+          "module": "security/contextExposureSanitizer",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "explainability",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+          "module": "explainability/governanceExplainabilityEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "oversight",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+          "module": "oversight/governanceOversightService",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "drift",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+          "module": "oversight/governanceDriftDetector",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "audit_feed",
+          "phase": "G",
+          "flag": "IMPETUS_GOVERNANCE_AUDIT_FEED",
+          "module": "audit/cognitiveGovernanceAuditFeed",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "controlled_activation",
+          "phase": "I",
+          "flag": "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+          "module": "governanceActivation/governanceActivationRuntime",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "incident_engine",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+          "module": "governanceOperations/governanceIncidentEngine",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        },
+        {
+          "id": "rollout_orchestration",
+          "phase": "J",
+          "flag": "IMPETUS_GOVERNANCE_OPERATIONS",
+          "module": "governanceOperations/governanceActivationOrchestrator",
+          "flag_on": false,
+          "module_exists": true,
+          "status": "shadow_only"
+        }
+      ],
+      "inconsistencies": [
+        "missing_modules"
+      ],
+      "auto_activation": false
+    },
+    "regression": {
+      "phase_integration": [
+        {
+          "phase": "E",
+          "path": "policyEngine/index",
+          "integrated": true,
+          "reason": null
+        },
+        {
+          "phase": "F",
+          "path": "policyEngine/config/phaseFFeatureFlags",
+          "integrated": true,
+          "reason": null
+        },
+        {
+          "phase": "G",
+          "path": "explainability/config/phaseGFeatureFlags",
+          "integrated": true,
+          "reason": null
+        },
+        {
+          "phase": "H",
+          "path": "governanceReadiness/governanceReadinessEngine",
+          "integrated": true,
+          "reason": null
+        },
+        {
+          "phase": "I",
+          "path": "governanceActivation/governanceActivationRuntime",
+          "integrated": true,
+          "reason": null
+        },
+        {
+          "phase": "J",
+          "path": "governanceOperations/governanceOperationsService",
+          "integrated": true,
+          "reason": null
+        }
+      ],
+      "deny_first_precedence": {
+        "ok": true,
+        "rule": "deny_first_safe_minimal"
+      },
+      "tenant_isolation": {
+        "ok": true,
+        "rule": "tenant_activation_isolation"
+      },
+      "audit_integrity": {
+        "ok": true,
+        "rule": "audit_append_only"
+      },
+      "regression_count": 0,
+      "passed": true,
+      "auto_activation": false
+    },
+    "readiness_summary": {
+      "readiness_score": 97,
+      "activation_safety_score": 97,
+      "leakage_risk": "low",
+      "overblocking_risk": "low"
+    },
+    "shadow_summary": {
+      "shadow_alignment": 1,
+      "governance_confidence": 1
+    },
+    "auto_activation": false
+  },
+  "final_readiness": {
+    "governance_health": 97,
+    "runtime_stability": "stable",
+    "shadow_alignment": 1,
+    "leakage_risk": "low",
+    "overblocking_risk": "low",
+    "rollout_readiness": "safe_gradual_activation",
+    "production_status": "enterprise_ready",
+    "activation_readiness": 97,
+    "tenant_isolation_confidence": "high",
+    "explainability_maturity": "shadow_ready",
+    "operational_maturity": "enterprise",
+    "auto_activation": false,
+    "assessed_at": "2026-05-19T17:26:15.922Z"
+  },
+  "flags": {
+    "final_review": true,
+    "runtime_validation": true,
+    "rollout_safety": true
+  },
+  "auto_activation": false,
+  "global_governance_active": false
+}

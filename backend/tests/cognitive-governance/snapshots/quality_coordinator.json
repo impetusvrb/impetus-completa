@@ -1,0 +1,25 @@
+{
+  "functional_axis": "quality",
+  "profile_code": "coordinator_quality",
+  "visible_modules": [
+    "dashboard",
+    "operational",
+    "proaction",
+    "biblioteca",
+    "ai",
+    "quality_intelligence",
+    "settings",
+    "registro_inteligente",
+    "cadastrar_com_ia"
+  ],
+  "denied_modules": [],
+  "allow_ai_insights": true,
+  "allow_kpis": true,
+  "cognitive_envelope": {
+    "depth": "operational",
+    "primary_axis": "quality",
+    "ai_inference_scope": "operational_bounded",
+    "cross_domain_access": false
+  },
+  "policy_engine_enabled": true
+}

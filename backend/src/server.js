@@ -695,6 +695,214 @@ useRoute(
   internalAcl('enterprise'),
   apiByUserLimiter
 );
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernancePhaseG',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernancePhaseH',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernancePhaseI',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernancePhaseJ',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernanceFinalReview',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernanceProductionRollout',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/cognitiveGovernanceBootstrap',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/semanticRuntimeAlignment',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance',
+  './routes/internal/runtimePrecision',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/cognitive-convergence',
+  './routes/internal/cognitiveConvergence',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/cognitive-operations',
+  './routes/internal/cognitiveOperations',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-stabilization',
+  './routes/internal/runtimeStabilization',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/contextual-delivery',
+  './routes/internal/contextualDeliveryStabilization',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-consistency',
+  './routes/internal/runtimeConsistency',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/decision-reliability',
+  './routes/internal/decisionReliability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/controlled-activation',
+  './routes/internal/controlledActivation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-rollout',
+  './routes/internal/kpiRollout',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-stabilization',
+  './routes/internal/kpiStabilization',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-rollout',
+  './routes/internal/summaryRollout',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/chat-alignment',
+  './routes/internal/chatAlignment',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-enrichment',
+  './routes/internal/runtimeEnrichment',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-calibration',
+  './routes/internal/runtimeCalibration',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/production-deployment',
+  './routes/internal/productionDeployment',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/tenant-rollout',
+  './routes/internal/tenantRollout',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-tuning',
+  './routes/internal/runtimeTuning',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-consolidation',
+  './routes/internal/runtimeConsolidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';

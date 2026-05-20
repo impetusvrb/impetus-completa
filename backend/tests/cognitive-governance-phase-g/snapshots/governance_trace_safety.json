@@ -1,0 +1,16 @@
+{
+  "trace_id": "db25180d-47c9-41f5-b8a7-9e3399b34d19",
+  "explanation": {
+    "decision": "deny",
+    "reason": "cross_domain_blocked",
+    "winning_layer": "domain_authority",
+    "winning_layer_label": "Autoridade de domínio (Domain Authority)",
+    "domain": "safety",
+    "blocked_content": "environment_intelligence",
+    "policy_source": "content_exposure_policy_engine",
+    "envelope_scope": null,
+    "channel": "governance_test",
+    "human_summary": "Conteúdo negado pela camada «domain_authority»: cross_domain_blocked.",
+    "meta": {}
+  }
+}

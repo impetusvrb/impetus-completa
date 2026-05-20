@@ -1,0 +1,7 @@
+{
+  "governed": true,
+  "kpi_keys": [
+    "incidents"
+  ],
+  "has_mqtt": false
+}

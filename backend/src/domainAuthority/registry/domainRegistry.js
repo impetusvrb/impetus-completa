@@ -37,7 +37,15 @@ const DOMAIN_DEFINITIONS = Object.freeze({
       'quality_intelligence',
       'raw_material_lots',
       'manuia',
-      'anomaly_detection'
+      'anomaly_detection',
+      'safety_intelligence'
+    ],
+    exclusive_modules: [
+      'environment_intelligence',
+      'emissions',
+      'waste_management',
+      'environmental_compliance',
+      'esg'
     ],
     denied_pipelines: ['quality_spc', 'quality_capa', 'quality_ncr', 'supplier_quality'],
     allowed_pipelines: [
@@ -188,18 +196,82 @@ const DOMAIN_DEFINITIONS = Object.freeze({
 
   safety: {
     axis: 'safety',
-    profiles: ['coordinator_safety', 'manager_safety', 'supervisor_safety', 'director_operations'],
+    profiles: [
+      'coordinator_safety',
+      'manager_safety',
+      'supervisor_safety',
+      'director_safety'
+    ],
+    allowed_modules: [...UNIVERSAL_MODULES, 'safety_intelligence', 'audit'],
+    inherited_modules: ['telemetry_core'],
+    shared_modules: ['operational', 'proaction', 'biblioteca', 'ai'],
+    exclusive_modules: [
+      'safety_intelligence',
+      'incident_management',
+      'epi_management',
+      'permit_to_work',
+      'risk_matrix',
+      'behavioral_safety',
+      'safety_compliance',
+      'nr_governance',
+      'critical_alerts',
+      'occupational_health'
+    ],
+    denied_modules: [
+      'quality_intelligence',
+      'raw_material_lots',
+      'environment_intelligence',
+      'manuia',
+      'anomaly_detection'
+    ],
+    denied_pipelines: [
+      'quality_spc',
+      'quality_capa',
+      'esg_reporting',
+      'emissions',
+      'waste_management',
+      'environmental_governance',
+      'carbon_inventory',
+      'gee_corporate',
+      'ete_management'
+    ],
+    allowed_pipelines: [
+      'sst',
+      'incident_safety',
+      'epi',
+      'permit_to_work',
+      'risk_matrix',
+      'safety_compliance',
+      'critical_alerts',
+      'telemetry_critical'
+    ],
+    dashboards: ['safety_management', 'safety_operational'],
+    widgets: ['incidents_safety', 'epi_compliance', 'safety_incidents', 'critical_alerts'],
+    ai_contexts: ['safety', 'sst', 'sso', 'occupational_health'],
+    semantic_keywords: ['seguranca do trabalho', 'sst', 'sso', 'epi', 'acidente de trabalho', 'nr-'],
+    departments: ['seguranca', 'sst', 'seguranca do trabalho'],
+    structural_roles: ['tecnico de seguranca', 'coordenador de seguranca'],
+    tenant_overrides_supported: true,
+    inherits_environmental: false
+  },
+
+  ehs_shared: {
+    axis: 'ehs_shared',
+    profiles: ['coordinator_safety', 'manager_safety'],
     allowed_modules: [...UNIVERSAL_MODULES, 'audit'],
-    denied_modules: ['quality_intelligence', 'raw_material_lots'],
-    denied_pipelines: ['quality_spc'],
-    allowed_pipelines: ['sst', 'incident_safety', 'epi'],
-    dashboards: ['safety_management'],
-    widgets: ['incidents_safety', 'epi_compliance'],
-    ai_contexts: ['safety', 'sst', 'sso'],
-    semantic_keywords: ['seguranca do trabalho', 'sst', 'sso', 'epi', 'acidente de trabalho'],
-    departments: ['seguranca', 'sst'],
-    structural_roles: ['tecnico de seguranca'],
-    tenant_overrides_supported: true
+    shared_modules: ['operational', 'proaction'],
+    exclusive_modules: [],
+    denied_modules: ['environment_intelligence', 'quality_intelligence', 'esg_corporate'],
+    denied_pipelines: ['esg_reporting', 'emissions', 'quality_spc'],
+    allowed_pipelines: ['ehs', 'sst', 'occupational_health'],
+    dashboards: ['ehs_operational'],
+    widgets: [],
+    ai_contexts: ['ehs', 'safety'],
+    semantic_keywords: ['ehs', 'hsse'],
+    departments: [],
+    structural_roles: [],
+    tenant_overrides_supported: true,
+    inherits_environmental: false
   },
 
   engineering: {
@@ -429,18 +501,20 @@ const DOMAIN_DEFINITIONS = Object.freeze({
 
   environmental_health_safety: {
     axis: 'environmental_health_safety',
-    profiles: ['coordinator_environmental', 'coordinator_safety', 'manager_environmental'],
-    allowed_modules: [...UNIVERSAL_MODULES, 'environment_intelligence', 'audit'],
-    denied_modules: ['quality_intelligence'],
-    denied_pipelines: ['quality_spc'],
-    allowed_pipelines: ['ehs', 'sst', 'environmental_compliance'],
-    dashboards: ['ehs'],
-    widgets: [],
-    ai_contexts: ['ehs', 'environmental', 'safety'],
+    profiles: ['coordinator_safety', 'manager_safety', 'supervisor_safety'],
+    allowed_modules: [...UNIVERSAL_MODULES, 'safety_intelligence', 'audit'],
+    shared_modules: ['operational', 'proaction'],
+    denied_modules: ['environment_intelligence', 'quality_intelligence'],
+    denied_pipelines: ['esg_reporting', 'emissions', 'carbon_inventory', 'quality_spc'],
+    allowed_pipelines: ['ehs', 'sst', 'incident_safety', 'epi'],
+    dashboards: ['ehs_operational', 'safety_management'],
+    widgets: ['safety_incidents', 'epi_compliance'],
+    ai_contexts: ['ehs', 'safety'],
     semantic_keywords: ['ehs', 'hsse'],
     departments: [],
     structural_roles: [],
-    tenant_overrides_supported: true
+    tenant_overrides_supported: true,
+    inherits_environmental: false
   },
 
   industrial: {

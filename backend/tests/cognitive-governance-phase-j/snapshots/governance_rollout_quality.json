@@ -1,0 +1,142 @@
+{
+  "ok": true,
+  "auto_execute": false,
+  "readiness_score": 97,
+  "activation_recommendation": "full_activation_candidate",
+  "steps": [
+    {
+      "channel": "kpi",
+      "status": "pending_manual_promotion",
+      "endpoint_hint": "POST /api/internal/governance/activate/kpi"
+    },
+    {
+      "channel": "summary",
+      "status": "pending_manual_promotion",
+      "endpoint_hint": "POST /api/internal/governance/activate/summary"
+    },
+    {
+      "channel": "chat",
+      "status": "pending_manual_promotion",
+      "endpoint_hint": "POST /api/internal/governance/activate/chat"
+    },
+    {
+      "channel": "boundary",
+      "status": "pending_manual_promotion",
+      "endpoint_hint": "POST /api/internal/governance/activate/boundary"
+    }
+  ],
+  "activation_plan": {
+    "enabled": true,
+    "auto_execute": false,
+    "readiness_score": 97,
+    "activation_safety_score": 97,
+    "max_recommended_step": 7,
+    "activation_mode": "full_staged",
+    "foundation_flags": [
+      {
+        "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+        "label": "Content exposure policy engine",
+        "recommended": true,
+        "status": "candidate_after_shadow_validation"
+      },
+      {
+        "flag": "IMPETUS_COGNITIVE_ENVELOPE",
+        "label": "Cognitive envelope",
+        "recommended": true,
+        "status": "candidate_after_shadow_validation"
+      },
+      {
+        "flag": "IMPETUS_CONTEXT_SANITIZER",
+        "label": "Context sanitizer",
+        "recommended": true,
+        "status": "candidate_after_shadow_validation"
+      }
+    ],
+    "channel_steps": [
+      {
+        "step": 1,
+        "flag": "IMPETUS_KPI_GOVERNANCE",
+        "channel": "dashboard_kpis",
+        "label": "KPI governance",
+        "risk": "low",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_KPI_GOVERNANCE=on (manual)"
+      },
+      {
+        "step": 2,
+        "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+        "channel": "smart_summary",
+        "label": "Summary governance",
+        "risk": "medium",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_SUMMARY_GOVERNANCE=on (manual)"
+      },
+      {
+        "step": 3,
+        "flag": "IMPETUS_CHAT_GOVERNANCE",
+        "channel": "dashboard_chat",
+        "label": "Chat governance",
+        "risk": "high",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_CHAT_GOVERNANCE=on (manual)"
+      },
+      {
+        "step": 4,
+        "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+        "channel": "all_ia_pipelines",
+        "label": "Boundary guard",
+        "risk": "high",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_COGNITIVE_BOUNDARY_GUARD=on (manual)"
+      },
+      {
+        "step": 5,
+        "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+        "channel": "oversight",
+        "label": "Oversight layer",
+        "risk": "low",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_GOVERNANCE_OVERSIGHT=on (manual)"
+      },
+      {
+        "step": 6,
+        "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+        "channel": "explainability",
+        "label": "Explainability",
+        "risk": "low",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_GOVERNANCE_EXPLAINABILITY=on (manual)"
+      },
+      {
+        "step": 7,
+        "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+        "channel": "drift",
+        "label": "Drift detection",
+        "risk": "low",
+        "recommended": true,
+        "status": "candidate",
+        "manual_action_required": true,
+        "env_command": "# pm2 set IMPETUS_GOVERNANCE_DRIFT_DETECTION=on (manual)"
+      }
+    ],
+    "prerequisites": [
+      "IMPETUS_GOVERNANCE_SHADOW_MODE=on",
+      "IMPETUS_FAILSAFE_GOVERNANCE=on",
+      "Validar COGNITIVE_EXPOSURE_DIVERGENCE < 5% por 7 dias"
+    ],
+    "rollback_reference": "governanceRollbackCoordinator.coordinateRollback()"
+  },
+  "tenant_id": null
+}

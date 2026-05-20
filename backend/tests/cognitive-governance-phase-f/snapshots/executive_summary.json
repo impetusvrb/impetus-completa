@@ -1,0 +1,15 @@
+{
+  "envelope": {
+    "depth": "strategic",
+    "domains": [
+      "executive"
+    ],
+    "strategic_access": true,
+    "cross_domain_access": true,
+    "ai_inference_scope": "executive_summary",
+    "telemetry_visibility": "executive_aggregates",
+    "hierarchy_level": 1,
+    "primary_axis": "executive"
+  },
+  "allow_ai": false
+}

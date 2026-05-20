@@ -1,0 +1,91 @@
+{
+  "summary_governance": {
+    "phase": "V",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "V",
+      "observability": true,
+      "rollout_flag": false,
+      "channel_flag": false,
+      "global_auto_activation": false,
+      "memory": {
+        "activated": false,
+        "at": null,
+        "approved_by": null
+      },
+      "supervision": {
+        "observability": true,
+        "rollout_enabled": false,
+        "channel_governance": false,
+        "global_auto_activation": false,
+        "telemetry": {
+          "summary_delivery_precision": 0.825,
+          "summary_usefulness": 0.2625,
+          "operational_relevance": 0.5563,
+          "narrative_integrity": 1,
+          "contextual_alignment": 0.85,
+          "hierarchy_coherence": 0.8,
+          "samples": 1,
+          "ts": "2026-05-20T00:00:56.459Z"
+        }
+      },
+      "telemetry": {
+        "summary_delivery_precision": 0.825,
+        "summary_usefulness": 0.2625,
+        "operational_relevance": 0.5563,
+        "narrative_integrity": 1,
+        "contextual_alignment": 0.85,
+        "hierarchy_coherence": 0.8,
+        "samples": 1,
+        "ts": "2026-05-20T00:00:56.459Z"
+      },
+      "flags": {
+        "IMPETUS_SUMMARY_GOVERNANCE_ROLLOUT": false,
+        "IMPETUS_SUMMARY_SEMANTIC_STABILIZATION": false,
+        "IMPETUS_SUMMARY_RELEVANCE_ENGINE": false,
+        "IMPETUS_SUMMARY_DELIVERY_PRECISION": false,
+        "IMPETUS_SUMMARY_GOVERNANCE_OBSERVABILITY": true,
+        "IMPETUS_SUMMARY_GOVERNANCE": false
+      }
+    },
+    "readiness_score": 0.7938,
+    "leakage": {
+      "detected": true,
+      "count": 2
+    },
+    "underdelivery": {
+      "detected": true
+    },
+    "auto_correct": false,
+    "supervised": true
+  },
+  "summary_relevance": {
+    "operational_relevance": 0.5563,
+    "summary_usefulness": 0.2625,
+    "hierarchy_coherence": 0.8,
+    "contextual_alignment": 0.85,
+    "recommendations": [],
+    "auto_correct": false
+  },
+  "summary_semantic_alignment": {
+    "summary_semantic_alignment": 0.95,
+    "narrative_alignment_score": 0.95,
+    "stable": true,
+    "auto_correct": false
+  },
+  "summary_narrative_integrity": {
+    "narrative_integrity": 1,
+    "issues": [],
+    "recommendations": [],
+    "auto_correct": false
+  },
+  "summary_delivery_precision": {
+    "summary_delivery_precision": 0.825,
+    "delivery_precision_score": 0.825,
+    "contextual_alignment_score": 0.85,
+    "hierarchy_integrity_score": 0.8,
+    "semantic_relevance_score": 0.5563,
+    "auto_correct": false
+  }
+}

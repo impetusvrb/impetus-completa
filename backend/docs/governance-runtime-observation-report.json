@@ -1,0 +1,617 @@
+{
+  "generated_at": "2026-05-19T18:51:13.363Z",
+  "mode": "shadow_observability_first",
+  "hard_enforcement_active": false,
+  "runtime_health": {
+    "governance_health": 97,
+    "runtime_stability": "stable",
+    "production_status": "enterprise_ready",
+    "stabilization": {
+      "monitoring": true,
+      "stabilization_score": 1,
+      "runtime_activation_confidence": 1,
+      "governance_operational_pressure": 0,
+      "contextual_preservation_score": 1,
+      "rollout_runtime_integrity": "intact",
+      "stable": true,
+      "sample_count": 0
+    }
+  },
+  "governance_coverage": {
+    "entrypoints_total": 13,
+    "governed": 4,
+    "shadow_only": 8,
+    "gaps_count": 35
+  },
+  "entrypoint_gaps": [
+    {
+      "id": "manutencao_ia",
+      "route": "POST /manutencao-ia/*",
+      "module": "routes/manutencao-ia",
+      "channel": "ia",
+      "classification": "unknown",
+      "module_exists": true,
+      "runtime_classification": "unknown"
+    },
+    {
+      "id": "routes/cadastrarComIA.js",
+      "route": "routes/cadastrarComIA.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "routes/tts.js",
+      "route": "routes/tts.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "routes/voz.js",
+      "route": "routes/voz.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "policyEngine/channels/summaryExposureSanitizer.js",
+      "route": "policyEngine/channels/summaryExposureSanitizer.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "policyEngine/cognitiveEnvelopeResolver.js",
+      "route": "policyEngine/cognitiveEnvelopeResolver.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/aiEgressGuardService.js",
+      "route": "services/aiEgressGuardService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/aiIntegrationsHealthService.js",
+      "route": "services/aiIntegrationsHealthService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/aiLatencyMonitor.js",
+      "route": "services/aiLatencyMonitor.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/aiProviderService.js",
+      "route": "services/aiProviderService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/architectureHealthService.js",
+      "route": "services/architectureHealthService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/billingTokenService.js",
+      "route": "services/billingTokenService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/communicationEscalation.js",
+      "route": "services/communicationEscalation.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/diagnostic.js",
+      "route": "services/diagnostic.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/enterprise/executiveCompositionService.js",
+      "route": "services/enterprise/executiveCompositionService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/eventPipelineBootstrapService.js",
+      "route": "services/eventPipelineBootstrapService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/executiveMode.js",
+      "route": "services/executiveMode.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/hrIntelligenceService.js",
+      "route": "services/hrIntelligenceService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/openaiVozService.js",
+      "route": "services/openaiVozService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/operational/documentOperationalRuntime.js",
+      "route": "services/operational/documentOperationalRuntime.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/operational/operationalAssistanceRuntime.js",
+      "route": "services/operational/operationalAssistanceRuntime.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/operational/operationalToolRegistry.js",
+      "route": "services/operational/operationalToolRegistry.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/operationalForecastingAI.js",
+      "route": "services/operationalForecastingAI.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/organizationalAI.js",
+      "route": "services/organizationalAI.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/personalizedInsightsService.js",
+      "route": "services/personalizedInsightsService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/plcAi.js",
+      "route": "services/plcAi.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/realtimeOpenaiProxy.js",
+      "route": "services/realtimeOpenaiProxy.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/resilienceLoadShape.js",
+      "route": "services/resilienceLoadShape.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/runLlm.js",
+      "route": "services/runLlm.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/smartSummary.js",
+      "route": "services/smartSummary.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/ttsWelcomeTemplate.js",
+      "route": "services/ttsWelcomeTemplate.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "services/voiceRealtimeContextService.js",
+      "route": "services/voiceRealtimeContextService.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "ai/aiRoles.js",
+      "route": "ai/aiRoles.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "ai/orchestrator.js",
+      "route": "ai/orchestrator.js",
+      "runtime_classification": "ungoverned"
+    },
+    {
+      "id": "ai/orchestratorExecutionGate.js",
+      "route": "ai/orchestratorExecutionGate.js",
+      "runtime_classification": "ungoverned"
+    }
+  ],
+  "orphan_pipelines": [
+    {
+      "file": "routes/cadastrarComIA.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "routes/tts.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "routes/voz.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "policyEngine/channels/summaryExposureSanitizer.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "policyEngine/cognitiveEnvelopeResolver.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/aiEgressGuardService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/aiIntegrationsHealthService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/aiLatencyMonitor.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/aiProviderService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/architectureHealthService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/billingTokenService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/communicationEscalation.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/diagnostic.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/enterprise/executiveCompositionService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/eventPipelineBootstrapService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/executiveMode.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/hrIntelligenceService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/openaiVozService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/operational/documentOperationalRuntime.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/operational/operationalAssistanceRuntime.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/operational/operationalToolRegistry.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/operationalForecastingAI.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/organizationalAI.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/personalizedInsightsService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/plcAi.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/realtimeOpenaiProxy.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/resilienceLoadShape.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/runLlm.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/smartSummary.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/ttsWelcomeTemplate.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "services/voiceRealtimeContextService.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "ai/aiRoles.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "ai/orchestrator.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    },
+    {
+      "file": "ai/orchestratorExecutionGate.js",
+      "has_governance_hook": false,
+      "classification": "ungoverned"
+    }
+  ],
+  "legacy_route_usage": [
+    {
+      "file": "routes/chatVoice.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "routes/communications.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/ai.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/aiOrchestrator.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/aiPromptGuardService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/aiSecurityGateway.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/chatAIService.consolidated.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/chatAIService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/circuitBreakerService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/claudePanelService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/claudeService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/equipmentResearchService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/financialLeakageDetectorService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/impetusVoiceChatService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/intelligentRegistrationService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/manuiaApp/manuiaAiSummaryService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/manuiaLiveAssistanceService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/mediaProcessorService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/onboardingService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/proacao.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/pulseAI.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/qualityIntelligenceService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/rawMaterialLotDetectionService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/resilienceFallback.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/roleVerificationService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/smartPanelCommandService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/unifiedOrchestrator.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/vectorRuntimeService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/voiceTtsService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "services/warehouseIntelligenceService.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "ai/layers/executionLayer.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    },
+    {
+      "file": "ai/responseSynthesizer.js",
+      "has_governance_hook": false,
+      "classification": "legacy"
+    }
+  ],
+  "code_scan_summary": {
+    "total_cognitive_files": 78,
+    "ungoverned_count": 34,
+    "legacy_count": 32
+  },
+  "leakage_risk": "low",
+  "divergence_metrics": {
+    "shadow_alignment": 1,
+    "shadow_passed": true,
+    "aggregate_divergence_events": 0
+  },
+  "contextual_degradation": {
+    "risk": "low",
+    "contextual_anomalies": 0
+  },
+  "overblocking_risk": "low",
+  "runtime_anomalies": {
+    "shadow_divergence": {
+      "count": 0,
+      "recent": []
+    },
+    "governance_conflicts": {
+      "count": 0,
+      "recent": []
+    },
+    "cross_domain_attempts": {
+      "count": 0,
+      "recent": []
+    },
+    "runtime_degradation": {
+      "count": 0,
+      "recent": []
+    },
+    "contextual_anomalies": {
+      "count": 0,
+      "recent": []
+    },
+    "orphan_pipelines": {
+      "count": 0,
+      "recent": []
+    },
+    "legacy_routes": {
+      "count": 0,
+      "recent": []
+    },
+    "ungoverned_entrypoints": {
+      "count": 0,
+      "recent": []
+    },
+    "log_dir": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime",
+    "aggregate_file": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime/shadow-runtime-aggregate.jsonl"
+  },
+  "rollout_readiness": "safe_gradual_activation",
+  "kpi_readiness": {
+    "safe": true,
+    "recommendation": {
+      "action": "soft_kpi_activation_candidate",
+      "env_hint": "IMPETUS_KPI_GOVERNANCE=on OR POST /api/internal/governance/production/promote/kpi",
+      "auto_execute": false,
+      "observe_days": 7
+    },
+    "metrics": {
+      "runtime_stable": true,
+      "divergence_low": true,
+      "leakage_low": true,
+      "overblocking_low": true
+    },
+    "auto_activate": false
+  },
+  "stabilization_recommendations": [
+    "Manter observação shadow 7 dias",
+    "KPI soft activation é candidato — activação manual apenas",
+    "Não activar chat/summary/boundary até nova revisão"
+  ],
+  "pre_deploy_audit_passed": true,
+  "auto_activation": false
+}

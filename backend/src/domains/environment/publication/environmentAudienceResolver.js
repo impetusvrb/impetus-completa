@@ -48,12 +48,38 @@ const AUDIENCE_MANIFEST_IDS = Object.freeze({
 
 function resolveEnvironmentAudienceBand(user) {
   if (!user) return 'production';
+  try {
+    const ehsGuard = require('../../../domainAuthority/resolvers/ehsPublicationGuard');
+    if (!ehsGuard.shouldPublishEnvironmentNavigation(user)) return 'production';
+  } catch {
+    /* optional layer */
+  }
+
   const role = String(user.role || user.perfil || '').toLowerCase();
-  const area = String(user.functional_area || user.area || '').toLowerCase();
-  if (['diretor', 'ceo', 'director'].some((k) => role.includes(k))) return 'director';
-  if (role.includes('gerente') || role.includes('manager')) return 'manager';
-  if (role.includes('coordenador')) return 'coordinator';
-  if (role.includes('supervisor')) return 'supervisor';
+  const area = String(user.functional_area || user.area || user.department || '').toLowerCase();
+
+  if (/(seguranca do trabalho|segurança do trabalho|\bsst\b|sso\b)/.test(area) && !/(ambiental|meio ambiente|esg|emiss)/.test(area)) {
+    return 'production';
+  }
+
+  if (['diretor', 'ceo', 'director'].some((k) => role.includes(k))) {
+    if (/(ambiental|environment|sustentab|esg)/.test(area)) return 'director';
+    if (!/(seguranca|sst|sso)/.test(area)) return 'director';
+    return 'production';
+  }
+  if ((role.includes('gerente') || role.includes('manager')) && /(ambiental|environment|sustentab)/.test(area)) {
+    return 'manager';
+  }
+  if (role.includes('gerente') || role.includes('manager')) {
+    if (/(seguranca|sst)/.test(area)) return 'production';
+    return 'manager';
+  }
+  if (role.includes('coordenador') && /(ambiental|environment|sustentab|esg|meio ambiente)/.test(area)) {
+    return 'coordinator';
+  }
+  if (role.includes('coordenador')) return 'production';
+  if (role.includes('supervisor') && /(ambiental|environment|efluente|emiss)/.test(area)) return 'supervisor';
+  if (role.includes('supervisor')) return 'production';
   if (['ambiental', 'environment', 'eta', 'ete', 'efluente'].some((k) => area.includes(k))) return 'technician';
   if (role.includes('operador') || role.includes('operator')) return 'operator';
   if (role.includes('admin') || role.includes('auditor')) return 'auditor';

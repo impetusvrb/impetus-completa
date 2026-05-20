@@ -6,6 +6,7 @@ import {
   isEnvironmentTelemetryRuntimeEnabled
 } from './environmentTelemetryFeatureFlags.js';
 import { EnvironmentRealtimeStatusBar } from './EnvironmentRealtimeStatusBar.jsx';
+import { evaluateTechnicalRuntimeAccess, readUserFromStorage } from '../../../domainAuthority/technicalRuntimeAccessGuard.js';
 
 export default function EnvironmentRealtimeTelemetryHub({ companyId }) {
   const [health, setHealth] = useState(null);
@@ -35,6 +36,26 @@ export default function EnvironmentRealtimeTelemetryHub({ companyId }) {
         <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
           Telemetria ambiental industrial desligada (shadow).
         </p>
+      </div>
+    );
+  }
+
+  const techAccess = evaluateTechnicalRuntimeAccess(readUserFromStorage(), 'environment_telemetry_connectors');
+  const userAxis = String(readUserFromStorage()?.functional_axis || '').toLowerCase();
+  if (!techAccess.allowed && (userAxis === 'safety' || /seguranca|sst/.test(userAxis))) {
+    return (
+      <div className="impetus-card" style={{ padding: 16, borderRadius: 4 }}>
+        <p style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase' }}>
+          Runtime técnico restrito
+        </p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 8 }}>{techAccess.user_message}</p>
+        <Link
+          to={techAccess.redirect_path || '/app/safety/operational'}
+          className="btn-ghost"
+          style={{ marginTop: 12, display: 'inline-flex', borderRadius: 4 }}
+        >
+          Ir para painel SST
+        </Link>
       </div>
     );
   }
@@ -80,7 +101,11 @@ export default function EnvironmentRealtimeTelemetryHub({ companyId }) {
         <div style={{ textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--cyan)', marginBottom: 8 }}>
           Runtime telemetria / WAVE 3
         </div>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
+        {techAccess.allowed ? (
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
+        ) : (
+          <p style={{ margin: 0 }}>{techAccess.user_message}</p>
+        )}
         <div style={{ marginTop: 8, opacity: 0.85 }}>tenant {String(companyId).slice(0, 8)}…</div>
       </div>
     </div>

@@ -1,0 +1,26 @@
+{
+  "verified": true,
+  "rollback_ready": true,
+  "auto_rollback": false,
+  "supervised": true,
+  "auditable": true,
+  "tenant_id": null,
+  "immediate_actions": [
+    {
+      "action": "demoteChannel",
+      "channel": "kpi",
+      "tenant_id": null
+    }
+  ],
+  "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off pm2 reload impetus-backend --update-env",
+  "env_flags_off": [
+    "IMPETUS_PRODUCTION_ROLLOUT",
+    "IMPETUS_GOVERNANCE_STABILIZATION",
+    "IMPETUS_RUNTIME_OBSERVATION",
+    "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+    "IMPETUS_KPI_GOVERNANCE",
+    "IMPETUS_SUMMARY_GOVERNANCE",
+    "IMPETUS_CHAT_GOVERNANCE",
+    "IMPETUS_COGNITIVE_BOUNDARY_GUARD"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "tenant_id": "tenant-snap",
+  "channel": "kpi",
+  "tenant_safe": true,
+  "sequence_allowed": true,
+  "manual_promotion_required": true,
+  "auto_executed": false,
+  "endpoint": "POST /api/internal/governance/activate/kpi",
+  "observation_days": 7
+}

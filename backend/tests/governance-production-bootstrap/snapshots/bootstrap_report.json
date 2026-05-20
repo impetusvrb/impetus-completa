@@ -1,0 +1,888 @@
+{
+  "generated_at": "2026-05-19T18:51:55.726Z",
+  "deploy_status": "ready",
+  "pm2_runtime_health": "verify_manually",
+  "governance_runtime_status": {
+    "bootstrap_active": true,
+    "mode": "shadow_observability_first",
+    "hard_enforcement": false,
+    "global_governance_enforced": false,
+    "flag_plan": {
+      "activate": {
+        "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION": "on",
+        "IMPETUS_GOVERNANCE_OPERATIONS": "on",
+        "IMPETUS_RUNTIME_GOVERNANCE_MONITORING": "on",
+        "IMPETUS_RUNTIME_OBSERVATION": "on",
+        "IMPETUS_PRODUCTION_ROLLOUT": "on",
+        "IMPETUS_GOVERNANCE_STABILIZATION": "on",
+        "IMPETUS_FINAL_GOVERNANCE_REVIEW": "on",
+        "IMPETUS_RUNTIME_VALIDATION": "on",
+        "IMPETUS_ROLLOUT_SAFETY_VALIDATION": "on",
+        "IMPETUS_GOVERNANCE_SHADOW_MODE": "on",
+        "IMPETUS_FAILSAFE_GOVERNANCE": "on",
+        "IMPETUS_GOVERNANCE_BOOTSTRAP_ACTIVE": "on",
+        "IMPETUS_GLOBAL_SHADOW_OBSERVATION": "on",
+        "IMPETUS_GOVERNANCE_READINESS": "on",
+        "IMPETUS_GOVERNANCE_QUALITY_GATES": "on",
+        "IMPETUS_GOVERNANCE_AUDIT_FEED": "on",
+        "IMPETUS_GOVERNANCE_EXPLAINABILITY": "on",
+        "IMPETUS_GOVERNANCE_INCIDENT_ENGINE": "on",
+        "IMPETUS_GOVERNANCE_RUNTIME_HEALTH": "on"
+      },
+      "keep_off": {
+        "IMPETUS_KPI_GOVERNANCE": "off",
+        "IMPETUS_SUMMARY_GOVERNANCE": "off",
+        "IMPETUS_CHAT_GOVERNANCE": "off",
+        "IMPETUS_COGNITIVE_BOUNDARY_GUARD": "off",
+        "IMPETUS_SOFT_KPI_GOVERNANCE_ROLLOUT": "off"
+      },
+      "auto_apply": false,
+      "pm2_hint": "pm2 reload impetus-backend --update-env",
+      "description": "shadow_first_observability_bootstrap"
+    },
+    "pre_deploy_audit": {
+      "passed": true,
+      "audited_at": "2026-05-19T18:51:55.723Z",
+      "migrations": {
+        "ok": true,
+        "dir": "/var/www/impetus-completa/backend/migrations",
+        "file_count": 15,
+        "destructive_pending": []
+      },
+      "modules": [
+        {
+          "module": "productionRollout/productionRolloutCoordinator",
+          "ok": true
+        },
+        {
+          "module": "runtimeValidation/governanceRuntimeValidation",
+          "ok": true
+        },
+        {
+          "module": "governanceOperations/governanceOperationsService",
+          "ok": true
+        },
+        {
+          "module": "governanceBootstrap/governanceBootstrapCoordinator",
+          "ok": true
+        },
+        {
+          "module": "finalReview/integratedGovernanceReview",
+          "ok": true
+        },
+        {
+          "module": "governanceActivation/governanceActivationRuntime",
+          "ok": true
+        },
+        {
+          "module": "policyEngine/cognitiveGovernanceFacade",
+          "ok": true
+        },
+        {
+          "module": "policyEngine/shadow/governanceShadowComparator",
+          "ok": true
+        }
+      ],
+      "internal_route_guards": {
+        "ok": true,
+        "governance_route_refs": 7,
+        "internal_net_governance": 9
+      },
+      "tenant_admins": {
+        "ok": true,
+        "note": "verify_via_db_in_deploy_script"
+      },
+      "support_recovery": {
+        "ok": true,
+        "note": "verify_via_db_in_deploy_script"
+      },
+      "governance_tables": {
+        "ok": true,
+        "note": "audit_feed_jsonl_optional"
+      },
+      "pm2_health": {
+        "ok": true,
+        "note": "verify_via_pm2_list_in_deploy_script"
+      },
+      "destructive_migration_pending": false,
+      "auto_deploy": false
+    },
+    "operations": {
+      "enabled": true,
+      "flags": {
+        "operations": true,
+        "incident_engine": true,
+        "runtime_health": true,
+        "emergency_controls": false
+      },
+      "operational_state": {
+        "state": "shadow_only",
+        "valid_states": [
+          "shadow_only",
+          "partial_governance",
+          "controlled_activation",
+          "stabilized",
+          "degraded",
+          "rollback_ready",
+          "emergency_mode"
+        ],
+        "last_transition_at": null,
+        "transition_count": 0
+      },
+      "lifecycle": {
+        "phases": [
+          "foundation",
+          "shadow_observation",
+          "readiness_assessment",
+          "controlled_activation",
+          "stabilization",
+          "operations"
+        ],
+        "current_phase": "operations",
+        "operational_state": {
+          "state": "shadow_only",
+          "valid_states": [
+            "shadow_only",
+            "partial_governance",
+            "controlled_activation",
+            "stabilized",
+            "degraded",
+            "rollback_ready",
+            "emergency_mode"
+          ],
+          "last_transition_at": null,
+          "transition_count": 0
+        },
+        "readiness_summary": {
+          "readiness_score": 97,
+          "activation_recommendation": "full_activation_candidate",
+          "auto_activation": false
+        },
+        "activation_runtime": {
+          "controlled_framework": true,
+          "tenant_safe": false,
+          "global_channels": {
+            "kpi": false,
+            "summary": false,
+            "chat": false,
+            "boundary": false,
+            "explainability": false,
+            "oversight": false,
+            "drift": false
+          },
+          "metrics": {
+            "activation_count": 0,
+            "denial_count": 0,
+            "last_activation_at": null
+          }
+        },
+        "auto_progression": false
+      },
+      "runtime": {
+        "collected_at": "2026-05-19T18:51:55.713Z",
+        "tenant_id": null,
+        "activation": {
+          "controlled_framework": true,
+          "tenant_safe": false,
+          "global_channels": {
+            "kpi": false,
+            "summary": false,
+            "chat": false,
+            "boundary": false,
+            "explainability": false,
+            "oversight": false,
+            "drift": false
+          },
+          "metrics": {
+            "activation_count": 0,
+            "denial_count": 0,
+            "last_activation_at": null
+          }
+        },
+        "channels": [
+          {
+            "channel": "kpi",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "summary",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "chat",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "boundary",
+            "active": false,
+            "source": "runtime_not_promoted"
+          }
+        ],
+        "phase_i_health": {
+          "monitoring": true,
+          "governance_runtime_health": "healthy",
+          "activation_stability_score": 1,
+          "runtime_overblocking_rate": 0,
+          "runtime_context_loss": 0,
+          "activation_degradation_score": 0,
+          "sample_count": 0,
+          "runtime_state": {
+            "controlled_framework": true,
+            "tenant_safe": false,
+            "global_channels": {
+              "kpi": false,
+              "summary": false,
+              "chat": false,
+              "boundary": false,
+              "explainability": false,
+              "oversight": false,
+              "drift": false
+            },
+            "metrics": {
+              "activation_count": 0,
+              "denial_count": 0,
+              "last_activation_at": null
+            }
+          }
+        },
+        "production_health": {
+          "enabled": true,
+          "production_ready": true,
+          "stability": {
+            "enabled": true,
+            "governance_runtime_stability": 1,
+            "status": "stable",
+            "overblocking_rate": 0,
+            "context_loss_rate": 0,
+            "degradation_score": 0,
+            "governance_runtime_health": "healthy",
+            "auto_remediation": false
+          },
+          "metrics": {
+            "governance_operational_health": 0.985,
+            "governance_runtime_stability": 1,
+            "governance_activation_safety": 97,
+            "governance_incident_rate": 0,
+            "governance_drift_pressure": 0.1,
+            "governance_context_integrity": 1,
+            "readiness_score": 97,
+            "computed_at": "2026-05-19T18:51:55.713Z"
+          },
+          "residual_leakage_risk": "controlled",
+          "false_positive_pressure": 0,
+          "overblocking_pressure": 0,
+          "auto_remediation": false,
+          "assessed_at": "2026-05-19T18:51:55.713Z"
+        }
+      },
+      "metrics": {
+        "governance_operational_health": 0.985,
+        "governance_runtime_stability": 1,
+        "governance_activation_safety": 97,
+        "governance_incident_rate": 0,
+        "governance_drift_pressure": 0.1,
+        "governance_context_integrity": 1,
+        "readiness_score": 97,
+        "computed_at": "2026-05-19T18:51:55.713Z"
+      },
+      "rollout": {
+        "auto_execute": false,
+        "steps": [
+          {
+            "channel": "kpi",
+            "status": "pending_manual_promotion",
+            "endpoint_hint": "POST /api/internal/governance/activate/kpi"
+          },
+          {
+            "channel": "summary",
+            "status": "pending_manual_promotion",
+            "endpoint_hint": "POST /api/internal/governance/activate/summary"
+          },
+          {
+            "channel": "chat",
+            "status": "pending_manual_promotion",
+            "endpoint_hint": "POST /api/internal/governance/activate/chat"
+          },
+          {
+            "channel": "boundary",
+            "status": "pending_manual_promotion",
+            "endpoint_hint": "POST /api/internal/governance/activate/boundary"
+          }
+        ],
+        "activation_plan": {
+          "enabled": true,
+          "auto_execute": false,
+          "readiness_score": 97,
+          "activation_safety_score": 97,
+          "max_recommended_step": 7,
+          "activation_mode": "full_staged",
+          "foundation_flags": [
+            {
+              "flag": "IMPETUS_COGNITIVE_POLICY_ENGINE",
+              "label": "Content exposure policy engine",
+              "recommended": true,
+              "status": "candidate_after_shadow_validation"
+            },
+            {
+              "flag": "IMPETUS_COGNITIVE_ENVELOPE",
+              "label": "Cognitive envelope",
+              "recommended": true,
+              "status": "candidate_after_shadow_validation"
+            },
+            {
+              "flag": "IMPETUS_CONTEXT_SANITIZER",
+              "label": "Context sanitizer",
+              "recommended": true,
+              "status": "candidate_after_shadow_validation"
+            }
+          ],
+          "channel_steps": [
+            {
+              "step": 1,
+              "flag": "IMPETUS_KPI_GOVERNANCE",
+              "channel": "dashboard_kpis",
+              "label": "KPI governance",
+              "risk": "low",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_KPI_GOVERNANCE=on (manual)"
+            },
+            {
+              "step": 2,
+              "flag": "IMPETUS_SUMMARY_GOVERNANCE",
+              "channel": "smart_summary",
+              "label": "Summary governance",
+              "risk": "medium",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_SUMMARY_GOVERNANCE=on (manual)"
+            },
+            {
+              "step": 3,
+              "flag": "IMPETUS_CHAT_GOVERNANCE",
+              "channel": "dashboard_chat",
+              "label": "Chat governance",
+              "risk": "high",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_CHAT_GOVERNANCE=on (manual)"
+            },
+            {
+              "step": 4,
+              "flag": "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+              "channel": "all_ia_pipelines",
+              "label": "Boundary guard",
+              "risk": "high",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_COGNITIVE_BOUNDARY_GUARD=on (manual)"
+            },
+            {
+              "step": 5,
+              "flag": "IMPETUS_GOVERNANCE_OVERSIGHT",
+              "channel": "oversight",
+              "label": "Oversight layer",
+              "risk": "low",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_GOVERNANCE_OVERSIGHT=on (manual)"
+            },
+            {
+              "step": 6,
+              "flag": "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+              "channel": "explainability",
+              "label": "Explainability",
+              "risk": "low",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_GOVERNANCE_EXPLAINABILITY=on (manual)"
+            },
+            {
+              "step": 7,
+              "flag": "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+              "channel": "drift",
+              "label": "Drift detection",
+              "risk": "low",
+              "recommended": true,
+              "status": "candidate",
+              "manual_action_required": true,
+              "env_command": "# pm2 set IMPETUS_GOVERNANCE_DRIFT_DETECTION=on (manual)"
+            }
+          ],
+          "prerequisites": [
+            "IMPETUS_GOVERNANCE_SHADOW_MODE=on",
+            "IMPETUS_FAILSAFE_GOVERNANCE=on",
+            "Validar COGNITIVE_EXPOSURE_DIVERGENCE < 5% por 7 dias"
+          ],
+          "rollback_reference": "governanceRollbackCoordinator.coordinateRollback()"
+        }
+      },
+      "auto_activation": false,
+      "auto_rollback": false
+    },
+    "final_review": {
+      "governance_health": 97,
+      "runtime_stability": "stable",
+      "shadow_alignment": 1,
+      "leakage_risk": "low",
+      "overblocking_risk": "low",
+      "rollout_readiness": "safe_gradual_activation",
+      "production_status": "enterprise_ready",
+      "activation_readiness": 97,
+      "tenant_isolation_confidence": "high",
+      "explainability_maturity": "shadow_ready",
+      "operational_maturity": "enterprise",
+      "auto_activation": false,
+      "assessed_at": "2026-05-19T18:51:55.717Z"
+    },
+    "production_status": {
+      "enabled": true,
+      "flags": {
+        "production_rollout": true,
+        "stabilization": true,
+        "runtime_observation": true
+      },
+      "sequence": {
+        "sequence": [
+          "kpi",
+          "summary",
+          "chat",
+          "boundary"
+        ],
+        "current_step": 0,
+        "next_channel": "kpi",
+        "completed": [],
+        "last_promoted_at": null,
+        "all_complete": false
+      },
+      "deployment": {
+        "ready": true,
+        "checks": {
+          "controlled_activation": true,
+          "shadow_mode": true,
+          "failsafe": true,
+          "quality_gates": true,
+          "global_channel_flags_off": true
+        },
+        "final_readiness": {
+          "governance_health": 97,
+          "runtime_stability": "stable",
+          "shadow_alignment": 1,
+          "leakage_risk": "low",
+          "overblocking_risk": "low",
+          "rollout_readiness": "safe_gradual_activation",
+          "production_status": "enterprise_ready",
+          "activation_readiness": 97,
+          "tenant_isolation_confidence": "high",
+          "explainability_maturity": "shadow_ready",
+          "operational_maturity": "enterprise",
+          "auto_activation": false,
+          "assessed_at": "2026-05-19T18:51:55.721Z"
+        },
+        "build_integrity": "manual_verify_required",
+        "pm2_hint": "pm2 reload impetus-backend --update-env",
+        "auto_deploy": false
+      },
+      "observation": {
+        "runtime": {
+          "observing": true,
+          "observed_at": "2026-05-19T18:51:55.721Z",
+          "tenant_id": null,
+          "health": {
+            "activation_healthy": true,
+            "phase_i_health": {
+              "monitoring": true,
+              "governance_runtime_health": "healthy",
+              "activation_stability_score": 1,
+              "runtime_overblocking_rate": 0,
+              "runtime_context_loss": 0,
+              "activation_degradation_score": 0,
+              "sample_count": 0,
+              "runtime_state": {
+                "controlled_framework": true,
+                "tenant_safe": false,
+                "global_channels": {
+                  "kpi": false,
+                  "summary": false,
+                  "chat": false,
+                  "boundary": false,
+                  "explainability": false,
+                  "oversight": false,
+                  "drift": false
+                },
+                "metrics": {
+                  "activation_count": 0,
+                  "denial_count": 0,
+                  "last_activation_at": null
+                }
+              }
+            },
+            "stabilization": {
+              "monitoring": true,
+              "stabilization_score": 1,
+              "runtime_activation_confidence": 1,
+              "governance_operational_pressure": 0,
+              "contextual_preservation_score": 1,
+              "rollout_runtime_integrity": "intact",
+              "stable": true,
+              "sample_count": 0
+            },
+            "channels": [
+              {
+                "channel": "kpi",
+                "active": false,
+                "source": "runtime_not_promoted"
+              },
+              {
+                "channel": "summary",
+                "active": false,
+                "source": "runtime_not_promoted"
+              },
+              {
+                "channel": "chat",
+                "active": false,
+                "source": "runtime_not_promoted"
+              },
+              {
+                "channel": "boundary",
+                "active": false,
+                "source": "runtime_not_promoted"
+              }
+            ],
+            "auto_remediation": false
+          },
+          "shadow": {
+            "passed": true,
+            "runtime_shadow_alignment": 1,
+            "governance_runtime_confidence": 1,
+            "contextual_integrity_score": 1,
+            "runtime_governance_stability": 0.95,
+            "governance_runtime_maturity": 61,
+            "shadow_detail": {
+              "governance_confidence_score": 1,
+              "shadow_alignment_rate": 1,
+              "runtime_shadow_alignment": 1,
+              "governance_runtime_confidence": 1,
+              "contextual_integrity_score": 1,
+              "runtime_governance_stability": 0.95,
+              "governance_runtime_maturity": 61,
+              "sanitizer_aggressiveness": 0,
+              "policy_consistency_rate": 0.95,
+              "exposure_stability_score": 1,
+              "governance_drift_rate": 0.05,
+              "divergence_severity": "none",
+              "contextual_consistency": "aligned",
+              "governance_readiness_score": 100,
+              "activation_safety_score": 100,
+              "governance_maturity_score": 61,
+              "tenant_readiness_score": 100,
+              "governance_false_positive_rate": 0.02,
+              "governance_overblocking_rate": 0,
+              "governance_context_preservation_rate": 1,
+              "leakage_prevention": "effective",
+              "kpi_consistency": "aligned",
+              "summary_consistency": "aligned",
+              "chat_contextual_integrity": "aligned"
+            },
+            "kpi_consistency": "aligned",
+            "summary_consistency": "aligned",
+            "chat_contextual_integrity": "aligned",
+            "auto_remediation": false
+          },
+          "anomalies": {
+            "anomaly_count": 0,
+            "anomalies": [],
+            "stable": true,
+            "auto_remediation": false
+          },
+          "stable": true,
+          "auto_remediation": false
+        },
+        "stabilization": {
+          "monitoring": true,
+          "stabilization_score": 1,
+          "runtime_activation_confidence": 1,
+          "governance_operational_pressure": 0,
+          "contextual_preservation_score": 1,
+          "rollout_runtime_integrity": "intact",
+          "stable": true,
+          "sample_count": 0
+        },
+        "telemetry": [],
+        "auto_activation": false,
+        "global_governance_active": false
+      },
+      "rollback": {
+        "verified": true,
+        "rollback_ready": true,
+        "auto_rollback": false,
+        "supervised": true,
+        "auditable": true,
+        "tenant_id": null,
+        "immediate_actions": [],
+        "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off pm2 reload impetus-backend --update-env",
+        "env_flags_off": [
+          "IMPETUS_PRODUCTION_ROLLOUT",
+          "IMPETUS_GOVERNANCE_STABILIZATION",
+          "IMPETUS_RUNTIME_OBSERVATION",
+          "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+          "IMPETUS_KPI_GOVERNANCE",
+          "IMPETUS_SUMMARY_GOVERNANCE",
+          "IMPETUS_CHAT_GOVERNANCE",
+          "IMPETUS_COGNITIVE_BOUNDARY_GUARD"
+        ]
+      },
+      "runbook": {
+        "version": "1.0",
+        "activation_order": [
+          "kpi",
+          "summary",
+          "chat",
+          "boundary"
+        ],
+        "phases": [
+          {
+            "phase": "pre_deploy",
+            "actions": [
+              "final/report",
+              "deployment/validate",
+              "backup env"
+            ]
+          },
+          {
+            "phase": "framework",
+            "actions": [
+              "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION=on",
+              "pm2 reload"
+            ]
+          },
+          {
+            "phase": "channel_rollout",
+            "actions": [
+              "POST activate/kpi",
+              "POST activate/summary",
+              "POST activate/chat",
+              "POST activate/boundary"
+            ]
+          },
+          {
+            "phase": "observation",
+            "actions": [
+              "7d shadow per channel",
+              "production/observe"
+            ]
+          },
+          {
+            "phase": "rollback",
+            "actions": [
+              "demote channels",
+              "flags off",
+              "pm2 reload"
+            ]
+          }
+        ],
+        "auto_execute": false,
+        "shadow_days_between_channels": 7,
+        "quality_gates_required": true
+      },
+      "auto_activation": false,
+      "global_governance_active": false
+    },
+    "shadow_observation": {
+      "shadow_divergence": {
+        "count": 1,
+        "recent": [
+          {
+            "type": "shadow_divergence",
+            "recorded_at": "2026-05-19T18:51:55.626Z",
+            "channel": "kpi",
+            "diff": {
+              "test": true
+            }
+          }
+        ]
+      },
+      "governance_conflicts": {
+        "count": 0,
+        "recent": []
+      },
+      "cross_domain_attempts": {
+        "count": 0,
+        "recent": []
+      },
+      "runtime_degradation": {
+        "count": 0,
+        "recent": []
+      },
+      "contextual_anomalies": {
+        "count": 0,
+        "recent": []
+      },
+      "orphan_pipelines": {
+        "count": 0,
+        "recent": []
+      },
+      "legacy_routes": {
+        "count": 0,
+        "recent": []
+      },
+      "ungoverned_entrypoints": {
+        "count": 0,
+        "recent": []
+      },
+      "log_dir": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime",
+      "aggregate_file": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime/shadow-runtime-aggregate.jsonl"
+    },
+    "entrypoint_map_summary": {
+      "total": 13,
+      "gaps": 1,
+      "shadow_only": 8
+    },
+    "soft_kpi": {
+      "safe": true,
+      "metrics": {
+        "runtime_stable": true,
+        "divergence_low": true,
+        "leakage_low": true,
+        "overblocking_low": true
+      },
+      "readiness": {
+        "governance_health": 97,
+        "runtime_stability": "stable",
+        "shadow_alignment": 1,
+        "leakage_risk": "low",
+        "overblocking_risk": "low",
+        "rollout_readiness": "safe_gradual_activation",
+        "production_status": "enterprise_ready",
+        "activation_readiness": 97,
+        "tenant_isolation_confidence": "high",
+        "explainability_maturity": "shadow_ready",
+        "operational_maturity": "enterprise",
+        "auto_activation": false,
+        "assessed_at": "2026-05-19T18:51:55.723Z"
+      },
+      "shadow_summary": {
+        "alignment": 1,
+        "passed": true
+      },
+      "recommendation": {
+        "action": "soft_kpi_activation_candidate",
+        "env_hint": "IMPETUS_KPI_GOVERNANCE=on OR POST /api/internal/governance/production/promote/kpi",
+        "auto_execute": false,
+        "observe_days": 7
+      },
+      "hard_enforcement": false
+    },
+    "auto_activation": false
+  },
+  "shadow_runtime_status": {
+    "shadow_divergence": {
+      "count": 1,
+      "recent": [
+        {
+          "type": "shadow_divergence",
+          "recorded_at": "2026-05-19T18:51:55.626Z",
+          "channel": "kpi",
+          "diff": {
+            "test": true
+          }
+        }
+      ]
+    },
+    "governance_conflicts": {
+      "count": 0,
+      "recent": []
+    },
+    "cross_domain_attempts": {
+      "count": 0,
+      "recent": []
+    },
+    "runtime_degradation": {
+      "count": 0,
+      "recent": []
+    },
+    "contextual_anomalies": {
+      "count": 0,
+      "recent": []
+    },
+    "orphan_pipelines": {
+      "count": 0,
+      "recent": []
+    },
+    "legacy_routes": {
+      "count": 0,
+      "recent": []
+    },
+    "ungoverned_entrypoints": {
+      "count": 0,
+      "recent": []
+    },
+    "log_dir": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime",
+    "aggregate_file": "/var/www/impetus-completa/backend/logs/governance-shadow-runtime/shadow-runtime-aggregate.jsonl"
+  },
+  "rollout_readiness": "safe_gradual_activation",
+  "kpi_activation_status": "soft_candidate",
+  "divergence_metrics": {
+    "shadow_alignment": 1,
+    "passed": true
+  },
+  "leakage_metrics": {
+    "risk": "low"
+  },
+  "overblocking_metrics": {
+    "risk": "low"
+  },
+  "runtime_anomalies": 0,
+  "orphan_routes": [
+    {
+      "id": "manutencao_ia",
+      "route": "POST /manutencao-ia/*",
+      "module": "routes/manutencao-ia",
+      "channel": "ia",
+      "classification": "unknown",
+      "module_exists": true,
+      "runtime_classification": "unknown"
+    }
+  ],
+  "disconnected_pipelines": [
+    {
+      "id": "manutencao_ia",
+      "route": "POST /manutencao-ia/*",
+      "module": "routes/manutencao-ia",
+      "channel": "ia",
+      "classification": "unknown",
+      "module_exists": true,
+      "runtime_classification": "unknown"
+    }
+  ],
+  "governance_coverage_gaps": [
+    {
+      "id": "manutencao_ia",
+      "route": "POST /manutencao-ia/*",
+      "module": "routes/manutencao-ia",
+      "channel": "ia",
+      "classification": "unknown",
+      "module_exists": true,
+      "runtime_classification": "unknown"
+    }
+  ],
+  "stabilization_recommendations": [
+    "Proceed with soft KPI after PM2 reload + 24h observation"
+  ],
+  "next_activation_recommendation": {
+    "action": "soft_kpi_activation_candidate",
+    "env_hint": "IMPETUS_KPI_GOVERNANCE=on OR POST /api/internal/governance/production/promote/kpi",
+    "auto_execute": false,
+    "observe_days": 7
+  },
+  "hard_enforcement_active": false
+}

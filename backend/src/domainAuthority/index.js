@@ -14,15 +14,23 @@ const pipelineRegistry = require('./pipelines/pipelineRegistry');
 const domainCapabilities = require('./capabilities/domainCapabilities');
 const tenantOverrideLoader = require('./tenantOverrides/tenantOverrideLoader');
 const domainAuthorityLogger = require('./observability/domainAuthorityLogger');
+const domainFlags = require('./config/domainFeatureFlags');
+const ehsPublicationGuard = require('./resolvers/ehsPublicationGuard');
+const moduleInheritanceGuard = require('./guards/moduleInheritanceGuard');
+const technicalRuntimeAccessGuard = require('./guards/technicalRuntimeAccessGuard');
 
 function isDomainAuthorityEnabled() {
-  return String(process.env.IMPETUS_DOMAIN_AUTHORITY || 'on').toLowerCase() !== 'off';
+  return domainFlags.isDomainAuthorityEnabled();
 }
 
 module.exports = {
   isDomainAuthorityEnabled,
+  domainFlags,
   domainRegistry,
   domainIsolationGuard,
+  moduleInheritanceGuard,
+  technicalRuntimeAccessGuard,
+  ehsPublicationGuard,
   domainAuthorityResolver,
   semanticDomainResolver,
   semanticPriorityPolicy,
@@ -31,5 +39,6 @@ module.exports = {
   tenantOverrideLoader,
   domainAuthorityLogger,
   resolveDomainAuthority: domainAuthorityResolver.resolveDomainAuthority,
-  applyGovernanceToDashboardConfig: domainAuthorityResolver.applyGovernanceToDashboardConfig
+  applyGovernanceToDashboardConfig: domainAuthorityResolver.applyGovernanceToDashboardConfig,
+  shouldPublishEnvironmentNavigation: ehsPublicationGuard.shouldPublishEnvironmentNavigation
 };

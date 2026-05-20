@@ -1,0 +1,92 @@
+{
+  "prepared": true,
+  "auto_executed": false,
+  "prepared_at": "2026-05-19T17:26:57.205Z",
+  "approved_by": "snapshot",
+  "rollback": {
+    "type": "emergency_rollback",
+    "auto_executed": false,
+    "steps": [
+      {
+        "action": "POST",
+        "path": "/api/internal/governance/activation/rollback-rollout",
+        "body": {
+          "scope": "phase_f_only"
+        }
+      },
+      {
+        "action": "env",
+        "flags": "IMPETUS_*_GOVERNANCE=off"
+      },
+      {
+        "action": "pm2",
+        "command": "pm2 reload impetus-backend --update-env"
+      }
+    ],
+    "readiness": {
+      "rollback_ready": true,
+      "auto_rollback": false,
+      "active_runtime_channels": [],
+      "runtime_demote_available": true,
+      "coordinator_plan": {
+        "coordinated": true,
+        "auto_applied": false,
+        "scope": "all",
+        "flags_to_disable": [
+          "IMPETUS_CHAT_GOVERNANCE",
+          "IMPETUS_KPI_GOVERNANCE",
+          "IMPETUS_SUMMARY_GOVERNANCE",
+          "IMPETUS_COGNITIVE_BOUNDARY_GUARD",
+          "IMPETUS_COGNITIVE_POLICY_ENGINE",
+          "IMPETUS_COGNITIVE_ENVELOPE",
+          "IMPETUS_CONTEXT_SANITIZER",
+          "IMPETUS_GOVERNANCE_EXPLAINABILITY",
+          "IMPETUS_GOVERNANCE_TRACE",
+          "IMPETUS_GOVERNANCE_OVERSIGHT",
+          "IMPETUS_GOVERNANCE_DRIFT_DETECTION",
+          "IMPETUS_GOVERNANCE_AUDIT_FEED",
+          "IMPETUS_GOVERNANCE_READINESS",
+          "IMPETUS_GOVERNANCE_QUALITY_GATES",
+          "IMPETUS_GOVERNANCE_ACTIVATION_PLANNER",
+          "IMPETUS_GOVERNANCE_FALSE_POSITIVE_ANALYZER"
+        ],
+        "preserve_flags": [
+          "IMPETUS_GOVERNANCE_SHADOW_MODE",
+          "IMPETUS_FAILSAFE_GOVERNANCE",
+          "IMPETUS_DOMAIN_AUTHORITY",
+          "IMPETUS_SAFETY_DOMAIN_ISOLATION",
+          "IMPETUS_RUNTIME_TECHNICAL_GUARD"
+        ],
+        "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off IMPETUS_COGNITIVE_POLICY_ENGINE=off IMPETUS_COGNITIVE_ENVELOPE=off IMPETUS_CONTEXT_SANITIZER=off IMPETUS_GOVERNANCE_EXPLAINABILITY=off IMPETUS_GOVERNANCE_TRACE=off IMPETUS_GOVERNANCE_OVERSIGHT=off IMPETUS_GOVERNANCE_DRIFT_DETECTION=off IMPETUS_GOVERNANCE_AUDIT_FEED=off IMPETUS_GOVERNANCE_READINESS=off IMPETUS_GOVERNANCE_QUALITY_GATES=off IMPETUS_GOVERNANCE_ACTIVATION_PLANNER=off IMPETUS_GOVERNANCE_FALSE_POSITIVE_ANALYZER=off pm2 reload impetus-backend --update-env",
+        "preserve_hint": "Manter: IMPETUS_GOVERNANCE_SHADOW_MODE, IMPETUS_FAILSAFE_GOVERNANCE, IMPETUS_DOMAIN_AUTHORITY, IMPETUS_SAFETY_DOMAIN_ISOLATION, IMPETUS_RUNTIME_TECHNICAL_GUARD",
+        "rebuild_required": false,
+        "session_reset_required": false
+      },
+      "immediate_actions": [],
+      "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off IMPETUS_COGNITIVE_POLICY_ENGINE=off IMPETUS_COGNITIVE_ENVELOPE=off IMPETUS_CONTEXT_SANITIZER=off IMPETUS_GOVERNANCE_EXPLAINABILITY=off IMPETUS_GOVERNANCE_TRACE=off IMPETUS_GOVERNANCE_OVERSIGHT=off IMPETUS_GOVERNANCE_DRIFT_DETECTION=off IMPETUS_GOVERNANCE_AUDIT_FEED=off IMPETUS_GOVERNANCE_READINESS=off IMPETUS_GOVERNANCE_QUALITY_GATES=off IMPETUS_GOVERNANCE_ACTIVATION_PLANNER=off IMPETUS_GOVERNANCE_FALSE_POSITIVE_ANALYZER=off pm2 reload impetus-backend --update-env"
+    },
+    "requires_approval": true
+  },
+  "isolation": {
+    "type": "emergency_isolation",
+    "tenant_id": null,
+    "auto_executed": false,
+    "containment": {
+      "disable_controlled_activation": true,
+      "demote_global_channels": true
+    },
+    "requires_approval": true
+  },
+  "execution": "manual_only",
+  "pm2_flags_off": [
+    "IMPETUS_GOVERNANCE_OPERATIONS",
+    "IMPETUS_GOVERNANCE_INCIDENT_ENGINE",
+    "IMPETUS_GOVERNANCE_RUNTIME_HEALTH",
+    "IMPETUS_GOVERNANCE_EMERGENCY_CONTROLS",
+    "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+    "IMPETUS_KPI_GOVERNANCE",
+    "IMPETUS_SUMMARY_GOVERNANCE",
+    "IMPETUS_CHAT_GOVERNANCE",
+    "IMPETUS_COGNITIVE_BOUNDARY_GUARD"
+  ]
+}

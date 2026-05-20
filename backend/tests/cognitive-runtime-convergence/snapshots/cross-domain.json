@@ -1,0 +1,115 @@
+{
+  "phase": "M",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "unified_context": false,
+    "truth_authority": false,
+    "ai_orchestration": false,
+    "consistency_validation": false,
+    "drift_detection": false
+  },
+  "runtime_truth_state": {
+    "authority": {
+      "contextual_truth": {
+        "tenant_id": 99,
+        "user_id": 1,
+        "functional_axis": "safety",
+        "hierarchy_level": 3,
+        "authority_layer": {
+          "version": 1,
+          "authority": "contextual_truth_authority"
+        },
+        "governance_envelope": null,
+        "established_at": "2026-05-19T20:12:14.402Z"
+      },
+      "operational_scope": "safety",
+      "semantic_state": {
+        "axis": "safety",
+        "version": 1
+      },
+      "runtime_truth_confidence": 0.9,
+      "updated_at": "2026-05-19T20:12:14.402Z",
+      "key": "1:99:safety"
+    },
+    "composition": {
+      "user_profile": {
+        "id": 1,
+        "hierarchy_level": 3
+      },
+      "operational": {
+        "functional_axis": "safety",
+        "tenant_id": 99,
+        "visible_modules": [
+          "quality",
+          "sst",
+          "environment_intelligence"
+        ]
+      },
+      "semantic": null,
+      "precision": null,
+      "exposure": null,
+      "composed_at": "2026-05-19T20:12:14.408Z"
+    },
+    "semantic": {
+      "semantic_state": {
+        "axis": "safety",
+        "assembly_version": 1,
+        "sources": [
+          "contextual_truth_authority",
+          "governed_context_composition"
+        ]
+      },
+      "semantic_convergence_rate": "0.7500",
+      "aligned_modules": [
+        "quality",
+        "sst",
+        "environment_intelligence"
+      ]
+    },
+    "contextual_unification_score": 0.6,
+    "runtime_truth_confidence": 0.9,
+    "resolved_at": "2026-05-19T20:12:14.408Z"
+  },
+  "cognitive_consistency_score": 0.95,
+  "runtime_truth_integrity": 0.88,
+  "convergence_confidence": 0.88,
+  "semantic_convergence_rate": 0.86,
+  "drift": {
+    "drift_detected": false,
+    "confidence_drift": false,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "fragmentation": {
+    "fragmentation_detected": false,
+    "cognitive_fragmentation_rate": 0.1
+  },
+  "consistency": {
+    "valid": true,
+    "issues": [],
+    "cognitive_consistency_score": 0.95,
+    "channel_comparison": {
+      "consistent": true
+    }
+  },
+  "explainability": {
+    "explanations": [
+      {
+        "artifact": "runtime",
+        "explanation": "Entrega de \"runtime\" originada no eixo \"safety\" via contextual_truth_authority.",
+        "context_origin": "safety",
+        "authority_layer": "contextual_truth_authority",
+        "runtime_truth_confidence": 0.9,
+        "winning_layer": "unified_context"
+      }
+    ],
+    "generated_at": "2026-05-19T20:12:14.408Z"
+  },
+  "graph_summary": {
+    "nodes": 8,
+    "redundant": [
+      "smart_summary"
+    ]
+  }
+}

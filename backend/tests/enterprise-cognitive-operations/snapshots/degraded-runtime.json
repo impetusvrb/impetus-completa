@@ -1,0 +1,158 @@
+{
+  "phase": "N",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "enterprise_operations": false,
+    "entropy_detection": false,
+    "dynamic_confidence": false,
+    "stability_engine": false,
+    "governance_calibration": false
+  },
+  "health": {
+    "cognitive_runtime_health": 0.74,
+    "components": {
+      "convergence": 0.55,
+      "truth": 0.88,
+      "contextual": 0.69,
+      "governance": 0.84
+    },
+    "status": "degraded"
+  },
+  "entropy": {
+    "runtime_entropy_score": 0.1875,
+    "entropy_detected": false,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "stability": {
+    "runtime_stability": 0.6015,
+    "variance": 0.0397,
+    "samples": 10,
+    "unstable": true,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "semantic": {
+      "semantic_stability": 0.81,
+      "semantic_convergence_rate": 0.86
+    }
+  },
+  "confidence": {
+    "runtime_confidence": 0.704,
+    "contextual_confidence": 0.4858,
+    "governance_confidence": 0.5914,
+    "operational_confidence": 0.5937,
+    "dynamic": false,
+    "shadow_only": true
+  },
+  "governance_self_observation": {
+    "self_observing": true,
+    "auto_adjust": false,
+    "degradation": {
+      "governance_degradation_detected": false,
+      "governance_effectiveness_score": 0.85,
+      "governance_fatigue": 0
+    },
+    "self_evaluation": {
+      "governance_effectiveness_score": 0.8825,
+      "supervision_quality": "adequate",
+      "recommend_manual_review": false
+    }
+  },
+  "anomalies": {
+    "correlated_anomalies": [
+      {
+        "type": "drift",
+        "weight": 0.25
+      }
+    ],
+    "correlation_score": 0.25,
+    "critical": false,
+    "resolved_at": "2026-05-19T20:27:50.030Z",
+    "auto_mitigation": false
+  },
+  "calibration": {
+    "advisor": "runtime_calibration_advisor_v1",
+    "recommendations": [
+      {
+        "priority": "high",
+        "action": "stabilize_context_composition",
+        "reason": "Instabilidade runtime detectada"
+      },
+      {
+        "priority": "medium",
+        "action": "review_axis_consistency",
+        "reason": "Drift contextual acumulado"
+      }
+    ],
+    "auto_execute": false,
+    "observe_only": true,
+    "shadow_only": true,
+    "tuning_hints": [
+      "Manter observabilidade ON em produção",
+      "Activar enforcement apenas por tenant piloto",
+      "Revisar enrichers legacy antes de UNIFIED_CONTEXT"
+    ]
+  },
+  "reflection": {
+    "reflection": "Governança operando em modo observação contínua; sem auto-correcção.",
+    "maturity": 0.8638,
+    "fatigue_risk": false,
+    "explainability_preserved": true,
+    "audit_trail_preserved": true
+  },
+  "supervision": {
+    "supervision_active": true,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "coordination": {
+      "layers": {
+        "policy": true,
+        "semantic": false,
+        "precision": true,
+        "convergence": true
+      },
+      "active_layers": 3,
+      "governance_operational_health": 0.85,
+      "overload_risk": false,
+      "lifecycle": "observe"
+    },
+    "supervised_at": "2026-05-19T20:27:50.030Z"
+  },
+  "operational_state": {
+    "lifecycle": "observe",
+    "last_health": {
+      "cognitive_runtime_health": 0.865,
+      "components": {
+        "convergence": 0.88,
+        "truth": 0.9,
+        "contextual": 0.84,
+        "governance": 0.84
+      },
+      "status": "healthy"
+    },
+    "pressure_samples": [
+      {
+        "v": 0.1554,
+        "ts": 1779222470020
+      }
+    ],
+    "last_supervision": "2026-05-19T20:27:50.030Z",
+    "pressure": 0.1554,
+    "updated_at": "2026-05-19T20:27:50.030Z"
+  },
+  "telemetry_snapshot": {
+    "governance_operational_maturity": 0.8461,
+    "runtime_entropy_score": 0.0988,
+    "convergence_operational_health": 0.8457,
+    "contextual_stability_rate": 0.81,
+    "runtime_resilience": 0.5578,
+    "cognitive_operational_pressure": 0.1595,
+    "governance_effectiveness_score": 0.9002,
+    "operational_trustworthiness": 0.7158,
+    "samples": 7,
+    "ts": "2026-05-19T20:27:50.030Z"
+  },
+  "auto_correct": false,
+  "auto_calibrate": false
+}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { environmentExecutive as exApi } from '../../../services/api.js';
 import { isEnvironmentExecutiveRuntimeEnabled, getEnvironmentExecutiveFlagSnapshot } from './environmentExecutiveFeatureFlags.js';
 import { ExecutiveKpiStrip } from './ExecutiveKpiStrip.jsx';
+import { evaluateTechnicalRuntimeAccess, readUserFromStorage } from '../../../domainAuthority/technicalRuntimeAccessGuard.js';
 
 export default function EnvironmentExecutiveIntelligenceCenter({ companyId }) {
   const [health, setHealth] = useState(null);
@@ -29,7 +30,7 @@ export default function EnvironmentExecutiveIntelligenceCenter({ companyId }) {
       });
       setPack(data.pack);
     } catch (e) {
-      setErr(JSON.stringify(e?.response?.data || e.message));
+      setErr(e?.response?.data?.user_message || e?.response?.data?.error || e.message || 'Erro ao executar cockpit');
     }
   };
 
@@ -43,6 +44,7 @@ export default function EnvironmentExecutiveIntelligenceCenter({ companyId }) {
 
   const snap = getEnvironmentExecutiveFlagSnapshot();
   const maturity = pack?.maturity;
+  const techAccess = evaluateTechnicalRuntimeAccess(readUserFromStorage(), 'environment_executive_runtime_json');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -78,7 +80,11 @@ export default function EnvironmentExecutiveIntelligenceCenter({ companyId }) {
         ]}
       />
       <div className="impetus-card" style={{ padding: 12, borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
+        {techAccess.allowed ? (
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(health || snap, null, 0)}</pre>
+        ) : (
+          <p style={{ margin: 0 }}>{techAccess.user_message}</p>
+        )}
         <div style={{ marginTop: 8 }}>tenant {String(companyId).slice(0, 8)}…</div>
       </div>
     </div>

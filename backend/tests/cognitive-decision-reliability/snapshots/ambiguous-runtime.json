@@ -1,0 +1,109 @@
+{
+  "phase": "R",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "decision_reliability": false,
+    "operational_trust": false,
+    "recommendation_quality": false,
+    "decision_stability": false,
+    "human_oversight": false
+  },
+  "reliability": {
+    "cognitive_decision_reliability": 0.65,
+    "decision_quality": 0.75,
+    "trust": {
+      "operational_trust_score": 0.55,
+      "contextual_trust": 0.5225,
+      "runtime_decision_trust": 0.506,
+      "low_trust": false
+    },
+    "runtime_decision_confidence": 0.5862,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "auto_remediate": false
+  },
+  "trust": {
+    "operational_trust_score": 0.28,
+    "contextual_trust": 0.266,
+    "runtime_decision_trust": 0.2576,
+    "low_trust": true,
+    "contextual": {
+      "axis": "general",
+      "contextual_trust": 0.4675,
+      "uncertain": true
+    },
+    "recommendation": {
+      "recommendation_reliability": 0.7,
+      "vague_language": false,
+      "weak_guidance": true
+    },
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "quality": {
+    "recommendation_quality": 0.775,
+    "contextual_alignment_quality": 0.9,
+    "operational_usefulness": 0.65,
+    "guidance_precision": 0.585,
+    "actionable": false,
+    "aligned": true,
+    "clarity": 0.5,
+    "coherence": 0.55,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "ambiguity": {
+    "cognitive_ambiguity_score": 0.9,
+    "uncertainty": {
+      "contextual_uncertainty": true,
+      "uncertainty_score": 0.65,
+      "determinability": "low"
+    },
+    "ambiguity": {
+      "operational_ambiguity": true,
+      "issues": [
+        "guidance_conflict"
+      ],
+      "score": 0.25
+    },
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "stability": {
+    "runtime_decision_stability": 0.92,
+    "consistent": true,
+    "oscillation": false,
+    "previous": "",
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "human_oversight": {
+    "supervision_recommendation_score": 0.65,
+    "recommend_human_oversight": true,
+    "escalate_recommended": false,
+    "escalation": {
+      "escalation_recommended": false,
+      "reason": null,
+      "auto_escalate": false
+    },
+    "enforcement_active": false,
+    "shadow_only": true,
+    "auto_block": false,
+    "auto_escalate": false
+  },
+  "operational_guidance_integrity": 0.4375,
+  "telemetry_snapshot": {
+    "cognitive_decision_reliability": 0.795,
+    "operational_trust_score": 0.7012,
+    "runtime_decision_confidence": 0.7965,
+    "contextual_recommendation_quality": 0.775,
+    "cognitive_ambiguity_score": 0.2438,
+    "operational_guidance_integrity": 0.7656,
+    "runtime_decision_stability": 0.92,
+    "supervision_recommendation_score": 0.0813,
+    "samples": 8,
+    "ts": "2026-05-19T22:09:44.402Z"
+  },
+  "auto_enforce": false
+}

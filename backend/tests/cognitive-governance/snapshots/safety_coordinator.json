@@ -1,0 +1,26 @@
+{
+  "functional_axis": "safety",
+  "profile_code": "coordinator_safety",
+  "visible_modules": [
+    "dashboard",
+    "operational",
+    "proaction",
+    "biblioteca",
+    "ai",
+    "settings",
+    "safety_intelligence",
+    "audit",
+    "registro_inteligente",
+    "cadastrar_com_ia"
+  ],
+  "denied_modules": [],
+  "allow_ai_insights": true,
+  "allow_kpis": true,
+  "cognitive_envelope": {
+    "depth": "operational",
+    "primary_axis": "safety",
+    "ai_inference_scope": "operational_bounded",
+    "cross_domain_access": false
+  },
+  "policy_engine_enabled": true
+}

@@ -1,0 +1,84 @@
+{
+  "kpi_governance": {
+    "phase": "T",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "T",
+      "observability": true,
+      "rollout_flag": false,
+      "channel_flag": false,
+      "global_auto_activation": false,
+      "memory": {
+        "activated": false,
+        "at": null,
+        "approved_by": null
+      },
+      "supervision": {
+        "observability": true,
+        "rollout_enabled": false,
+        "channel_governance": false,
+        "global_auto_activation": false,
+        "telemetry": {
+          "KPI_delivery_accuracy": 1,
+          "KPI_contextual_precision": 1,
+          "KPI_hierarchy_integrity": 1,
+          "KPI_operational_alignment": 1,
+          "KPI_delivery_confidence": 0.965,
+          "KPI_runtime_stability": 0.93,
+          "samples": 8,
+          "ts": "2026-05-19T23:16:59.968Z"
+        }
+      },
+      "telemetry": {
+        "KPI_delivery_accuracy": 1,
+        "KPI_contextual_precision": 1,
+        "KPI_hierarchy_integrity": 1,
+        "KPI_operational_alignment": 1,
+        "KPI_delivery_confidence": 0.965,
+        "KPI_runtime_stability": 0.93,
+        "samples": 8,
+        "ts": "2026-05-19T23:16:59.968Z"
+      },
+      "flags": {
+        "IMPETUS_KPI_GOVERNANCE_ROLLOUT": false,
+        "IMPETUS_KPI_TARGETING_VALIDATION": false,
+        "IMPETUS_KPI_PRECISION_RUNTIME": false,
+        "IMPETUS_KPI_DELIVERY_STABILIZATION": false,
+        "IMPETUS_KPI_GOVERNANCE_OBSERVABILITY": true,
+        "IMPETUS_KPI_GOVERNANCE": false
+      }
+    },
+    "readiness_score": 0.9475,
+    "auto_activate": false,
+    "global_activation": false
+  },
+  "kpi_precision": {
+    "KPI_precision": 1,
+    "KPI_delivery_accuracy": 1,
+    "KPI_contextual_precision": 1,
+    "KPI_hierarchy_integrity": 1,
+    "KPI_operational_alignment": 1,
+    "KPI_delivery_confidence": 0.965,
+    "contextual": {
+      "KPI_contextual_precision": 1,
+      "contextual_axis": "environmental",
+      "ambiguous_axis": false,
+      "sufficient": true
+    },
+    "operational": {
+      "KPI_operational_alignment": 1,
+      "hierarchy_integrity": 1,
+      "domain_isolation": 1,
+      "operational_stability": 0.93
+    },
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "kpi_targeting_integrity": {
+    "targeting_precision": 1,
+    "valid": true,
+    "issues": [],
+    "hierarchy_accuracy": 1
+  }
+}

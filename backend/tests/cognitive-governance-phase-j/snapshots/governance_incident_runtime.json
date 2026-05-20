@@ -1,0 +1,26 @@
+{
+  "incident": {
+    "id": "inc_1779211617201_54ijk8",
+    "recorded_at": "2026-05-19T17:26:57.201Z",
+    "type": "runtime_instability",
+    "severity": "high",
+    "severity_levels": [
+      "informational",
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "classification_reason": "rule_based",
+    "requires_manual_review": true,
+    "auto_response": false,
+    "signals": {
+      "degradation_score": 0.2,
+      "force": true
+    },
+    "tenant_id": null,
+    "channel": null,
+    "status": "open",
+    "auto_remediation": false
+  }
+}

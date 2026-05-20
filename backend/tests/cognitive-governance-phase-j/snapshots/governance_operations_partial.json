@@ -1,0 +1,16 @@
+{
+  "state": {
+    "state": "partial_governance",
+    "valid_states": [
+      "shadow_only",
+      "partial_governance",
+      "controlled_activation",
+      "stabilized",
+      "degraded",
+      "rollback_ready",
+      "emergency_mode"
+    ],
+    "last_transition_at": "2026-05-19T17:26:57.200Z",
+    "transition_count": 1
+  }
+}

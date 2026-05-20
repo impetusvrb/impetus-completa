@@ -1,0 +1,49 @@
+{
+  "kpi_runtime_stabilization": {
+    "phase": "U",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "U",
+      "observability": true,
+      "runtime_stabilization": false,
+      "semantic_alignment": false,
+      "hierarchy_stabilization": false,
+      "delivery_precision_supervision": false,
+      "global_auto_correction": false,
+      "telemetry": {
+        "delivery_precision_score": 0.9883,
+        "contextual_alignment_score": 1,
+        "hierarchy_integrity_score": 1,
+        "semantic_relevance_score": 1,
+        "operational_delivery_accuracy": 1,
+        "samples": 8,
+        "ts": "2026-05-19T23:35:52.011Z"
+      }
+    },
+    "stable": true,
+    "correction_summary": {
+      "issue_count": 0,
+      "recommendation_count": 0
+    },
+    "leakage": {
+      "detected": false,
+      "count": 0
+    },
+    "underdelivery": {
+      "detected": false,
+      "gap": 0
+    },
+    "auto_correct": false,
+    "supervised": true
+  },
+  "kpi_semantic_alignment": {
+    "KPI_semantic_relevance": 1,
+    "KPI_operational_usefulness": 1,
+    "KPI_hierarchy_coherence": 1,
+    "KPI_contextual_alignment": 1,
+    "corrections": [],
+    "recommendations": [],
+    "auto_correct": false
+  }
+}

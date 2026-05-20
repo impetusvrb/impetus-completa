@@ -1,0 +1,220 @@
+{
+  "phase": "O",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "runtime_stabilization": false,
+    "governance_fatigue": false,
+    "pipeline_redundancy": false,
+    "runtime_efficiency": false,
+    "shadow_optimization": false
+  },
+  "stabilization_score": 0.7306,
+  "fatigue": {
+    "governance_fatigue": 0.605,
+    "fatigue_detected": true,
+    "shadow_only": true
+  },
+  "overgovernance": {
+    "overgovernance_detected": true,
+    "validator_count": 6
+  },
+  "observability_saturation": {
+    "observability_saturation": true,
+    "observability_blocks": 5,
+    "observability_pressure": 1
+  },
+  "redundancy": {
+    "active_pipelines": [
+      "semantic_alignment",
+      "precision_delivery",
+      "cognitive_convergence",
+      "enterprise_cognitive_operations"
+    ],
+    "redundant_pairs": [
+      {
+        "a": "semantic_alignment",
+        "b": "precision_delivery",
+        "phases": [
+          "K",
+          "L"
+        ]
+      },
+      {
+        "a": "precision_delivery",
+        "b": "cognitive_convergence",
+        "phases": [
+          "L",
+          "M"
+        ]
+      },
+      {
+        "a": "cognitive_convergence",
+        "b": "enterprise_cognitive_operations",
+        "phases": [
+          "M",
+          "N"
+        ]
+      }
+    ],
+    "redundancy_count": 3,
+    "auto_remove": false,
+    "recommendations": [
+      {
+        "action": "review_consolidation",
+        "pipelines": [
+          "semantic_alignment",
+          "precision_delivery"
+        ],
+        "reason": "Overlap entre fases K e L",
+        "auto_execute": false
+      },
+      {
+        "action": "review_consolidation",
+        "pipelines": [
+          "precision_delivery",
+          "cognitive_convergence"
+        ],
+        "reason": "Overlap entre fases L e M",
+        "auto_execute": false
+      },
+      {
+        "action": "review_consolidation",
+        "pipelines": [
+          "cognitive_convergence",
+          "enterprise_cognitive_operations"
+        ],
+        "reason": "Overlap entre fases M e N",
+        "auto_execute": false
+      }
+    ]
+  },
+  "legacy_overlap": {
+    "legacy_overlaps": [],
+    "count": 0,
+    "auto_deprecate": false
+  },
+  "efficiency": {
+    "runtime_efficiency": 0.38,
+    "cognitive_overhead": 0.62,
+    "orchestration_complexity": 0.6667,
+    "governance_cost": 0.2,
+    "observability_cost": 0.2,
+    "runtime_processing_pressure": 0.558,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "orchestration": {
+    "orchestration_efficiency": 0.4,
+    "pipeline_hops": 6
+  },
+  "shadow": {
+    "shadow_layers": 0,
+    "shadow_duplication": false,
+    "shadow_pressure": 0,
+    "shadow_cost_estimate": 0,
+    "optimization_recommended": false,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "redundancy": {
+      "shadow_block_count": 0,
+      "redundant_shadow": false,
+      "blocks": []
+    }
+  },
+  "consolidation": {
+    "recommendations": [
+      {
+        "priority": "medium",
+        "action": "consolidate_metadata_blocks",
+        "layers": [
+          "semantic_alignment",
+          "precision_delivery"
+        ],
+        "auto_execute": false
+      },
+      {
+        "priority": "medium",
+        "action": "consolidate_metadata_blocks",
+        "layers": [
+          "precision_delivery",
+          "cognitive_convergence"
+        ],
+        "auto_execute": false
+      },
+      {
+        "priority": "medium",
+        "action": "consolidate_metadata_blocks",
+        "layers": [
+          "cognitive_convergence",
+          "enterprise_cognitive_operations"
+        ],
+        "auto_execute": false
+      }
+    ],
+    "observe_only": true
+  },
+  "maturity": {
+    "runtime": {
+      "runtime_maturity": 0.7133,
+      "level": "developing"
+    },
+    "governance": {
+      "governance_maturity": 0.6585,
+      "fatigue_penalty": true
+    },
+    "operational_cognitive": {
+      "operational_cognitive_maturity": 0.82,
+      "sustainability_score": 0.785,
+      "runtime_resilience": 0.88
+    }
+  },
+  "supervision": {
+    "coordination": {
+      "layers": {
+        "policy": false,
+        "semantic": true,
+        "precision": true,
+        "convergence": true,
+        "operations": true
+      },
+      "complexity": {
+        "active_layers": [
+          "semantic",
+          "precision",
+          "convergence",
+          "operations"
+        ],
+        "layer_count": 4,
+        "complexity_score": 0.56,
+        "reduction_recommended": false
+      },
+      "simplify_recommended": false,
+      "auto_simplify": false
+    },
+    "stability": {
+      "stable": true,
+      "pressure": 0.25,
+      "entropy": 0.12,
+      "enforcement_active": false,
+      "shadow_only": true
+    },
+    "lifecycle": "observe_recommend",
+    "auto_remediate": false,
+    "auto_consolidate": false
+  },
+  "telemetry_snapshot": {
+    "stabilization_score": 0.7239,
+    "runtime_simplicity_score": 0.5333,
+    "governance_efficiency": 0.67,
+    "orchestration_efficiency": 0.4667,
+    "cognitive_runtime_pressure": 0.3333,
+    "observability_pressure": 0.7167,
+    "runtime_sustainability": 0.7125,
+    "samples": 6,
+    "ts": "2026-05-19T20:47:35.079Z"
+  },
+  "auto_simplify": false,
+  "auto_consolidate": false,
+  "auto_remediate": false
+}

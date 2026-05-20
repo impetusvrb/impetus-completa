@@ -214,6 +214,48 @@ router.get('/voice-realtime-context', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /dashboard/visibility
+ * Seções UI por nível hierárquico (Fase E — rota ausente corrigida; failsafe deny-first).
+ */
+router.get('/visibility', requireAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const hierarchyLevel = user.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
+    const sections = await dashboardVisibility.getVisibilityForUser(hierarchyLevel, user.company_id);
+    const ctx = userContext.buildUserContext(user);
+    res.json({
+      ok: true,
+      sections,
+      userContext: ctx,
+      languageInstruction: ctx?.language_instruction || '',
+      focus: Array.isArray(ctx?.focus) ? ctx.focus : []
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_VISIBILITY]', err);
+    try {
+      const policyEngine = require('../policyEngine');
+      if (policyEngine.cognitiveFlags.isFailsafeGovernanceEnabled()) {
+        policyEngine.logCognitive('COGNITIVE_FAILSAFE_TRIGGERED', {
+          route: '/dashboard/visibility',
+          user_id: req.user?.id,
+          error: err?.message
+        });
+        return res.json({
+          ok: true,
+          failsafe: true,
+          sections: { ...policyEngine.SAFE_MINIMAL_EXPOSURE.sections },
+          userContext: null,
+          focus: []
+        });
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar visibilidade' });
+  }
+});
+
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = req.user;
@@ -324,8 +366,262 @@ router.get('/me', requireAuth, async (req, res) => {
         v2err && v2err.message ? v2err.message : v2err);
     }
 
+    let _contentExposureBlock = null;
+    try {
+      const policyEngine = require('../policyEngine');
+      const exposure = await policyEngine.resolveContentExposure(user, {
+        sections,
+        kpis,
+        visible_modules: legacyResponse.visible_modules,
+        engine_v2: engineV2Block?.payload
+      });
+      if (exposure && (exposure.policy_engine_enabled || exposure.cognitive_envelope)) {
+        _contentExposureBlock = {
+          version: exposure.version,
+          policy_engine_enabled: exposure.policy_engine_enabled === true,
+          cognitive_envelope: exposure.cognitive_envelope || null,
+          denied_modules: exposure.denied_modules || [],
+          allow_ai_insights: exposure.allow_ai_insights,
+          allow_kpis: exposure.allow_kpis,
+          allow_widgets: exposure.allow_widgets,
+          failsafe: exposure.failsafe === true,
+          content_exposure: exposure.content_exposure || null
+        };
+      }
+    } catch (peErr) {
+      console.warn('[CONTENT_EXPOSURE_RESOLVE_FAIL]', peErr?.message ?? peErr);
+    }
+
+    // Fase K — Semantic runtime alignment (shadow-first; additive)
+    let _semanticAlignmentBlock = null;
+    try {
+      const alignment = require('../runtimeAlignment/semanticRuntimeAlignmentFacade');
+      const enriched = alignment.enrichDashboardMe(user, legacyResponse, {
+        cognitive_envelope: _contentExposureBlock?.cognitive_envelope,
+        content_exposure: _contentExposureBlock?.content_exposure
+      });
+      if (enriched.alignment) _semanticAlignmentBlock = enriched.alignment;
+      if (enriched.response) {
+        legacyResponse.visible_modules = enriched.response.visible_modules;
+        if (enriched.alignment?.kpis) {
+          legacyResponse._semantic_kpi_alignment = enriched.alignment.kpis;
+        }
+      }
+    } catch (kErr) {
+      console.warn('[SEMANTIC_RUNTIME_ALIGNMENT]', kErr?.message ?? kErr);
+    }
+
+    // Fase L — Precision runtime delivery (shadow-first; additive)
+    let _precisionDeliveryBlock = null;
+    try {
+      const precisionFacade = require('../precisionRuntime/precisionRuntimeFacade');
+      const precisionEnriched = precisionFacade.enrichDashboardMePrecision(user, legacyResponse, {
+        cognitive_envelope: _contentExposureBlock?.cognitive_envelope,
+        content_exposure: _contentExposureBlock?.content_exposure,
+        functional_axis: legacyResponse.functional_axis || legacyResponse.functional_area
+      });
+      if (precisionEnriched.precision) _precisionDeliveryBlock = precisionEnriched.precision;
+      if (precisionEnriched.response?.visible_modules) {
+        legacyResponse.visible_modules = precisionEnriched.response.visible_modules;
+      }
+    } catch (lErr) {
+      console.warn('[RUNTIME_PRECISION_DELIVERY]', lErr?.message ?? lErr);
+    }
+
+    // Fase M — Cognitive runtime convergence (shadow-first; additive)
+    let _cognitiveConvergenceBlock = null;
+    try {
+      const convergenceFacade = require('../cognitiveConvergence/cognitiveConvergenceFacade');
+      const convergenceEnriched = convergenceFacade.enrichWithCognitiveConvergence(user, legacyResponse, {
+        semantic_alignment: _semanticAlignmentBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        content_exposure: _contentExposureBlock,
+        functional_axis: legacyResponse.functional_axis || legacyResponse.functional_area
+      });
+      if (convergenceEnriched.convergence) _cognitiveConvergenceBlock = convergenceEnriched.convergence;
+      if (convergenceEnriched.response?.runtime_truth_state && convergenceEnriched.response !== legacyResponse) {
+        legacyResponse.runtime_truth_state = convergenceEnriched.response.runtime_truth_state;
+      }
+    } catch (mErr) {
+      console.warn('[COGNITIVE_RUNTIME_CONVERGENCE]', mErr?.message ?? mErr);
+    }
+
+    // Fase N — Enterprise cognitive operations (shadow-first; additive)
+    let _enterpriseOperationsBlock = null;
+    try {
+      const operationsFacade = require('../cognitiveOperations/cognitiveOperationsFacade');
+      const operationsEnriched = operationsFacade.enrichWithEnterpriseOperations(user, legacyResponse, {
+        semantic_alignment: _semanticAlignmentBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        force: false
+      });
+      if (operationsEnriched.operations) _enterpriseOperationsBlock = operationsEnriched.operations;
+    } catch (nErr) {
+      console.warn('[ENTERPRISE_COGNITIVE_OPERATIONS]', nErr?.message ?? nErr);
+    }
+
+    // Fase O — Runtime stabilization & simplification (shadow-first; additive)
+    let _runtimeStabilizationBlock = null;
+    try {
+      const stabilizationFacade = require('../runtimeStabilization/runtimeStabilizationFacade');
+      const stabilizationEnriched = stabilizationFacade.enrichWithRuntimeStabilization(user, legacyResponse, {
+        semantic_alignment: _semanticAlignmentBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        enterprise_cognitive_operations: _enterpriseOperationsBlock,
+        content_exposure: _contentExposureBlock,
+        contextual_modules: _contextualModulesBlock
+      });
+      if (stabilizationEnriched.stabilization) _runtimeStabilizationBlock = stabilizationEnriched.stabilization;
+    } catch (oErr) {
+      console.warn('[RUNTIME_STABILIZATION]', oErr?.message ?? oErr);
+    }
+
+    // Fase P — Contextual delivery stabilization (shadow-first; additive)
+    let _contextualDeliveryBlock = null;
+    try {
+      const contextualFacade = require('../contextualDeliveryStabilization/contextualDeliveryStabilizationFacade');
+      const contextualEnriched = contextualFacade.enrichWithContextualDeliveryStabilization(user, legacyResponse, {
+        semantic_alignment: _semanticAlignmentBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        enterprise_cognitive_operations: _enterpriseOperationsBlock,
+        runtime_stabilization: _runtimeStabilizationBlock,
+        force: false
+      });
+      if (contextualEnriched.contextual_delivery) _contextualDeliveryBlock = contextualEnriched.contextual_delivery;
+      if (contextualEnriched.response?.visible_modules) {
+        legacyResponse.visible_modules = contextualEnriched.response.visible_modules;
+      }
+    } catch (pErr) {
+      console.warn('[CONTEXTUAL_DELIVERY_STABILIZATION]', pErr?.message ?? pErr);
+    }
+
+    // Fase Q — Runtime cognitive consistency assurance (shadow-first; additive)
+    let _runtimeConsistencyBlock = null;
+    try {
+      const consistencyFacade = require('../runtimeConsistency/runtimeConsistencyFacade');
+      const consistencyEnriched = consistencyFacade.enrichWithRuntimeConsistency(user, legacyResponse, {
+        semantic_alignment: _semanticAlignmentBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        contextual_delivery: _contextualDeliveryBlock,
+        enterprise_cognitive_operations: _enterpriseOperationsBlock,
+        runtime_stabilization: _runtimeStabilizationBlock,
+        force: false
+      });
+      if (consistencyEnriched.runtime_consistency) _runtimeConsistencyBlock = consistencyEnriched.runtime_consistency;
+    } catch (qErr) {
+      console.warn('[RUNTIME_COGNITIVE_CONSISTENCY]', qErr?.message ?? qErr);
+    }
+
+    // Fase R — Cognitive decision reliability (shadow-first; additive)
+    let _decisionReliabilityBlock = null;
+    try {
+      const reliabilityFacade = require('../decisionReliability/decisionReliabilityFacade');
+      const reliabilityEnriched = reliabilityFacade.enrichWithDecisionReliability(user, legacyResponse, {
+        runtime_consistency: _runtimeConsistencyBlock,
+        contextual_delivery: _contextualDeliveryBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        force: false
+      });
+      if (reliabilityEnriched.decision_reliability) _decisionReliabilityBlock = reliabilityEnriched.decision_reliability;
+    } catch (rErr) {
+      console.warn('[DECISION_RELIABILITY]', rErr?.message ?? rErr);
+    }
+
+    // Fase S — Controlled runtime activation (shadow-first; additive)
+    let _controlledActivationBlock = null;
+    try {
+      const activationFacade = require('../controlledActivation/controlledActivationFacade');
+      const activationEnriched = activationFacade.enrichWithControlledActivation(user, legacyResponse, {
+        contextual_delivery: _contextualDeliveryBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        runtime_consistency: _runtimeConsistencyBlock,
+        decision_reliability: _decisionReliabilityBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        force: false
+      });
+      if (activationEnriched.controlled_activation) _controlledActivationBlock = activationEnriched.controlled_activation;
+    } catch (sErr) {
+      console.warn('[CONTROLLED_RUNTIME_ACTIVATION]', sErr?.message ?? sErr);
+    }
+
+    let _runtimeEnrichmentBlock = null;
+    let _operationalDensityBlock = null;
+    let _enrichmentIntegrityBlock = null;
+    let _telemetryIntegrityBlock = null;
+    let _semanticEnrichmentBlock = null;
+    let _operationalSignalQualityBlock = null;
+    try {
+      const enrichmentFacade = require('../runtimeEnrichment/runtimeEnrichmentFacade');
+      const enrichment = enrichmentFacade.enrichWithRuntimeDataIntegrity(user, legacyResponse, {
+        channel: 'me',
+        functional_axis: user.functional_axis || user.functional_area,
+        precision_delivery: _precisionDeliveryBlock,
+        contextual_delivery: _contextualDeliveryBlock,
+        runtime_consistency: _runtimeConsistencyBlock,
+        decision_reliability: _decisionReliabilityBlock,
+        cognitive_convergence: _cognitiveConvergenceBlock,
+        force: false
+      });
+      if (enrichment.runtime_enrichment) _runtimeEnrichmentBlock = enrichment.runtime_enrichment;
+      if (enrichment.operational_density) _operationalDensityBlock = enrichment.operational_density;
+      if (enrichment.enrichment_integrity) _enrichmentIntegrityBlock = enrichment.enrichment_integrity;
+      if (enrichment.telemetry_integrity) _telemetryIntegrityBlock = enrichment.telemetry_integrity;
+      if (enrichment.semantic_enrichment) _semanticEnrichmentBlock = enrichment.semantic_enrichment;
+      if (enrichment.operational_signal_quality) _operationalSignalQualityBlock = enrichment.operational_signal_quality;
+    } catch (xErr) {
+      console.warn('[RUNTIME_DATA_INTEGRITY]', xErr?.message ?? xErr);
+    }
+
+    let _runtimeCalibrationBlock = null;
+    let _tenantStabilizationBlock = null;
+    let _operationalMaturityBlock = null;
+    let _runtimeTuningBlock = null;
+    let _rolloutStabilityBlock = null;
+    try {
+      const calibrationFacade = require('../runtimeCalibration/runtimeCalibrationFacade');
+      const calibration = calibrationFacade.enrichWithRuntimeCalibration(user, legacyResponse, {
+        force: false,
+        _controlledActivationBlock,
+        _runtimeEnrichmentBlock,
+        _runtimeStabilizationBlock,
+        _precisionDeliveryBlock,
+        _contextualDeliveryBlock,
+        _runtimeConsistencyBlock,
+        _decisionReliabilityBlock,
+        _operationalDensityBlock,
+        _enrichmentIntegrityBlock,
+        _telemetryIntegrityBlock,
+        _semanticEnrichmentBlock,
+        _operationalSignalQualityBlock,
+        controlled_activation: _controlledActivationBlock,
+        runtime_enrichment: _runtimeEnrichmentBlock,
+        runtime_stabilization: _runtimeStabilizationBlock,
+        precision_delivery: _precisionDeliveryBlock,
+        contextual_delivery: _contextualDeliveryBlock,
+        runtime_consistency: _runtimeConsistencyBlock,
+        decision_reliability: _decisionReliabilityBlock,
+        operational_density: _operationalDensityBlock,
+        enrichment_integrity: _enrichmentIntegrityBlock,
+        telemetry_integrity: _telemetryIntegrityBlock,
+        semantic_enrichment: _semanticEnrichmentBlock,
+        operational_signal_quality: _operationalSignalQualityBlock
+      });
+      if (calibration.runtime_calibration) _runtimeCalibrationBlock = calibration.runtime_calibration;
+      if (calibration.tenant_stabilization) _tenantStabilizationBlock = calibration.tenant_stabilization;
+      if (calibration.operational_maturity) _operationalMaturityBlock = calibration.operational_maturity;
+      if (calibration.runtime_tuning) _runtimeTuningBlock = calibration.runtime_tuning;
+      if (calibration.rollout_stability) _rolloutStabilityBlock = calibration.rollout_stability;
+    } catch (yErr) {
+      console.warn('[RUNTIME_OPERATIONAL_CALIBRATION]', yErr?.message ?? yErr);
+    }
+
     res.json({
       ...legacyResponse,
+      ...(_contentExposureBlock ? { content_exposure: _contentExposureBlock } : {}),
       // Aditivo: presente apenas quando o V2 está activo.
       ...(engineV2Block ? { engine_v2: engineV2Block } : {}),
       // Phase 6 — chaves aditivas. Frontend actual ignora silenciosamente.
@@ -338,7 +634,27 @@ router.get('/me', requireAuth, async (req, res) => {
             trust_score: _contextualModulesMeta.validator ? _contextualModulesMeta.validator.trust_score : null,
             diff: _contextualModulesMeta.diff || null
           } }
-        : {})
+        : {}),
+      ...(_semanticAlignmentBlock ? { semantic_alignment: _semanticAlignmentBlock } : {}),
+      ...(_precisionDeliveryBlock ? { precision_delivery: _precisionDeliveryBlock } : {}),
+      ...(_cognitiveConvergenceBlock ? { cognitive_convergence: _cognitiveConvergenceBlock } : {}),
+      ...(_enterpriseOperationsBlock ? { enterprise_cognitive_operations: _enterpriseOperationsBlock } : {}),
+      ...(_runtimeStabilizationBlock ? { runtime_stabilization: _runtimeStabilizationBlock } : {}),
+      ...(_contextualDeliveryBlock ? { contextual_delivery: _contextualDeliveryBlock } : {}),
+      ...(_runtimeConsistencyBlock ? { runtime_consistency: _runtimeConsistencyBlock } : {}),
+      ...(_decisionReliabilityBlock ? { decision_reliability: _decisionReliabilityBlock } : {}),
+      ...(_controlledActivationBlock ? { controlled_activation: _controlledActivationBlock } : {}),
+      ...(_runtimeEnrichmentBlock ? { runtime_enrichment: _runtimeEnrichmentBlock } : {}),
+      ...(_operationalDensityBlock ? { operational_density: _operationalDensityBlock } : {}),
+      ...(_enrichmentIntegrityBlock ? { enrichment_integrity: _enrichmentIntegrityBlock } : {}),
+      ...(_telemetryIntegrityBlock ? { telemetry_integrity: _telemetryIntegrityBlock } : {}),
+      ...(_semanticEnrichmentBlock ? { semantic_enrichment: _semanticEnrichmentBlock } : {}),
+      ...(_operationalSignalQualityBlock ? { operational_signal_quality: _operationalSignalQualityBlock } : {}),
+      ...(_runtimeCalibrationBlock ? { runtime_calibration: _runtimeCalibrationBlock } : {}),
+      ...(_tenantStabilizationBlock ? { tenant_stabilization: _tenantStabilizationBlock } : {}),
+      ...(_operationalMaturityBlock ? { operational_maturity: _operationalMaturityBlock } : {}),
+      ...(_runtimeTuningBlock ? { runtime_tuning: _runtimeTuningBlock } : {}),
+      ...(_rolloutStabilityBlock ? { rollout_stability: _rolloutStabilityBlock } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_ME]', err);
@@ -979,8 +1295,152 @@ router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) =>
       return res.status(400).json({ ok: false, error: 'Empresa não identificada.' });
     }
     const out = await smartSummaryService.buildSmartSummary(u.id, u.name, u.company_id, u);
-    if (out.aiTraceId) res.setHeader('X-AI-Trace-ID', String(out.aiTraceId));
-    res.json({ ok: true, ...out });
+    let payload = out;
+    try {
+      const cognitiveGovernance = require('../policyEngine/cognitiveGovernanceFacade');
+      const governed = await cognitiveGovernance.governSummaryRequest(u, out.contextPack || null, out.summary || out.text);
+      if (governed.denied) {
+        return res.json({
+          ok: true,
+          summary: governed.pack?.user_message || 'Resumo não disponível para o seu perfil.',
+          governed: true,
+          governance_denied: true
+        });
+      }
+      if (governed.text && (out.summary || out.text)) {
+        payload = { ...out, summary: governed.text, text: governed.text };
+      }
+    } catch (govErr) {
+      console.warn('[SMART_SUMMARY_GOVERNANCE]', govErr?.message ?? govErr);
+    }
+    try {
+      const { alignSummaryResponse } = require('../runtimeAlignment/governedSummaryAlignment');
+      const aligned = alignSummaryResponse(payload, { legacy_enricher_blocked: true });
+      if (aligned.summary) payload = { ...payload, ...aligned.summary };
+      payload.semantic_alignment = {
+        contextual_integrity_score: aligned.contextual_integrity_score,
+        governance_confidence: aligned.governance_confidence,
+        explanation: aligned.explanation
+      };
+    } catch {
+      /* optional */
+    }
+    let _summaryPrecisionBlock = null;
+    try {
+      const precisionFacade = require('../precisionRuntime/precisionRuntimeFacade');
+      const summaryPrecision = precisionFacade.enrichSummaryPrecision(req.user, payload, {
+        functional_axis: req.user.functional_axis || req.user.functional_area
+      });
+      if (summaryPrecision.precision) _summaryPrecisionBlock = summaryPrecision.precision;
+      if (summaryPrecision.summary && !summaryPrecision.precision?.shadow_only) {
+        payload = { ...payload, ...summaryPrecision.summary };
+      }
+    } catch {
+      /* optional */
+    }
+    let _summaryConvergenceBlock = null;
+    try {
+      const convergenceFacade = require('../cognitiveConvergence/cognitiveConvergenceFacade');
+      const summaryConv = convergenceFacade.enrichSummaryConvergence(req.user, payload, {
+        functional_axis: req.user.functional_axis || req.user.functional_area
+      });
+      if (summaryConv.convergence) _summaryConvergenceBlock = summaryConv.convergence;
+    } catch {
+      /* optional */
+    }
+    let _summaryContextualDeliveryBlock = null;
+    try {
+      const contextualFacade = require('../contextualDeliveryStabilization/contextualDeliveryStabilizationFacade');
+      const summaryCtx = contextualFacade.enrichSummaryStabilization(req.user, payload, {
+        functional_axis: req.user.functional_axis || req.user.functional_area,
+        domain: req.user.functional_area,
+        runtime_truth_axis: req.user.functional_axis
+      });
+      if (summaryCtx.contextual_delivery) _summaryContextualDeliveryBlock = summaryCtx.contextual_delivery;
+    } catch {
+      /* optional */
+    }
+    let _summaryRuntimeConsistencyBlock = null;
+    try {
+      const consistencyFacade = require('../runtimeConsistency/runtimeConsistencyFacade');
+      const summaryCons = consistencyFacade.enrichSummaryConsistency(req.user, payload, {
+        functional_axis: req.user.functional_axis || req.user.functional_area
+      });
+      if (summaryCons.runtime_consistency) _summaryRuntimeConsistencyBlock = summaryCons.runtime_consistency;
+    } catch {
+      /* optional */
+    }
+    let _summaryDecisionReliabilityBlock = null;
+    try {
+      const reliabilityFacade = require('../decisionReliability/decisionReliabilityFacade');
+      const summaryRel = reliabilityFacade.enrichSummaryReliability(req.user, payload, {
+        runtime_consistency: _summaryRuntimeConsistencyBlock,
+        contextual_delivery: _summaryContextualDeliveryBlock
+      });
+      if (summaryRel.decision_reliability) _summaryDecisionReliabilityBlock = summaryRel.decision_reliability;
+    } catch {
+      /* optional */
+    }
+    let _summaryGovernanceBlock = null;
+    let _summaryRelevanceBlock = null;
+    let _summarySemanticRolloutBlock = null;
+    let _summaryNarrativeIntegrityBlock = null;
+    let _summaryDeliveryPrecisionBlock = null;
+    try {
+      const summaryRolloutFacade = require('../summaryRollout/summaryRolloutFacade');
+      const summaryRollout = summaryRolloutFacade.enrichSummaryGovernanceRollout(u, payload, {
+        functional_axis: u.functional_axis || u.functional_area,
+        precision_delivery: _summaryPrecisionBlock,
+        contextual_delivery: _summaryContextualDeliveryBlock,
+        runtime_consistency: _summaryRuntimeConsistencyBlock,
+        decision_reliability: _summaryDecisionReliabilityBlock,
+        kpi_governance: null,
+        force: false
+      });
+      if (summaryRollout.summary_governance) _summaryGovernanceBlock = summaryRollout.summary_governance;
+      if (summaryRollout.summary_relevance) _summaryRelevanceBlock = summaryRollout.summary_relevance;
+      if (summaryRollout.summary_semantic_alignment) _summarySemanticRolloutBlock = summaryRollout.summary_semantic_alignment;
+      if (summaryRollout.summary_narrative_integrity) _summaryNarrativeIntegrityBlock = summaryRollout.summary_narrative_integrity;
+      if (summaryRollout.summary_delivery_precision) _summaryDeliveryPrecisionBlock = summaryRollout.summary_delivery_precision;
+    } catch (vErr) {
+      console.warn('[SUMMARY_GOVERNANCE_ROLLOUT]', vErr?.message ?? vErr);
+    }
+    let _summaryRuntimeEnrichmentBlock = null;
+    let _summaryOperationalDensityBlock = null;
+    let _summarySemanticEnrichmentBlock = null;
+    try {
+      const enrichmentFacade = require('../runtimeEnrichment/runtimeEnrichmentFacade');
+      const sumEnrich = enrichmentFacade.enrichWithRuntimeDataIntegrity(u, payload, {
+        channel: 'summary',
+        functional_axis: u.functional_axis || u.functional_area,
+        summary_governance: _summaryGovernanceBlock,
+        contextual_delivery: _summaryContextualDeliveryBlock,
+        force: false
+      });
+      if (sumEnrich.runtime_enrichment) _summaryRuntimeEnrichmentBlock = sumEnrich.runtime_enrichment;
+      if (sumEnrich.operational_density) _summaryOperationalDensityBlock = sumEnrich.operational_density;
+      if (sumEnrich.semantic_enrichment) _summarySemanticEnrichmentBlock = sumEnrich.semantic_enrichment;
+    } catch (xErr) {
+      console.warn('[SUMMARY_RUNTIME_ENRICHMENT]', xErr?.message ?? xErr);
+    }
+    if (payload.aiTraceId) res.setHeader('X-AI-Trace-ID', String(payload.aiTraceId));
+    res.json({
+      ok: true,
+      ...payload,
+      ...(_summaryPrecisionBlock ? { precision_delivery: _summaryPrecisionBlock } : {}),
+      ...(_summaryConvergenceBlock ? { cognitive_convergence: _summaryConvergenceBlock } : {}),
+      ...(_summaryContextualDeliveryBlock ? { contextual_delivery: _summaryContextualDeliveryBlock } : {}),
+      ...(_summaryRuntimeConsistencyBlock ? { runtime_consistency: _summaryRuntimeConsistencyBlock } : {}),
+      ...(_summaryDecisionReliabilityBlock ? { decision_reliability: _summaryDecisionReliabilityBlock } : {}),
+      ...(_summaryGovernanceBlock ? { summary_governance: _summaryGovernanceBlock } : {}),
+      ...(_summaryRelevanceBlock ? { summary_relevance: _summaryRelevanceBlock } : {}),
+      ...(_summarySemanticRolloutBlock ? { summary_semantic_alignment: _summarySemanticRolloutBlock } : {}),
+      ...(_summaryNarrativeIntegrityBlock ? { summary_narrative_integrity: _summaryNarrativeIntegrityBlock } : {}),
+      ...(_summaryDeliveryPrecisionBlock ? { summary_delivery_precision: _summaryDeliveryPrecisionBlock } : {}),
+      ...(_summaryRuntimeEnrichmentBlock ? { runtime_enrichment: _summaryRuntimeEnrichmentBlock } : {}),
+      ...(_summaryOperationalDensityBlock ? { operational_density: _summaryOperationalDensityBlock } : {}),
+      ...(_summarySemanticEnrichmentBlock ? { semantic_enrichment: _summarySemanticEnrichmentBlock } : {})
+    });
   } catch (err) {
     console.error('[SMART_SUMMARY_ROUTE]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao gerar resumo inteligente.' });
@@ -1005,8 +1465,182 @@ router.get('/kpis', requireAuth, async (req, res) => {
     const user = req.user;
     const scope = await hierarchicalFilter.resolveHierarchyScope(user);
     const kpisRaw = await dashboardKPIs.getDashboardKPIs(user, scope);
-    const kpis = dashboardComposerService.applyPersonalizationToKpis(kpisRaw, user);
-    res.json({ kpis });
+    const kpisPersonalized = dashboardComposerService.applyPersonalizationToKpis(kpisRaw, user);
+    let kpis = kpisPersonalized;
+    let governance_meta = null;
+    try {
+      const cognitiveGovernance = require('../policyEngine/cognitiveGovernanceFacade');
+      const governed = await cognitiveGovernance.governKpiResponse(user, kpisPersonalized);
+      kpis = governed.kpis;
+      if (governed.governance_meta) governance_meta = governed.governance_meta;
+      try {
+        const monitor = require('../governanceActivation/governanceActivationMonitor');
+        monitor.observeChannelExecution(
+          'kpi',
+          { user, tenant_id: user.company_id },
+          { denied: (governed.governance_meta?.denied?.length || 0) > 0, sanitized: false }
+        );
+      } catch {
+        /* optional */
+      }
+    } catch (govErr) {
+      console.warn('[DASHBOARD_KPIS_GOVERNANCE]', govErr?.message ?? govErr);
+    }
+    let kpiSemantic = null;
+    try {
+      const { alignKpiResponse } = require('../runtimeAlignment/governedKpiAlignment');
+      kpiSemantic = alignKpiResponse(kpis, { functional_axis: user.functional_axis || user.functional_area });
+    } catch {
+      /* optional */
+    }
+    let _kpiPrecisionBlock = null;
+    try {
+      const precisionFacade = require('../precisionRuntime/precisionRuntimeFacade');
+      const kpiPrecision = precisionFacade.enrichKpiPrecision(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area
+      });
+      if (kpiPrecision.precision) _kpiPrecisionBlock = kpiPrecision.precision;
+      if (kpiPrecision.payload && !kpiPrecision.precision?.shadow_only && kpiPrecision.precision?.enforcement_active) {
+        kpis = kpiPrecision.payload;
+      }
+    } catch {
+      /* optional */
+    }
+    let _kpiConvergenceBlock = null;
+    try {
+      const convergenceFacade = require('../cognitiveConvergence/cognitiveConvergenceFacade');
+      const kpiConv = convergenceFacade.enrichKpiConvergence(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area
+      });
+      if (kpiConv.convergence) _kpiConvergenceBlock = kpiConv.convergence;
+    } catch {
+      /* optional */
+    }
+    let _kpiContextualDeliveryBlock = null;
+    try {
+      const contextualFacade = require('../contextualDeliveryStabilization/contextualDeliveryStabilizationFacade');
+      const kpiCtx = contextualFacade.enrichKpiStabilization(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area,
+        runtime_truth_axis: user.functional_axis
+      });
+      if (kpiCtx.contextual_delivery) _kpiContextualDeliveryBlock = kpiCtx.contextual_delivery;
+    } catch {
+      /* optional */
+    }
+    let _kpiRuntimeConsistencyBlock = null;
+    try {
+      const consistencyFacade = require('../runtimeConsistency/runtimeConsistencyFacade');
+      const kpiCons = consistencyFacade.enrichKpiConsistency(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area
+      });
+      if (kpiCons.runtime_consistency) _kpiRuntimeConsistencyBlock = kpiCons.runtime_consistency;
+    } catch {
+      /* optional */
+    }
+    let _kpiDecisionReliabilityBlock = null;
+    try {
+      const reliabilityFacade = require('../decisionReliability/decisionReliabilityFacade');
+      const kpiRel = reliabilityFacade.enrichKpiReliability(req.user, kpis, {
+        runtime_consistency: _kpiRuntimeConsistencyBlock,
+        contextual_delivery: _kpiContextualDeliveryBlock
+      });
+      if (kpiRel.decision_reliability) _kpiDecisionReliabilityBlock = kpiRel.decision_reliability;
+    } catch {
+      /* optional */
+    }
+    let _kpiGovernanceBlock = null;
+    let _kpiPrecisionRolloutBlock = null;
+    let _kpiDeliveryValidationBlock = null;
+    let _kpiTargetingIntegrityBlock = null;
+    try {
+      const kpiRolloutFacade = require('../kpiRollout/kpiRolloutFacade');
+      const kpiRollout = kpiRolloutFacade.enrichKpiGovernanceRollout(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        precision_delivery: _kpiPrecisionBlock,
+        contextual_delivery: _kpiContextualDeliveryBlock,
+        runtime_consistency: _kpiRuntimeConsistencyBlock,
+        decision_reliability: _kpiDecisionReliabilityBlock
+      });
+      if (kpiRollout.kpi_governance) _kpiGovernanceBlock = kpiRollout.kpi_governance;
+      if (kpiRollout.kpi_precision) _kpiPrecisionRolloutBlock = kpiRollout.kpi_precision;
+      if (kpiRollout.kpi_delivery_validation) _kpiDeliveryValidationBlock = kpiRollout.kpi_delivery_validation;
+      if (kpiRollout.kpi_targeting_integrity) _kpiTargetingIntegrityBlock = kpiRollout.kpi_targeting_integrity;
+      if (
+        kpiRollout.payload &&
+        kpiRollout.payload !== kpis &&
+        kpiRollout.kpi_governance &&
+        !kpiRollout.kpi_governance.shadow_only
+      ) {
+        kpis = kpiRollout.payload?.kpis ?? kpiRollout.payload;
+      }
+    } catch (tErr) {
+      console.warn('[KPI_GOVERNANCE_ROLLOUT]', tErr?.message ?? tErr);
+    }
+    let _kpiRuntimeStabilizationBlock = null;
+    let _kpiDeliveryPrecisionBlock = null;
+    let _kpiSemanticStabilizationBlock = null;
+    let _kpiHierarchyDeliveryBlock = null;
+    try {
+      const kpiStabFacade = require('../kpiStabilization/kpiStabilizationFacade');
+      const kpiStab = kpiStabFacade.enrichKpiRuntimeStabilization(req.user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        kpi_governance: _kpiGovernanceBlock,
+        precision_delivery: _kpiPrecisionBlock,
+        contextual_delivery: _kpiContextualDeliveryBlock,
+        runtime_consistency: _kpiRuntimeConsistencyBlock,
+        decision_reliability: _kpiDecisionReliabilityBlock,
+        force: false
+      });
+      if (kpiStab.kpi_runtime_stabilization) _kpiRuntimeStabilizationBlock = kpiStab.kpi_runtime_stabilization;
+      if (kpiStab.delivery_precision) _kpiDeliveryPrecisionBlock = kpiStab.delivery_precision;
+      if (kpiStab.kpi_semantic_alignment) _kpiSemanticStabilizationBlock = kpiStab.kpi_semantic_alignment;
+      if (kpiStab.hierarchy_delivery_integrity) _kpiHierarchyDeliveryBlock = kpiStab.hierarchy_delivery_integrity;
+    } catch (uErr) {
+      console.warn('[KPI_RUNTIME_STABILIZATION]', uErr?.message ?? uErr);
+    }
+    let _kpiRuntimeEnrichmentBlock = null;
+    let _kpiOperationalDensityBlock = null;
+    let _kpiEnrichmentIntegrityBlock = null;
+    try {
+      const enrichmentFacade = require('../runtimeEnrichment/runtimeEnrichmentFacade');
+      const kpiEnrich = enrichmentFacade.enrichWithRuntimeDataIntegrity(req.user, { kpis }, {
+        channel: 'kpi',
+        functional_axis: user.functional_axis || user.functional_area,
+        precision_delivery: _kpiPrecisionBlock,
+        contextual_delivery: _kpiContextualDeliveryBlock,
+        kpi_governance: _kpiGovernanceBlock,
+        force: false
+      });
+      if (kpiEnrich.runtime_enrichment) _kpiRuntimeEnrichmentBlock = kpiEnrich.runtime_enrichment;
+      if (kpiEnrich.operational_density) _kpiOperationalDensityBlock = kpiEnrich.operational_density;
+      if (kpiEnrich.enrichment_integrity) _kpiEnrichmentIntegrityBlock = kpiEnrich.enrichment_integrity;
+    } catch (xErr) {
+      console.warn('[KPI_RUNTIME_ENRICHMENT]', xErr?.message ?? xErr);
+    }
+    res.json({
+      kpis,
+      ...(governance_meta && governance_meta.governed ? { governance_meta } : {}),
+      ...(kpiSemantic ? { semantic_alignment: kpiSemantic } : {}),
+      ...(_kpiPrecisionBlock ? { precision_delivery: _kpiPrecisionBlock } : {}),
+      ...(_kpiConvergenceBlock ? { cognitive_convergence: _kpiConvergenceBlock } : {}),
+      ...(_kpiContextualDeliveryBlock ? { contextual_delivery: _kpiContextualDeliveryBlock } : {}),
+      ...(_kpiRuntimeConsistencyBlock ? { runtime_consistency: _kpiRuntimeConsistencyBlock } : {}),
+      ...(_kpiDecisionReliabilityBlock ? { decision_reliability: _kpiDecisionReliabilityBlock } : {}),
+      ...(_kpiGovernanceBlock ? { kpi_governance: _kpiGovernanceBlock } : {}),
+      ...(_kpiPrecisionRolloutBlock ? { kpi_precision: _kpiPrecisionRolloutBlock } : {}),
+      ...(_kpiDeliveryValidationBlock ? { kpi_delivery_validation: _kpiDeliveryValidationBlock } : {}),
+      ...(_kpiTargetingIntegrityBlock ? { kpi_targeting_integrity: _kpiTargetingIntegrityBlock } : {}),
+      ...(_kpiRuntimeStabilizationBlock ? { kpi_runtime_stabilization: _kpiRuntimeStabilizationBlock } : {}),
+      ...(_kpiDeliveryPrecisionBlock ? { kpi_delivery_precision: _kpiDeliveryPrecisionBlock } : {}),
+      ...(_kpiSemanticStabilizationBlock ? { kpi_semantic_stabilization: _kpiSemanticStabilizationBlock } : {}),
+      ...(_kpiHierarchyDeliveryBlock ? { kpi_hierarchy_delivery_integrity: _kpiHierarchyDeliveryBlock } : {}),
+      ...(_kpiRuntimeEnrichmentBlock ? { runtime_enrichment: _kpiRuntimeEnrichmentBlock } : {}),
+      ...(_kpiOperationalDensityBlock ? { operational_density: _kpiOperationalDensityBlock } : {}),
+      ...(_kpiEnrichmentIntegrityBlock ? { enrichment_integrity: _kpiEnrichmentIntegrityBlock } : {})
+    });
   } catch (err) {
     console.error('[DASHBOARD_KPIS_ROUTE]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar KPIs' });
@@ -1243,14 +1877,34 @@ router.post('/chat', requireAuth, async (req, res) => {
     }
 
     let dashboardContextualPack = null;
+    let chatGovernanceMeta = null;
     if (u.company_id) {
       try {
         const { retrieveContextualData } = require('../services/dataRetrievalService');
-        dashboardContextualPack = await retrieveContextualData({
+        const rawPack = await retrieveContextualData({
           user: u,
           intent: 'operational_overview',
           entities: {}
         });
+        try {
+          const cognitiveGovernance = require('../policyEngine/cognitiveGovernanceFacade');
+          const chatGov = await cognitiveGovernance.governChatRequest(u, {
+            message,
+            contextualPack: rawPack
+          });
+          chatGovernanceMeta = {
+            governed: chatGov.governed,
+            scope_denied: chatGov.scope_denied,
+            denial_reason: chatGov.denial_reason
+          };
+          dashboardContextualPack = chatGov.contextualPack || rawPack;
+          if (chatGov.scope_denied) {
+            dashboardContextualPack = chatGov.contextualPack;
+          }
+        } catch (govErr) {
+          console.warn('[DASHBOARD_CHAT_GOVERNANCE]', govErr?.message ?? govErr);
+          dashboardContextualPack = rawPack;
+        }
       } catch (ctxErr) {
         console.warn('[DASHBOARD_CHAT_CONTEXT]', ctxErr?.message ?? ctxErr);
       }
@@ -1655,6 +2309,68 @@ router.post('/chat', requireAuth, async (req, res) => {
         );
       } catch (_log) {}
     }
+    let _chatDecisionReliability = null;
+    try {
+      const reliabilityFacade = require('../decisionReliability/decisionReliabilityFacade');
+      const chatRel = reliabilityFacade.enrichChatDecisionReliability(
+        u,
+        { reply: text, message: text, content: synthesis.content, degraded },
+        { functional_axis: u.functional_axis || u.functional_area, force: true }
+      );
+      if (chatRel.decision_reliability) _chatDecisionReliability = chatRel.decision_reliability;
+    } catch {
+      /* optional */
+    }
+    let _chatAlignmentBlock = null;
+    let _chatOperationalGuidanceBlock = null;
+    let _chatRuntimeConfidenceBlock = null;
+    let _chatReasoningQualityBlock = null;
+    let _chatNarrativeIntegrityBlock = null;
+    let _chatLeakageAnalysisBlock = null;
+    try {
+      const chatAlignmentFacade = require('../chatAlignment/chatRuntimeAlignmentFacade');
+      const chatAlign = chatAlignmentFacade.enrichChatRuntimeAlignment(
+        u,
+        { reply: text, message: text, content: synthesis.content, degraded },
+        {
+          functional_axis: u.functional_axis || u.functional_area,
+          user_message: message,
+          contextual_delivery: dashboardContextualPack?.contextual_delivery,
+          runtime_consistency: _chatDecisionReliability?.runtime_consistency,
+          runtime_truth_state: { canonical_axis: u.functional_axis || u.functional_area },
+          force: false
+        }
+      );
+      if (chatAlign.chat_alignment) _chatAlignmentBlock = chatAlign.chat_alignment;
+      if (chatAlign.chat_operational_guidance) _chatOperationalGuidanceBlock = chatAlign.chat_operational_guidance;
+      if (chatAlign.chat_runtime_confidence) _chatRuntimeConfidenceBlock = chatAlign.chat_runtime_confidence;
+      if (chatAlign.chat_reasoning_quality) _chatReasoningQualityBlock = chatAlign.chat_reasoning_quality;
+      if (chatAlign.chat_narrative_integrity) _chatNarrativeIntegrityBlock = chatAlign.chat_narrative_integrity;
+      if (chatAlign.chat_leakage_analysis) _chatLeakageAnalysisBlock = chatAlign.chat_leakage_analysis;
+    } catch (wErr) {
+      console.warn('[CHAT_COGNITIVE_ALIGNMENT]', wErr?.message ?? wErr);
+    }
+    let _chatRuntimeEnrichmentBlock = null;
+    let _chatOperationalDensityBlock = null;
+    try {
+      const enrichmentFacade = require('../runtimeEnrichment/runtimeEnrichmentFacade');
+      const chatEnrich = enrichmentFacade.enrichWithRuntimeDataIntegrity(
+        u,
+        { reply: text, message: text, content: synthesis.content },
+        {
+          channel: 'chat',
+          functional_axis: u.functional_axis || u.functional_area,
+          chat_alignment: _chatAlignmentBlock,
+          contextual_delivery: dashboardContextualPack?.contextual_delivery,
+          metrics: dashboardContextualPack?.metrics,
+          force: false
+        }
+      );
+      if (chatEnrich.runtime_enrichment) _chatRuntimeEnrichmentBlock = chatEnrich.runtime_enrichment;
+      if (chatEnrich.operational_density) _chatOperationalDensityBlock = chatEnrich.operational_density;
+    } catch (xErr) {
+      console.warn('[CHAT_RUNTIME_ENRICHMENT]', xErr?.message ?? xErr);
+    }
     res.json({
       ok: true,
       reply: text,
@@ -1669,7 +2385,16 @@ router.post('/chat', requireAuth, async (req, res) => {
       processing_transparency,
       system_influence: systemInfluenceMessage || null,
       safety_blocked: !!safetyChat.safety_blocked,
-      safety_reason: safetyChat.reason || undefined
+      safety_reason: safetyChat.reason || undefined,
+      ...(_chatDecisionReliability ? { decision_reliability: _chatDecisionReliability } : {}),
+      ...(_chatAlignmentBlock ? { chat_alignment: _chatAlignmentBlock } : {}),
+      ...(_chatOperationalGuidanceBlock ? { chat_operational_guidance: _chatOperationalGuidanceBlock } : {}),
+      ...(_chatRuntimeConfidenceBlock ? { chat_runtime_confidence: _chatRuntimeConfidenceBlock } : {}),
+      ...(_chatReasoningQualityBlock ? { chat_reasoning_quality: _chatReasoningQualityBlock } : {}),
+      ...(_chatNarrativeIntegrityBlock ? { chat_narrative_integrity: _chatNarrativeIntegrityBlock } : {}),
+      ...(_chatLeakageAnalysisBlock ? { chat_leakage_analysis: _chatLeakageAnalysisBlock } : {}),
+      ...(_chatRuntimeEnrichmentBlock ? { runtime_enrichment: _chatRuntimeEnrichmentBlock } : {}),
+      ...(_chatOperationalDensityBlock ? { operational_density: _chatOperationalDensityBlock } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);

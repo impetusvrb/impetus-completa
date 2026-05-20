@@ -1,0 +1,148 @@
+{
+  "phase": "N",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "enterprise_operations": false,
+    "entropy_detection": false,
+    "dynamic_confidence": false,
+    "stability_engine": false,
+    "governance_calibration": false
+  },
+  "health": {
+    "cognitive_runtime_health": 0.87,
+    "components": {
+      "convergence": 0.92,
+      "truth": 0.88,
+      "contextual": 0.84,
+      "governance": 0.84
+    },
+    "status": "healthy"
+  },
+  "entropy": {
+    "runtime_entropy_score": 0.0765,
+    "entropy_detected": false,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "stability": {
+    "runtime_stability": 0.4636,
+    "variance": 0.0719,
+    "samples": 4,
+    "unstable": true,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "semantic": {
+      "semantic_stability": 0.81,
+      "semantic_convergence_rate": 0.86
+    }
+  },
+  "confidence": {
+    "runtime_confidence": 0.824,
+    "contextual_confidence": 0.6922,
+    "governance_confidence": 0.6922,
+    "operational_confidence": 0.7361,
+    "dynamic": false,
+    "shadow_only": true
+  },
+  "governance_self_observation": {
+    "self_observing": true,
+    "auto_adjust": false,
+    "degradation": {
+      "governance_degradation_detected": false,
+      "governance_effectiveness_score": 0.85,
+      "governance_fatigue": 0
+    },
+    "self_evaluation": {
+      "governance_effectiveness_score": 0.9047,
+      "supervision_quality": "adequate",
+      "recommend_manual_review": false
+    }
+  },
+  "anomalies": {
+    "correlated_anomalies": [],
+    "correlation_score": 0,
+    "critical": false,
+    "resolved_at": "2026-05-19T20:27:50.023Z",
+    "auto_mitigation": false
+  },
+  "calibration": {
+    "advisor": "runtime_calibration_advisor_v1",
+    "recommendations": [
+      {
+        "priority": "high",
+        "action": "stabilize_context_composition",
+        "reason": "Instabilidade runtime detectada"
+      }
+    ],
+    "auto_execute": false,
+    "observe_only": true,
+    "shadow_only": true,
+    "tuning_hints": [
+      "Manter observabilidade ON em produção",
+      "Activar enforcement apenas por tenant piloto",
+      "Revisar enrichers legacy antes de UNIFIED_CONTEXT"
+    ]
+  },
+  "reflection": {
+    "reflection": "Governança operando em modo observação contínua; sem auto-correcção.",
+    "maturity": 0.82,
+    "fatigue_risk": false,
+    "explainability_preserved": true,
+    "audit_trail_preserved": true
+  },
+  "supervision": {
+    "supervision_active": true,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "coordination": {
+      "layers": {
+        "policy": true,
+        "semantic": false,
+        "precision": true,
+        "convergence": true
+      },
+      "active_layers": 3,
+      "governance_operational_health": 0.85,
+      "overload_risk": false,
+      "lifecycle": "observe"
+    },
+    "supervised_at": "2026-05-19T20:27:50.023Z"
+  },
+  "operational_state": {
+    "lifecycle": "observe",
+    "last_health": {
+      "cognitive_runtime_health": 0.865,
+      "components": {
+        "convergence": 0.88,
+        "truth": 0.9,
+        "contextual": 0.84,
+        "governance": 0.84
+      },
+      "status": "healthy"
+    },
+    "pressure_samples": [
+      {
+        "v": 0.1554,
+        "ts": 1779222470020
+      }
+    ],
+    "last_supervision": "2026-05-19T20:27:50.023Z",
+    "pressure": 0.1554,
+    "updated_at": "2026-05-19T20:27:50.023Z"
+  },
+  "telemetry_snapshot": {
+    "governance_operational_maturity": 0.87,
+    "runtime_entropy_score": 0.0765,
+    "convergence_operational_health": 0.92,
+    "contextual_stability_rate": 0.81,
+    "runtime_resilience": 0.4636,
+    "cognitive_operational_pressure": 0.1506,
+    "governance_effectiveness_score": 0.9047,
+    "operational_trustworthiness": 0.7361,
+    "samples": 1,
+    "ts": "2026-05-19T20:27:50.024Z"
+  },
+  "auto_correct": false,
+  "auto_calibrate": false
+}

@@ -1,0 +1,80 @@
+{
+  "rollout_readiness": "supervised_rollout_approved",
+  "rollout_order": [
+    {
+      "step": 1,
+      "channel": "kpi",
+      "classification": "safe",
+      "manual_promotion_required": true,
+      "endpoint": "POST /api/internal/governance/activate/kpi"
+    },
+    {
+      "step": 2,
+      "channel": "summary",
+      "classification": "safe",
+      "manual_promotion_required": true,
+      "endpoint": "POST /api/internal/governance/activate/summary"
+    },
+    {
+      "step": 3,
+      "channel": "chat",
+      "classification": "safe",
+      "manual_promotion_required": true,
+      "endpoint": "POST /api/internal/governance/activate/chat"
+    },
+    {
+      "step": 4,
+      "channel": "boundary",
+      "classification": "safe",
+      "manual_promotion_required": true,
+      "endpoint": "POST /api/internal/governance/activate/boundary"
+    }
+  ],
+  "safe_channels": [
+    "kpi",
+    "summary",
+    "chat",
+    "boundary"
+  ],
+  "sensitive_channels": [],
+  "rollback_readiness": {
+    "rollback_ready": true,
+    "auto_rollback": false,
+    "active_runtime_channels": [],
+    "runtime_demote_available": true,
+    "coordinator_plan": {
+      "coordinated": true,
+      "auto_applied": false,
+      "scope": "phase_f_only",
+      "flags_to_disable": [
+        "IMPETUS_CHAT_GOVERNANCE",
+        "IMPETUS_KPI_GOVERNANCE",
+        "IMPETUS_SUMMARY_GOVERNANCE",
+        "IMPETUS_COGNITIVE_BOUNDARY_GUARD"
+      ],
+      "preserve_flags": [
+        "IMPETUS_GOVERNANCE_SHADOW_MODE",
+        "IMPETUS_FAILSAFE_GOVERNANCE",
+        "IMPETUS_DOMAIN_AUTHORITY",
+        "IMPETUS_SAFETY_DOMAIN_ISOLATION",
+        "IMPETUS_RUNTIME_TECHNICAL_GUARD"
+      ],
+      "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off pm2 reload impetus-backend --update-env",
+      "preserve_hint": "Manter: IMPETUS_GOVERNANCE_SHADOW_MODE, IMPETUS_FAILSAFE_GOVERNANCE, IMPETUS_DOMAIN_AUTHORITY, IMPETUS_SAFETY_DOMAIN_ISOLATION, IMPETUS_RUNTIME_TECHNICAL_GUARD",
+      "rebuild_required": false,
+      "session_reset_required": false
+    },
+    "immediate_actions": [],
+    "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off pm2 reload impetus-backend --update-env"
+  },
+  "emergency_readiness": {
+    "controls_available": true,
+    "auto_executed": false
+  },
+  "supervised_plan": {
+    "auto_execute": false,
+    "shadow_observation_days_between_steps": 7,
+    "quality_gates_required": true
+  },
+  "auto_activation": false
+}

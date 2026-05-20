@@ -1,0 +1,49 @@
+{
+  "phase": "L",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "module_delivery": false,
+    "tool_exposure": false,
+    "widget_governance": false,
+    "kpi_alignment": false,
+    "summary_engine": false
+  },
+  "modules": {
+    "module_delivery_confidence": 0.92,
+    "contextual_precision_score": 0.92,
+    "overdelivery_candidates": [],
+    "underdelivery_risk": false,
+    "precise_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ],
+    "shadow_comparison": {
+      "match": true,
+      "overdelivery": [],
+      "underdelivery": [],
+      "legacy_count": 3,
+      "precise_count": 3,
+      "delivery_mismatch": 0
+    }
+  },
+  "cards": null,
+  "contextual": {
+    "governance_delivery_confidence": 0.96,
+    "runtime_contextual_integrity": "ok",
+    "contextual_precision_score": 1,
+    "semantic_precision_score": 0.92
+  },
+  "validation": {
+    "delivery_precision_score": 0.95,
+    "issues": []
+  },
+  "explainability": {
+    "modules": [],
+    "widgets": [],
+    "kpis": [],
+    "summary": null,
+    "generated_at": "2026-05-19T19:52:42.706Z"
+  }
+}

@@ -6,7 +6,7 @@ import {
   isEnvironmentPublicationRuntimeEnabled,
   isEnvironmentNavigationRuntimeEnabled
 } from './environmentPublicationFeatureFlags.js';
-import { resolveEnvironmentAudienceBand } from './environmentAudienceNavigation.js';
+import { resolveEnvironmentAudienceBand, shouldPublishEnvironmentNavigation } from './environmentAudienceNavigation.js';
 
 function userHasEnvironmentModule(visibleModules) {
   if (!Array.isArray(visibleModules)) return false;
@@ -15,6 +15,17 @@ function userHasEnvironmentModule(visibleModules) {
 
 export function resolveEnvironmentVisibilityContext(ctx) {
   const user = ctx.user || null;
+  if (user && !shouldPublishEnvironmentNavigation(user)) {
+    return {
+      band: 'production',
+      moduleOk: false,
+      flagsOn: false,
+      serverBlocks: true,
+      shouldPublishMenu: false,
+      serverPublication: ctx.serverPublication || null,
+      safety_domain_isolation: true
+    };
+  }
   const band = resolveEnvironmentAudienceBand(user);
   const moduleOk = userHasEnvironmentModule(ctx.visibleModules);
   const flagsOn =

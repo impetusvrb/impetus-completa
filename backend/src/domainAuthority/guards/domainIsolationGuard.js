@@ -77,6 +77,18 @@ function _crossDomainDenied(axis, id) {
   if (a === 'compliance' || a === 'legal') {
     if (/production_shift|plc|oee/.test(id)) return 'governance_blocks_shop_floor';
   }
+  if (a === 'safety' || a === 'environmental_health_safety' || a === 'ehs_shared') {
+    if (
+      /environment|esg|emission|carbon|gee|ete|eta|waste|effluent|sustainability|environmental/.test(id)
+    ) {
+      return 'safety_blocks_environmental';
+    }
+  }
+  if (a === 'environmental' || a === 'sustainability' || a === 'esg' || a === 'utilities') {
+    if (/incident_safety|epi_|ptw|sst_only|nr_governance|behavioral_safety|safety_intelligence/.test(id)) {
+      return 'environmental_blocks_safety_exclusive';
+    }
+  }
   return null;
 }
 

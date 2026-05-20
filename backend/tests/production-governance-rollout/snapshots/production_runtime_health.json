@@ -1,0 +1,235 @@
+{
+  "enabled": true,
+  "flags": {
+    "production_rollout": true,
+    "stabilization": true,
+    "runtime_observation": true
+  },
+  "sequence": {
+    "sequence": [
+      "kpi",
+      "summary",
+      "chat",
+      "boundary"
+    ],
+    "current_step": 0,
+    "next_channel": "kpi",
+    "completed": [],
+    "last_promoted_at": null,
+    "all_complete": false
+  },
+  "deployment": {
+    "ready": true,
+    "checks": {
+      "controlled_activation": true,
+      "shadow_mode": true,
+      "failsafe": true,
+      "quality_gates": true,
+      "global_channel_flags_off": true
+    },
+    "final_readiness": {
+      "governance_health": 97,
+      "runtime_stability": "stable",
+      "shadow_alignment": 1,
+      "leakage_risk": "low",
+      "overblocking_risk": "low",
+      "rollout_readiness": "safe_gradual_activation",
+      "production_status": "enterprise_ready",
+      "activation_readiness": 97,
+      "tenant_isolation_confidence": "high",
+      "explainability_maturity": "shadow_ready",
+      "operational_maturity": "enterprise",
+      "auto_activation": false,
+      "assessed_at": "2026-05-19T17:48:42.812Z"
+    },
+    "build_integrity": "manual_verify_required",
+    "pm2_hint": "pm2 reload impetus-backend --update-env",
+    "auto_deploy": false
+  },
+  "observation": {
+    "runtime": {
+      "observing": true,
+      "observed_at": "2026-05-19T17:48:42.813Z",
+      "tenant_id": null,
+      "health": {
+        "activation_healthy": true,
+        "phase_i_health": {
+          "monitoring": false
+        },
+        "stabilization": {
+          "monitoring": true,
+          "stabilization_score": 1,
+          "runtime_activation_confidence": 1,
+          "governance_operational_pressure": 0,
+          "contextual_preservation_score": 1,
+          "rollout_runtime_integrity": "intact",
+          "stable": true,
+          "sample_count": 0
+        },
+        "channels": [
+          {
+            "channel": "kpi",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "summary",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "chat",
+            "active": false,
+            "source": "runtime_not_promoted"
+          },
+          {
+            "channel": "boundary",
+            "active": true,
+            "source": "global_runtime"
+          }
+        ],
+        "auto_remediation": false
+      },
+      "shadow": {
+        "passed": true,
+        "runtime_shadow_alignment": 1,
+        "governance_runtime_confidence": 1,
+        "contextual_integrity_score": 1,
+        "runtime_governance_stability": 0.95,
+        "governance_runtime_maturity": 61,
+        "shadow_detail": {
+          "governance_confidence_score": 1,
+          "shadow_alignment_rate": 1,
+          "runtime_shadow_alignment": 1,
+          "governance_runtime_confidence": 1,
+          "contextual_integrity_score": 1,
+          "runtime_governance_stability": 0.95,
+          "governance_runtime_maturity": 61,
+          "sanitizer_aggressiveness": 0,
+          "policy_consistency_rate": 0.95,
+          "exposure_stability_score": 1,
+          "governance_drift_rate": 0.05,
+          "divergence_severity": "none",
+          "contextual_consistency": "aligned",
+          "governance_readiness_score": 100,
+          "activation_safety_score": 100,
+          "governance_maturity_score": 61,
+          "tenant_readiness_score": 100,
+          "governance_false_positive_rate": 0.02,
+          "governance_overblocking_rate": 0,
+          "governance_context_preservation_rate": 1,
+          "leakage_prevention": "effective",
+          "kpi_consistency": "aligned",
+          "summary_consistency": "aligned",
+          "chat_contextual_integrity": "aligned"
+        },
+        "kpi_consistency": "aligned",
+        "summary_consistency": "aligned",
+        "chat_contextual_integrity": "aligned",
+        "auto_remediation": false
+      },
+      "anomalies": {
+        "anomaly_count": 0,
+        "anomalies": [],
+        "stable": true,
+        "auto_remediation": false
+      },
+      "stable": true,
+      "auto_remediation": false
+    },
+    "stabilization": {
+      "monitoring": true,
+      "stabilization_score": 1,
+      "runtime_activation_confidence": 1,
+      "governance_operational_pressure": 0,
+      "contextual_preservation_score": 1,
+      "rollout_runtime_integrity": "intact",
+      "stable": true,
+      "sample_count": 0
+    },
+    "telemetry": [],
+    "auto_activation": false,
+    "global_governance_active": false
+  },
+  "rollback": {
+    "verified": true,
+    "rollback_ready": true,
+    "auto_rollback": false,
+    "supervised": true,
+    "auditable": true,
+    "tenant_id": null,
+    "immediate_actions": [
+      {
+        "action": "demoteChannel",
+        "channel": "kpi",
+        "tenant_id": null
+      }
+    ],
+    "pm2_hint": "IMPETUS_CHAT_GOVERNANCE=off IMPETUS_KPI_GOVERNANCE=off IMPETUS_SUMMARY_GOVERNANCE=off IMPETUS_COGNITIVE_BOUNDARY_GUARD=off pm2 reload impetus-backend --update-env",
+    "env_flags_off": [
+      "IMPETUS_PRODUCTION_ROLLOUT",
+      "IMPETUS_GOVERNANCE_STABILIZATION",
+      "IMPETUS_RUNTIME_OBSERVATION",
+      "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION",
+      "IMPETUS_KPI_GOVERNANCE",
+      "IMPETUS_SUMMARY_GOVERNANCE",
+      "IMPETUS_CHAT_GOVERNANCE",
+      "IMPETUS_COGNITIVE_BOUNDARY_GUARD"
+    ]
+  },
+  "runbook": {
+    "version": "1.0",
+    "activation_order": [
+      "kpi",
+      "summary",
+      "chat",
+      "boundary"
+    ],
+    "phases": [
+      {
+        "phase": "pre_deploy",
+        "actions": [
+          "final/report",
+          "deployment/validate",
+          "backup env"
+        ]
+      },
+      {
+        "phase": "framework",
+        "actions": [
+          "IMPETUS_CONTROLLED_GOVERNANCE_ACTIVATION=on",
+          "pm2 reload"
+        ]
+      },
+      {
+        "phase": "channel_rollout",
+        "actions": [
+          "POST activate/kpi",
+          "POST activate/summary",
+          "POST activate/chat",
+          "POST activate/boundary"
+        ]
+      },
+      {
+        "phase": "observation",
+        "actions": [
+          "7d shadow per channel",
+          "production/observe"
+        ]
+      },
+      {
+        "phase": "rollback",
+        "actions": [
+          "demote channels",
+          "flags off",
+          "pm2 reload"
+        ]
+      }
+    ],
+    "auto_execute": false,
+    "shadow_days_between_channels": 7,
+    "quality_gates_required": true
+  },
+  "auto_activation": false,
+  "global_governance_active": false
+}

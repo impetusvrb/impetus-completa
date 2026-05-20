@@ -1,0 +1,201 @@
+{
+  "phase": "P",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "contextual_delivery": false,
+    "hierarchy": false,
+    "functional_domain": false,
+    "module_targeting": false,
+    "dashboard": false
+  },
+  "targeting": {
+    "hierarchy": {
+      "hierarchy_level": 1,
+      "hierarchy_band": "executive",
+      "hierarchy_integrity": 0.92
+    },
+    "authority": {
+      "operational_authority": "executive",
+      "functional_axis": "executive",
+      "department": null,
+      "job_function": "executive",
+      "authority_integrity": 0.92,
+      "can_view_executive": true,
+      "can_view_corporate_aggregate": true
+    },
+    "domain": {
+      "domain": "executive",
+      "domain_targeting_precision": 0.92,
+      "isolated": true
+    },
+    "runtime_truth_axis": "executive"
+  },
+  "contextual_delivery_confidence": 0.92,
+  "ambiguous_targeting": false,
+  "hierarchy": {
+    "hierarchy": {
+      "hierarchy_level": 1,
+      "hierarchy_band": "executive",
+      "hierarchy_integrity": 0.92
+    },
+    "normalized": {
+      "normalized_band": "executive",
+      "corporate_contamination_risk": false,
+      "executive_insight_allowed": true
+    },
+    "module_results": [
+      {
+        "module_id": "executive",
+        "allowed": true,
+        "reason": "hierarchy_ok"
+      },
+      {
+        "module_id": "analytics",
+        "allowed": true,
+        "reason": "hierarchy_ok"
+      },
+      {
+        "module_id": "dashboard",
+        "allowed": true,
+        "reason": "hierarchy_ok"
+      }
+    ],
+    "denied_hierarchy": [],
+    "hierarchy_integrity": 0.95,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "stabilized_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ]
+  },
+  "domain": {
+    "operational_domain": {
+      "domain": "executive",
+      "inferred_from_department": false
+    },
+    "results": [
+      {
+        "module_id": "executive",
+        "allowed": true,
+        "reason": "executive_scope",
+        "domain": "executive"
+      },
+      {
+        "module_id": "analytics",
+        "allowed": true,
+        "reason": "shared_governed_ok",
+        "domain": "executive"
+      },
+      {
+        "module_id": "dashboard",
+        "allowed": true,
+        "reason": "cross_domain_safe",
+        "domain": "executive"
+      }
+    ],
+    "denied_domain": [],
+    "domain_integrity": 0.94,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "stabilized_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ]
+  },
+  "modules": {
+    "visible_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ],
+    "precise_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ],
+    "scored": [
+      {
+        "module_id": "executive",
+        "allowed": true,
+        "delivery_authority": "governed_targeting",
+        "hierarchy_compatibility": true,
+        "operational_compatibility": true,
+        "contextual_confidence": 0.9,
+        "runtime_truth_compatible": true,
+        "reasons": [
+          "executive_scope",
+          "hierarchy_ok"
+        ]
+      },
+      {
+        "module_id": "analytics",
+        "allowed": true,
+        "delivery_authority": "governed_targeting",
+        "hierarchy_compatibility": true,
+        "operational_compatibility": true,
+        "contextual_confidence": 0.9,
+        "runtime_truth_compatible": true,
+        "reasons": [
+          "shared_governed_ok",
+          "hierarchy_ok"
+        ]
+      },
+      {
+        "module_id": "dashboard",
+        "allowed": true,
+        "delivery_authority": "governed_targeting",
+        "hierarchy_compatibility": true,
+        "operational_compatibility": true,
+        "contextual_confidence": 0.9,
+        "runtime_truth_compatible": true,
+        "reasons": [
+          "cross_domain_safe",
+          "hierarchy_ok"
+        ]
+      }
+    ],
+    "eligible_modules": [
+      "executive",
+      "analytics",
+      "dashboard"
+    ],
+    "module_targeting_precision": 1,
+    "module_delivery_integrity": 0.95,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "auto_filtered": false
+  },
+  "dashboard": null,
+  "conflicts": {
+    "contextual": {
+      "conflicts": [],
+      "conflict_detected": false
+    },
+    "hierarchy": {
+      "hierarchy_conflict": false,
+      "reason": null
+    },
+    "authority": {
+      "authority_overlap": false,
+      "overlaps": []
+    }
+  },
+  "contextual_delivery_stability": 0.9475,
+  "telemetry_snapshot": {
+    "contextual_delivery_stability": 0.9475,
+    "hierarchy_integrity": 0.95,
+    "authority_integrity": 0.92,
+    "module_targeting_precision": 1,
+    "dashboard_targeting_precision": 0.9,
+    "KPI_targeting_precision": 0.88,
+    "summary_targeting_precision": 0.87,
+    "contextual_delivery_confidence": 0.92,
+    "samples": 1,
+    "ts": "2026-05-19T21:07:11.926Z"
+  },
+  "auto_enforce": false
+}

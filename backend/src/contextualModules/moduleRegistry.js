@@ -369,6 +369,23 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     fallback_behavior: 'soft_hide'
   },
   {
+    module_id: 'safety_intelligence',
+    menu_key: 'safety_intelligence',
+    paths: ['/app/safety/operational', '/app/safety'],
+    category: 'safety',
+    label: 'Inteligência de Segurança',
+    description: 'SST, incidentes, EPI, PTW e compliance de segurança do trabalho.',
+    required_capabilities: ['view:operational'],
+    compatible_axes: ['eixo_seguranca', 'eixo_operacional'],
+    compatible_functions: ['decisao_estrategica', 'analise', 'supervisao', 'execucao', 'governanca'],
+    compatible_levels: { min: 1, max: 5 },
+    compatible_areas: ['safety', 'environmental_health_safety'],
+    lgpd_scope: 'low',
+    criticality: 0.9,
+    dependencies: ['operational'],
+    fallback_behavior: 'soft_hide'
+  },
+  {
     module_id: 'environment_intelligence',
     menu_key: 'environment_intelligence',
     paths: ['/app/environment/operational', '/app/environment'],
@@ -529,6 +546,7 @@ const CANONICAL_MENU_KEYS = Object.freeze([
   'manuia',
   'quality_intelligence',
   'environment_intelligence',
+  'safety_intelligence',
   'raw_material_lots',
   'settings'
 ]);

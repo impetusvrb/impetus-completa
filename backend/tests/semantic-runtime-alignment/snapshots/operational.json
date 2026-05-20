@@ -1,0 +1,30 @@
+{
+  "visible_modules": [
+    "maintenance",
+    "sst",
+    "dashboard"
+  ],
+  "aligned_modules": [
+    "maintenance",
+    "dashboard"
+  ],
+  "blocked": [
+    {
+      "module": "sst",
+      "reason": "exclusive_domain_mismatch",
+      "classification": "exclusive"
+    }
+  ],
+  "leakage": [
+    {
+      "module": "sst",
+      "reason": "exclusive_domain_mismatch",
+      "severity": "high"
+    }
+  ],
+  "denied_sections": [],
+  "semantic_integrity_score": 0.6667,
+  "enforcement_active": false,
+  "shadow_only": true,
+  "auto_removed": false
+}

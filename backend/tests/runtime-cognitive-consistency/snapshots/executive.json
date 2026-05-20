@@ -1,0 +1,74 @@
+{
+  "phase": "Q",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "runtime_consistency": false,
+    "interchannel": false,
+    "temporal": false
+  },
+  "cognitive_consistency_score": 0.93,
+  "synchronization": {
+    "canonical_axis": "executive",
+    "sources_checked": [
+      "executive"
+    ],
+    "conflict": false,
+    "synchronized_at": "2026-05-19T21:20:13.342Z",
+    "runtime_truth_integrity": 0.94
+  },
+  "interchannel": {
+    "alignment": 0.93,
+    "validators": {
+      "dashboard": {
+        "channel": "dashboard",
+        "consistent": true,
+        "axis": "executive",
+        "canonical": "executive",
+        "issues": []
+      },
+      "chat": {
+        "channel": "chat",
+        "consistent": true,
+        "axis": "executive",
+        "issues": []
+      },
+      "kpi": {
+        "channel": "kpi",
+        "consistent": true,
+        "axis": "executive",
+        "issues": []
+      },
+      "summary": {
+        "channel": "summary",
+        "consistent": true,
+        "axis": "executive",
+        "kpi_summary_aligned": true,
+        "issues": []
+      }
+    },
+    "divergence_detected": false
+  },
+  "temporal": {
+    "temporal_consistency": 0.93,
+    "temporal_drift": false,
+    "stale_context": false,
+    "current_axis": "executive",
+    "contextual_temporal_integrity": 0.93,
+    "acceptable": true,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "auto_refresh": false
+  },
+  "telemetry_snapshot": {
+    "cognitive_consistency_score": 0.93,
+    "interchannel_alignment": 0.93,
+    "runtime_truth_integrity": 0.94,
+    "contextual_synchronization": 0.92,
+    "temporal_consistency": 0.93,
+    "pipeline_agreement_score": 0.9,
+    "samples": 1,
+    "ts": "2026-05-19T21:20:13.342Z"
+  },
+  "auto_enforce": false
+}

@@ -1,0 +1,87 @@
+{
+  "phase": "S",
+  "shadow_only": true,
+  "observability": true,
+  "status": {
+    "phase": "S",
+    "observability": true,
+    "controlled_activation": false,
+    "channel_governance": false,
+    "global_auto_activation": false,
+    "flags": {
+      "IMPETUS_CONTROLLED_RUNTIME_ACTIVATION": false,
+      "IMPETUS_PRODUCTION_CHANNEL_GOVERNANCE": false,
+      "IMPETUS_RUNTIME_DELIVERY_VALIDATION": false,
+      "IMPETUS_RUNTIME_STABILIZATION_MONITOR": false,
+      "IMPETUS_CONTROLLED_ACTIVATION_OBSERVABILITY": true
+    },
+    "channels": {
+      "activated": [],
+      "next_expected": "kpi",
+      "sequence_complete": false,
+      "shadow_only": true
+    },
+    "rollout": {
+      "tenant_id": 1,
+      "sequence": [
+        "kpi",
+        "summary",
+        "chat",
+        "boundary"
+      ],
+      "activated": [],
+      "next": "kpi",
+      "global_auto": false
+    },
+    "telemetry": {
+      "rollout_health": 0.89,
+      "activation_stability": 0.92,
+      "contextual_delivery_accuracy": 0.85,
+      "hierarchy_accuracy": 0.9,
+      "module_delivery_accuracy": 0.85,
+      "KPI_delivery_accuracy": 0.88,
+      "summary_delivery_accuracy": 0.87,
+      "runtime_activation_confidence": 0.89,
+      "samples": 5,
+      "ts": "2026-05-19T22:46:04.071Z"
+    }
+  },
+  "readiness": {
+    "readiness_ok": true,
+    "delivery": {
+      "valid": true,
+      "contextual_delivery_accuracy": 0.85,
+      "module_count": 1,
+      "issues": []
+    },
+    "hierarchy": {
+      "valid": true,
+      "hierarchy_accuracy": 0.9,
+      "denied_count": 0
+    },
+    "targeting": {
+      "valid": true,
+      "targeting_confidence": 0.85,
+      "conflict_count": 0
+    },
+    "stabilization": {
+      "issues": [],
+      "activation_stability": 0.92,
+      "enforcement_active": false,
+      "shadow_only": true
+    },
+    "health": {
+      "rollout_health": 0.89,
+      "status": "healthy",
+      "runtime_activation_confidence": 0.85
+    },
+    "stability_ok": true
+  },
+  "rollout_health": {
+    "rollout_health": 0.89,
+    "status": "healthy",
+    "runtime_activation_confidence": 0.85
+  },
+  "auto_activate": false,
+  "global_activation": false
+}

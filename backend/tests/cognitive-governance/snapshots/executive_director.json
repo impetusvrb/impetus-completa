@@ -1,0 +1,32 @@
+{
+  "functional_axis": "executive",
+  "profile_code": "director_unassigned",
+  "visible_modules": [
+    "dashboard",
+    "operational",
+    "proaction",
+    "chat",
+    "biblioteca",
+    "ai",
+    "anomaly_detection",
+    "audit",
+    "settings",
+    "registro_inteligente",
+    "cadastrar_com_ia"
+  ],
+  "denied_modules": [
+    {
+      "module": "hr_intelligence",
+      "reason": "exclusive_other_domain"
+    }
+  ],
+  "allow_ai_insights": false,
+  "allow_kpis": false,
+  "cognitive_envelope": {
+    "depth": "strategic",
+    "primary_axis": "executive",
+    "ai_inference_scope": "executive_summary",
+    "cross_domain_access": true
+  },
+  "policy_engine_enabled": true
+}

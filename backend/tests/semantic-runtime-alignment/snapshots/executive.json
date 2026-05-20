@@ -1,0 +1,19 @@
+{
+  "visible_modules": [
+    "executive",
+    "analytics",
+    "dashboard"
+  ],
+  "aligned_modules": [
+    "executive",
+    "analytics",
+    "dashboard"
+  ],
+  "blocked": [],
+  "leakage": [],
+  "denied_sections": [],
+  "semantic_integrity_score": 1,
+  "enforcement_active": false,
+  "shadow_only": true,
+  "auto_removed": false
+}

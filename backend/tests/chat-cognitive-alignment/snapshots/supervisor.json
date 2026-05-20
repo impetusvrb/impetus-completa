@@ -1,0 +1,68 @@
+{
+  "chat_alignment": {
+    "phase": "W",
+    "shadow_only": true,
+    "observability": true,
+    "status": {
+      "phase": "W",
+      "observability": true,
+      "alignment_runtime": false,
+      "guidance_quality": false,
+      "reasoning_stabilization": false,
+      "hierarchy_isolation": false,
+      "leakage_detection": false,
+      "global_auto_correction": false,
+      "telemetry": {
+        "alignment_score": 0.9,
+        "guidance_usefulness": 0.419,
+        "reasoning_quality_score": 0.825,
+        "conversational_confidence": 0.781,
+        "narrative_integrity": 1,
+        "samples": 4,
+        "ts": "2026-05-20T00:21:11.112Z"
+      }
+    },
+    "alignment_score": 0.9,
+    "functional_axis": "quality",
+    "hierarchy_band": "supervisor",
+    "runtime_truth_aligned": true,
+    "consistency_aligned": true,
+    "recommendations": [],
+    "auto_correct": false,
+    "supervised": true
+  },
+  "chat_operational_guidance": {
+    "guidance_usefulness": 1,
+    "operational_usefulness": 1,
+    "actionability": 0.88,
+    "contextual_usefulness": 0.9063,
+    "recommendation_precision": 0.9,
+    "operational_density": 0.8125,
+    "generic_detected": false,
+    "auto_correct": false,
+    "enforcement_active": false,
+    "recommendations": []
+  },
+  "chat_runtime_confidence": {
+    "operational_confidence": 0.95,
+    "conversational_confidence": 0.915,
+    "contextual_confidence": 0.85,
+    "recommendation_confidence": 0.9,
+    "leakage_penalty": 0,
+    "stable": true,
+    "auto_correct": false,
+    "ambiguity_score": 0.88
+  },
+  "chat_reasoning_quality": {
+    "reasoning_quality_score": 0.9,
+    "stable": true,
+    "issues": [
+      {
+        "type": "shallow_reasoning",
+        "severity": "medium"
+      }
+    ],
+    "operational_density": 0.8125,
+    "auto_correct": false
+  }
+}

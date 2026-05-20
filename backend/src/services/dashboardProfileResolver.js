@@ -78,7 +78,7 @@ function normalizeRoleForDashboardProfile(roleRaw) {
 /** Perfis válidos (whitelist) */
 const VALID_PROFILES = new Set([
   'ceo_executive', 'director_operations', 'director_industrial', 'director_unassigned',
-  'director_hr', 'director_financial',
+  'director_hr', 'director_financial', 'director_safety',
   'manager_production', 'manager_maintenance', 'manager_quality', 'manager_environmental',
   'manager_hr', 'manager_financial', 'manager_logistics', 'manager_engineering',
   'manager_safety', 'manager_compliance', 'manager_legal', 'manager_operations',

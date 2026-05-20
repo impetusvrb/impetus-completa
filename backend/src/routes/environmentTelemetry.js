@@ -19,16 +19,19 @@ const mqtt = require('../domains/environment/telemetry/connectors/environmentMqt
 const opcua = require('../domains/environment/telemetry/connectors/environmentOpcUaConnector');
 const modbus = require('../domains/environment/telemetry/connectors/environmentModbusConnector');
 const obs = require('../domains/environment/telemetry/environmentTelemetryObservability');
+const { requireTechnicalRuntimeAccess, sanitizeTechnicalResponse } = require('../middleware/technicalRuntimeAccess');
+const techGuard = require('../domainAuthority/guards/technicalRuntimeAccessGuard');
 
 router.get('/health', async (req, res) => {
   const snap = await orchestrator.orchestrateHealth();
-  res.json({
+  const payload = {
     ok: true,
     telemetry_runtime_enabled: flags.isEnvironmentTelemetryRuntimeEnabled(),
     flags: flags.getTelemetryRuntimeFlagSnapshot(),
     dependencies: ingest.getIngestDependencySnapshot(),
     foundation: snap
-  });
+  };
+  res.json(techGuard.sanitizeTechnicalPayload(payload, req.user));
 });
 
 router.use((req, res, next) => {
@@ -141,7 +144,7 @@ router.post('/edge/sync', async (req, res) => {
   }
 });
 
-router.post('/connectors/:connector/ingest', async (req, res) => {
+router.post('/connectors/:connector/ingest', requireTechnicalRuntimeAccess('environment_connectors_ingest'), async (req, res) => {
   try {
     const user = req.user;
     const companyId = user?.company_id;
@@ -154,16 +157,17 @@ router.post('/connectors/:connector/ingest', async (req, res) => {
   }
 });
 
-router.get('/connectors/status', (req, res) => {
-  res.json({
+router.get('/connectors/status', requireTechnicalRuntimeAccess('environment_connectors_status'), (req, res) => {
+  const payload = {
     ok: true,
     mqtt: mqtt.getMqttState(),
     opcua: opcua.getOpcUaState(),
     modbus: modbus.getModbusState()
-  });
+  };
+  res.json(techGuard.sanitizeTechnicalPayload(payload, req.user));
 });
 
-router.post('/connectors/reconnect', async (req, res) => {
+router.post('/connectors/reconnect', requireTechnicalRuntimeAccess('environment_connectors_reconnect'), async (req, res) => {
   const user = req.user;
   const companyId = user?.company_id;
   const source = req.body?.source || 'manual';

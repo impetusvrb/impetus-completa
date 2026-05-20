@@ -11,6 +11,9 @@ const documentContext = require('./documentContext');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
 const { getUserPermissions } = require('../middleware/authorize');
 const contextIntegrityService = require('./contextIntegrityService');
+const contextExposureSanitizer = require('../security/contextExposureSanitizer');
+const cognitiveFlags = require('../policyEngine/config/cognitiveFeatureFlags');
+const { resolveCognitiveEnvelope } = require('../policyEngine/cognitiveEnvelopeResolver');
 
 async function buildContext(user, opts) {
   const options = opts || {};
@@ -64,12 +67,33 @@ async function buildContext(user, opts) {
           : 'unknown';
   const channel =
     options.channel != null ? String(options.channel).slice(0, 128) : 'secure_context';
-  return contextIntegrityService.attachIntegrityToBundle(base, {
+  let bundle = await contextIntegrityService.attachIntegrityToBundle(base, {
     user: options.user || user || null,
     companyId,
     channel,
     data_state: dataState
   });
+
+  if (cognitiveFlags.isContextSanitizerEnabled()) {
+    const u = options.user || user || null;
+    const envelope = resolveCognitiveEnvelope(u, {
+      force: cognitiveFlags.isCognitiveEnvelopeEnabled()
+    });
+    if (options.context_pack && typeof options.context_pack === 'object') {
+      bundle = {
+        ...bundle,
+        context_pack: contextExposureSanitizer.sanitizeContextForAI(options.context_pack, u, envelope)
+      };
+    }
+    if (options.metrics && typeof options.metrics === 'object') {
+      bundle = {
+        ...bundle,
+        metrics: contextExposureSanitizer.sanitizeContextForAI(options.metrics, u, envelope)
+      };
+    }
+  }
+
+  return bundle;
 }
 
 module.exports = { buildContext, build: buildContext };

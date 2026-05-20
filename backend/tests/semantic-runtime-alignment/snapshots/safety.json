@@ -1,0 +1,28 @@
+{
+  "visible_modules": [
+    "sst",
+    "dashboard",
+    "quality",
+    "environment_intelligence"
+  ],
+  "aligned_modules": [
+    "sst",
+    "dashboard"
+  ],
+  "blocked": [
+    {
+      "module": "environment_intelligence",
+      "reason": "exclusive_other_domain"
+    },
+    {
+      "module": "quality",
+      "reason": "semantic_safety_quality_isolation"
+    }
+  ],
+  "leakage": [],
+  "denied_sections": [],
+  "semantic_integrity_score": 0.5,
+  "enforcement_active": false,
+  "shadow_only": true,
+  "auto_removed": false
+}

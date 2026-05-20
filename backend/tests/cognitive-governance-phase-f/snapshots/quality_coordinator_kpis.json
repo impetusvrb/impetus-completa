@@ -1,0 +1,11 @@
+{
+  "keys": [
+    "defects"
+  ],
+  "denied": [
+    {
+      "key": "oee",
+      "reason": "cross_domain_kpi"
+    }
+  ]
+}

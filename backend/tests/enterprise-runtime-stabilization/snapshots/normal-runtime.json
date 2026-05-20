@@ -1,0 +1,164 @@
+{
+  "phase": "O",
+  "shadow_only": true,
+  "observability": true,
+  "flags": {
+    "runtime_stabilization": false,
+    "governance_fatigue": false,
+    "pipeline_redundancy": false,
+    "runtime_efficiency": false,
+    "shadow_optimization": false
+  },
+  "stabilization_score": 0.7924,
+  "fatigue": {
+    "governance_fatigue": 0.365,
+    "fatigue_detected": false,
+    "shadow_only": true
+  },
+  "overgovernance": {
+    "overgovernance_detected": false,
+    "validator_count": 4
+  },
+  "observability_saturation": {
+    "observability_saturation": false,
+    "observability_blocks": 2,
+    "observability_pressure": 0.44
+  },
+  "redundancy": {
+    "active_pipelines": [
+      "semantic_alignment",
+      "precision_delivery"
+    ],
+    "redundant_pairs": [
+      {
+        "a": "semantic_alignment",
+        "b": "precision_delivery",
+        "phases": [
+          "K",
+          "L"
+        ]
+      }
+    ],
+    "redundancy_count": 1,
+    "auto_remove": false,
+    "recommendations": [
+      {
+        "action": "review_consolidation",
+        "pipelines": [
+          "semantic_alignment",
+          "precision_delivery"
+        ],
+        "reason": "Overlap entre fases K e L",
+        "auto_execute": false
+      }
+    ]
+  },
+  "legacy_overlap": {
+    "legacy_overlaps": [],
+    "count": 0,
+    "auto_deprecate": false
+  },
+  "efficiency": {
+    "runtime_efficiency": 0.72,
+    "cognitive_overhead": 0.28,
+    "orchestration_complexity": 0.3333,
+    "governance_cost": 0.1,
+    "observability_cost": 0.08,
+    "runtime_processing_pressure": 0.252,
+    "enforcement_active": false,
+    "shadow_only": true
+  },
+  "orchestration": {
+    "orchestration_efficiency": 0.6,
+    "pipeline_hops": 4
+  },
+  "shadow": {
+    "shadow_layers": 0,
+    "shadow_duplication": false,
+    "shadow_pressure": 0,
+    "shadow_cost_estimate": 0,
+    "optimization_recommended": false,
+    "enforcement_active": false,
+    "shadow_only": true,
+    "redundancy": {
+      "shadow_block_count": 0,
+      "redundant_shadow": false,
+      "blocks": []
+    }
+  },
+  "consolidation": {
+    "recommendations": [
+      {
+        "priority": "medium",
+        "action": "consolidate_metadata_blocks",
+        "layers": [
+          "semantic_alignment",
+          "precision_delivery"
+        ],
+        "auto_execute": false
+      }
+    ],
+    "observe_only": true
+  },
+  "maturity": {
+    "runtime": {
+      "runtime_maturity": 0.8267,
+      "level": "developing"
+    },
+    "governance": {
+      "governance_maturity": 0.7305,
+      "fatigue_penalty": false
+    },
+    "operational_cognitive": {
+      "operational_cognitive_maturity": 0.82,
+      "sustainability_score": 0.785,
+      "runtime_resilience": 0.88
+    }
+  },
+  "supervision": {
+    "coordination": {
+      "layers": {
+        "policy": false,
+        "semantic": true,
+        "precision": true,
+        "convergence": false,
+        "operations": false
+      },
+      "complexity": {
+        "active_layers": [
+          "semantic",
+          "precision"
+        ],
+        "layer_count": 2,
+        "complexity_score": 0.28,
+        "reduction_recommended": false
+      },
+      "simplify_recommended": false,
+      "auto_simplify": false
+    },
+    "stability": {
+      "stable": true,
+      "pressure": 0.25,
+      "entropy": 0.12,
+      "enforcement_active": false,
+      "shadow_only": true
+    },
+    "lifecycle": "observe_recommend",
+    "auto_remediate": false,
+    "auto_consolidate": false
+  },
+  "telemetry_snapshot": {
+    "stabilization_score": 0.7924,
+    "runtime_simplicity_score": 0.72,
+    "governance_efficiency": 0.7305,
+    "orchestration_efficiency": 0.6,
+    "cognitive_runtime_pressure": 0.25,
+    "observability_pressure": 0.44,
+    "runtime_sustainability": 0.785,
+    "samples": 1,
+    "ts": "2026-05-19T20:47:35.074Z"
+  },
+  "auto_simplify": false,
+  "auto_consolidate": false,
+  "auto_remediate": false
+}
