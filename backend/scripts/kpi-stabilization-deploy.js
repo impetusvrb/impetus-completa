@@ -5,7 +5,8 @@
  * Fase U — KPI stabilization safe deploy
  */
 
-const { executeKpiStabilizationDeploy, createBackup } = require('../src/kpiRollout/kpiSafeDeploy');
+const { createBackup } = require('../src/kpiRollout/kpiSafeDeploy');
+const { executeKpiStabilizationDeploy } = require('../src/kpiStabilization/kpiStabilizationSafeDeploy');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const SKIP_BUILD = process.argv.includes('--skip-build');

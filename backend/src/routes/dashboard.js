@@ -619,22 +619,299 @@ router.get('/me', requireAuth, async (req, res) => {
       console.warn('[RUNTIME_OPERATIONAL_CALIBRATION]', yErr?.message ?? yErr);
     }
 
+    let _contextualEnforcementActivationBlock = null;
+    try {
+      const activationFacade = require('../contextualActivation/contextualActivationFacade');
+      const activated = activationFacade.enrichDashboardWithContextualEnforcement(user, legacyResponse, {
+        runtime_calibration: _runtimeCalibrationBlock,
+        tenant_stabilization: _tenantStabilizationBlock
+      });
+      if (activated.response) {
+        legacyResponse.visible_modules = activated.response.visible_modules;
+      }
+      if (activated.contextual_enforcement_activation) {
+        _contextualEnforcementActivationBlock = activated.contextual_enforcement_activation;
+      }
+    } catch (z2Err) {
+      console.warn('[CONTEXTUAL_ENFORCEMENT_ACTIVATION]', z2Err?.message ?? z2Err);
+    }
+
+    let _pilotRuntimeBlock = null;
+    try {
+      const pilotFacade = require('../pilotTenants/pilotTenantFacade');
+      const pilot = pilotFacade.applyPilotRuntimeToDashboard(user, legacyResponse, {
+        runtime_calibration: _runtimeCalibrationBlock,
+        tenant_stabilization: _tenantStabilizationBlock
+      });
+      if (pilot.response) {
+        legacyResponse.visible_modules = pilot.response.visible_modules;
+      }
+      if (pilot.pilot_runtime) _pilotRuntimeBlock = pilot.pilot_runtime;
+    } catch (z3Err) {
+      console.warn('[PILOT_TENANT_RUNTIME]', z3Err?.message ?? z3Err);
+    }
+
+    let _pilotOperationalStabilizationBlock = null;
+    try {
+      const z4Facade = require('../pilotOperationalStabilization/pilotOperationalStabilizationFacade');
+      const z4 = z4Facade.stabilizePilotOperational(user, legacyResponse, {
+        runtime_calibration: _runtimeCalibrationBlock,
+        tenant_stabilization: _tenantStabilizationBlock,
+        visible_modules_before: _pilotRuntimeBlock?.visible_modules_before,
+        pilot_runtime: _pilotRuntimeBlock
+      });
+      if (z4.pilot_operational_stabilization) {
+        _pilotOperationalStabilizationBlock = z4.pilot_operational_stabilization;
+      }
+    } catch (z4Err) {
+      console.warn('[PILOT_OPERATIONAL_STABILIZATION]', z4Err?.message ?? z4Err);
+    }
+
+    let _tenantGovernanceMaturityZ10 = null;
+    let _runtimeSustainabilityZ10 = null;
+    let _runtimeOperationalUsefulnessZ10 = null;
+    try {
+      const z10 = require('../runtimeGovernanceConsolidation/runtimeGovernanceConsolidationFacade');
+      const consolidated = z10.applyTenantRuntimeConsolidation(user, legacyResponse, {
+        pilot_runtime: _pilotRuntimeBlock,
+        pilot_operational_stabilization: _pilotOperationalStabilizationBlock,
+        tenant_stabilization: _tenantStabilizationBlock,
+        runtime_calibration: _runtimeCalibrationBlock
+      });
+      if (consolidated.tenant_governance_maturity) {
+        _tenantGovernanceMaturityZ10 = consolidated.tenant_governance_maturity;
+      }
+      if (consolidated.runtime_sustainability) _runtimeSustainabilityZ10 = consolidated.runtime_sustainability;
+      if (consolidated.runtime_operational_usefulness) {
+        _runtimeOperationalUsefulnessZ10 = consolidated.runtime_operational_usefulness;
+      }
+    } catch (z10Err) {
+      console.warn('[RUNTIME_GOVERNANCE_CONSOLIDATION_Z10]', z10Err?.message ?? z10Err);
+    }
+
+    let _tenantExpansionMaturityZ11 = null;
+    let _runtimeScalingReadinessZ11 = null;
+    let _governanceLoadProtectionZ11 = null;
+    try {
+      const z11 = require('../runtimeOperationalScaling/runtimeOperationalScalingFacade');
+      const scaled = z11.applyRuntimeOperationalScaling(user, legacyResponse, {
+        pilot_runtime: _pilotRuntimeBlock,
+        pilot_operational_stabilization: _pilotOperationalStabilizationBlock,
+        tenant_stabilization: _tenantStabilizationBlock,
+        runtime_calibration: _runtimeCalibrationBlock
+      });
+      if (scaled.tenant_expansion_maturity) _tenantExpansionMaturityZ11 = scaled.tenant_expansion_maturity;
+      if (scaled.runtime_scaling_readiness) _runtimeScalingReadinessZ11 = scaled.runtime_scaling_readiness;
+      if (scaled.governance_load_protection) _governanceLoadProtectionZ11 = scaled.governance_load_protection;
+    } catch (z11Err) {
+      console.warn('[RUNTIME_OPERATIONAL_SCALING_Z11]', z11Err?.message ?? z11Err);
+    }
+
+    let _productionRuntimeActivationZ12 = null;
+    let _pilotTenantHealthZ12 = null;
+    let _runtimeObservationConsolidationZ12 = null;
+    try {
+      const z12 = require('../productionRuntimeActivation/productionRuntimeActivationFacade');
+      const production = z12.applyProductionRuntimeActivation(user, legacyResponse, {
+        pilot_runtime: _pilotRuntimeBlock,
+        pilot_operational_stabilization: _pilotOperationalStabilizationBlock,
+        tenant_stabilization: _tenantStabilizationBlock,
+        runtime_calibration: _runtimeCalibrationBlock
+      });
+      if (production.production_runtime_activation) {
+        _productionRuntimeActivationZ12 = production.production_runtime_activation;
+      }
+      if (production.pilot_tenant_health) _pilotTenantHealthZ12 = production.pilot_tenant_health;
+      if (production.runtime_observation_consolidation) {
+        _runtimeObservationConsolidationZ12 = production.runtime_observation_consolidation;
+      }
+    } catch (z12Err) {
+      console.warn('[PRODUCTION_RUNTIME_ACTIVATION_Z12]', z12Err?.message ?? z12Err);
+    }
+
+    let _realTenantEnforcementZ13 = null;
+    let _operationalLeakageZ13 = null;
+    try {
+      const z13 = require('../realTenantEnforcement/realTenantEnforcementFacade');
+      const real = z13.applyRealEnforcementToDashboard(user, legacyResponse, {
+        pilot_runtime: _pilotRuntimeBlock,
+        contextual_enforcement_activation: _contextualEnforcementActivationBlock,
+        production_runtime_activation: _productionRuntimeActivationZ12,
+        runtime_calibration: _runtimeCalibrationBlock,
+        tenant_stabilization: _tenantStabilizationBlock
+      });
+      if (real.response?.visible_modules) {
+        legacyResponse.visible_modules = real.response.visible_modules;
+      }
+      if (real.response?.kpis) {
+        legacyResponse.kpis = real.response.kpis;
+      }
+      if (real.real_tenant_enforcement) _realTenantEnforcementZ13 = real.real_tenant_enforcement;
+      if (real.operational_leakage) _operationalLeakageZ13 = real.operational_leakage;
+    } catch (z13Err) {
+      console.warn('[REAL_TENANT_ENFORCEMENT_Z13]', z13Err?.message ?? z13Err);
+    }
+
+    let _sidebarGovernanceRuntimeZ14 = null;
+    let _sidebarObservabilityZ14 = null;
+    let _contextualModulesGovernedZ14 = null;
+    try {
+      const z14 = require('../canonicalModuleGovernance/moduleGovernanceFacade');
+      const sidebarGov = z14.applySidebarGovernanceToDashboard(user, legacyResponse, {
+        contextual_modules: _contextualModulesBlock || [],
+        legacy_visible_modules: _legacyVisibleModules,
+        real_enforcement_active: _realTenantEnforcementZ13?.real_enforcement_active,
+        pilot_runtime: _pilotRuntimeBlock,
+        contextual_enforcement_activation: _contextualEnforcementActivationBlock
+      });
+      if (sidebarGov.response?.visible_modules) {
+        legacyResponse.visible_modules = sidebarGov.response.visible_modules;
+      }
+      if (sidebarGov.sidebar_governance_runtime) {
+        _sidebarGovernanceRuntimeZ14 = sidebarGov.sidebar_governance_runtime;
+      }
+      if (sidebarGov.contextual_modules_after) {
+        _contextualModulesGovernedZ14 = sidebarGov.contextual_modules_after;
+      }
+      const obs = require('../sidebarObservability/sidebarObservabilityFacade');
+      _sidebarObservabilityZ14 = obs.buildSidebarObservabilityReport(user, {
+        visible_modules: legacyResponse.visible_modules,
+        governance_resolution: sidebarGov.governance_resolution
+      });
+    } catch (z14Err) {
+      console.warn('[SIDEBAR_GOVERNANCE_Z14]', z14Err?.message ?? z14Err);
+    }
+
+    let _deliveryGovernanceTraceZ15 = null;
+    let _deliveryPipelineReportZ15 = null;
+    try {
+      const z15 = require('../runtimeDeliveryAudit/deliveryAuditFacade');
+      const audited = z15.auditDashboardMeDelivery(user, legacyResponse, {
+        legacy_visible_modules: _legacyVisibleModules,
+        contextual_modules: _contextualModulesGovernedZ14 || _contextualModulesBlock || [],
+        contextual_modules_meta: _contextualModulesMeta
+      });
+      if (audited.payload) {
+        legacyResponse.visible_modules = audited.payload.visible_modules;
+        if (audited.payload.contextual_modules) {
+          _contextualModulesGovernedZ14 = audited.payload.contextual_modules;
+        }
+      }
+      if (audited.delivery_governance_trace) _deliveryGovernanceTraceZ15 = audited.delivery_governance_trace;
+      if (audited.delivery_pipeline_report) _deliveryPipelineReportZ15 = audited.delivery_pipeline_report;
+    } catch (z15Err) {
+      console.warn('[RUNTIME_DELIVERY_AUDIT_Z15]', z15Err?.message ?? z15Err);
+    }
+
+    let _terminalGovernanceZ16 = null;
+    let _governanceFreezeStateZ16 = null;
+    try {
+      const z16 = require('../terminalGovernance/terminalGovernanceFacade');
+      const terminal = z16.applyTerminalGovernanceToDashboard(user, legacyResponse, {
+        real_enforcement_active: _realTenantEnforcementZ13?.real_enforcement_active,
+        pilot_runtime: _pilotRuntimeBlock,
+        sidebar_governance_runtime: _sidebarGovernanceRuntimeZ14
+      });
+      if (terminal.payload) {
+        legacyResponse.visible_modules = terminal.payload.visible_modules;
+        if (terminal.payload.contextual_modules) {
+          _contextualModulesGovernedZ14 = terminal.payload.contextual_modules;
+        }
+        if (terminal.payload.sidebar_governance_runtime) {
+          _sidebarGovernanceRuntimeZ14 = terminal.payload.sidebar_governance_runtime;
+        }
+        legacyResponse.contextual_modules_mode = terminal.payload.contextual_modules_mode || 'STRICT';
+      }
+      if (terminal.terminal_governance) _terminalGovernanceZ16 = terminal.terminal_governance;
+      if (terminal.governance_freeze_state) {
+        _governanceFreezeStateZ16 = terminal.governance_freeze_state;
+        legacyResponse.governance_freeze_state = terminal.governance_freeze_state;
+      }
+    } catch (z16Err) {
+      console.warn('[TERMINAL_GOVERNANCE_Z16]', z16Err?.message ?? z16Err);
+    }
+
+    // Z.16 HARD KPI AUTHORITY — KPIs em /me também passam pelo lock terminal
+    try {
+      if (legacyResponse.governance_freeze_state?.governance_locked === true ||
+          legacyResponse.sidebar_governance_runtime?.final_governance_locked === true) {
+        const z16kMe = require('../terminalGovernance/terminalGovernanceFacade');
+        const kpiLockMe = z16kMe.applyTerminalKpiLock(user, legacyResponse.kpis || [], {
+          original_kpis: kpisRaw,
+          sidebar_governance_runtime: legacyResponse.sidebar_governance_runtime,
+          governance_freeze_state: legacyResponse.governance_freeze_state
+        });
+        legacyResponse.kpis = kpiLockMe.kpis;
+      }
+    } catch (z16kMeErr) {
+      console.warn('[TERMINAL_KPI_LOCK_ME_Z16]', z16kMeErr?.message ?? z16kMeErr);
+    }
+
+    // Z.16 HARD COCKPIT/WIDGET AUTHORITY — quando locked, purgar widgets executivos do V2
+    try {
+      if ((legacyResponse.governance_freeze_state?.governance_locked === true ||
+           legacyResponse.sidebar_governance_runtime?.final_governance_locked === true) && engineV2Block?.payload?.layout?.widgets) {
+        const _ci = legacyResponse.sidebar_governance_runtime?.canonical_identity ||
+          legacyResponse.user_context || {};
+        const _tier = _ci.hierarchy_tier || _ci.hierarchy_level_label || '';
+        if (_tier !== 'executive' && _tier !== 'direction') {
+          const EXEC_WIDGETS = /indicadores_executivos|executive_summary|strategic_overview|centro_custos|esg_dashboard/i;
+          engineV2Block.payload.layout.widgets = engineV2Block.payload.layout.widgets.filter(
+            (w) => !EXEC_WIDGETS.test(String(w.type || w.id || w.widget_id || ''))
+          );
+        }
+      }
+    } catch (_v2wErr) {
+      console.warn('[TERMINAL_V2_WIDGET_LOCK]', _v2wErr?.message ?? _v2wErr);
+    }
+
+    let _operationalConvergenceZ17 = null;
+    try {
+      const z17 = require('../operationalValidation/operationalConvergenceFacade');
+      const conv = z17.applyOperationalValidationToDashboard(user, legacyResponse, {
+        real_enforcement_active: _realTenantEnforcementZ13?.real_enforcement_active,
+        profile: legacyResponse.profile_code,
+        hierarchy_tier: legacyResponse.user_context?.hierarchy_tier
+      });
+      if (conv.operational_convergence_report && !conv.operational_convergence_report.validation_skipped) {
+        _operationalConvergenceZ17 = conv.operational_convergence_report;
+      }
+    } catch (z17Err) {
+      console.warn('[OPERATIONAL_CONVERGENCE_Z17]', z17Err?.message ?? z17Err);
+    }
+
     res.json({
       ...legacyResponse,
       ...(_contentExposureBlock ? { content_exposure: _contentExposureBlock } : {}),
       // Aditivo: presente apenas quando o V2 está activo.
       ...(engineV2Block ? { engine_v2: engineV2Block } : {}),
       // Phase 6 — chaves aditivas. Frontend actual ignora silenciosamente.
-      ...(_contextualModulesBlock ? { contextual_modules: _contextualModulesBlock } : {}),
-      ...(_contextualModulesMeta && _contextualModulesMeta.mode && _contextualModulesMeta.mode !== 'off'
-        ? { contextual_modules_meta: {
-            mode: _contextualModulesMeta.mode,
-            fallback: _contextualModulesMeta.fallback === true,
-            validator_valid: _contextualModulesMeta.validator ? _contextualModulesMeta.validator.valid : null,
-            trust_score: _contextualModulesMeta.validator ? _contextualModulesMeta.validator.trust_score : null,
-            diff: _contextualModulesMeta.diff || null
-          } }
-        : {}),
+      ...(_contextualModulesGovernedZ14
+        ? { contextual_modules: _contextualModulesGovernedZ14, contextual_modules_governed: _contextualModulesGovernedZ14 }
+        : _contextualModulesBlock
+          ? { contextual_modules: _contextualModulesBlock }
+          : {}),
+      ...(legacyResponse.contextual_modules_mode === 'STRICT'
+        ? {
+            contextual_modules_mode: 'STRICT',
+            contextual_modules_meta: {
+              mode: 'STRICT',
+              terminal_locked: true,
+              fallback: false,
+              enrich_disabled: true
+            }
+          }
+        : _contextualModulesMeta && _contextualModulesMeta.mode && _contextualModulesMeta.mode !== 'off'
+          ? {
+              contextual_modules_meta: {
+                mode: _contextualModulesMeta.mode,
+                fallback: _contextualModulesMeta.fallback === true,
+                validator_valid: _contextualModulesMeta.validator ? _contextualModulesMeta.validator.valid : null,
+                trust_score: _contextualModulesMeta.validator ? _contextualModulesMeta.validator.trust_score : null,
+                diff: _contextualModulesMeta.diff || null
+              }
+            }
+          : {}),
       ...(_semanticAlignmentBlock ? { semantic_alignment: _semanticAlignmentBlock } : {}),
       ...(_precisionDeliveryBlock ? { precision_delivery: _precisionDeliveryBlock } : {}),
       ...(_cognitiveConvergenceBlock ? { cognitive_convergence: _cognitiveConvergenceBlock } : {}),
@@ -654,7 +931,38 @@ router.get('/me', requireAuth, async (req, res) => {
       ...(_tenantStabilizationBlock ? { tenant_stabilization: _tenantStabilizationBlock } : {}),
       ...(_operationalMaturityBlock ? { operational_maturity: _operationalMaturityBlock } : {}),
       ...(_runtimeTuningBlock ? { runtime_tuning: _runtimeTuningBlock } : {}),
-      ...(_rolloutStabilityBlock ? { rollout_stability: _rolloutStabilityBlock } : {})
+      ...(_rolloutStabilityBlock ? { rollout_stability: _rolloutStabilityBlock } : {}),
+      ...(_contextualEnforcementActivationBlock
+        ? { contextual_enforcement_activation: _contextualEnforcementActivationBlock }
+        : {}),
+      ...(_pilotRuntimeBlock ? { pilot_runtime_enforcement: _pilotRuntimeBlock } : {}),
+      ...(_pilotOperationalStabilizationBlock
+        ? { pilot_operational_stabilization: _pilotOperationalStabilizationBlock }
+        : {}),
+      ...(_tenantGovernanceMaturityZ10 ? { tenant_governance_maturity: _tenantGovernanceMaturityZ10 } : {}),
+      ...(_runtimeSustainabilityZ10 ? { runtime_sustainability: _runtimeSustainabilityZ10 } : {}),
+      ...(_runtimeOperationalUsefulnessZ10
+        ? { runtime_operational_usefulness: _runtimeOperationalUsefulnessZ10 }
+        : {}),
+      ...(_tenantExpansionMaturityZ11 ? { tenant_expansion_maturity: _tenantExpansionMaturityZ11 } : {}),
+      ...(_runtimeScalingReadinessZ11 ? { runtime_scaling_readiness: _runtimeScalingReadinessZ11 } : {}),
+      ...(_governanceLoadProtectionZ11 ? { governance_load_protection: _governanceLoadProtectionZ11 } : {}),
+      ...(_productionRuntimeActivationZ12
+        ? { production_runtime_activation: _productionRuntimeActivationZ12 }
+        : {}),
+      ...(_pilotTenantHealthZ12 ? { pilot_tenant_health: _pilotTenantHealthZ12 } : {}),
+      ...(_runtimeObservationConsolidationZ12
+        ? { runtime_observation_consolidation: _runtimeObservationConsolidationZ12 }
+        : {}),
+      ...(_realTenantEnforcementZ13 ? { real_tenant_enforcement: _realTenantEnforcementZ13 } : {}),
+      ...(_operationalLeakageZ13 ? { operational_leakage_governance: _operationalLeakageZ13 } : {}),
+      ...(_sidebarGovernanceRuntimeZ14 ? { sidebar_governance_runtime: _sidebarGovernanceRuntimeZ14 } : {}),
+      ...(_sidebarObservabilityZ14 ? { sidebar_observability: _sidebarObservabilityZ14 } : {}),
+      ...(_deliveryGovernanceTraceZ15 ? { delivery_governance_trace: _deliveryGovernanceTraceZ15 } : {}),
+      ...(_deliveryPipelineReportZ15 ? { delivery_pipeline_report: _deliveryPipelineReportZ15 } : {}),
+      ...(_terminalGovernanceZ16 ? { terminal_governance: _terminalGovernanceZ16 } : {}),
+      ...(_governanceFreezeStateZ16 ? { governance_freeze_state: _governanceFreezeStateZ16 } : {}),
+      ...(_operationalConvergenceZ17 ? { operational_convergence_report: _operationalConvergenceZ17 } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_ME]', err);
@@ -1423,10 +1731,61 @@ router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) =>
     } catch (xErr) {
       console.warn('[SUMMARY_RUNTIME_ENRICHMENT]', xErr?.message ?? xErr);
     }
+    let _summaryRuntimeConvergenceZ8 = null;
+    let _summaryNarrativeIntegrityZ8 = null;
+    let _summaryGovernanceHealthZ8 = null;
+    try {
+      const summaryZ8 = require('../summaryConvergence/summaryConvergenceFacade');
+      const z8 = summaryZ8.applySummaryRuntimeConvergence(u, payload, {
+        functional_axis: u.functional_axis || u.functional_area,
+        force_summary_convergence: false
+      });
+      if (z8.summary_runtime_convergence) _summaryRuntimeConvergenceZ8 = z8.summary_runtime_convergence;
+      if (z8.summary_narrative_integrity) _summaryNarrativeIntegrityZ8 = z8.summary_narrative_integrity;
+      if (z8.summary_governance_health) _summaryGovernanceHealthZ8 = z8.summary_governance_health;
+    } catch (z8Err) {
+      console.warn('[SUMMARY_RUNTIME_CONVERGENCE_Z8]', z8Err?.message ?? z8Err);
+    }
+    let _summaryRuntimeActivationZ9 = null;
+    let _summaryDeliveryQualityZ9 = null;
+    let _summaryRuntimeHealthZ9 = null;
+    try {
+      const summaryZ9 = require('../summaryRuntimeActivation/summaryRuntimeActivationFacade');
+      const z9 = summaryZ9.applySummaryRuntimeActivation(u, payload, {
+        functional_axis: u.functional_axis || u.functional_area,
+        kpis: payload.kpis || []
+      });
+      if (z9.summary_runtime_activation?.enforcement_applied && z9.payload) {
+        if (z9.payload.summary != null) payload.summary = z9.payload.summary;
+        if (z9.payload.text != null) payload.text = z9.payload.text;
+      }
+      if (z9.summary_runtime_activation) _summaryRuntimeActivationZ9 = z9.summary_runtime_activation;
+      if (z9.summary_delivery_quality) _summaryDeliveryQualityZ9 = z9.summary_delivery_quality;
+      if (z9.summary_runtime_health) _summaryRuntimeHealthZ9 = z9.summary_runtime_health;
+    } catch (z9Err) {
+      console.warn('[SUMMARY_RUNTIME_ACTIVATION_Z9]', z9Err?.message ?? z9Err);
+    }
     if (payload.aiTraceId) res.setHeader('X-AI-Trace-ID', String(payload.aiTraceId));
+    let _summaryDeliveryTraceZ15 = null;
+    try {
+      const z15 = require('../runtimeDeliveryAudit/deliveryAuditFacade');
+      const sumAud = z15.auditSummaryDelivery(u, payload, { force_audit: true });
+      if (sumAud.delivery_governance_trace) _summaryDeliveryTraceZ15 = sumAud.delivery_governance_trace;
+    } catch (z15s) {
+      console.warn('[SUMMARY_DELIVERY_AUDIT_Z15]', z15s?.message ?? z15s);
+    }
+    try {
+      const z16s = require('../terminalGovernance/terminalGovernanceFacade');
+      const sumTerm = z16s.applyTerminalSummaryLock(u, payload, { force_terminal_lock: false });
+      if (sumTerm.payload) payload = sumTerm.payload;
+      if (sumTerm.delivery_governance_trace) _summaryDeliveryTraceZ15 = sumTerm.delivery_governance_trace;
+    } catch (z16sErr) {
+      console.warn('[TERMINAL_SUMMARY_LOCK_Z16]', z16sErr?.message ?? z16sErr);
+    }
     res.json({
       ok: true,
       ...payload,
+      ...(_summaryDeliveryTraceZ15 ? { delivery_governance_trace: _summaryDeliveryTraceZ15 } : {}),
       ...(_summaryPrecisionBlock ? { precision_delivery: _summaryPrecisionBlock } : {}),
       ...(_summaryConvergenceBlock ? { cognitive_convergence: _summaryConvergenceBlock } : {}),
       ...(_summaryContextualDeliveryBlock ? { contextual_delivery: _summaryContextualDeliveryBlock } : {}),
@@ -1439,7 +1798,13 @@ router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) =>
       ...(_summaryDeliveryPrecisionBlock ? { summary_delivery_precision: _summaryDeliveryPrecisionBlock } : {}),
       ...(_summaryRuntimeEnrichmentBlock ? { runtime_enrichment: _summaryRuntimeEnrichmentBlock } : {}),
       ...(_summaryOperationalDensityBlock ? { operational_density: _summaryOperationalDensityBlock } : {}),
-      ...(_summarySemanticEnrichmentBlock ? { semantic_enrichment: _summarySemanticEnrichmentBlock } : {})
+      ...(_summarySemanticEnrichmentBlock ? { semantic_enrichment: _summarySemanticEnrichmentBlock } : {}),
+      ...(_summaryRuntimeConvergenceZ8 ? { summary_runtime_convergence: _summaryRuntimeConvergenceZ8 } : {}),
+      ...(_summaryNarrativeIntegrityZ8 ? { summary_narrative_integrity: _summaryNarrativeIntegrityZ8 } : {}),
+      ...(_summaryGovernanceHealthZ8 ? { summary_governance_health: _summaryGovernanceHealthZ8 } : {}),
+      ...(_summaryRuntimeActivationZ9 ? { summary_runtime_activation: _summaryRuntimeActivationZ9 } : {}),
+      ...(_summaryDeliveryQualityZ9 ? { summary_delivery_quality: _summaryDeliveryQualityZ9 } : {}),
+      ...(_summaryRuntimeHealthZ9 ? { summary_runtime_health: _summaryRuntimeHealthZ9 } : {})
     });
   } catch (err) {
     console.error('[SMART_SUMMARY_ROUTE]', err);
@@ -1620,8 +1985,92 @@ router.get('/kpis', requireAuth, async (req, res) => {
     } catch (xErr) {
       console.warn('[KPI_RUNTIME_ENRICHMENT]', xErr?.message ?? xErr);
     }
+    let _kpiRuntimeEnforcementBlock = null;
+    try {
+      const kpiZ5 = require('../kpiRuntimeEnforcement/kpiRuntimeEnforcementFacade');
+      const enforced = kpiZ5.applyKpiRuntimeEnforcement(user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area
+      });
+      if (enforced.kpi_runtime_enforcement?.enforcement_applied) {
+        kpis = enforced.kpis;
+      }
+      if (enforced.kpi_runtime_enforcement) {
+        _kpiRuntimeEnforcementBlock = enforced.kpi_runtime_enforcement;
+      }
+    } catch (z5Err) {
+      console.warn('[KPI_RUNTIME_ENFORCEMENT_Z5]', z5Err?.message ?? z5Err);
+    }
+    let _kpiRuntimeStabilityBlock = null;
+    let _kpiVisibilityIntegrityBlock = null;
+    let _kpiOperationalQualityBlock = null;
+    try {
+      const kpiZ6 = require('../kpiRuntimeStability/kpiRuntimeStabilityFacade');
+      const stabilized = kpiZ6.applyKpiRuntimeStability(user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area,
+        kpi_enforcement: _kpiRuntimeEnforcementBlock,
+        kpis_before: _kpiRuntimeEnforcementBlock?.pipeline?.before
+      });
+      if (stabilized.kpi_runtime_stability?.stability_applied) {
+        kpis = stabilized.kpis;
+      }
+      if (stabilized.kpi_runtime_stability) _kpiRuntimeStabilityBlock = stabilized.kpi_runtime_stability;
+      if (stabilized.kpi_visibility_integrity) _kpiVisibilityIntegrityBlock = stabilized.kpi_visibility_integrity;
+      if (stabilized.kpi_operational_quality) _kpiOperationalQualityBlock = stabilized.kpi_operational_quality;
+    } catch (z6Err) {
+      console.warn('[KPI_RUNTIME_STABILITY_Z6]', z6Err?.message ?? z6Err);
+    }
+    let _kpiRuntimeConvergenceBlock = null;
+    let _kpiCockpitIntegrityBlock = null;
+    let _kpiGovernanceHealthBlock = null;
+    try {
+      const kpiZ7 = require('../kpiConvergence/kpiConvergenceFacade');
+      const converged = kpiZ7.applyKpiRuntimeConvergence(user, kpis, {
+        functional_axis: user.functional_axis || user.functional_area,
+        domain: user.functional_area,
+        kpi_runtime_enforcement: _kpiRuntimeEnforcementBlock,
+        kpi_runtime_stability: _kpiRuntimeStabilityBlock,
+        kpi_operational_quality: _kpiOperationalQualityBlock
+      });
+      if (converged.kpi_runtime_convergence) _kpiRuntimeConvergenceBlock = converged.kpi_runtime_convergence;
+      if (converged.kpi_cockpit_integrity) _kpiCockpitIntegrityBlock = converged.kpi_cockpit_integrity;
+      if (converged.kpi_governance_health) _kpiGovernanceHealthBlock = converged.kpi_governance_health;
+    } catch (z7Err) {
+      console.warn('[KPI_RUNTIME_CONVERGENCE_Z7]', z7Err?.message ?? z7Err);
+    }
+    let _kpiDeliveryTraceZ15 = null;
+    try {
+      const z15 = require('../runtimeDeliveryAudit/deliveryAuditFacade');
+      const kpiAud = z15.auditKpiDelivery(user, kpis, {
+        kpis_raw: kpisRaw,
+        after_z5: _kpiRuntimeEnforcementBlock,
+        after_z6: _kpiRuntimeStabilityBlock,
+        force_audit: true
+      });
+      if (kpiAud.delivery_governance_trace) _kpiDeliveryTraceZ15 = kpiAud.delivery_governance_trace;
+    } catch (z15k) {
+      console.warn('[KPI_DELIVERY_AUDIT_Z15]', z15k?.message ?? z15k);
+    }
+    let _kpiTerminalZ16 = null;
+    try {
+      const z16k = require('../terminalGovernance/terminalGovernanceFacade');
+      const kpiTerm = z16k.applyTerminalKpiLock(user, kpis, {
+        original_kpis: kpisRaw,
+        governance_freeze_state: req.body?.governance_freeze_state,
+        tenant_id: user.company_id,
+        real_enforcement_active: true
+      });
+      kpis = kpiTerm.kpis;
+      if (kpiTerm.terminal_kpi_lock) _kpiTerminalZ16 = kpiTerm.terminal_kpi_lock;
+      if (kpiTerm.delivery_governance_trace) _kpiDeliveryTraceZ15 = kpiTerm.delivery_governance_trace;
+    } catch (z16kErr) {
+      console.warn('[TERMINAL_KPI_LOCK_Z16]', z16kErr?.message ?? z16kErr);
+    }
     res.json({
       kpis,
+      ...(_kpiDeliveryTraceZ15 ? { delivery_governance_trace: _kpiDeliveryTraceZ15 } : {}),
+      ...(_kpiTerminalZ16 ? { terminal_kpi_lock: _kpiTerminalZ16 } : {}),
       ...(governance_meta && governance_meta.governed ? { governance_meta } : {}),
       ...(kpiSemantic ? { semantic_alignment: kpiSemantic } : {}),
       ...(_kpiPrecisionBlock ? { precision_delivery: _kpiPrecisionBlock } : {}),
@@ -1639,7 +2088,14 @@ router.get('/kpis', requireAuth, async (req, res) => {
       ...(_kpiHierarchyDeliveryBlock ? { kpi_hierarchy_delivery_integrity: _kpiHierarchyDeliveryBlock } : {}),
       ...(_kpiRuntimeEnrichmentBlock ? { runtime_enrichment: _kpiRuntimeEnrichmentBlock } : {}),
       ...(_kpiOperationalDensityBlock ? { operational_density: _kpiOperationalDensityBlock } : {}),
-      ...(_kpiEnrichmentIntegrityBlock ? { enrichment_integrity: _kpiEnrichmentIntegrityBlock } : {})
+      ...(_kpiEnrichmentIntegrityBlock ? { enrichment_integrity: _kpiEnrichmentIntegrityBlock } : {}),
+      ...(_kpiRuntimeEnforcementBlock ? { kpi_runtime_enforcement: _kpiRuntimeEnforcementBlock } : {}),
+      ...(_kpiRuntimeStabilityBlock ? { kpi_runtime_stability: _kpiRuntimeStabilityBlock } : {}),
+      ...(_kpiVisibilityIntegrityBlock ? { kpi_visibility_integrity: _kpiVisibilityIntegrityBlock } : {}),
+      ...(_kpiOperationalQualityBlock ? { kpi_operational_quality: _kpiOperationalQualityBlock } : {}),
+      ...(_kpiRuntimeConvergenceBlock ? { kpi_runtime_convergence: _kpiRuntimeConvergenceBlock } : {}),
+      ...(_kpiCockpitIntegrityBlock ? { kpi_cockpit_integrity: _kpiCockpitIntegrityBlock } : {}),
+      ...(_kpiGovernanceHealthBlock ? { kpi_governance_health: _kpiGovernanceHealthBlock } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_KPIS_ROUTE]', err);

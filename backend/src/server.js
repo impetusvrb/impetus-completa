@@ -903,6 +903,390 @@ useRoute(
   internalAcl('governance'),
   apiByUserLimiter
 );
+useRoute(
+  '/api/internal/runtime-observation',
+  './routes/internal/runtimeObservation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/operational-identity',
+  './routes/internal/operationalIdentity',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/menu-governance',
+  './routes/internal/menuGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/contextual-enforcement',
+  './routes/internal/contextualEnforcement',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/tenant-profiling',
+  './routes/internal/tenantProfiling',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/dashboard-density',
+  './routes/internal/dashboardDensity',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/contextual-activation',
+  './routes/internal/contextualActivation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/pilot-tenants',
+  './routes/internal/pilotTenants',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/underdelivery-protection',
+  './routes/internal/underdeliveryProtection',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/dashboard-stabilization',
+  './routes/internal/dashboardStabilization',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/pilot-maturity',
+  './routes/internal/pilotMaturity',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-preparation',
+  './routes/internal/kpiPreparation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/delivery-quality',
+  './routes/internal/deliveryQuality',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/pilot-observability',
+  './routes/internal/pilotObservability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-runtime-enforcement',
+  './routes/internal/kpiRuntimeEnforcement',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-safety',
+  './routes/internal/kpiSafety',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-pilot-observability',
+  './routes/internal/kpiPilotObservability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-runtime-stability',
+  './routes/internal/kpiRuntimeStability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-visibility',
+  './routes/internal/kpiVisibility',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-dashboard-stabilization',
+  './routes/internal/kpiDashboardStabilization',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-convergence',
+  './routes/internal/kpiConvergence',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-blindness',
+  './routes/internal/kpiBlindness',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/kpi-governance-health',
+  './routes/internal/kpiGovernanceHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-convergence',
+  './routes/internal/summaryConvergence',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-blindness',
+  './routes/internal/summaryBlindness',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-governance-health',
+  './routes/internal/summaryGovernanceHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-runtime-activation',
+  './routes/internal/summaryRuntimeActivation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-delivery-quality',
+  './routes/internal/summaryDeliveryQuality',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/summary-runtime-observability',
+  './routes/internal/summaryRuntimeObservability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/tenant-governance-maturity',
+  './routes/internal/tenantGovernanceMaturity',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-sustainability',
+  './routes/internal/runtimeSustainability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-governance-consolidation',
+  './routes/internal/runtimeGovernanceConsolidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/tenant-expansion-scaling',
+  './routes/internal/tenantExpansionScaling',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-scaling-readiness',
+  './routes/internal/runtimeScalingReadiness',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-expansion-observability',
+  './routes/internal/runtimeExpansionObservability',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/production-runtime-activation',
+  './routes/internal/productionRuntimeActivation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/pilot-tenant-health',
+  './routes/internal/pilotTenantHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-observation-consolidation',
+  './routes/internal/runtimeObservationConsolidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/operational-identity-governance',
+  './routes/internal/operationalIdentityGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/real-tenant-enforcement',
+  './routes/internal/realTenantEnforcement',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/real-menu-governance',
+  './routes/internal/realMenuGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/real-kpi-targeting',
+  './routes/internal/realKpiTargeting',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/real-summary-targeting',
+  './routes/internal/realSummaryTargeting',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/operational-leakage',
+  './routes/internal/operationalLeakage',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/sidebar-governance',
+  './routes/internal/sidebarGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/runtime-delivery-audit',
+  './routes/internal/runtimeDeliveryAudit',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/terminal-governance',
+  './routes/internal/terminalGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/operational-validation',
+  './routes/internal/operationalValidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';
@@ -1300,6 +1684,19 @@ httpServer.on('error', (err) => {
       govV7.bootstrap();
     } catch (e) {
       console.warn('[GOVERNANCE_V7_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // Phase Z.17 — recuperação de pilotos aprovados pós-reload PM2.
+    try {
+      const z17 = require('./operationalValidation/operationalConvergenceFacade');
+      const recovery = z17.recoverApprovedPilotsOnBoot();
+      if (recovery.tenant_count > 0) {
+        console.log(
+          `[Z17_PILOT_RECOVERY] tenants=${recovery.tenant_count} recovered=${recovery.recovered}`
+        );
+      }
+    } catch (e) {
+      console.warn('[Z17_PILOT_RECOVERY_BOOT]', e && e.message ? e.message : e);
     }
 
     httpServer.listen(PORT, () => {

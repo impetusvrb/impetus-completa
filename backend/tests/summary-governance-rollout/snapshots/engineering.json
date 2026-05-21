@@ -27,7 +27,7 @@
           "contextual_alignment": 0.85,
           "hierarchy_coherence": 0.91,
           "samples": 12,
-          "ts": "2026-05-20T00:00:56.467Z"
+          "ts": "2026-05-20T13:35:24.888Z"
         }
       },
       "telemetry": {
@@ -38,7 +38,7 @@
         "contextual_alignment": 0.85,
         "hierarchy_coherence": 0.91,
         "samples": 12,
-        "ts": "2026-05-20T00:00:56.467Z"
+        "ts": "2026-05-20T13:35:24.888Z"
       },
       "flags": {
         "IMPETUS_SUMMARY_GOVERNANCE_ROLLOUT": false,

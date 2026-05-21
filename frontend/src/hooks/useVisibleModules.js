@@ -13,6 +13,8 @@ import {
   isStrictAdminRole
 } from '../utils/roleUtils';
 import { logContextualDebugSummary } from '../utils/contextualSidebarBuilder';
+import { readCanonicalVisibleModules } from '../runtimeGovernance/canonicalVisibleModules.js';
+import { getContextualModulesMode } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 
 /**
  * Paths de acesso universal seguro — explicitamente liberados para TODOS os usuários.
@@ -164,13 +166,17 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
   } catch {
     isMaint = false;
   }
-  if (!visibleModules || visibleModules.length === 0) {
+
+  const terminalSet = opts._terminalVisibleModules;
+  const effectiveModules = Array.isArray(terminalSet) && terminalSet.length > 0 ? terminalSet : visibleModules;
+
+  if (!effectiveModules || effectiveModules.length === 0) {
     if (opts.loading) return [];
     const uEmpty = readStoredUser();
     if (userMayBypassEmptyModules(uEmpty)) return menuItems;
     return [];
   }
-  const set = new Set(visibleModules);
+  const set = new Set(effectiveModules);
   const u = readStoredUser();
   const adminPortal = isAdministrativePortalOnlyUser(u);
   const sysAdmin =
@@ -320,6 +326,7 @@ export function useVisibleModules() {
   // Em produção (mode = 'off') este array fica vazio → fallback total ao legacy.
   const [contextualModules, setContextualModules] = useState([]);
   const [contextualMeta, setContextualMeta] = useState(null);
+  const [dashboardMePayload, setDashboardMePayload] = useState(null);
 
   // Enterprise Hardening Bloco 8 (M10): cancela fetch obsoleto quando o
   // componente desmonta antes da resposta chegar — evita setState órfão.
@@ -367,7 +374,12 @@ export function useVisibleModules() {
       } catch {
         /* ignore */
       }
-      const mods = r?.data?.visible_modules ?? r?.data?.profile_config?.visible_modules;
+      setDashboardMePayload(r?.data || null);
+      const governed = readCanonicalVisibleModules(r?.data);
+      const mods =
+        governed.length > 0
+          ? governed
+          : r?.data?.visible_modules ?? r?.data?.profile_config?.visible_modules;
       setVisibleModules(Array.isArray(mods) ? mods : []);
       const profileCode = String(r?.data?.profile_code || '').toLowerCase();
       const functionalArea = String(r?.data?.user_context?.functional_area || '').toLowerCase();
@@ -377,8 +389,12 @@ export function useVisibleModules() {
         functionalArea.includes('manutenc');
       setMaintenanceFromProfile(isMaint);
       // Phase 8 — extrair contextual_modules sem alterar contrato existente.
-      const cmRaw = r?.data?.contextual_modules;
-      const cmMeta = r?.data?.contextual_modules_meta || null;
+      const cmRaw = r?.data?.contextual_modules_governed ?? r?.data?.contextual_modules;
+      let cmMeta = r?.data?.contextual_modules_meta || null;
+      const strictMode = getContextualModulesMode(r?.data);
+      if (strictMode === 'STRICT') {
+        cmMeta = { ...(cmMeta || {}), mode: 'STRICT', terminal_locked: true };
+      }
       setContextualModules(Array.isArray(cmRaw) ? cmRaw : []);
       setContextualMeta(cmMeta);
       try {
@@ -406,6 +422,7 @@ export function useVisibleModules() {
       setMaintenanceFromProfile(false);
       setContextualModules([]);
       setContextualMeta(null);
+      setDashboardMePayload(null);
     } finally {
       setLoading(false);
     }
@@ -446,11 +463,12 @@ export function useVisibleModules() {
     visibleModules,
     maintenanceFromProfile,
     loading,
-    filterMenu: (items) => filterMenuByModules(items, visibleModules, { loading }),
+    filterMenu: (items, _unused, opts) => filterMenuByModules(items, visibleModules, { loading, ...opts }),
     canAccessPath: (path) => canAccessPath(path, visibleModules, contextualPathSet, { loading }),
     refetch: fetchModules,
     // Phase 8 — campos aditivos: consumidores antigos continuam a ignorá-los.
     contextualModules,
-    contextualMeta
+    contextualMeta,
+    dashboardMePayload
   };
 }

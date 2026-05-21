@@ -27,7 +27,7 @@
           "KPI_delivery_confidence": 0.965,
           "KPI_runtime_stability": 0.93,
           "samples": 1,
-          "ts": "2026-05-19T23:16:59.964Z"
+          "ts": "2026-05-20T13:35:23.253Z"
         }
       },
       "telemetry": {
@@ -38,7 +38,7 @@
         "KPI_delivery_confidence": 0.965,
         "KPI_runtime_stability": 0.93,
         "samples": 1,
-        "ts": "2026-05-19T23:16:59.964Z"
+        "ts": "2026-05-20T13:35:23.253Z"
       },
       "flags": {
         "IMPETUS_KPI_GOVERNANCE_ROLLOUT": false,

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
-const { executeSummaryGovernanceDeploy, createBackup } = require('../src/kpiRollout/kpiSafeDeploy');
+const { createBackup } = require('../src/kpiRollout/kpiSafeDeploy');
+const { executeSummaryGovernanceDeploy } = require('../src/summaryRollout/summarySafeDeploy');
 const { assessSummaryRolloutReadiness } = require('../src/summaryRollout/summaryGovernanceActivationEngine');
 
 const DRY_RUN = process.argv.includes('--dry-run');

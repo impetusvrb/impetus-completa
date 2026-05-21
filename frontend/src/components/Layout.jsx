@@ -51,6 +51,9 @@ import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
 import { useVisibleModules } from '../hooks/useVisibleModules';
+import { applySidebarGovernanceAdapter } from '../runtimeGovernance/sidebarGovernanceAdapter.js';
+import { shouldBlockPublicationMerge } from '../runtimeGovernance/sidebarLeakageProtection.js';
+import { shouldSkipLegacyPipeline } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
 import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
 import { fetchQualityPublicationContext } from '../domains/quality/navigation/qualityDomainPublicationRuntime.js';
@@ -259,7 +262,8 @@ export default function Layout({ children }) {
     loading: modulesLoading,
     maintenanceFromProfile,
     contextualModules,
-    contextualMeta
+    contextualMeta,
+    dashboardMePayload
   } = useVisibleModules();
   const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
   const [safetyPublicationServerCtx, setSafetyPublicationServerCtx] = useState(null);
@@ -527,39 +531,78 @@ export default function Layout({ children }) {
   // evitando que a falha escale até ao ModuleErrorBoundary ("Erro em Dashboard").
   let menuItems;
   try {
+    const terminalLocked = shouldSkipLegacyPipeline(dashboardMePayload);
+    if (terminalLocked) {
+      const _termFinal = (dashboardMePayload?.sidebar_governance_runtime?.final_visible_modules ||
+        dashboardMePayload?.visible_modules || []);
+      const _termFilterMenu = (items) => filterMenu(items, null, {
+        loading: false,
+        _terminalVisibleModules: _termFinal
+      });
+      menuItems = _termFilterMenu(baseMenuItems);
+      const governed = applySidebarGovernanceAdapter({
+        dashboardMe: dashboardMePayload,
+        menuItems,
+        contextualModules: [],
+        baseMenuItems,
+        filterMenu: _termFilterMenu
+      });
+      menuItems = governed.menuItems;
+    } else {
     const hybridMenuOpts = isAdministrativePortalOnlyUser(user)
       ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
       : undefined;
     const hybridBase = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
-    const withQuality = safeMergeQualityPublicationIntoMenu(hybridBase, {
-      user,
-      visibleModules,
-      contextualModules,
-      modulesLoading,
-      serverPublication: qualityPublicationServerCtx
-    });
-    const withSafety = safeMergeSafetyPublicationIntoMenu(withQuality, {
-      user,
-      visibleModules,
-      contextualModules,
-      modulesLoading,
-      serverPublication: safetyPublicationServerCtx
-    });
-    const withLogistics = safeMergeLogisticsPublicationIntoMenu(withSafety, {
-      user,
-      visibleModules,
-      contextualModules,
-      modulesLoading,
-      serverPublication: logisticsPublicationServerCtx
-    });
-    const baseMenuItemsHybrid = safeMergeEnvironmentPublicationIntoMenu(withLogistics, {
-      user,
-      visibleModules,
-      contextualModules,
-      modulesLoading,
-      serverPublication: environmentPublicationServerCtx
-    });
+    const withQuality =
+      shouldBlockPublicationMerge('quality', dashboardMePayload) === false
+        ? safeMergeQualityPublicationIntoMenu(hybridBase, {
+            user,
+            visibleModules,
+            contextualModules,
+            modulesLoading,
+            serverPublication: qualityPublicationServerCtx
+          })
+        : hybridBase;
+    const withSafety =
+      shouldBlockPublicationMerge('safety', dashboardMePayload) === false
+        ? safeMergeSafetyPublicationIntoMenu(withQuality, {
+            user,
+            visibleModules,
+            contextualModules,
+            modulesLoading,
+            serverPublication: safetyPublicationServerCtx
+          })
+        : withQuality;
+    const withLogistics =
+      shouldBlockPublicationMerge('logistics', dashboardMePayload) === false
+        ? safeMergeLogisticsPublicationIntoMenu(withSafety, {
+            user,
+            visibleModules,
+            contextualModules,
+            modulesLoading,
+            serverPublication: logisticsPublicationServerCtx
+          })
+        : withSafety;
+    const baseMenuItemsHybrid =
+      shouldBlockPublicationMerge('environment', dashboardMePayload) === false
+        ? safeMergeEnvironmentPublicationIntoMenu(withLogistics, {
+            user,
+            visibleModules,
+            contextualModules,
+            modulesLoading,
+            serverPublication: environmentPublicationServerCtx
+          })
+        : withLogistics;
     menuItems = filterMenu(baseMenuItemsHybrid);
+    const governed = applySidebarGovernanceAdapter({
+      dashboardMe: dashboardMePayload,
+      menuItems,
+      contextualModules,
+      baseMenuItems,
+      filterMenu
+    });
+    menuItems = governed.menuItems;
+    }
     menuItems = menuItems.filter((item) => {
       const p = (item.path || '').replace(/\/+$/, '') || '/';
       if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
