@@ -164,8 +164,114 @@ async function syncHierarchyFromCompanyRole(args) {
   return { ok: true, before: currentLevel, after: cr, changed: true, reason: opts.reason || 'sync_from_company_role' };
 }
 
+const HIERARCHY_TO_ROLE = Object.freeze({
+  0: 'ceo',
+  1: 'diretor',
+  2: 'gerente',
+  3: 'coordenador',
+  4: 'supervisor',
+  5: 'colaborador'
+});
+
+const HIERARCHY_TO_AREA = Object.freeze({
+  0: 'Direção',
+  1: 'Direção',
+  2: 'Gerência',
+  3: 'Coordenação',
+  4: 'Supervisão',
+  5: 'Colaborador'
+});
+
+/**
+ * Carrega cargo formal completo da Base Estrutural.
+ */
+async function loadCompanyRoleRow(companyId, companyRoleId) {
+  if (!companyId || !companyRoleId) return null;
+  try {
+    const r = await db.query(
+      `SELECT cr.id, cr.name, cr.description, cr.hierarchy_level, cr.work_area, cr.operation_role,
+              cr.dashboard_functional_hint, cr.main_responsibilities, cr.sectors_involved,
+              cr.department_id, cr.sector_id, cr.organizational_function, cr.operational_context,
+              d.name AS department_name, s.name AS sector_name
+       FROM company_roles cr
+       LEFT JOIN departments d ON d.id = cr.department_id AND d.company_id = cr.company_id
+       LEFT JOIN company_sectors s ON s.id = cr.sector_id AND s.company_id = cr.company_id
+       WHERE cr.id = $1 AND cr.company_id = $2 AND cr.active = true`,
+      [companyRoleId, companyId]
+    );
+    return r.rows?.[0] || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Deriva campos de utilizador exclusivamente do cargo formal (Base Estrutural).
+ */
+async function deriveUserFieldsFromCompanyRole(companyId, companyRoleId) {
+  const row = await loadCompanyRoleRow(companyId, companyRoleId);
+  if (!row) return null;
+
+  const hl = _toFiniteInt(row.hierarchy_level);
+  const level = hl !== null ? hl : 5;
+  const role = HIERARCHY_TO_ROLE[level] ?? 'colaborador';
+  const area = HIERARCHY_TO_AREA[level] ?? 'Colaborador';
+
+  let functionalArea = row.dashboard_functional_hint
+    ? String(row.dashboard_functional_hint).trim().toLowerCase()
+    : null;
+  if (!functionalArea && row.work_area) {
+    const wa = String(row.work_area).toLowerCase();
+    if (/rh|recursos humanos|pessoas/.test(wa)) functionalArea = 'hr';
+    else if (/finan/.test(wa)) functionalArea = 'finance';
+    else if (/manut/.test(wa)) functionalArea = 'maintenance';
+    else if (/qual/.test(wa)) functionalArea = 'quality';
+    else if (/prod/.test(wa)) functionalArea = 'production';
+    else if (/oper|industr/.test(wa)) functionalArea = 'operations';
+    else if (/admin|diret|presid|execut/.test(wa)) functionalArea = 'admin';
+  }
+
+  const department = row.department_name
+    ? String(row.department_name).trim().toLowerCase()
+    : (() => {
+        const sectors = Array.isArray(row.sectors_involved) ? row.sectors_involved.filter(Boolean) : [];
+        if (sectors[0]) return String(sectors[0]).trim();
+        if (row.work_area) return String(row.work_area).trim();
+        return null;
+      })();
+
+  const mainResp = Array.isArray(row.main_responsibilities) ? row.main_responsibilities.join('; ') : '';
+  const hrResponsibilities =
+    (row.organizational_function && String(row.organizational_function).trim()) ||
+    (row.operational_context && String(row.operational_context).trim()) ||
+    (row.description && String(row.description).trim()) ||
+    mainResp ||
+    (row.operation_role ? String(row.operation_role).trim() : '') ||
+    null;
+
+  return {
+    role,
+    hierarchy_level: level,
+    area,
+    job_title: row.name ? String(row.name).trim() : null,
+    department: department ? String(department).toLowerCase() : null,
+    department_id: row.department_id || null,
+    sector_id: row.sector_id || null,
+    sector_name: row.sector_name ? String(row.sector_name).trim() : null,
+    functional_area: functionalArea,
+    hr_responsibilities: hrResponsibilities,
+    operation_role: row.operation_role ? String(row.operation_role).trim() : null,
+    work_area: row.work_area ? String(row.work_area).trim() : null,
+    company_role_name: row.name ? String(row.name).trim() : null
+  };
+}
+
 module.exports = {
   syncHierarchyFromCompanyRole,
   resolveLevelForPersistence,
-  getCompanyRoleHierarchy
+  getCompanyRoleHierarchy,
+  loadCompanyRoleRow,
+  deriveUserFieldsFromCompanyRole,
+  HIERARCHY_TO_ROLE,
+  HIERARCHY_TO_AREA
 };

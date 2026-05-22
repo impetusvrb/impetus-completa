@@ -11,7 +11,7 @@ import {
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
-import { InputField, SelectField, CheckboxField, TextAreaField } from '../components/FormField';
+import { InputField, SelectField, CheckboxField } from '../components/FormField';
 import FieldHelpHint from '../components/FieldHelpHint';
 import { adminUsers, adminDepartments, adminStructural } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
@@ -36,10 +36,8 @@ function uuidFieldToString(raw) {
 export default function AdminUsers() {
   const notify = useNotification();
   const [users, setUsers] = useState([]);
-  const [supervisors, setSupervisors] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [structuralRoles, setStructuralRoles] = useState([]);
-  const [functionalAreaOptions, setFunctionalAreaOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 });
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,28 +55,14 @@ export default function AdminUsers() {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // Form state
-  const AREA_FIXED = ['Direção', 'Gerência', 'Coordenação', 'Supervisão'];
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'colaborador',
-    area: 'Colaborador',
-    custom_area: '',
-    job_title: '',
-    department: '',
-    department_id: '',
-    supervisor_id: '',
-    hr_responsibilities: '',
     phone: '',
     whatsapp_number: '',
-    hierarchy_level: 5,
-    permissions: [],
-    active: true,
-    executive_verified: false,
     company_role_id: '',
-    functional_area: ''
+    active: true
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -88,21 +72,8 @@ export default function AdminUsers() {
   useEffect(() => {
     loadUsers();
     loadDepartments();
-    loadSupervisors();
     loadStructuralRoles();
-    loadFunctionalAreas();
   }, [pagination.offset, filters]);
-
-  const loadFunctionalAreas = async () => {
-    try {
-      const r = await adminUsers.listFunctionalAreas();
-      const areas = r.data?.areas ?? [];
-      setFunctionalAreaOptions(areas);
-    } catch (e) {
-      console.warn('Áreas funcionais indisponíveis:', e);
-      setFunctionalAreaOptions([]);
-    }
-  };
 
   const loadStructuralRoles = async () => {
     try {
@@ -143,23 +114,6 @@ export default function AdminUsers() {
     }
   };
 
-  const loadSupervisors = async () => {
-    try {
-      // Lista dedicada para o select de "Supervisor Imediato"
-      const response = await adminUsers.list({
-        limit: 500,
-        offset: 0,
-        active: true
-      });
-      const all = response.data?.users ?? [];
-      const leaders = all.filter((u) => (u.hierarchy_level ?? 5) <= 4 && u.active !== false);
-      setSupervisors(leaders);
-    } catch (error) {
-      console.error('Erro ao carregar supervisores:', error);
-      setSupervisors([]);
-    }
-  };
-
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, offset: 0 }));
     loadUsers();
@@ -180,35 +134,21 @@ export default function AdminUsers() {
       setSaving(true);
       setFormErrors({});
 
-      const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
-      const deptId = uuidFieldToString(formData.department_id);
-      const supId = uuidFieldToString(formData.supervisor_id);
       const companyRoleId = uuidFieldToString(formData.company_role_id);
-      const fa = String(formData.functional_area || '').trim();
+      if (!companyRoleId) {
+        setFormErrors({ company_role_id: 'Selecione o cargo formal na Base Estrutural' });
+        return;
+      }
 
       const payload = {
         name: String(formData.name || '').trim(),
         email: String(formData.email || '').trim(),
         password: formData.password,
-        role: formData.role,
-        area: areaVal,
-        job_title: formData.job_title?.trim() || undefined,
-        department: formData.department?.trim() || undefined,
-        department_id: deptId || undefined,
-        supervisor_id: supId || null,
+        company_role_id: companyRoleId,
+        structural_role_id: companyRoleId,
         phone: formData.phone?.trim() || undefined,
-        whatsapp_number: formData.whatsapp_number?.trim() || undefined,
-        hierarchy_level: Number(formData.hierarchy_level) ?? 5,
-        permissions: Array.isArray(formData.permissions) ? formData.permissions : [],
-        hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        descricao: formData.hr_responsibilities?.trim() || undefined,
-        functional_area: fa || undefined
+        whatsapp_number: formData.whatsapp_number?.trim() || undefined
       };
-      if (companyRoleId) {
-        payload.company_role_id = companyRoleId;
-        // Compatibilidade com backends legados que ainda esperam structural_role_id.
-        payload.structural_role_id = companyRoleId;
-      }
 
       await adminUsers.create(payload);
       
@@ -236,35 +176,20 @@ export default function AdminUsers() {
       setSaving(true);
       setFormErrors({});
 
-      const areaVal = formData.area === '__custom__' ? (formData.custom_area?.trim() || undefined) : (formData.area || undefined);
-      const deptId = uuidFieldToString(formData.department_id);
-      const supId = uuidFieldToString(formData.supervisor_id);
       const companyRoleId = uuidFieldToString(formData.company_role_id);
-      const fa = String(formData.functional_area || '').trim();
+      if (!companyRoleId) {
+        setFormErrors({ company_role_id: 'Selecione o cargo formal na Base Estrutural' });
+        return;
+      }
 
       const updateData = {
         name: String(formData.name || '').trim(),
         email: String(formData.email || '').trim(),
-        role: formData.role,
-        area: areaVal,
-        job_title: formData.job_title?.trim() || undefined,
-        department: formData.department?.trim() || undefined,
-        department_id: deptId || undefined,
-        supervisor_id: supId || null,
+        company_role_id: companyRoleId,
+        structural_role_id: companyRoleId,
         phone: formData.phone?.trim() || undefined,
         whatsapp_number: formData.whatsapp_number?.trim() || undefined,
-        hierarchy_level: formData.hierarchy_level !== undefined && formData.hierarchy_level !== ''
-          ? Number(formData.hierarchy_level)
-          : undefined,
-        permissions: Array.isArray(formData.permissions) ? formData.permissions : [],
-        active: formData.active,
-        executive_verified: formData.executive_verified ?? false,
-        hr_responsibilities: formData.hr_responsibilities?.trim() || undefined,
-        descricao: formData.hr_responsibilities?.trim() || undefined,
-        company_role_id: companyRoleId || null,
-        // Compatibilidade com backends legados que ainda esperam structural_role_id.
-        structural_role_id: companyRoleId || null,
-        functional_area: fa || null
+        active: formData.active
       };
 
       await adminUsers.update(selectedUser.id, updateData);
@@ -341,28 +266,14 @@ export default function AdminUsers() {
       return;
     }
     setSelectedUser(user);
-    const userArea = user.area || (user.hierarchy_level <= 1 ? 'Direção' : user.hierarchy_level === 2 ? 'Gerência' : user.hierarchy_level === 3 ? 'Coordenação' : user.hierarchy_level === 4 ? 'Supervisão' : 'Colaborador');
-    const isCustomArea = userArea && !AREA_FIXED.includes(userArea);
     setFormData({
       name: user.name,
       email: user.email,
       password: '',
-      role: user.role,
-      area: isCustomArea ? '__custom__' : userArea,
-      custom_area: isCustomArea ? userArea : '',
-      job_title: user.job_title || '',
-      department: user.department || '',
-      department_id: user.department_id || '',
-      supervisor_id: user.supervisor_id || '',
-      hr_responsibilities: user.hr_responsibilities || user.descricao || '',
       phone: user.phone || '',
       whatsapp_number: user.whatsapp_number || '',
-      hierarchy_level: user.hierarchy_level,
-      permissions: user.permissions || [],
-      active: user.active,
-      executive_verified: user.executive_verified ?? false,
       company_role_id: uuidFieldToString(user.company_role_id || user.structural_role_id),
-      functional_area: user.functional_area || ''
+      active: user.active
     });
     setShowEditModal(true);
   };
@@ -391,47 +302,33 @@ export default function AdminUsers() {
       name: '',
       email: '',
       password: '',
-      role: 'colaborador',
-      area: 'Colaborador',
-      custom_area: '',
-      job_title: '',
-      department: '',
-      department_id: '',
-      supervisor_id: '',
-      hr_responsibilities: '',
       phone: '',
       whatsapp_number: '',
-      hierarchy_level: 5,
-      permissions: [],
-      active: true,
-      executive_verified: false,
       company_role_id: '',
-      functional_area: ''
+      active: true
     });
     setFormErrors({});
   };
 
-  const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4 };
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => {
-      const next = { ...prev };
-      if (type === 'checkbox') next[name] = checked;
-      else if (name === 'hierarchy_level') next[name] = (() => { const n = parseInt(value, 10); return Number.isNaN(n) ? 5 : Math.max(0, Math.min(5, n)); })();
-      else if (name === 'area') {
-        next[name] = value;
-        if (value === '__custom__') {
-          next.hierarchy_level = 5;
-          next.custom_area = prev.custom_area || '';
-        } else {
-          next.custom_area = '';
-        if (prev.role !== 'ceo') next.hierarchy_level = AREA_TO_LEVEL[value] ?? 5;
-        }
-      } else if (name === 'custom_area') {
-        next.custom_area = value;
-      } else next[name] = value;
-      return next;
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const findStructuralRole = (roleId) => {
+    const id = uuidFieldToString(roleId);
+    if (!id) return null;
+    return (structuralRoles || []).find(
+      (r) => uuidFieldToString(r.id || r.company_role_id) === id
+    ) || null;
+  };
+
+  const isCeoStructuralSelection = (roleId) => {
+    const r = findStructuralRole(roleId);
+    return r != null && Number(r.hierarchy_level) === 0;
   };
 
   // Colunas da tabela
@@ -622,10 +519,9 @@ export default function AdminUsers() {
           <UserForm
             formData={formData}
             formErrors={formErrors}
-            departments={departments}
-            users={supervisors}
             structuralRoles={structuralRoles}
-            functionalAreaOptions={functionalAreaOptions}
+            findStructuralRole={findStructuralRole}
+            isCeoStructuralSelection={isCeoStructuralSelection}
             onChange={handleFormChange}
             isCreate={true}
           />
@@ -634,7 +530,14 @@ export default function AdminUsers() {
             onConfirm={handleCreate}
             confirmText="Criar Usuário"
             confirmLoading={saving}
-            confirmDisabled={!formData.name || !formData.email || !formData.password || (formData.area === '__custom__' && !formData.custom_area?.trim()) || (formData.role === 'ceo' && (!formData.whatsapp_number || formData.whatsapp_number.trim().length < 10))}
+            confirmDisabled={
+              !formData.name?.trim()
+              || !formData.email?.trim()
+              || !formData.password
+              || !uuidFieldToString(formData.company_role_id)
+              || (isCeoStructuralSelection(formData.company_role_id)
+                && (!formData.whatsapp_number || formData.whatsapp_number.trim().length < 10))
+            }
           />
         </Modal>
 
@@ -648,11 +551,9 @@ export default function AdminUsers() {
           <UserForm
             formData={formData}
             formErrors={formErrors}
-            departments={departments}
-            users={supervisors}
             structuralRoles={structuralRoles}
-            functionalAreaOptions={functionalAreaOptions}
-            selectedUserId={selectedUser?.id}
+            findStructuralRole={findStructuralRole}
+            isCeoStructuralSelection={isCeoStructuralSelection}
             onChange={handleFormChange}
             isCreate={false}
           />
@@ -661,7 +562,13 @@ export default function AdminUsers() {
             onConfirm={handleUpdate}
             confirmText="Salvar Alterações"
             confirmLoading={saving}
-            confirmDisabled={!formData.name || !formData.email || (formData.area === '__custom__' && !formData.custom_area?.trim())}
+            confirmDisabled={
+              !formData.name?.trim()
+              || !formData.email?.trim()
+              || !uuidFieldToString(formData.company_role_id)
+              || (isCeoStructuralSelection(formData.company_role_id)
+                && (!formData.whatsapp_number || formData.whatsapp_number.trim().length < 10))
+            }
           />
         </Modal>
 
@@ -726,40 +633,45 @@ export default function AdminUsers() {
 /**
  * USER FORM COMPONENT
  */
+function StructuralRolePreview({ role, getHierarchyLabel }) {
+  if (!role) return null;
+  const sectors = Array.isArray(role.sectors_involved)
+    ? role.sectors_involved.filter(Boolean)
+    : [];
+  const sectorLabel = sectors.length > 0 ? sectors.join(', ') : (role.work_area || '—');
+  const rows = [
+    { label: 'Cargo', value: role.name },
+    { label: 'Setor', value: role.work_area },
+    { label: 'Departamento / setores', value: sectorLabel },
+    { label: 'Função operacional', value: role.operation_role },
+    { label: 'Nível hierárquico', value: getHierarchyLabel(role.hierarchy_level) }
+  ];
+  return (
+    <div className="structural-role-preview" aria-live="polite">
+      <div className="structural-role-preview__title">Dados da Base Estrutural</div>
+      <dl className="structural-role-preview__grid">
+        {rows.map(({ label, value }) => (
+          <div key={label} className="structural-role-preview__row">
+            <dt>{label}</dt>
+            <dd>{value && String(value).trim() ? value : '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 function UserForm({
   formData,
   formErrors,
-  departments,
-  users = [],
   structuralRoles = [],
-  functionalAreaOptions = [],
-  selectedUserId,
+  findStructuralRole,
+  isCeoStructuralSelection,
   onChange,
   isCreate
 }) {
-  const functionalSelectOptions = [
-    { value: '', label: 'Automático (inferir pelo cargo, departamento e descrição)' },
-    ...(functionalAreaOptions.length > 0
-      ? functionalAreaOptions.map((a) => ({ value: a.value, label: a.label }))
-      : [
-          { value: 'production', label: 'Produção' },
-          { value: 'maintenance', label: 'Manutenção' },
-          { value: 'quality', label: 'Qualidade' },
-          { value: 'environmental', label: 'Meio Ambiente' },
-          { value: 'sustainability', label: 'Sustentabilidade' },
-          { value: 'environmental_health_safety', label: 'EHS' },
-          { value: 'operations', label: 'Operações' },
-          { value: 'pcp', label: 'PCP' },
-          { value: 'hr', label: 'RH / Recursos humanos' },
-          { value: 'finance', label: 'Finanças' },
-          { value: 'admin', label: 'Administração' }
-        ])
-  ];
-  const supervisorOptions = (users || [])
-    .filter(u => u.active !== false && (u.hierarchy_level ?? 5) <= 4 && u.id !== selectedUserId)
-    .map(u => ({ value: u.id, label: `${u.name} (${getHierarchyLabel(u.hierarchy_level)})` }));
   const structuralRoleOptions = [
-    { value: '', label: 'Não associar à Base Estrutural' },
+    { value: '', label: 'Selecione o cargo formal…' },
     ...(structuralRoles || [])
       .filter((r) => r && (r.id != null || r.company_role_id != null) && uuidFieldToString(r.id || r.company_role_id))
       .map((r) => ({
@@ -767,11 +679,18 @@ function UserForm({
         label: `${r.name || ''}${r.work_area ? ` — ${r.work_area}` : ''}`
       }))
   ];
+  const selectedRole = findStructuralRole
+    ? findStructuralRole(formData.company_role_id)
+    : null;
+  const requiresWhatsapp = isCeoStructuralSelection
+    ? isCeoStructuralSelection(formData.company_role_id)
+    : false;
+
   return (
     <div className="user-form">
       <div className="form-grid-2">
         <InputField
-          label={<span>Nome Completo<FieldHelpHint term="nome completo usuario" /></span>}
+          label={<span>Nome completo<FieldHelpHint term="nome completo usuario" /></span>}
           name="name"
           value={formData.name}
           onChange={onChange}
@@ -806,139 +725,18 @@ function UserForm({
         />
       )}
 
-      <div className="form-grid-2">
-        <SelectField
-          label={<span>Função<FieldHelpHint term="funcao hierarquica role" /></span>}
-          name="role"
-          value={formData.role}
-          onChange={onChange}
-          required
-          options={[
-            { value: 'ceo', label: 'CEO' },
-            { value: 'diretor', label: 'Diretor' },
-            { value: 'gerente', label: 'Gerente' },
-            { value: 'coordenador', label: 'Coordenador' },
-            { value: 'supervisor', label: 'Supervisor' },
-            { value: 'colaborador', label: 'Colaborador' }
-          ]}
-        />
-
-        <SelectField
-          label={<span>Área<FieldHelpHint term="area funcional usuario" /></span>}
-          name="area"
-          value={formData.area || ''}
-          onChange={onChange}
-          required
-          options={[
-            { value: 'Direção', label: 'Direção' },
-            { value: 'Gerência', label: 'Gerência' },
-            { value: 'Coordenação', label: 'Coordenação' },
-            { value: 'Supervisão', label: 'Supervisão' },
-            { value: '__custom__', label: 'Outra área (cadastrar)' }
-          ]}
-          helperText="Define escopo de dados e acesso aos módulos (ex: Manutenção, Qualidade)"
-        />
-
-        {formData.area === '__custom__' && (
-          <InputField
-            label="Nome da área"
-            name="custom_area"
-            value={formData.custom_area}
-            onChange={onChange}
-            placeholder="Ex: Manutenção, Qualidade, Logística"
-            required
-            helperText="Ex: Manutenção para mecânicos, Qualidade para inspetores"
-          />
-        )}
-
-        {formData.area === 'Direção' && (
-          <CheckboxField
-            label="Definir como CEO"
-            name="is_ceo"
-            checked={formData.role === 'ceo'}
-            onChange={onChange}
-            helperText="Ativa o Modo Executivo com acesso via WhatsApp e dashboard exclusivo"
-          />
-        )}
-      </div>
-
-      <TextAreaField
-        label={<span>O que faz / descrição do papel<FieldHelpHint term="descricao do papel hr_responsibilities" /></span>}
-        name="hr_responsibilities"
-        value={formData.hr_responsibilities || ''}
-        onChange={onChange}
-        placeholder="Ex: Mecânico de manutenção na linha 2 — corrige paradas, lubrificação e PMOs; reporta ao supervisor de manutenção."
-        rows={4}
-        error={formErrors.hr_responsibilities}
-        helperText="Descreva setor, função e atividades principais. A IA usa isso para personalizar linguagem, prioridades e escopo (até 2000 caracteres)."
-      />
-
-      <div className="form-grid-2">
-        <InputField
-          label="Cargo (texto livre)"
-          name="job_title"
-          value={formData.job_title}
-          onChange={onChange}
-          placeholder="Ex: Diretor Financeiro, Gerente Industrial"
-          helperText="Rótulo exibido no sistema; pode coincidir com o cargo da Base Estrutural"
-        />
-
-        <InputField
-          label="Setor/Departamento"
-          name="department"
-          value={formData.department}
-          onChange={onChange}
-          placeholder="Ex: Financeiro, Produção, Manutenção"
-          helperText="Texto livre (normalizado internamente)"
-        />
-      </div>
-
-      <div className="form-grid-2">
-        <SelectField
-          label="Departamento (cadastro)"
-          name="department_id"
-          value={formData.department_id || ''}
-          onChange={onChange}
-          placeholder=""
-          options={[
-            { value: '', label: 'Nenhum' },
-            ...(departments || []).map((d) => ({ value: d.id, label: d.name }))
-          ]}
-          helperText="Vincula ao departamento da empresa; o nome alimenta o perfil do dashboard quando o texto livre estiver vazio."
-        />
-
-        <SelectField
-          label="Área funcional (dashboard / IA)"
-          name="functional_area"
-          value={formData.functional_area || ''}
-          onChange={onChange}
-          placeholder=""
-          options={functionalSelectOptions}
-          helperText="Para colaboradores de RH ou finanças, escolha a área correspondente para alinhar o Centro de Comando e os módulos. Deixe em automático só se a inferência pelo departamento/cargo já for suficiente."
-        />
-      </div>
-
       <SelectField
-        label="Cargo formal (Base Estrutural)"
+        label={<span>Cargo formal (Base Estrutural)<FieldHelpHint term="cargo base estrutural" /></span>}
         name="company_role_id"
         value={formData.company_role_id || ''}
         onChange={onChange}
+        required
         options={structuralRoleOptions}
-        placeholder=""
-        helperText="Associa este utilizador a um cargo cadastrado em Base Estrutural — a IA e o dashboard usam responsabilidades e contexto da empresa."
+        error={formErrors.company_role_id}
+        helperText="Cargo, setor, departamento, função e hierarquia vêm automaticamente da Base Estrutural."
       />
 
-      <div className="form-grid-2">
-        <SelectField
-          label={<span>Supervisor Imediato<FieldHelpHint term="supervisor imediato" /></span>}
-          name="supervisor_id"
-          value={formData.supervisor_id}
-          onChange={onChange}
-          placeholder=""
-          options={[{ value: '', label: 'Nenhum' }, ...supervisorOptions]}
-          helperText="Define vínculo hierárquico para filtro de dados"
-        />
-      </div>
+      <StructuralRolePreview role={selectedRole} getHierarchyLabel={getHierarchyLabel} />
 
       <div className="form-grid-2">
         <InputField
@@ -957,21 +755,15 @@ function UserForm({
           value={formData.whatsapp_number}
           onChange={onChange}
           placeholder="5531999999999"
-          required={formData.role === 'ceo'}
+          required={requiresWhatsapp}
           error={formErrors.whatsapp_number}
-          helperText={formData.role === 'ceo' ? 'Obrigatório para CEO (Modo Executivo via WhatsApp)' : 'Formato: código do país + DDD + número'}
+          helperText={
+            requiresWhatsapp
+              ? 'Obrigatório para CEO (Modo Executivo via WhatsApp)'
+              : 'Formato: código do país + DDD + número'
+          }
         />
       </div>
-
-      {!isCreate && formData.role === 'ceo' && (
-        <CheckboxField
-          label="Executivo verificado (Modo CEO)"
-          name="executive_verified"
-          checked={formData.executive_verified}
-          onChange={onChange}
-          helperText="Libera acesso via WhatsApp. Normalmente verificado pelo envio do certificado IPC."
-        />
-      )}
 
       {!isCreate && (
         <CheckboxField

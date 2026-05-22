@@ -1,5 +1,6 @@
 'use strict';
 const { interpretProfileContext } = require('./profileContextInterpreter');
+const { normalizeStructuralUser } = require('./structuralUserProfileService');
 const { WIDGET_REGISTRY, listAllWidgets } = require('./dashboardWidgetRegistry');
 const { buildFallbackMessages } = require('./dashboardFallbackBuilder');
 const { buildSmartQuestions } = require('./dashboardInsightBuilder');
@@ -8,7 +9,7 @@ const { buildContextualAlerts } = require('./dashboardAlertBuilder');
 const AXIS_PRIORITY = { eixo_executivo: 10, eixo_financeiro: 9, eixo_planejamento: 9, eixo_humano: 8, eixo_operacional: 8, eixo_manutencao: 8, eixo_qualidade: 8, eixo_logistica: 7, eixo_estoque: 7, eixo_laboratorial: 7, eixo_seguranca: 7 };
 const AXIS_WIDGET_POLICY = {
   eixo_humano: {
-    includeFirst: ['kpi_cards', 'resumo_executivo', 'alertas', 'insights_ia', 'pergunte_ia', 'grafico_tendencia'],
+    includeFirst: ['kpi_cards', 'resumo_executivo', 'alertas', 'insights_ia', 'pergunte_ia', 'grafico_tendencia', 'grafico_clima_equipe'],
     exclude: [
       'centro_custos',
       'grafico_custos_setor',
@@ -57,7 +58,8 @@ function createDashboardTitles(context) {
 }
 
 function buildPersonalizedConfig(user) {
-  const context = interpretProfileContext(user);
+  const normalized = normalizeStructuralUser(user);
+  const context = interpretProfileContext(normalized);
   return {
     perfil: { cargo: context.normalized_profile?.job_title || context.normalized_profile?.role || 'colaborador', nivel: String(context.normalized_profile?.level || 6), departamento: context.normalized_profile?.area || 'geral', ...createDashboardTitles(context), eixos_ativos: context.axes },
     modulos: buildWidgetSet(context),

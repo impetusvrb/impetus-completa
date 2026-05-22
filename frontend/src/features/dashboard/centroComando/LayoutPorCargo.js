@@ -8,7 +8,7 @@ function pos(row, col, width = 1) {
   return { row, col, width };
 }
 
-function _layoutUserFromArgs(role, department, dashboardProfile, jobTitle) {
+function _layoutUserFromArgs(role, department, dashboardProfile, jobTitle, description) {
   return {
     role,
     functional_area: department,
@@ -16,8 +16,23 @@ function _layoutUserFromArgs(role, department, dashboardProfile, jobTitle) {
     department,
     dashboard_profile: dashboardProfile,
     job_title: jobTitle,
-    cargo: jobTitle
+    cargo: jobTitle,
+    hr_responsibilities: description || ''
   };
+}
+
+/**
+ * Layout fallback a partir do perfil estrutural completo (preferido no Centro de Comando).
+ */
+export function getLayoutPorCargoFromUser(user = {}) {
+  const u = user || {};
+  return getLayoutPorCargo(
+    u.role || '',
+    u.functional_area || u.department || u.area || '',
+    u.dashboard_profile || '',
+    u.job_title || u.cargo || '',
+    u.hr_responsibilities || u.descricao || ''
+  );
 }
 
 export const WIDGET_IDS = {
@@ -30,6 +45,7 @@ export const WIDGET_IDS = {
   GRAFICO_PRODUCAO_DEMANDA: 'grafico_producao_demanda',
   GRAFICO_CUSTOS_SETOR: 'grafico_custos_setor',
   GRAFICO_MARGEM: 'grafico_margem',
+  GRAFICO_CLIMA_EQUIPE: 'grafico_clima_equipe',
   INDICADORES_EXECUTIVOS: 'indicadores_executivos',
   CENTRO_PREVISAO: 'centro_previsao',
   CENTRO_CUSTOS: 'centro_custos',
@@ -56,11 +72,63 @@ export const WIDGET_IDS = {
  * Grid 4 colunas; width 1 ou 2. Conforme Part 5 do prompt.
  * `dashboardProfile` (ex.: supervisor_maintenance) alinha o fallback ao motor em dashboardPersonalizadoService.
  */
-export function getLayoutPorCargo(role = '', department = '', dashboardProfile = '', jobTitle = '') {
+export function getLayoutPorCargo(role = '', department = '', dashboardProfile = '', jobTitle = '', description = '') {
   const r = (role || '').toLowerCase();
   const d = (department || '').toLowerCase();
   const dp = (dashboardProfile || '').toLowerCase();
-  const layoutUser = _layoutUserFromArgs(role, department, dashboardProfile, jobTitle);
+  const desc = (description || '').toLowerCase();
+  const layoutUser = _layoutUserFromArgs(role, department, dashboardProfile, jobTitle, description);
+  const profileText = `${r} ${d} ${dp} ${(jobTitle || '').toLowerCase()} ${desc}`;
+
+  // Descrição / cargo textual — prioridade quando departamento genérico
+  if (/(qualidade|nao conform|inspec|auditoria)/.test(profileText)) {
+    return [
+      { id: WIDGET_IDS.QUALIDADE, label: 'Centro de Qualidade', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.RASTREABILIDADE, label: 'Rastreabilidade', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente Qualidade', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 2, 2) }
+    ];
+  }
+  if (/(manutenc|mttr|mtbf|ordem de servico|pcm)/.test(profileText)) {
+    return [
+      { id: WIDGET_IDS.MANUTENCAO, label: 'Centro de Manutenção', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.ENERGIA, label: 'Energia', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente Manutenção', position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 2, 2) }
+    ];
+  }
+  if (/(seguranca do trabalho|sst|epi|acidente de trabalho)/.test(profileText)) {
+    return [
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores SST', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas de segurança', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo operacional', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente SST', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 0, 2) }
+    ];
+  }
+  if (/(meio ambiente|ambiental|efluente|residuo|emissao)/.test(profileText)) {
+    return [
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores ambientais', position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.OPERACOES, label: 'Operações', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente Ambiental', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 0, 2) }
+    ];
+  }
+  if (/(logistica|expedicao|armazen|estoque|almox)/.test(profileText)) {
+    return [
+      { id: WIDGET_IDS.LOGISTICA, label: 'Logística', position: pos(0, 0, 1) },
+      { id: WIDGET_IDS.ESTOQUE, label: 'Estoque', position: pos(0, 1, 1) },
+      { id: WIDGET_IDS.KPI_CARDS, label: 'Indicadores', position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente Logística', position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 0, 2) }
+    ];
+  }
 
   // RH / Gestão de Pessoas — antes de "diretor" genérico (evita OEE, linha de produção, etc.)
   if (isHrDashboardLayout(layoutUser)) {
@@ -70,7 +138,8 @@ export function getLayoutPorCargo(role = '', department = '', dashboardProfile =
       { id: WIDGET_IDS.ALERTAS, label: 'Alertas de RH', position: pos(1, 0, 2) },
       { id: WIDGET_IDS.PERGUNTE_IA, label: 'Assistente de Pessoas', position: pos(1, 2, 2) },
       { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(2, 0, 2) },
-      { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência da equipe', position: pos(2, 2, 2) }
+      { id: WIDGET_IDS.GRAFICO_TENDENCIA, label: 'Tendência da equipe', position: pos(2, 2, 2) },
+      { id: WIDGET_IDS.GRAFICO_CLIMA_EQUIPE, label: 'Clima Pulse', position: pos(3, 0, 2) }
     ];
   }
 
@@ -194,8 +263,13 @@ export function getLayoutPorCargo(role = '', department = '', dashboardProfile =
       d.includes('manuten') ||
       d.includes('mecan') ||
       d.includes('maintenance') ||
-      r.includes('maintenance');
-    const isQ = dp.includes('supervisor_quality') || dp.includes('coordinator_quality') || d.includes('qualid');
+      r.includes('maintenance') ||
+      /(manutenc|mttr|mtbf|pcm)/.test(profileText);
+    const isQ =
+      dp.includes('supervisor_quality') ||
+      dp.includes('coordinator_quality') ||
+      d.includes('qualid') ||
+      /(qualidade|nao conform|inspec)/.test(profileText);
     const isP =
       dp.includes('supervisor_production') ||
       dp.includes('coordinator_production') ||

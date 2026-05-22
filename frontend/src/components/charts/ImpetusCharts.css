@@ -1,0 +1,89 @@
+/* Gráficos IMPETUS — Industrial 4.0 (global) */
+.impetus-chart-panel {
+  background: var(--bg-panel, var(--bg2));
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: 4px;
+  padding: 0.85rem 1rem 1rem;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.impetus-chart-panel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.impetus-chart-panel__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  color: var(--text-primary, var(--text1));
+}
+
+.impetus-chart-panel__title {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.impetus-chart-panel__subtitle,
+.impetus-chart-panel__hint,
+.impetus-chart__empty,
+.impetus-chart-panel__empty {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  color: var(--text-tertiary, var(--text3));
+  line-height: 1.35;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.impetus-chart-panel__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.impetus-chart-panel__hint {
+  margin: -0.25rem 0 0.45rem;
+}
+
+.impetus-chart-panel__body {
+  flex: 1;
+  min-height: 140px;
+}
+
+.impetus-chart-panel__skeleton {
+  background: linear-gradient(90deg, var(--line) 25%, var(--line2, var(--bg-tertiary)) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: impetus-chart-shimmer 1.2s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.impetus-chart-panel__skeleton--title {
+  height: 1rem;
+  width: 55%;
+}
+
+.impetus-chart-panel__skeleton--chart {
+  height: 180px;
+  margin-top: 0.5rem;
+}
+
+@keyframes impetus-chart-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

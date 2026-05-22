@@ -1,6 +1,5 @@
 /**
- * Widget Custos por setor — Prompt Parte 5 (gráficos CEO/Financeiro).
- * Dados do centro de custos no grid.
+ * Widget Custos por setor — financeiro/CEO (dados reais).
  */
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -22,24 +21,19 @@ export default function WidgetGraficoCustosSetor() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    dashboard.costs?.getByOrigin?.()
+    dashboard.costs
+      ?.getByOrigin?.()
       .then((r) => {
         const raw = r?.data?.data ?? r?.data?.origins ?? r?.data ?? [];
         const arr = Array.isArray(raw) ? raw : [];
-        const mapped = arr.slice(0, 8).map((d) => ({
-          setor: d.origin || d.setor || d.name || d.label || '-',
-          valor: d.value ?? d.total ?? d.custo ?? 0
-        }));
-        if (mapped.length) setData(mapped);
-        else setData([{ setor: '-', valor: 0 }]);
+        setData(
+          arr.slice(0, 8).map((d) => ({
+            setor: d.origin || d.setor || d.name || d.label || '-',
+            valor: d.value ?? d.total ?? d.custo ?? 0
+          }))
+        );
       })
-      .catch(() => {
-        dashboard.getTrend?.(2).then((r) => {
-          const raw = r?.data?.data ?? r?.data ?? [];
-          const arr = Array.isArray(raw) ? raw.slice(-5) : [];
-          setData(arr.length ? arr.map((d, i) => ({ setor: d.label || `Setor ${i + 1}`, valor: d.valor ?? 0 })) : [{ setor: '-', valor: 0 }]);
-        }).catch(() => setError(true));
-      })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,6 +47,8 @@ export default function WidgetGraficoCustosSetor() {
     );
   }
 
+  const chartData = data.length ? data : [{ setor: '-', valor: 0 }];
+
   return (
     <div className="cc-widget cc-chart">
       <div className="cc-chart__header">
@@ -61,12 +57,18 @@ export default function WidgetGraficoCustosSetor() {
       </div>
       <div className="cc-chart__body">
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-grid, rgba(0,0,0,0.06))" />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis dataKey="setor" type="category" width={80} tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Bar dataKey="valor" fill="var(--cc-primary, #1e90ff)" name="Custo" radius={[0, 4, 4, 0]} />
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, rgba(0, 212, 255, 0.08))" />
+            <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+            <YAxis dataKey="setor" type="category" width={80} tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--bg-panel)',
+                border: '1px solid var(--border-active)',
+                borderRadius: 4
+              }}
+            />
+            <Bar dataKey="valor" fill="var(--amber)" name="Custo" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

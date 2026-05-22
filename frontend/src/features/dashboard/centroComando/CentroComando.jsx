@@ -5,7 +5,7 @@
  */
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Layout from '../../../components/Layout';
-import { getLayoutPorCargo } from './LayoutPorCargo';
+import { getLayoutPorCargoFromUser } from './LayoutPorCargo';
 import { dashboard } from '../../../services/api';
 import useDashboardContext from '../contextAdapter/useDashboardContext';
 import WidgetKpiCards from './WidgetKpiCards';
@@ -17,6 +17,7 @@ import WidgetRelatorioIA from './WidgetRelatorioIA';
 import WidgetGraficoProducaoDemanda from './WidgetGraficoProducaoDemanda';
 import WidgetGraficoCustosSetor from './WidgetGraficoCustosSetor';
 import WidgetGraficoMargem from './WidgetGraficoMargem';
+import WidgetGraficoClimaEquipe from './WidgetGraficoClimaEquipe';
 import WidgetIndicadoresExecutivos from './WidgetIndicadoresExecutivos';
 import WidgetCentroPrevisao from './WidgetCentroPrevisao';
 import WidgetCentroCustos from './WidgetCentroCustos';
@@ -38,7 +39,14 @@ import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
 import ModuleErrorBoundary from '../../../components/ModuleErrorBoundary';
 import { canAccessLiveDashboardUser, isHrDashboardLayout } from '../../../utils/roleUtils';
 import LiveSurfacePanel from './LiveSurfacePanel';
+import CentroComandoCommandHeader from './CentroComandoCommandHeader';
+import CentroComandoHeroKpis from './CentroComandoHeroKpis';
+import CognitiveEcosystemBand from './cognitiveEcosystem/CognitiveEcosystemBand';
 import './CentroComando.css';
+
+/** Painel lateral cognitivo — IA, alertas, insights (ordem fixa de leitura). */
+const SIDEBAR_WIDGET_IDS = ['alertas', 'insights_ia', 'pergunte_ia', 'relatorio_ia'];
+const SIDEBAR_WIDGET_SET = new Set(SIDEBAR_WIDGET_IDS);
 
 const WIDGET_COMPONENTS = {
   resumo_executivo: WidgetResumoExecutivo,
@@ -50,6 +58,7 @@ const WIDGET_COMPONENTS = {
   grafico_producao_demanda: WidgetGraficoProducaoDemanda,
   grafico_custos_setor: WidgetGraficoCustosSetor,
   grafico_margem: WidgetGraficoMargem,
+  grafico_clima_equipe: WidgetGraficoClimaEquipe,
   indicadores_executivos: WidgetIndicadoresExecutivos,
   centro_previsao: WidgetCentroPrevisao,
   centro_custos: WidgetCentroCustos,
@@ -88,11 +97,12 @@ export default function CentroComando() {
   const dashboardProfile = user?.dashboard_profile ?? '';
 
   const [liveSurface, setLiveSurface] = useState(null);
+  const [warRoomMode, setWarRoomMode] = useState('normal');
   const layoutTrackSig = useRef('');
 
   // DashboardContextAdapter: prefere engine_v2 → personalizado → LayoutPorCargo (fallback).
   // Mantém compatibilidade total com o fluxo anterior.
-  const { context: dashboardCtx } = useDashboardContext({ legacyLayoutFn: getLayoutPorCargo });
+  const { context: dashboardCtx } = useDashboardContext({ legacyLayoutFn: getLayoutPorCargoFromUser });
 
   useEffect(() => {
     dashboard.getLiveSurface()
@@ -147,7 +157,20 @@ export default function CentroComando() {
   }, [widgets, dashboardCtx, user, role, dashboardProfile]);
 
   const titulo = dashboardCtx?.perfil?.titulo || 'Centro de Comando';
-  const subtitulo = dashboardCtx?.perfil?.subtitulo || `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
+  const structuralLine = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('impetus_user');
+      const u = raw ? JSON.parse(raw) : {};
+      const sp = u.structural_profile;
+      if (!sp?.cargo && !sp?.departamento) return null;
+      const axis = sp.eixo_primario ? String(sp.eixo_primario).replace('eixo_', '') : '';
+      return `Painel para: ${sp.cargo || role}${sp.departamento ? ` · ${sp.departamento}` : ''}${axis ? ` · foco ${axis}` : ''}`;
+    } catch {
+      return null;
+    }
+  }, [role]);
+  const subtitulo =
+    structuralLine || dashboardCtx?.perfil?.subtitulo || `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`;
   const smartQuestions = Array.isArray(dashboardCtx?.assistente_ia?.exemplos_perguntas)
     ? dashboardCtx.assistente_ia.exemplos_perguntas
     : [];
@@ -168,32 +191,73 @@ export default function CentroComando() {
 
   const showUnifiedLive = canAccessLiveDashboardUser(user);
 
+  const { mainWidgets, sidebarWidgets } = useMemo(() => {
+    const main = [];
+    const side = [];
+    const sideBuckets = Object.fromEntries(SIDEBAR_WIDGET_IDS.map((id) => [id, null]));
+    for (const w of widgets) {
+      if (SIDEBAR_WIDGET_SET.has(w.id)) {
+        sideBuckets[w.id] = w;
+      } else {
+        main.push(w);
+      }
+    }
+    const orderedSide = SIDEBAR_WIDGET_IDS.map((id) => sideBuckets[id]).filter(Boolean);
+    return { mainWidgets: main, sidebarWidgets: orderedSide };
+  }, [widgets]);
+
+  const renderWidget = (w) => {
+    const Component = getWidgetComponent(w.id);
+    if (!Component) return null;
+    const span = w.position?.width === 2 ? 2 : 1;
+    return (
+      <div key={w.id} className="cc__cell" style={{ gridColumn: `span ${span}` }}>
+        {w.id === 'pergunte_ia' ? (
+          <WidgetPergunteIA title={iaWidgetTitle} exampleHints={iaExampleHints} />
+        ) : (
+          <Component />
+        )}
+      </div>
+    );
+  };
+
   return (
     <Layout>
-      <div className="cc">
+      <div className={`cc cc--premium cc--mode-${warRoomMode}`}>
         {showUnifiedLive && (
           <ModuleErrorBoundary moduleName="Painel vivo">
             <LiveDashboardUnifiedPanel variant="exec" />
           </ModuleErrorBoundary>
         )}
-        <header className="cc__header">
-          <h1 className="cc__title">{titulo}</h1>
-          <p className="cc__subtitle">{subtitulo}</p>
-          {(smartQuestions.length > 0 || fallbackMessages.length > 0) && (
-            <div className="cc__context-panel">
-              {smartQuestions.length > 0 && (
-                <p className="cc__context-line">
-                  Perguntas inteligentes: {smartQuestions.slice(0, 2).join(' | ')}
-                </p>
-              )}
-              {fallbackMessages.length > 0 && (
-                <p className="cc__context-line cc__context-line--muted">
-                  {fallbackMessages[0]}
-                </p>
-              )}
-            </div>
-          )}
-        </header>
+
+        <CentroComandoCommandHeader
+          user={user}
+          titulo={titulo}
+          subtitulo={subtitulo}
+          dashboardCtx={dashboardCtx}
+          hrDashboard={hrDashboard}
+          liveSurfaceActive={!!liveSurface?.blocks?.length}
+        />
+
+        <CentroComandoHeroKpis hrDashboard={hrDashboard} />
+
+        <ModuleErrorBoundary moduleName="Ecossistema cognitivo">
+          <CognitiveEcosystemBand onModeChange={setWarRoomMode} />
+        </ModuleErrorBoundary>
+
+        {(smartQuestions.length > 0 || fallbackMessages.length > 0) && (
+          <div className="cc__context-panel cc__context-panel--inline">
+            {smartQuestions.length > 0 && (
+              <p className="cc__context-line">
+                <span className="cc__context-tag">IA</span>
+                {smartQuestions.slice(0, 3).join(' · ')}
+              </p>
+            )}
+            {fallbackMessages.length > 0 && (
+              <p className="cc__context-line cc__context-line--muted">{fallbackMessages[0]}</p>
+            )}
+          </div>
+        )}
         {/*
           Phase 8 — Composição híbrida CentroComando.
           Antes: liveSurface OR Grid (LiveSurface escondia totalmente o grid
@@ -206,25 +270,31 @@ export default function CentroComando() {
         {liveSurface?.blocks?.length ? (
           <LiveSurfacePanel surface={liveSurface} />
         ) : null}
-        <div className="cc__grid">
-          {widgets.map((w) => {
-            const Component = getWidgetComponent(w.id);
-            if (!Component) return null;
-            const span = w.position?.width === 2 ? 2 : 1;
-            return (
-              <div
-                key={w.id}
-                className="cc__cell"
-                style={{ gridColumn: `span ${span}` }}
-              >
-                {w.id === 'pergunte_ia' ? (
-                  <WidgetPergunteIA title={iaWidgetTitle} exampleHints={iaExampleHints} />
-                ) : (
-                  <Component />
-                )}
+
+        <div className="cc__body">
+          <div className="cc__main">
+            <div className="cc__section-label">
+              <span>// CENTRO OPERACIONAL</span>
+              <span className="cc__section-meta">
+                {mainWidgets.length} módulos · motor {dashboardCtx?.source || 'contextual'}
+              </span>
+            </div>
+            <div className="cc__grid cc__grid--main">
+              {mainWidgets.map(renderWidget)}
+            </div>
+          </div>
+
+          {sidebarWidgets.length > 0 && (
+            <aside className="cc__rail" aria-label="Painel cognitivo IA">
+              <div className="cc__section-label cc__section-label--rail">
+                <span>// COGNITIVO</span>
+                <span className="cc__section-meta">IA · alertas · insights</span>
               </div>
-            );
-          })}
+              <div className="cc__rail-stack">
+                {sidebarWidgets.map(renderWidget)}
+              </div>
+            </aside>
+          )}
         </div>
         {!hrDashboard && (
         <footer className="ticker">

@@ -1,6 +1,5 @@
 /**
- * Widget Gráfico de Tendência (Prompt v3 Parte 5 — gráficos no grid).
- * Dados exibidos no próprio widget; sem link para outro módulo.
+ * Widget Gráfico de Tendência — dados reais via GET /dashboard/trend.
  */
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -22,14 +21,17 @@ export default function WidgetGraficoTendencia() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    dashboard.getTrend?.(3)
+    dashboard
+      .getTrend(6)
       .then((r) => {
         const raw = r?.data?.data ?? r?.data?.trend ?? r?.data ?? [];
         const arr = Array.isArray(raw) ? raw : [];
-        setData(arr.slice(-14).map((d) => ({
-          name: d.label || d.periodo || d.mes || d.name || '-',
-          valor: d.valor ?? d.total ?? d.count ?? 0
-        })));
+        setData(
+          arr.slice(-14).map((d) => ({
+            name: d.label || d.periodo || d.mes || d.name || '-',
+            valor: d.valor ?? d.total ?? d.count ?? 0
+          }))
+        );
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -56,11 +58,24 @@ export default function WidgetGraficoTendencia() {
       <div className="cc-chart__body">
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-grid, rgba(0,0,0,0.06))" />
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Area type="monotone" dataKey="valor" stroke="var(--cc-primary, #1e90ff)" fill="var(--cc-primary-light, rgba(30,144,255,0.2))" strokeWidth={2} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, rgba(0, 212, 255, 0.08))" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+            <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} width={32} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--bg-panel)',
+                border: '1px solid var(--border-active)',
+                borderRadius: 4
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="valor"
+              stroke="var(--cyan)"
+              fill="var(--cyan)"
+              fillOpacity={0.15}
+              strokeWidth={2}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

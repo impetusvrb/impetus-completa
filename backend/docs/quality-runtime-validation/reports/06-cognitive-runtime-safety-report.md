@@ -1,6 +1,6 @@
 # Cognitive Runtime Safety Report
 
-**Timestamp:** 2026-05-17T02:30:36.416Z
+**Timestamp:** 2026-05-21T21:52:36.173Z
 
 - OBS V2: true
 - Workflow tracing: true
@@ -8,7 +8,7 @@
 - DLQ monitoring: false
 - Cognitive pressure: false
 - Saturation: false
-- **Overhead resolver** (40×): 43 ms (~1.07 ms/call)
+- **Overhead resolver** (40×): 72 ms (~1.80 ms/call)
 
 ---
 

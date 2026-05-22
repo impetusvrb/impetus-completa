@@ -42,6 +42,7 @@
  *   - dependencies           lista de module_id requeridos
  *   - fallback_behavior      'soft_hide' | 'hard_deny' | 'show_disabled'
  *   - universal              boolean — se true entra para todos (core)
+ *   - module_type            'universal'|'contextual'|'strategic'|'restricted'|'operational'
  */
 
 /* eslint-disable max-len */
@@ -65,7 +66,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     criticality: 1.0,
     dependencies: [],
     fallback_behavior: 'soft_hide',
-    universal: true
+    universal: true,
+    module_type: 'universal'
   },
   {
     module_id: 'settings',
@@ -83,7 +85,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     criticality: 1.0,
     dependencies: [],
     fallback_behavior: 'soft_hide',
-    universal: true
+    universal: true,
+    module_type: 'universal'
   },
   {
     module_id: 'biblioteca',
@@ -117,7 +120,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     lgpd_scope: 'low',
     criticality: 0.8,
     dependencies: [],
-    fallback_behavior: 'soft_hide'
+    fallback_behavior: 'soft_hide',
+    module_type: 'contextual'
   },
   {
     module_id: 'chat',
@@ -134,7 +138,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     lgpd_scope: 'low',
     criticality: 0.5,
     dependencies: [],
-    fallback_behavior: 'soft_hide'
+    fallback_behavior: 'soft_hide',
+    module_type: 'universal'
   },
 
   // ---- operational base ----
@@ -171,7 +176,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     criticality: 0.6,
     dependencies: [],
     fallback_behavior: 'soft_hide',
-    universal: true
+    universal: true,
+    module_type: 'universal'
   },
   {
     module_id: 'registro_inteligente',
@@ -189,7 +195,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     criticality: 0.6,
     dependencies: [],
     fallback_behavior: 'soft_hide',
-    universal: true
+    universal: true,
+    module_type: 'universal'
   },
   {
     module_id: 'cadastrar_com_ia',
@@ -207,7 +214,8 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     criticality: 0.6,
     dependencies: [],
     fallback_behavior: 'soft_hide',
-    universal: true
+    universal: true,
+    module_type: 'universal'
   },
 
   // ---- financial / strategy ----
@@ -685,6 +693,26 @@ function getMaxModulesFor(functionType) {
   return MAX_MODULES_BY_FUNCTION[functionType] || 10;
 }
 
+const MODULE_TYPE_BY_ID = Object.freeze({
+  dashboard: 'universal',
+  settings: 'universal',
+  chat: 'universal',
+  proaction: 'universal',
+  registro_inteligente: 'universal',
+  cadastrar_com_ia: 'universal',
+  admin: 'restricted',
+  audit: 'strategic',
+  operational: 'operational',
+  manuia: 'operational'
+});
+
+function resolveModuleType(mod) {
+  if (!mod) return 'contextual';
+  if (mod.module_type) return mod.module_type;
+  if (mod.universal === true) return 'universal';
+  return MODULE_TYPE_BY_ID[mod.module_id] || MODULE_TYPE_BY_ID[mod.menu_key] || 'contextual';
+}
+
 module.exports = {
   CONTEXTUAL_MODULE_CATALOG,
   CANONICAL_MENU_KEYS,
@@ -696,5 +724,7 @@ module.exports = {
   getModulesByMenuKey,
   getCriticalModulesFor,
   getForbiddenModulesFor,
-  getMaxModulesFor
+  getMaxModulesFor,
+  resolveModuleType,
+  MODULE_TYPE_BY_ID
 };

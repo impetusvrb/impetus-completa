@@ -143,9 +143,18 @@ function buildDashboardContext(args) {
   if (typeof legacyLayoutFn === 'function') {
     try {
       const role = user.role || '';
-      const dept = user.functional_area || user.area || '';
+      const dept = user.functional_area || user.department || user.area || '';
       const dp = user.dashboard_profile || '';
-      const layout = legacyLayoutFn(role, dept, dp, user.job_title || user.cargo || '');
+      const layout =
+        legacyLayoutFn.length === 1
+          ? legacyLayoutFn(user)
+          : legacyLayoutFn(
+              role,
+              dept,
+              dp,
+              user.job_title || user.cargo || '',
+              user.hr_responsibilities || user.descricao || ''
+            );
       if (Array.isArray(layout) && layout.length > 0) {
         const widgets = layout.map(_coerceWidget).filter(Boolean);
         return {
@@ -154,8 +163,13 @@ function buildDashboardContext(args) {
           trace_id: null,
           widgets,
           perfil: {
-            titulo: 'Centro de Comando Industrial',
-            subtitulo: `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`
+            titulo: user.structural_profile?.eixo_primario?.includes('humano')
+              ? 'Centro de Comando — Pessoas'
+              : 'Centro de Comando Industrial',
+            subtitulo:
+              user.structural_profile?.cargo && user.structural_profile?.departamento
+                ? `${user.structural_profile.cargo} · ${user.structural_profile.departamento}`
+                : `Visão para ${role ? role.replace(/_/g, ' ') : 'colaborador'}`
           },
           assistente_ia: {
             especialidade: null,

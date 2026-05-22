@@ -41,7 +41,8 @@ import './AdminStructural.css';
 
 const MODULES = [
   { id: 'company-data', label: 'Dados da Empresa', icon: Building2 },
-  { id: 'roles', label: 'Cargos e Hierarquia', icon: Briefcase },
+  { id: 'roles', label: 'Identidade Organizacional (Cargos)', icon: Briefcase },
+  { id: 'sectors', label: 'Setores Oficiais', icon: ListTree },
   { id: 'lines', label: 'Linhas de Produção', icon: Factory },
   { id: 'assets', label: 'Máquinas e Ativos', icon: Cpu },
   { id: 'processes', label: 'Processos', icon: GitBranch },
@@ -114,12 +115,37 @@ export default function AdminStructural() {
                 entityLabel="Cargo"
                 api={adminStructural.roles}
                 columns={[
+                  { key: 'internal_code', label: 'Código' },
                   { key: 'name', label: 'Cargo' },
-                  { key: 'hierarchy_level', label: 'Nível' },
-                  { key: 'work_area', label: 'Área' }
+                  {
+                    key: 'hierarchy_level',
+                    label: 'Nível',
+                    render: (v) => {
+                      const labels = ['Presidência', 'Diretoria', 'Gerência', 'Coordenação', 'Supervisão', 'Operacional'];
+                      return labels[v] ?? v;
+                    }
+                  },
+                  { key: 'department_name', label: 'Departamento' },
+                  { key: 'sector_name', label: 'Setor' },
+                  { key: 'subordinate_count', label: 'Subordinados' }
                 ]}
                 loadRefs={loadReferences}
-                extraDescription="Em Gestão de Utilizadores, associe cada pessoa ao cargo formal correspondente para a IA e os insights usarem estas descrições com segurança."
+                extraDescription="Engine de identidade organizacional: departamento e setor oficiais, hierarquia validada e contexto para IA, dashboards e governança."
+              />
+            )}
+            {activeModule === 'sectors' && (
+              <CrudModule
+                refs={references}
+                module="sectors"
+                entityLabel="Setor"
+                api={adminStructural.sectors}
+                columns={[
+                  { key: 'name', label: 'Setor' },
+                  { key: 'department_name', label: 'Departamento' },
+                  { key: 'code', label: 'Código' }
+                ]}
+                loadRefs={loadReferences}
+                extraDescription="Setores vinculados a departamentos cadastrados. Obrigatório para cargos na identidade organizacional."
               />
             )}
             {activeModule === 'lines' && <LinesModule refs={references} loadRefs={loadReferences} />}

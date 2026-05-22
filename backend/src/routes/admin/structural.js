@@ -15,6 +15,7 @@ const { isValidUUID } = require('../../utils/security');
 const { tenantAssertMiddleware } = require('../../middleware/tenantResourceAssert');
 const { sendSuccess, sendFail } = require('../../utils/apiResponse');
 const { selectCompanyRowStructural, companyRowToApiPayload } = require('../../services/structuralCompanyPayload');
+const orgIdentity = require('../../services/organizationalIdentityEngine');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
 
@@ -167,22 +168,182 @@ router.put('/company-data', ...adminMw, auditMiddleware({ action: 'company_data_
 });
 
 // ============================================================================
-// 2. CARGOS E ESTRUTURA HIERÁRQUICA
+// 1b. SETORES OFICIAIS (vinculados a departamentos)
 // ============================================================================
 
-router.get('/roles', ...adminMw, async (req, res) => {
+router.get('/sectors', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
     const r = await db.query(`
-      SELECT r.*, s.name as direct_superior_name
-      FROM company_roles r
-      LEFT JOIN company_roles s ON r.direct_superior_role_id = s.id
-      WHERE r.company_id = $1 AND r.active ORDER BY r.hierarchy_level NULLS LAST, r.name
+      SELECT cs.*, d.name AS department_name
+      FROM company_sectors cs
+      INNER JOIN departments d ON d.id = cs.department_id
+      WHERE cs.company_id = $1 AND cs.active
+      ORDER BY d.name, cs.name
     `, [cid]);
-    sendSuccess(res, r.rows );
+    sendSuccess(res, r.rows);
   } catch (err) {
+    if (err.code === '42P01') {
+      return sendSuccess(res, []);
+    }
+    console.error('[STRUCTURAL_SECTORS]', err);
+    sendFail(res, 'Erro ao listar setores', 500);
+  }
+});
+
+router.post('/sectors', ...adminMw, auditMiddleware({ action: 'sector_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!cid) return sendFail(res, 'Empresa não identificada.', 400);
+    const b = req.body || {};
+    const name = String(b.name || '').trim();
+    const departmentId = b.department_id;
+    if (!name || name.length < 2) return sendFail(res, 'Nome do setor é obrigatório.', 400);
+    const dept = await orgIdentity.assertDepartmentBelongs(cid, departmentId);
+    if (!dept.ok) return sendFail(res, dept.error, 400);
+    const r = await db.query(
+      `INSERT INTO company_sectors (company_id, department_id, name, code, description)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [cid, departmentId, name, b.code ? String(b.code).trim() : null, b.description || null]
+    );
+    sendSuccess(res, r.rows[0], 201);
+  } catch (err) {
+    console.error('[STRUCTURAL_SECTOR_CREATE]', err);
+    sendFail(res, 'Erro ao criar setor', 500);
+  }
+});
+
+router.put('/sectors/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
+    const b = req.body || {};
+    let departmentId = b.department_id;
+    if (departmentId) {
+      const dept = await orgIdentity.assertDepartmentBelongs(cid, departmentId);
+      if (!dept.ok) return sendFail(res, dept.error, 400);
+    }
+    const r = await db.query(
+      `UPDATE company_sectors SET
+         name = COALESCE($3, name),
+         department_id = COALESCE($4, department_id),
+         code = COALESCE($5, code),
+         description = COALESCE($6, description),
+         updated_at = now()
+       WHERE id = $2 AND company_id = $1
+       RETURNING *`,
+      [cid, req.params.id, b.name, departmentId, b.code, b.description]
+    );
+    if (!r.rows.length) return sendFail(res, 'Setor não encontrado', 404);
+    sendSuccess(res, r.rows[0]);
+  } catch (err) {
+    console.error('[STRUCTURAL_SECTOR_UPDATE]', err);
+    sendFail(res, 'Erro ao atualizar setor', 500);
+  }
+});
+
+router.delete('/sectors/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
+    await db.query(
+      'UPDATE company_sectors SET active = false, updated_at = now() WHERE id = $1 AND company_id = $2',
+      [req.params.id, cid]
+    );
+    sendSuccess(res, { ok: true });
+  } catch (err) {
+    sendFail(res, 'Erro ao desativar setor', 500);
+  }
+});
+
+// ============================================================================
+// 1c. UNIDADES ORGANIZACIONAIS
+// ============================================================================
+
+router.get('/organizational-units', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    const r = await db.query(
+      `SELECT * FROM organizational_units WHERE company_id = $1 AND active ORDER BY name`,
+      [cid]
+    );
+    sendSuccess(res, r.rows);
+  } catch (err) {
+    if (err.code === '42P01') return sendSuccess(res, []);
+    sendFail(res, 'Erro ao listar unidades', 500);
+  }
+});
+
+router.post('/organizational-units', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    const b = req.body || {};
+    const name = String(b.name || '').trim();
+    if (!name) return sendFail(res, 'Nome da unidade é obrigatório.', 400);
+    const r = await db.query(
+      `INSERT INTO organizational_units (company_id, name, code, unit_type, description)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [cid, name, b.code || null, b.unit_type || 'matriz', b.description || null]
+    );
+    sendSuccess(res, r.rows[0], 201);
+  } catch (err) {
+    sendFail(res, 'Erro ao criar unidade', 500);
+  }
+});
+
+// ============================================================================
+// 2. CARGOS — ENGINE DE IDENTIDADE ORGANIZACIONAL
+// ============================================================================
+
+const ROLE_LIST_SQL = `
+  SELECT r.*,
+         d.name AS department_name,
+         s.name AS sector_name,
+         ou.name AS organizational_unit_name,
+         sup.name AS direct_superior_name,
+         (SELECT COUNT(*)::int FROM company_roles sub
+          WHERE sub.direct_superior_role_id = r.id AND sub.company_id = r.company_id AND sub.active) AS subordinate_count
+  FROM company_roles r
+  LEFT JOIN departments d ON d.id = r.department_id AND d.company_id = r.company_id
+  LEFT JOIN company_sectors s ON s.id = r.sector_id AND s.company_id = r.company_id
+  LEFT JOIN organizational_units ou ON ou.id = r.organizational_unit_id AND ou.company_id = r.company_id
+  LEFT JOIN company_roles sup ON sup.id = r.direct_superior_role_id
+`;
+
+router.get('/roles', ...adminMw, async (req, res) => {
+  const cid = getCompanyId(req);
+  try {
+    const r = await db.query(
+      `${ROLE_LIST_SQL}
+       WHERE r.company_id = $1 AND r.active
+       ORDER BY r.hierarchy_level NULLS LAST, r.name`,
+      [cid]
+    );
+    sendSuccess(res, r.rows);
+  } catch (err) {
+    if (err.code === '42703') {
+      const fallback = await db.query(`
+        SELECT r.*, s.name as direct_superior_name
+        FROM company_roles r
+        LEFT JOIN company_roles s ON r.direct_superior_role_id = s.id
+        WHERE r.company_id = $1 AND r.active ORDER BY r.hierarchy_level NULLS LAST, r.name
+      `, [cid]);
+      return sendSuccess(res, fallback.rows);
+    }
     console.error('[STRUCTURAL_ROLES]', err);
     sendFail(res, 'Erro ao listar cargos', 500);
+  }
+});
+
+router.get('/roles/:id/identity', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
+    const enriched = await orgIdentity.loadEnrichedRole(cid, req.params.id);
+    if (!enriched) return sendFail(res, 'Cargo não encontrado', 404);
+    sendSuccess(res, enriched);
+  } catch (err) {
+    sendFail(res, 'Erro ao carregar identidade do cargo', 500);
   }
 });
 
@@ -192,41 +353,60 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
     if (!cid) {
       return sendFail(res, 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.', 400);
     }
-    const b = req.body;
-    let superiorId = b.direct_superior_role_id || null;
-    if (superiorId && !isValidUUID(String(superiorId))) {
-      return sendFail(res, 'ID do cargo "superior direto" é inválido.', 400);
+    const validation = await orgIdentity.validateRolePayload(cid, req.body, { strictStructural: true });
+    if (!validation.ok) {
+      return sendFail(res, 'Dados do cargo inválidos', 400, { details: validation.errors });
     }
-    const hint = b.dashboard_functional_hint != null && String(b.dashboard_functional_hint).trim() !== ''
-      ? String(b.dashboard_functional_hint).trim().slice(0, 32)
-      : null;
+    const n = validation.normalized;
+    const internalCode = n.internal_code || await orgIdentity.generateInternalCode(cid, n.name, n.hierarchy_level);
+    const sectorName = validation.sector?.name || null;
     const r = await db.query(`
-      INSERT INTO company_roles (company_id, name, description, hierarchy_level, work_area,
+      INSERT INTO company_roles (
+        company_id, name, internal_code, description, hierarchy_level, work_area,
+        department_id, sector_id, organizational_unit_id,
         main_responsibilities, critical_responsibilities, recommended_permissions,
         sectors_involved, leadership_type, communication_profile, direct_superior_role_id,
-        expected_subordinates, decision_level, visible_themes, hidden_themes, escalation_role,
-        operation_role, approval_role, notes, dashboard_functional_hint)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-      RETURNING *
+        decision_level, visible_themes, hidden_themes,
+        operation_role, approval_role, notes, dashboard_functional_hint,
+        operational_scope, organizational_function, operational_context, criticality_level,
+        approval_domains, approval_participation_role, escalation_participation_role,
+        sensitivity_level, access_strategic_data, access_financial_data, access_hr_data,
+        access_critical_indicators, decision_frequency,
+        requires_document_validation, requires_hierarchical_approval, allow_manual_creation,
+        can_view_other_departments, max_scope_limit
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,
+        $24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42
+      ) RETURNING *
     `, [
-      cid, b.name || '', b.description, b.hierarchy_level, b.work_area,
-      asPgTextArray(b.main_responsibilities), asPgTextArray(b.critical_responsibilities), asPgTextArray(b.recommended_permissions),
-      asPgTextArray(b.sectors_involved), b.leadership_type, b.communication_profile, superiorId,
-      asPgTextArray(b.expected_subordinates), b.decision_level, asPgTextArray(b.visible_themes), asPgTextArray(b.hidden_themes),
-      b.escalation_role, b.operation_role, b.approval_role, b.notes, hint
+      cid, n.name, internalCode, n.description, n.hierarchy_level, n.work_area,
+      n.department_id, n.sector_id, n.organizational_unit_id,
+      asPgTextArray(n.main_responsibilities), asPgTextArray(n.critical_responsibilities),
+      asPgTextArray(n.recommended_permissions),
+      sectorName ? [sectorName] : [],
+      n.leadership_type, n.communication_profile, n.direct_superior_role_id,
+      n.decision_level, asPgTextArray(n.visible_themes), asPgTextArray(n.hidden_themes),
+      n.operation_role, n.approval_participation_role, n.notes, n.dashboard_functional_hint,
+      n.operational_scope, n.organizational_function, n.operational_context, n.criticality_level,
+      asPgTextArray(n.approval_domains), n.approval_participation_role, n.escalation_participation_role,
+      n.sensitivity_level, n.access_strategic_data, n.access_financial_data, n.access_hr_data,
+      n.access_critical_indicators, n.decision_frequency,
+      n.requires_document_validation, n.requires_hierarchical_approval, n.allow_manual_creation,
+      n.can_view_other_departments, n.max_scope_limit
     ]);
     invalidateStructuralOrgCache(cid);
-    sendSuccess(res, r.rows[0] , 201);
+    const enriched = await orgIdentity.loadEnrichedRole(cid, r.rows[0].id);
+    sendSuccess(res, enriched || r.rows[0], 201);
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_CREATE]', err);
     if (err.code === '23503') {
-      return sendFail(res, 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.', 400);
+      return sendFail(res, 'Referência estrutural inválida (departamento, setor ou superior).', 400);
     }
-    if (err.code === '23502') {
-      return sendFail(res, 'Dados obrigatórios ausentes (empresa ou nome do cargo).', 400);
+    if (err.code === '23505') {
+      return sendFail(res, 'Código interno do cargo já existe.', 409);
     }
-    if (err.code === '42P01') {
-      return sendFail(res, 'Tabela de cargos não encontrada no banco. Execute a migração da base estrutural no servidor.', 500);
+    if (err.code === '42703') {
+      return sendFail(res, 'Execute a migração organizational_identity_engine no servidor.', 500);
     }
     sendFail(res, 'Erro ao criar cargo', 500);
   }
@@ -239,51 +419,55 @@ router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'
       return sendFail(res, 'Empresa não identificada para o usuário.', 400);
     }
     if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
-    const b = req.body;
-    let superiorIdPut = b.direct_superior_role_id;
-    if (superiorIdPut && !isValidUUID(String(superiorIdPut))) {
-      return sendFail(res, 'ID do cargo "superior direto" é inválido.', 400);
+    const validation = await orgIdentity.validateRolePayload(cid, req.body, {
+      roleId: req.params.id,
+      strictStructural: true
+    });
+    if (!validation.ok) {
+      return sendFail(res, 'Dados do cargo inválidos', 400, { details: validation.errors });
     }
-    const hintUpdate = Object.prototype.hasOwnProperty.call(b, 'dashboard_functional_hint')
-      ? ', dashboard_functional_hint = NULLIF(TRIM($22::text), \'\')'
-      : '';
-    const paramsPut = [
-      cid, req.params.id, b.name, b.description, b.hierarchy_level, b.work_area,
-      asPgTextArrayForUpdate(b.main_responsibilities), asPgTextArrayForUpdate(b.critical_responsibilities), asPgTextArrayForUpdate(b.recommended_permissions),
-      asPgTextArrayForUpdate(b.sectors_involved), b.leadership_type, b.communication_profile,
-      superiorIdPut, asPgTextArrayForUpdate(b.expected_subordinates), b.decision_level,
-      asPgTextArrayForUpdate(b.visible_themes), asPgTextArrayForUpdate(b.hidden_themes), b.escalation_role, b.operation_role,
-      b.approval_role, b.notes
-    ];
-    if (hintUpdate) {
-      const hv = b.dashboard_functional_hint;
-      paramsPut.push(hv == null ? '' : String(hv));
-    }
+    const n = validation.normalized;
+    const sectorName = validation.sector?.name || null;
     const r = await db.query(`
       UPDATE company_roles SET
-        name = COALESCE($3, name), description = COALESCE($4, description),
-        hierarchy_level = COALESCE($5, hierarchy_level), work_area = COALESCE($6, work_area),
-        main_responsibilities = COALESCE($7, main_responsibilities),
-        critical_responsibilities = COALESCE($8, critical_responsibilities),
-        recommended_permissions = COALESCE($9, recommended_permissions),
-        sectors_involved = COALESCE($10, sectors_involved),
-        leadership_type = COALESCE($11, leadership_type),
-        communication_profile = COALESCE($12, communication_profile),
-        direct_superior_role_id = COALESCE($13, direct_superior_role_id),
-        expected_subordinates = COALESCE($14, expected_subordinates),
-        decision_level = COALESCE($15, decision_level),
-        visible_themes = COALESCE($16, visible_themes),
-        hidden_themes = COALESCE($17, hidden_themes),
-        escalation_role = COALESCE($18, escalation_role),
-        operation_role = COALESCE($19, operation_role),
-        approval_role = COALESCE($20, approval_role),
-        notes = COALESCE($21, notes)${hintUpdate}, updated_at = now()
+        name = $3, description = $4, hierarchy_level = $5, work_area = $6,
+        department_id = $7, sector_id = $8, organizational_unit_id = $9,
+        main_responsibilities = $10, critical_responsibilities = $11, recommended_permissions = $12,
+        sectors_involved = $13, leadership_type = $14, communication_profile = $15,
+        direct_superior_role_id = $16, decision_level = $17,
+        visible_themes = $18, hidden_themes = $19,
+        operation_role = $20, approval_role = $21, notes = $22,
+        dashboard_functional_hint = $23,
+        operational_scope = $24, organizational_function = $25, operational_context = $26,
+        criticality_level = $27, approval_domains = $28,
+        approval_participation_role = $29, escalation_participation_role = $30,
+        sensitivity_level = $31, access_strategic_data = $32, access_financial_data = $33,
+        access_hr_data = $34, access_critical_indicators = $35, decision_frequency = $36,
+        requires_document_validation = $37, requires_hierarchical_approval = $38,
+        allow_manual_creation = $39, can_view_other_departments = $40, max_scope_limit = $41,
+        updated_at = now()
       WHERE id = $2 AND company_id = $1
       RETURNING *
-    `, paramsPut);
+    `, [
+      cid, req.params.id, n.name, n.description, n.hierarchy_level, n.work_area,
+      n.department_id, n.sector_id, n.organizational_unit_id,
+      asPgTextArray(n.main_responsibilities), asPgTextArray(n.critical_responsibilities),
+      asPgTextArray(n.recommended_permissions),
+      sectorName ? [sectorName] : [],
+      n.leadership_type, n.communication_profile, n.direct_superior_role_id,
+      n.decision_level, asPgTextArray(n.visible_themes), asPgTextArray(n.hidden_themes),
+      n.operation_role, n.approval_participation_role, n.notes, n.dashboard_functional_hint,
+      n.operational_scope, n.organizational_function, n.operational_context, n.criticality_level,
+      asPgTextArray(n.approval_domains), n.approval_participation_role, n.escalation_participation_role,
+      n.sensitivity_level, n.access_strategic_data, n.access_financial_data, n.access_hr_data,
+      n.access_critical_indicators, n.decision_frequency,
+      n.requires_document_validation, n.requires_hierarchical_approval, n.allow_manual_creation,
+      n.can_view_other_departments, n.max_scope_limit
+    ]);
     if (r.rows.length === 0) return sendFail(res, 'Cargo não encontrado', 404);
     invalidateStructuralOrgCache(cid);
-    sendSuccess(res, r.rows[0] );
+    const enriched = await orgIdentity.loadEnrichedRole(cid, req.params.id);
+    sendSuccess(res, enriched || r.rows[0]);
   } catch (err) {
     console.error('[STRUCTURAL_ROLE_UPDATE]', err);
     if (err.code === '23503') {
@@ -1720,16 +1904,18 @@ router.delete('/knowledge-documents/:id', ...adminMw, async (req, res) => {
 router.get('/references', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    const [depts, lines, processes, products, assets, users, roles, shifts, checklists] = await Promise.all([
+    const [depts, lines, processes, products, assets, users, roles, shifts, checklists, sectors, units] = await Promise.all([
       db.query('SELECT id, name FROM departments WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, name, code FROM production_lines WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, name FROM company_processes WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, name, code FROM company_products WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, name, code_patrimonial FROM assets WHERE company_id = $1 AND active ORDER BY name', [cid]),
       db.query('SELECT id, name, role FROM users WHERE company_id = $1 AND active AND deleted_at IS NULL ORDER BY name', [cid]),
-      db.query('SELECT id, name FROM company_roles WHERE company_id = $1 AND active ORDER BY hierarchy_level, name', [cid]),
+      db.query('SELECT id, name, hierarchy_level FROM company_roles WHERE company_id = $1 AND active ORDER BY hierarchy_level, name', [cid]),
       db.query('SELECT id, name FROM shifts WHERE company_id = $1 AND active ORDER BY start_time NULLS LAST', [cid]),
-      db.query('SELECT id, name FROM checklist_templates WHERE company_id = $1 ORDER BY name', [cid])
+      db.query('SELECT id, name FROM checklist_templates WHERE company_id = $1 ORDER BY name', [cid]),
+      db.query('SELECT id, name, department_id FROM company_sectors WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] })),
+      db.query('SELECT id, name, unit_type FROM organizational_units WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] }))
     ]);
     sendSuccess(res, {
         departments: depts.rows,
@@ -1740,7 +1926,14 @@ router.get('/references', ...adminMw, async (req, res) => {
         users: users.rows,
         roles: roles.rows,
         shifts: shifts.rows,
-        checklists: checklists.rows
+        checklists: checklists.rows,
+        sectors: sectors.rows,
+        organizationalUnits: units.rows,
+        hierarchyLevels: orgIdentity.HIERARCHY_LEVELS,
+        operationalScopes: orgIdentity.OPERATIONAL_SCOPES,
+        criticalityLevels: orgIdentity.CRITICALITY_LEVELS,
+        sensitivityLevels: orgIdentity.SENSITIVITY_LEVELS,
+        maxScopeLimits: orgIdentity.MAX_SCOPE_LIMITS
       }
     );
   } catch (err) {

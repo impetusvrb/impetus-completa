@@ -7,6 +7,7 @@ import {
   isSafetyNavigationRuntimeEnabled
 } from './safetyPublicationFeatureFlags.js';
 import { resolveSafetyAudienceBand } from './safetyAudienceNavigation.js';
+import { userQualifiesForSafetyMenu } from '../../../utils/structuralDomainAudience.js';
 
 function userHasSafetyModule(visibleModules) {
   if (!Array.isArray(visibleModules)) return false;
@@ -17,12 +18,19 @@ export function resolveSafetyVisibilityContext(ctx) {
   const user = ctx.user || null;
   const band = resolveSafetyAudienceBand(user);
   const moduleOk = userHasSafetyModule(ctx.visibleModules);
+  const structuralOk = userQualifiesForSafetyMenu(user, ctx.visibleModules);
   const flagsOn =
-    isSafetyNavigationRuntimeEnabled() && isSafetyPublicationRuntimeEnabled() && moduleOk;
+    isSafetyNavigationRuntimeEnabled() && isSafetyPublicationRuntimeEnabled() && moduleOk && structuralOk;
 
   const server = ctx.serverPublication;
   const serverBlocks = !!(server && server.ok === true && server.publication_allowed === false);
-  const shouldPublishMenu = flagsOn && !serverBlocks && (server == null || server.publication_allowed !== false);
+  const bandOk = band !== 'none';
+  const shouldPublishMenu =
+    bandOk &&
+    flagsOn &&
+    !serverBlocks &&
+    structuralOk &&
+    (server == null || server.publication_allowed !== false);
 
   return {
     band,
@@ -54,6 +62,7 @@ export function resolveVisibleSafetyManifestItems(vis) {
     seen.add(key);
     out.push(m);
   }
+  if (vis.band === 'none') return [];
   if (vis.band === 'production') {
     return out.filter((x) => x.id === 'safety_widgets_only').slice(0, 1);
   }

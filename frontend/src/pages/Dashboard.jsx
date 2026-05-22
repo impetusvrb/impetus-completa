@@ -31,7 +31,9 @@ function isColaboradorProfile(user) {
 function isStaffCentroProfile(user) {
   if (!user) return false;
   const profile = String(user.dashboard_profile || '').toLowerCase().trim();
-  if (['hr_management', 'finance_management'].includes(profile)) return true;
+  const role = String(user.role || '').toLowerCase().trim();
+  if (['hr_management', 'finance_management', 'director_hr', 'hr_director'].includes(profile)) return true;
+  if (role === 'diretor' && (profile.includes('hr') || profile.includes('rh'))) return true;
   const fa = String(user.functional_area || user.area || '')
     .toLowerCase()
     .trim()

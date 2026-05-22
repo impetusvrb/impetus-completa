@@ -224,6 +224,17 @@
   color: var(--text-tertiary);
 }
 
+.live-dash-pers-meta--muted {
+  opacity: 0.75;
+  font-size: 0.72rem;
+}
+
+.live-dash-pers-message--warn {
+  color: var(--amber);
+  border-left: 2px solid var(--amber);
+  padding-left: 0.5rem;
+}
+
 .live-dash-pers-message {
   margin: 0 0 0.5rem;
   font-size: 0.9rem;

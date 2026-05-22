@@ -263,6 +263,8 @@ export const dashboard = {
   getPersonalizado: () => api.get('/dashboard/personalizado'),
   /** Painel vivo dinamico orientado a eventos */
   getLiveSurface: () => api.get('/dashboard/live-surface'),
+  /** Pulso cognitivo — centro global, feed, timeline, heatmap, radar */
+  getCognitivePulse: () => api.get('/dashboard/cognitive-pulse'),
   getConfig: () => api.get('/dashboard/config'),
   savePreferences: (data) => api.post('/dashboard/preferences', data),
   saveFavoriteKpis: (favorite_kpis) => api.post('/dashboard/favorite-kpis', { favorite_kpis }),
@@ -288,6 +290,14 @@ export const dashboard = {
   
   getTrend: (months = 6) => 
     api.get(`/dashboard/trend?months=${months}`),
+
+  getChartsBundle: () => api.get('/dashboard/charts/bundle'),
+
+  getProductionDemand: (weeks = 8) =>
+    api.get(`/dashboard/charts/production-demand?weeks=${weeks}`),
+
+  getPulseClimate: (weeks = 8) =>
+    api.get(`/dashboard/charts/pulse-climate?weeks=${weeks}`),
   
   getInsights: (limit = 10, offset = 0) =>
     api.get(`/dashboard/insights?limit=${limit}&offset=${offset}`),
@@ -1120,7 +1130,18 @@ export const adminStructural = {
     list: () => api.get('/admin/structural/roles'),
     create: (data) => api.post('/admin/structural/roles', data),
     update: (id, data) => api.put(`/admin/structural/roles/${id}`, data),
-    delete: (id) => api.delete(`/admin/structural/roles/${id}`)
+    delete: (id) => api.delete(`/admin/structural/roles/${id}`),
+    getIdentity: (id) => api.get(`/admin/structural/roles/${id}/identity`)
+  },
+  sectors: {
+    list: () => api.get('/admin/structural/sectors'),
+    create: (data) => api.post('/admin/structural/sectors', data),
+    update: (id, data) => api.put(`/admin/structural/sectors/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/sectors/${id}`)
+  },
+  organizationalUnits: {
+    list: () => api.get('/admin/structural/organizational-units'),
+    create: (data) => api.post('/admin/structural/organizational-units', data)
   },
   lines: structuralProductionLinesApi,
   /** Alias para a UI da Base Estrutural (mesmo método que `lines`) */

@@ -59,7 +59,8 @@ function interpretProfileContext(user = {}) {
   const jobTitle = normalizeText(user.job_title || user.cargo);
   const area = normalizeText(user.functional_area || user.departamento || user.department || user.area);
   const description = normalizeText(user.hr_responsibilities || user.descricao_funcional || user.description || user.descricao || user.bio);
-  const baseText = [role, jobTitle, area, description].filter(Boolean).join(' ');
+  const structuralBlob = normalizeText(user._structural_interpretation_text || '');
+  const baseText = [role, jobTitle, area, description, structuralBlob].filter(Boolean).join(' ');
   const level = detectLevel(user);
 
   const axisScores = {};
@@ -93,7 +94,11 @@ function interpretProfileContext(user = {}) {
     primary_axis: axes[0] || (environmentalSignal ? 'eixo_ambiental' : 'eixo_operacional'),
     responsibilities,
     confidence: Math.min(1, 0.35 + (Object.values(axisScores).reduce((s, n) => s + n, 0) / 20)),
-    signals: { used_description: Boolean(description), description_tokens: description ? description.split(' ').slice(0, 30) : [] }
+    signals: {
+      used_description: Boolean(description) || Boolean(structuralBlob),
+      used_structural_blob: Boolean(structuralBlob),
+      description_tokens: description ? description.split(' ').slice(0, 30) : []
+    }
   };
 }
 

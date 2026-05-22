@@ -35,6 +35,6 @@ export const DEFAULT_SECTIONS_OPEN = {
 
 export function isFailsafeGovernanceEnabled() {
   const v = import.meta.env?.VITE_IMPETUS_FAILSAFE_GOVERNANCE;
-  if (v === undefined || v === '') return true;
+  if (v === undefined || v === '') return false;
   return String(v).toLowerCase() === 'on' || v === '1';
 }

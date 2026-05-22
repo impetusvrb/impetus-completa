@@ -41,6 +41,26 @@ function normalizeRoleAlias(body) {
   return b;
 }
 
+/** Preenche role, área, cargo, departamento e hierarquia a partir do cargo formal. */
+async function mergeBodyFromStructuralRole(companyId, body) {
+  const b = body && typeof body === 'object' ? { ...body } : {};
+  const roleId = b.company_role_id ? String(b.company_role_id).trim() : '';
+  if (!roleId || !companyId) return b;
+  const derived = await userIdentitySync.deriveUserFieldsFromCompanyRole(companyId, roleId);
+  if (!derived) return b;
+  return {
+    ...b,
+    company_role_id: roleId,
+    role: derived.role,
+    area: derived.area,
+    job_title: derived.job_title,
+    department: derived.department,
+    hierarchy_level: derived.hierarchy_level,
+    functional_area: derived.functional_area ?? b.functional_area,
+    hr_responsibilities: derived.hr_responsibilities ?? b.hr_responsibilities
+  };
+}
+
 // Schemas de validação
 const AREA_OPTIONS = ['Direção', 'Gerência', 'Coordenação', 'Supervisão', 'Colaborador'];
 const AREA_TO_LEVEL = { Direção: 1, Gerência: 2, Coordenação: 3, Supervisão: 4, Colaborador: 5 };
@@ -62,7 +82,7 @@ const createUserSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Senha deve conter maiúscula, minúscula e número'),
-  role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']),
+  role: z.enum(['colaborador', 'supervisor', 'coordenador', 'gerente', 'diretor', 'ceo']).optional(),
   area: areaSchema,
   job_title: z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().max(120).optional()),
   department: z.preprocess(v => (typeof v === 'string' ? v.trim().toLowerCase().replace(/\s+/g, ' ') : v), z.string().max(80).optional()),
@@ -85,10 +105,11 @@ const createUserSchema = z.object({
     if (v === '' || v === null || v === undefined) return undefined;
     const s = typeof v === 'string' ? v.trim() : String(v).trim();
     return s === '' ? undefined : s;
-  }, z.string().uuid().optional()),
+  }, z.string().uuid({ message: 'Cargo formal (Base Estrutural) é obrigatório' })),
   software_admin: z.boolean().optional()
 }).refine((data) => {
-  if (data.role === 'ceo') {
+  const isCeo = data.role === 'ceo' || data.hierarchy_level === 0;
+  if (isCeo) {
     const w = (data.whatsapp_number || '').trim();
     return w.length >= 10;
   }
@@ -345,21 +366,34 @@ router.post('/',
         });
       }
 
-      // Validar dados
-      let validatedData = createUserSchema.parse(normalizeRoleAlias(req.body));
-
-      let companyRoleId = null;
-      if (validatedData.company_role_id) {
-        const roleIdStr = String(validatedData.company_role_id).trim();
-        companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, roleIdStr);
-        if (!companyRoleId) {
-          return res.status(400).json({
-            ok: false,
-            error: 'Cargo estrutural inválido ou inativo.',
-            code: 'INVALID_STRUCTURAL_ROLE'
-          });
-        }
+      const normalizedBody = normalizeRoleAlias(req.body);
+      const rawRoleId = normalizedBody.company_role_id
+        ? String(normalizedBody.company_role_id).trim()
+        : '';
+      if (!rawRoleId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Selecione o cargo formal na Base Estrutural.',
+          code: 'STRUCTURAL_ROLE_REQUIRED',
+          details: [{ path: ['company_role_id'], message: 'Cargo formal (Base Estrutural) é obrigatório' }]
+        });
       }
+
+      const companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, rawRoleId);
+      if (!companyRoleId) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Cargo estrutural inválido ou inativo.',
+          code: 'INVALID_STRUCTURAL_ROLE'
+        });
+      }
+
+      const mergedBody = await mergeBodyFromStructuralRole(req.user.company_id, {
+        ...normalizedBody,
+        company_role_id: companyRoleId
+      });
+
+      let validatedData = createUserSchema.parse(mergedBody);
 
       const normalizedCreate = await adminAccountProtection.normalizeCreatePayloadForSoftwareAdmin(
         req.user.company_id,
@@ -577,8 +611,7 @@ router.put('/:id',
         return res.status(400).json({ ok: false, error: 'ID inválido' });
       }
 
-      // Validar dados
-      const validatedData = updateUserSchema.parse(normalizeRoleAlias(req.body));
+      let validatedData = updateUserSchema.parse(normalizeRoleAlias(req.body));
 
       if (Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')) {
         const cr = validatedData.company_role_id;
@@ -595,6 +628,30 @@ router.put('/:id',
             });
           }
           validatedData.company_role_id = ok;
+          const merged = await mergeBodyFromStructuralRole(req.user.company_id, {
+            ...validatedData,
+            company_role_id: ok
+          });
+          validatedData = { ...validatedData, ...merged };
+        }
+      }
+
+      if (validatedData.role === 'ceo' || validatedData.hierarchy_level === 0) {
+        const w = (validatedData.whatsapp_number ?? '').trim();
+        if (w.length < 10) {
+          const existingWa = await db.query(
+            'SELECT whatsapp_number FROM users WHERE id = $1 AND company_id = $2',
+            [req.params.id, req.user.company_id]
+          );
+          const kept = (existingWa.rows[0]?.whatsapp_number || '').trim();
+          if (kept.length < 10) {
+            return res.status(400).json({
+              ok: false,
+              error: 'CEO deve ter WhatsApp cadastrado (obrigatório para Modo Executivo)',
+              code: 'CEO_WHATSAPP_REQUIRED',
+              details: [{ path: ['whatsapp_number'], message: 'CEO deve ter WhatsApp cadastrado' }]
+            });
+          }
         }
       }
 

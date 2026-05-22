@@ -540,6 +540,9 @@ export default function Layout({ children }) {
         _terminalVisibleModules: _termFinal
       });
       menuItems = _termFilterMenu(baseMenuItems);
+      if (!_termFinal.includes('safety_intelligence')) {
+        menuItems = menuItems.filter((item) => !item._safety_publication);
+      }
       const governed = applySidebarGovernanceAdapter({
         dashboardMe: dashboardMePayload,
         menuItems,
@@ -594,6 +597,9 @@ export default function Layout({ children }) {
           })
         : withLogistics;
     menuItems = filterMenu(baseMenuItemsHybrid);
+    if (!visibleModules?.includes('safety_intelligence')) {
+      menuItems = menuItems.filter((item) => !item._safety_publication);
+    }
     const governed = applySidebarGovernanceAdapter({
       dashboardMe: dashboardMePayload,
       menuItems,

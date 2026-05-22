@@ -37,7 +37,11 @@ const TRIGGERS = Object.freeze([
   'area',
   'department',
   'department_id',
-  'job_title'
+  'job_title',
+  'hr_responsibilities',
+  'dashboard_profile',
+  'descricao',
+  'descricao_funcional'
 ]);
 
 function _shouldInvalidate(fieldsChanged) {

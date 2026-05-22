@@ -8,6 +8,7 @@
 const { getProfile } = require('../config/dashboardProfiles');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const tenantAdminPortalScope = require('./tenantAdminPortalScope');
+const { applyStructuralModuleFilter } = require('./structuralModuleResolver');
 
 /**
  * Módulos de acesso universal seguro — liberados explicitamente para TODOS os usuários.
@@ -77,7 +78,9 @@ function getAllowedModules(user) {
     const { filtered, removed } = tenantAdminPortalScope.filterModulesForAdministrativePortal(profileModules);
     const withAdmin = [...new Set([...filtered, 'admin', 'audit'])];
     // Inclui módulos universais seguros também para o portal administrativo.
-    const merged = [...new Set([...withAdmin, ...tenantAdminPortalScope.ADMIN_PORTAL_UNIVERSAL_MODULES, ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    let merged = [...new Set([...withAdmin, ...tenantAdminPortalScope.ADMIN_PORTAL_UNIVERSAL_MODULES, ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    const structural = applyStructuralModuleFilter(user, merged);
+    merged = structural.modules;
     try {
       console.log(
         '[ADMIN_PORTAL_SCOPE]',
@@ -105,7 +108,8 @@ function getAllowedModules(user) {
   // Compatibilidade: se permissions não vierem populadas para liderança,
   // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
   if (leadershipRoles.has(role) && userPerms.length === 0) {
-    const leaderMerged = [...new Set([...withBaselineModules(profileModules), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    let leaderMerged = [...new Set([...withBaselineModules(profileModules), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+    leaderMerged = applyStructuralModuleFilter(user, leaderMerged).modules;
     return _applyCeoExclusions(leaderMerged, role);
   }
 
@@ -124,7 +128,8 @@ function getAllowedModules(user) {
   // Garante que os 3 módulos universais seguras sempre fazem parte do resultado,
   // independentemente de perfil, cargo ou permissões. Não afeta orchestration,
   // telemetry, dashboards operacionais ou qualquer outro módulo.
-  const merged = [...new Set([...withBaselineModules(filtered), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+  let merged = [...new Set([...withBaselineModules(filtered), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
+  merged = applyStructuralModuleFilter(user, merged).modules;
   return _applyCeoExclusions(merged, role);
 }
 

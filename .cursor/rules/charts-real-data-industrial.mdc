@@ -1,0 +1,33 @@
+---
+description: Gráficos IMPETUS — dados reais, tema Industrial 4.0, componentes partilhados
+alwaysApply: true
+---
+
+# Gráficos em todo o IMPETUS
+
+## Componentes canónicos (frontend)
+
+- **Tema:** `frontend/src/components/charts/chartTheme.js` (`--cyan`, `--chart-grid`, etc.)
+- **Gráfico:** `ImpetusChart` — bar | line | area | pie | donut
+- **Painel:** `ImpetusChartPanel` — título, subtítulo, hint, loading
+- **Dados:** `chartDataUtils.js` + APIs `dashboard.getTrend`, `getProductionDemand`, `getPulseClimate`, `costs.getByOrigin`
+
+Import: `import { ImpetusChart, ImpetusChartPanel } from '../../components/charts';`
+
+## Proibido
+
+- `Math.random()` para valores de gráfico ou KPI
+- Arrays fixos tipo "Set, Out, Nov…" como fallback quando a API falha
+- Cores hex soltas fora dos tokens (`#1e90ff`, `#6366f1` em gráficos novos)
+
+## Backend (dados reais)
+
+- Séries: `backend/src/services/dashboardChartDataService.js`
+- Rotas: `/api/dashboard/trend`, `/charts/*`, `/costs/by-origin`, `/forecasting/projections`
+- Painéis IA: `smartPanelCommandService` e `claudePanelService` hidratam gráficos com `enrichPanelChartOutput` / `getPanelLineSeries`
+
+## Novos ecrãs
+
+1. Buscar dados na BD via serviço existente ou nova rota scoped por `company_id`.
+2. Renderizar com `ImpetusChart` / `ImpetusChartPanel`.
+3. Estado vazio: mensagem técnica (mono), não mock.

@@ -261,17 +261,45 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
               aria-label="Contexto do seu perfil"
             >
               <div className="live-dash-personalization-head">
-                <span className="live-dash-pers-badge">{display.personalization.profile_label || display.personalization.profile_code}</span>
+                <span className="live-dash-pers-badge">
+                  {display.personalization.cargo || display.personalization.nome || 'Identidade organizacional'}
+                </span>
+                {display.personalization.nome && (
+                  <span className="live-dash-pers-meta">Usuário: {display.personalization.nome}</span>
+                )}
+                {display.personalization.funcao_sistema && (
+                  <span className="live-dash-pers-meta">Função (sistema): {display.personalization.funcao_sistema}</span>
+                )}
+                {(display.personalization.funcao || display.personalization.funcao_organizacional) && (
+                  <span className="live-dash-pers-meta">
+                    Função: {display.personalization.funcao_organizacional || display.personalization.funcao}
+                  </span>
+                )}
+                {(display.personalization.setor || display.personalization.department_name) && (
+                  <span className="live-dash-pers-meta">
+                    Setor: {display.personalization.setor || display.personalization.department_name}
+                  </span>
+                )}
+                {display.personalization.departamento &&
+                  display.personalization.departamento !== display.personalization.setor && (
+                  <span className="live-dash-pers-meta">Departamento: {display.personalization.departamento}</span>
+                )}
                 {display.personalization.functional_area_label && (
-                  <span className="live-dash-pers-meta">Setor funcional: {display.personalization.functional_area_label}</span>
+                  <span className="live-dash-pers-meta">
+                    Área funcional: {display.personalization.functional_area_label}
+                  </span>
                 )}
-                {display.personalization.department_name && (
-                  <span className="live-dash-pers-meta">Departamento: {display.personalization.department_name}</span>
-                )}
-                {display.personalization.job_title && (
-                  <span className="live-dash-pers-meta">Função: {display.personalization.job_title}</span>
+                {display.personalization.profile_motor_label && (
+                  <span className="live-dash-pers-meta live-dash-pers-meta--muted">
+                    Motor de painel: {display.personalization.profile_motor_label}
+                  </span>
                 )}
               </div>
+              {!display.personalization.organizational_context_valid && (
+                <p className="live-dash-pers-message live-dash-pers-message--warn">
+                  Dados estruturais inconsistentes ou não configurados. Revise Gestão de Usuários e Base Estrutural.
+                </p>
+              )}
               <p className="live-dash-pers-message">{display.personalization.user_message}</p>
               {Array.isArray(display.personalization.gaps) && display.personalization.gaps.length > 0 && (
                 <div className="live-dash-pers-gaps">

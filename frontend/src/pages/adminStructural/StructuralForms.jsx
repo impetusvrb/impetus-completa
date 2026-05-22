@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { InputField, SelectField, TextAreaField, CheckboxField } from '../../components/FormField';
+import RoleIdentityForm from './RoleIdentityForm';
 
 function splitToArray(val) {
   if (val == null || val === '') return [];
@@ -94,24 +95,49 @@ export function structuralSerializePayload(module, form) {
     case 'roles':
       return {
         name: form.name || '',
-        description: form.description || null,
+        internal_code: form.internal_code || null,
+        description: form.organizational_function || form.description || null,
         hierarchy_level: intOrNull(form.hierarchy_level),
+        department_id: uuidOrNull(form.department_id),
+        sector_id: uuidOrNull(form.sector_id),
+        organizational_unit_id: uuidOrNull(form.organizational_unit_id),
         work_area: form.work_area || null,
+        operational_scope: form.operational_scope || null,
+        organizational_function: form.organizational_function || form.description || null,
+        operational_context: form.operational_context || null,
+        criticality_level: form.criticality_level || null,
         main_responsibilities: commonArr('main_responsibilities'),
         critical_responsibilities: commonArr('critical_responsibilities'),
         recommended_permissions: commonArr('recommended_permissions'),
-        sectors_involved: commonArr('sectors_involved'),
+        approval_domains: commonArr('approval_domains'),
         leadership_type: form.leadership_type || null,
         communication_profile: form.communication_profile || null,
         direct_superior_role_id: uuidOrNull(form.direct_superior_role_id),
-        expected_subordinates: commonArr('expected_subordinates'),
         decision_level: form.decision_level || null,
+        decision_frequency: form.decision_frequency || null,
         visible_themes: commonArr('visible_themes'),
         hidden_themes: commonArr('hidden_themes'),
-        escalation_role: form.escalation_role || null,
+        escalation_participation_role: form.escalation_participation_role || form.escalation_role || null,
         operation_role: form.operation_role || null,
-        approval_role: form.approval_role || null,
+        approval_participation_role: form.approval_participation_role || form.approval_role || null,
+        sensitivity_level: form.sensitivity_level || null,
+        access_strategic_data: !!form.access_strategic_data,
+        access_financial_data: !!form.access_financial_data,
+        access_hr_data: !!form.access_hr_data,
+        access_critical_indicators: !!form.access_critical_indicators,
+        requires_document_validation: !!form.requires_document_validation,
+        requires_hierarchical_approval: !!form.requires_hierarchical_approval,
+        allow_manual_creation: form.allow_manual_creation !== false,
+        can_view_other_departments: !!form.can_view_other_departments,
+        max_scope_limit: form.max_scope_limit || null,
         notes: form.notes || null
+      };
+    case 'sectors':
+      return {
+        name: form.name || '',
+        department_id: uuidOrNull(form.department_id),
+        code: form.code || null,
+        description: form.description || null
       };
     case 'assets':
       return {
@@ -376,42 +402,30 @@ export function StructuralGenericForm({
 
   const g = {
     roles: (
+      <RoleIdentityForm
+        form={form}
+        refs={refs}
+        onChange={onChange}
+        editingRoleId={editingRoleId}
+        roleListItems={roleListItems}
+      />
+    ),
+    sectors: (
       <>
-        <h4 className="structural-form-section-title">Identificação</h4>
-        <div className="form-grid-2">
-          <InputField label="Nome do cargo" name="name" value={form.name} onChange={onChange} required />
-          <InputField label="Nível hierárquico" name="hierarchy_level" type="number" value={form.hierarchy_level} onChange={onChange} />
-        </div>
-        <TextAreaField label="Descrição" name="description" value={form.description} onChange={onChange} rows={2} />
-        <InputField label="Área de atuação" name="work_area" value={form.work_area} onChange={onChange} />
         <SelectField
-          label="Superior direto (cargo)"
-          name="direct_superior_role_id"
-          value={form.direct_superior_role_id}
+          label="Departamento"
+          name="department_id"
+          value={form.department_id || ''}
           onChange={onChange}
-          options={superiorDirectRoleOpts}
-          placeholder="Opcional"
-          helperText={superiorDirectHelper}
+          required
+          options={deptOpts}
+          placeholder="Selecione o departamento oficial"
         />
-        <h4 className="structural-form-section-title">Responsabilidades e permissões</h4>
-        <TextAreaField label="Responsabilidades principais (uma por linha)" name="main_responsibilities" value={form.main_responsibilities} onChange={onChange} rows={3} />
-        <TextAreaField label="Responsabilidades críticas" name="critical_responsibilities" value={form.critical_responsibilities} onChange={onChange} rows={2} />
-        <TextAreaField label="Permissões recomendadas" name="recommended_permissions" value={form.recommended_permissions} onChange={onChange} rows={2} />
-        <TextAreaField label="Setores em que atua" name="sectors_involved" value={form.sectors_involved} onChange={onChange} rows={2} />
         <div className="form-grid-2">
-          <InputField label="Tipo de liderança" name="leadership_type" value={form.leadership_type} onChange={onChange} />
-          <InputField label="Perfil de comunicação" name="communication_profile" value={form.communication_profile} onChange={onChange} />
+          <InputField label="Nome do setor" name="name" value={form.name} onChange={onChange} required />
+          <InputField label="Código" name="code" value={form.code} onChange={onChange} placeholder="Opcional" />
         </div>
-        <TextAreaField label="Subordinados esperados" name="expected_subordinates" value={form.expected_subordinates} onChange={onChange} rows={2} />
-        <InputField label="Nível de tomada de decisão" name="decision_level" value={form.decision_level} onChange={onChange} />
-        <TextAreaField label="Temas que pode visualizar" name="visible_themes" value={form.visible_themes} onChange={onChange} rows={2} />
-        <TextAreaField label="Temas que não pode visualizar" name="hidden_themes" value={form.hidden_themes} onChange={onChange} rows={2} />
-        <TextAreaField label="Papel na escalada" name="escalation_role" value={form.escalation_role} onChange={onChange} rows={2} />
-        <div className="form-grid-2">
-          <TextAreaField label="Papel na operação" name="operation_role" value={form.operation_role} onChange={onChange} rows={2} />
-          <TextAreaField label="Papel na aprovação" name="approval_role" value={form.approval_role} onChange={onChange} rows={2} />
-        </div>
-        <TextAreaField label="Observações" name="notes" value={form.notes} onChange={onChange} rows={2} />
+        <TextAreaField label="Descrição / escopo" name="description" value={form.description} onChange={onChange} rows={2} />
       </>
     ),
     assets: (

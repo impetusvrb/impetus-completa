@@ -101,9 +101,10 @@ export function canAccessPulseRhRoute(user) {
 export function isHrDashboardLayout(user) {
   if (!user) return false;
   const p = String(user.dashboard_profile || '').toLowerCase();
-  if (p === 'hr_management') return true;
+  if (p === 'hr_management' || p === 'director_hr' || p === 'hr_director') return true;
   const r = String(user.role || '').toLowerCase();
   if (r === 'rh') return true;
+  if (r === 'diretor' && (p.includes('hr') || p.includes('rh'))) return true;
   return isHrFunctionalContext(user);
 }
 

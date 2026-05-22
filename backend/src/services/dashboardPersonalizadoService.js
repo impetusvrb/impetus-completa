@@ -8,9 +8,10 @@
 const db = require('../db');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const { buildPersonalizedConfig } = require('./dashboardPersonalizationEngine');
+const { enrichUserForDashboardAsync } = require('./structuralUserProfileService');
 
 /** Versão das regras de layout — incrementar para invalidar cache em `dashboard_configs`. */
-const LAYOUT_RULES_VERSION = 5;
+const LAYOUT_RULES_VERSION = 7;
 
 /** Mapeamento tamanho doc → width no grid (1 ou 2) */
 const TAMANHO_TO_SPAN = { pequeno: 1, medio: 1, grande: 2, full: 2 };
@@ -26,6 +27,7 @@ const WIDGET_IDS = {
   grafico_producao_demanda: 'grafico_producao_demanda',
   grafico_custos_setor: 'grafico_custos_setor',
   grafico_margem: 'grafico_margem',
+  grafico_clima_equipe: 'grafico_clima_equipe',
   indicadores_executivos: 'indicadores_executivos',
   centro_previsao: 'centro_previsao',
   centro_custos: 'centro_custos',
@@ -125,6 +127,7 @@ function gerarConfigPorRegras(user) {
     add(WIDGET_IDS.pergunte_ia, 'grande', 'alta');
     add(WIDGET_IDS.insights_ia, 'grande', 'media');
     add(WIDGET_IDS.grafico_tendencia, 'grande', 'media');
+    add(WIDGET_IDS.grafico_clima_equipe, 'grande', 'alta');
     perfil.titulo_dashboard = 'Centro de Comando — Pessoas';
     perfil.subtitulo = 'Indicadores de equipe, Pulse RH e alertas de gestão de pessoas';
   }
@@ -351,18 +354,10 @@ function configParaLayout(config) {
 async function getConfigPersonalizado(user) {
   if (!user || !user.id) return null;
   let enrichedUser = { ...user };
-
   try {
-    const extra = await db.query(
-      `SELECT functional_area, department, job_title, role, hr_responsibilities, descricao, descricao_funcional
-       FROM users WHERE id = $1`,
-      [user.id]
-    );
-    if (extra.rows?.length) {
-      enrichedUser = { ...extra.rows[0], ...enrichedUser };
-    }
-  } catch (_) {
-    // segue com dados da sessao
+    enrichedUser = await enrichUserForDashboardAsync(user);
+  } catch (err) {
+    console.warn('[DASHBOARD_PERSONALIZADO] enrich structural:', err?.message || err);
   }
 
   let config = null;

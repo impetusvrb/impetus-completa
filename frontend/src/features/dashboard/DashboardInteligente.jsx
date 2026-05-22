@@ -37,25 +37,43 @@ export default function DashboardInteligente({ embed = false }) {
   const { log } = useActivityLog();
 
   const { data: summaryRes } = useCachedFetch('dashboard:summary', () => dashboard.getSummary(), { ttlMs: 2 * 60 * 1000 });
-  const { data: trendRes } = useCachedFetch('dashboard:trend:6', () => dashboard.getTrend(6), { ttlMs: 5 * 60 * 1000 });
-  const { data: insightsRes } = useCachedFetch('dashboard:insights', () => dashboard.getInsights(), { ttlMs: 60 * 1000 });
-  const { data: interactionsRes } = useCachedFetch('dashboard:interactions:10', () => dashboard.getRecentInteractions(10), { ttlMs: 60 * 1000 });
+  const { data: trendRes, loading: trendLoading } = useCachedFetch('dashboard:trend:6', () => dashboard.getTrend(6), { ttlMs: 5 * 60 * 1000 });
+  const { data: insightsRes, loading: insightsLoading } = useCachedFetch('dashboard:insights', () => dashboard.getInsights(), { ttlMs: 60 * 1000 });
+  const { data: interactionsRes, loading: interactionsLoading } = useCachedFetch('dashboard:interactions:10', () => dashboard.getRecentInteractions(10), { ttlMs: 60 * 1000 });
   const userId = (() => { try { return JSON.parse(localStorage.getItem('impetus_user') || '{}')?.id || 'anon'; } catch { return 'anon'; } })();
-  const { data: kpisRes } = useCachedFetch(`dashboard:kpis:${userId}`, () => dashboard.getKPIs(), { ttlMs: 2 * 60 * 1000 });
+  const { data: kpisRes, loading: kpisLoading, error: kpisError } = useCachedFetch(`dashboard:kpis:${userId}`, () => dashboard.getKPIs(), { ttlMs: 2 * 60 * 1000 });
 
   useEffect(() => { if (summaryRes?.summary) setSummary(summaryRes.summary); }, [summaryRes]);
-  useEffect(() => { if (trendRes?.trend) setTrendData(trendRes.trend); }, [trendRes]);
+  useEffect(() => {
+    if (!trendRes) return;
+    const raw = trendRes?.data ?? trendRes?.trend ?? trendRes;
+    const arr = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    setTrendData(
+      arr.map((d) => ({
+        month: d.label || d.periodo || d.mes || d.name || '-',
+        interactions: d.valor ?? d.total ?? d.count ?? d.interactions ?? 0
+      }))
+    );
+  }, [trendRes]);
   useEffect(() => { if (insightsRes?.insights) setInsights(insightsRes.insights); }, [insightsRes]);
   useEffect(() => { if (interactionsRes?.interactions) setInteractions(interactionsRes.interactions); }, [interactionsRes]);
   useEffect(() => { log('view', 'dashboard_inteligente', null, { area: userContext?.area }); }, []);
 
-  const kpis = (kpisRes?.kpis || []).filter((k) => k != null && typeof k === 'object');
+  const kpisFromApi = (kpisRes?.kpis || []).filter((k) => k != null && typeof k === 'object');
+  const kpisFromMe = (dashboardPayload?.kpis || []).filter((k) => k != null && typeof k === 'object');
+  const kpis = kpisFromApi.length > 0 ? kpisFromApi : kpisFromMe;
+  const kpisPending = kpisLoading && kpis.length === 0 && !kpisError;
   const KPI_ICONS = { message: MessageSquare, brain: Brain, map: MapPin, trending: TrendingUp, alert: AlertTriangle, target: Target, users: Users, activity: Activity, zap: Zap };
 
   const smartSummary = useSmartSummary(true);
   useEffect(() => { smartSummary.fetchAndShow(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const areaLabel = dashboardPayload?.profile_label || userContext?.area || 'Colaborador';
+  const areaLabel =
+    dashboardPayload?.profile_label ||
+    dashboardPayload?.functional_area_label ||
+    userContext?.area ||
+    userContext?.role_label ||
+    'sua área';
 
   const handleKpiClick = (k) => {
     trackInteraction('click_kpi', 'kpi', k.id || k.key, { title: k.title });
@@ -146,7 +164,9 @@ export default function DashboardInteligente({ embed = false }) {
                     />
                   );
                 })
-              ) : kpisRes && kpis.length === 0 ? (
+              ) : kpisError ? (
+                <p className="block-desc">Indicadores temporariamente indisponíveis. Atualize a página em instantes.</p>
+              ) : !kpisPending && kpis.length === 0 ? (
                 <p className="block-desc">Nenhum indicador disponível para seu perfil.</p>
               ) : (
                 <p className="block-desc">Carregando indicadores personalizados...</p>
@@ -175,7 +195,11 @@ export default function DashboardInteligente({ embed = false }) {
             <section className="dashboard-inteligente__block block-tendencias">
               <h2><TrendingUp size={20} /> Tendências</h2>
               <div className="block-chart">
-                <TrendChart data={trendData} />
+                {trendLoading && trendData.length === 0 ? (
+                  <p className="block-desc">Carregando tendências...</p>
+                ) : (
+                  <TrendChart data={trendData} />
+                )}
               </div>
             </section>
           )}
@@ -184,7 +208,11 @@ export default function DashboardInteligente({ embed = false }) {
           {sections.recent_interactions && (
             <section className="dashboard-inteligente__block block-interacoes">
               <h2><MessageSquare size={20} /> Interações</h2>
-              <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app')} />
+              {interactionsLoading && interactions.length === 0 ? (
+                <p className="block-desc">Carregando interações...</p>
+              ) : (
+                <RecentInteractions interactions={interactions} onInteractionClick={() => navigate('/app')} />
+              )}
             </section>
           )}
 
@@ -192,14 +220,12 @@ export default function DashboardInteligente({ embed = false }) {
           {sections.insights_list && (
             <section className="dashboard-inteligente__block block-insights">
               <h2><Brain size={20} /> Insights IA</h2>
-              <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
+              {insightsLoading && insights.length === 0 ? (
+                <p className="block-desc">Carregando insights...</p>
+              ) : (
+                <InsightsList insights={insights} onInsightClick={() => navigate('/app/chatbot')} />
+              )}
             </section>
-          )}
-
-          {!(sections.operational_interactions || sections.ai_insights || sections.plc_alerts || sections.trend_chart || sections.recent_interactions || sections.insights_list) && (
-            <div className="dashboard-inteligente__empty">
-              <p>Nenhuma informação configurada. Entre em contato com o Diretor.</p>
-            </div>
           )}
         </div>
     </>

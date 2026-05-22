@@ -61,6 +61,12 @@ async function loadRoleRow(companyId, roleId) {
   if (hit !== null) return hit;
 
   try {
+    const orgIdentity = require('./organizationalIdentityEngine');
+    const enriched = await orgIdentity.loadEnrichedRole(companyId, roleId);
+    if (enriched) {
+      cacheSet(key, enriched);
+      return enriched;
+    }
     const r = await db.query(
       `SELECT id, name, description, hierarchy_level, work_area,
               main_responsibilities, critical_responsibilities, recommended_permissions,
@@ -86,8 +92,19 @@ function buildRolePromptBlock(role) {
   if (!role) return '';
   const lines = [];
   lines.push(`- Cargo cadastrado: ${truncate(role.name, 200)}`);
+  if (role.internal_code) lines.push(`- Código interno: ${truncate(role.internal_code, 40)}`);
+  if (role.department_name) lines.push(`- Departamento: ${truncate(role.department_name, 200)}`);
+  if (role.sector_name) lines.push(`- Setor: ${truncate(role.sector_name, 200)}`);
+  if (role.organizational_unit_name) {
+    lines.push(`- Unidade: ${truncate(role.organizational_unit_name, 160)}`);
+  }
   if (role.work_area) lines.push(`- Área de atuação: ${truncate(role.work_area, 220)}`);
-  if (role.description) lines.push(`- Descrição: ${truncate(role.description, 520)}`);
+  if (role.operational_scope) lines.push(`- Escopo operacional: ${truncate(role.operational_scope, 120)}`);
+  const fn = role.organizational_function || role.description;
+  if (fn) lines.push(`- Função organizacional: ${truncate(fn, 520)}`);
+  if (role.operational_context) {
+    lines.push(`- Contexto operacional: ${truncate(role.operational_context, 650)}`);
+  }
   const main = formatLines(role.main_responsibilities, 10, 200);
   if (main.length) lines.push(`- Responsabilidades principais:\n${main.map((m) => `  • ${m}`).join('\n')}`);
   const crit = formatLines(role.critical_responsibilities, 6, 180);

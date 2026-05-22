@@ -20,7 +20,7 @@ function _base(profileCode, label, modules, cards, sector) {
   };
 }
 
-const CORE = ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'settings'];
+const CORE = ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'chat', 'settings'];
 
 const DOMAIN_DASHBOARD_PROFILES = Object.freeze({
   coordinator_hr: _base(

@@ -1,6 +1,5 @@
 /**
- * Widget Produção vs Demanda — Prompt Parte 5 (gráficos CEO/Diretor).
- * Dados no grid; Recharts.
+ * Widget Produção vs Demanda — CEO/Diretor industrial (dados reais).
  */
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -22,16 +21,32 @@ export default function WidgetGraficoProducaoDemanda() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    dashboard.getTrend?.(3)
-      .then((r) => {
+    const load =
+      dashboard.getProductionDemand?.(8) ||
+      dashboard.getTrend(3).then((r) => {
         const raw = r?.data?.data ?? r?.data?.trend ?? r?.data ?? [];
+        return {
+          data: {
+            data: (Array.isArray(raw) ? raw : []).slice(-7).map((d, i) => ({
+              nome: d.label || d.periodo || `Per ${i + 1}`,
+              produção: d.valor ?? d.total ?? 0,
+              demanda: d.meta ?? Math.max(d.valor ?? 0, 1)
+            }))
+          }
+        };
+      });
+
+    load
+      .then((r) => {
+        const raw = r?.data?.data ?? r?.data ?? [];
         const arr = Array.isArray(raw) ? raw : [];
-        const mapped = arr.slice(-7).map((d, i) => ({
-          nome: d.label || d.periodo || `Sem ${i + 1}`,
-          produção: d.producao ?? d.valor ?? d.total ?? Math.round(80 + Math.random() * 40),
-          demanda: d.demanda ?? d.meta ?? Math.round(85 + Math.random() * 30)
-        }));
-        setData(mapped.length ? mapped : [{ nome: '-', produção: 0, demanda: 0 }]);
+        setData(
+          arr.map((d) => ({
+            nome: d.nome || d.label || '-',
+            produção: d.produção ?? d.producao ?? d.valor ?? 0,
+            demanda: d.demanda ?? d.meta ?? 0
+          }))
+        );
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -47,6 +62,8 @@ export default function WidgetGraficoProducaoDemanda() {
     );
   }
 
+  const chartData = data.length ? data : [{ nome: '-', produção: 0, demanda: 0 }];
+
   return (
     <div className="cc-widget cc-chart">
       <div className="cc-chart__header">
@@ -55,14 +72,20 @@ export default function WidgetGraficoProducaoDemanda() {
       </div>
       <div className="cc-chart__body">
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--cc-grid, rgba(0,0,0,0.06))" />
-            <XAxis dataKey="nome" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, rgba(0, 212, 255, 0.08))" />
+            <XAxis dataKey="nome" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--bg-panel)',
+                border: '1px solid var(--border-active)',
+                borderRadius: 4
+              }}
+            />
             <Legend />
-            <Bar dataKey="produção" fill="var(--cc-primary, #1e90ff)" name="Produção" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="demanda" fill="var(--cc-secondary, #10b981)" name="Demanda" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="produção" fill="var(--cyan)" name="Produção" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="demanda" fill="var(--green)" name="Meta" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

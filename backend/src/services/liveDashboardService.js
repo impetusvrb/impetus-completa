@@ -8,6 +8,7 @@ const hierarchicalFilter = require('./hierarchicalFilter');
 const userContext = require('./userContext');
 const dashboardKPIs = require('./dashboardKPIs');
 const { inferAreaFromJobTitle } = require('../config/dashboardProfiles');
+const { buildOrganizationalContext } = require('./organizationalContextEngine');
 
 // Camada contextual (Motor B) — opt-in, READ-ONLY, devolve `legacyState`
 // intocado se o módulo não puder ser carregado ou estiver em fallback.
@@ -324,52 +325,69 @@ function canOrchestrate(user, profileCode, functionalArea) {
 }
 
 function buildIntelligentSummary({
-  userName,
-  profileLabel,
-  areaLabel,
-  deptName,
-  jobTitle,
+  orgContext,
   signals,
   gaps,
   sufficiency,
+  profileMotorLabel,
   profileCode,
   functionalArea
 }) {
+  if (!orgContext?.valid) {
+    return (
+      orgContext?.validation_message ||
+      'Dados estruturais inconsistentes ou não configurados. Complete o cadastro em Gestão de Usuários e vincule o cargo na Base Estrutural.'
+    );
+  }
+
+  const nome = orgContext.nome || 'Utilizador';
   const financeLike = profileCode === 'finance_management' || functionalArea === 'finance';
   const hrLike =
     profileCode === 'hr_management' ||
     ['hr', 'rh', 'recursos_humanos'].includes(String(functionalArea || '').toLowerCase());
-  // director_unassigned e admin_system não têm domínio operacional definido —
-  // evitar frase "alertas operacionais" para perfis sem escopo operacional inferido.
-  const unassignedLike = profileCode === 'director_unassigned' || profileCode === 'admin_system' ||
-    (functionalArea == null || functionalArea === '');
+  const unassignedLike =
+    profileCode === 'director_unassigned' ||
+    profileCode === 'admin_system' ||
+    functionalArea == null ||
+    functionalArea === '';
   const domainSafeAlerts = financeLike || hrLike || unassignedLike;
 
   const parts = [
-    `${userName ? `${userName}, ` : ''}esta leitura é **personalizada** para o perfil **${profileLabel}**`
+    `${nome}, esta leitura reflete o seu **cadastro organizacional oficial** no IMPETUS`
   ];
-  if (areaLabel) parts.push(`área funcional **${areaLabel}**`);
-  if (deptName) parts.push(`setor organizacional **${deptName}**`);
-  if (jobTitle) parts.push(`função declarada: *${jobTitle}*`);
+  if (orgContext.cargo) parts.push(`cargo **${orgContext.cargo}**`);
+  if (orgContext.funcao_organizacional) {
+    parts.push(`função **${orgContext.funcao_organizacional}**`);
+  } else if (orgContext.funcao_sistema) {
+    parts.push(`função no sistema **${orgContext.funcao_sistema}**`);
+  }
+  if (orgContext.departamento) parts.push(`departamento **${orgContext.departamento}**`);
+  if (orgContext.area_funcional_label) parts.push(`área funcional **${orgContext.area_funcional_label}**`);
 
   parts.push(
     domainSafeAlerts
-      ? `Indicadores rápidos no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas relevantes ao seu domínio.`
-      : `Indicadores rápidos no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas operacionais abertos.`
+      ? `Indicadores no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas relevantes.`
+      : `Indicadores no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas operacionais abertos.`
   );
+
+  if (profileMotorLabel) {
+    parts.push(`(motor de painel: ${profileMotorLabel})`);
+  }
 
   if (sufficiency === 'minimal') {
     parts.push(
-      '**Dados insuficientes para personalização fina:** faltam informações no cadastro ou integrações. O painel mostra o que o sistema conseguiu cruzar com o seu perfil — preencha setor, cargo e hierarquia e conecte fontes (PLC, ERP) quando disponíveis.'
+      '**Dados insuficientes para métricas finas:** complete cadastro, Base Estrutural e integrações (PLC, ERP) quando disponíveis.'
     );
   } else if (sufficiency === 'partial') {
-    parts.push(
-      '**Personalização parcial:** alguns blocos usam agregados da empresa ou ficam sem métrica até haver dados na origem.'
-    );
+    parts.push('**Leitura parcial:** alguns blocos aguardam dados nas fontes operacionais.');
   }
 
   if (gaps.length) {
     parts.push(`**Ajustes recomendados:** ${gaps.join(' · ')}`);
+  }
+
+  if (orgContext.warnings?.length) {
+    parts.push(`**Avisos estruturais:** ${orgContext.warnings.map((w) => w.message).join(' · ')}`);
   }
 
   return parts.join('. ') + '.';
@@ -391,6 +409,7 @@ async function buildLiveStateForUser(user) {
   // contextual layer. O cronómetro é parado mesmo em caminho de erro.
   const __legacyT0 = process.hrtime();
 
+  const orgContext = await buildOrganizationalContext(user);
   const ctx = userContext.buildUserContext(user);
   const scope = await hierarchicalFilter.resolveHierarchyScope(user);
   const dashConfig = dashboardProfileResolver.getDashboardConfigForUser(user);
@@ -445,8 +464,8 @@ async function buildLiveStateForUser(user) {
   if (gaps.length >= 4) data_sufficiency = 'minimal';
   else if (gaps.length >= 2) data_sufficiency = 'partial';
 
-  const userName = user.name || user.email?.split('@')[0] || 'Usuário';
-  const orchestrationAllowed = canOrchestrate(user, profileCode, functionalArea);
+  const userName = orgContext.nome || user.name || user.email?.split('@')[0] || 'Usuário';
+  const orchestrationAllowed = orgContext.valid && canOrchestrate(user, profileCode, functionalArea);
   const orch = orchestrationAllowed
     ? await buildOrchestrationPlan(companyId, user, scope, profileCode)
     : { items: [], suggestions: [] };
@@ -461,11 +480,7 @@ async function buildLiveStateForUser(user) {
   };
 
   const intelligent_summary = buildIntelligentSummary({
-    userName,
-    profileLabel: profileConfig.label || profileCode,
-    areaLabel,
-    deptName,
-    jobTitle: user.job_title || null,
+    orgContext,
     signals: {
       tasksOpen: tasks.open,
       tasksOverdue: tasks.overdue,
@@ -473,6 +488,7 @@ async function buildLiveStateForUser(user) {
     },
     gaps,
     sufficiency: data_sufficiency,
+    profileMotorLabel: profileConfig.label || profileCode,
     profileCode,
     functionalArea
   });
@@ -521,23 +537,41 @@ async function buildLiveStateForUser(user) {
     orchestration: orch,
     orchestration_stash_key,
     personalization: {
+      organizational_context_valid: orgContext.valid,
+      nome: orgContext.display?.nome || userName,
+      cargo: orgContext.cargo || null,
+      funcao: orgContext.funcao_organizacional || orgContext.funcao_sistema || null,
+      funcao_sistema: orgContext.funcao_sistema || null,
+      funcao_organizacional: orgContext.funcao_organizacional || null,
+      setor: orgContext.setor || deptName || null,
+      departamento: orgContext.departamento || deptName || null,
+      area_funcional: functionalArea,
+      functional_area_label: orgContext.area_funcional_label || areaLabel || undefined,
+      hierarchy_level: orgContext.hierarchy_level ?? ctx?.hierarchy_level ?? user.hierarchy_level ?? null,
+      role: orgContext.role || user.role || null,
+      company_role_id: orgContext.company_role_id || null,
       profile_code: profileCode,
       profile_label: profileConfig.label || profileCode,
-      functional_area: functionalArea,
-      functional_area_label: areaLabel || undefined,
-      role: user.role || null,
-      hierarchy_level: ctx?.hierarchy_level ?? user.hierarchy_level ?? null,
-      job_title: user.job_title || null,
-      department_name: deptName,
+      profile_motor_label: profileConfig.label || profileCode,
+      department_name: orgContext.departamento || deptName,
+      job_title_raw: orgContext.job_title_raw || null,
       scope_level: scope.scopeLevel,
       data_sufficiency,
       gaps,
-      user_message:
-        data_sufficiency === 'full'
-          ? 'Painel alinhado ao seu cargo, setor e perfil Impetus.'
+      structural_issues: orgContext.issues || [],
+      structural_warnings: orgContext.warnings || [],
+      user_message: !orgContext.valid
+        ? orgContext.validation_message || 'Dados estruturais inconsistentes ou não configurados.'
+        : data_sufficiency === 'full'
+          ? 'Painel alinhado ao cadastro real (cargo, setor e Base Estrutural).'
           : data_sufficiency === 'partial'
-            ? 'Parte das métricas ainda é genérica ou vazia até o sistema acumular dados ou o cadastro ser completado.'
-            : 'Personalização limitada: faltam dados de cadastro ou de integração; abaixo está o que foi possível inferir com segurança.'
+            ? 'Cadastro estrutural OK; algumas métricas aguardam dados operacionais ou integrações.'
+            : 'Cadastro estrutural incompleto — complete Gestão de Usuários e Base Estrutural.'
+    },
+    organizational_context: {
+      valid: orgContext.valid,
+      source: orgContext.source,
+      loaded_at: orgContext.loaded_at
     }
   };
 

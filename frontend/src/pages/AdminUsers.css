@@ -324,3 +324,49 @@
     height: 36px;
   }
 }
+
+/* Pré-visualização do cargo (Base Estrutural) */
+.structural-role-preview {
+  margin: 8px 0 16px;
+  padding: 12px 14px;
+  background: var(--bg-panel, var(--bg-secondary));
+  border: 1px solid var(--border-subtle, var(--border-color));
+  border-radius: 4px;
+}
+
+.structural-role-preview__title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, var(--color-primary));
+  margin-bottom: 10px;
+}
+
+.structural-role-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.structural-role-preview__row dt {
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 2px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+}
+
+.structural-role-preview__row dd {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .structural-role-preview__grid {
+    grid-template-columns: 1fr;
+  }
+}

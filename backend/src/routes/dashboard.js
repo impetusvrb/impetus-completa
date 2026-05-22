@@ -12,6 +12,7 @@ const dashboardProfileResolver = require('../services/dashboardProfileResolver')
 const dashboardAccessService = require('../services/dashboardAccessService');
 const dashboardVisibility = require('../services/dashboardVisibility');
 const dashboardKPIs = require('../services/dashboardKPIs');
+const dashboardChartData = require('../services/dashboardChartDataService');
 const userContext = require('../services/userContext');
 const hierarchicalFilter = require('../services/hierarchicalFilter');
 const dashboardComposerService = require('../services/dashboardComposerService');
@@ -25,6 +26,7 @@ const smartPanelCommandService = require('../services/smartPanelCommandService')
 const claudePanelService = require('../services/claudePanelService');
 const voiceRealtimeContextService = require('../services/voiceRealtimeContextService');
 const { composeLiveDashboardSurface } = require('../services/dashboardComposer');
+const { buildCognitivePulse } = require('../services/cognitivePulseService');
 const { userRateLimit } = require('../middleware/userRateLimit');
 const ai = require('../services/ai');
 const { synthesize, parseFinalStructuredResponse } = require('../ai/responseSynthesizer');
@@ -258,10 +260,37 @@ router.get('/visibility', requireAuth, async (req, res) => {
 
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const user = req.user;
+    let user = req.user;
+    let structuralProfile = null;
+    try {
+      const structuralSvc = require('../services/structuralUserProfileService');
+      user = await structuralSvc.enrichUserForDashboardAsync(req.user);
+      structuralProfile = user.structural_profile || structuralSvc.buildStructuralProfileSummary(user);
+    } catch (structErr) {
+      console.warn('[DASHBOARD_ME_STRUCTURAL]', structErr?.message ?? structErr);
+      try {
+        const structuralSvc = require('../services/structuralUserProfileService');
+        user = structuralSvc.normalizeStructuralUser(req.user);
+      } catch (_) {
+        user = req.user;
+      }
+    }
     const config = dashboardProfileResolver.getDashboardConfigForUser(user);
     const profileConfig = config.profile_config || {};
-    const allowedModules = dashboardAccessService.getAllowedModules(user);
+    let allowedModules = dashboardAccessService.getAllowedModules(user);
+    let _moduleAccessGovernanceBlock = null;
+    let _moduleAccessContextBlock = null;
+    try {
+      const moduleGov = require('../services/moduleAccessGovernanceEngine');
+      if (moduleGov.isEnabled()) {
+        const govOut = await moduleGov.resolveForUser(user, allowedModules);
+        allowedModules = govOut.visible_modules;
+        _moduleAccessGovernanceBlock = govOut.module_access_governance;
+        _moduleAccessContextBlock = govOut.module_access_context;
+      }
+    } catch (govErr) {
+      console.warn('[MODULE_ACCESS_GOVERNANCE]', govErr?.message ?? govErr);
+    }
     const hierarchyLevel = user.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
     const scope = await hierarchicalFilter.resolveHierarchyScope(user);
 
@@ -300,7 +329,9 @@ router.get('/me', requireAuth, async (req, res) => {
       effective_permissions: dashboardAccessService.getEffectivePermissions(user),
       is_tenant_admin: !!user.is_tenant_admin,
       tenant_admin_type: user.tenant_admin_type || null,
-      tenant_admin_can_manage: !!user.tenant_admin_can_manage
+      tenant_admin_can_manage: !!user.tenant_admin_can_manage,
+      module_access_governance: _moduleAccessGovernanceBlock || undefined,
+      module_access_context: _moduleAccessContextBlock || undefined
     };
 
     // Phase 6 — Contextual Module Orchestration (invisível por defeito).
@@ -880,8 +911,99 @@ router.get('/me', requireAuth, async (req, res) => {
       console.warn('[OPERATIONAL_CONVERGENCE_Z17]', z17Err?.message ?? z17Err);
     }
 
+    let _cognitiveRuntimeZ18 = null;
+    try {
+      const z18 = require('../cognitiveRuntime/facade/cognitiveRuntimeFacade');
+      const cog = await z18.applyCognitiveFoundationToDashboard(user, legacyResponse, {
+        real_enforcement_active: _realTenantEnforcementZ13?.real_enforcement_active,
+        profile: legacyResponse.profile_code,
+        hierarchy_tier: legacyResponse.user_context?.hierarchy_tier,
+        hierarchy_scope: scope
+      });
+      if (cog.payload) {
+        if (Array.isArray(cog.payload.kpis)) legacyResponse.kpis = cog.payload.kpis;
+        if (cog.payload.kpis_legacy) legacyResponse.kpis_legacy = cog.payload.kpis_legacy;
+        if (cog.payload.kpis_specialized) legacyResponse.kpis_specialized = cog.payload.kpis_specialized;
+        if (cog.payload.profile_config) legacyResponse.profile_config = cog.payload.profile_config;
+        if (cog.payload.quality_insights) legacyResponse.quality_insights = cog.payload.quality_insights;
+        if (cog.payload.quality_contextual_questions) {
+          legacyResponse.quality_contextual_questions = cog.payload.quality_contextual_questions;
+        }
+        if (cog.payload.quality_operational_metrics) {
+          legacyResponse.quality_operational_metrics = cog.payload.quality_operational_metrics;
+        }
+        if (cog.payload.specialized_summary) legacyResponse.specialized_summary = cog.payload.specialized_summary;
+        if (cog.payload.specialized_delivery) legacyResponse.specialized_delivery = cog.payload.specialized_delivery;
+      }
+      if (cog.cognitive_runtime_report && !cog.cognitive_runtime_report.observability_skipped) {
+        _cognitiveRuntimeZ18 = cog.cognitive_runtime_report;
+      }
+    } catch (z18Err) {
+      console.warn('[COGNITIVE_RUNTIME_Z18]', z18Err?.message ?? z18Err);
+    }
+
+    try {
+      const moduleGov = require('../services/moduleAccessGovernanceEngine');
+      if (moduleGov.isEnabled()) {
+        const finalGov = await moduleGov.resolveForUser(
+          user,
+          Array.isArray(legacyResponse.visible_modules) ? legacyResponse.visible_modules : []
+        );
+        legacyResponse.visible_modules = finalGov.visible_modules;
+        legacyResponse.module_access_governance = finalGov.module_access_governance;
+        legacyResponse.module_access_context = finalGov.module_access_context;
+        legacyResponse.structural_module_filter = {
+          skipped: true,
+          reason: 'module_access_governance_engine',
+          denied: finalGov.denied || []
+        };
+        if (legacyResponse.sidebar_governance_runtime?.final_visible_modules) {
+          legacyResponse.sidebar_governance_runtime.final_visible_modules = finalGov.visible_modules;
+        }
+      } else {
+        const structuralModules = require('../services/structuralModuleResolver');
+        const modOut = structuralModules.applyStructuralModuleFilter(
+          user,
+          Array.isArray(legacyResponse.visible_modules) ? legacyResponse.visible_modules : []
+        );
+        legacyResponse.visible_modules = modOut.modules;
+        if (legacyResponse.sidebar_governance_runtime?.final_visible_modules) {
+          const govOut = structuralModules.applyStructuralModuleFilter(
+            user,
+            legacyResponse.sidebar_governance_runtime.final_visible_modules
+          );
+          legacyResponse.sidebar_governance_runtime.final_visible_modules = govOut.modules;
+        }
+        legacyResponse.structural_module_filter = {
+          removed: modOut.removed,
+          primary_axis: modOut.primary_axis || null,
+          axes: modOut.structural_axes || [],
+          skipped: modOut.skipped === true
+        };
+      }
+    } catch (modErr) {
+      console.warn('[DASHBOARD_ME_STRUCTURAL_MODULES]', modErr?.message ?? modErr);
+    }
+
+    let organizationalContext = null;
+    try {
+      const { buildOrganizationalContext } = require('../services/organizationalContextEngine');
+      organizationalContext = await buildOrganizationalContext(user);
+      legacyResponse.organizational_identity = organizationalContext.display || null;
+      legacyResponse.organizational_context = {
+        valid: organizationalContext.valid,
+        issues: organizationalContext.issues || [],
+        warnings: organizationalContext.warnings || [],
+        source: organizationalContext.source,
+        loaded_at: organizationalContext.loaded_at
+      };
+    } catch (orgErr) {
+      console.warn('[DASHBOARD_ME_ORG_CONTEXT]', orgErr?.message ?? orgErr);
+    }
+
     res.json({
       ...legacyResponse,
+      ...(structuralProfile ? { structural_profile: structuralProfile } : {}),
       ...(_contentExposureBlock ? { content_exposure: _contentExposureBlock } : {}),
       // Aditivo: presente apenas quando o V2 está activo.
       ...(engineV2Block ? { engine_v2: engineV2Block } : {}),
@@ -962,7 +1084,8 @@ router.get('/me', requireAuth, async (req, res) => {
       ...(_deliveryPipelineReportZ15 ? { delivery_pipeline_report: _deliveryPipelineReportZ15 } : {}),
       ...(_terminalGovernanceZ16 ? { terminal_governance: _terminalGovernanceZ16 } : {}),
       ...(_governanceFreezeStateZ16 ? { governance_freeze_state: _governanceFreezeStateZ16 } : {}),
-      ...(_operationalConvergenceZ17 ? { operational_convergence_report: _operationalConvergenceZ17 } : {})
+      ...(_operationalConvergenceZ17 ? { operational_convergence_report: _operationalConvergenceZ17 } : {}),
+      ...(_cognitiveRuntimeZ18 ? { cognitive_runtime_report: _cognitiveRuntimeZ18 } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_ME]', err);
@@ -1774,6 +1897,47 @@ router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) =>
     } catch (z15s) {
       console.warn('[SUMMARY_DELIVERY_AUDIT_Z15]', z15s?.message ?? z15s);
     }
+    let _summarySpecializedZ21 = null;
+    try {
+      const z21flags = require('../cognitiveRuntime/config/phaseZ21FeatureFlags');
+      if (z21flags.isSpecializedDeliveryEnrichActive() && z21flags.isSummaryEnrichmentEnabled()) {
+        const { runQualityCockpitPilot } = require('../cognitiveRuntime/pilot/qualityCockpitPilot');
+        const { buildSpecializedDeliveryArtifacts } = require('../cognitiveRuntime/domainAdapters/runtime/specializedDeliveryAdapter');
+        const { enrichSummaryPayload } = require('../cognitiveRuntime/domainAdapters/quality/qualitySummaryAdapter');
+        const sumProfile = dashboardProfileResolver.getDashboardConfigForUser(u);
+        if (/quality|qualidade/i.test(sumProfile.profile_code || '')) {
+          const pilot = await runQualityCockpitPilot(u, {
+            profile_code: sumProfile.profile_code,
+            functional_area: sumProfile.functional_area || 'quality',
+            functional_axis: 'quality'
+          });
+          if (!pilot.pilot_skipped) {
+            const { artifacts, channels: z21Channels } = await buildSpecializedDeliveryArtifacts(
+              u,
+              { profile_code: sumProfile.profile_code, functional_area: 'quality' },
+              { functional_axis: 'quality' },
+              pilot
+            );
+            if (artifacts.summary?.ok) {
+              const sumOut = enrichSummaryPayload(payload, artifacts.summary);
+              if (sumOut.enriched) {
+                payload = { ...payload, ...sumOut.payload };
+                _summarySpecializedZ21 = {
+                  phase: 'Z.21',
+                  mode: 'enrich',
+                  promotion_applied: true,
+                  channels_enriched: ['summary'],
+                  binding_ratio: pilot.engine_bridge?.binding_ratio ?? null,
+                  enrich_mode: z21Channels?.mode || 'enrich'
+                };
+              }
+            }
+          }
+        }
+      }
+    } catch (z21sErr) {
+      console.warn('[SUMMARY_QUALITY_ENRICH_Z21]', z21sErr?.message ?? z21sErr);
+    }
     try {
       const z16s = require('../terminalGovernance/terminalGovernanceFacade');
       const sumTerm = z16s.applyTerminalSummaryLock(u, payload, { force_terminal_lock: false });
@@ -1804,7 +1968,8 @@ router.get('/smart-summary', requireAuth, heavyRouteLimiter, async (req, res) =>
       ...(_summaryGovernanceHealthZ8 ? { summary_governance_health: _summaryGovernanceHealthZ8 } : {}),
       ...(_summaryRuntimeActivationZ9 ? { summary_runtime_activation: _summaryRuntimeActivationZ9 } : {}),
       ...(_summaryDeliveryQualityZ9 ? { summary_delivery_quality: _summaryDeliveryQualityZ9 } : {}),
-      ...(_summaryRuntimeHealthZ9 ? { summary_runtime_health: _summaryRuntimeHealthZ9 } : {})
+      ...(_summaryRuntimeHealthZ9 ? { summary_runtime_health: _summaryRuntimeHealthZ9 } : {}),
+      ...(_summarySpecializedZ21 ? { specialized_summary_delivery: _summarySpecializedZ21 } : {})
     });
   } catch (err) {
     console.error('[SMART_SUMMARY_ROUTE]', err);
@@ -1819,6 +1984,148 @@ router.get('/summary', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_SUMMARY]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar resumo' });
+  }
+});
+
+/** GET /dashboard/trend — séries temporais reais (personalizadas por perfil) */
+router.get('/trend', requireAuth, async (req, res) => {
+  try {
+    const months = parseInt(req.query.months, 10) || 6;
+    const payload = await dashboardChartData.getTrendForUser(req.user, months);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_TREND]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar tendência' });
+  }
+});
+
+/** GET /dashboard/charts/bundle — pacote de gráficos para o Centro de Comando */
+router.get('/charts/bundle', requireAuth, async (req, res) => {
+  try {
+    const payload = await dashboardChartData.getChartBundle(req.user);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_CHARTS_BUNDLE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar gráficos' });
+  }
+});
+
+/** GET /dashboard/charts/production-demand — produção vs meta */
+router.get('/charts/production-demand', requireAuth, async (req, res) => {
+  try {
+    const weeks = parseInt(req.query.weeks, 10) || 8;
+    const payload = await dashboardChartData.getProductionDemandSeries(req.user, weeks);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_PRODUCTION_DEMAND]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar produção' });
+  }
+});
+
+/** GET /dashboard/charts/pulse-climate — Pulse RH (4 dimensões) */
+router.get('/charts/pulse-climate', requireAuth, async (req, res) => {
+  try {
+    const weeks = parseInt(req.query.weeks, 10) || 8;
+    const payload = await dashboardChartData.getPulseClimateChart(req.user, weeks);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_PULSE_CLIMATE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar clima Pulse' });
+  }
+});
+
+/** GET /dashboard/costs/by-origin */
+router.get('/costs/by-origin', requireAuth, async (req, res) => {
+  try {
+    const payload = await dashboardChartData.getCostsByOriginForUser(req.user);
+    res.json(payload);
+  } catch (err) {
+    console.error('[DASHBOARD_COSTS_ORIGIN]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar custos' });
+  }
+});
+
+/** GET /dashboard/costs/executive-summary */
+router.get('/costs/executive-summary', requireAuth, async (req, res) => {
+  try {
+    if (!req.user?.company_id) return res.json({ ok: true, summary: null });
+    const chartProfile = dashboardChartData.resolveChartProfile(req.user);
+    if (!chartProfile.can_see_costs) {
+      return res.json({ ok: true, summary: null, meta: { restricted: true } });
+    }
+    const industrialCostService = require('../services/industrialCostService');
+    const summary = await industrialCostService.getExecutiveCostSummary(req.user.company_id);
+    res.json({ ok: true, summary });
+  } catch (err) {
+    console.error('[DASHBOARD_COSTS_EXEC]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar resumo financeiro' });
+  }
+});
+
+/** Rotas Centro de Previsão — projeções operacionais reais */
+const operationalForecasting = require('../services/operationalForecastingService');
+
+router.get('/forecasting/projections', requireAuth, async (req, res) => {
+  try {
+    const metric = String(req.query.metric || 'eficiencia').slice(0, 40);
+    const result = await operationalForecasting.getProjections(req.user.company_id, metric);
+    const series = result?.series || result?.[metric] || [];
+    res.json({
+      ok: true,
+      projections: series.map((p) => ({
+        periodo: p.label || p.point,
+        label: p.label || p.point,
+        value: p.value,
+        eficiencia: p.value
+      })),
+      data: series,
+      meta: { source: 'operational_forecasting', metric }
+    });
+  } catch (err) {
+    console.error('[DASHBOARD_FORECAST_PROJ]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro nas projeções' });
+  }
+});
+
+router.get('/forecasting/alerts', requireAuth, async (req, res) => {
+  try {
+    const alerts = await operationalForecasting.getIntelligentAlerts(req.user.company_id);
+    res.json({ ok: true, alerts: alerts || [] });
+  } catch (err) {
+    console.error('[DASHBOARD_FORECAST_ALERTS]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro nos alertas de previsão' });
+  }
+});
+
+router.get('/forecasting/health', requireAuth, async (req, res) => {
+  try {
+    const health = await operationalForecasting.getCompanyHealth(req.user.company_id);
+    res.json({ ok: true, health });
+  } catch (err) {
+    res.json({ ok: true, health: { status: 'degraded' } });
+  }
+});
+
+/** GET /dashboard/recent-interactions */
+router.get('/recent-interactions', requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
+    const scope = await hierarchicalFilter.resolveHierarchyScope(req.user);
+    const filter = hierarchicalFilter.buildCommunicationsFilter(scope, req.user.company_id);
+    const r = await db.query(
+      `
+      SELECT c.id, c.title, c.created_at, c.ai_priority, c.status
+      FROM communications c
+      WHERE ${filter.whereClause}
+      ORDER BY c.created_at DESC
+      LIMIT $${filter.params.length + 1}
+    `,
+      [...filter.params, limit]
+    );
+    res.json({ ok: true, data: r.rows || [], interactions: r.rows || [] });
+  } catch (err) {
+    console.error('[DASHBOARD_RECENT_INTERACTIONS]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar interações' });
   }
 });
 
@@ -2052,6 +2359,24 @@ router.get('/kpis', requireAuth, async (req, res) => {
     } catch (z15k) {
       console.warn('[KPI_DELIVERY_AUDIT_Z15]', z15k?.message ?? z15k);
     }
+    let _kpiDomainAdapterZ21 = null;
+    try {
+      const cogFacade = require('../cognitiveRuntime/facade/cognitiveRuntimeFacade');
+      const kpiProfile = dashboardProfileResolver.getDashboardConfigForUser(user);
+      const kpiZ21 = await cogFacade.applySpecializedKpiEnrichment(user, kpis, {
+        profile_code: kpiProfile.profile_code,
+        functional_area: kpiProfile.functional_area || user.functional_area,
+        functional_axis: user.functional_axis || user.functional_area,
+        hierarchy_scope: scope,
+        tenant_id: user.company_id
+      });
+      if (kpiZ21.kpi_enrichment?.applied) {
+        kpis = kpiZ21.kpis;
+        _kpiDomainAdapterZ21 = kpiZ21;
+      }
+    } catch (z21kErr) {
+      console.warn('[KPI_DOMAIN_ADAPTER_Z21]', z21kErr?.message ?? z21kErr);
+    }
     let _kpiTerminalZ16 = null;
     try {
       const z16k = require('../terminalGovernance/terminalGovernanceFacade');
@@ -2095,7 +2420,14 @@ router.get('/kpis', requireAuth, async (req, res) => {
       ...(_kpiOperationalQualityBlock ? { kpi_operational_quality: _kpiOperationalQualityBlock } : {}),
       ...(_kpiRuntimeConvergenceBlock ? { kpi_runtime_convergence: _kpiRuntimeConvergenceBlock } : {}),
       ...(_kpiCockpitIntegrityBlock ? { kpi_cockpit_integrity: _kpiCockpitIntegrityBlock } : {}),
-      ...(_kpiGovernanceHealthBlock ? { kpi_governance_health: _kpiGovernanceHealthBlock } : {})
+      ...(_kpiGovernanceHealthBlock ? { kpi_governance_health: _kpiGovernanceHealthBlock } : {}),
+      ...(_kpiDomainAdapterZ21?.specialized_delivery
+        ? { specialized_delivery: _kpiDomainAdapterZ21.specialized_delivery }
+        : {}),
+      ...(_kpiDomainAdapterZ21?.kpi_enrichment ? { kpi_domain_enrichment: _kpiDomainAdapterZ21.kpi_enrichment } : {}),
+      ...(_kpiDomainAdapterZ21?.kpis_specialized
+        ? { kpis_specialized: _kpiDomainAdapterZ21.kpis_specialized }
+        : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_KPIS_ROUTE]', err);
@@ -2171,6 +2503,23 @@ router.get('/live-surface/stream', requireAuth, async (req, res) => {
     clearInterval(keepAliveId);
     res.end();
   });
+});
+
+/**
+ * GET /dashboard/cognitive-pulse
+ * Ecossistema cognitivo operacional vivo (centro cognitivo, feed, timeline, heatmap).
+ */
+router.get('/cognitive-pulse', requireAuth, async (req, res) => {
+  try {
+    const pulse = await buildCognitivePulse(req.user);
+    if (!pulse.ok) {
+      return res.status(400).json(pulse);
+    }
+    res.json(pulse);
+  } catch (err) {
+    console.error('[DASHBOARD_COGNITIVE_PULSE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao montar pulso cognitivo' });
+  }
 });
 
 /**
@@ -2532,9 +2881,19 @@ router.post('/chat', requireAuth, async (req, res) => {
     const { buildDashboardChatPrompt } = require('../ai/prompts/dashboardChatPrompt');
     const { buildNoDataPrompt } = require('../ai/prompts/noDataModePrompt');
 
+    let chatUser = u;
+    let structuralPromptBlock = '';
+    try {
+      const structuralSvc = require('../services/structuralUserProfileService');
+      chatUser = await structuralSvc.enrichUserForDashboardAsync(u);
+      structuralPromptBlock = structuralSvc.buildStructuralAiPromptBlock(chatUser.structural_profile);
+    } catch (structChatErr) {
+      console.warn('[DASHBOARD_CHAT_STRUCTURAL]', structChatErr?.message ?? structChatErr);
+    }
+
     const system = isNoData
       ? buildNoDataPrompt({
-          user: u,
+          user: chatUser,
           data_state: interpretation.data_state,
           briefing: interpretation.briefing,
           must_avoid_phrases: interpretation.must_avoid_phrases,
@@ -2543,12 +2902,13 @@ router.post('/chat', requireAuth, async (req, res) => {
       : buildDashboardChatPrompt(
           interpretation
             ? {
-                user: u,
+                user: chatUser,
                 briefing: interpretation.briefing,
                 must_avoid_phrases: interpretation.must_avoid_phrases,
-                narrative_mode: interpretation.narrative_mode
+                narrative_mode: interpretation.narrative_mode,
+                structuralPromptBlock
               }
-            : { user: u }
+            : { user: chatUser, structuralPromptBlock }
         );
 
     const lineageCtx = dataLineageService.buildLineageForChatContext({

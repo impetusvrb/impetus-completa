@@ -36,6 +36,8 @@ const AREA_FOCUS = {
   'Colaborador': ['tarefas_individuais', 'alertas_pessoais', 'comunicacao_direta']
 };
 
+const { interpretProfileContext } = require('./profileContextInterpreter');
+
 const JOB_TITLE_KEYWORDS = {
   financeiro: ['indicadores_financeiros', 'custos_operacionais', 'impacto_financeiro_falhas'],
   pcm: ['mtbf', 'mttr', 'backlog', 'equipamentos_criticos'],
@@ -93,6 +95,41 @@ function getJobTitleFocus(jobTitle) {
   return [...new Set(priorities)];
 }
 
+function getDescriptionFocus(description) {
+  if (!description || typeof description !== 'string') return [];
+  try {
+    const ctx = interpretProfileContext({ hr_responsibilities: description });
+    const map = {
+      pessoas: ['indicadores_equipe', 'ausencias', 'turnover'],
+      producao: ['eficiencia', 'produtividade', 'gargalos'],
+      maquina: ['mtbf', 'mttr', 'backlog', 'equipamentos_criticos'],
+      qualidade: ['nao_conformidades', 'indicadores_qualidade', 'auditorias'],
+      custo: ['indicadores_financeiros', 'custos_operacionais'],
+      estoque: ['inventario', 'reposicao'],
+      seguranca: ['acidentes', 'risco', 'epi'],
+      laboratorio: ['amostras', 'laudos']
+    };
+    const out = [];
+    for (const r of ctx.responsibilities || []) {
+      if (map[r]) out.push(...map[r]);
+    }
+    if (ctx.primary_axis) {
+      const axisMap = {
+        eixo_humano: ['indicadores_equipe'],
+        eixo_manutencao: ['mtbf', 'mttr', 'backlog'],
+        eixo_qualidade: ['nao_conformidades', 'indicadores_qualidade'],
+        eixo_financeiro: ['indicadores_financeiros', 'custos_operacionais'],
+        eixo_operacional: ['eficiencia', 'produtividade', 'gargalos'],
+        eixo_seguranca: ['acidentes', 'risco']
+      };
+      if (axisMap[ctx.primary_axis]) out.push(...axisMap[ctx.primary_axis]);
+    }
+    return [...new Set(out)];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * buildUserContext(user)
  * Retorna contexto completo para personalização de dashboard e IA
@@ -102,24 +139,45 @@ function buildUserContext(user) {
 
   const area = resolveArea(user);
   const hierarchyLevel = resolveHierarchyLevel(user, area);
-  const jobTitle = (user.job_title || '').trim() || null;
-  const department = normalizeDepartment(user.department) || null;
+  const jobTitle = (user.job_title || user.cargo || '').trim() || null;
+  const department =
+    normalizeDepartment(user.department) ||
+    normalizeDepartment(user.department_resolved_name) ||
+    normalizeDepartment(user.functional_area) ||
+    null;
+  const description = (user.hr_responsibilities || user.descricao || '').trim() || null;
+  const role = (user.role || '').toLowerCase() || null;
 
   const scope = AREA_SCOPES[area] || 'individual';
   const language = AREA_LANGUAGE[area] || 'objective';
   const areaFocus = AREA_FOCUS[area] || AREA_FOCUS['Colaborador'];
   const jobFocus = getJobTitleFocus(jobTitle);
+  const descriptionFocus = getDescriptionFocus(description);
+  const combinedFocus = [...new Set([...areaFocus, ...jobFocus, ...descriptionFocus])];
+
+  const structural = user.structural_profile || null;
 
   return {
     area,
     hierarchy_level: hierarchyLevel,
+    role,
+    funcao: role,
     job_title: jobTitle,
+    cargo: jobTitle,
     department,
+    functional_area: user.functional_area || user.area || null,
+    hr_responsibilities: description,
+    dashboard_profile: user.dashboard_profile || null,
     scope,
     language,
     area_focus: areaFocus,
     job_focus: jobFocus,
-    data_depth: hierarchyLevel <= 1 ? 'consolidated' : hierarchyLevel <= 3 ? 'detailed' : 'operational'
+    description_focus: descriptionFocus,
+    focus: combinedFocus,
+    structural_profile: structural,
+    primary_axis: structural?.eixo_primario || null,
+    data_depth: hierarchyLevel <= 1 ? 'consolidated' : hierarchyLevel <= 3 ? 'detailed' : 'operational',
+    language_instruction: getLanguageInstructions({ language })
   };
 }
 

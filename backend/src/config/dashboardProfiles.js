@@ -421,7 +421,7 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_tactical',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'hr_intelligence', 'settings'],
+    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'chat', 'hr_intelligence', 'settings'],
     cards: [
       { key: 'team_indicators', title: 'Indicadores da equipe', icon: 'users', color: 'blue', route: '/app/pulse-rh' },
       { key: 'hr_alerts', title: 'Alertas de RH', icon: 'alert', color: 'orange', route: '/app/pulse-rh' },

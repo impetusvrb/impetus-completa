@@ -15,6 +15,7 @@ import {
 import { logContextualDebugSummary } from '../utils/contextualSidebarBuilder';
 import { readCanonicalVisibleModules } from '../runtimeGovernance/canonicalVisibleModules.js';
 import { getContextualModulesMode } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
+import { filterVisibleModulesByStructuralProfile } from '../utils/structuralModuleFilter.js';
 
 /**
  * Paths de acesso universal seguro — explicitamente liberados para TODOS os usuários.
@@ -239,6 +240,8 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
     }
 
     if (item.path === '/app' || item.path === '/app/dashboard-vivo') return true;
+    // Chat Impetus + Impetus IA: canal de plataforma — visível se `ai` ou `chat` estiver liberado.
+    if ((p === '/chat' || p === '/app/chatbot') && (set.has('chat') || set.has('ai'))) return true;
     if (!adminPortal && STANDALONE_OPERATIONAL_PATHS.has(p) && standaloneOperationalPathAllowed(p, u, set)) return true;
     if (isMaint && STANDALONE_MANUIA_PATHS.has(p)) return true;
     const mod = getModuleForPath(item.path);
@@ -279,6 +282,7 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
 
   if (!visibleModules?.length) {
     if (opts.loading) return false;
+    if (isUniversalSafeAccessPath(norm)) return true;
     if (userMayBypassEmptyModules(u)) return true;
     return norm === '/app' || norm === '/app/dashboard-vivo';
   }
@@ -291,6 +295,7 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
   }
 
   if (norm === '/app' || norm === '/app/dashboard-vivo') return true;
+  if ((norm === '/chat' || norm === '/app/chatbot') && (visSet.has('chat') || visSet.has('ai'))) return true;
   if (!adminPortal && STANDALONE_OPERATIONAL_PATHS.has(norm) && standaloneOperationalPathAllowed(norm, u, visSet)) return true;
   if (isMaint && STANDALONE_MANUIA_PATHS.has(norm)) return true;
   // Enterprise Hardening Bloco 8 (A14): o backend continua a ser a autoridade
@@ -369,6 +374,9 @@ export function useVisibleModules() {
           if (typeof r.data.tenant_admin_can_manage === 'boolean') {
             u.tenant_admin_can_manage = r.data.tenant_admin_can_manage;
           }
+          if (r.data.structural_profile) {
+            u.structural_profile = r.data.structural_profile;
+          }
           localStorage.setItem('impetus_user', JSON.stringify(u));
         }
       } catch {
@@ -376,11 +384,26 @@ export function useVisibleModules() {
       }
       setDashboardMePayload(r?.data || null);
       const governed = readCanonicalVisibleModules(r?.data);
-      const mods =
+      let mods =
         governed.length > 0
           ? governed
           : r?.data?.visible_modules ?? r?.data?.profile_config?.visible_modules;
-      setVisibleModules(Array.isArray(mods) ? mods : []);
+      mods = Array.isArray(mods) ? mods : [];
+      if (mods.includes('ai') && !mods.includes('chat')) {
+        mods = [...mods, 'chat'];
+      }
+      const gov = r?.data?.module_access_governance;
+      if (gov?.structural_complete === false && Array.isArray(gov?.universal_modules)) {
+        mods = [...new Set(gov.universal_modules)];
+      } else if (gov && Array.isArray(mods) && gov.denied_count > 0) {
+        mods = mods.filter((k) => !gov.denied?.some((d) => d.menu_key === k));
+      } else if (r?.data?.structural_module_filter?.skipped !== true && r?.data?.structural_profile) {
+        mods = filterVisibleModulesByStructuralProfile(mods, r.data.structural_profile);
+      }
+      if (mods.includes('ai') && !mods.includes('chat')) {
+        mods = [...mods, 'chat'];
+      }
+      setVisibleModules(mods);
       const profileCode = String(r?.data?.profile_code || '').toLowerCase();
       const functionalArea = String(r?.data?.user_context?.functional_area || '').toLowerCase();
       const isMaint =
@@ -469,6 +492,8 @@ export function useVisibleModules() {
     // Phase 8 — campos aditivos: consumidores antigos continuam a ignorá-los.
     contextualModules,
     contextualMeta,
-    dashboardMePayload
+    dashboardMePayload,
+    moduleAccessGovernance: dashboardMePayload?.module_access_governance ?? null,
+    moduleAccessContext: dashboardMePayload?.module_access_context ?? null
   };
 }
