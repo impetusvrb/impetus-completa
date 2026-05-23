@@ -41,7 +41,14 @@ import { canAccessLiveDashboardUser, isHrDashboardLayout } from '../../../utils/
 import LiveSurfacePanel from './LiveSurfacePanel';
 import CentroComandoCommandHeader from './CentroComandoCommandHeader';
 import CentroComandoHeroKpis from './CentroComandoHeroKpis';
+import { CognitivePulseProvider } from './cognitiveEcosystem/CognitivePulseContext';
+import CognitivePresenceShell from './cognitiveEcosystem/CognitivePresenceShell';
 import CognitiveEcosystemBand from './cognitiveEcosystem/CognitiveEcosystemBand';
+import { CognitiveOmniHeader } from './cognitiveEcosystem/CognitiveOmniPresence';
+import AdaptiveOperationalShell from './cognitiveEcosystem/AdaptiveOperationalShell';
+import CognitiveLiveTicker from './cognitiveEcosystem/CognitiveLiveTicker';
+import { CognitiveOmniRail } from './cognitiveEcosystem/CognitiveOmniPresence';
+import StructuralIdentityBanner from './StructuralIdentityBanner';
 import './CentroComando.css';
 
 /** Painel lateral cognitivo — IA, alertas, insights (ordem fixa de leitura). */
@@ -98,11 +105,15 @@ export default function CentroComando() {
 
   const [liveSurface, setLiveSurface] = useState(null);
   const [warRoomMode, setWarRoomMode] = useState('normal');
+  const [cognitiveExpanded, setCognitiveExpanded] = useState(false);
   const layoutTrackSig = useRef('');
 
   // DashboardContextAdapter: prefere engine_v2 → personalizado → LayoutPorCargo (fallback).
   // Mantém compatibilidade total com o fluxo anterior.
-  const { context: dashboardCtx } = useDashboardContext({ legacyLayoutFn: getLayoutPorCargoFromUser });
+  const { context: dashboardCtx, raw: dashboardRaw } = useDashboardContext({
+    legacyLayoutFn: getLayoutPorCargoFromUser
+  });
+  const mePayload = dashboardRaw?.me;
 
   useEffect(() => {
     dashboard.getLiveSurface()
@@ -211,7 +222,7 @@ export default function CentroComando() {
     if (!Component) return null;
     const span = w.position?.width === 2 ? 2 : 1;
     return (
-      <div key={w.id} className="cc__cell" style={{ gridColumn: `span ${span}` }}>
+      <div key={w.id} className="cc__cell cc__cell--alive" style={{ gridColumn: `span ${span}` }}>
         {w.id === 'pergunte_ia' ? (
           <WidgetPergunteIA title={iaWidgetTitle} exampleHints={iaExampleHints} />
         ) : (
@@ -223,7 +234,12 @@ export default function CentroComando() {
 
   return (
     <Layout>
-      <div className={`cc cc--premium cc--mode-${warRoomMode}`}>
+      <CognitivePulseProvider>
+      <CognitivePresenceShell warRoomMode={warRoomMode} onModeChange={setWarRoomMode}>
+      <div
+        className={`cc cc--premium cc--mode-${warRoomMode} cc--cognitive-alive`}
+        data-cognitive-alive="true"
+      >
         {showUnifiedLive && (
           <ModuleErrorBoundary moduleName="Painel vivo">
             <LiveDashboardUnifiedPanel variant="exec" />
@@ -238,12 +254,13 @@ export default function CentroComando() {
           hrDashboard={hrDashboard}
           liveSurfaceActive={!!liveSurface?.blocks?.length}
         />
+        <StructuralIdentityBanner
+          structuralProfile={mePayload?.structural_profile || user?.structural_profile}
+          moduleGovernance={mePayload?.module_access_governance}
+        />
+        <CognitiveOmniHeader />
 
         <CentroComandoHeroKpis hrDashboard={hrDashboard} />
-
-        <ModuleErrorBoundary moduleName="Ecossistema cognitivo">
-          <CognitiveEcosystemBand onModeChange={setWarRoomMode} />
-        </ModuleErrorBoundary>
 
         {(smartQuestions.length > 0 || fallbackMessages.length > 0) && (
           <div className="cc__context-panel cc__context-panel--inline">
@@ -271,6 +288,7 @@ export default function CentroComando() {
           <LiveSurfacePanel surface={liveSurface} />
         ) : null}
 
+        <AdaptiveOperationalShell mainWidgets={mainWidgets}>
         <div className="cc__body">
           <div className="cc__main">
             <div className="cc__section-label">
@@ -279,37 +297,51 @@ export default function CentroComando() {
                 {mainWidgets.length} módulos · motor {dashboardCtx?.source || 'contextual'}
               </span>
             </div>
-            <div className="cc__grid cc__grid--main">
+            <div className="cc__grid cc__grid--main cc__grid--alive">
               {mainWidgets.map(renderWidget)}
             </div>
           </div>
 
           {sidebarWidgets.length > 0 && (
-            <aside className="cc__rail" aria-label="Painel cognitivo IA">
+            <aside className="cc__rail cc__rail--alive" aria-label="Painel cognitivo IA">
               <div className="cc__section-label cc__section-label--rail">
                 <span>// COGNITIVO</span>
                 <span className="cc__section-meta">IA · alertas · insights</span>
               </div>
+              <CognitiveOmniRail />
               <div className="cc__rail-stack">
                 {sidebarWidgets.map(renderWidget)}
               </div>
             </aside>
           )}
         </div>
-        {!hrDashboard && (
-        <footer className="ticker">
-          <div className="ticker-label">// LIVE</div>
-          <div className="ticker-items">
-            <div className="ticker-item">PROD/H <span className="val-green">— un</span></div>
-            <div className="ticker-item">ENERGIA <span className="val-amber">— kWh</span></div>
-            <div className="ticker-item">TURNO <span>1</span></div>
-            <div className="ticker-item">OPERADORES <span>— ativos</span></div>
-            <div className="ticker-item">QUALIDADE <span className="val-green">—% aprovação</span></div>
-            <div className="ticker-item">UPTIME <span className="val-green">—%</span></div>
-          </div>
-        </footer>
-        )}
+        </AdaptiveOperationalShell>
+
+        <div className="cc__cognitive-collapsible">
+          <button
+            type="button"
+            className="cc__cognitive-toggle"
+            onClick={() => setCognitiveExpanded((v) => !v)}
+            aria-expanded={cognitiveExpanded}
+          >
+            <span className="cc__cognitive-toggle-label">
+              {cognitiveExpanded ? '▼' : '▶'} Ecossistema cognitivo vivo
+            </span>
+            <span className="cc__cognitive-toggle-hint">
+              {cognitiveExpanded ? 'recolher camada avançada' : 'expandir radar, timeline e presença organizacional'}
+            </span>
+          </button>
+          {cognitiveExpanded && (
+            <ModuleErrorBoundary moduleName="Ecossistema cognitivo">
+              <CognitiveEcosystemBand onModeChange={setWarRoomMode} />
+            </ModuleErrorBoundary>
+          )}
+        </div>
+
+        {!hrDashboard && <CognitiveLiveTicker />}
       </div>
+      </CognitivePresenceShell>
+      </CognitivePulseProvider>
     </Layout>
   );
 }

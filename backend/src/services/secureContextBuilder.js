@@ -9,6 +9,7 @@
  */
 const documentContext = require('./documentContext');
 const { IMPETUS_IA_SYSTEM_PROMPT_FULL } = require('./impetusAIGovernancePolicy');
+const structuralAIGovernance = require('./structuralAIGovernanceService');
 const { getUserPermissions } = require('../middleware/authorize');
 const contextIntegrityService = require('./contextIntegrityService');
 const contextExposureSanitizer = require('../security/contextExposureSanitizer');
@@ -34,14 +35,32 @@ async function buildContext(user, opts) {
   const hasHR = permissions.includes('VIEW_HR') || permissions.includes('*');
   const hasStrategic = permissions.includes('VIEW_STRATEGIC') || permissions.includes('*');
 
+  const channel =
+    options.channel != null ? String(options.channel).slice(0, 128) : 'secure_context';
+  const effectiveUser = options.user || user || null;
+  let structuralGov = null;
+  try {
+    structuralGov = await structuralAIGovernance.buildAIGovernancePackage(effectiveUser, {
+      channel,
+      queryText,
+      companyId
+    });
+  } catch (err) {
+    console.warn('[secureContextBuilder][structuralAIGovernance]', err?.message ?? err);
+  }
+
   const baseContext = await documentContext.buildAIContext({
     companyId,
     queryText,
     forDiagnostic,
-    user: options.user || user || null
+    user: structuralGov?.enrichedUser || effectiveUser
   });
 
-  const parts = [IMPETUS_IA_SYSTEM_PROMPT_FULL, baseContext];
+  const parts = [
+    IMPETUS_IA_SYSTEM_PROMPT_FULL,
+    structuralGov?.system_append || '',
+    baseContext
+  ];
   if (!hasFinancial) {
     parts.push('\nRestrição: usuário sem VIEW_FINANCIAL. Não mencione dados financeiros.');
   }
@@ -65,8 +84,6 @@ async function buildContext(user, opts) {
         : options.metrics && typeof options.metrics === 'object' && options.metrics.data_state != null
           ? String(options.metrics.data_state)
           : 'unknown';
-  const channel =
-    options.channel != null ? String(options.channel).slice(0, 128) : 'secure_context';
   let bundle = await contextIntegrityService.attachIntegrityToBundle(base, {
     user: options.user || user || null,
     companyId,

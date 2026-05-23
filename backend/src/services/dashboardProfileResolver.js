@@ -115,22 +115,26 @@ function resolveDashboardProfile(user) {
   const role = normalizeRoleForDashboardProfile(user.role);
   const area = resolveFunctionalArea(user);
 
-  // Perfil persistido (ex.: finance_management) ganha prioridade quando a área não foi inferida.
-  if ((area == null || area === '') && override && VALID_PROFILES.has(override)) {
-    return override;
-  }
-
   const hasStrongContext =
     String(user.job_title || '').trim().length > 1 ||
     String(user.functional_area || user.company_role_dashboard_hint || '').trim().length > 0 ||
     String(user.department || user.area || user.department_resolved_name || '').trim().length > 1;
-  if (!hasStrongContext && override && VALID_PROFILES.has(override)) {
-    return override;
-  }
 
   const roleMap = ROLE_AREA_TO_PROFILE[role];
   if (!roleMap) {
     return role === 'ceo' ? 'ceo_executive' : 'operator_floor';
+  }
+
+  if (area && roleMap[area]) {
+    return roleMap[area];
+  }
+
+  // Perfil persistido só quando não há área resolvida no cadastro.
+  if ((area == null || area === '') && override && VALID_PROFILES.has(override)) {
+    return override;
+  }
+  if (!hasStrongContext && override && VALID_PROFILES.has(override)) {
+    return override;
   }
 
   const profile = roleMap[area] || roleMap._default;

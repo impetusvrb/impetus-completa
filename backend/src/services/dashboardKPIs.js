@@ -229,7 +229,91 @@ async function getDashboardKPIs(user, hierarchyScope) {
   const kpis = [];
 
   try {
-    if (profileCode === 'hr_management' || role === 'rh') {
+    const environmentalNative = (() => {
+      try {
+        return require('../cognitiveRuntime/domains/environmental/kpi/environmentalNativeKpiAdapter');
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (
+      environmentalNative &&
+      environmentalNative.isEnvironmentalNativeKpiProfile(profileCode, functionalArea) &&
+      (process.env.IMPETUS_ENVIRONMENTAL_NATIVE_COCKPIT === 'pilot' ||
+        process.env.IMPETUS_ENVIRONMENTAL_COGNITIVE_RUNTIME === 'shadow' ||
+        process.env.IMPETUS_ENVIRONMENTAL_COGNITIVE_RUNTIME === 'environmental_native' ||
+        process.env.IMPETUS_ENVIRONMENTAL_COGNITIVE_RUNTIME === 'on')
+    ) {
+      const nativeKpis = await environmentalNative.buildEnvironmentalNativeKpis(user, { tenant_id: companyId });
+      if (nativeKpis.length) {
+        return nativeKpis.map((k) => ({
+          ...k,
+          icon_key: k.icon,
+          growth: k.growth ?? null,
+          domain: 'environmental',
+          environmental_native: true
+        }));
+      }
+    }
+
+    const productionNative = (() => {
+      try {
+        return require('../cognitiveRuntime/domains/production/kpi/productionNativeKpiAdapter');
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (
+      productionNative &&
+      productionNative.isProductionNativeKpiProfile(profileCode, functionalArea) &&
+      (process.env.IMPETUS_PRODUCTION_NATIVE_COCKPIT === 'pilot' ||
+        process.env.IMPETUS_PRODUCTION_COGNITIVE_RUNTIME === 'shadow' ||
+        process.env.IMPETUS_PRODUCTION_COGNITIVE_RUNTIME === 'production_native' ||
+        process.env.IMPETUS_PRODUCTION_COGNITIVE_RUNTIME === 'on')
+    ) {
+      const nativeKpis = await productionNative.buildProductionNativeKpis(user, { tenant_id: companyId });
+      if (nativeKpis.length) {
+        return nativeKpis.map((k) => ({
+          ...k,
+          icon_key: k.icon,
+          growth: k.growth ?? null,
+          domain: 'production',
+          production_native: true
+        }));
+      }
+    }
+
+    const hrNative = (() => {
+      try {
+        return require('../cognitiveRuntime/domains/hr/kpi/hrNativeKpiAdapter');
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (
+      hrNative &&
+      hrNative.isHrNativeKpiProfile(profileCode, functionalArea) &&
+      (process.env.IMPETUS_HR_NATIVE_COCKPIT === 'pilot' ||
+        process.env.IMPETUS_HR_COGNITIVE_RUNTIME === 'shadow' ||
+        process.env.IMPETUS_HR_COGNITIVE_RUNTIME === 'active')
+    ) {
+      const nativeKpis = await hrNative.buildHrNativeKpis(user, { tenant_id: companyId });
+      if (nativeKpis.length) {
+        return nativeKpis.map((k) => ({ ...k, icon_key: k.icon, growth: k.growth ?? null, domain: 'hr', hr_native: true }));
+      }
+    }
+
+    if (
+      profileCode === 'hr_management' ||
+      role === 'rh' ||
+      profileCode === 'coordinator_hr' ||
+      profileCode === 'manager_hr' ||
+      profileCode === 'supervisor_hr' ||
+      functionalArea === 'hr'
+    ) {
       const hrKpis = await getHrManagementKpis(user, scope, companyId, config.profile_config || {});
       return hrKpis.map((k) => ({ ...k, icon_key: k.icon, growth: k.growth ?? null }));
     }

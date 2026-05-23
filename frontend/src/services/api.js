@@ -1131,7 +1131,8 @@ export const adminStructural = {
     create: (data) => api.post('/admin/structural/roles', data),
     update: (id, data) => api.put(`/admin/structural/roles/${id}`, data),
     delete: (id) => api.delete(`/admin/structural/roles/${id}`),
-    getIdentity: (id) => api.get(`/admin/structural/roles/${id}/identity`)
+    getIdentity: (id) => api.get(`/admin/structural/roles/${id}/identity`),
+    previewModules: (data) => api.post('/admin/structural/roles/preview-modules', data)
   },
   sectors: {
     list: () => api.get('/admin/structural/sectors'),

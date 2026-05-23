@@ -3,6 +3,7 @@
  */
 import React, { useMemo } from 'react';
 import { InputField, SelectField, TextAreaField, CheckboxField } from '../../components/FormField';
+import RoleCadastroModulePreview from './RoleCadastroModulePreview';
 
 const HIERARCHY_DEFAULT = [
   { value: 0, label: 'Presidência' },
@@ -68,6 +69,21 @@ export default function RoleIdentityForm({
     value: s,
     label: s.replace(/_/g, ' ')
   }));
+  const functionalHintOpts = (refs?.functionalAreas || [
+    { id: 'executive', label: 'Diretoria / Executivo' },
+    { id: 'operations', label: 'Operações' },
+    { id: 'finance', label: 'Financeiro' },
+    { id: 'hr', label: 'RH / Pessoas' },
+    { id: 'production', label: 'Produção' },
+    { id: 'maintenance', label: 'Manutenção' },
+    { id: 'quality', label: 'Qualidade' },
+    { id: 'environmental', label: 'Meio Ambiente' },
+    { id: 'logistics', label: 'Logística' }
+  ]).map((a) => ({
+    value: a.id,
+    label: a.label || a.id
+  }));
+
   const maxScopeOpts = (refs?.maxScopeLimits || [
     'proprio_setor',
     'proprio_departamento',
@@ -94,12 +110,25 @@ export default function RoleIdentityForm({
 
   const err = (key) => formErrors[key];
 
+  const hasErrors = Object.keys(formErrors).length > 0;
+
   return (
     <div className="role-identity-form">
       <p className="role-identity-form__intro">
         Cadastro oficial de identidade organizacional. Departamento e setor são obrigatórios e
         vinculados ao cadastro mestre — a IA e os dashboards usam apenas esta estrutura validada.
       </p>
+
+      {hasErrors && (
+        <div className="role-identity-form__errors" role="alert">
+          <strong>Corrija antes de salvar:</strong>
+          <ul>
+            {Object.entries(formErrors).map(([key, msg]) => (
+              <li key={key}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <h4 className="structural-form-section-title">Identificação</h4>
       <div className="form-grid-2">
@@ -199,12 +228,22 @@ export default function RoleIdentityForm({
       />
       <div className="form-grid-2">
         <SelectField
+          label="Área funcional do dashboard (hint)"
+          name="dashboard_functional_hint"
+          value={form.dashboard_functional_hint || ''}
+          onChange={onChange}
+          options={[{ value: '', label: 'Inferir só pelo cadastro abaixo' }, ...functionalHintOpts]}
+          helperText="Opcional — reforça módulos do painel (ex.: executive → auditoria + operacional)"
+        />
+        <SelectField
           label="Escopo operacional"
           name="operational_scope"
           value={form.operational_scope || ''}
           onChange={onChange}
           options={[{ value: '', label: 'Selecione' }, ...scopeOpts]}
         />
+      </div>
+      <div className="form-grid-2">
         <InputField
           label="Frequência de tomada de decisão"
           name="decision_frequency"
@@ -260,6 +299,7 @@ export default function RoleIdentityForm({
         value={form.recommended_permissions}
         onChange={onChange}
         rows={2}
+        helperText="Use chaves ou texto PT: operational, qualidade, rh, financeiro, audit, manutencao, seguranca…"
       />
       <TextAreaField
         label="Pode aprovar (workflows, uma por linha)"
@@ -271,18 +311,50 @@ export default function RoleIdentityForm({
       />
       <div className="form-grid-2">
         <InputField
-          label="Papel na aprovação"
+          label="Papel na aprovação (curto, máx. 80 caracteres)"
           name="approval_participation_role"
-          value={form.approval_participation_role || form.approval_role || ''}
+          value={
+            (form.approval_participation_role || '').length <= 80
+              ? form.approval_participation_role || ''
+              : ''
+          }
           onChange={onChange}
           placeholder="aprovador final, intermediário, consulta"
+          helperText={
+            (form.approval_role || '').length > 80
+              ? 'Descrição longa guardada em "Papel em aprovações (detalhe)" abaixo — não apagar se quiser manter.'
+              : 'Frase curta para o sistema. Textos longos use o campo de detalhe.'
+          }
         />
+        {(form.approval_role || (form.approval_participation_role || '').length > 80) && (
+          <TextAreaField
+            label="Papel em aprovações (detalhe)"
+            name="approval_role"
+            value={form.approval_role || form.approval_participation_role || ''}
+            onChange={onChange}
+            rows={2}
+          />
+        )}
         <InputField
-          label="Papel na escalada"
+          label="Papel na escalada (curto, máx. 80 caracteres)"
           name="escalation_participation_role"
-          value={form.escalation_participation_role || form.escalation_role || ''}
+          value={
+            (form.escalation_participation_role || '').length <= 80
+              ? form.escalation_participation_role || ''
+              : ''
+          }
           onChange={onChange}
+          placeholder="ex.: escala para gerência"
         />
+        {(form.escalation_role || (form.escalation_participation_role || '').length > 80) && (
+          <TextAreaField
+            label="Papel na escalada (detalhe)"
+            name="escalation_role"
+            value={form.escalation_role || form.escalation_participation_role || ''}
+            onChange={onChange}
+            rows={2}
+          />
+        )}
       </div>
       <InputField
         label="Papel na operação"
@@ -392,6 +464,8 @@ export default function RoleIdentityForm({
         options={[{ value: '', label: 'Selecione' }, ...maxScopeOpts]}
       />
       <TextAreaField label="Observações internas" name="notes" value={form.notes || ''} onChange={onChange} rows={2} />
+
+      <RoleCadastroModulePreview form={form} />
     </div>
   );
 }

@@ -2,17 +2,20 @@ import React from 'react';
 
 const MODES = [
   { id: 'normal', label: 'Normal' },
+  { id: 'executivo', label: 'Executivo' },
   { id: 'crise', label: 'Crise' },
-  { id: 'critico', label: 'Operação crítica' },
+  { id: 'emergencia', label: 'Emergência' },
+  { id: 'critico', label: 'Crítico' },
   { id: 'auditoria', label: 'Auditoria' },
-  { id: 'executivo', label: 'Executivo' }
+  { id: 'analise_profunda', label: 'Análise profunda' },
+  { id: 'monitoramento_total', label: 'Monitoramento total' }
 ];
 
 export default function WarRoomModeBar({ activeMode, suggestedMode, onSelect }) {
   const effective = activeMode || suggestedMode || 'normal';
   return (
-    <div className="cog-warroom" role="group" aria-label="Modos operacionais">
-      <span className="cog-warroom__label">MODO</span>
+    <div className="cog-warroom" role="group" aria-label="War room cognitiva">
+      <span className="cog-warroom__label">WAR ROOM</span>
       {MODES.map((m) => (
         <button
           key={m.id}

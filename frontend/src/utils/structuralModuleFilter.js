@@ -55,8 +55,9 @@ function _isHrProfile(sp) {
   return p.includes('hr') || p === 'hr_management' || sp?.eixo_primario === 'eixo_humano';
 }
 
-export function filterVisibleModulesByStructuralProfile(modules, structuralProfile) {
+export function filterVisibleModulesByStructuralProfile(modules, structuralProfile, options = {}) {
   if (!Array.isArray(modules) || !structuralProfile) return modules || [];
+  if (options?.cadastroFiel === true || structuralProfile.structural_complete === true) return modules;
   if (_isHrProfile(structuralProfile)) {
     return modules.filter((k) => {
       if (UNIVERSAL_KEYS.has(k) || PLATFORM_KEYS.has(k)) return true;

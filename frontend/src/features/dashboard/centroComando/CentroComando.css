@@ -1,3 +1,107 @@
+/* Banner Base Estrutural */
+.cc__structural-banner {
+  margin: 0 0 1rem;
+  border: 1px solid var(--border-subtle, var(--line));
+  border-left: 3px solid var(--cyan);
+  background: rgba(0, 212, 255, 0.04);
+  border-radius: 4px;
+}
+
+.cc__structural-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.cc__structural-tag {
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cc__structural-cargo {
+  color: var(--text-primary, var(--text1));
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cc__structural-dept {
+  color: var(--text-secondary, var(--text2));
+}
+
+.cc__structural-sep {
+  color: var(--text-tertiary, var(--text3));
+}
+
+.cc__structural-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cc__structural-badge--ok {
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  color: var(--green);
+}
+
+.cc__structural-badge--warn {
+  border: 1px solid rgba(255, 170, 0, 0.35);
+  color: var(--amber);
+}
+
+.cc__structural-meta {
+  margin-left: auto;
+  color: var(--text-tertiary, var(--text3));
+}
+
+.cc__cognitive-collapsible {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--border-subtle, var(--line));
+  padding-top: 0.75rem;
+}
+
+.cc__cognitive-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  background: rgba(0, 212, 255, 0.03);
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: 4px;
+  color: var(--text-secondary, var(--text2));
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cc__cognitive-toggle:hover {
+  border-color: var(--border-active, var(--cyan));
+  color: var(--cyan);
+}
+
+.cc__cognitive-toggle-label {
+  color: var(--cyan);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cc__cognitive-toggle-hint {
+  color: var(--text-tertiary, var(--text3));
+  font-size: 0.7rem;
+}
+
 /* Centro de Comando — Redesign IMPETUS Industrial High-Tech */
 .cc {
   padding: 0 1.25rem 2rem;

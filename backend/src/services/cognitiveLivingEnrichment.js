@@ -220,22 +220,29 @@ function expandFeedIntelligently(feed, orgCtx, centro, seed, minItems = 18) {
   return out.sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, minItems);
 }
 
-function buildPredictionCurves(seed) {
+function buildPredictionCurves(seed, audience = null) {
   const points = 12;
   const risk = [];
   const prod = [];
   const turnover = [];
+  const nc = [];
   for (let i = 0; i < points; i++) {
     risk.push(Math.round(28 + seededFloat(seed, 70 + i, 0, 22) + i * 1.2));
     prod.push(Math.round(72 + seededFloat(seed, 80 + i, -4, 6) - i * 0.3));
     turnover.push(Math.round(35 + seededFloat(seed, 90 + i, 0, 15) + (i > 8 ? 4 : 0)));
+    nc.push(Math.round(22 + seededFloat(seed, 95 + i, 0, 18) + (i > 7 ? 3 : 0)));
   }
-  return {
+  const out = {
     risk_14d: risk,
     productivity_7d: prod,
-    turnover_risk_14d: turnover,
     labels: Array.from({ length: points }, (_, i) => `T${i + 1}`)
   };
+  if (audience?.isHr) {
+    out.turnover_risk_14d = turnover;
+  } else if (audience?.isQuality) {
+    out.nc_risk_14d = nc;
+  }
+  return out;
 }
 
 function buildNeuralGraph(heatmap, centro) {
@@ -278,7 +285,7 @@ function enrichHeatmap(sectors, seed) {
   }));
 }
 
-function enrichPredictions(predictions, curves, centro) {
+function enrichPredictions(predictions, curves, centro, audience = null) {
   const base = [...predictions];
   const extras = [
     {
@@ -291,15 +298,6 @@ function enrichPredictions(predictions, curves, centro) {
       sparkline: curves.risk_14d.slice(-8)
     },
     {
-      key: 'turnover_spark',
-      title: 'Risco de turnover',
-      trend: 'up',
-      horizon: '14 dias',
-      level: 'Médio',
-      detail: 'Projeção comportamental com pressão moderada.',
-      sparkline: curves.turnover_risk_14d.slice(-8)
-    },
-    {
       key: 'overload_48',
       title: 'Sobrecarga operacional',
       trend: centro.open_tasks > 8 ? 'up' : 'stable',
@@ -309,6 +307,27 @@ function enrichPredictions(predictions, curves, centro) {
       sparkline: curves.productivity_7d.slice(-8)
     }
   ];
+  if (audience?.isHr && curves.turnover_risk_14d?.length) {
+    extras.splice(1, 0, {
+      key: 'turnover_spark',
+      title: 'Risco de turnover',
+      trend: 'up',
+      horizon: '14 dias',
+      level: 'Médio',
+      detail: 'Projeção comportamental com pressão moderada.',
+      sparkline: curves.turnover_risk_14d.slice(-8)
+    });
+  } else if (audience?.isQuality && curves.nc_risk_14d?.length) {
+    extras.splice(1, 0, {
+      key: 'nc_spark',
+      title: 'Tendência de NC / desvios',
+      trend: 'up',
+      horizon: '14 dias',
+      level: 'Médio',
+      detail: 'Pressão de conformidade no horizonte analítico.',
+      sparkline: curves.nc_risk_14d.slice(-8)
+    });
+  }
   for (const e of extras) {
     if (!base.find((p) => p.key === e.key)) base.push(e);
   }
@@ -318,18 +337,29 @@ function enrichPredictions(predictions, curves, centro) {
   }));
 }
 
-function enrichIaObservations(lines, orgCtx, tension, globalState) {
-  const extra = [
-    'Detectei redução de comunicação entre supervisão e RH.',
+function enrichIaObservations(lines, orgCtx, tension, globalState, audience = null) {
+  const extra = [];
+  if (audience?.isHr) {
+    extra.push('Detectei redução de comunicação entre supervisão e RH.');
+  } else if (audience?.isQuality) {
+    extra.push('Cruzamento qualidade ↔ produção: pressão de conformidade no escopo.');
+  } else {
+    extra.push('Cruzamento intersetorial: comunicação e execução no escopo do cargo.');
+  }
+  extra.push(
     'Existe tendência de sobrecarga operacional — recomendo acompanhamento preventivo.',
     `Sincronia organizacional em ${tension.organizational_sync_pct}% — pressão ${tension.operational_pressure.toLowerCase()}.`,
     `Estado global: ${globalState.headline}.`,
     'Comportamento recorrente detectado na memória operacional.'
-  ];
+  );
   const merged = [...lines];
   for (const e of extra) {
     if (merged.length >= 8) break;
     if (!merged.includes(e)) merged.push(e);
+  }
+  if (audience) {
+    const { filterIaObservationLines } = require('./cognitiveAudienceResolver');
+    return filterIaObservationLines(merged, audience);
   }
   return merged;
 }
@@ -348,13 +378,20 @@ function enrichMemory(memory, seed) {
   return out;
 }
 
-function enrichTimeline(timeline, seed) {
+function enrichTimeline(timeline, seed, audience = null) {
   if (timeline.length >= 6) return timeline;
+  const crossDetail = audience?.isHr
+    ? 'RH · produção'
+    : audience?.isQuality
+      ? 'Qualidade · produção'
+      : audience?.isMaintenance
+        ? 'Manutenção · produção'
+        : 'Operação · comunicação';
   const synth = [
     { label: 'início do turno', detail: 'sincronização operacional' },
     { label: 'IA gerou alerta preventivo', detail: 'motor cognitivo' },
     { label: 'eficiência ajustada', detail: 'variação detectada' },
-    { label: 'cruzamento intersetorial', detail: 'RH · produção' }
+    { label: 'cruzamento intersetorial', detail: crossDetail }
   ];
   let t = Date.now() - 4 * 3600000;
   const out = [...timeline];
@@ -374,6 +411,7 @@ function enrichTimeline(timeline, seed) {
 
 module.exports = {
   livingSeed,
+  seededFloat,
   applyLivingOscillation,
   buildOrganizationalTension,
   buildGlobalOperationState,

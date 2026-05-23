@@ -148,9 +148,16 @@ function isKnownId(id) {
 function hasEnvironmentalSemanticSignal(text) {
   const t = normKey(text);
   if (!t) return false;
-  return /(meio_ambiente|ambiental|environmental|sustentabil|esg|ehs|emissao|residuo|efluente|eta|ete|carbono|utilities|utilidades|licenca_ambiental)/.test(
-    t.replace(/_/g, '')
-  );
+  const flat = t.replace(/_/g, ' ');
+  if (
+    /(meio ambiente|ambiental|environmental|sustentabil|esg|ehs|emissao|residuo|efluente|carbono|utilities|utilidades|licenca ambiental)/.test(
+      flat
+    )
+  ) {
+    return true;
+  }
+  // ETA/ETE só como palavra inteira (evita falso positivo em "diretamente", "gestão", etc.)
+  return /(?:^|\s)(eta|ete)(?:\s|$)/.test(flat);
 }
 
 module.exports = {

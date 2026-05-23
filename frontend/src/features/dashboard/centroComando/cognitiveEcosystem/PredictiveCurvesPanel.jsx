@@ -39,10 +39,18 @@ export default function PredictiveCurvesPanel({ curves, predictions }) {
           <span className="cog-curves__label">Produtividade · 7d</span>
           <Sparkline data={curves?.productivity_7d} color="var(--green)" />
         </div>
-        <div className="cog-curves__block">
-          <span className="cog-curves__label">Turnover · 14d</span>
-          <Sparkline data={curves?.turnover_risk_14d} color="var(--amber)" />
-        </div>
+        {curves?.turnover_risk_14d?.length > 0 && (
+          <div className="cog-curves__block">
+            <span className="cog-curves__label">Turnover · 14d</span>
+            <Sparkline data={curves.turnover_risk_14d} color="var(--amber)" />
+          </div>
+        )}
+        {curves?.nc_risk_14d?.length > 0 && (
+          <div className="cog-curves__block">
+            <span className="cog-curves__label">NC / desvios · 14d</span>
+            <Sparkline data={curves.nc_risk_14d} color="var(--amber)" />
+          </div>
+        )}
       </div>
       <div className="cog-curves__preds">
         {(predictions || []).slice(0, 3).map((p) => (

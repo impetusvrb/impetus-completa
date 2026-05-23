@@ -8,7 +8,10 @@ const db = require('../db');
 const { buildOrganizationalContext } = require('./organizationalContextEngine');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
+const { enrichUserForDashboardAsync } = require('./structuralUserProfileService');
+const audienceResolver = require('./cognitiveAudienceResolver');
 const living = require('./cognitiveLivingEnrichment');
+const orgIntel = require('./organizationalIntelligenceEngine');
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -21,6 +24,7 @@ function formatTime(d) {
 
 function inferOperationalMode({ criticalAlerts, overdueTasks, orgValid }, hierarchyLevel) {
   if (!orgValid) return 'auditoria';
+  if (criticalAlerts >= 5 || overdueTasks >= 12) return 'emergencia';
   if (criticalAlerts >= 3 || overdueTasks >= 8) return 'crise';
   if (criticalAlerts >= 1 || overdueTasks >= 4) return 'critico';
   if (hierarchyLevel != null && hierarchyLevel <= 1) return 'executivo';
@@ -345,10 +349,18 @@ async function buildCognitivePulse(user) {
     return { ok: false, error: 'NO_COMPANY', pulse: null };
   }
 
-  const scope = await hierarchicalFilter.resolveHierarchyScope(user);
-  const orgCtx = await buildOrganizationalContext(user);
-  const config = dashboardProfileResolver.getDashboardConfigForUser(user);
+  const enrichedUser = await enrichUserForDashboardAsync(user || {});
+  const effectiveUser = { ...user, ...enrichedUser };
+
+  const scope = await hierarchicalFilter.resolveHierarchyScope(effectiveUser);
+  const orgCtx = await buildOrganizationalContext(effectiveUser);
+  const config = dashboardProfileResolver.getDashboardConfigForUser(effectiveUser);
   const profileCode = config.profile_code || '';
+  const audience = audienceResolver.resolveCognitiveAudienceFromStructural(
+    enrichedUser,
+    orgCtx,
+    profileCode
+  );
 
   const tasks = await getTaskSignals(companyId, user, scope);
   let alerts = [];
@@ -375,25 +387,16 @@ async function buildCognitivePulse(user) {
   feed = living.expandFeedIntelligently(feed, orgCtx, global, seed, 20);
 
   let timeline = await loadTimeline(companyId, 6);
-  timeline = living.enrichTimeline(timeline, seed);
+  timeline = living.enrichTimeline(timeline, seed, audience);
 
-  const curves = living.buildPredictionCurves(seed);
+  const curves = living.buildPredictionCurves(seed, audience);
   let predictions = buildPredictions(global, orgCtx);
-  predictions = living.enrichPredictions(predictions, curves, global);
+  predictions = living.enrichPredictions(predictions, curves, global, audience);
 
   const tension = living.buildOrganizationalTension(global, heatmap, seed);
   const global_operation = living.buildGlobalOperationState(global, heatmap, orgCtx, seed);
-  const blackbox = living.buildBlackbox(seed);
-  const org_map = await living.loadOrgMap(companyId, heatmap, seed);
+  let org_map = await living.loadOrgMap(companyId, heatmap, seed);
   const neural_graph = living.buildNeuralGraph(heatmap, global);
-
-  let ia_observations = buildIaObservations(orgCtx, global, profileCode);
-  ia_observations = living.enrichIaObservations(ia_observations, orgCtx, tension, global_operation);
-
-  const organizational_insights = buildOrganizationalInsights(orgCtx);
-  const radar = buildRadarSignals(alerts, tasks);
-  let memory = buildMemoryHints(orgCtx, feed);
-  memory = living.enrichMemory(memory, seed);
 
   const mode = inferOperationalMode(
     {
@@ -404,8 +407,36 @@ async function buildCognitivePulse(user) {
     orgCtx.hierarchy_level
   );
 
-  return {
+  const intelligence = orgIntel.composeOrganizationalIntelligence({
+    companyId,
+    orgCtx,
+    global,
+    heatmap,
+    tension,
+    curves,
+    feed,
+    timeline,
+    mode,
+    profileCode,
+    org_map,
+    neural_graph,
+    audience
+  });
+
+  org_map = intelligence.org_map;
+  const blackbox = intelligence.blackbox;
+
+  let ia_observations = buildIaObservations(orgCtx, global, profileCode);
+  ia_observations = living.enrichIaObservations(ia_observations, orgCtx, tension, global_operation, audience);
+
+  const organizational_insights = buildOrganizationalInsights(orgCtx);
+  const radar = buildRadarSignals(alerts, tasks);
+  let memory = buildMemoryHints(orgCtx, feed);
+  memory = living.enrichMemory(memory, seed);
+
+  const pulse = {
     ok: true,
+    engine: 'organizational_intelligence',
     captured_at: new Date().toISOString(),
     operational_mode: mode,
     organizational_context: {
@@ -413,14 +444,15 @@ async function buildCognitivePulse(user) {
       cargo: orgCtx.cargo,
       setor: orgCtx.setor,
       departamento: orgCtx.departamento,
-      profile_code: profileCode
+      profile_code: profileCode,
+      structural_complete: audience.structural_complete === true
     },
     centro_cognitivo: global,
     organizational_tension: tension,
     global_operation,
     blackbox,
     org_map,
-    neural_graph,
+    neural_graph: intelligence.neural_graph || neural_graph,
     prediction_curves: curves,
     live_feed: feed,
     timeline,
@@ -431,13 +463,32 @@ async function buildCognitivePulse(user) {
     radar,
     memory,
     living: true,
+    cognitive_core: intelligence.cognitive_core,
+    digital_twin: intelligence.digital_twin,
+    multi_agents: intelligence.multi_agents,
+    consciousness: intelligence.consciousness,
+    operational_narrative: intelligence.operational_narrative,
+    cause_effect: intelligence.cause_effect,
+    advanced_predictions: intelligence.advanced_predictions,
+    organizational_memory: intelligence.organizational_memory,
+    strategic_intelligence: intelligence.strategic_intelligence,
+    autonomous_focus: intelligence.autonomous_focus,
+    ambient: intelligence.ambient,
+    global_whispers: intelligence.global_whispers,
+    global_presence: intelligence.global_presence,
+    organizational_energy: intelligence.organizational_energy,
+    emergent_insights: intelligence.emergent_insights,
+    decision_engine: intelligence.decision_engine,
+    cognitive_timeline: intelligence.cognitive_timeline,
+    awareness_mode: intelligence.awareness_mode,
     cross_analysis: {
-      domains: ['rh', 'producao', 'manutencao', 'comunicacao', 'eficiencia', 'comportamento'],
-      summary:
-        'Rede cognitiva ativa — cruzamento contínuo entre tarefas, alertas, hierarquia e identidade estrutural.',
+      domains: audienceResolver.crossAnalysisDomains(audience),
+      summary: audienceResolver.crossAnalysisSummary(audience),
       active_links: neural_graph.links.length
     }
   };
+
+  return audienceResolver.applyAudienceToPulse(pulse, audience);
 }
 
 module.exports = {

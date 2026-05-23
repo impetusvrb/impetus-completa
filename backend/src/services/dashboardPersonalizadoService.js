@@ -9,9 +9,10 @@ const db = require('../db');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const { buildPersonalizedConfig } = require('./dashboardPersonalizationEngine');
 const { enrichUserForDashboardAsync } = require('./structuralUserProfileService');
+const { mergeStructuralBaseIntoUser } = require('./structuralDashboardBridge');
 
 /** Versão das regras de layout — incrementar para invalidar cache em `dashboard_configs`. */
-const LAYOUT_RULES_VERSION = 7;
+const LAYOUT_RULES_VERSION = 8;
 
 /** Mapeamento tamanho doc → width no grid (1 ou 2) */
 const TAMANHO_TO_SPAN = { pequeno: 1, medio: 1, grande: 2, full: 2 };
@@ -88,19 +89,33 @@ function isFinanceDashboardUser(user) {
 }
 
 function gerarConfigPorRegras(user) {
-  const role = (user.role || '').toLowerCase();
-  const dept = (user.functional_area || user.departamento || user.area || '').toLowerCase();
-  const cargo = (user.job_title || user.cargo || role).toString();
+  const u = mergeStructuralBaseIntoUser(user, user.structural_role_row);
+  const role = (u.role || '').toLowerCase();
+  const dept = (
+    u.functional_area ||
+    u.departamento ||
+    u.area ||
+    u.department ||
+    ''
+  ).toLowerCase();
+  const cargo = (u.job_title || u.cargo || u.structural_role_row?.name || role).toString();
   const nivel = getNivel(role, cargo);
-  const hrDashboard = isHrDashboardUser(user);
-  const financeDashboard = !hrDashboard && isFinanceDashboardUser(user);
+  const hrDashboard = isHrDashboardUser(u);
+  const financeDashboard = !hrDashboard && isFinanceDashboardUser(u);
+
+  const deptLabel =
+    u.sector_resolved_name && u.department_resolved_name
+      ? `${u.department_resolved_name} · ${u.sector_resolved_name}`
+      : dept || u.structural_profile?.departamento || 'Geral';
 
   const perfil = {
     cargo: cargo || role,
     nivel,
-    departamento: dept || 'Geral',
+    departamento: deptLabel,
     titulo_dashboard: 'Centro de Comando Industrial',
-    subtitulo: `Visão para ${(cargo || role).toString().replace(/_/g, ' ')}`
+    subtitulo: u.structural_profile?.structural_complete
+      ? `Painel personalizado · ${deptLabel} · Base Estrutural`
+      : `Visão para ${(cargo || role).toString().replace(/_/g, ' ')}`
   };
 
   const modulos = [];
@@ -216,7 +231,7 @@ function gerarConfigPorRegras(user) {
   }
   // Supervisor / Coordenador — diferenciação fina por perfil resolvido (produção / manutenção / qualidade)
   else if (role === 'supervisor' || role === 'coordenador' || role.includes('supervisor') || role.includes('coordinator')) {
-    const profileCode = dashboardProfileResolver.resolveDashboardProfile(user);
+    const profileCode = dashboardProfileResolver.resolveDashboardProfile(u);
     const isSupCoordMaintenance =
       profileCode === 'supervisor_maintenance' ||
       profileCode === 'coordinator_maintenance' ||

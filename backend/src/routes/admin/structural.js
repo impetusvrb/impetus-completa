@@ -347,6 +347,18 @@ router.get('/roles/:id/identity', ...adminMw, async (req, res) => {
   }
 });
 
+/** Pré-visualização fiel: módulos que o cargo libera conforme cadastro (sem perfil genérico). */
+router.post('/roles/preview-modules', ...adminMw, async (req, res) => {
+  try {
+    const cadastroResolver = require('../../services/structuralCadastroModuleResolver');
+    const preview = cadastroResolver.buildModulePreview(req.body || {});
+    sendSuccess(res, preview);
+  } catch (err) {
+    console.error('[STRUCTURAL_ROLE_MODULE_PREVIEW]', err);
+    sendFail(res, 'Erro ao simular módulos do cargo', 500);
+  }
+});
+
 router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
   try {
     const cid = getCompanyId(req);
@@ -386,7 +398,7 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
       sectorName ? [sectorName] : [],
       n.leadership_type, n.communication_profile, n.direct_superior_role_id,
       n.decision_level, asPgTextArray(n.visible_themes), asPgTextArray(n.hidden_themes),
-      n.operation_role, n.approval_participation_role, n.notes, n.dashboard_functional_hint,
+      n.operation_role, n.approval_role, n.notes, n.dashboard_functional_hint,
       n.operational_scope, n.organizational_function, n.operational_context, n.criticality_level,
       asPgTextArray(n.approval_domains), n.approval_participation_role, n.escalation_participation_role,
       n.sensitivity_level, n.access_strategic_data, n.access_financial_data, n.access_hr_data,
@@ -456,7 +468,7 @@ router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'
       sectorName ? [sectorName] : [],
       n.leadership_type, n.communication_profile, n.direct_superior_role_id,
       n.decision_level, asPgTextArray(n.visible_themes), asPgTextArray(n.hidden_themes),
-      n.operation_role, n.approval_participation_role, n.notes, n.dashboard_functional_hint,
+      n.operation_role, n.approval_role, n.notes, n.dashboard_functional_hint,
       n.operational_scope, n.organizational_function, n.operational_context, n.criticality_level,
       asPgTextArray(n.approval_domains), n.approval_participation_role, n.escalation_participation_role,
       n.sensitivity_level, n.access_strategic_data, n.access_financial_data, n.access_hr_data,
@@ -472,6 +484,13 @@ router.put('/roles/:id', ...adminMw, tenantAssertMiddleware('company_role', 'id'
     console.error('[STRUCTURAL_ROLE_UPDATE]', err);
     if (err.code === '23503') {
       return sendFail(res, 'Referência inválida: o cargo "superior direto" não existe ou não pertence à sua empresa.', 400);
+    }
+    if (err.code === '22001') {
+      return sendFail(
+        res,
+        'Texto demasiado longo em "Papel na aprovação" ou "Papel na escalada". Use frases curtas (máx. 80 caracteres) nesses campos; descrições longas ficam em Observações ou Contexto operacional.',
+        400
+      );
     }
     sendFail(res, 'Erro ao atualizar cargo', 500);
   }

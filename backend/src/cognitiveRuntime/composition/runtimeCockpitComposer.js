@@ -9,7 +9,15 @@ const { validateSemanticComposition } = require('./semanticCompositionValidator'
 const { computeCompositionGap } = require('./compositionShadowResolver');
 const { compareGenericVsSpecialized } = require('../pilot/qualityCockpitCompare');
 const { enrichShadowCockpit } = require('../bridge/shadowEnrichmentPipeline');
+const { enrichSafetyShadowCockpit } = require('../domains/sst/bridge/safetyShadowEnrichmentPipeline');
+const { enrichHrShadowCockpit } = require('../domains/hr/bridge/hrShadowEnrichmentPipeline');
+const { enrichProductionShadowCockpit } = require('../domains/production/bridge/productionShadowEnrichmentPipeline');
+const { enrichEnvironmentalShadowCockpit } = require('../domains/environmental/bridge/environmentalShadowEnrichmentPipeline');
 const flagsZ20 = require('../config/phaseZ20FeatureFlags');
+const flagsZ25 = require('../config/phaseZ25FeatureFlags');
+const flagsZ26 = require('../config/phaseZ26FeatureFlags');
+const flagsZP0 = require('../config/phaseZP0FeatureFlags');
+const flagsP1Env = require('../config/phaseP1EnvironmentalFeatureFlags');
 
 function isCompositionEngineActive(ctx = {}) {
   return (
@@ -48,7 +56,63 @@ async function composeRuntimeCockpit(user = {}, payload = {}, ctx = {}) {
     });
     if (!enriched.enrichment_skipped) {
       shadowCockpit = enriched.shadow_cockpit;
-      engineBridge = enriched.bridge_validation;
+      engineBridge = enriched.engine_bridge || enriched.bridge_validation;
+    }
+  }
+
+  if (
+    (compositionRun.domain_axis === 'safety' || flagsZ25.isPilotProfile(payload.profile_code)) &&
+    flagsZ25.isSafetyCognitiveRuntimeActive()
+  ) {
+    const enriched = await enrichSafetyShadowCockpit(shadowCockpit, user, payload, {
+      ...ctx,
+      mock_signals: ctx.mock_signals
+    });
+    if (!enriched.enrichment_skipped) {
+      shadowCockpit = enriched.shadow_cockpit;
+      engineBridge = enriched.engine_bridge;
+    }
+  }
+
+  if (
+    (compositionRun.domain_axis === 'hr' || flagsZ26.isPilotProfile(payload.profile_code)) &&
+    flagsZ26.isHrCognitiveRuntimeActive()
+  ) {
+    const enriched = await enrichHrShadowCockpit(shadowCockpit, user, payload, {
+      ...ctx,
+      mock_signals: ctx.mock_signals
+    });
+    if (!enriched.enrichment_skipped) {
+      shadowCockpit = enriched.shadow_cockpit;
+      engineBridge = enriched.engine_bridge;
+    }
+  }
+
+  if (
+    (compositionRun.domain_axis === 'environmental' || flagsP1Env.isPilotProfile(payload.profile_code)) &&
+    flagsP1Env.isEnvironmentalCognitiveRuntimeActive()
+  ) {
+    const enriched = await enrichEnvironmentalShadowCockpit(shadowCockpit, user, payload, {
+      ...ctx,
+      mock_signals: ctx.mock_signals
+    });
+    if (!enriched.enrichment_skipped) {
+      shadowCockpit = enriched.shadow_cockpit;
+      engineBridge = enriched.engine_bridge;
+    }
+  }
+
+  if (
+    (compositionRun.domain_axis === 'production' || flagsZP0.isPilotProfile(payload.profile_code)) &&
+    flagsZP0.isProductionCognitiveRuntimeActive()
+  ) {
+    const enriched = await enrichProductionShadowCockpit(shadowCockpit, user, payload, {
+      ...ctx,
+      mock_signals: ctx.mock_signals
+    });
+    if (!enriched.enrichment_skipped) {
+      shadowCockpit = enriched.shadow_cockpit;
+      engineBridge = enriched.engine_bridge;
     }
   }
 

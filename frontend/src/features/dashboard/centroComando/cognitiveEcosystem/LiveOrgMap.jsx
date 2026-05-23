@@ -12,6 +12,11 @@ function OrgNode({ node, depth = 0 }) {
         <span className={`cog-orgmap__status cog-orgmap__status--${node.status || 'estável'}`}>
           {node.status || 'estável'}
         </span>
+        {node.communication_flow_pct != null && (
+          <span className="cog-orgmap__flow" title="Fluxo comunicação">
+            COM {node.communication_flow_pct}%
+          </span>
+        )}
         {node.intensity != null && (
           <span className="cog-orgmap__heat">{Math.round(intensity)}%</span>
         )}
@@ -33,7 +38,12 @@ export default function LiveOrgMap({ orgMap }) {
   return (
     <section className="cog-orgmap" aria-label="Mapa organizacional vivo">
       <header className="cog-panel__head">
-        <span className="cog-panel__tag">// MAPA ORGANIZACIONAL</span>
+        <span className="cog-panel__tag">// MAPA ORGANIZACIONAL VIVO</span>
+        {orgMap.flows && (
+          <span className="cog-panel__meta">
+            COM {orgMap.flows.communication_health}% · OPS {orgMap.flows.operational_throughput}%
+          </span>
+        )}
       </header>
       <ul className="cog-orgmap__tree">
         <OrgNode node={root} />

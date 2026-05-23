@@ -35,7 +35,8 @@ import { useNotification } from '../context/NotificationContext';
 import {
   StructuralGenericForm,
   structuralItemToForm,
-  structuralSerializePayload
+  structuralSerializePayload,
+  validateRoleFormClient
 } from './adminStructural/StructuralForms';
 import './AdminStructural.css';
 
@@ -525,6 +526,7 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
   const [showDelete, setShowDelete] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -545,6 +547,7 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
 
   const resetForm = () => {
     setForm({});
+    setFormErrors({});
     setEditing(null);
   };
 
@@ -553,9 +556,20 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
     setShowModal(true);
   };
 
-  const openEdit = (item) => {
+  const openEdit = async (item) => {
     setEditing(item);
-    setForm(structuralItemToForm(module, item));
+    setFormErrors({});
+    if (module === 'roles' && typeof api.getIdentity === 'function') {
+      try {
+        const r = await api.getIdentity(item.id);
+        const row = r.data?.data ?? r.data ?? item;
+        setForm(structuralItemToForm(module, row));
+      } catch {
+        setForm(structuralItemToForm(module, item));
+      }
+    } else {
+      setForm(structuralItemToForm(module, item));
+    }
     setShowModal(true);
   };
 
@@ -569,14 +583,43 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
     if (t.type === 'checkbox') {
       setForm((prev) => ({ ...prev, [t.name]: t.checked }));
     } else {
-      setForm((prev) => ({ ...prev, [t.name]: t.value }));
+      setForm((prev) => {
+        const next = { ...prev, [t.name]: t.value };
+        if (module === 'roles' && t.name === 'department_id' && prev.sector_id) {
+          const sectorStillValid = (refs?.sectors || []).some(
+            (s) => String(s.id) === String(prev.sector_id) && String(s.department_id) === String(t.value)
+          );
+          if (!sectorStillValid) next.sector_id = '';
+        }
+        return next;
+      });
+    }
+    if (formErrors[t.name]) {
+      setFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[t.name];
+        return next;
+      });
     }
   };
 
   const handleSubmit = async () => {
+    const payload = structuralSerializePayload(module, form);
+    if (module === 'roles') {
+      const clientErrors = validateRoleFormClient(form);
+      if (clientErrors.length) {
+        const errMap = {};
+        clientErrors.forEach((err) => {
+          errMap[err.path] = err.message;
+        });
+        setFormErrors(errMap);
+        notify.error(clientErrors.map((e) => e.message).join(' · '));
+        return;
+      }
+    }
     try {
       setSaving(true);
-      const payload = structuralSerializePayload(module, form);
+      setFormErrors({});
       if (editing) {
         await api.update(editing.id, payload);
         notify.success(`${entityLabel} atualizado!`);
@@ -589,7 +632,18 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
       load();
       if (loadRefs) loadRefs();
     } catch (e) {
-      notify.error(e.apiMessage || 'Erro ao salvar');
+      const details = e.response?.data?.details;
+      if (Array.isArray(details) && details.length) {
+        const errMap = {};
+        const msgs = details.map((d) => {
+          if (d.path) errMap[d.path] = d.message;
+          return d.message;
+        });
+        setFormErrors(errMap);
+        notify.error(msgs.filter(Boolean).join(' · ') || e.apiMessage || 'Dados do cargo inválidos');
+      } else {
+        notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
+      }
     } finally {
       setSaving(false);
     }
@@ -658,6 +712,7 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
           onChange={handleChange}
           editingRoleId={module === 'roles' ? editing?.id : undefined}
           roleListItems={module === 'roles' ? items : undefined}
+          formErrors={formErrors}
         />
         <ModalFooter
           onCancel={() => {

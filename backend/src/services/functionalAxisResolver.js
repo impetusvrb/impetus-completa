@@ -249,7 +249,13 @@ function resolveFunctionalAxis(user) {
     role: safe.role
   });
 
-  if (environmentalGuard && resolved.id === 'quality') {
+  const cadastroDeclaresQuality =
+    catalog.normKey(safe.functional_area) === 'quality' ||
+    catalog.normKey(safe.company_role_dashboard_hint) === 'quality' ||
+    /(^|_)qualidade(_|$)|(^|_)quality(_|$)/.test(catalog.normKey(safe.job_title || '')) ||
+    explicit?.id === 'quality';
+
+  if (environmentalGuard && resolved.id === 'quality' && !cadastroDeclaresQuality) {
     _log('[QUALITY_AXIS_BLOCKED]', {
       user_id: safe.id,
       action: 'override_to_environmental',

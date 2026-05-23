@@ -91,14 +91,31 @@ async function processMultimodalChat(opts) {
     fileContext,
     companyId,
     userName,
+    user = null,
     systemPromptExtra = ''
   } = opts;
+
+  let structuralAppend = '';
+  if (user) {
+    try {
+      const structuralAIGovernance = require('./structuralAIGovernanceService');
+      const gov = await structuralAIGovernance.buildAIGovernancePackage(user, {
+        channel: 'impetus_ia_multimodal',
+        queryText: message,
+        companyId
+      });
+      structuralAppend = gov.system_append || '';
+    } catch (e) {
+      console.warn('[MULTIMODAL_STRUCTURAL_GOV]', e?.message ?? e);
+    }
+  }
 
   const messages = [];
   const systemContent = `${IMPETUS_IA_SYSTEM_PROMPT_FULL}
 
 ## Multimodal
 Você responde como IMPETUS IA (única interface). Não invente dados além do contexto e dos anexos.
+${structuralAppend}
 ${systemPromptExtra}
 Responda de forma natural, direta e técnica quando apropriado. Se houver imagem, descreva e analise. Se houver documento anexo, use o contexto. Em português do Brasil.`;
 

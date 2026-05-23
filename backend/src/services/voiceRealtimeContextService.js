@@ -1,59 +1,43 @@
 /**
- * Contexto para voz OpenAI Realtime: dados internos IMPETUS já filtrados por hierarquia
- * e permissões (mesma base que /dashboard/me e KPIs).
- * A IA de voz recebe isto no system prompt — não substitui tool-calls turn-a-turn,
- * mas ancora respostas ao que o utilizador pode ver neste snapshot (ligação).
+ * Contexto para voz OpenAI Realtime: dados internos IMPETUS já filtrados por hierarquia,
+ * permissões e Base Estrutural (mesma governança que dashboard chat / Impetus IA).
  */
 const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardKPIs = require('./dashboardKPIs');
 const dashboardAccessService = require('./dashboardAccessService');
 const dashboardComposerService = require('./dashboardComposerService');
-const dashboardProfileResolver = require('./dashboardProfileResolver');
-const userContext = require('./userContext');
+const structuralAIGovernance = require('./structuralAIGovernanceService');
 
 const MAX_KPI_LINES = 14;
 const MAX_INSTRUCTION_CHARS = 14000;
 
-function buildAccessLines(user) {
-  const config = dashboardProfileResolver.getDashboardConfigForUser(user);
-  const allowedModules = dashboardAccessService.getAllowedModules(user);
-  const depth = dashboardAccessService.getIADataDepth(user);
-  const uc = userContext.buildUserContext(user);
-  const area = user.functional_area || user.area || '—';
-  const ucHint = uc ? `área ${uc.area}, âmbito de dados ${uc.scope}, profundidade ${uc.data_depth}` : '—';
-  return [
-    'REGRAS DE ACESSO (obrigatório — cumprir antes de responder):',
-    `- Perfil IMPETUS: ${config.profile_code || '—'} (${(config.profile_config && config.profile_config.label) || ''}).`,
-    `- Cargo/função: ${user.role || '—'}; área funcional: ${area}.`,
-    `- Nível hierárquico (1=mais alto): ${user.hierarchy_level ?? '—'}.`,
-    `- Profundidade de dados IA para este utilizador: ${depth} (strategic | analytical | operational | practical).`,
-    `- Módulos/páginas que este utilizador pode aceder no IMPETUS: ${allowedModules.length ? allowedModules.join(', ') : 'nenhum listado'}.`,
-    '- Se pedirem dados fora destes módulos, acima da profundidade, ou sensíveis sem permissão explícita, responde de forma educada que não tens permissão para fornecer essa informação.',
-    '- Não inventes números, estados de linha, stocks ou métricas. Usa apenas o bloco «DADOS INTERNOS» abaixo; se não estiver lá, diz: «Não encontrei essa informação no sistema.»',
-    '- Proibido usar conhecimento externo genérico (internet, outras empresas, suposições de mercado).',
-    `- Contexto utilizador (resumo): ${ucHint} — não contradigas o perfil.`
-  ].join('\n');
-}
-
 /**
  * @param {object} user req.user (sessão IMPETUS)
- * @returns {Promise<{ ok: true, instructions_append: string, fetched_at: string }>}
+ * @param {{ queryText?: string }} [opts]
+ * @returns {Promise<{ ok: true, instructions_append: string, fetched_at: string, intent?: string }>}
  */
-async function buildVoiceRealtimeContext(user) {
-  const scope = await hierarchicalFilter.resolveHierarchyScope(user).catch(() => null);
+async function buildVoiceRealtimeContext(user, opts = {}) {
+  const queryText = String(opts.queryText || '').trim();
+  const gov = await structuralAIGovernance.buildAIGovernancePackage(user, {
+    channel: 'voice_realtime',
+    queryText
+  });
+  const effectiveUser = gov.enrichedUser || user;
+
+  const scope = await hierarchicalFilter.resolveHierarchyScope(effectiveUser).catch(() => null);
 
   let kpisRaw = [];
   try {
-    kpisRaw = await dashboardKPIs.getDashboardKPIs(user, scope);
+    kpisRaw = await dashboardKPIs.getDashboardKPIs(effectiveUser, scope);
   } catch (_) {
     kpisRaw = [];
   }
-  const kpisPersonalized = dashboardComposerService.applyPersonalizationToKpis(kpisRaw, user);
-  const kpis = dashboardAccessService.getAllowedKpis(user, kpisPersonalized).slice(0, MAX_KPI_LINES);
+  const kpisPersonalized = dashboardComposerService.applyPersonalizationToKpis(kpisRaw, effectiveUser);
+  const kpis = dashboardAccessService.getAllowedKpis(effectiveUser, kpisPersonalized).slice(0, MAX_KPI_LINES);
 
   let summary;
   try {
-    summary = await dashboardKPIs.getDashboardSummary(user);
+    summary = await dashboardKPIs.getDashboardSummary(effectiveUser);
   } catch (_) {
     summary = null;
   }
@@ -78,20 +62,26 @@ async function buildVoiceRealtimeContext(user) {
       ].join('\n')
     : 'Resumo agregado indisponível neste momento — não inventes totais.';
 
-  const access = buildAccessLines(user);
-  const dataBlock = [
-    'DADOS INTERNOS (snapshot na abertura da sessão de voz — só podes citar isto para números/indicadores gerais):',
-    sumLine,
-    'Indicadores permitidos ao perfil (amostra):',
-    kpiLines
-  ].join('\n');
+  const dataBlock = gov.allow_operational_data
+    ? [
+        'DADOS INTERNOS (snapshot na abertura da sessão de voz — só podes citar isto para números/indicadores da empresa):',
+        sumLine,
+        'Indicadores permitidos ao perfil (amostra):',
+        kpiLines
+      ].join('\n')
+    : [
+        'DADOS INTERNOS: não injectados neste turno (pergunta classificada como conhecimento geral).',
+        'Podes explicar métodos e boas práticas; não cites KPIs ou estados operacionais desta empresa sem nova pergunta operacional.'
+      ].join('\n');
 
   const instructions_append = [
-    access,
+    gov.system_append,
     '',
     dataBlock,
     '',
-    'Se a pergunta exigir pormenor que não conste aqui, não suponhas: diz que não encontraste no sistema ou sugere verificar no painel IMPETUS com permissões adequadas.'
+    gov.allow_operational_data
+      ? 'Se a pergunta exigir pormenor que não conste aqui, não suponhas: diz que não encontraste no sistema ou sugere verificar no painel IMPETUS com permissões adequadas.'
+      : 'Mantém a identidade do utilizador (Base Estrutural) mas responde em modo educativo sem inventar dados do tenant.'
   ].join('\n');
 
   const trimmed =
@@ -102,7 +92,9 @@ async function buildVoiceRealtimeContext(user) {
   return {
     ok: true,
     instructions_append: trimmed,
-    fetched_at: new Date().toISOString()
+    fetched_at: new Date().toISOString(),
+    intent: gov.intent,
+    structural_complete: gov.structural_complete
   };
 }
 

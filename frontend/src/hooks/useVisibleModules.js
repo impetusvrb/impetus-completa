@@ -376,6 +376,18 @@ export function useVisibleModules() {
           }
           if (r.data.structural_profile) {
             u.structural_profile = r.data.structural_profile;
+            if (r.data.structural_profile.departamento_oficial) {
+              u.department = r.data.structural_profile.departamento_oficial;
+            }
+            if (r.data.structural_profile.setor_oficial) {
+              u.setor = r.data.structural_profile.setor_oficial;
+            }
+          }
+          if (r.data.module_access_context?.functional_area) {
+            u.functional_area = r.data.module_access_context.functional_area;
+          }
+          if (r.data.module_access_context?.cargo && !u.job_title) {
+            u.job_title = r.data.module_access_context.cargo;
           }
           localStorage.setItem('impetus_user', JSON.stringify(u));
         }
@@ -398,7 +410,9 @@ export function useVisibleModules() {
       } else if (gov && Array.isArray(mods) && gov.denied_count > 0) {
         mods = mods.filter((k) => !gov.denied?.some((d) => d.menu_key === k));
       } else if (r?.data?.structural_module_filter?.skipped !== true && r?.data?.structural_profile) {
-        mods = filterVisibleModulesByStructuralProfile(mods, r.data.structural_profile);
+        mods = filterVisibleModulesByStructuralProfile(mods, r.data.structural_profile, {
+          cadastroFiel: gov?.cadastro_fiel === true
+        });
       }
       if (mods.includes('ai') && !mods.includes('chat')) {
         mods = [...mods, 'chat'];

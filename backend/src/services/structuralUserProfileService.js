@@ -8,6 +8,8 @@
 
 const db = require('../db');
 const { loadRoleRow } = require('./structuralOrgContextService');
+const orgIdentity = require('./organizationalIdentityEngine');
+const { mergeStructuralBaseIntoUser } = require('./structuralDashboardBridge');
 const { interpretProfileContext, normalizeText } = require('./profileContextInterpreter');
 
 const ROLE_LABEL_PT = Object.freeze({
@@ -110,7 +112,11 @@ function buildStructuralProfileSummary(user, companyRoleRow, interpreted) {
     funcao: u.role,
     funcao_label: u.funcao_label,
     cargo: u.job_title || u.cargo || null,
-    departamento: u.department || u.functional_area || null,
+    departamento:
+      u.sector_resolved_name && u.department_resolved_name
+        ? `${u.department_resolved_name} · ${u.sector_resolved_name}`
+        : u.department || u.functional_area || null,
+    setor: u.sector_resolved_name || u.setor || null,
     area_funcional: u.functional_area || null,
     descricao: u.hr_responsibilities ? truncate(u.hr_responsibilities, 500) : null,
     descricao_usada_no_motor: interp.signals?.used_description === true,
@@ -186,15 +192,26 @@ async function enrichUserForDashboardAsync(user) {
   let companyRoleRow = null;
   if (merged.company_id && merged.company_role_id) {
     try {
-      companyRoleRow = await loadRoleRow(merged.company_id, merged.company_role_id);
+      companyRoleRow = await orgIdentity.loadEnrichedRole(merged.company_id, merged.company_role_id);
+      if (!companyRoleRow) {
+        companyRoleRow = await loadRoleRow(merged.company_id, merged.company_role_id);
+      }
     } catch (err) {
       console.warn('[STRUCTURAL_PROFILE] company_role:', err.message);
     }
   }
 
+  merged = mergeStructuralBaseIntoUser(merged, companyRoleRow);
+
   const interpretationText = buildStructuralInterpretationText(merged, companyRoleRow);
   merged._structural_interpretation_text = interpretationText;
   merged.structural_profile = buildStructuralProfileSummary(merged, companyRoleRow);
+  if (companyRoleRow) {
+    merged.structural_profile.departamento_oficial = companyRoleRow.department_name || null;
+    merged.structural_profile.setor_oficial = companyRoleRow.sector_name || null;
+    merged.structural_profile.structural_complete =
+      !!(merged.company_role_id && companyRoleRow.department_id && companyRoleRow.sector_id);
+  }
 
   return merged;
 }

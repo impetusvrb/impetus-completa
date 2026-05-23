@@ -208,7 +208,9 @@ const profileContextSelfSchema = z.object({
  */
 router.get('/voice-realtime-context', requireAuth, async (req, res) => {
   try {
-    const payload = await voiceRealtimeContextService.buildVoiceRealtimeContext(req.user);
+    const payload = await voiceRealtimeContextService.buildVoiceRealtimeContext(req.user, {
+      queryText: String(req.query?.hint || req.query?.q || '').trim()
+    });
     res.json(payload);
   } catch (err) {
     console.error('[VOICE_REALTIME_CONTEXT]', err);
@@ -934,9 +936,134 @@ router.get('/me', requireAuth, async (req, res) => {
         }
         if (cog.payload.specialized_summary) legacyResponse.specialized_summary = cog.payload.specialized_summary;
         if (cog.payload.specialized_delivery) legacyResponse.specialized_delivery = cog.payload.specialized_delivery;
+        if (cog.payload.cognitive_render_promotion) {
+          legacyResponse.cognitive_render_promotion = cog.payload.cognitive_render_promotion;
+        }
+        if (cog.payload.widgets_promoted) legacyResponse.widgets_promoted = cog.payload.widgets_promoted;
+        if (cog.payload.widgets_legacy) legacyResponse.widgets_legacy = cog.payload.widgets_legacy;
+        if (cog.payload.engine_v2) legacyResponse.engine_v2 = cog.payload.engine_v2;
+        if (cog.payload.specialized_cockpit_runtime) {
+          legacyResponse.specialized_cockpit_runtime = cog.payload.specialized_cockpit_runtime;
+        }
+        if (cog.payload.quality_cognitive_centers) {
+          legacyResponse.quality_cognitive_centers = cog.payload.quality_cognitive_centers;
+        }
+        if (cog.payload.quality_decision_support) {
+          legacyResponse.quality_decision_support = cog.payload.quality_decision_support;
+        }
+        if (cog.payload.cockpit_operational_metrics) {
+          legacyResponse.cockpit_operational_metrics = cog.payload.cockpit_operational_metrics;
+        }
+        if (cog.payload.multi_domain_foundation) {
+          legacyResponse.multi_domain_foundation = cog.payload.multi_domain_foundation;
+        }
+        if (cog.payload.cognitive_blocks) {
+          legacyResponse.cognitive_blocks = cog.payload.cognitive_blocks;
+        }
+        if (cog.payload.sst_cognitive_runtime) {
+          legacyResponse.sst_cognitive_runtime = cog.payload.sst_cognitive_runtime;
+        }
+        if (cog.payload.safety_cognitive_centers) {
+          legacyResponse.safety_cognitive_centers = cog.payload.safety_cognitive_centers;
+        }
+        if (cog.payload.safety_decision_support) {
+          legacyResponse.safety_decision_support = cog.payload.safety_decision_support;
+        }
+        if (cog.payload.hr_cognitive_runtime) {
+          legacyResponse.hr_cognitive_runtime = cog.payload.hr_cognitive_runtime;
+        }
+        if (cog.payload.hr_cognitive_centers) {
+          legacyResponse.hr_cognitive_centers = cog.payload.hr_cognitive_centers;
+        }
+        if (cog.payload.hr_decision_support) {
+          legacyResponse.hr_decision_support = cog.payload.hr_decision_support;
+        }
+        if (cog.payload.production_cognitive_runtime) {
+          legacyResponse.production_cognitive_runtime = cog.payload.production_cognitive_runtime;
+        }
+        if (cog.payload.production_cognitive_centers) {
+          legacyResponse.production_cognitive_centers = cog.payload.production_cognitive_centers;
+        }
+        if (cog.payload.production_decision_support) {
+          legacyResponse.production_decision_support = cog.payload.production_decision_support;
+        }
+        if (cog.payload.production_contextual_questions) {
+          legacyResponse.production_contextual_questions = cog.payload.production_contextual_questions;
+        }
+        if (cog.payload.production_live_validation) {
+          legacyResponse.production_live_validation = cog.payload.production_live_validation;
+        }
+        if (cog.payload.telemetry_health) {
+          legacyResponse.telemetry_health = cog.payload.telemetry_health;
+        }
+        if (cog.payload.environmental_cognitive_runtime) {
+          legacyResponse.environmental_cognitive_runtime = cog.payload.environmental_cognitive_runtime;
+        }
+        if (cog.payload.environmental_cognitive_centers) {
+          legacyResponse.environmental_cognitive_centers = cog.payload.environmental_cognitive_centers;
+        }
+        if (cog.payload.environmental_decision_support) {
+          legacyResponse.environmental_decision_support = cog.payload.environmental_decision_support;
+        }
+        if (cog.payload.environmental_contextual_questions) {
+          legacyResponse.environmental_contextual_questions = cog.payload.environmental_contextual_questions;
+        }
+        if (cog.payload.environmental_live_validation) {
+          legacyResponse.environmental_live_validation = cog.payload.environmental_live_validation;
+        }
+        if (cog.payload.maintenance_cognitive_runtime) {
+          legacyResponse.maintenance_cognitive_runtime = cog.payload.maintenance_cognitive_runtime;
+        }
+        if (cog.payload.maintenance_cognitive_centers) {
+          legacyResponse.maintenance_cognitive_centers = cog.payload.maintenance_cognitive_centers;
+        }
+        if (cog.payload.maintenance_decision_support) {
+          legacyResponse.maintenance_decision_support = cog.payload.maintenance_decision_support;
+        }
+        if (cog.payload.maintenance_contextual_questions) {
+          legacyResponse.maintenance_contextual_questions = cog.payload.maintenance_contextual_questions;
+        }
+        if (cog.payload.maintenance_live_validation) {
+          legacyResponse.maintenance_live_validation = cog.payload.maintenance_live_validation;
+        }
+        if (cog.payload.executive_cognitive_runtime) {
+          legacyResponse.executive_cognitive_runtime = cog.payload.executive_cognitive_runtime;
+        }
+        if (cog.payload.executive_cognitive_centers) {
+          legacyResponse.executive_cognitive_centers = cog.payload.executive_cognitive_centers;
+        }
+        if (cog.payload.executive_decision_support) {
+          legacyResponse.executive_decision_support = cog.payload.executive_decision_support;
+        }
+        if (cog.payload.executive_live_validation) {
+          legacyResponse.executive_live_validation = cog.payload.executive_live_validation;
+        }
+        if (cog.payload.adaptive_orchestration) {
+          legacyResponse.adaptive_orchestration = cog.payload.adaptive_orchestration;
+        }
+        if (cog.payload.governance_learning) {
+          legacyResponse.governance_learning = cog.payload.governance_learning;
+        }
       }
       if (cog.cognitive_runtime_report && !cog.cognitive_runtime_report.observability_skipped) {
         _cognitiveRuntimeZ18 = cog.cognitive_runtime_report;
+      }
+      if (
+        legacyResponse.engine_v2?.payload?.layout?.widgets &&
+        engineV2Block?.payload?.layout
+      ) {
+        engineV2Block = {
+          ...engineV2Block,
+          payload: {
+            ...engineV2Block.payload,
+            layout: {
+              ...engineV2Block.payload.layout,
+              widgets: legacyResponse.engine_v2.payload.layout.widgets,
+              widgets_legacy: legacyResponse.engine_v2.payload.layout.widgets_legacy,
+              render_promotion_applied: legacyResponse.engine_v2.payload.layout.render_promotion_applied
+            }
+          }
+        };
       }
     } catch (z18Err) {
       console.warn('[COGNITIVE_RUNTIME_Z18]', z18Err?.message ?? z18Err);
@@ -2681,13 +2808,30 @@ router.post('/chat', requireAuth, async (req, res) => {
       return;
     }
 
+    const structuralAIGov = require('../services/structuralAIGovernanceService');
+    let chatUser = u;
+    let structuralPromptBlock = '';
+    let aiGovPack = null;
+    try {
+      aiGovPack = await structuralAIGov.buildAIGovernancePackage(u, {
+        channel: 'dashboard_chat',
+        queryText: message,
+        companyId: u.company_id
+      });
+      chatUser = aiGovPack.enrichedUser || u;
+      structuralPromptBlock = aiGovPack.system_append || '';
+    } catch (structChatErr) {
+      console.warn('[DASHBOARD_CHAT_STRUCTURAL]', structChatErr?.message ?? structChatErr);
+    }
+
     let dashboardContextualPack = null;
     let chatGovernanceMeta = null;
-    if (u.company_id) {
+    const allowOperationalPack = aiGovPack ? aiGovPack.allow_operational_data !== false : true;
+    if (u.company_id && allowOperationalPack) {
       try {
         const { retrieveContextualData } = require('../services/dataRetrievalService');
         const rawPack = await retrieveContextualData({
-          user: u,
+          user: chatUser,
           intent: 'operational_overview',
           entities: {}
         });
@@ -2881,16 +3025,6 @@ router.post('/chat', requireAuth, async (req, res) => {
     const { buildDashboardChatPrompt } = require('../ai/prompts/dashboardChatPrompt');
     const { buildNoDataPrompt } = require('../ai/prompts/noDataModePrompt');
 
-    let chatUser = u;
-    let structuralPromptBlock = '';
-    try {
-      const structuralSvc = require('../services/structuralUserProfileService');
-      chatUser = await structuralSvc.enrichUserForDashboardAsync(u);
-      structuralPromptBlock = structuralSvc.buildStructuralAiPromptBlock(chatUser.structural_profile);
-    } catch (structChatErr) {
-      console.warn('[DASHBOARD_CHAT_STRUCTURAL]', structChatErr?.message ?? structChatErr);
-    }
-
     const system = isNoData
       ? buildNoDataPrompt({
           user: chatUser,
@@ -2927,9 +3061,10 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     let secureGovernanceSystem = '';
     try {
-      const secureCtx = await secureContextBuilder.buildContext(u, {
+      const secureCtx = await secureContextBuilder.buildContext(chatUser, {
         companyId: u.company_id,
-        queryText: message
+        queryText: message,
+        channel: 'dashboard_chat'
       });
       if (secureCtx && typeof secureCtx.context === 'string' && secureCtx.context.trim()) {
         secureGovernanceSystem = secureCtx.context.trim();
@@ -3295,7 +3430,8 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       imageBase64: hasImage ? req.body.imageBase64 : null,
       fileContext: fileCtx,
       companyId: u.company_id,
-      userName
+      userName,
+      user: u
     });
 
     let text = '';

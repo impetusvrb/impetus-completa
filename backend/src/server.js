@@ -1287,6 +1287,134 @@ useRoute(
   internalAcl('governance'),
   apiByUserLimiter
 );
+useRoute(
+  '/api/internal/production-validation',
+  './routes/internal/productionValidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/telemetry-governance',
+  './routes/internal/telemetryGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/industrial-runtime-health',
+  './routes/internal/industrialRuntimeHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/environmental-validation',
+  './routes/internal/environmentalValidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/environmental-live-validation',
+  './routes/internal/environmentalLiveValidation',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/regulatory-governance',
+  './routes/internal/regulatoryGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/environmental-governance',
+  './routes/internal/environmentalGovernance',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/environmental-runtime-health',
+  './routes/internal/environmentalRuntimeHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/adaptive-orchestration',
+  './routes/internal/adaptiveOrchestration',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/cognitive-fatigue',
+  './routes/internal/cognitiveFatigue',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/usefulness-runtime',
+  './routes/internal/usefulnessRuntime',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/orchestration-health',
+  './routes/internal/orchestrationHealth',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/governance-learning',
+  './routes/internal/governanceLearning',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/learning-patterns',
+  './routes/internal/learningPatterns',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/usefulness-learning',
+  './routes/internal/usefulnessLearning',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
+useRoute(
+  '/api/internal/convergence-learning',
+  './routes/internal/convergenceLearning',
+  requireAuth,
+  internalNet('governance'),
+  internalAcl('governance'),
+  apiByUserLimiter
+);
 
 /* ManuIA - Feature flag: ativo por padrão; ENABLE_MANUIA=false desativa rapidamente sem revert */
 const manuiaEnabled = process.env.ENABLE_MANUIA !== 'false' && process.env.ENABLE_MANUIA !== '0';

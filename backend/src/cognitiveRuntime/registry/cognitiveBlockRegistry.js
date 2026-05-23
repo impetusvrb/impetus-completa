@@ -302,10 +302,22 @@ const COGNITIVE_BLOCK_DEFINITIONS = [
 ];
 
 const { QUALITY_PILOT_BLOCKS, QUALITY_BLOCK_ALIASES } = require('./qualityCognitiveBlockPack');
+const { SST_PILOT_BLOCKS, SST_BLOCK_ALIASES } = require('./sstCognitiveBlockPack');
+const { HR_PILOT_BLOCKS, HR_BLOCK_ALIASES } = require('./hrCognitiveBlockPack');
+const { PRODUCTION_PILOT_BLOCKS, PRODUCTION_BLOCK_ALIASES } = require('./productionCognitiveBlockPack');
+const { ENVIRONMENTAL_PILOT_BLOCKS, ENVIRONMENTAL_BLOCK_ALIASES } = require('./environmentalCognitiveBlockPack');
+const { MAINTENANCE_PILOT_BLOCKS, MAINTENANCE_BLOCK_ALIASES } = require('./maintenanceCognitiveBlockPack');
+const { EXECUTIVE_PILOT_BLOCKS, EXECUTIVE_BLOCK_ALIASES } = require('./executiveCognitiveBlockPack');
 
 function mergeRegistryDefinitions() {
   const byId = new Map(COGNITIVE_BLOCK_DEFINITIONS.map((b) => [b.id, b]));
   for (const b of QUALITY_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of SST_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of HR_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of PRODUCTION_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of ENVIRONMENTAL_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of MAINTENANCE_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of EXECUTIVE_PILOT_BLOCKS) byId.set(b.id, b);
   return [...byId.values()];
 }
 
@@ -324,13 +336,22 @@ function listAllBlocks() {
 }
 
 function getBlockById(id) {
-  const canonical = QUALITY_BLOCK_ALIASES[id] || id;
+  const canonical =
+    QUALITY_BLOCK_ALIASES[id] ||
+    SST_BLOCK_ALIASES[id] ||
+    HR_BLOCK_ALIASES[id] ||
+    PRODUCTION_BLOCK_ALIASES[id] ||
+    ENVIRONMENTAL_BLOCK_ALIASES[id] ||
+    MAINTENANCE_BLOCK_ALIASES[id] ||
+    EXECUTIVE_BLOCK_ALIASES[id] ||
+    id;
   return _byId.get(canonical) || _byId.get(id) || null;
 }
 
 function listBlocksByDomain(domain) {
   const key = String(domain || '').toLowerCase().replace(/^coordinator_/, '');
   if (key === 'sst') return _byDomain.safety || [];
+  if (key === 'hr' || key === 'rh') return [...(_byDomain.hr || []), ...(_byDomain.rh || [])];
   return _byDomain[key] || [];
 }
 
@@ -340,6 +361,12 @@ function getRegistryStats() {
     foundation_phase: 'Z.18',
     total_blocks: MERGED_BLOCK_DEFINITIONS.length,
     quality_pilot_blocks: QUALITY_PILOT_BLOCKS.length,
+    sst_pilot_blocks: SST_PILOT_BLOCKS.length,
+    hr_pilot_blocks: HR_PILOT_BLOCKS.length,
+    production_pilot_blocks: PRODUCTION_PILOT_BLOCKS.length,
+    environmental_pilot_blocks: ENVIRONMENTAL_PILOT_BLOCKS.length,
+    maintenance_pilot_blocks: MAINTENANCE_PILOT_BLOCKS.length,
+    executive_pilot_blocks: EXECUTIVE_PILOT_BLOCKS.length,
     domains: Object.keys(_byDomain),
     definition_only: true,
     delivery_active: false,

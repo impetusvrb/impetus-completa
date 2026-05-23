@@ -12,6 +12,7 @@ const chatService = require('./chatService');
 const documentContext = require('./documentContext');
 const { detectAIMention } = require('../utils/mentionsAI');
 const secureContextBuilder = require('./secureContextBuilder');
+const structuralAIGovernance = require('./structuralAIGovernanceService');
 const { runAI } = require('../ai/orchestrator');
 
 const AI_USER_ID = chatService.AI_USER_ID;
@@ -65,22 +66,16 @@ async function loadConversationRow(conversationId) {
 async function loadHumanParticipantContext(conversationId) {
   try {
     const r = await db.query(
-      `SELECT u.id AS user_id, u.role, u.company_id, u.name, u.email
+      `SELECT u.*
        FROM chat_participants cp
        INNER JOIN users u ON u.id = cp.user_id
        WHERE cp.conversation_id = $1`,
       [conversationId]
     );
     const rows = r.rows || [];
-    const human = rows.find((p) => String(p.user_id) !== String(AI_USER_ID));
+    const human = rows.find((p) => String(p.id) !== String(AI_USER_ID));
     if (!human) return null;
-    return {
-      id: human.user_id,
-      company_id: human.company_id,
-      role: human.role,
-      name: human.name,
-      email: human.email
-    };
+    return human;
   } catch {
     return null;
   }
@@ -133,13 +128,17 @@ async function handleAIMessage(conversationId, content, io) {
 
   let governanceBlock = '';
   try {
-    const secureCtx = await secureContextBuilder.buildContext(userContext, {
-      companyId,
-      queryText: normalizedMessage.slice(0, 4000)
+    const govPack = await structuralAIGovernance.buildAIGovernancePackage(userContext, {
+      channel: 'chat_impetus',
+      queryText: normalizedMessage.slice(0, 4000),
+      companyId
     });
-    if (secureCtx && typeof secureCtx.context === 'string' && secureCtx.context.trim()) {
-      governanceBlock = secureCtx.context.trim();
-    }
+    const secureCtx = await secureContextBuilder.buildContext(govPack.enrichedUser || userContext, {
+      companyId,
+      queryText: normalizedMessage.slice(0, 4000),
+      channel: 'chat_impetus'
+    });
+    governanceBlock = [govPack.system_append, secureCtx?.context || ''].filter(Boolean).join('\n\n').trim();
   } catch (e) {
     console.warn('[CHAT_LEGACY_FALLBACK][secureContextBuilder]', e?.message ?? e);
   }

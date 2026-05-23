@@ -117,9 +117,25 @@ export function structuralSerializePayload(module, form) {
         decision_frequency: form.decision_frequency || null,
         visible_themes: commonArr('visible_themes'),
         hidden_themes: commonArr('hidden_themes'),
-        escalation_participation_role: form.escalation_participation_role || form.escalation_role || null,
+        escalation_role: (() => {
+          const es = String(form.escalation_participation_role || form.escalation_role || '').trim();
+          return es.length > 80 ? es : form.escalation_role || es || null;
+        })(),
+        escalation_participation_role: (() => {
+          const es = String(form.escalation_participation_role || '').trim();
+          if (!es) return null;
+          return es.length <= 80 ? es : null;
+        })(),
         operation_role: form.operation_role || null,
-        approval_participation_role: form.approval_participation_role || form.approval_role || null,
+        approval_role: (() => {
+          const ap = String(form.approval_participation_role || form.approval_role || '').trim();
+          return ap.length > 80 ? ap : form.approval_role || ap || null;
+        })(),
+        approval_participation_role: (() => {
+          const ap = String(form.approval_participation_role || '').trim();
+          if (!ap) return null;
+          return ap.length <= 80 ? ap : null;
+        })(),
         sensitivity_level: form.sensitivity_level || null,
         access_strategic_data: !!form.access_strategic_data,
         access_financial_data: !!form.access_financial_data,
@@ -130,7 +146,8 @@ export function structuralSerializePayload(module, form) {
         allow_manual_creation: form.allow_manual_creation !== false,
         can_view_other_departments: !!form.can_view_other_departments,
         max_scope_limit: form.max_scope_limit || null,
-        notes: form.notes || null
+        notes: form.notes || null,
+        dashboard_functional_hint: form.dashboard_functional_hint || null
       };
     case 'sectors':
       return {
@@ -374,13 +391,40 @@ function buildSuperiorRoleOptions(refsRoles, listItems, excludeRoleId) {
   );
 }
 
+/** Validação cliente alinhada ao backend (organizationalIdentityEngine). */
+export function validateRoleFormClient(form) {
+  const errors = [];
+  const name = String(form.name || '').trim();
+  if (name.length < 2) {
+    errors.push({ path: 'name', message: 'Nome do cargo é obrigatório (mín. 2 caracteres).' });
+  }
+  const hl = form.hierarchy_level;
+  if (hl === '' || hl === undefined || hl === null) {
+    errors.push({ path: 'hierarchy_level', message: 'Nível hierárquico é obrigatório.' });
+  }
+  if (!form.department_id) {
+    errors.push({
+      path: 'department_id',
+      message: 'Departamento principal é obrigatório (cadastro oficial).'
+    });
+  }
+  if (!form.sector_id) {
+    errors.push({
+      path: 'sector_id',
+      message: 'Setor principal é obrigatório. Cadastre em Setores Oficiais se não existir.'
+    });
+  }
+  return errors;
+}
+
 export function StructuralGenericForm({
   module,
   form,
   refs,
   onChange,
   editingRoleId,
-  roleListItems
+  roleListItems,
+  formErrors = {}
 }) {
   const deptOpts = (refs?.departments || []).map((d) => ({ value: d.id, label: d.name }));
   const lineOpts = (refs?.productionLines || []).map((l) => ({ value: l.id, label: l.name }));
@@ -408,6 +452,7 @@ export function StructuralGenericForm({
         onChange={onChange}
         editingRoleId={editingRoleId}
         roleListItems={roleListItems}
+        formErrors={formErrors}
       />
     ),
     sectors: (

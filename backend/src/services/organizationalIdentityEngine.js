@@ -158,6 +158,28 @@ async function assertSuperiorRole(companyId, superiorId, selfId, hierarchyLevel)
   return { ok: true, row: r.rows[0] };
 }
 
+function truncateVarchar(value, maxLen) {
+  const t = String(value || '').trim();
+  if (!t) return null;
+  return t.length > maxLen ? t.slice(0, maxLen) : t;
+}
+
+/** Separa texto longo (colunas TEXT) de rótulo curto (varchar 80). */
+function splitParticipationFields(shortField, longField, maxLen = 80) {
+  const shortRaw = String(shortField || '').trim();
+  const longRaw = String(longField || '').trim();
+  if (longRaw) {
+    return {
+      longText: longRaw,
+      shortLabel: truncateVarchar(shortRaw, maxLen)
+    };
+  }
+  if (shortRaw.length > maxLen) {
+    return { longText: shortRaw, shortLabel: null };
+  }
+  return { longText: shortRaw || null, shortLabel: shortRaw || null };
+}
+
 function normalizeRoleBody(body) {
   const b = body && typeof body === 'object' ? { ...body } : {};
   const bool = (v, def = false) => {
@@ -195,12 +217,24 @@ function normalizeRoleBody(body) {
     critical_responsibilities: arr(b.critical_responsibilities),
     recommended_permissions: arr(b.recommended_permissions),
     approval_domains: arr(b.approval_domains),
-    approval_participation_role: b.approval_participation_role
-      ? String(b.approval_participation_role).trim()
-      : (b.approval_role ? String(b.approval_role).trim() : null),
-    escalation_participation_role: b.escalation_participation_role
-      ? String(b.escalation_participation_role).trim()
-      : (b.escalation_role ? String(b.escalation_role).trim() : null),
+    ...(() => {
+      const ap = splitParticipationFields(
+        b.approval_participation_role,
+        b.approval_role,
+        80
+      );
+      const es = splitParticipationFields(
+        b.escalation_participation_role,
+        b.escalation_role,
+        80
+      );
+      return {
+        approval_role: ap.longText,
+        approval_participation_role: ap.shortLabel,
+        escalation_role: es.longText,
+        escalation_participation_role: es.shortLabel
+      };
+    })(),
     operation_role: b.operation_role != null ? String(b.operation_role).trim() : null,
     leadership_type: b.leadership_type != null ? String(b.leadership_type).trim() : null,
     communication_profile: b.communication_profile != null

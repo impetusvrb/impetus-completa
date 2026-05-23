@@ -35,6 +35,8 @@ const db = require('../db');
 const chatService = require('./chatService');
 const documentContext = require('./documentContext');
 const { detectAIMention } = require('../utils/mentionsAI');
+const structuralAIGovernance = require('./structuralAIGovernanceService');
+const { enrichUserForDashboardAsync } = require('./structuralUserProfileService');
 
 const AI_USER_ID = chatService.AI_USER_ID;
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
@@ -150,11 +152,27 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       const companyIdResolved =
         conversation?.company_id || ctxEarly.company_id || userRow?.company_id || null;
 
-      const userContext = {
+      let userContext = {
         id: userRow?.user_id ?? null,
         company_id: companyIdResolved,
         role: userRow?.role ?? null
       };
+      if (userRow?.user_id) {
+        try {
+          const full = await db.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [userRow.user_id]);
+          if (full.rows[0]) {
+            userContext = await enrichUserForDashboardAsync(full.rows[0]);
+          }
+        } catch (_enrichErr) {
+          /* mantém contexto mínimo */
+        }
+      }
+      const triadeGov = await structuralAIGovernance.buildAIGovernancePackage(userContext, {
+        channel: 'chat_impetus',
+        queryText: normalizedMessage,
+        companyId: companyIdResolved
+      });
+      userContext = triadeGov.enrichedUser || userContext;
 
       let impetusUnifiedDecision = null;
       if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
@@ -185,7 +203,7 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       }
 
       let contextualData = null;
-      if (typeof retrieveContextualData === 'function' && userContext.company_id) {
+      if (typeof retrieveContextualData === 'function' && userContext.company_id && triadeGov.allow_operational_data) {
         try {
           contextualData = await retrieveContextualData({
             user: userContext,
@@ -366,6 +384,27 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
 
     const lgpdProtocol = documentContext.getImpetusLGPDComplianceProtocol();
     let systemContent = buildLiveChatSystemPrompt(lgpdProtocol);
+
+    const participantsForGov = await loadParticipantRows(conversationId);
+    const humanForGov = participantsForGov.find((p) => String(p.user_id) !== String(AI_USER_ID));
+    if (humanForGov?.user_id) {
+      try {
+        const fullUser = await db.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [humanForGov.user_id]);
+        const enriched = fullUser.rows[0]
+          ? await enrichUserForDashboardAsync(fullUser.rows[0])
+          : null;
+        const govPack = await structuralAIGovernance.buildAIGovernancePackage(enriched || humanForGov, {
+          channel: 'chat_impetus',
+          queryText: normalizedMessage,
+          companyId
+        });
+        if (govPack.system_append) {
+          systemContent = `${systemContent}\n\n${govPack.system_append}`;
+        }
+      } catch (govErr) {
+        console.warn('[CHAT_STRUCTURAL_GOV]', govErr?.message ?? govErr);
+      }
+    }
 
     try {
       const memoryBinding = require('./operational/operationalMemoryBindingService');

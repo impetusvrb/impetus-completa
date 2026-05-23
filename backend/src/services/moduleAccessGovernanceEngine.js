@@ -20,6 +20,7 @@ const orgContextEngine = require('./organizationalContextEngine');
 const orgIdentity = require('./organizationalIdentityEngine');
 const tenantAdminPortalScope = require('./tenantAdminPortalScope');
 const functionalAreaCatalog = require('../config/functionalAreaCatalog');
+const cadastroResolver = require('./structuralCadastroModuleResolver');
 
 const MSG_INCOMPLETE =
   'Módulo indisponível por ausência de configuração estrutural.';
@@ -142,63 +143,13 @@ function _expandToken(token) {
 }
 
 /**
- * Autorização estrutural explícita (cargo + permissões cadastradas — sem inferir por nome).
+ * Autorização apenas pelo cadastro do cargo (Base Estrutural).
  */
 function buildStructuralAuthorizedMenuKeys(ctx) {
-  const keys = new Set();
   const role = ctx.structural_role;
-  const fa = ctx.functional_area;
-
-  if (fa && FUNCTIONAL_AREA_TO_MENU_KEYS[fa]) {
-    for (const k of FUNCTIONAL_AREA_TO_MENU_KEYS[fa]) keys.add(k);
-  }
-
-  const hint = role?.dashboard_functional_hint || ctx.dashboard_functional_hint;
-  if (hint && FUNCTIONAL_AREA_TO_MENU_KEYS[hint]) {
-    for (const k of FUNCTIONAL_AREA_TO_MENU_KEYS[hint]) keys.add(k);
-  }
-
-  const lists = [
-    role?.recommended_permissions,
-    role?.visible_themes,
-    role?.approval_domains
-  ];
-  for (const list of lists) {
-    if (!Array.isArray(list)) continue;
-    for (const item of list) {
-      for (const k of _expandToken(item)) keys.add(k);
-    }
-  }
-
-  if (role?.access_strategic_data === true) {
-    keys.add('audit');
-    keys.add('anomaly_detection');
-    keys.add('operational');
-  }
-  if (role?.access_financial_data === true) {
-    keys.add('financial_intelligence');
-    keys.add('operational');
-    keys.add('anomaly_detection');
-  }
-  if (role?.access_hr_data === true) {
-    keys.add('hr_intelligence');
-    keys.add('operational');
-  }
-  if (role?.access_critical_indicators === true) {
-    keys.add('operational');
-    keys.add('anomaly_detection');
-  }
-
-  const opScope = _normToken(role?.operational_scope);
-  if (opScope === 'estrategico' || opScope === 'corporativo') {
-    keys.add('audit');
-    keys.add('anomaly_detection');
-  }
-  if (opScope === 'operacional' || opScope === 'tatico') {
-    keys.add('operational');
-  }
-
-  return keys;
+  const authorized = cadastroResolver.resolveAuthorizedMenuKeysFromCadastro(role);
+  const blocked = new Set(cadastroResolver.resolveBlockedMenuKeysFromCadastro(role));
+  return authorized.filter((k) => !blocked.has(k));
 }
 
 function getUniversalMenuKeys() {
@@ -242,23 +193,20 @@ async function buildModuleAccessContext(user) {
     );
   }
 
+  const cadastroCheck = cadastroResolver.assessCadastroCompleteness(structuralRole);
   const structuralComplete = !!(
     enrichedUser.company_role_id &&
     structuralRole &&
-    structuralRole.department_id &&
-    structuralRole.sector_id
+    cadastroCheck.structural_complete
   );
 
   const functionalArea =
-    enrichedUser.functional_area ||
     structuralRole?.dashboard_functional_hint ||
-    functionalAreaCatalog.resolveIdFromText(structuralRole?.work_area) ||
+    enrichedUser.functional_area ||
     null;
 
   const authorizedFromStructure = buildStructuralAuthorizedMenuKeys({
-    structural_role: structuralRole,
-    functional_area: functionalArea,
-    dashboard_functional_hint: structuralRole?.dashboard_functional_hint
+    structural_role: structuralRole
   });
 
   const hiddenThemes = new Set(
@@ -282,10 +230,16 @@ async function buildModuleAccessContext(user) {
     organizational_context: orgContext,
     structural_role: structuralRole,
     structural_complete: structuralComplete,
+    cadastro_completeness: cadastroCheck,
     authorized_menu_keys: [...authorizedFromStructure],
     hidden_themes: [...hiddenThemes],
     recommended_permissions: structuralRole?.recommended_permissions || [],
-    issues: orgContext.issues || [],
+    issues: [
+      ...(orgContext.issues || []),
+      ...(cadastroCheck.missing_fields?.length
+        ? [{ code: 'cadastro_incomplete', message: cadastroCheck.message, fields: cadastroCheck.missing_fields }]
+        : [])
+    ],
     warnings: orgContext.warnings || [],
     loaded_at: new Date().toISOString()
   };
@@ -337,7 +291,8 @@ function validateModuleAccess(accessContext, moduleKeyOrId) {
     }
   }
 
-  const hl = ctx.hierarchy_level;
+  let hl = ctx.hierarchy_level;
+  if (hl === 0) hl = 1;
   if (mod?.compatible_levels && hl != null) {
     const min = mod.compatible_levels.min ?? 0;
     const max = mod.compatible_levels.max ?? 5;
@@ -352,7 +307,8 @@ function validateModuleAccess(accessContext, moduleKeyOrId) {
   }
 
   const authorized = new Set(ctx.authorized_menu_keys || []);
-  if (!authorized.has(menuKey)) {
+  const cadastroAuthorizes = authorized.has(menuKey) || authorized.has(key);
+  if (!cadastroAuthorizes) {
     const forbidden = registry.getForbiddenModulesFor(
       ctx.organizational_context?.funcao_organizacional ? 'analise' : 'execucao',
       ctx.functional_area || 'operations'
@@ -416,7 +372,9 @@ function resolveGovernedVisibleModules(accessContext, legacyCandidates = []) {
     const v = validateModuleAccess(ctx, key);
     validations.push({ menu_key: key, ...v });
     if (v.allowed) {
-      allowed.add(key);
+      allowed.add(v.menu_key || key);
+      const authSet = new Set(ctx.authorized_menu_keys || []);
+      if (key !== v.menu_key && authSet.has(key)) allowed.add(key);
     } else {
       denied.push({ menu_key: key, reason: v.reason, code: v.code });
     }
@@ -443,10 +401,21 @@ function resolveGovernedVisibleModules(accessContext, legacyCandidates = []) {
  * Ponto de entrada: utilizador + candidatos legacy → módulos governados.
  */
 async function resolveForUser(user, legacyCandidates = []) {
-  const ctx = await buildModuleAccessContext(user);
-  ctx.is_tenant_admin = user?.is_tenant_admin;
-  ctx.dashboard_profile = user?.dashboard_profile;
-  const out = resolveGovernedVisibleModules(ctx, legacyCandidates);
+  let enriched = user;
+  try {
+    const structuralSvc = require('./structuralUserProfileService');
+    enriched = await structuralSvc.enrichUserForDashboardAsync(user);
+  } catch (_) {
+    enriched = user;
+  }
+
+  const ctx = await buildModuleAccessContext(enriched);
+  ctx.is_tenant_admin = enriched?.is_tenant_admin;
+  ctx.dashboard_profile = enriched?.dashboard_profile;
+
+  const candidates = [...new Set([...(ctx.authorized_menu_keys || [])])];
+
+  const out = resolveGovernedVisibleModules(ctx, candidates);
 
   return {
     visible_modules: out.visible_modules,
@@ -468,7 +437,10 @@ async function resolveForUser(user, legacyCandidates = []) {
       denied: out.denied,
       governance_message: out.governance_message,
       validations_count: out.validations.length,
-      denied_count: out.denied.length
+      denied_count: out.denied.length,
+      allowed_count: out.visible_modules.length,
+      cadastro_fiel: true,
+      cadastro_completeness: ctx.cadastro_completeness || null
     },
     denied: out.denied,
     context: ctx
