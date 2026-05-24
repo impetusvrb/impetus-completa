@@ -57,6 +57,12 @@ frontend/dist/
 
 # Snapshots locais de dist (rollback manual de build — não versionar)
 frontend/dist.prev.*/
+frontend/dist_backup_*/
+
+# Backups locais e dados de runtime (não versionar — centenas de MB)
+backups/
+backend/backups/
+backend/data/
 
 # Logs e arquivos temporários
 *.log
