@@ -9,9 +9,15 @@ export const SMART_PANEL_VOICE_EVENT = 'impetus-smart-panel-command';
 
 /** Registado por useSmartPanel (voiceMode) para o motor executar imprimir/PDF/enviar chat antes do LLM. */
 let voicePanelMetaHandler = null;
+/** Comando direto ao painel (modo Anam — evita perder eventos CustomEvent). */
+let anamPanelCommandHandler = null;
 
 export function registerVoicePanelMetaHandler(fn) {
   voicePanelMetaHandler = typeof fn === 'function' ? fn : null;
+}
+
+export function registerAnamPanelCommandHandler(fn) {
+  anamPanelCommandHandler = typeof fn === 'function' ? fn : null;
 }
 
 /**
@@ -42,6 +48,34 @@ export function dispatchSmartPanelVoiceCommand(text) {
   const intent = inferVoiceVisualIntent(t);
   if (intent == null && t.length < 12) return;
   window.dispatchEvent(new CustomEvent(SMART_PANEL_VOICE_EVENT, { detail: { text: t } }));
+}
+
+function shouldAnamTriggerPanel(t) {
+  if (parsePanelVoiceMetaCommand(t)) return true;
+  if (t.length < 4) return false;
+  if (inferVoiceVisualIntent(t) != null) return true;
+  return (
+    t.length >= 6 &&
+    /\b(mostra|exibe|gera|gere|cria|crie|painel|grafico|gráfico|kpi|relatorio|relatório|dashboard|exporta|pdf|excel|manutenc|manutenção|producao|produção|indicador|metrica|métrica|numeros|números|resumo|tabela)\b/i.test(
+      t
+    )
+  );
+}
+
+function fireAnamPanelCommand(t) {
+  if (anamPanelCommandHandler) {
+    void anamPanelCommandHandler(t);
+    return;
+  }
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(SMART_PANEL_VOICE_EVENT, { detail: { text: t, source: 'anam' } }));
+}
+
+/** Modo Anam: envia ao SmartPanel quando há pedido visual (filtro mais largo que o Realtime). */
+export function dispatchAnamPanelVoiceCommand(text) {
+  const t = String(text || '').trim();
+  if (!shouldAnamTriggerPanel(t)) return;
+  fireAnamPanelCommand(t);
 }
 
 /**

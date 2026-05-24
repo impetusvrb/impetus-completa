@@ -672,6 +672,22 @@
   min-height: 140px;
   border-radius: 8px;
   background: radial-gradient(ellipse 75% 55% at 50% 45%, rgba(0, 170, 255, 0.07), transparent 72%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.smart-panel__visual-hint {
+  margin: 0;
+  max-width: 22rem;
+  text-align: center;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, rgba(140, 180, 210, 0.75));
 }
 
 .smart-panel__export--icons {

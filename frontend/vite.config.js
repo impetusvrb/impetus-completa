@@ -151,10 +151,15 @@ function htmlNoCachePlugin() {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  const anamPrimary =
+    env.VITE_ANAM_PRIMARY === undefined ||
+    !/^(false|0|off)$/i.test(String(env.VITE_ANAM_PRIMARY).trim());
   const voiceRealtime =
     env.VITE_VOICE_REALTIME !== undefined && String(env.VITE_VOICE_REALTIME).trim() !== ''
       ? String(env.VITE_VOICE_REALTIME).trim()
-      : 'true';
+      : anamPrimary
+        ? 'false'
+        : 'true';
   const realtimeMeeting =
     env.VITE_REALTIME_MEETING !== undefined && String(env.VITE_REALTIME_MEETING).trim() !== ''
       ? String(env.VITE_REALTIME_MEETING).trim()
@@ -253,6 +258,9 @@ export default defineConfig(({ mode }) => {
   define: {
     'import.meta.env.VITE_VOICE_REALTIME': JSON.stringify(voiceRealtime),
     'import.meta.env.VITE_REALTIME_MEETING': JSON.stringify(realtimeMeeting),
+    'import.meta.env.VITE_ANAM_PRIMARY': JSON.stringify(
+      env.VITE_ANAM_PRIMARY !== undefined ? String(env.VITE_ANAM_PRIMARY).trim() : 'true'
+    ),
   },
 };
 });

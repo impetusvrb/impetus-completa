@@ -34,7 +34,13 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+function isAnamPrimaryVoice() {
+  const v = String(import.meta.env.VITE_ANAM_PRIMARY ?? 'true').trim().toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'off';
+}
+
 function isVoiceRealtimeEnabled() {
+  if (isAnamPrimaryVoice()) return false;
   const v = String(import.meta.env.VITE_VOICE_REALTIME || '').trim().toLowerCase();
   return v === 'true' || v === '1';
 }
@@ -635,6 +641,7 @@ export function useVoiceEngine(options = {}) {
   const triggerDidAvatarRef = useRef(null);
 
   const triggerDidAvatar = useCallback((rawText) => {
+    if (isAnamPrimaryVoice()) return;
     if (!isDidAvatarEnabled()) return;
     // Imagem animada pela D-ID: didAvatarSourceUrl() → env ou /impetus-did-source.jpg no mesmo site.
     const src = didAvatarSourceUrl();
@@ -1524,6 +1531,26 @@ export function useVoiceEngine(options = {}) {
 
     continuousRef.current = true;
     failStreakRef.current = 0;
+
+    if (isAnamPrimaryVoice()) {
+      setVoiceState((s) => ({
+        ...s,
+        isActive: true,
+        isContinuous: true,
+        isRealtimeMode: false,
+        status: 'listening',
+        lastAlert: null,
+        currentTranscript: '',
+        voicePanelUserText: '',
+        voicePanelAssistantText: '',
+        voicePanelVisual: null,
+        didAvatarVideoUrl: null,
+        didAvatarPending: false,
+        didAvatarReplay: false
+      }));
+      showBadge('Avatar Anam · ao vivo');
+      return;
+    }
 
     if (isVoiceRealtimeEnabled()) {
       try {

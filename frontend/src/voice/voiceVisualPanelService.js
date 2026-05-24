@@ -42,6 +42,7 @@ export function inferVoiceVisualIntent(text) {
     return 'maintenance';
   if (/\b(cerebro|cérebro|inteligencia operacional|operacional brain|brain)\b/.test(t)) return 'operational_brain';
   if (/\b(indicador|kpi|kpis|painel|numeros|números|metricas|métricas)\b/.test(t)) return 'summary_bar';
+  if (/\b(mostra|exibe|gera|gere|cria|crie)\b/.test(t) && t.length >= 6) return 'summary_bar';
   if (
     /\b(mostrar|exibir)\b/.test(t) &&
     t.length > 14 &&

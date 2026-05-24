@@ -12,7 +12,8 @@
  *   attachRealtimeOpenaiProxy(httpServer, { avatarLipsyncNamespace: avatarNsp });
  *
  * .env: IMPETUS_REALTIME_PROXY_ENABLED=true, OPENAI_API_KEY=sk-...
- * Opcional: OPENAI_REALTIME_MODEL=gpt-4o-realtime-preview, IMPETUS_REALTIME_WS_PATH=/impetus-realtime
+ * Opcional: OPENAI_REALTIME_MODEL=gpt-realtime, IMPETUS_REALTIME_WS_PATH=/impetus-realtime
+ * GA: não definir OPENAI_REALTIME_BETA (cabeçalho beta descontinuado).
  *
  * Wav2Lip (somente com proxy — o áudio só passa no servidor aqui):
  *   IMPETUS_REALTIME_LIPSYNC_ENABLED=true
@@ -44,8 +45,25 @@ function isProxyEnabled() {
 
 function defaultModel() {
   return (
-    String(process.env.OPENAI_REALTIME_MODEL || '').trim() || 'gpt-4o-realtime-preview'
+    String(process.env.OPENAI_REALTIME_MODEL || '').trim() || 'gpt-realtime'
   );
+}
+
+/**
+ * Cabeçalhos para upstream OpenAI Realtime GA (wss://api.openai.com/v1/realtime).
+ * Não enviar OpenAI-Beta: realtime=v1 — a API beta foi descontinuada e devolve erro explícito.
+ * @param {string} apiKey
+ * @returns {Record<string, string>}
+ */
+function buildRealtimeUpstreamHeaders(apiKey) {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`
+  };
+  const beta = String(process.env.OPENAI_REALTIME_BETA || '').trim();
+  if (beta) {
+    headers['OpenAI-Beta'] = beta;
+  }
+  return headers;
 }
 
 /**
@@ -143,10 +161,7 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
       );
 
       const upstream = new WebSocket(upstreamUrl, {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'OpenAI-Beta': 'realtime=v1'
-        }
+        headers: buildRealtimeUpstreamHeaders(apiKey)
       });
 
       const cleanup = () => {
@@ -256,10 +271,40 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
 
       upstream.on('error', (err) => {
         console.error('[realtime-proxy] upstream', err.message);
+        if (clientWs.readyState === WebSocket.OPEN) {
+          try {
+            clientWs.send(
+              JSON.stringify({
+                type: 'error',
+                error: { message: err.message || 'Erro upstream Realtime' }
+              })
+            );
+          } catch (_) {}
+        }
+        cleanup();
+      });
+
+      upstream.on('close', (code, reason) => {
+        const reasonText = Buffer.isBuffer(reason)
+          ? reason.toString('utf8')
+          : String(reason || '');
+        if (
+          clientWs.readyState === WebSocket.OPEN &&
+          reasonText &&
+          !cleaned
+        ) {
+          try {
+            clientWs.send(
+              JSON.stringify({
+                type: 'error',
+                error: { message: reasonText, code }
+              })
+            );
+          } catch (_) {}
+        }
         cleanup();
       });
       clientWs.on('error', () => cleanup());
-      upstream.on('close', cleanup);
       clientWs.on('close', cleanup);
     });
   });
@@ -285,5 +330,6 @@ module.exports = {
   isProxyEnabled,
   DEFAULT_PATH,
   isLipsyncEnabled,
-  realtimeEgressGuard
+  realtimeEgressGuard,
+  buildRealtimeUpstreamHeaders
 };

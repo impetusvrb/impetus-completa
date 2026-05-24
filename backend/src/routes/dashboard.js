@@ -913,6 +913,7 @@ router.get('/me', requireAuth, async (req, res) => {
       console.warn('[OPERATIONAL_CONVERGENCE_Z17]', z17Err?.message ?? z17Err);
     }
 
+    let _cognitiveAuthorityC01 = null;
     let _cognitiveRuntimeZ18 = null;
     try {
       const z18 = require('../cognitiveRuntime/facade/cognitiveRuntimeFacade');
@@ -1067,6 +1068,216 @@ router.get('/me', requireAuth, async (req, res) => {
       }
     } catch (z18Err) {
       console.warn('[COGNITIVE_RUNTIME_Z18]', z18Err?.message ?? z18Err);
+    }
+
+    try {
+      const c01 = require('../cognitiveRuntime/consolidation/reporting/cognitiveAuthorityConsolidationFacade');
+      const authOut = c01.applyCognitiveAuthorityConsolidation(user, legacyResponse, {
+        cognitive_runtime_report: _cognitiveRuntimeZ18,
+        profile: legacyResponse.profile_code,
+        structural_complete: legacyResponse.module_access_governance?.structural_complete
+      });
+      if (authOut.payload?.cognitive_authority_runtime) {
+        legacyResponse.cognitive_authority_runtime = authOut.payload.cognitive_authority_runtime;
+        _cognitiveAuthorityC01 = authOut.report;
+      }
+      if (authOut.payload?.cognitive_authority_map) {
+        legacyResponse.cognitive_authority_map = authOut.payload.cognitive_authority_map;
+      }
+      if (authOut.payload?.cognitive_consolidation_observability) {
+        legacyResponse.cognitive_consolidation_observability = authOut.payload.cognitive_consolidation_observability;
+      }
+    } catch (c01Err) {
+      console.warn('[COGNITIVE_AUTHORITY_C01]', c01Err?.message ?? c01Err);
+    }
+
+    try {
+      const c2facade = require('../cognitiveRuntime/convergence/reporting/cognitiveConvergenceFacade');
+      const c2out = c2facade.applyCognitiveConvergence(user, legacyResponse, {
+        cognitive_runtime_report: _cognitiveRuntimeZ18,
+        authority_report: _cognitiveAuthorityC01,
+        profile: legacyResponse.profile_code,
+        structural_complete: legacyResponse.module_access_governance?.structural_complete
+      });
+      if (c2out.payload?.cognitive_convergence_runtime) {
+        legacyResponse.cognitive_convergence_runtime = c2out.payload.cognitive_convergence_runtime;
+      }
+      if (c2out.payload?.quality_authority_runtime) {
+        legacyResponse.quality_authority_runtime = c2out.payload.quality_authority_runtime;
+      }
+      if (c2out.payload?.operational_context_runtime) {
+        legacyResponse.operational_context_runtime = c2out.payload.operational_context_runtime;
+      }
+      if (c2out.payload?.operational_memory_runtime) {
+        legacyResponse.operational_memory_runtime = c2out.payload.operational_memory_runtime;
+      }
+      if (c2out.payload?.inference_validation_runtime) {
+        legacyResponse.inference_validation_runtime = c2out.payload.inference_validation_runtime;
+      }
+      if (c2out.payload?.event_density_runtime) {
+        legacyResponse.event_density_runtime = c2out.payload.event_density_runtime;
+      }
+      if (c2out.payload?.fallback_reduction_runtime) {
+        legacyResponse.fallback_reduction_runtime = c2out.payload.fallback_reduction_runtime;
+      }
+      if (c2out.payload?.cognitive_convergence_metrics) {
+        legacyResponse.cognitive_convergence_metrics = c2out.payload.cognitive_convergence_metrics;
+      }
+    } catch (c2Err) {
+      console.warn('[COGNITIVE_CONVERGENCE_C2]', c2Err?.message ?? c2Err);
+    }
+
+    try {
+      const c3facade = require('../cognitiveRuntime/c3/cognitiveC3Facade');
+      const c3out = c3facade.applyCognitiveC3Intelligence(user, legacyResponse, {
+        profile: legacyResponse.profile_code,
+        cognitive_runtime_report: _cognitiveRuntimeZ18
+      });
+      if (c3out.payload?.production_operational_graph_runtime) {
+        legacyResponse.production_operational_graph_runtime = c3out.payload.production_operational_graph_runtime;
+      }
+      if (c3out.payload?.operational_economic_runtime) {
+        legacyResponse.operational_economic_runtime = c3out.payload.operational_economic_runtime;
+      }
+      if (c3out.payload?.economic_pressure_runtime) {
+        legacyResponse.economic_pressure_runtime = c3out.payload.economic_pressure_runtime;
+      }
+      if (c3out.payload?.real_confidence_runtime) {
+        legacyResponse.real_confidence_runtime = c3out.payload.real_confidence_runtime;
+      }
+      if (c3out.payload?.cognitive_utility_runtime) {
+        legacyResponse.cognitive_utility_runtime = c3out.payload.cognitive_utility_runtime;
+      }
+      if (c3out.payload?.cognitive_trust_runtime) {
+        legacyResponse.cognitive_trust_runtime = c3out.payload.cognitive_trust_runtime;
+      }
+      if (c3out.payload?.production_bottleneck_runtime) {
+        legacyResponse.production_bottleneck_runtime = c3out.payload.production_bottleneck_runtime;
+      }
+      if (c3out.payload?.cognitive_c3_summary) {
+        legacyResponse.cognitive_c3_summary = c3out.payload.cognitive_c3_summary;
+      }
+    } catch (c3Err) {
+      console.warn('[COGNITIVE_C3]', c3Err?.message ?? c3Err);
+    }
+
+    try {
+      const c4facade = require('../cognitiveRuntime/c4/cognitiveC4Facade');
+      const c4out = c4facade.applyCognitiveC4ProductionAuthority(user, legacyResponse, {
+        profile: legacyResponse.profile_code,
+        cognitive_runtime_report: _cognitiveRuntimeZ18
+      });
+      if (c4out.payload?.production_authority_runtime) {
+        legacyResponse.production_authority_runtime = c4out.payload.production_authority_runtime;
+      }
+      if (c4out.payload?.production_frontend_convergence) {
+        legacyResponse.production_frontend_convergence = c4out.payload.production_frontend_convergence;
+      }
+      if (c4out.payload?.production_delivery_certification) {
+        legacyResponse.production_delivery_certification = c4out.payload.production_delivery_certification;
+      }
+      if (c4out.payload?.operational_truth_runtime) {
+        legacyResponse.operational_truth_runtime = c4out.payload.operational_truth_runtime;
+      }
+      if (c4out.payload?.economic_truth_runtime) {
+        legacyResponse.economic_truth_runtime = c4out.payload.economic_truth_runtime;
+      }
+      if (c4out.payload?.executive_alignment_runtime) {
+        legacyResponse.executive_alignment_runtime = c4out.payload.executive_alignment_runtime;
+      }
+      if (c4out.payload?.cognitive_c4_summary) {
+        legacyResponse.cognitive_c4_summary = c4out.payload.cognitive_c4_summary;
+      }
+    } catch (c4Err) {
+      console.warn('[COGNITIVE_C4]', c4Err?.message ?? c4Err);
+    }
+
+    try {
+      const c5facade = require('../cognitiveRuntime/c5/cognitiveC5Facade');
+      const c5out = c5facade.applyCognitiveC5Stability(user, legacyResponse, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code
+      });
+      if (c5out.payload?.runtime_integrity_runtime) {
+        legacyResponse.runtime_integrity_runtime = c5out.payload.runtime_integrity_runtime;
+      }
+      if (c5out.payload?.cognitive_pressure_runtime) {
+        legacyResponse.cognitive_pressure_runtime = c5out.payload.cognitive_pressure_runtime;
+      }
+      if (c5out.payload?.runtime_stability_runtime) {
+        legacyResponse.runtime_stability_runtime = c5out.payload.runtime_stability_runtime;
+      }
+      if (c5out.payload?.tenant_isolation_runtime) {
+        legacyResponse.tenant_isolation_runtime = c5out.payload.tenant_isolation_runtime;
+      }
+      if (c5out.payload?.runtime_drift_runtime) {
+        legacyResponse.runtime_drift_runtime = c5out.payload.runtime_drift_runtime;
+      }
+      if (c5out.payload?.cognitive_c5_summary) {
+        legacyResponse.cognitive_c5_summary = c5out.payload.cognitive_c5_summary;
+      }
+    } catch (c5Err) {
+      console.warn('[COGNITIVE_C5]', c5Err?.message ?? c5Err);
+    }
+
+    try {
+      const c6facade = require('../cognitiveRuntime/c6/cognitiveC6Facade');
+      const c6out = c6facade.applyCognitiveC6AuthorityUnification(user, legacyResponse, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code,
+        cognitive_runtime_report: _cognitiveRuntimeZ18
+      });
+      if (c6out.payload?.cognitive_sovereignty_runtime) {
+        legacyResponse.cognitive_sovereignty_runtime = c6out.payload.cognitive_sovereignty_runtime;
+      }
+      if (c6out.payload?.runtime_authority_unification) {
+        legacyResponse.runtime_authority_unification = c6out.payload.runtime_authority_unification;
+      }
+      if (c6out.payload?.engine_v2_retirement_runtime) {
+        legacyResponse.engine_v2_retirement_runtime = c6out.payload.engine_v2_retirement_runtime;
+      }
+      if (c6out.payload?.motor_a_fallback_runtime) {
+        legacyResponse.motor_a_fallback_runtime = c6out.payload.motor_a_fallback_runtime;
+      }
+      if (c6out.payload?.frontend_authority_runtime) {
+        legacyResponse.frontend_authority_runtime = c6out.payload.frontend_authority_runtime;
+      }
+      if (c6out.payload?.governance_consolidation_runtime) {
+        legacyResponse.governance_consolidation_runtime = c6out.payload.governance_consolidation_runtime;
+      }
+      if (c6out.payload?.cognitive_c6_summary) {
+        legacyResponse.cognitive_c6_summary = c6out.payload.cognitive_c6_summary;
+      }
+    } catch (c6Err) {
+      console.warn('[COGNITIVE_C6]', c6Err?.message ?? c6Err);
+    }
+
+    try {
+      const sz1 = require('../runtime-z-sovereign/facade/zSovereignFacade');
+      const sovOut = await sz1.applySovereignZRuntime(user, legacyResponse, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code,
+        hierarchy_scope: scope
+      });
+      if (sovOut?.payload?.runtime_z_sovereign) {
+        legacyResponse.runtime_z_sovereign = sovOut.payload.runtime_z_sovereign;
+      }
+    } catch (sz1Err) {
+      console.warn('[SOVEREIGN_Z]', sz1Err?.message ?? sz1Err);
+    }
+
+    try {
+      const sz2 = require('../runtime-z-cognitive-os/facade/zCognitiveOperatingSystemFacade');
+      const cogOut = sz2.applyCognitiveOperatingSystem(user, legacyResponse, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code,
+        message: ''
+      });
+      if (cogOut?.payload?.runtime_z_cognitive_os) {
+        legacyResponse.runtime_z_cognitive_os = cogOut.payload.runtime_z_cognitive_os;
+      }
+    } catch (sz2Err) {
+      console.warn('[COGNITIVE_OS_Z]', sz2Err?.message ?? sz2Err);
     }
 
     try {

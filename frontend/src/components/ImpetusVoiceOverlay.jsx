@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { X } from 'lucide-react';
-import ImpetusAvatarLive from './ImpetusAvatarLive';
+import VoiceAvatarExternalSlot from './VoiceAvatarExternalSlot';
 import SmartPanel from '../features/smartPanel/SmartPanel';
 import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import './ImpetusVoiceOverlay.css';
@@ -23,20 +23,19 @@ export default function ImpetusVoiceOverlay({
   open,
   status,
   bargeInFlash,
-  mouthState,
-  videoLipSyncRef = null,
-  didAvatarVideoUrl = null,
-  didAvatarReplay = false,
   realtimeMode = false,
   onClose,
-  voiceAvatarAnimationEnabled = true,
-  voiceAvatarControlRef = null,
+  /** Ref do slot Anam (vídeo WebRTC) */
+  anamSlotRef = null,
+  anamEnabled = false,
+  anamStreaming = false,
+  anamAlert = null,
+  anamStatus = 'idle',
   /** Realtime Presence Engine — estado de expressão decidido pelo IMPETUS (Akool só executa) */
   presenceExpression = null,
   presencePerceptionState = null,
   presenceAkoolReady = false
 }) {
-  const passLipSync = videoLipSyncRef;
   const { toggleVoice, voiceState, wakePhraseIssue } = useImpetusVoice();
 
   const liveHint = () => {
@@ -50,6 +49,10 @@ export default function ImpetusVoiceOverlay({
       return 'Toque na avatar para ATIVAR o microfone (ou diga «Ok Impetus» fora deste painel)';
     }
     const lab = statusLabel(status, realtimeMode);
+    if (anamEnabled) {
+      if (anamStreaming) return 'Fale com a persona Anam…';
+      if (anamStatus === 'connecting' || anamStatus === 'checking') return 'A ligar Anam…';
+    }
     if (lab === 'PRONTA') return 'A ligar escuta…';
     if (lab === 'OUVINDO…' || (realtimeMode && status === 'listening')) return 'OUVINDO COMANDO……';
     return lab;
@@ -114,25 +117,20 @@ export default function ImpetusVoiceOverlay({
                 }
                 aria-pressed={voiceState.isContinuous}
               >
-                <ImpetusAvatarLive
-                  state={avatarState}
-                  mouthState={mouthState}
+                <VoiceAvatarExternalSlot
                   size={344}
-                  immersiveVoice
-                  videoLipSyncRef={passLipSync}
-                  didVideoUrl={didAvatarVideoUrl}
-                  didReplayOverlay={didAvatarReplay}
-                  didPrimarySpeaking={false}
-                  voiceAvatarAnimationEnabled={voiceAvatarAnimationEnabled}
-                  voiceAvatarControlRef={voiceAvatarControlRef}
+                  state={avatarState}
+                  slotRef={anamSlotRef}
+                  anamStatus={anamStatus}
+                  anamStreaming={anamStreaming}
                 />
               </button>
             </div>
 
             <div className="impetus-voice-overlay__command-card">
-              {voiceState.lastAlert && (
+              {(anamAlert || voiceState.lastAlert) && (
                 <p className="impetus-voice-overlay__alert" role="alert">
-                  {voiceState.lastAlert}
+                  {anamAlert || voiceState.lastAlert}
                 </p>
               )}
               <div className="impetus-voice-overlay__listening-bar">
@@ -151,8 +149,10 @@ export default function ImpetusVoiceOverlay({
                   ))}
                 </div>
               </div>
-              {status === 'listening' && (
-                <p className="impetus-voice-overlay__listening-caption">ouvindo</p>
+              {(status === 'listening' || anamStatus === 'connecting' || anamStreaming) && (
+                <p className="impetus-voice-overlay__listening-caption">
+                  {anamStreaming ? 'anam · ao vivo' : anamStatus === 'connecting' ? 'a ligar anam' : 'ouvindo'}
+                </p>
               )}
               {(presenceExpression || presencePerceptionState) && (
                 <p className="impetus-voice-overlay__presence" aria-live="polite">

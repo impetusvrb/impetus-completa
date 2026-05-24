@@ -202,7 +202,13 @@ export default function SmartPanel({
               <DynamicPanelRenderer output={currentOutput} className="smart-panel__dynamic" visualOnly />
             )
           ) : !loading ? (
-            <div className="smart-panel__visual-placeholder" aria-hidden />
+            <div className="smart-panel__visual-placeholder" aria-hidden>
+              {micActive && (
+                <p className="smart-panel__visual-hint">
+                  Peça em voz: «mostra KPIs no painel», «gráfico de produção» ou «relatório PDF».
+                </p>
+              )}
+            </div>
           ) : null}
         </div>
       </div>

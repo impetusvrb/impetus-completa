@@ -14,10 +14,12 @@ import { handleVoiceAlert } from '../services/voiceAlertManager';
 import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
 import { useRealtimePresenceBridge } from '../realtimePresence/useRealtimePresenceBridge';
+import { useAnamAvatar } from '../hooks/useAnamAvatar';
 
 export default function ImpetusVoiceProvider({ children }) {
   const location = useLocation();
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [anamAlert, setAnamAlert] = useState(null);
   const [alertMinPriority, setAlertMinPriority] = useState('P2');
   const [autoSpeakResponses, setAutoSpeakResponses] = useState(true);
   const alertsSeenRef = useRef(new Set());
@@ -150,6 +152,28 @@ export default function ImpetusVoiceProvider({ children }) {
     debounceMs: 320,
     enabled: presenceBridgeEnabled
   });
+
+  const anamActive = overlayOpen && voiceEnabled;
+  const onAnamError = useCallback((msg) => {
+    setAnamAlert(String(msg || 'Avatar Anam indisponível.'));
+  }, []);
+  const onAnamReady = useCallback(() => {
+    setAnamAlert(null);
+  }, []);
+  const {
+    slotRef: anamSlotRef,
+    enabled: anamEnabled,
+    streaming: anamStreaming,
+    status: anamStatus
+  } = useAnamAvatar({
+    active: anamActive,
+    onError: onAnamError,
+    onReady: onAnamReady
+  });
+
+  useEffect(() => {
+    if (!overlayOpen) setAnamAlert(null);
+  }, [overlayOpen]);
 
   // Preferências (voz/velocidade + alertas)
   useEffect(() => {
@@ -394,11 +418,12 @@ export default function ImpetusVoiceProvider({ children }) {
         open={overlayOpen}
         status={voiceState.status}
         bargeInFlash={voiceState.bargeInFlash}
-        mouthState={ttsUi?.mouthState}
-        videoLipSyncRef={videoLipSyncRef}
-        didAvatarVideoUrl={voiceState.didAvatarVideoUrl}
-        didAvatarReplay={voiceState.didAvatarReplay}
         realtimeMode={voiceState.isRealtimeMode}
+        anamSlotRef={anamSlotRef}
+        anamStreaming={anamStreaming}
+        anamEnabled={anamEnabled}
+        anamAlert={anamAlert}
+        anamStatus={anamStatus}
         presenceExpression={presenceBridge.enabled ? presenceBridge.expressionLabel : null}
         presencePerceptionState={presenceBridge.enabled ? presenceBridge.perception?.perception_state : null}
         presenceAkoolReady={presenceBridge.enabled ? presenceBridge.akoolConfigured : false}

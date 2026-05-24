@@ -108,6 +108,9 @@ function handleFinalError(error) {
   if (error.response?.status === 401 && !isProacaoRequest && !isLoginRequest) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
+    import('./anamSessionSingleton')
+      .then((m) => m.stopAnamStreamNow())
+      .catch(() => {});
     window.location.href = '/';
   }
   if (error.response?.status === 403 && error.response?.data?.code === 'LICENSE_INVALID') {
@@ -248,6 +251,18 @@ export const realtimePresence = {
   perceive: (body) => api.post('/realtime-presence/perceive', body),
   render: (body) => api.post('/realtime-presence/render', body),
   session: (body) => api.post('/realtime-presence/session', body)
+};
+
+// ============================================================================
+// ANAM — avatar vídeo em tempo real (persona Anam Lab)
+// ============================================================================
+
+export const anam = {
+  /** Sem JWT — só indica se ANAM_API_KEY está no servidor */
+  getPublicConfig: () => api.get('/anam/public-config'),
+  getConfig: () => api.get('/anam/config'),
+  prepareSession: () => api.post('/anam/prepare'),
+  createSessionToken: (body) => api.post('/anam/session-token', body || {})
 };
 
 // ============================================================================

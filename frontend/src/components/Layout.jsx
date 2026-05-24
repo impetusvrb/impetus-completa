@@ -655,6 +655,10 @@ export default function Layout({ children }) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     try {
+      const { stopAnamStreamNow } = await import('../services/anamSessionSingleton');
+      await stopAnamStreamNow();
+    } catch (_) {}
+    try {
       sessionStorage.removeItem('impetus_factory_operator_gate');
     } catch (_) {}
     // Enterprise Hardening Bloco 8 (M9): fechar socket de chat antes de

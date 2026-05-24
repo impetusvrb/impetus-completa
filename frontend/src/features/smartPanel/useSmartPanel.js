@@ -7,7 +7,8 @@ import {
   SMART_PANEL_VOICE_EVENT,
   CLAUDE_PANEL_BRIDGE_EVENT,
   dispatchSmartPanelContextUpdated,
-  registerVoicePanelMetaHandler
+  registerVoicePanelMetaHandler,
+  registerAnamPanelCommandHandler
 } from './smartPanelEvents';
 import { dashboard } from '../../services/api';
 import { useNotification } from '../../context/NotificationContext';
@@ -225,6 +226,28 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
     try {
       const out = await processPanelCommand(text);
       if (!hasRenderableSignal(out)) {
+        if (voiceMode && inferVoiceVisualIntent(text)) {
+          try {
+            const vis = await buildVoicePanelVisual(text);
+            if (vis && (vis.kind === 'empty' || vis.kind === 'chart' || vis.kind === 'table' || vis.kind === 'mixed')) {
+              const legacyOut = {
+                permissionGranted: true,
+                type: 'legacy_voice_visual',
+                title: vis.title || 'Painel por voz',
+                legacyVisual: vis,
+                exportOptions: vis.kind === 'empty' ? [] : ['excel', 'pdf', 'print']
+              };
+              if (vis.kind !== 'empty' || vis.hint) {
+                setCurrentOutput(legacyOut);
+                setHistory((h) => {
+                  const next = [{ input: text, output: legacyOut, at: Date.now() }, ...h];
+                  return next.slice(0, HISTORY_MAX);
+                });
+                return;
+              }
+            }
+          } catch (_) {}
+        }
         setCurrentOutput(null);
         setError(null);
         return;
@@ -283,7 +306,7 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
     } finally {
       setLoading(false);
     }
-  }, [clearPanel]);
+  }, [clearPanel, voiceMode]);
 
   const sendCommand = useCallback(
     async (raw) => {
@@ -391,11 +414,21 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
   useEffect(() => {
     if (!voiceMode) {
       registerVoicePanelMetaHandler(null);
+      registerAnamPanelCommandHandler(null);
       return;
     }
     registerVoicePanelMetaHandler(tryVoiceMetaCommand);
-    return () => registerVoicePanelMetaHandler(null);
-  }, [voiceMode, tryVoiceMetaCommand]);
+    registerAnamPanelCommandHandler(async (text) => {
+      const t = String(text || '').trim();
+      if (!t) return;
+      if (await tryVoiceMetaCommand(t)) return;
+      void sendCommand(t);
+    });
+    return () => {
+      registerVoicePanelMetaHandler(null);
+      registerAnamPanelCommandHandler(null);
+    };
+  }, [voiceMode, tryVoiceMetaCommand, sendCommand]);
 
   useEffect(() => {
     if (!voiceMode) return;

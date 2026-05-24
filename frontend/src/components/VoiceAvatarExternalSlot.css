@@ -1,0 +1,93 @@
+.voice-avatar-external-slot {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.voice-avatar-external-slot__placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, rgba(0, 212, 255, 0.45));
+  text-align: center;
+  padding: 0 1rem;
+  line-height: 1.45;
+  pointer-events: none;
+  user-select: none;
+}
+
+.voice-avatar-external-slot__mount {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(0, 212, 255, 0.06) 0%,
+    rgba(7, 12, 20, 0.92) 55%,
+    rgba(5, 10, 18, 0.98) 100%
+  );
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  box-shadow:
+    inset 0 0 48px rgba(0, 170, 255, 0.08),
+    0 0 28px rgba(0, 170, 255, 0.12);
+}
+
+/* Vídeo Anam — acima do fundo, preenche o círculo */
+.voice-avatar-external-slot__mount .voice-avatar-external-slot__anam-video,
+.voice-avatar-external-slot__mount video#impetus-anam-shared-video {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 50%;
+  display: block;
+  background: #070c14;
+  opacity: 1;
+  visibility: visible;
+}
+
+.voice-avatar-external-slot__mount canvas,
+.voice-avatar-external-slot__mount iframe {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.voice-avatar-external-slot--listening .voice-avatar-external-slot__mount {
+  border-color: rgba(0, 255, 136, 0.45);
+  box-shadow:
+    inset 0 0 40px rgba(0, 255, 136, 0.06),
+    0 0 32px rgba(0, 255, 136, 0.18);
+}
+
+.voice-avatar-external-slot--speaking .voice-avatar-external-slot__mount {
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow:
+    inset 0 0 40px rgba(0, 212, 255, 0.1),
+    0 0 36px rgba(0, 212, 255, 0.22);
+}
+
+.voice-avatar-external-slot--processing .voice-avatar-external-slot__mount {
+  border-color: rgba(255, 170, 0, 0.4);
+  box-shadow:
+    inset 0 0 40px rgba(255, 170, 0, 0.06),
+    0 0 28px rgba(255, 170, 0, 0.14);
+}

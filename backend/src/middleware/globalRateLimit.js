@@ -12,6 +12,14 @@ function skipWebhookAndPreflight(req) {
   const p = String(req.originalUrl || req.url || '').split('?')[0];
   if (p === '/api/webhook' || p.startsWith('/api/webhooks/')) return true;
   if (p === '/api/health' || p === '/api/system/health/deep' || p === '/health') return true;
+  /* Overlay de voz: probe leve + token (cache no anamService); não contar no bucket por IP. */
+  if (
+    p === '/api/anam/public-config' ||
+    p === '/api/anam/session-token' ||
+    p === '/api/anam/prepare'
+  ) {
+    return true;
+  }
   return false;
 }
 

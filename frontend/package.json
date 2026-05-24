@@ -51,6 +51,7 @@
     "test:quality-workspace-resolution": "node src/tests/quality-workspace-resolution/qualityWorkspaceResolutionScenarios.mjs"
   },
   "dependencies": {
+    "@anam-ai/js-sdk": "^4.13.1",
     "@react-three/drei": "^9.88.0",
     "@react-three/fiber": "^8.15.0",
     "axios": "^1.15.2",
