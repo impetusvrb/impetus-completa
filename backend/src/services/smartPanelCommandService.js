@@ -11,6 +11,7 @@ const dashboardAccessService = require('./dashboardAccessService');
 const userContext = require('./userContext');
 const personalizedInsightsService = require('./personalizedInsightsService');
 const maintenanceService = require('./dashboardMaintenanceService');
+const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
 
 let operationalBrain;
 try {
@@ -23,6 +24,13 @@ const AVAILABLE_DATA_SOURCES = [
   { id: 'operacoes', label: 'Operações / comunicações', permission: 'VIEW_OPERATIONAL' },
   { id: 'dashboard', label: 'Dashboard / KPIs', permission: 'VIEW_DASHBOARD' },
   { id: 'manutencao', label: 'Manutenção', permission: 'operational.view' },
+  { id: 'telemetria', label: 'Telemetria / PLC', permission: 'operational.view' },
+  { id: 'producao', label: 'Produção', permission: 'operational.view' },
+  { id: 'qualidade', label: 'Qualidade', permission: 'operational.view' },
+  { id: 'ambiente', label: 'Meio ambiente', permission: 'operational.view' },
+  { id: 'rh', label: 'RH', permission: 'operational.view' },
+  { id: 'proaction', label: 'Pró-Ação', permission: 'VIEW_PROPOSALS' },
+  { id: 'chat', label: 'Chat interno', permission: 'ACCESS_AI_ANALYTICS' },
   { id: 'inteligencia', label: 'Insights IA', permission: 'ACCESS_AI_ANALYTICS' },
   { id: 'financeiro', label: 'Financeiro / custos', permission: 'VIEW_FINANCIAL' },
   { id: 'estategico', label: 'Dados estratégicos', permission: 'VIEW_STRATEGIC' },
@@ -49,6 +57,18 @@ function canUseDataset(user, dataset) {
   }
   if (['strategic', 'estategico'].includes(d)) {
     return hasAnyPerm(user, ['VIEW_STRATEGIC', '*']);
+  }
+  if (['telemetria', 'plc'].includes(d)) {
+    return softwareOperationalSnapshotService.userCanAccessDomain(
+      user,
+      softwareOperationalSnapshotService.DOMAIN_REGISTRY.find((x) => x.id === 'telemetria')
+    );
+  }
+  if (['manutencao', 'maintenance'].includes(d)) {
+    return softwareOperationalSnapshotService.userCanAccessDomain(
+      user,
+      softwareOperationalSnapshotService.DOMAIN_REGISTRY.find((x) => x.id === 'manutencao')
+    );
   }
   return true;
 }
@@ -217,7 +237,7 @@ function kpiToCards(kpis) {
   });
 }
 
-async function hydrate(user, plan) {
+async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
   const scope = await hierarchicalFilter.resolveHierarchyScope(user).catch(() => null);
   const datasets = filterDatasets(user, plan.datasets);
   if (!datasets.length) {
@@ -230,6 +250,10 @@ async function hydrate(user, plan) {
       reportContent: plan.denialReason || 'Sem permissão.'
     };
   }
+
+  const softwareBundle =
+    preloadedBundle ||
+    (await softwareOperationalSnapshotService.buildSnapshotsForQuery(user, queryText, { maxDomains: 5 }));
 
   const [kpisRaw, summary, maint, brain] = await Promise.all([
     datasets.some((d) => ['kpis', 'kpi', 'summary', 'insights', 'comparativo', 'comparison'].includes(d))
@@ -302,6 +326,37 @@ async function hydrate(user, plan) {
     }
   }
 
+  for (const s of softwareBundle.snapshots || []) {
+    if (!s.permitted) {
+      extraTables.push({
+        title: s.label,
+        columns: ['Estado', 'Detalhe'],
+        rows: [['Acesso', s.denialReason || 'Sem permissão']]
+      });
+      continue;
+    }
+    if (s.rows?.length) {
+      extraTables.push({
+        title: s.label,
+        columns: ['Métrica', 'Valor'],
+        rows: s.rows
+      });
+    }
+  }
+
+  const telemSnap = (softwareBundle.snapshots || []).find(
+    (s) => s.domainId === 'telemetria' && s.permitted && s.metrics?.length
+  );
+  if (
+    telemSnap &&
+    datasets.some((d) => ['telemetria', 'plc'].includes(String(d).toLowerCase()))
+  ) {
+    barData = telemSnap.metrics.map((m) => ({
+      name: String(m.name).slice(0, 22),
+      valor: Number(m.value) || 0
+    }));
+  }
+
   if (summary) {
     extraTables.push({
       title: 'Resumo executivo (números)',
@@ -318,15 +373,15 @@ async function hydrate(user, plan) {
 
   const kpiCards = kpiToCards(kpis);
 
-  const narrative = plan.narrative
-    ? `${plan.narrative}\n\n`
-    : '';
+  const moduleSnapText = softwareOperationalSnapshotService.formatSnapshotsBlock(softwareBundle);
+  const narrative = plan.narrative ? `${plan.narrative}\n\n` : '';
   const reportContent =
     plan.reportContent ||
     `${narrative}**Resumo automático (dados do seu perfil)**\n\n` +
       `- KPIs carregados: ${kpis.length}\n` +
       `- Interações (semana): ${summary?.operational_interactions?.total ?? '—'}\n` +
-      `- Propostas em aberto: ${summary?.proposals?.total ?? '—'}\n`;
+      `- Propostas em aberto: ${summary?.proposals?.total ?? '—'}\n\n` +
+      `${moduleSnapText}\n`;
 
   const alertsUi = [];
   const crit = Number(summary?.alerts?.critical ?? 0);
@@ -402,10 +457,11 @@ Regras:
    - indicator → indicadores com estado/progresso (sem pedir gráfico de barras).
    - mixed → APENAS se o pedido for explicitamente "dashboard completo", "mostra tudo", ou várias visualizações ao mesmo tempo.
 4. chartType: bar | line | area | pie | donut — só quando type for chart ou mixed com gráfico.
-5. datasets: lista de ids entre: kpis, summary, insights, maintenance, manutencao, operational, cerebro, financeiro, strategic, comparativo
-   — usa só o que faz sentido ao pedido. Por omissão ["kpis","summary"].
-6. Não inventes números em narrative/reportContent — descreve o que vais pedir ao sistema; os números serão preenchidos no servidor.
-7. exportOptions: ["excel","pdf","print"].
+5. datasets: lista de ids entre: kpis, summary, insights, maintenance, manutencao, telemetria, plc, producao, qualidade, ambiente, rh, proaction, chat, comunicacoes, operational, cerebro, financeiro, strategic, comparativo
+   — escolhe conforme o pedido (ex.: telemetria → telemetria+plc; manutenção → manutencao). Por omissão ["kpis","summary"].
+6. O servidor hidrata dados reais de TODO o IMPETUS que o utilizador pode aceder (módulos no perfil).
+7. Não inventes números em narrative/reportContent — descreve o que vais pedir ao sistema; os números serão preenchidos no servidor.
+8. exportOptions: ["excel","pdf","print"].
 
 Exemplos (type correto):
 - "Quero um gráfico de propostas" → type chart, chartType bar
@@ -457,9 +513,13 @@ async function runPanelInterpreter(messages, billing) {
  * @param {string} rawInput
  */
 async function processPanelCommand(user, rawInput) {
+  const cmd = String(rawInput || '').trim();
   const ctx = userContext.buildUserContext(user);
   const modules = dashboardAccessService.getAllowedModules(user);
   const perms = dashboardAccessService.getEffectivePermissions(user);
+  const softwareBundle = await softwareOperationalSnapshotService.buildSnapshotsForQuery(user, cmd, {
+    maxDomains: 5
+  });
   const userCtxPayload = {
     userId: String(user.id),
     role: user.role || 'colaborador',
@@ -467,8 +527,10 @@ async function processPanelCommand(user, rawInput) {
     permissions: perms,
     dataScope: ctx?.data_scope || 'department',
     visibleModules: modules,
+    softwareCatalog: softwareBundle.catalog,
     iaDataDepth: dashboardAccessService.getIADataDepth(user),
-    availableDataSources: AVAILABLE_DATA_SOURCES
+    availableDataSources: AVAILABLE_DATA_SOURCES,
+    softwareSnapshotHint: softwareOperationalSnapshotService.formatSnapshotsBlock(softwareBundle)
   };
 
   const billing =
@@ -476,7 +538,7 @@ async function processPanelCommand(user, rawInput) {
 
   const messages = [
     { role: 'system', content: buildSystemPrompt(userCtxPayload) },
-    { role: 'user', content: String(rawInput || '').trim().slice(0, 4000) }
+    { role: 'user', content: cmd.slice(0, 4000) }
   ];
 
   let content = await runPanelInterpreter(messages, billing);
@@ -494,11 +556,19 @@ async function processPanelCommand(user, rawInput) {
       },
       rawInput
     );
-    return hydrate(user, plan);
+    const inferred = softwareOperationalSnapshotService.domainsToDatasetIds(
+      softwareOperationalSnapshotService.inferDomainsFromText(cmd, user)
+    );
+    plan.datasets = [...new Set([...plan.datasets, ...inferred])];
+    return hydrate(user, plan, cmd, softwareBundle);
   }
 
   const parsed = parseAiJson(content) || {};
-  const plan = normalizeAiPlan(parsed, rawInput);
+  const plan = normalizeAiPlan(parsed, cmd);
+  const inferred = softwareOperationalSnapshotService.domainsToDatasetIds(
+    softwareOperationalSnapshotService.inferDomainsFromText(cmd, user)
+  );
+  plan.datasets = [...new Set([...plan.datasets, ...inferred])];
 
   if (!plan.permissionGranted) {
     return {
@@ -511,7 +581,7 @@ async function processPanelCommand(user, rawInput) {
     };
   }
 
-  return hydrate(user, plan);
+  return hydrate(user, plan, cmd, softwareBundle);
 }
 
 module.exports = {

@@ -4,6 +4,7 @@
  */
 const claudeService = require('./claudeService');
 const dashboardAccessService = require('./dashboardAccessService');
+const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
 
 const ALLOWED_TYPES = new Set(['chart', 'table', 'kpi', 'report', 'alert']);
 
@@ -143,10 +144,20 @@ function hasNoDataSignal(text) {
   );
 }
 
-function buildSystemPrompt(user) {
+async function buildSystemPrompt(user, queryBlob = '') {
   const perms = (dashboardAccessService.getEffectivePermissions(user) || []).slice(0, 40);
   const role = String(user?.role || 'colaborador');
   const dept = String(user?.area || user?.functional_area || '').slice(0, 80);
+  const catalog = softwareOperationalSnapshotService.getSoftwareCatalogForUser(user);
+  let snapBlock = '';
+  try {
+    const bundle = await softwareOperationalSnapshotService.buildSnapshotsForQuery(user, queryBlob, {
+      maxDomains: 4
+    });
+    snapBlock = `\n\n${softwareOperationalSnapshotService.formatForAIPrompt(bundle)}`;
+  } catch (e) {
+    snapBlock = `\n\n${softwareOperationalSnapshotService.formatCatalogBlock(catalog)}`;
+  }
 
   return `Você é o motor analítico visual do IMPETUS. O usuário conversou com a IA de voz (OpenAI); você NÃO fala, NÃO conversa — só define o que mostrar no painel direito.
 
@@ -154,13 +165,16 @@ Contexto do utilizador (não invente permissões além disto):
 - Perfil: ${role}
 - Área: ${dept || '—'}
 - Permissões (amostra): ${perms.join(', ') || '—'}
+- Módulos autorizados: ${catalog.map((m) => m.label).join(', ') || '—'}
+${snapBlock}
 
 REGRAS:
 1. Responda APENAS um JSON válido, sem markdown, sem texto fora do JSON.
 2. Se a conversa for só saudação, despedida ou sem pedido de dados/visualização, retorne exatamente: {"shouldRender":false}
 3. Caso contrário shouldRender: true e preencha type, title, description, output conforme o pedido.
-4. NÃO invente números/dados. Se a resposta da IA de voz indicar que não encontrou informação no sistema, retorne {"shouldRender":false}.
-5. Se shouldRender=true, evite labels vazios e mantenha coerência com o pedido do utilizador.
+4. USE os números do bloco «DADOS POR MÓDULO» quando existirem — são dados reais do IMPETUS filtrados por permissão.
+5. NÃO invente números. Se não houver dados no snapshot para o pedido, retorne {"shouldRender":false} ou type alert explicando limitação.
+6. Se shouldRender=true, evite labels vazios e mantenha coerência com o pedido (ex.: telemetria → chart ou kpi com equipamentos/anomalias).
 
 Schema obrigatório quando shouldRender é true:
 {
@@ -225,8 +239,9 @@ async function generateVisualPanel(user, body) {
   const billing =
     user.company_id && user.id ? { companyId: user.company_id, userId: user.id } : null;
 
+  const queryBlob = `${userTranscript}\n${assistantResponse}`.trim();
   const messages = [
-    { role: 'system', content: buildSystemPrompt(user) },
+    { role: 'system', content: await buildSystemPrompt(user, queryBlob) },
     { role: 'user', content: buildUserContent(userTranscript, assistantResponse) }
   ];
 

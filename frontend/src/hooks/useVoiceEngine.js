@@ -1384,7 +1384,7 @@ export function useVoiceEngine(options = {}) {
       }
       failStreakRef.current = 0;
 
-      if (await runVoicePanelMetaIfHandled(text)) {
+      if ((await runVoicePanelMetaIfHandled(text))?.handled) {
         setVoiceState((s) => ({
           ...s,
           currentTranscript: '',

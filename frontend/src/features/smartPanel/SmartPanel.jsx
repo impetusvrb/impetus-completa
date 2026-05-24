@@ -3,7 +3,7 @@ import { FileSpreadsheet, Download, Printer, Share2, Loader2, Mic, AlertCircle, 
 import { useSmartPanel } from './useSmartPanel';
 import DynamicPanelRenderer from './DynamicPanelRenderer';
 import DynamicClaudePanelRenderer from './DynamicClaudePanelRenderer';
-import { downloadPanelXlsx, downloadPanelPdf, printPanel, panelOutputToPlainText } from './panelExport';
+import { downloadPanelXlsx, downloadPanelPdf, printPanelOutput, panelOutputToPlainText } from './panelExport';
 import { sendPanelTextToImpetusChatTargets } from './panelShareToImpetusChat';
 import { useNotification } from '../../context/NotificationContext';
 import './SmartPanel.css';
@@ -35,6 +35,12 @@ export default function SmartPanel({
     dismissError,
     suggestions
   } = useSmartPanel({ enabled: true, voiceMode: voiceOnly });
+
+  const onPrintPanel = useCallback(() => {
+    const pr = printPanelOutput(currentOutput);
+    if (pr.ok) notify.success('A preparar impressão…');
+    else notify.error(pr.error || 'Não foi possível imprimir.');
+  }, [currentOutput, notify]);
 
   const onSubmit = useCallback(
     (e) => {
@@ -146,7 +152,7 @@ export default function SmartPanel({
                 </button>
               )}
               {(isClaudeVoicePanel || isLegacy || (currentOutput.exportOptions || []).includes('print')) && (
-                <button type="button" className="smart-panel__icon-btn" title="Imprimir" aria-label="Imprimir" onClick={printPanel}>
+                <button type="button" className="smart-panel__icon-btn" title="Imprimir" aria-label="Imprimir" onClick={onPrintPanel}>
                   <Printer size={18} />
                 </button>
               )}
@@ -284,7 +290,7 @@ export default function SmartPanel({
                   </button>
                 )}
                 {(currentOutput.exportOptions || []).includes('print') && (
-                  <button type="button" className="smart-panel__export-btn" onClick={printPanel}>
+                  <button type="button" className="smart-panel__export-btn" onClick={onPrintPanel}>
                     <Printer size={15} /> Imprimir
                   </button>
                 )}

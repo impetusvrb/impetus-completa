@@ -224,6 +224,113 @@ export function downloadPanelPdf(output) {
   doc.save(`impetus-painel-${Date.now()}.pdf`);
 }
 
-export function printPanel() {
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Abre janela dedicada com o conteúdo do painel e dispara o diálogo de impressão do browser.
+ * @returns {{ ok: boolean, error?: string }}
+ */
+export function printPanelOutput(output) {
+  if (!output) {
+    return { ok: false, error: 'Sem conteúdo do painel para imprimir.' };
+  }
+
+  const title =
+    output?.title ||
+    output?.claudePayload?.title ||
+    output?.legacyVisual?.title ||
+    'Impetus — Painel';
+  const { headers, rows } = flattenOutputForSheet(output);
+  const plain = panelOutputToPlainText(output, 12000);
+
+  let bodyHtml;
+  if (rows.length) {
+    bodyHtml = `<table><thead><tr>${headers
+      .map((h) => `<th>${escapeHtml(h)}</th>`)
+      .join('')}</tr></thead><tbody>${rows
+      .map(
+        (r) =>
+          `<tr>${(r || []).map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`
+      )
+      .join('')}</tbody></table>`;
+  } else if (plain.trim().length > 20) {
+    bodyHtml = `<pre class="plain">${escapeHtml(plain)}</pre>`;
+  } else {
+    return { ok: false, error: 'O painel ainda não tem conteúdo suficiente para imprimir.' };
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<title>${escapeHtml(title)}</title>
+<style>
+  @page { margin: 14mm; }
+  body { font-family: system-ui, sans-serif; color: #111; margin: 0; padding: 16px 20px; }
+  h1 { font-size: 1.25rem; margin: 0 0 12px; }
+  .meta { font-size: 0.75rem; color: #555; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f0f0f0; }
+  pre.plain { white-space: pre-wrap; font-size: 0.8rem; line-height: 1.45; }
+</style>
+</head><body>
+<h1>${escapeHtml(title)}</h1>
+<p class="meta">IMPETUS · ${escapeHtml(new Date().toLocaleString('pt-BR'))}</p>
+${bodyHtml}
+</body></html>`;
+
+  let win;
+  try {
+    win = window.open('', '_blank', 'noopener,noreferrer,width=960,height=720');
+  } catch (_) {
+    win = null;
+  }
+  if (!win) {
+    return {
+      ok: false,
+      error: 'O browser bloqueou a janela de impressão. Permita pop-ups para este site e tente de novo.'
+    };
+  }
+
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } catch (e) {
+    try {
+      win.close();
+    } catch (_) {}
+    return { ok: false, error: e?.message || 'Não foi possível preparar a impressão.' };
+  }
+
+  const triggerPrint = () => {
+    try {
+      win.focus();
+      win.print();
+    } catch (e) {
+      console.warn('[panel-print]', e?.message || e);
+    }
+  };
+
+  if (win.document.readyState === 'complete') {
+    setTimeout(triggerPrint, 250);
+  } else {
+    win.addEventListener('load', () => setTimeout(triggerPrint, 200), { once: true });
+    setTimeout(triggerPrint, 600);
+  }
+
+  return { ok: true };
+}
+
+/** @param {object} [output] — se omitido, tenta imprimir a página (legado). */
+export function printPanel(output) {
+  if (output) return printPanelOutput(output);
   window.print();
+  return { ok: true };
 }

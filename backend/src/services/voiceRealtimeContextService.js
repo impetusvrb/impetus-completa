@@ -7,9 +7,13 @@ const dashboardKPIs = require('./dashboardKPIs');
 const dashboardAccessService = require('./dashboardAccessService');
 const dashboardComposerService = require('./dashboardComposerService');
 const structuralAIGovernance = require('./structuralAIGovernanceService');
+const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
 
 const MAX_KPI_LINES = 14;
 const MAX_INSTRUCTION_CHARS = 14000;
+
+const IMPETUS_NAV_HINT = `IMPETUS — pode mostrar no painel direito qualquer área que o utilizador tenha permissão (telemetria, manutenção, produção, qualidade, ambiente, RH, Pró-Ação, chat, comunicações).
+Após acordo, confirme execução no painel (ex.: «gerando a telemetria no painel»). Não peça «onde clicar» para dados que já estão no snapshot.`;
 
 /**
  * @param {object} user req.user (sessão IMPETUS)
@@ -18,8 +22,10 @@ const MAX_INSTRUCTION_CHARS = 14000;
  */
 async function buildVoiceRealtimeContext(user, opts = {}) {
   const queryText = String(opts.queryText || '').trim();
+  const channel = String(opts.channel || 'voice_realtime').trim() || 'voice_realtime';
+  const forceOperationalSnapshot = opts.forceOperationalSnapshot === true || channel === 'anam_voice';
   const gov = await structuralAIGovernance.buildAIGovernancePackage(user, {
-    channel: 'voice_realtime',
+    channel,
     queryText
   });
   const effectiveUser = gov.enrichedUser || user;
@@ -62,12 +68,35 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
       ].join('\n')
     : 'Resumo agregado indisponível neste momento — não inventes totais.';
 
-  const dataBlock = gov.allow_operational_data
+  const injectOperational = forceOperationalSnapshot || gov.allow_operational_data;
+
+  let softwareBlock = '';
+  if (injectOperational) {
+    try {
+      const bundle = await softwareOperationalSnapshotService.buildSnapshotsForQuery(
+        effectiveUser,
+        queryText,
+        { maxDomains: queryText.length >= 6 ? 4 : 2 }
+      );
+      softwareBlock = softwareOperationalSnapshotService.formatForAIPrompt(bundle);
+    } catch (e) {
+      console.warn('[voiceRealtimeContext] software snapshot', e?.message || e);
+      softwareBlock = softwareOperationalSnapshotService.formatCatalogBlock(
+        softwareOperationalSnapshotService.getSoftwareCatalogForUser(effectiveUser)
+      );
+    }
+  }
+
+  const dataBlock = injectOperational
     ? [
-        'DADOS INTERNOS (snapshot na abertura da sessão de voz — só podes citar isto para números/indicadores da empresa):',
+        'DADOS INTERNOS IMPETUS (snapshot autorizado — USE ESTES NÚMEROS; não diga que não tem acesso ao software):',
         sumLine,
         'Indicadores permitidos ao perfil (amostra):',
-        kpiLines
+        kpiLines,
+        '',
+        softwareBlock,
+        '',
+        IMPETUS_NAV_HINT
       ].join('\n')
     : [
         'DADOS INTERNOS: não injectados neste turno (pergunta classificada como conhecimento geral).',
@@ -79,8 +108,8 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
     '',
     dataBlock,
     '',
-    gov.allow_operational_data
-      ? 'Se a pergunta exigir pormenor que não conste aqui, não suponhas: diz que não encontraste no sistema ou sugere verificar no painel IMPETUS com permissões adequadas.'
+    injectOperational
+      ? 'Tens acesso aos dados acima nesta sessão. Não peças ao utilizador "onde clicar" para ver KPIs do snapshot. Se faltar um detalhe específico, diz que não está neste extracto e oferece aprofundar no módulo certo do IMPETUS.'
       : 'Mantém a identidade do utilizador (Base Estrutural) mas responde em modo educativo sem inventar dados do tenant.'
   ].join('\n');
 

@@ -2,6 +2,10 @@ import {
   inferVoiceVisualIntent,
   resolveClaudePanelVisualIntent
 } from '../../voice/voiceVisualPanelService';
+import {
+  buildAnamPanelCommand,
+  isAnamPanelCommitPhrase
+} from '../../utils/anamPanelGovernance';
 import { parsePanelVoiceMetaCommand } from './panelVoiceMetaCommands';
 
 /** Evento global: frase final do utilizador no modo voz → painel inteligente (teclado / legado). */
@@ -24,10 +28,41 @@ export function registerAnamPanelCommandHandler(fn) {
  * @param {string} text
  * @returns {Promise<boolean>} true se foi comando de painel (mesmo sem painel — mostra aviso)
  */
+/**
+ * @returns {Promise<{ handled: boolean, success?: boolean, kind?: string, speakLine?: string }>}
+ */
 export async function runVoicePanelMetaIfHandled(text) {
   const t = String(text || '').trim();
-  if (!t || !voicePanelMetaHandler) return false;
-  return voicePanelMetaHandler(t);
+  if (!t) return { handled: false };
+  const handler = voicePanelMetaHandler || anamPanelCommandHandler;
+  if (!handler) {
+    console.warn('[panel-meta] handler não registado — overlay de voz sem SmartPanel?');
+    return { handled: false };
+  }
+  const result = await handler(t);
+  if (result === true) return { handled: true, success: true };
+  if (result && typeof result === 'object' && result.handled) return result;
+  return { handled: false };
+}
+
+/** Execução directa com meta já resolvida (Anam confirmou envio/impressão). */
+let panelMetaDirectHandler = null;
+
+export function registerPanelMetaDirectHandler(fn) {
+  panelMetaDirectHandler = typeof fn === 'function' ? fn : null;
+}
+
+export async function runPanelMetaResolved(meta) {
+  if (!meta?.kind) return { handled: false };
+  if (panelMetaDirectHandler) {
+    const direct = await panelMetaDirectHandler(meta);
+    if (direct && typeof direct === 'object' && direct.handled) return direct;
+    if (direct === true) return { handled: true, success: true };
+  }
+  const { buildSyntheticMetaCommand } = await import('../../utils/anamMetaGovernance');
+  const synthetic = buildSyntheticMetaCommand(meta);
+  if (synthetic) return runVoicePanelMetaIfHandled(synthetic);
+  return { handled: false };
 }
 
 /**
@@ -76,6 +111,33 @@ export function dispatchAnamPanelVoiceCommand(text) {
   const t = String(text || '').trim();
   if (!shouldAnamTriggerPanel(t)) return;
   fireAnamPanelCommand(t);
+}
+
+/**
+ * Modo Anam governado: só dispara Claude/painel após a persona confirmar execução.
+ * @param {{ userTranscript?: string, assistantResponse?: string, recentTurns?: { role: string, text: string }[] }} detail
+ */
+export function dispatchAnamPanelCommit(detail) {
+  const userTranscript = String(detail?.userTranscript || '').trim();
+  const assistantResponse = String(detail?.assistantResponse || '').trim();
+  if (!isAnamPanelCommitPhrase(assistantResponse, userTranscript)) return;
+
+  const panelCommand = buildAnamPanelCommand(
+    userTranscript,
+    assistantResponse,
+    detail?.recentTurns
+  );
+
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(CLAUDE_PANEL_BRIDGE_EVENT, {
+      detail: {
+        userTranscript: panelCommand,
+        assistantResponse,
+        source: 'anam-commit'
+      }
+    })
+  );
 }
 
 /**

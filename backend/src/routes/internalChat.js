@@ -165,6 +165,20 @@ router.post('/conversations/:id/messages', requireAuth, requireCompanyActive, as
     if (text_content?.trim()) {
       const msgs = [{ sender_name: req.user?.name || 'Usuário', text_content: text_content.trim() }];
       claudeAnalytics.ingestInternalChat(msgs, req.user.company_id, id);
+      setImmediate(() => {
+        try {
+          const sz4 = require('../runtime-z-operational-nervous-system/internal-chat/internalChatOperationalRuntime');
+          sz4.processInternalChatMessage({
+            companyId: req.user.company_id,
+            conversationId: id,
+            user: req.user,
+            content: text_content.trim(),
+            io: req.app.get('io') || null
+          }).catch((err) => console.warn('[SZ4_INTERNAL_CHAT]', err?.message ?? err));
+        } catch (sz4Err) {
+          console.warn('[SZ4_INTERNAL_CHAT_LOAD]', sz4Err?.message ?? sz4Err);
+        }
+      });
     }
 
     res.status(201).json({ ok: true, message: msg });

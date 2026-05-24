@@ -5,6 +5,8 @@ const {
   buildAnamSessionContextPrompt,
   buildAnamOpeningLine
 } = require('../utils/anamSessionContext');
+const voiceRealtimeContextService = require('./voiceRealtimeContextService');
+const { buildChatUserContext } = require('./chatUserContext');
 
 /** Persona válida na conta (Liv) — substitui UUID inexistente do Anam Lab antigo. */
 const DEFAULT_PERSONA_ID = 'cdc1721e-a936-4fe2-b34d-ac804cfc1c27';
@@ -23,7 +25,7 @@ function cacheKey(clientLabel, personaId, sessionContext) {
     .trim()
     .slice(0, 40);
   const opening = buildAnamOpeningLine(sessionContext || {}).slice(0, 48);
-  return `greet-v3-skip:${String(clientLabel || 'default')}:${String(personaId || '')}:${hour}:${name}:${opening}`;
+  return `greet-v4-data:${String(clientLabel || 'default')}:${String(personaId || '')}:${hour}:${name}:${opening}`;
 }
 
 function readCachedToken(key) {
@@ -147,8 +149,43 @@ async function resolveValidPersonaId(override) {
 }
 
 /**
+ * Prompt de sistema Anam: identidade + KPIs/dados IMPETUS + regras de sessão.
+ * @param {object} [user] req.user
+ * @param {object} [sessionCtx]
+ */
+async function buildAnamSystemPrompt(user, sessionCtx = {}) {
+  const parts = [];
+  if (user?.id) {
+    try {
+      const chatCtx = await buildChatUserContext(user);
+      if (chatCtx?.identityBlock) parts.push(chatCtx.identityBlock);
+      if (chatCtx?.memoriaBlock) parts.push(chatCtx.memoriaBlock);
+    } catch (e) {
+      console.warn('[anam] chat context', e.message);
+    }
+    try {
+      const voiceCtx = await voiceRealtimeContextService.buildVoiceRealtimeContext(user, {
+        channel: 'anam_voice',
+        forceOperationalSnapshot: true,
+        queryText: ''
+      });
+      if (voiceCtx?.instructions_append) parts.push(voiceCtx.instructions_append);
+    } catch (e) {
+      console.warn('[anam] voice operational context', e.message);
+    }
+  }
+  const sessionPrompt = buildAnamSessionContextPrompt(sessionCtx);
+  if (sessionPrompt) parts.push(sessionPrompt);
+  const envPrompt = String(process.env.ANAM_SYSTEM_PROMPT_APPEND || '').trim();
+  if (envPrompt) parts.push(envPrompt);
+  const merged = parts.filter(Boolean).join('\n\n');
+  const maxLen = 28000;
+  return merged.length > maxLen ? `${merged.slice(0, maxLen)}\n[contexto truncado]` : merged;
+}
+
+/**
  * Token de sessão Anam para o SDK no browser (persona já criada no Anam Lab).
- * @param {{ personaId?: string, clientLabel?: string, sessionContext?: { userDisplayName?: string, localHour?: number, timezone?: string } }} [opts]
+ * @param {{ personaId?: string, clientLabel?: string, user?: object, sessionContext?: { userDisplayName?: string, localHour?: number, timezone?: string } }} [opts]
  */
 async function createSessionToken(opts = {}) {
   const apiKey = String(process.env.ANAM_API_KEY || '').trim();
@@ -173,10 +210,7 @@ async function createSessionToken(opts = {}) {
   }
 
   const sessionCtx = opts.sessionContext || {};
-  const openingLine = buildAnamOpeningLine(sessionCtx);
-  const envPrompt = String(process.env.ANAM_SYSTEM_PROMPT_APPEND || '').trim();
-  const sessionPrompt = buildAnamSessionContextPrompt(sessionCtx);
-  const systemPromptAppend = [envPrompt, sessionPrompt].filter(Boolean).join('\n');
+  const systemPromptAppend = await buildAnamSystemPrompt(opts.user, sessionCtx);
 
   async function requestToken(personaConfig) {
     const res = await fetch(`${ANAM_API_BASE}/v1/auth/session-token`, {
@@ -287,6 +321,7 @@ async function getPublicConfig() {
 
 module.exports = {
   createSessionToken,
+  buildAnamSystemPrompt,
   getPublicConfig,
   isConfigured,
   resolvePersonaId,

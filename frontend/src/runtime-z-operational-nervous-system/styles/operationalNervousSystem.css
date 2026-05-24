@@ -1,0 +1,97 @@
+.z-ons-panel {
+  background: var(--bg-panel, #0f1a28);
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.z-ons-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.z-ons-panel__title {
+  font-family: Rajdhani, sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  margin: 0;
+}
+
+.z-ons-panel__subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text-tertiary, #7a8fa6);
+}
+
+.z-ons-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+}
+
+.z-ons-label {
+  color: var(--text-secondary, #a8b8cc);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.z-ons-value {
+  color: var(--text-primary, #e8f4ff);
+}
+
+.z-ons-value--high { color: var(--green, #00ff88); }
+.z-ons-value--mid { color: var(--amber, #ffaa00); }
+.z-ons-value--low { color: var(--text-tertiary, #7a8fa6); }
+
+.z-ons-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.z-ons-badge--critical {
+  border: 1px solid rgba(255, 64, 64, 0.5);
+  color: var(--red, #ff4040);
+}
+
+.z-ons-badge--warn {
+  border: 1px solid rgba(255, 170, 0, 0.45);
+  color: var(--amber, #ffaa00);
+}
+
+.z-ons-badge--normal {
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: var(--cyan, #00d4ff);
+}
+
+.z-ons-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.z-ons-list li {
+  padding: 6px 0;
+  border-bottom-color: rgba(0, 212, 255, 0.06);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+}
+
+.z-ons-empty {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #7a8fa6);
+}

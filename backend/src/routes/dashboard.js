@@ -208,8 +208,13 @@ const profileContextSelfSchema = z.object({
  */
 router.get('/voice-realtime-context', requireAuth, async (req, res) => {
   try {
+    const channel = String(req.query?.channel || 'voice_realtime').trim() || 'voice_realtime';
+    const forceOperationalSnapshot =
+      req.query?.force === '1' || req.query?.force === 'true' || channel === 'anam_voice';
     const payload = await voiceRealtimeContextService.buildVoiceRealtimeContext(req.user, {
-      queryText: String(req.query?.hint || req.query?.q || '').trim()
+      queryText: String(req.query?.hint || req.query?.q || '').trim(),
+      channel,
+      forceOperationalSnapshot
     });
     res.json(payload);
   } catch (err) {
@@ -1278,6 +1283,47 @@ router.get('/me', requireAuth, async (req, res) => {
       }
     } catch (sz2Err) {
       console.warn('[COGNITIVE_OS_Z]', sz2Err?.message ?? sz2Err);
+    }
+
+    try {
+      const sz3 = require('../runtime-z-maturation/facade/zMaturationFacade');
+      const matOut = sz3.applyMaturation(user, legacyResponse.runtime_z_cognitive_os || {}, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code,
+        message: ''
+      });
+      if (matOut?.payload?.runtime_z_maturation) {
+        legacyResponse.runtime_z_maturation = matOut.payload.runtime_z_maturation;
+      }
+    } catch (sz3Err) {
+      console.warn('[MATURATION_Z]', sz3Err?.message ?? sz3Err);
+    }
+
+    try {
+      const sz4 = require('../runtime-z-operational-nervous-system/facade/zOperationalNervousSystemFacade');
+      const sz4Out = sz4.applyOperationalNervousSystem(user, {
+        runtime_z_cognitive_os: legacyResponse.runtime_z_cognitive_os,
+        runtime_z_maturation: legacyResponse.runtime_z_maturation
+      }, {
+        tenant_id: user?.company_id,
+        profile: legacyResponse.profile_code,
+        message: ''
+      });
+      if (sz4Out?.payload?.runtime_z_operational_nervous_system) {
+        legacyResponse.runtime_z_operational_nervous_system = sz4Out.payload.runtime_z_operational_nervous_system;
+      }
+    } catch (sz4Err) {
+      console.warn('[OPERATIONAL_NERVOUS_SZ4]', sz4Err?.message ?? sz4Err);
+    }
+
+    // ── [VIRADA_CHAVE] Componente 3 — Identity Enforcement (hardening activo) ──
+    try {
+      const identityMw = require('../middleware/operationalIdentityEnforcementMiddleware');
+      if (identityMw.isHardeningActive()) {
+        identityMw.applyIdentityEnforcement(user, legacyResponse);
+      }
+    } catch (identErr) {
+      console.warn('[IDENTITY_ENFORCEMENT_WIRE]', identErr?.message ?? identErr);
     }
 
     try {
@@ -3284,6 +3330,23 @@ router.post('/chat', requireAuth, async (req, res) => {
       console.warn('[DASHBOARD_CHAT] secureContextBuilder', e && e.message ? e.message : e);
     }
 
+    // ── [VIRADA_CHAVE] Componente 1 — SZ2/SZ3 Cognitive Context Injection ─────
+    let _cognitiveContextBlock = '';
+    try {
+      const cogInjector = require('../middleware/zCognitiveContextInjector');
+      const cogEnrich = cogInjector.applyCognitiveEnrichment(u, message, {});
+      _cognitiveContextBlock = cogEnrich.block || '';
+      if (_cognitiveContextBlock) {
+        console.info('[SZ2_CHAT_INJECT] Cognitive context injected', {
+          sz2Active: cogEnrich.sz2Active,
+          sz3Active: cogEnrich.sz3Active,
+          blockLength: _cognitiveContextBlock.length
+        });
+      }
+    } catch (cogInjectErr) {
+      console.warn('[SZ2_CHAT_INJECT_FALLBACK]', cogInjectErr?.message ?? cogInjectErr);
+    }
+
     let userTurnContent = message;
     if (dashboardContextualPack) {
       const snippet = JSON.stringify({
@@ -3304,6 +3367,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     const messages = [
       { role: 'system', content: system },
       ...(secureGovernanceSystem ? [{ role: 'system', content: secureGovernanceSystem }] : []),
+      ...(_cognitiveContextBlock ? [{ role: 'system', content: _cognitiveContextBlock }] : []),
       ...history,
       { role: 'user', content: userTurnContent + lineageBlock + autonomousAppendix }
     ];
@@ -3558,6 +3622,13 @@ router.post('/chat', requireAuth, async (req, res) => {
       ...(_chatRuntimeEnrichmentBlock ? { runtime_enrichment: _chatRuntimeEnrichmentBlock } : {}),
       ...(_chatOperationalDensityBlock ? { operational_density: _chatOperationalDensityBlock } : {})
     });
+
+    // ── [VIRADA_CHAVE] SZ2 turn ingestion para continuidade cognitiva ─────────
+    try {
+      const cogInjector = require('../middleware/zCognitiveContextInjector');
+      cogInjector.ingestTurnForContinuity(u?.company_id, u, message, text);
+    } catch (_ingErr) { /* non-blocking */ }
+
   } catch (err) {
     console.error('[DASHBOARD_CHAT]', err);
     res.status(500).json({

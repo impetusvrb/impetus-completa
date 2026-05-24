@@ -7,14 +7,12 @@ import {
   SMART_PANEL_VOICE_EVENT,
   CLAUDE_PANEL_BRIDGE_EVENT,
   dispatchSmartPanelContextUpdated,
-  registerVoicePanelMetaHandler,
   registerAnamPanelCommandHandler
 } from './smartPanelEvents';
 import { dashboard } from '../../services/api';
 import { useNotification } from '../../context/NotificationContext';
 import { parsePanelVoiceMetaCommand } from './panelVoiceMetaCommands';
-import { sendPanelTextToImpetusChatTargets } from './panelShareToImpetusChat';
-import { downloadPanelXlsx, downloadPanelPdf, printPanel, panelOutputToPlainText } from './panelExport';
+import { executePanelVoiceMeta, setStoredPanelOutput } from './panelVoiceMetaExecutor';
 
 const HISTORY_MAX = 5;
 const VOICE_PANEL_CONTEXT_KEY = 'impetus_voice_last_panel_context';
@@ -174,6 +172,7 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
 
   useEffect(() => {
     currentOutputRef.current = currentOutput;
+    setStoredPanelOutput(currentOutput);
   }, [currentOutput]);
 
   useEffect(() => {
@@ -333,99 +332,27 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
 
   const tryVoiceMetaCommand = useCallback(
     async (text) => {
-      const meta = parsePanelVoiceMetaCommand(text);
-      if (!meta) return false;
       setError(null);
-      const out = currentOutputRef.current;
-      const hasPanel =
-        out &&
-        ((out.schema === 'impetus_claude_v1' && out.claudePayload) ||
-          (out.type === 'legacy_voice_visual' && out.legacyVisual) ||
-          (out.permissionGranted !== false &&
-            (out.title ||
-              (out.chartData || []).length ||
-              (out.barData || []).length ||
-              out.table?.rows?.length ||
-              out.reportContent)));
-      if (!hasPanel) {
-        notify.warning('Não há painel para exportar ou enviar. Peça um painel primeiro.');
-        return true;
-      }
-      try {
-        if (meta.kind === 'print') {
-          printPanel();
-          notify.success('A preparar impressão…');
-        } else if (meta.kind === 'pdf') {
-          downloadPanelPdf(out);
-          notify.success('PDF a descarregar.');
-        } else if (meta.kind === 'excel') {
-          await downloadPanelXlsx(out);
-          notify.success('Excel a descarregar.');
-        } else if (meta.kind === 'chat') {
-          const body = panelOutputToPlainText(out);
-          const r = await sendPanelTextToImpetusChatTargets(
-            {
-              userQueries: meta.userQueries || [],
-              groupQuery: meta.groupQuery != null ? meta.groupQuery : null
-            },
-            body
-          );
-          let msg =
-            r.mode === 'group'
-              ? `Enviado no grupo «${r.groupName}».`
-              : `Enviado no chat para ${r.names.join(', ')}.`;
-          if (r.failures?.length) msg += ` Não encontrei: ${r.failures.join(', ')}.`;
-          notify.success(msg);
-        } else if (meta.kind === 'share') {
-          const text = panelOutputToPlainText(out, 4000);
-          try {
-            if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-              await navigator.share({ title: 'Impetus Painel', text });
-              notify.success('Partilha iniciada.');
-            } else if (navigator.clipboard?.writeText) {
-              await navigator.clipboard.writeText(text || out?.title || '');
-              notify.success('Conteúdo copiado para a área de transferência.');
-            } else {
-              notify.warning('Partilha não disponível neste navegador.');
-            }
-          } catch (e) {
-            if (e?.name !== 'AbortError') {
-              try {
-                if (navigator.clipboard?.writeText) {
-                  await navigator.clipboard.writeText(text || out?.title || '');
-                  notify.success('Copiado para a área de transferência.');
-                } else {
-                  notify.error('Não foi possível partilhar.');
-                }
-              } catch (_) {
-                notify.error('Não foi possível partilhar.');
-              }
-            }
-          }
-        }
-      } catch (e) {
-        notify.error(String(e?.response?.data?.error || e?.message || e || 'Erro.'));
-      }
-      return true;
+      if (currentOutputRef.current) setStoredPanelOutput(currentOutputRef.current);
+      return executePanelVoiceMeta(text, { notify });
     },
     [notify, setError]
   );
 
   useEffect(() => {
     if (!voiceMode) {
-      registerVoicePanelMetaHandler(null);
       registerAnamPanelCommandHandler(null);
       return;
     }
-    registerVoicePanelMetaHandler(tryVoiceMetaCommand);
     registerAnamPanelCommandHandler(async (text) => {
       const t = String(text || '').trim();
-      if (!t) return;
-      if (await tryVoiceMetaCommand(t)) return;
+      if (!t) return { handled: false };
+      const meta = await tryVoiceMetaCommand(t);
+      if (meta?.handled) return meta;
       void sendCommand(t);
+      return { handled: false };
     });
     return () => {
-      registerVoicePanelMetaHandler(null);
       registerAnamPanelCommandHandler(null);
     };
   }, [voiceMode, tryVoiceMetaCommand, sendCommand]);

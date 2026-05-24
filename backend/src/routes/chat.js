@@ -87,6 +87,21 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }).catch((err) => {
       console.warn('[routes/chat][operational_realtime]', err?.message ?? err);
     }));
+    setImmediate(() => {
+      try {
+        const sz4 = require('../runtime-z-operational-nervous-system/facade/zOperationalNervousSystemFacade');
+        sz4.processMessage({
+          user: req.user,
+          companyId: req.user.company_id,
+          conversationId: req.params.id,
+          content: content.trim(),
+          sourceType: 'chat_impetus',
+          io
+        }).catch((err) => console.warn('[SZ4_CHAT]', err?.message ?? err));
+      } catch (e) {
+        console.warn('[SZ4_CHAT_LOAD]', e?.message ?? e);
+      }
+    });
     res.json(msg);
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });

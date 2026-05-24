@@ -15,8 +15,16 @@ import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
 import { useRealtimePresenceBridge } from '../realtimePresence/useRealtimePresenceBridge';
 import { useAnamAvatar } from '../hooks/useAnamAvatar';
+import { useNotification } from '../context/NotificationContext';
+import {
+  registerAnamPanelCommandHandler,
+  registerVoicePanelMetaHandler
+} from '../features/smartPanel/smartPanelEvents';
+import { executePanelVoiceMeta, executePanelVoiceMetaWithMeta } from '../features/smartPanel/panelVoiceMetaExecutor';
+import { registerPanelMetaDirectHandler } from '../features/smartPanel/smartPanelEvents';
 
 export default function ImpetusVoiceProvider({ children }) {
+  const notify = useNotification();
   const location = useLocation();
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [anamAlert, setAnamAlert] = useState(null);
@@ -174,6 +182,22 @@ export default function ImpetusVoiceProvider({ children }) {
   useEffect(() => {
     if (!overlayOpen) setAnamAlert(null);
   }, [overlayOpen]);
+
+  /** Handler de PDF/chat/impressão sempre ativo com voz — mesmo com overlay fechado. */
+  useEffect(() => {
+    if (!voiceEnabled) {
+      registerVoicePanelMetaHandler(null);
+      registerPanelMetaDirectHandler(null);
+      return;
+    }
+    const handler = (text) => executePanelVoiceMeta(text, { notify });
+    registerVoicePanelMetaHandler(handler);
+    registerPanelMetaDirectHandler((meta) => executePanelVoiceMetaWithMeta(meta, { notify }));
+    return () => {
+      registerVoicePanelMetaHandler(null);
+      registerPanelMetaDirectHandler(null);
+    };
+  }, [voiceEnabled, notify]);
 
   // Preferências (voz/velocidade + alertas)
   useEffect(() => {

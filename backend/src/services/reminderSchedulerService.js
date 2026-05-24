@@ -108,6 +108,21 @@ async function runReminderCheck() {
   for (const task of rows) {
     try { await processTaskReminder(task); } catch (e) { console.warn('[REMINDER]', e?.message); }
   }
+
+  try {
+    const byCompany = new Map();
+    for (const task of rows) {
+      if (task.company_id) byCompany.set(task.company_id, true);
+    }
+    const sz4Reminders = require('../runtime-z-operational-nervous-system/reminders/contextualReminderRuntime');
+    for (const companyId of byCompany.keys()) {
+      await sz4Reminders.processDueReminders(companyId).catch((e) => {
+        console.warn('[SZ4_REMINDER]', e?.message ?? e);
+      });
+    }
+  } catch (sz4Err) {
+    console.warn('[SZ4_REMINDER_LOAD]', sz4Err?.message ?? sz4Err);
+  }
 }
 
 function start() {

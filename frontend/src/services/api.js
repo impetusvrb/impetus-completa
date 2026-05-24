@@ -272,8 +272,11 @@ export const anam = {
 export const dashboard = {
   /** Dashboard inteligente - payload completo personalizado por perfil */
   getMe: (config = {}) => api.get('/dashboard/me', config),
-  /** Contexto interno + regras de acesso para o system prompt da voz OpenAI Realtime */
-  getVoiceRealtimeContext: () => api.get('/dashboard/voice-realtime-context'),
+  /** Contexto interno + regras de acesso (Realtime / Anam ao vivo) */
+  getVoiceRealtimeContext: (params) =>
+    api.get('/dashboard/voice-realtime-context', {
+      params: { channel: 'anam_voice', force: '1', ...(params || {}) }
+    }),
   /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
   getPersonalizado: () => api.get('/dashboard/personalizado'),
   /** Painel vivo dinamico orientado a eventos */

@@ -50,6 +50,7 @@ router.post('/session-token', requireAuth, async (req, res) => {
     const userFromDb = String(req.user?.name || req.user?.full_name || '').trim();
     const data = await anamService.createSessionToken({
       personaId,
+      user: req.user,
       clientLabel: `impetus-user-${req.user?.id || 'unknown'}`,
       sessionContext: {
         userDisplayName:

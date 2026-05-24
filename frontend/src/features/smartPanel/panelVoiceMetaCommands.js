@@ -1,7 +1,9 @@
 /**
  * Comandos de voz sobre o painel (imprimir, PDF, Excel, enviar no chat).
  * Suporta cortesia ("por favor", "por gentileza"), vários nomes e grupos.
+ * Intenção conversacional (linguagem natural) em panelMetaIntent.js.
  */
+import { inferConversationalPanelMeta } from './panelMetaIntent';
 
 function norm(s) {
   return String(s || '')
@@ -45,7 +47,11 @@ export function stripCourtesySuffixes(text) {
 
 /** Verbos de envio (voz/STT) — inclui imperativo «envie». */
 const SEND_VERB_RE =
-  '(?:enviar|envia|envie|mande|manda|mandar)';
+  '(?:enviar|envia|envie|mande|manda|mandar|passa|passar|repassa|repassar|encaminha|encaminhar)';
+
+/** Papéis / coletivos frequentes («os supervisores», «gestores»). */
+const COLLECTIVE_ROLE_RE =
+  /^(?:supervisores?|supervisoras?|gestores?|gerentes?|t[eé]cnicos?|mec[aâ]nicos?|operadores?|coordenadores?|equipe|time|turno|produ[cç][aã]o|qualidade|manuten[cç][aã]o|rh|diretoria|lideran[cç]a|engenharia)$/i;
 
 /**
  * «Enviar para Fulano» sem «no chat» só se a frase for claramente um comando curto,
@@ -69,9 +75,86 @@ const WORKFLOW_RECIPIENT_BLOCK =
 function chatTargetsSanity(chat) {
   if (!chat) return false;
   if (chat.groupQuery && String(chat.groupQuery).trim().length >= 2) return true;
+  if ((chat.roleQueries || []).some((q) => String(q).trim().length >= 3)) return true;
   const uq = chat.userQueries || [];
   if (!uq.length) return false;
   return uq.some((q) => !WORKFLOW_RECIPIENT_BLOCK.test(norm(String(q).trim())));
+}
+
+function stripRecipientTail(frag) {
+  return String(frag || '')
+    .trim()
+    .replace(/\s+(?:do|da|no|na)\s+(?:painel|relat[oó]rio|chat|impetus).*$/i, '')
+    .replace(/\s+do\s+que\s+(?:gerou|geraste|mostrou|mostraste).*$/i, '')
+    .replace(/\s+no\s+chat\s*$/i, '')
+    .trim();
+}
+
+/**
+ * @returns {{ userQueries: string[], groupQuery: string | null, roleQueries: string[] }}
+ */
+function parseRecipientFragment(frag) {
+  let f = stripRecipientTail(frag);
+  f = f.replace(/^(?:esse|este)\s+(?:painel|relat[oó]rio|resumo)\s+/i, '').trim();
+  f = f.replace(/^(?:o|a)\s+(?:painel|relat[oó]rio|resumo)\s+para\s+/i, '').trim();
+
+  if (/^grupo\s+/i.test(f)) {
+    const g = f.replace(/^grupo\s+/i, '').trim();
+    if (g.length >= 2) return { userQueries: [], groupQuery: g, roleQueries: [] };
+  }
+
+  const plural = f.match(/^(?:os|as)\s+(.+)$/i);
+  if (plural) {
+    const label = stripRecipientTail(plural[1]);
+    if (label.length >= 3) {
+      return { userQueries: [], groupQuery: label, roleQueries: [label] };
+    }
+  }
+
+  if (/^todos\s+(?:os|as)\s+/i.test(f)) {
+    const label = f.replace(/^todos\s+(?:os|as)\s+/i, '').trim();
+    if (label.length >= 3) {
+      return { userQueries: [], groupQuery: label, roleQueries: [label] };
+    }
+  }
+
+  if (COLLECTIVE_ROLE_RE.test(norm(f)) && f.length <= 40) {
+    return { userQueries: [], groupQuery: f, roleQueries: [f] };
+  }
+
+  let namesFrag = f.replace(/^(?:o|a|os|as)\s+/i, '').trim();
+  const userQueries = splitRecipientList(namesFrag);
+  return { userQueries, groupQuery: null, roleQueries: [] };
+}
+
+/** «Manda isso para o Wellington», «enviar para os supervisores». */
+function parseSendPanelToTargets(stripped) {
+  if (!new RegExp(`\\b${SEND_VERB_RE}\\b`).test(norm(stripped))) return null;
+
+  const patterns = [
+    new RegExp(
+      `\\b${SEND_VERB_RE}\\s+(?:isso|isto|aquilo|o\\s+painel|este\\s+painel|esse\\s+painel|o\\s+relat[oó]rio|o\\s+resumo|tudo)\\s+(?:para|pr[oa])\\s+(.+)`,
+      'i'
+    ),
+    new RegExp(
+      `\\b${SEND_VERB_RE}\\s+(?:para|pr[oa])\\s+(.+?)\\s+(?:isso|isto|aquilo|o\\s+painel|este\\s+painel|esse\\s+painel|tudo)\\b`,
+      'i'
+    ),
+    new RegExp(
+      `\\b(?:quero|preciso)\\s+${SEND_VERB_RE}\\s+(?:isso|isto|o\\s+painel)?\\s*(?:para|pr[oa])\\s+(.+)`,
+      'i'
+    )
+  ];
+
+  for (const re of patterns) {
+    const m = stripped.match(re);
+    if (!m) continue;
+    const targets = parseRecipientFragment(m[1]);
+    if (chatTargetsSanity(targets)) {
+      return { kind: 'chat', ...targets };
+    }
+  }
+  return null;
 }
 
 /**
@@ -136,9 +219,8 @@ function parseChatTargets(t) {
       const rest = frag.replace(/^grupo\s+/i, '').trim();
       if (rest.length >= 2) return { userQueries: [], groupQuery: rest };
     }
-    frag = frag.replace(/^(?:o|a|os|as)\s+/i, '').trim();
-    const userQueries = splitRecipientList(frag);
-    if (userQueries.length) return { userQueries, groupQuery: null };
+    const targets = parseRecipientFragment(frag);
+    if (chatTargetsSanity(targets)) return targets;
   }
   const directImpPara = rawTrim.match(
     new RegExp(`\\b${SEND_VERB_RE}\\s+no\\s+impetus\\s+para\\s+(.+?)\\s*$`, 'i')
@@ -149,9 +231,8 @@ function parseChatTargets(t) {
       const rest = frag.replace(/^grupo\s+/i, '').trim();
       if (rest.length >= 2) return { userQueries: [], groupQuery: rest };
     }
-    frag = frag.replace(/^(?:o|a|os|as)\s+/i, '').trim();
-    const userQueries = splitRecipientList(frag);
-    if (userQueries.length) return { userQueries, groupQuery: null };
+    const targetsImp = parseRecipientFragment(frag);
+    if (chatTargetsSanity(targetsImp)) return targetsImp;
   }
 
   let cut = rawTrim.search(/\s+no\s+chat\s+interno\b/i);
@@ -184,9 +265,8 @@ function parseChatTargets(t) {
         const rest = frag.replace(/^grupo\s+/i, '').trim();
         if (rest.length >= 2) return { userQueries: [], groupQuery: rest.replace(/\s+no\s+chat.*$/i, '').trim() };
       }
-      frag = frag.replace(/^(?:o|a|os|as)\s+/i, '').trim();
-      const uq = splitRecipientList(frag);
-      if (uq.length) return { userQueries: uq, groupQuery: null };
+      const tailTargets = parseRecipientFragment(frag);
+      if (chatTargetsSanity(tailTargets)) return tailTargets;
     }
   } else if (hasChatCtx) {
     return null;
@@ -195,12 +275,17 @@ function parseChatTargets(t) {
     if (rawTrim.length > 130) return null;
     if (!/\bpara\b/.test(n)) return null;
     if (/\b(email|e-mail|whatsapp|telegram|sms)\b/.test(n)) return null;
+    const isPanelSend =
+      /\b(isso|isto|aquilo|painel|relat[oó]rio|resumo)\b/i.test(n) &&
+      new RegExp(`\\b${SEND_VERB_RE}\\b`).test(n);
     const blockedImplicit =
+      !isPanelSend &&
       /\b(mostrar|mostra|exibir|exibe|gr[aá]fico|quero\s+ver|dados\s+de|gere|gera|crie|cria|fa[çc]a|faz|monte|monta|explique|analise|analisa)\b/i.test(
         n
       );
     if (blockedImplicit) return null;
     if (!looksLikeImplicitChatCommand(rawTrim)) return null;
+    if (rawTrim.length > (isPanelSend ? 180 : 130)) return null;
     before = rawTrim;
   }
 
@@ -211,15 +296,9 @@ function parseChatTargets(t) {
   if (lastIdx === -1) return null;
 
   let frag = before.slice(lastIdx).replace(/^\s*para\s+/i, '').trim();
-  if (/^grupo\s+/i.test(frag)) {
-    const rest = frag.replace(/^grupo\s+/i, '').trim();
-    if (rest.length >= 2) return { userQueries: [], groupQuery: rest.replace(/\s+no\s+chat.*$/i, '').trim() };
-  }
-
-  frag = frag.replace(/^(?:o|a|os|as)\s+/i, '').trim();
-  const userQueries = splitRecipientList(frag);
-  if (!userQueries.length) return null;
-  return { userQueries, groupQuery: null };
+  const targets = parseRecipientFragment(frag);
+  if (!chatTargetsSanity(targets)) return null;
+  return targets;
 }
 
 /**
@@ -322,6 +401,7 @@ function parseExportMeta(stripped) {
 
   if (
     /\bcomo\b/i.test(n) &&
+    !/^(?:por\s+favor\s+)?(?:ia\s+)?(?:baix|descarreg|export|manda|envi|imprim)/i.test(sn) &&
     /\b(pdf|excel|planilha|xlsx|imprimir|imprime|baixar|exportar|download|partilhar|compartilhar)\b/i.test(sn) &&
     sn.length > 20
   ) {
@@ -343,8 +423,12 @@ function parseExportMeta(stripped) {
       printSoft
     ) ||
     /^(?:imprimir|imprime|imprima|print)$/i.test(printSoft) ||
+    /^(?:pode|podia|quero|preciso)\s+(?:imprimir|imprima|imprime)\b/i.test(sn) ||
     /^(?:faz|fa[çc]a|fazer)\s+(?:a\s+)?impress[aã]o(?:\s+para\s+mim|\s+pra\s+mim)?\b/i.test(sn) ||
     /\b(?:imprimir|imprime|imprima)\s+(?:este|esse|o|esta|essa)\s+(?:painel|relat)\w*/i.test(sn) ||
+    (/\b(?:imprimir|imprime|imprima)\b/i.test(sn) &&
+      /\b(?:do\s+que\s+)?(?:gerou|geraste|mostrou|mostraste|painel|isso|isto|relat)\w*/i.test(sn) &&
+      sn.length <= 130) ||
     (/^(?:por\s+favor\s+|por\s+gentileza\s+)*(imprimir|imprime|imprima|print)\b/i.test(sn) && sn.length <= 120) ||
     (/^(?:imprimir|imprime|imprima)\b/i.test(sn) && /\b(por\s+favor|por\s+gentileza)\b/i.test(sn) && sn.length <= 120) ||
     (/^(?:quero|preciso)\s+(?:imprimir|imprima|fazer\s+impress)/i.test(sn) && sn.length <= 100) ||
@@ -360,7 +444,17 @@ function parseExportMeta(stripped) {
     /\b(?:gera|gerar|quero|preciso)\s+(?:o\s+)?pdf\b/i.test(sn) ||
     (/\b(?:baixar|descarregar|exportar)\s+(?:o\s+)?relat[oó]rio\b/i.test(sn) && sn.length <= 52) ||
     (/^(?:por\s+favor\s+|por\s+gentileza\s+)?(?:o\s+)?pdf$/i.test(sn) && sn.length <= 90) ||
-    (/^(?:quero|preciso)\s+(?:o\s+)?pdf$/i.test(sn) && sn.length <= 80);
+    (/^(?:quero|preciso)\s+(?:o\s+)?pdf$/i.test(sn) && sn.length <= 80) ||
+    (/\b(?:baix|descarreg|download|salv|export)\w*\b/i.test(sn) &&
+      /\bpdf\b/i.test(sn) &&
+      sn.length <= 120) ||
+    (/\bpdf\b/i.test(sn) &&
+      /\b(?:do\s+que\s+)?(?:gerou|geraste|mostrou|mostraste|criou|criaste|painel|isso|isto|a[ií]|relat)\w*/i.test(sn) &&
+      sn.length <= 130) ||
+    (/\b(?:baix|descarreg)\w*\b/i.test(sn) &&
+      /\b(?:pra|para)\s+mim\b/i.test(sn) &&
+      /\b(?:pdf|relat|painel|isso|isto)\b/i.test(sn) &&
+      sn.length <= 130);
 
   if (pdfOk) return { kind: 'pdf' };
 
@@ -380,7 +474,10 @@ function parseExportMeta(stripped) {
     /\b(?:quero|preciso|gera|gerar)\s+(?:o\s+)?excel\b/i.test(sn) ||
     (/^(?:por\s+favor\s+|por\s+gentileza\s+)?(?:a\s+)?planilha$/i.test(sn) && sn.length <= 90) ||
     (/^(?:quero|preciso)\s+(?:o\s+)?excel$/i.test(sn) && sn.length <= 80) ||
-    (/^(?:quero|preciso)\s+(?:a\s+)?planilha$/i.test(sn) && sn.length <= 80);
+    (/^(?:quero|preciso)\s+(?:a\s+)?planilha$/i.test(sn) && sn.length <= 80) ||
+    (/\b(?:baix|descarreg|export)\w*\b/i.test(sn) &&
+      /\b(?:excel|planilha|xlsx)\b/i.test(sn) &&
+      sn.length <= 120);
 
   if (excelOk) return { kind: 'excel' };
 
@@ -398,13 +495,36 @@ export function parsePanelVoiceMetaCommand(text) {
   const stripped = stripCourtesySuffixes(stripCourtesyPrefixes(raw));
 
   if (stripped.length <= 420) {
+    const sendPanel = parseSendPanelToTargets(stripped);
+    if (sendPanel) return sendPanel;
+
+    const msgPara = stripped.match(
+      new RegExp(
+        `\\b${SEND_VERB_RE}\\s+(?:uma\\s+)?(?:mensagem|msg|conte[uú]do|painel|relat[oó]rio|isso|isto)\\s+para\\s+(.+)`,
+        'i'
+      )
+    );
+    if (msgPara) {
+      const targets = parseRecipientFragment(msgPara[1]);
+      if (chatTargetsSanity(targets)) {
+        return { kind: 'chat', ...targets };
+      }
+    }
+
     const chat = parseChatTargets(stripped);
     if (
       chat &&
       chatTargetsSanity(chat) &&
-      (chat.groupQuery || (chat.userQueries && chat.userQueries.length))
+      (chat.groupQuery ||
+        (chat.roleQueries && chat.roleQueries.length) ||
+        (chat.userQueries && chat.userQueries.length))
     )
-      return { kind: 'chat', userQueries: chat.userQueries, groupQuery: chat.groupQuery };
+      return {
+        kind: 'chat',
+        userQueries: chat.userQueries || [],
+        groupQuery: chat.groupQuery,
+        roleQueries: chat.roleQueries || []
+      };
   }
 
   const shareMeta = parseShareIntent(stripped);
@@ -412,6 +532,9 @@ export function parsePanelVoiceMetaCommand(text) {
 
   const exportMeta = parseExportMeta(stripped);
   if (exportMeta) return exportMeta;
+
+  const conversational = inferConversationalPanelMeta(stripped);
+  if (conversational) return conversational;
 
   return null;
 }
