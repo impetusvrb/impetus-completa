@@ -20,6 +20,14 @@ export function inferVoiceVisualIntent(text) {
   if (t.length < 4) return null;
   if (/\b(limpar|esvaziar|tirar (o )?grafico|tirar (o )?gráfico|fechar (o )?painel)\b/.test(t)) return 'clear';
   if (
+    /\b(chat|conversa|mensagem|mandou|mandei|inbox|nao\s+lida|não\s+lida)\b/.test(t) &&
+    /\b(resumo|cite|citar|o\s+que|nova|novas|ultima|última|painel|gera|gere|mostra|tem|ha|há|conversa|mensagem|ela|ele)\b/.test(
+      t
+    )
+  ) {
+    return 'chat_thread';
+  }
+  if (
     /\b(painel completo|tudo no painel|mostra tudo|mostrar tudo|visao geral|visão geral|dashboard completo|o que acontece|situacao|situação)\b/.test(t)
   )
     return 'full_panel';

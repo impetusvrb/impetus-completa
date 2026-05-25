@@ -37,6 +37,8 @@ const documentContext = require('./documentContext');
 const { detectAIMention } = require('../utils/mentionsAI');
 const structuralAIGovernance = require('./structuralAIGovernanceService');
 const { enrichUserForDashboardAsync } = require('./structuralUserProfileService');
+const opChatFmt = require('../shared/operationalChatHistoryFormatter');
+const sz5Injector = require('../middleware/zUnifiedConversationalContextInjector');
 
 const AI_USER_ID = chatService.AI_USER_ID;
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
@@ -327,10 +329,10 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
         }
       }
 
-      const historyFormatted = history.slice(-12).map((m) => ({
-        role: m.sender_id === AI_USER_ID ? 'assistant' : 'user',
-        content: (m.sender?.name || 'Usuário') + ': ' + (m.content || '[arquivo]')
-      }));
+      const historyFormatted = history.slice(-12).map((m) => {
+        const op = opChatFmt.formatOperationalChatMessage(m, { aiUserId: AI_USER_ID, threadId: conversationId });
+        return opChatFmt.formatForOpenAiMessages(op);
+      });
 
       // [ORCHESTRATOR_SAFE_FALLBACK] compatibilidade entre legado e nova arquitetura
       if (orchestrator && typeof orchestrator.processWithOrchestrator === 'function') {
@@ -449,6 +451,31 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       console.warn('[MEMORY_BINDING_SKIP]', memErr?.message || String(memErr));
     }
 
+    try {
+      const participantsSz5 = await loadParticipantRows(conversationId);
+      const humanSz5 = participantsSz5.find((p) => String(p.user_id) !== String(AI_USER_ID));
+      if (humanSz5?.user_id) {
+        const fullSz5 = await db.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [humanSz5.user_id]);
+        const userSz5 = fullSz5.rows[0] || {
+          id: humanSz5.user_id,
+          company_id: companyId,
+          role: humanSz5.role,
+          name: humanSz5.name
+        };
+        const sz5Ctx = await sz5Injector.buildUnifiedConversationalContext(
+          userSz5,
+          normalizedMessage,
+          { conversationId, legacyPayload: {} }
+        );
+        if (sz5Ctx.block) {
+          systemContent = `${systemContent}${sz5Ctx.block}`;
+          console.info('[SZ5_FACT_INJECTION]', JSON.stringify(sz5Ctx.meta || {}));
+        }
+      }
+    } catch (sz5Err) {
+      console.warn('[SZ5_INJECT_SKIP]', sz5Err?.message || String(sz5Err));
+    }
+
     if (process.env.UNIFIED_DECISION_ENGINE === 'true') {
       try {
         const unifiedDecisionEngine = require('./unifiedDecisionEngine');
@@ -475,10 +502,11 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
 
     const msgs = [
       { role: 'system', content: systemContent },
-      ...history.slice(-20).map((m) => ({
-        role: m.sender_id === AI_USER_ID ? 'assistant' : 'user',
-        content: sanitizeContent(m.content || '[arquivo]')
-      })),
+      ...history.slice(-20).map((m) =>
+        opChatFmt.formatForOpenAiMessages(
+          opChatFmt.formatOperationalChatMessage(m, { aiUserId: AI_USER_ID, threadId: conversationId })
+        )
+      ),
       { role: 'user', content: sanitizeContent(normalizedMessage) }
     ];
 

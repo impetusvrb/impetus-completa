@@ -15,6 +15,7 @@ import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
 import { useRealtimePresenceBridge } from '../realtimePresence/useRealtimePresenceBridge';
 import { useAnamAvatar } from '../hooks/useAnamAvatar';
+import { VOICE_SESSION_CLOSE_EVENT } from './voiceSessionCloseIntent';
 import { useNotification } from '../context/NotificationContext';
 import {
   registerAnamPanelCommandHandler,
@@ -352,6 +353,29 @@ export default function ImpetusVoiceProvider({ children }) {
     if (voiceState.isContinuous) setOverlayOpen(true);
   }, [voiceState.isContinuous, voiceEnabled]);
 
+  const closeLiveSession = useCallback(() => {
+    try {
+      stopSpeaking();
+    } catch (_) {}
+    try {
+      if (voiceStateRef.current.isContinuous) {
+        void engineToggleVoice();
+      }
+    } catch (_) {}
+    try {
+      stopVoiceCapture();
+    } catch (_) {}
+    setOverlayOpen(false);
+    void import('../services/anamSessionSingleton').then((m) => m.stopAnamStreamNow?.()).catch(() => {});
+  }, [engineToggleVoice, stopSpeaking, stopVoiceCapture]);
+
+  useEffect(() => {
+    if (!voiceEnabled) return undefined;
+    const onSessionClose = () => closeLiveSession();
+    window.addEventListener(VOICE_SESSION_CLOSE_EVENT, onSessionClose);
+    return () => window.removeEventListener(VOICE_SESSION_CLOSE_EVENT, onSessionClose);
+  }, [voiceEnabled, closeLiveSession]);
+
   // Ao sair de rota autenticada, garante cleanup visual e de captura.
   useEffect(() => {
     if (voiceEnabled) return;
@@ -383,7 +407,7 @@ export default function ImpetusVoiceProvider({ children }) {
           await engineToggleVoice();
         }
       },
-      closeOverlay: () => setOverlayOpen(false),
+      closeOverlay: closeLiveSession,
       toggleVoice: async () => {
         setOverlayOpen(true);
         return engineToggleVoice();
@@ -424,6 +448,7 @@ export default function ImpetusVoiceProvider({ children }) {
       speakText,
       stopSpeaking,
       stopVoiceCapture,
+      closeLiveSession,
       engineToggleVoice,
       ttsUi,
       voiceBadge,
@@ -451,19 +476,7 @@ export default function ImpetusVoiceProvider({ children }) {
         presenceExpression={presenceBridge.enabled ? presenceBridge.expressionLabel : null}
         presencePerceptionState={presenceBridge.enabled ? presenceBridge.perception?.perception_state : null}
         presenceAkoolReady={presenceBridge.enabled ? presenceBridge.akoolConfigured : false}
-        onClose={() => {
-          try {
-            stopSpeaking();
-          } catch (_) {}
-          // Desliga o modo contínuo antes de stopVoiceCapture para toggleVoice ver continuousRef === true
-          try {
-            if (voiceState.isContinuous) engineToggleVoice();
-          } catch (_) {}
-          try {
-            stopVoiceCapture();
-          } catch (_) {}
-          setOverlayOpen(false);
-        }}
+        onClose={closeLiveSession}
       />
       <ImpetusFloatButton
         visible={false}

@@ -2,6 +2,7 @@
 
 const { filterDeniedFromList } = require('./deniedPublicationTerminalLock');
 const { isModuleAllowedByDomain } = require('../canonicalModuleGovernance/domainModuleMatrix');
+const { UNIVERSAL_SHARED } = require('../canonicalModuleGovernance/canonicalModuleMatrix');
 
 function resolveFinalModuleAuthority(modules = [], ctx = {}) {
   const domain = ctx.domain_axis || ctx.canonical_identity?.domain_axis;
@@ -15,10 +16,10 @@ function resolveFinalModuleAuthority(modules = [], ctx = {}) {
     const check = isModuleAllowedByDomain(key, domain);
     if (check.allowed) authoritative.push(typeof mod === 'string' ? mod : key);
   }
-  const universal = ['dashboard', 'settings'];
-  for (const u of universal) {
+  for (const u of UNIVERSAL_SHARED) {
     if (!authoritative.includes(u)) authoritative.unshift(u);
   }
+  if (!authoritative.includes('settings')) authoritative.unshift('settings');
   return {
     final_modules: [...new Set(authoritative)],
     denied_blocked: denied.blocked,

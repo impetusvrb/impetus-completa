@@ -18,6 +18,10 @@ import {
   resolvePanelMetaFromConversation
 } from '../utils/anamMetaGovernance';
 import { runPanelMetaResolved } from '../features/smartPanel/smartPanelEvents';
+import {
+  evaluateVoiceSessionClose,
+  dispatchVoiceSessionClose
+} from '../voice/voiceSessionCloseIntent';
 
 function blockPersonaOpeningIfNeeded(client, g, spoken) {
   if (!client || !spoken) return false;
@@ -240,6 +244,48 @@ async function ensurePanelMetaExecuted(userText, assistantText, client, g) {
   return false;
 }
 
+function maybeScheduleSessionClose(client, g, { userText = '', assistantText = '' } = {}) {
+  if (g.sessionCloseScheduled) return;
+  const decision = evaluateVoiceSessionClose({
+    userText,
+    assistantText,
+    lastAssistantHint: g.lastAssistantUtterance || '',
+    recentTurns: g.panelConversation || []
+  });
+  if (!decision.close) return;
+  g.sessionCloseScheduled = true;
+
+  const runClose = () => {
+    g.sessionCloseScheduled = false;
+    dispatchVoiceSessionClose({ reason: decision.reason });
+  };
+
+  const farewell = String(decision.farewellLine || '').trim();
+  const delayMs = decision.delayMs || 2400;
+
+  if (decision.speakFarewell && farewell && client?.talk && g.client === client) {
+    try {
+      client.interruptPersona?.();
+    } catch (_) {}
+    void (async () => {
+      try {
+        await Promise.race([
+          client.talk(farewell.slice(0, 280)),
+          new Promise((resolve) => setTimeout(resolve, 2200))
+        ]);
+        g.lastMetaTalkAt = Date.now();
+      } catch (e) {
+        console.warn('[anam] session close talk', e?.message || e);
+      } finally {
+        setTimeout(runClose, delayMs);
+      }
+    })();
+    return;
+  }
+
+  setTimeout(runClose, delayMs);
+}
+
 function pushPanelTurn(g, role, text) {
   if (!g.panelConversation) g.panelConversation = [];
   const t = String(text || '').trim();
@@ -277,6 +323,7 @@ export function wireAnamPanelBridge(client, g) {
 
   g.panelConversation = [];
   g.lastPanelCommitKey = '';
+  g.sessionCloseScheduled = false;
 
   let lastUserFinal = '';
   let lastHandledUserKey = '';
@@ -284,12 +331,13 @@ export function wireAnamPanelBridge(client, g) {
 
   const processUserText = (text, key) => {
     const t = String(text || '').trim();
-    if (t.length < 3) return;
+    if (t.length < 2) return;
     const dedupeKey = key || t;
     if (dedupeKey === lastHandledUserKey) return;
     lastHandledUserKey = dedupeKey;
     lastUserFinal = t;
     pushPanelTurn(g, 'user', t);
+    maybeScheduleSessionClose(client, g, { userText: t });
     void injectOperationalVoiceContext(client, t);
     void ensurePanelMetaExecuted(t, '', client, g);
   };
@@ -306,6 +354,7 @@ export function wireAnamPanelBridge(client, g) {
     }
 
     if (lastPersona?.content) {
+      g.lastAssistantUtterance = String(lastPersona.content || '').trim();
       const u = lastUser?.content || lastUserFinal;
       const metaKind =
         resolvePanelMetaFromConversation(u, lastPersona.content)?.kind ||
@@ -326,6 +375,10 @@ export function wireAnamPanelBridge(client, g) {
             `hist-commit:${lastUser?.id || 'u'}:${lastPersona.id}:${lastPersona.content.length}`
           );
         }
+        maybeScheduleSessionClose(client, g, {
+          userText: u,
+          assistantText: lastPersona.content
+        });
       });
     }
   };
@@ -364,6 +417,7 @@ export function wireAnamPanelBridge(client, g) {
           return;
         }
         if (assistant.length >= 6) {
+          g.lastAssistantUtterance = assistant;
           if (personaClaimsPanelMetaDone(assistant, lastUserFinal) && !g.lastPanelMetaSuccessAt) {
             try {
               client.interruptPersona?.();
@@ -403,6 +457,10 @@ export function wireAnamPanelBridge(client, g) {
           if (!skipPanelCommit) {
             pushPanelTurn(g, 'assistant', assistant);
           }
+          maybeScheduleSessionClose(client, g, {
+            userText: lastUserFinal,
+            assistantText: assistant
+          });
         }
       }
     }

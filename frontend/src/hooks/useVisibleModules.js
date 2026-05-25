@@ -145,6 +145,7 @@ function userMayBypassEmptyModules(user) {
   const r = String(user.role || '').toLowerCase();
   if (r === 'admin' || r === 'internal_admin') return true;
   if (user.is_tenant_admin === true) return true;
+  if (isExecutiveLeadershipRole(user)) return true;
   return userHasSystemAdministrationCapability(user);
 }
 
@@ -172,9 +173,9 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
   const effectiveModules = Array.isArray(terminalSet) && terminalSet.length > 0 ? terminalSet : visibleModules;
 
   if (!effectiveModules || effectiveModules.length === 0) {
-    if (opts.loading) return [];
     const uEmpty = readStoredUser();
     if (userMayBypassEmptyModules(uEmpty)) return menuItems;
+    if (opts.loading) return menuItems;
     return [];
   }
   const set = new Set(effectiveModules);
@@ -405,7 +406,12 @@ export function useVisibleModules() {
         mods = [...mods, 'chat'];
       }
       const gov = r?.data?.module_access_governance;
-      if (gov?.structural_complete === false && Array.isArray(gov?.universal_modules)) {
+      if (
+        gov?.structural_complete === false &&
+        Array.isArray(gov?.universal_modules) &&
+        !gov?.executive_structural_bypass &&
+        !isExecutiveLeadershipRole(readStoredUser())
+      ) {
         mods = [...new Set(gov.universal_modules)];
       } else if (gov && Array.isArray(mods) && gov.denied_count > 0) {
         mods = mods.filter((k) => !gov.denied?.some((d) => d.menu_key === k));

@@ -8,6 +8,7 @@ const dashboardAccessService = require('./dashboardAccessService');
 const dashboardComposerService = require('./dashboardComposerService');
 const structuralAIGovernance = require('./structuralAIGovernanceService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
+const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
 
 const MAX_KPI_LINES = 14;
 const MAX_INSTRUCTION_CHARS = 14000;
@@ -71,6 +72,7 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
   const injectOperational = forceOperationalSnapshot || gov.allow_operational_data;
 
   let softwareBlock = '';
+  let chatBlock = '';
   if (injectOperational) {
     try {
       const bundle = await softwareOperationalSnapshotService.buildSnapshotsForQuery(
@@ -85,6 +87,17 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
         softwareOperationalSnapshotService.getSoftwareCatalogForUser(effectiveUser)
       );
     }
+    if (impetusChatOperationalContextService.userHasChatAccess(effectiveUser)) {
+      try {
+        const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
+          effectiveUser,
+          queryText
+        );
+        chatBlock = impetusChatOperationalContextService.formatForVoiceAppend(chatCtx);
+      } catch (e) {
+        console.warn('[voiceRealtimeContext] chat context', e?.message || e);
+      }
+    }
   }
 
   const dataBlock = injectOperational
@@ -95,6 +108,7 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
         kpiLines,
         '',
         softwareBlock,
+        chatBlock ? `\n${chatBlock}` : '',
         '',
         IMPETUS_NAV_HINT
       ].join('\n')

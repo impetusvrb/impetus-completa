@@ -25,6 +25,10 @@ import {
 import { dashboard } from '../services/api';
 import { parsePanelVoiceMetaCommand } from '../features/smartPanel/panelVoiceMetaCommands';
 import {
+  evaluateVoiceSessionClose,
+  dispatchVoiceSessionClose
+} from '../voice/voiceSessionCloseIntent';
+import {
   isDidAvatarEnabled,
   isDidAvatarConfigured,
   didAvatarSourceUrl,
@@ -45,11 +49,12 @@ function isVoiceRealtimeEnabled() {
   return v === 'true' || v === '1';
 }
 
-async function buildRealtimeSessionUpdate() {
+async function buildRealtimeSessionUpdate(hint = '') {
   const envInstr = String(import.meta.env.VITE_REALTIME_INSTRUCTIONS || '').trim();
   let append = '';
   try {
-    const res = await dashboard.getVoiceRealtimeContext();
+    const params = hint ? { hint: String(hint).slice(0, 200) } : {};
+    const res = await dashboard.getVoiceRealtimeContext(params);
     const d = res?.data;
     if (d && d.instructions_append) append = String(d.instructions_append);
   } catch (_) {
@@ -727,6 +732,7 @@ export function useVoiceEngine(options = {}) {
   /** Comando de painel (imprimir/enviar chat) tratado no modo Realtime — evita bridge Claude indevido. */
   const realtimeMetaHandledRef = useRef(false);
   const lastCompletedUserPhraseRef = useRef('');
+  const realtimeSessionCloseScheduledRef = useRef(false);
   /** Capturado em response.created — sobrevive a speech_started limpar o buffer ao vivo. */
   const responseTurnUserPhraseRef = useRef('');
   const realtimeSessionUpdateInFlightRef = useRef(false);
@@ -1707,6 +1713,43 @@ export function useVoiceEngine(options = {}) {
                 } catch (_) {}
               }
               void runVoicePanelMetaIfHandled(phraseForMeta);
+              const closeDecision = evaluateVoiceSessionClose({
+                userText: phraseForMeta,
+                assistantText: String(realtimeAsstTranscriptRef.current || '').trim(),
+                recentTurns: [
+                  {
+                    role: 'assistant',
+                    text: String(realtimeAsstTranscriptRef.current || '').trim()
+                  },
+                  { role: 'user', text: phraseForMeta }
+                ]
+              });
+              if (closeDecision.close && !realtimeSessionCloseScheduledRef.current) {
+                realtimeSessionCloseScheduledRef.current = true;
+                try {
+                  realtimeSessionRef.current?.cancelResponse?.();
+                } catch (_) {}
+                setTimeout(() => {
+                  dispatchVoiceSessionClose({ reason: closeDecision.reason });
+                  realtimeSessionCloseScheduledRef.current = false;
+                }, closeDecision.delayMs || 2800);
+              }
+              if (
+                realtimeSessionRef.current?.connected &&
+                !realtimeSessionUpdateInFlightRef.current
+              ) {
+                realtimeSessionUpdateInFlightRef.current = true;
+                void (async () => {
+                  try {
+                    const update = await buildRealtimeSessionUpdate(phraseForMeta);
+                    realtimeSessionRef.current?.send(update);
+                  } catch (_) {
+                    /* mantém sessão */
+                  } finally {
+                    realtimeSessionUpdateInFlightRef.current = false;
+                  }
+                })();
+              }
             }
           }
           if (String(t).includes('input_audio_transcription') && String(t).includes('failed')) {
@@ -1736,6 +1779,17 @@ export function useVoiceEngine(options = {}) {
             // Não mudar para "listening" nem cortar lipsync aqui: o áudio PCM ainda pode estar a tocar.
             // O estado visual segue em "speaking" até o player local esvaziar (onPhaseChange → listening).
             const snapEarly = String(realtimeAsstTranscriptRef.current || '').trim();
+            const closeAfterAssistant = evaluateVoiceSessionClose({
+              userText: String(lastCompletedUserPhraseRef.current || '').trim(),
+              assistantText: snapEarly
+            });
+            if (closeAfterAssistant.close && !realtimeSessionCloseScheduledRef.current) {
+              realtimeSessionCloseScheduledRef.current = true;
+              setTimeout(() => {
+                dispatchVoiceSessionClose({ reason: closeAfterAssistant.reason });
+                realtimeSessionCloseScheduledRef.current = false;
+              }, closeAfterAssistant.delayMs || 2400);
+            }
             if (
               isDidAvatarConfigured() &&
               snapEarly.length >= 12 &&

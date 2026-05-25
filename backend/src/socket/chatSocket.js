@@ -3,6 +3,7 @@ const { JWT_SECRET } = require('../middleware/auth');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
+const sz5Injector = require('../middleware/zUnifiedConversationalContextInjector');
 const onlineUsers = new Map();
 
 function initChatSocket(io) {
@@ -61,6 +62,12 @@ function initChatSocket(io) {
             content,
             io
           }).catch(() => {}));
+          setImmediate(() => sz5Injector.indexMessageForSz5(
+            user,
+            { ...msg, sender_id: user.id, sender_name: user.name },
+            conversationId,
+            [{ user_id: user.id, name: user.name, role: user.role }]
+          ).catch(() => {}));
         }
       } catch (e) { if (ack) ack({ error: e.message }); }
     });

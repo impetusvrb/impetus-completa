@@ -74,8 +74,10 @@ import {
   isMaintenanceProfile,
   isColaboradorSimples,
   shouldOfferPulseRhMenu,
+  isExecutiveLeadershipRole,
   isStrictAdminRole,
-  isAdministrativePortalOnlyUser
+  isAdministrativePortalOnlyUser,
+  userHasSystemAdministrationCapability
 } from '../utils/roleUtils';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
@@ -132,10 +134,7 @@ export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isNarrowViewport = useMatchMedia(MQ_NAV_DRAWER);
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return !window.matchMedia(MQ_NAV_DRAWER).matches;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationCount] = useState(0);
   const [subscriptionOverdue, setSubscriptionOverdue] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -635,6 +634,28 @@ export default function Layout({ children }) {
       { path: '/app', icon: ChevronLeft, label: 'Voltar ao painel', settingsBack: true },
       ...USER_SETTINGS_FOCUS_NAV.map((item) => ({ ...item, settingsAnchor: true }))
     ];
+  }
+
+  if (
+    !isUserSettingsFocus &&
+    (!Array.isArray(menuItems) || menuItems.length === 0) &&
+    (isExecutiveLeadershipRole(user) ||
+      userHasSystemAdministrationCapability(user) ||
+      String(user?.role || '').toLowerCase() === 'ceo')
+  ) {
+    try {
+      menuItems = filterMenu(baseMenuItems, null, { loading: false });
+    } catch {
+      menuItems = baseMenuItems.slice();
+    }
+    if (canAccessIndustrialCoreModules) {
+      const existing = new Set((menuItems || []).map((i) => (i.path || '').replace(/\/+$/, '') || '/'));
+      for (const item of MENU_BLOCO_INDUSTRIAL) {
+        const p = (item.path || '').replace(/\/+$/, '') || '/';
+        if (!existing.has(p)) menuItems.push(item);
+      }
+    }
+    menuItems = dedupeSidebarMenuItems(menuItems || []);
   }
 
   const scrollToSettingsSection = (hash) => {

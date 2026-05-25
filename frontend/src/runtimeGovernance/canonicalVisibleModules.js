@@ -5,18 +5,22 @@
 import { isTerminalGovernanceLocked, getFinalVisibleModules } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 
 export function readCanonicalVisibleModules(dashboardMePayload) {
+  const legacy = Array.isArray(dashboardMePayload?.visible_modules)
+    ? dashboardMePayload.visible_modules.slice()
+    : [];
   if (isTerminalGovernanceLocked(dashboardMePayload)) {
-    return getFinalVisibleModules(dashboardMePayload);
+    const fin = getFinalVisibleModules(dashboardMePayload);
+    return fin.length ? fin : legacy;
   }
   const runtime = dashboardMePayload?.sidebar_governance_runtime;
   if (runtime?.governance_applied === true && Array.isArray(runtime.final_visible_modules)) {
-    return runtime.final_visible_modules.slice();
+    const fin = runtime.final_visible_modules.slice();
+    return fin.length ? fin : legacy;
   }
   if (runtime?.final_visible_modules?.length) {
     return runtime.final_visible_modules.slice();
   }
-  const list = dashboardMePayload?.visible_modules;
-  return Array.isArray(list) ? list.slice() : [];
+  return legacy;
 }
 
 export function isSidebarGovernanceActive(payload) {

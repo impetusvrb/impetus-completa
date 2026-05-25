@@ -12,6 +12,7 @@ const userContext = require('./userContext');
 const personalizedInsightsService = require('./personalizedInsightsService');
 const maintenanceService = require('./dashboardMaintenanceService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
+const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
 
 let operationalBrain;
 try {
@@ -110,6 +111,12 @@ function inferPanelTypeFromUserText(raw) {
     return 'report';
   }
   if (/\b(tabela|lista\s+em\s+tabela|tabular|linhas?\s+e\s+colunas?|folha\s+de\s+dados|lista\s+detalhada)\b/.test(t)) {
+    return 'table';
+  }
+  if (
+    /\b(resumo|cite|citar|o\s+que)\b/.test(t) &&
+    /\b(conversa|chat|mensagem|mandou)\b/.test(t)
+  ) {
     return 'table';
   }
   if (/\bresumo\s+dos?\s+(meus\s+)?(indicadores?|kpis?|metricas?)\b/.test(t)) {
@@ -344,6 +351,39 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
     }
   }
 
+  const chatWanted =
+    datasets.includes('chat') || impetusChatOperationalContextService.wantsChatDetail(queryText);
+  let chatReportAppend = '';
+  if (chatWanted && impetusChatOperationalContextService.userHasChatAccess(user)) {
+    try {
+      const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
+        user,
+        queryText
+      );
+      const chatTables = impetusChatOperationalContextService.buildPanelChatTables(chatCtx);
+      for (const tbl of chatTables) extraTables.push(tbl);
+      if (chatCtx.matchedConversation?.contactName) {
+        chatReportAppend = `\n\n**Chat — ${chatCtx.matchedConversation.contactName}**\n`;
+        if (chatCtx.threadMessages?.length) {
+          const lines = chatCtx.threadMessages.slice(-12).map((m) => {
+            const who = m.fromSelf ? 'Você' : m.from;
+            return `- ${who}: ${(m.content || '').slice(0, 200)}`;
+          });
+          chatReportAppend += lines.join('\n');
+        } else if (chatCtx.matchedConversation.preview) {
+          chatReportAppend += `Última prévia: ${chatCtx.matchedConversation.preview}`;
+        }
+      } else if (chatCtx.unreadCount > 0) {
+        chatReportAppend = `\n\n**Chat:** ${chatCtx.unreadCount} conversa(s) com mensagem não lida.`;
+      }
+      if (chatTables.length && (plan.type === 'mixed' || plan.type === 'chart')) {
+        plan.type = 'table';
+      }
+    } catch (e) {
+      console.warn('[smartPanelCommand] chat hydrate', e?.message || e);
+    }
+  }
+
   const telemSnap = (softwareBundle.snapshots || []).find(
     (s) => s.domainId === 'telemetria' && s.permitted && s.metrics?.length
   );
@@ -381,7 +421,7 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
       `- KPIs carregados: ${kpis.length}\n` +
       `- Interações (semana): ${summary?.operational_interactions?.total ?? '—'}\n` +
       `- Propostas em aberto: ${summary?.proposals?.total ?? '—'}\n\n` +
-      `${moduleSnapText}\n`;
+      `${moduleSnapText}${chatReportAppend}\n`;
 
   const alertsUi = [];
   const crit = Number(summary?.alerts?.critical ?? 0);
@@ -394,6 +434,9 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
   }
 
   const type = plan.type;
+  const chatPrimary =
+    extraTables.find((tbl) => String(tbl?.title || '').startsWith('Conversa —')) ||
+    extraTables.find((tbl) => String(tbl?.title || '').includes('Chat Impetus'));
 
   return {
     permissionGranted: true,
@@ -406,6 +449,7 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
     trendData: plan.chartType === 'area' || plan.chartType === 'line' ? lineData : null,
     kpiCards,
     table:
+      chatPrimary ||
       extraTables[0] ||
       (summary
         ? {
@@ -560,6 +604,10 @@ async function processPanelCommand(user, rawInput) {
       softwareOperationalSnapshotService.inferDomainsFromText(cmd, user)
     );
     plan.datasets = [...new Set([...plan.datasets, ...inferred])];
+    if (impetusChatOperationalContextService.wantsChatDetail(cmd)) {
+      plan.datasets = [...new Set([...plan.datasets, 'chat'])];
+      if (plan.type === 'mixed' || plan.type === 'chart') plan.type = 'table';
+    }
     return hydrate(user, plan, cmd, softwareBundle);
   }
 
@@ -569,6 +617,10 @@ async function processPanelCommand(user, rawInput) {
     softwareOperationalSnapshotService.inferDomainsFromText(cmd, user)
   );
   plan.datasets = [...new Set([...plan.datasets, ...inferred])];
+  if (impetusChatOperationalContextService.wantsChatDetail(cmd)) {
+    plan.datasets = [...new Set([...plan.datasets, 'chat'])];
+    if (plan.type === 'mixed' || plan.type === 'chart') plan.type = 'table';
+  }
 
   if (!plan.permissionGranted) {
     return {

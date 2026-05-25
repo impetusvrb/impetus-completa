@@ -5,6 +5,7 @@
 const claudeService = require('./claudeService');
 const dashboardAccessService = require('./dashboardAccessService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
+const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
 
 const ALLOWED_TYPES = new Set(['chart', 'table', 'kpi', 'report', 'alert']);
 
@@ -159,6 +160,19 @@ async function buildSystemPrompt(user, queryBlob = '') {
     snapBlock = `\n\n${softwareOperationalSnapshotService.formatCatalogBlock(catalog)}`;
   }
 
+  let chatBlock = '';
+  if (impetusChatOperationalContextService.userHasChatAccess(user)) {
+    try {
+      const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
+        user,
+        queryBlob
+      );
+      chatBlock = `\n\n${impetusChatOperationalContextService.formatForVoiceAppend(chatCtx)}`;
+    } catch (e) {
+      console.warn('[claudePanel] chat context', e?.message || e);
+    }
+  }
+
   return `Você é o motor analítico visual do IMPETUS. O usuário conversou com a IA de voz (OpenAI); você NÃO fala, NÃO conversa — só define o que mostrar no painel direito.
 
 Contexto do utilizador (não invente permissões além disto):
@@ -166,15 +180,16 @@ Contexto do utilizador (não invente permissões além disto):
 - Área: ${dept || '—'}
 - Permissões (amostra): ${perms.join(', ') || '—'}
 - Módulos autorizados: ${catalog.map((m) => m.label).join(', ') || '—'}
-${snapBlock}
+${snapBlock}${chatBlock}
 
 REGRAS:
 1. Responda APENAS um JSON válido, sem markdown, sem texto fora do JSON.
 2. Se a conversa for só saudação, despedida ou sem pedido de dados/visualização, retorne exatamente: {"shouldRender":false}
 3. Caso contrário shouldRender: true e preencha type, title, description, output conforme o pedido.
-4. USE os números do bloco «DADOS POR MÓDULO» quando existirem — são dados reais do IMPETUS filtrados por permissão.
-5. NÃO invente números. Se não houver dados no snapshot para o pedido, retorne {"shouldRender":false} ou type alert explicando limitação.
-6. Se shouldRender=true, evite labels vazios e mantenha coerência com o pedido (ex.: telemetria → chart ou kpi com equipamentos/anomalias).
+4. USE os números do bloco «DADOS POR MÓDULO» e mensagens do bloco CHAT IMPETUS quando existirem — dados reais filtrados por permissão.
+5. Para pedidos de conversa/chat (ex.: resumo da Joyce), prefira type "table" com linhas das mensagens do transcript; NÃO invente texto de mensagens.
+6. NÃO invente números. Se não houver dados no snapshot para o pedido, retorne {"shouldRender":false} ou type alert explicando limitação.
+7. Se shouldRender=true, evite labels vazios e mantenha coerência com o pedido (ex.: telemetria → chart ou kpi com equipamentos/anomalias).
 
 Schema obrigatório quando shouldRender é true:
 {

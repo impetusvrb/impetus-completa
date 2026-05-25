@@ -105,6 +105,40 @@ function isEnabled() {
   return v !== 'false' && v !== '0' && v !== 'off';
 }
 
+/** CEO / direção: menu completo mesmo com cadastro estrutural incompleto (aviso no dashboard, não menu vazio). */
+function isExecutiveStructuralBypass(ctx) {
+  if (!ctx) return false;
+  const role = String(ctx.role || '').toLowerCase();
+  if (role === 'ceo') return true;
+  if (['diretor', 'gerente', 'coordenador', 'supervisor'].includes(role)) return true;
+  const hl = Number(ctx.hierarchy_level);
+  if (Number.isFinite(hl) && hl <= 2) return true;
+  const prof = String(ctx.dashboard_profile || '').toLowerCase();
+  if (prof.includes('ceo') || prof.includes('director') || prof.includes('diretor')) return true;
+  return false;
+}
+
+const EXECUTIVE_MENU_FALLBACK = Object.freeze([
+  'dashboard',
+  'operational',
+  'chat',
+  'ai',
+  'biblioteca',
+  'registro_inteligente',
+  'cadastrar_com_ia',
+  'settings',
+  'manuia',
+  'quality_intelligence',
+  'safety_intelligence',
+  'environment_intelligence',
+  'logistics_intelligence',
+  'hr_intelligence',
+  'anomaly_detection',
+  'audit',
+  'proaction',
+  'admin'
+]);
+
 function getModuleType(mod) {
   if (!mod) return 'contextual';
   if (mod.module_type) return mod.module_type;
@@ -382,11 +416,22 @@ function resolveGovernedVisibleModules(accessContext, legacyCandidates = []) {
 
   if (allowed.has('ai') && !allowed.has('chat')) allowed.add('chat');
 
+  if (!ctx.structural_complete && isExecutiveStructuralBypass(ctx)) {
+    for (const key of candidates) {
+      if (key) allowed.add(key);
+    }
+    for (const key of EXECUTIVE_MENU_FALLBACK) {
+      allowed.add(key);
+    }
+  }
+
   return {
     visible_modules: [...allowed],
     denied,
     validations,
     structural_complete: ctx.structural_complete === true,
+    executive_structural_bypass:
+      !ctx.structural_complete && isExecutiveStructuralBypass(ctx),
     universal_modules: [...universal],
     authorized_structural: ctx.authorized_menu_keys || [],
     governance_message: !ctx.structural_complete
@@ -413,7 +458,12 @@ async function resolveForUser(user, legacyCandidates = []) {
   ctx.is_tenant_admin = enriched?.is_tenant_admin;
   ctx.dashboard_profile = enriched?.dashboard_profile;
 
-  const candidates = [...new Set([...(ctx.authorized_menu_keys || [])])];
+  const candidates = [
+    ...new Set([
+      ...(Array.isArray(legacyCandidates) ? legacyCandidates : []),
+      ...(ctx.authorized_menu_keys || [])
+    ])
+  ];
 
   const out = resolveGovernedVisibleModules(ctx, candidates);
 
@@ -439,6 +489,7 @@ async function resolveForUser(user, legacyCandidates = []) {
       validations_count: out.validations.length,
       denied_count: out.denied.length,
       allowed_count: out.visible_modules.length,
+      executive_structural_bypass: out.executive_structural_bypass === true,
       cadastro_fiel: true,
       cadastro_completeness: ctx.cadastro_completeness || null
     },

@@ -307,6 +307,7 @@ useRoute('/api/dashboard', './routes/dashboard');
 useRoute('/api/runtime-z-sovereign', './routes/runtimeZSovereign', requireAuth);
 useRoute('/api/runtime-z-cognitive-os', './routes/runtimeZCognitiveOs', requireAuth);
 useRoute('/api/runtime-z-operational-nervous-system', './routes/runtimeZOperationalNervousSystem', requireAuth);
+useRoute('/api/runtime-z-sz5', './routes/runtimeZSz5', requireAuth);
 useRoute('/api/runtime-z-maturation', './routes/runtimeZMaturation', requireAuth);
 useRoute('/api/cognitive-activation', './routes/cognitiveActivation', requireAuth);
 useRoute('/api/live-dashboard', './routes/liveDashboard', requireAuth);

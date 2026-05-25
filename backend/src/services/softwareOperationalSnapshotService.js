@@ -8,6 +8,7 @@ const dashboardProfileResolver = require('./dashboardProfileResolver');
 const hierarchicalFilter = require('./hierarchicalFilter');
 const maintenanceService = require('./dashboardMaintenanceService');
 const dashboardKPIs = require('./dashboardKPIs');
+const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
 
 /** Domínios do produto → módulos IMPETUS e palavras-chave em PT. */
 const DOMAIN_REGISTRY = [
@@ -73,7 +74,18 @@ const DOMAIN_REGISTRY = [
     menuHint: 'Chat interno',
     moduleKeys: ['chat', 'operational'],
     permissions: ['chat.view', 'ACCESS_AI_ANALYTICS'],
-    keywords: [/chat/, /mensagem/, /conversa interna/]
+    keywords: [
+      /chat/,
+      /mensagem/,
+      /conversa/,
+      /mandou/,
+      /mandei/,
+      /nao\s+lida/,
+      /não\s+lida/,
+      /inbox/,
+      /cite/,
+      /resumo\s+da\s+conversa/
+    ]
   },
   {
     id: 'comunicacoes',
@@ -154,6 +166,13 @@ function inferDomainsFromText(queryText, user) {
   const n = normText(queryText);
   if (!n.trim()) return [];
   const matched = [];
+  if (
+    impetusChatOperationalContextService.userHasChatAccess(user) &&
+    (impetusChatOperationalContextService.wantsChatDetail(queryText) ||
+      impetusChatOperationalContextService.extractContactHint(queryText))
+  ) {
+    matched.push('chat');
+  }
   for (const d of DOMAIN_REGISTRY) {
     if (!userCanAccessDomain(user, d)) continue;
     if (d.keywords.some((re) => re.test(n))) matched.push(d.id);
@@ -230,20 +249,9 @@ async function fetchProposalsSnapshot(user, scope) {
   }
 }
 
-async function fetchChatSnapshot(companyId) {
+async function fetchChatSnapshot(user, queryText = '') {
   try {
-    const r = await db.query(
-      `SELECT COUNT(*)::int AS c FROM chat_messages m
-       JOIN chat_conversations c ON c.id = m.conversation_id
-       WHERE c.company_id = $1 AND m.created_at > now() - INTERVAL '48 hours'`,
-      [companyId]
-    );
-    const total = Number(r.rows[0]?.c ?? 0);
-    return {
-      ok: true,
-      rows: [['Mensagens (48h)', String(total)]],
-      metrics: [{ name: 'Mensagens 48h', value: total }]
-    };
+    return impetusChatOperationalContextService.fetchChatSnapshot(user, queryText);
   } catch (e) {
     return { ok: false, error: e?.message, rows: [], metrics: [] };
   }
@@ -268,7 +276,7 @@ async function fetchCommunicationsSnapshot(user, scope) {
   }
 }
 
-async function fetchDomainSnapshot(user, domainId, scope) {
+async function fetchDomainSnapshot(user, domainId, scope, queryText = '') {
   const domain = DOMAIN_REGISTRY.find((d) => d.id === domainId);
   if (!domain) return null;
   if (!userCanAccessDomain(user, domain)) {
@@ -286,7 +294,7 @@ async function fetchDomainSnapshot(user, domainId, scope) {
   if (domainId === 'telemetria') data = await fetchPlcTelemetry(companyId);
   else if (domainId === 'manutencao') data = await fetchMaintenanceSnapshot(user);
   else if (domainId === 'proaction') data = await fetchProposalsSnapshot(user, scope);
-  else if (domainId === 'chat') data = await fetchChatSnapshot(companyId);
+  else if (domainId === 'chat') data = await fetchChatSnapshot(user, queryText);
   else if (domainId === 'comunicacoes') data = await fetchCommunicationsSnapshot(user, scope);
   else if (['producao', 'qualidade', 'ambiente', 'rh', 'financeiro'].includes(domainId)) {
     const summary = await dashboardKPIs.getDashboardSummary(user).catch(() => null);
@@ -337,7 +345,7 @@ async function buildSnapshotsForQuery(user, queryText, opts = {}) {
 
   const snapshots = [];
   for (const id of domainIds) {
-    const snap = await fetchDomainSnapshot(user, id, scope);
+    const snap = await fetchDomainSnapshot(user, id, scope, queryText);
     if (snap) snapshots.push(snap);
   }
   return {

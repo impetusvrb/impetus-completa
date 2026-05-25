@@ -91,7 +91,7 @@ function shouldAnamTriggerPanel(t) {
   if (inferVoiceVisualIntent(t) != null) return true;
   return (
     t.length >= 6 &&
-    /\b(mostra|exibe|gera|gere|cria|crie|painel|grafico|gráfico|kpi|relatorio|relatório|dashboard|exporta|pdf|excel|manutenc|manutenção|producao|produção|indicador|metrica|métrica|numeros|números|resumo|tabela)\b/i.test(
+    /\b(mostra|exibe|gera|gere|cria|crie|painel|grafico|gráfico|kpi|relatorio|relatório|dashboard|exporta|pdf|excel|manutenc|manutenção|producao|produção|indicador|metrica|métrica|numeros|números|resumo|tabela|chat|conversa|mensagem|mandou|cite)\b/i.test(
       t
     )
   );

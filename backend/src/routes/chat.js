@@ -88,6 +88,15 @@ router.post('/conversations/:id/messages', async (req, res) => {
       console.warn('[routes/chat][operational_realtime]', err?.message ?? err);
     }));
     setImmediate(() => {
+      const sz5Injector = require('../middleware/zUnifiedConversationalContextInjector');
+      return sz5Injector.indexMessageForSz5(
+        req.user,
+        { ...msg, sender_id: req.user.id, sender_name: req.user.name },
+        req.params.id,
+        [{ user_id: req.user.id, name: req.user.name, role: req.user.role }]
+      );
+    }).catch(() => {});
+    setImmediate(() => {
       try {
         const sz4 = require('../runtime-z-operational-nervous-system/facade/zOperationalNervousSystemFacade');
         sz4.processMessage({
