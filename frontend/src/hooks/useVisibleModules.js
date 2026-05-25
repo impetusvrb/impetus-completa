@@ -16,6 +16,7 @@ import { logContextualDebugSummary } from '../utils/contextualSidebarBuilder';
 import { readCanonicalVisibleModules } from '../runtimeGovernance/canonicalVisibleModules.js';
 import { getContextualModulesMode } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 import { filterVisibleModulesByStructuralProfile } from '../utils/structuralModuleFilter.js';
+import { applyReconciliationToVisibleModules } from '../runtimeGovernance/visibilitySovereigntyGuard.js';
 
 /**
  * Paths de acesso universal seguro — explicitamente liberados para TODOS os usuários.
@@ -423,6 +424,8 @@ export function useVisibleModules() {
       if (mods.includes('ai') && !mods.includes('chat')) {
         mods = [...mods, 'chat'];
       }
+      // Enterprise Hardening — aplica reconciliação de visibilidade do backend
+      mods = applyReconciliationToVisibleModules(mods, r?.data);
       setVisibleModules(mods);
       const profileCode = String(r?.data?.profile_code || '').toLowerCase();
       const functionalArea = String(r?.data?.user_context?.functional_area || '').toLowerCase();

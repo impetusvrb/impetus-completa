@@ -1385,6 +1385,44 @@ router.get('/me', requireAuth, async (req, res) => {
       console.warn('[DASHBOARD_ME_ORG_CONTEXT]', orgErr?.message ?? orgErr);
     }
 
+    // Enterprise Hardening — Visibility Reconciliation (additive-only, rollback-safe)
+    let _visibilityReconciliationBlock = null;
+    let _identityObservabilityBlock = null;
+    try {
+      const visReconciliation = require('../runtime-z-sovereign/governance/zVisibilityReconciliationRuntime');
+      if (visReconciliation.isEnabled()) {
+        const reconcResult = visReconciliation.reconcileVisibility({
+          user,
+          governed_visible_modules: legacyResponse.visible_modules || [],
+          module_access_governance: _moduleAccessGovernanceBlock,
+          module_access_context: _moduleAccessContextBlock
+        });
+        if (reconcResult.reconciliation_applied && reconcResult.added_modules.length > 0) {
+          legacyResponse.visible_modules = reconcResult.reconciled_modules;
+        }
+        _visibilityReconciliationBlock = visReconciliation.buildObservabilityBlock(reconcResult);
+      }
+    } catch (recErr) {
+      console.warn('[VISIBILITY_RECONCILIATION]', recErr?.message ?? recErr);
+    }
+
+    try {
+      const identityObs = require('../runtime-z-sovereign/observability/zIdentityObservabilityRuntime');
+      if (identityObs.isEnabled()) {
+        _identityObservabilityBlock = identityObs.buildIdentityObservabilityBlock({
+          user,
+          visible_modules: legacyResponse.visible_modules || [],
+          module_access_governance: _moduleAccessGovernanceBlock,
+          module_access_context: _moduleAccessContextBlock,
+          profile_code: config.profile_code,
+          functional_area: config.functional_area,
+          reconciliation_result: _visibilityReconciliationBlock
+        });
+      }
+    } catch (obsErr) {
+      console.warn('[IDENTITY_OBSERVABILITY]', obsErr?.message ?? obsErr);
+    }
+
     res.json({
       ...legacyResponse,
       ...(structuralProfile ? { structural_profile: structuralProfile } : {}),
@@ -1469,7 +1507,10 @@ router.get('/me', requireAuth, async (req, res) => {
       ...(_terminalGovernanceZ16 ? { terminal_governance: _terminalGovernanceZ16 } : {}),
       ...(_governanceFreezeStateZ16 ? { governance_freeze_state: _governanceFreezeStateZ16 } : {}),
       ...(_operationalConvergenceZ17 ? { operational_convergence_report: _operationalConvergenceZ17 } : {}),
-      ...(_cognitiveRuntimeZ18 ? { cognitive_runtime_report: _cognitiveRuntimeZ18 } : {})
+      ...(_cognitiveRuntimeZ18 ? { cognitive_runtime_report: _cognitiveRuntimeZ18 } : {}),
+      // Enterprise Hardening — Visibility Reconciliation & Identity Observability (additive-only)
+      ...(_visibilityReconciliationBlock ? { visibility_reconciliation: _visibilityReconciliationBlock } : {}),
+      ...(_identityObservabilityBlock ? { identity_observability: _identityObservabilityBlock } : {})
     });
   } catch (err) {
     console.error('[DASHBOARD_ME]', err);
@@ -3794,6 +3835,80 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       ok: false,
       error: buildSafeChatErrorMessage(err, 'Erro temporário no chat multimodal.')
     });
+  }
+});
+
+/**
+ * GET /dashboard/identity-observability
+ * Enterprise Hardening — Painel de observabilidade de identidade e visibilidade.
+ * Retorna diagnóstico completo de como a identidade foi resolvida, normalizada
+ * e reconciliada para o utilizador autenticado.
+ */
+router.get('/identity-observability', requireAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const normRuntime = require('../runtime-z-sovereign/identity/zOperationalRoleNormalizationRuntime');
+    const visReconciliation = require('../runtime-z-sovereign/governance/zVisibilityReconciliationRuntime');
+    const identityObs = require('../runtime-z-sovereign/observability/zIdentityObservabilityRuntime');
+
+    const normalizedIdentity = normRuntime.isEnabled()
+      ? normRuntime.resolveNormalizedIdentity({
+          role: user.role,
+          cargo_name: user.job_title,
+          department: user.department,
+          job_title: user.job_title,
+          functional_area: user.functional_area
+        })
+      : null;
+
+    const govEngine = require('../services/moduleAccessGovernanceEngine');
+    let govResult = null;
+    if (typeof govEngine.isEnabled === 'function' && govEngine.isEnabled()) {
+      const access = require('../services/dashboardAccessService');
+      const allowed = access.getAllowedModules(user) || [];
+      govResult = await govEngine.resolveForUser(user, allowed);
+    }
+
+    const reconcResult = visReconciliation.isEnabled()
+      ? visReconciliation.reconcileVisibility({
+          user,
+          governed_visible_modules: govResult?.visible_modules || [],
+          module_access_governance: govResult?.module_access_governance,
+          module_access_context: govResult?.module_access_context
+        })
+      : null;
+
+    const obsBlock = identityObs.isEnabled()
+      ? identityObs.buildIdentityObservabilityBlock({
+          user,
+          visible_modules: reconcResult?.reconciled_modules || govResult?.visible_modules || [],
+          module_access_governance: govResult?.module_access_governance,
+          module_access_context: govResult?.module_access_context,
+          reconciliation_result: reconcResult
+        })
+      : null;
+
+    res.json({
+      ok: true,
+      normalized_identity: normalizedIdentity,
+      reconciliation: reconcResult
+        ? {
+            applied: reconcResult.reconciliation_applied,
+            added_modules: reconcResult.added_modules,
+            mismatches: reconcResult.mismatches,
+            trace: reconcResult.trace
+          }
+        : null,
+      observability: obsBlock,
+      runtimes: {
+        normalization: normRuntime.isEnabled() ? 'active' : 'off',
+        reconciliation: visReconciliation.isEnabled() ? 'active' : 'off',
+        observability: identityObs.isEnabled() ? 'active' : 'off'
+      }
+    });
+  } catch (err) {
+    console.error('[IDENTITY_OBSERVABILITY]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar observabilidade' });
   }
 });
 
