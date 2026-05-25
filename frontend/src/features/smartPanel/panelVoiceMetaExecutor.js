@@ -9,6 +9,8 @@ import { downloadPanelXlsx, downloadPanelPdf, printPanelOutput, panelOutputToPla
 export const VOICE_PANEL_OUTPUT_KEY = 'impetus_voice_last_panel_output';
 
 let latestPanelOutput = null;
+let lastNoPanelWarnAt = 0;
+const NO_PANEL_WARN_COOLDOWN_MS = 45_000;
 
 export function setStoredPanelOutput(output) {
   latestPanelOutput = output || null;
@@ -65,13 +67,19 @@ async function runMetaExecution(meta, { notify } = {}) {
   const out = getStoredPanelOutput();
   const hasPanel = panelHasContent(out);
   if (!hasPanel) {
-    notify?.warning?.('Não há painel para exportar ou enviar. Peça um painel primeiro.');
+    const now = Date.now();
+    const suppressToast = now - lastNoPanelWarnAt < NO_PANEL_WARN_COOLDOWN_MS;
+    if (!suppressToast) {
+      lastNoPanelWarnAt = now;
+      notify?.warning?.('Não há painel para exportar ou enviar. Peça um painel primeiro.');
+    }
     return {
       handled: true,
       success: false,
       kind: meta.kind,
-      speakLine:
-        'Ainda não há nada no painel. Peça primeiro um gráfico ou relatório e depois peça o PDF ou o envio.'
+      speakLine: suppressToast
+        ? ''
+        : 'Ainda não há nada no painel. Peça primeiro um gráfico ou relatório e depois peça o PDF ou o envio.'
     };
   }
 

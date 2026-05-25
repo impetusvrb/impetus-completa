@@ -104,7 +104,7 @@ function _normToken(s) {
 }
 
 function _expandPortugueseCadastroText(raw) {
-  const t = String(raw || '').toLowerCase();
+  const t = String(raw || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (!t.trim()) return [];
   const keys = new Set();
   if (/estrat|corporat|executiv|governanc|auditoria|risco|consolidad/.test(t)) {
@@ -172,7 +172,7 @@ function assessCadastroCompleteness(roleRow) {
   const missing = [];
   if (!roleRow?.department_id) missing.push('department_id');
   if (!roleRow?.sector_id) missing.push('sector_id');
-  const hasAuth =
+  let hasAuth =
     (Array.isArray(roleRow?.recommended_permissions) && roleRow.recommended_permissions.length > 0) ||
     (Array.isArray(roleRow?.visible_themes) && roleRow.visible_themes.length > 0) ||
     roleRow?.access_strategic_data === true ||
@@ -181,6 +181,15 @@ function assessCadastroCompleteness(roleRow) {
     roleRow?.access_critical_indicators === true ||
     (roleRow?.dashboard_functional_hint && FUNCTIONAL_HINT_TO_MENU_KEYS[roleRow.dashboard_functional_hint]) ||
     ['estrategico', 'corporativo', 'operacional', 'tatico'].includes(_normToken(roleRow?.operational_scope));
+  // Semantic authority inference: o nome do cargo contém sinais de domínio
+  // funcional claros (ex.: "Gerente de Qualidade" → quality). Trata-se de
+  // evidência aditiva — não bypassa RBAC nem tenant isolation.
+  if (!hasAuth && roleRow?.name) {
+    const inferredHint = _inferFunctionalHintFromCargoName(roleRow);
+    if (inferredHint && FUNCTIONAL_HINT_TO_MENU_KEYS[inferredHint]) {
+      hasAuth = true;
+    }
+  }
   if (!hasAuth) missing.push('governanca_modulos');
   return {
     structural_complete: missing.length === 0,
@@ -190,6 +199,41 @@ function assessCadastroCompleteness(roleRow) {
         ? null
         : 'Complete departamento, setor e governança de módulos no cadastro do cargo.'
   };
+}
+
+/**
+ * Infere hint funcional a partir do nome do cargo quando dashboard_functional_hint
+ * não foi configurado explicitamente. Additive-only: nunca sobrescreve hint existente.
+ * Prioriza matches por menu_key específico de domínio (ex.: quality_intelligence)
+ * sobre matches genéricos (ex.: operational).
+ * @param {object} roleRow
+ * @returns {string|null}
+ */
+function _inferFunctionalHintFromCargoName(roleRow) {
+  if (!roleRow?.name) return null;
+  const resolved = functionalAreaCatalog.resolveIdFromText(roleRow.name);
+  if (resolved && FUNCTIONAL_HINT_TO_MENU_KEYS[resolved]) return resolved;
+  const normalizedName = _normToken(roleRow.name);
+  const fromText = _expandPortugueseCadastroText(roleRow.name);
+  // Também expande o texto normalizado (sem diacríticos) para cobrir "laboratório" → "laboratorio"
+  const fromNorm = _expandPortugueseCadastroText(normalizedName);
+  const combined = [...new Set([...fromText, ...fromNorm])];
+  if (combined.length > 0) {
+    const genericKeys = new Set(['operational']);
+    let bestHint = null;
+    for (const k of Object.keys(FUNCTIONAL_HINT_TO_MENU_KEYS)) {
+      const menuKeys = FUNCTIONAL_HINT_TO_MENU_KEYS[k];
+      if (!menuKeys) continue;
+      const domainMatch = combined.some((fk) => menuKeys.includes(fk) && !genericKeys.has(fk));
+      if (domainMatch) return k;
+      if (!bestHint && combined.some((fk) => menuKeys.includes(fk))) {
+        bestHint = k;
+      }
+    }
+    return bestHint;
+  }
+  if (resolved) return resolved;
+  return null;
 }
 
 /**
@@ -205,8 +249,9 @@ function resolveAuthorizedMenuKeysFromCadastro(roleRow) {
     ? functionalAreaCatalog.resolveIdFromText(roleRow.dashboard_functional_hint) ||
       _normToken(roleRow.dashboard_functional_hint)
     : null;
-  if (hint && FUNCTIONAL_HINT_TO_MENU_KEYS[hint]) {
-    for (const k of FUNCTIONAL_HINT_TO_MENU_KEYS[hint]) keys.add(k);
+  const effectiveHint = hint || _inferFunctionalHintFromCargoName(roleRow);
+  if (effectiveHint && FUNCTIONAL_HINT_TO_MENU_KEYS[effectiveHint]) {
+    for (const k of FUNCTIONAL_HINT_TO_MENU_KEYS[effectiveHint]) keys.add(k);
   }
 
   for (const list of [roleRow.recommended_permissions, roleRow.visible_themes, roleRow.approval_domains]) {
@@ -214,6 +259,14 @@ function resolveAuthorizedMenuKeysFromCadastro(roleRow) {
     for (const item of list) {
       for (const k of _expandToken(item)) keys.add(k);
     }
+  }
+
+  // Semantic inference: nome do cargo como fonte aditiva de módulos autorizados.
+  // Garante que "Gerente de Qualidade" autorize quality_intelligence mesmo sem
+  // recommended_permissions/visible_themes/dashboard_functional_hint explícitos.
+  if (roleRow.name) {
+    const fromName = _expandPortugueseCadastroText(roleRow.name);
+    for (const k of fromName) keys.add(k);
   }
 
   if (roleRow.access_strategic_data === true) {
@@ -288,6 +341,7 @@ module.exports = {
   assessCadastroCompleteness,
   buildModulePreview,
   labelForMenuKey,
+  _inferFunctionalHintFromCargoName,
   FUNCTIONAL_HINT_TO_MENU_KEYS,
   STRUCTURAL_TOKEN_TO_MENU_KEYS
 };

@@ -66,7 +66,11 @@ export function inferConversationalPanelMeta(stripped) {
     return { kind: 'print' };
   }
 
-  if (/\bpdf\b/.test(n) && (panelCtx || short || /\b(baix|descarreg|export|salv|gera|quero|preciso|pode|seria)\b/.test(n))) {
+  const explicitPdfExport =
+    /\b(baix|descarreg|export|download|salv|imprim)\w*\b/.test(n) ||
+    /\b(?:quero|preciso|pode|seria)\s+(?:o\s+)?pdf\b/.test(n) ||
+    /^pdf\b/.test(n);
+  if (/\bpdf\b/.test(n) && explicitPdfExport && (panelCtx || /\b(baix|descarreg|export|salv|imprim|quero|preciso)\b/.test(n))) {
     return { kind: 'pdf' };
   }
   if (

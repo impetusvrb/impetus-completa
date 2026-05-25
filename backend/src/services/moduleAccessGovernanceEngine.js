@@ -105,10 +105,24 @@ function isEnabled() {
   return v !== 'false' && v !== '0' && v !== 'off';
 }
 
+/** Normaliza role em inglês para equivalente PT usado pelo bypass de governança. */
+const _ROLE_NORMALIZATION_MAP = Object.freeze({
+  director: 'diretor',
+  directora: 'diretor',
+  manager: 'gerente',
+  coordinator: 'coordenador',
+  coordinador: 'coordenador'
+});
+
+function _normalizeRoleForBypass(role) {
+  return _ROLE_NORMALIZATION_MAP[role] || role;
+}
+
 /** CEO / direção: menu completo mesmo com cadastro estrutural incompleto (aviso no dashboard, não menu vazio). */
 function isExecutiveStructuralBypass(ctx) {
   if (!ctx) return false;
-  const role = String(ctx.role || '').toLowerCase();
+  const rawRole = String(ctx.role || '').toLowerCase();
+  const role = _normalizeRoleForBypass(rawRole);
   if (role === 'ceo') return true;
   if (['diretor', 'gerente', 'coordenador', 'supervisor'].includes(role)) return true;
   const hl = Number(ctx.hierarchy_level);

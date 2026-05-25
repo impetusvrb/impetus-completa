@@ -484,6 +484,24 @@ function parseExportMeta(stripped) {
   return null;
 }
 
+/** Pedido de gerar/mostrar painel — não confundir com exportar PDF/Excel. */
+function looksLikePanelGenerationRequest(text) {
+  const n = norm(text);
+  if (!n) return false;
+  const wantsVisual =
+    /\b(mostra|mostrar|exibe|exibir|gera|gerar|gere|cria|crie|criar|monta|montar|painel|grafico|gráfico|kpi|dashboard|quero ver|preciso ver|numeros|números|metrica|métrica|indicador)\b/.test(
+      n
+    );
+  const wantsExport =
+    /\b(baixar|descarregar|exportar|imprimir|imprime|imprima|enviar|envia|envie|mandar|manda|mande|download|partilhar|compartilhar)\b/.test(
+      n
+    );
+  if (!wantsVisual || wantsExport) return false;
+  if (/\b(relat[oó]rio|resumo|producao|produção)\b/.test(n) && !/\bpdf\b/.test(n)) return true;
+  if (/\b(relat[oó]rio|painel)\b/.test(n) && /\bpdf\b/.test(n) && !wantsExport) return true;
+  return wantsVisual;
+}
+
 /**
  * @param {string} text
  * @returns {{ kind: 'print' | 'pdf' | 'excel' | 'chat' | 'share', userQueries?: string[], groupQuery?: string | null } | null}
@@ -493,6 +511,7 @@ export function parsePanelVoiceMetaCommand(text) {
   if (!raw) return null;
 
   const stripped = stripCourtesySuffixes(stripCourtesyPrefixes(raw));
+  if (looksLikePanelGenerationRequest(stripped)) return null;
 
   if (stripped.length <= 420) {
     const sendPanel = parseSendPanelToTargets(stripped);

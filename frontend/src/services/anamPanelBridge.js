@@ -164,9 +164,12 @@ async function ensurePanelMetaExecuted(userText, assistantText, client, g) {
     return true;
   }
 
+  const userMeta = parsePanelVoiceMetaCommand(u);
+  if (!userMeta && u.length >= 3 && a.length < 8) return false;
+
   const metaKinds = ['chat', 'print', 'pdf', 'excel'];
 
-  if (a.length >= 8) {
+  if (a.length >= 8 && u.length >= 3) {
     for (const kind of metaKinds) {
       if (!isAnamMetaCommitPhrase(kind, a, u)) continue;
       const execKey = `meta-commit:${kind}:${u.slice(0, 40)}:${a.slice(0, 60)}`;
@@ -193,24 +196,37 @@ async function ensurePanelMetaExecuted(userText, assistantText, client, g) {
   const recentlyDone =
     g.lastMetaExecKey === execKey && g.lastPanelMetaSuccessAt && Date.now() - g.lastPanelMetaSuccessAt < 4000;
 
-  if (!recentlyDone) {
+  if (!recentlyDone && userMeta) {
+    const failCooldownKey = `no-panel:${userMeta.kind}`;
+    const inFailCooldown =
+      g.lastMetaFailKey === failCooldownKey &&
+      g.lastMetaFailAt &&
+      Date.now() - g.lastMetaFailAt < 45_000;
+    if (inFailCooldown) return false;
+
     const result = await runVoicePanelMetaIfHandled(u);
     if (result?.handled) {
       g.lastMetaExecKey = execKey;
       if (result.success) {
+        g.lastMetaFailKey = '';
         await speakMetaResult(client, g, result);
         return true;
+      }
+      if (!result.success) {
+        g.lastMetaFailKey = failCooldownKey;
+        g.lastMetaFailAt = Date.now();
       }
       if (result.speakLine) {
         await speakMetaResult(client, g, result);
         return false;
       }
+      return false;
     }
   } else if (g.lastPanelMetaSuccessAt) {
     return true;
   }
 
-  if (personaClaimsPanelMetaDone(a, u) && !g.lastPanelMetaSuccessAt) {
+  if (userMeta && personaClaimsPanelMetaDone(a, u) && !g.lastPanelMetaSuccessAt) {
     try {
       client.interruptPersona?.();
     } catch (_) {}

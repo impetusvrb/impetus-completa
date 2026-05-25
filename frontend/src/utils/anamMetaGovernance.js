@@ -32,14 +32,11 @@ function userWantsMetaKind(userText, kind) {
 }
 
 function conversationWantsKind(userText, assistantText, kind) {
-  const blob = `${String(userText || '')} ${String(assistantText || '')}`;
-  if (userWantsMetaKind(userText, kind) || userWantsMetaKind(blob, kind)) return true;
-  const a = norm(assistantText);
-  if (kind === 'chat' && /\b(chat|mensagem|impetus|interno)\b/.test(a)) return true;
-  if (kind === 'print' && /\b(imprim\w*|impress\w*)\b/.test(a)) return true;
-  if (kind === 'pdf' && /\bpdf\b/.test(a)) return true;
-  if (kind === 'excel' && /\b(excel|planilha)\b/.test(a)) return true;
-  return false;
+  const u = String(userText || '').trim();
+  if (!u || u.length < 3) return false;
+  if (userWantsMetaKind(u, kind)) return true;
+  const blob = `${u} ${String(assistantText || '').trim()}`.trim();
+  return userWantsMetaKind(blob, kind);
 }
 
 /** Persona confirmou que vai executar (ou já executou) — dispara o sistema. */
@@ -123,8 +120,10 @@ function extractChatMetaFromText(text) {
  * @param {'chat'|'print'|'pdf'|'excel'|null} [preferredKind]
  */
 export function resolvePanelMetaFromConversation(userText, assistantText, preferredKind = null) {
-  const blob = `${String(userText || '').trim()} ${String(assistantText || '').trim()}`.trim();
-  const sources = [userText, assistantText, blob].filter((t) => String(t || '').trim().length >= 3);
+  const u = String(userText || '').trim();
+  if (!u || u.length < 3) return null;
+  const blob = `${u} ${String(assistantText || '').trim()}`.trim();
+  const sources = [u, blob].filter((t) => String(t || '').trim().length >= 3);
 
   for (const t of sources) {
     const meta = parsePanelVoiceMetaCommand(t);
