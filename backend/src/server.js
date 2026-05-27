@@ -142,6 +142,38 @@ app.use((req, res, next) => {
   return apiByIpLimiter(req, res, next);
 });
 
+// ─── Universal Audit Middleware (Enterprise LGPD + ISO 42001) ─────────────────
+// Flag: IMPETUS_UNIVERSAL_AUDIT=off|shadow|pilot|on (default off)
+// Intercepta rotas WRITE P0 de forma assíncrona, zero-blocking.
+try {
+  const { universalAuditMiddleware } = require('./middleware/universalAuditMiddleware');
+  app.use(universalAuditMiddleware);
+} catch (_e) {
+  /* never break boot */
+}
+
+// ─── Runtime State Enforcement (Observability vs Execution) ──────────────────
+// Flag: IMPETUS_RUNTIME_STATE_ENFORCEMENT=off|audit|enforce (default off)
+// Protege contra side effects acidentais de módulos classificados como observability/enrich/assistive.
+try {
+  const { runtimeStateEnforcementMiddleware } = require('./middleware/runtimeStateEnforcementMiddleware');
+  app.use(runtimeStateEnforcementMiddleware);
+} catch (_e) {
+  /* never break boot */
+}
+
+// ─── Flag Reconciler Runtime (Enterprise Governance) ──────────────────────────
+// Boot-time validation: detecta contradições, drift PM2/dotenv, estados impossíveis.
+try {
+  const flagReconciler = require('./governance/flagReconcilerRuntime');
+  const bootOk = flagReconciler.bootValidation();
+  if (!bootOk) {
+    console.error('[FLAG_RECONCILER] CRITICAL: Boot blocked by flag contradictions (IMPETUS_FLAG_RECONCILER_STRICT=on). Fix flags and restart.');
+  }
+} catch (_e) {
+  console.warn('[FLAG_RECONCILER] Boot validation skipped:', _e?.message);
+}
+
 /** Probe rápido TTS (paridade impetus_complete/app.js) + estado Google/credenciais sem chamada extra à API Google. */
 async function voiceHealthProbe() {
   const voz = { openai: false };
@@ -318,6 +350,7 @@ useRoute('/api/admin/tenant-admins', './routes/admin/tenantAdmins');
 useRoute('/api/admin/users', './routes/admin/users');
 useRoute('/api/admin/logs', './routes/admin/logs');
 useRoute('/api/admin/settings', './routes/admin/settings');
+useRoute('/api/admin/runtime', './routes/admin/runtimeFlags', requireAuth);
 useRoute('/api/admin/help-manual', './routes/admin/helpManual');
 useRoute('/api/admin/departments', './routes/admin/departments');
 /** Métricas/relatórios primeiro (router leve); CRUD em operationalTeams pode depender de bcrypt. */
@@ -1603,6 +1636,106 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
     console.info(`[DATA_LIFECYCLE] Retenção/expurgo agendado a cada ${hours}h (1.ª execução ~2 min)`);
   } catch (e) {
     console.warn('[DATA_LIFECYCLE] Não iniciado:', e?.message);
+  }
+
+  // ─── Retention Shadow Workers (T1.7.2) ────────────────────────────────────────
+  try {
+    const retentionShadow = require('./workers/retentionShadowWorker');
+    const started = retentionShadow.startScheduler();
+    const stats = retentionShadow.getWorkerStats();
+    console.info(`[RETENTION_SHADOW_BOOT] ${JSON.stringify({ event: 'RETENTION_SHADOW_BOOT', mode: stats.mode, enabled: stats.enabled, scheduler: started, targets: stats.targets })}`);
+  } catch (e) {
+    console.warn('[RETENTION_SHADOW_BOOT] Não iniciado:', e?.message);
+  }
+
+  // ─── Retention Pilot Workers (T1.7.3) ─────────────────────────────────────────
+  try {
+    const retentionPilot = require('./workers/retentionPilotWorker');
+    if (retentionPilot.isPilotMode()) {
+      const started = retentionPilot.startPilotScheduler();
+      const stats = retentionPilot.getPilotStats();
+      console.info(`[RETENTION_PILOT_BOOT] ${JSON.stringify({ event: 'RETENTION_PILOT_BOOT', enabled: true, scheduler: started, tenants: stats.tenants.length, batch_size: stats.batch_size, max_per_run: stats.max_per_run, targets: stats.targets })}`);
+    } else {
+      console.info(`[RETENTION_PILOT_BOOT] ${JSON.stringify({ event: 'RETENTION_PILOT_BOOT', enabled: false, reason: 'mode_not_pilot' })}`);
+    }
+  } catch (e) {
+    console.warn('[RETENTION_PILOT_BOOT] Não iniciado:', e?.message);
+  }
+
+  // ─── Retention Enforce Workers (T1.7.4) ────────────────────────────────────────
+  try {
+    const retentionEnforce = require('./workers/retentionEnforceWorker');
+    if (retentionEnforce.isEnforceMode()) {
+      const started = retentionEnforce.startEnforceScheduler();
+      const stats = retentionEnforce.getEnforceStats();
+      console.info(`[RETENTION_ENFORCE_BOOT] ${JSON.stringify({ event: 'RETENTION_ENFORCE_BOOT', enabled: true, scheduler: started, targets: stats.targets.length, batch_size: stats.config.batch_size, max_per_table: stats.config.max_per_table })}`);
+    } else {
+      console.info(`[RETENTION_ENFORCE_BOOT] ${JSON.stringify({ event: 'RETENTION_ENFORCE_BOOT', enabled: false, reason: 'mode_not_enforce' })}`);
+    }
+  } catch (e) {
+    console.warn('[RETENTION_ENFORCE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── DSR Notification SLA Scheduler (T1.6.5) ─────────────────────────────────
+{
+  try {
+    const dsrNotify = require('./services/dsrNotificationService');
+    const started = dsrNotify.startSlaScheduler();
+    console.info(`[DSR_SLA_SCHEDULER_BOOT] ${JSON.stringify({ event: 'DSR_SLA_SCHEDULER_BOOT', started })}`);
+  } catch (e) {
+    console.warn('[DSR_SLA_SCHEDULER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── AI Anonymization Worker (T1.8.3) ────────────────────────────────────────
+{
+  try {
+    const aiAnonWorker = require('./workers/aiAnonymizationWorker');
+    const started = aiAnonWorker.startScheduler();
+    const stats = aiAnonWorker.getWorkerStats();
+    console.info(`[AI_ANON_WORKER_BOOT] ${JSON.stringify({ event: 'AI_ANON_WORKER_BOOT', enabled: stats.enabled, mode: stats.mode, scheduler: started })}`);
+  } catch (e) {
+    console.warn('[AI_ANON_WORKER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── KMS Governance Warm Startup (PROMPT 11) ─────────────────────────────────
+{
+  try {
+    const kmsGov = require('./services/kms/kmsGovernanceService');
+    kmsGov.warmStartup().then(result => {
+      kmsGov.startRotationScheduler();
+      console.info(`[KMS_GOVERNANCE_BOOT] ${JSON.stringify({ event: 'KMS_GOVERNANCE_BOOT', ...result })}`);
+    }).catch(e => {
+      console.warn('[KMS_GOVERNANCE_BOOT] Warm startup error:', e?.message);
+    });
+  } catch (e) {
+    console.warn('[KMS_GOVERNANCE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Retention Worker Unified (T1.7) ─────────────────────────────────────────
+{
+  try {
+    const retentionWorker = require('./workers/retentionWorker');
+    const started = retentionWorker.startScheduler();
+    const stats = retentionWorker.getWorkerStats();
+    console.info(`[RETENTION_WORKER_BOOT] ${JSON.stringify({ event: 'RETENTION_WORKER_BOOT', mode: stats.mode, enabled: stats.enabled, scheduler: started })}`);
+  } catch (e) {
+    console.warn('[RETENTION_WORKER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── SZ5 Cross-Thread Anonymizer Worker (PROMPT 10) ──────────────────────────
+{
+  try {
+    const sz5Worker = require('./workers/sz5CrossThreadAnonymizerWorker');
+    const started = sz5Worker.startScheduler();
+    const stats = sz5Worker.getWorkerStats();
+    console.info(`[SZ5_CROSS_THREAD_BOOT] ${JSON.stringify({ event: 'SZ5_CROSS_THREAD_BOOT', mode: stats.mode, scheduler: started })}`);
+  } catch (e) {
+    console.warn('[SZ5_CROSS_THREAD_BOOT] Não iniciado:', e?.message);
   }
 }
 

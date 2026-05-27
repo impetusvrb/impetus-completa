@@ -223,25 +223,81 @@ router.get('/voice-realtime-context', requireAuth, async (req, res) => {
   }
 });
 
+function _logVisibility(event, data) {
+  try {
+    const entry = { _type: 'dashboard_visibility', event, ts: new Date().toISOString(), ...data };
+    console.info('[DASHBOARD_VISIBILITY]', JSON.stringify(entry));
+  } catch { /* never throw from logging */ }
+}
+
 /**
  * GET /dashboard/visibility
- * Seções UI por nível hierárquico (Fase E — rota ausente corrigida; failsafe deny-first).
+ * Seções UI por nível hierárquico — Enterprise Hardened.
+ *
+ * Reconcilia: RBAC + tenant + hierarchy + feature governance + deny-first.
+ * Flag: IMPETUS_VISIBILITY_HARDENED=on → reconciliação enterprise
+ *        off (default)                → comportamento legacy preservado
+ *
+ * Observabilidade: correlation-id, logging estruturado, métricas de latência.
+ * Anti-leakage: company_id scoping obrigatório.
  */
 router.get('/visibility', requireAuth, async (req, res) => {
+  const correlationId = req.headers['x-correlation-id'] || req.headers['x-request-id'] || `vis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const start = Date.now();
+
   try {
     const user = req.user;
-    const hierarchyLevel = user.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
-    const sections = await dashboardVisibility.getVisibilityForUser(hierarchyLevel, user.company_id);
+
+    if (!user?.company_id) {
+      _logVisibility('visibility_denied_no_company', { correlationId, user_id: user?.id });
+      const policyEngine = require('../policyEngine');
+      return res.json({
+        ok: true,
+        failsafe: true,
+        sections: { ...policyEngine.SAFE_MINIMAL_EXPOSURE.sections },
+        userContext: null,
+        focus: [],
+        _meta: { source: 'deny_first_no_company', correlation_id: correlationId }
+      });
+    }
+
+    const visibilityHardened = require('../services/dashboardVisibilityHardened');
+    const { sections, meta } = await visibilityHardened.resolveVisibility(user, { correlationId });
+
     const ctx = userContext.buildUserContext(user);
+
+    _logVisibility('visibility_resolved', {
+      correlationId,
+      user_id: user?.id,
+      company_id: user.company_id,
+      source: meta.source,
+      failsafe: meta.failsafe,
+      duration_ms: Date.now() - start,
+    });
+
     res.json({
       ok: true,
+      failsafe: meta.failsafe || false,
       sections,
       userContext: ctx,
       languageInstruction: ctx?.language_instruction || '',
-      focus: Array.isArray(ctx?.focus) ? ctx.focus : []
+      focus: Array.isArray(ctx?.focus) ? ctx.focus : [],
+      _meta: {
+        source: meta.source,
+        correlation_id: correlationId,
+        duration_ms: Date.now() - start,
+      }
     });
   } catch (err) {
+    const durationMs = Date.now() - start;
     console.error('[DASHBOARD_VISIBILITY]', err);
+    _logVisibility('visibility_critical_failure', {
+      correlationId,
+      user_id: req.user?.id,
+      error: err?.message,
+      duration_ms: durationMs,
+    });
+
     try {
       const policyEngine = require('../policyEngine');
       if (policyEngine.cognitiveFlags.isFailsafeGovernanceEnabled()) {
@@ -255,7 +311,8 @@ router.get('/visibility', requireAuth, async (req, res) => {
           failsafe: true,
           sections: { ...policyEngine.SAFE_MINIMAL_EXPOSURE.sections },
           userContext: null,
-          focus: []
+          focus: [],
+          _meta: { source: 'failsafe_catch', correlation_id: correlationId, duration_ms: durationMs }
         });
       }
     } catch (_) {
@@ -1386,6 +1443,11 @@ router.get('/me', requireAuth, async (req, res) => {
     }
 
     // Enterprise Hardening — Visibility Reconciliation (additive-only, rollback-safe)
+    // Usa os dados mais recentes: legacyResponse.module_access_governance é actualizado
+    // pelo segundo resolveForUser (Componente 4), que é a fonte canónica final.
+    const _finalGovBlock = legacyResponse.module_access_governance || _moduleAccessGovernanceBlock;
+    const _finalCtxBlock = legacyResponse.module_access_context || _moduleAccessContextBlock;
+
     let _visibilityReconciliationBlock = null;
     let _identityObservabilityBlock = null;
     try {
@@ -1394,11 +1456,14 @@ router.get('/me', requireAuth, async (req, res) => {
         const reconcResult = visReconciliation.reconcileVisibility({
           user,
           governed_visible_modules: legacyResponse.visible_modules || [],
-          module_access_governance: _moduleAccessGovernanceBlock,
-          module_access_context: _moduleAccessContextBlock
+          module_access_governance: _finalGovBlock,
+          module_access_context: _finalCtxBlock
         });
         if (reconcResult.reconciliation_applied && reconcResult.added_modules.length > 0) {
           legacyResponse.visible_modules = reconcResult.reconciled_modules;
+          if (legacyResponse.sidebar_governance_runtime?.final_visible_modules) {
+            legacyResponse.sidebar_governance_runtime.final_visible_modules = reconcResult.reconciled_modules;
+          }
         }
         _visibilityReconciliationBlock = visReconciliation.buildObservabilityBlock(reconcResult);
       }
@@ -1412,8 +1477,8 @@ router.get('/me', requireAuth, async (req, res) => {
         _identityObservabilityBlock = identityObs.buildIdentityObservabilityBlock({
           user,
           visible_modules: legacyResponse.visible_modules || [],
-          module_access_governance: _moduleAccessGovernanceBlock,
-          module_access_context: _moduleAccessContextBlock,
+          module_access_governance: _finalGovBlock,
+          module_access_context: _finalCtxBlock,
           profile_code: config.profile_code,
           functional_area: config.functional_area,
           reconciliation_result: _visibilityReconciliationBlock

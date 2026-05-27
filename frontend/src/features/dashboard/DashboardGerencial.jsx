@@ -1,8 +1,12 @@
 /**
  * DASHBOARD GERENCIAL
  * Para gerentes e diretores: KPIs personalizáveis via IA, comunicação direta
+ *
+ * Wave A.2 — Cognitive Visibility Sovereign:
+ *   VITE_IMPETUS_COGNITIVE_VISIBILITY_SOVEREIGN=off  → legacy (useDashboardVisibility)
+ *   VITE_IMPETUS_COGNITIVE_VISIBILITY_SOVEREIGN=on   → backend sections soberano via /dashboard/me
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
 import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
@@ -13,10 +17,31 @@ import { MessageSquare, Brain, TrendingUp } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
 import { useDashboardVisibility } from '../../hooks/useDashboardVisibility';
+import { useDashboardMe } from '../../hooks/useDashboardMe';
+import {
+  resolveDashboardSections,
+  getDashboardSectionsSource,
+  isCognitiveVisibilitySovereign,
+} from '../../policyEngine/safeMinimalPolicy';
 import './DashboardGerencial.css';
 
 export default function DashboardGerencial() {
-  const { sections } = useDashboardVisibility();
+  const { sections: legacyVisibility } = useDashboardVisibility();
+  const { payload: dashboardPayload } = useDashboardMe({ enabled: isCognitiveVisibilitySovereign() });
+
+  // ─── Wave A.2 — Resolução soberana de sections ──────────────────────────────
+  const sectionsSource = isCognitiveVisibilitySovereign() ? getDashboardSectionsSource() : 'legacy';
+  const sections = useMemo(() => {
+    const resolved = resolveDashboardSections({
+      backendSections: dashboardPayload?.sections ?? null,
+      legacyVisibility,
+      source: sectionsSource,
+    });
+    if (sectionsSource === 'backend') {
+      console.info('[DashboardGerencial] Sections source: backend (sovereign)');
+    }
+    return resolved;
+  }, [dashboardPayload?.sections, legacyVisibility, sectionsSource]);
   const [kpiSolicitado, setKpiSolicitado] = useState(null);
   const [kpiLoading, setKpiLoading] = useState(false);
   const [kpiWidgets, setKpiWidgets] = useState([]);

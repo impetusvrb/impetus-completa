@@ -2,8 +2,13 @@
  * DASHBOARD INTELIGENTE ADAPTATIVO
  * Layout fixo para todos - 6 blocos
  * Conteúdo personalizado por área, cargo e setor
+ *
+ * D15 — Sections Source Resolution:
+ *   VITE_IMPETUS_DASHBOARD_SECTIONS_SOURCE=legacy  → visibilidade local (useDashboardVisibility)
+ *   VITE_IMPETUS_DASHBOARD_SECTIONS_SOURCE=backend → backend é source-of-truth (dashboardPayload.sections)
+ *   Rollback: mudar flag para "legacy" — sem alterar código.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import MetricCard from '../../components/MetricCard';
@@ -14,6 +19,10 @@ import { SmartSummaryModal, useSmartSummary } from '../smartSummary';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { useDashboardVisibility } from '../../hooks/useDashboardVisibility';
 import { useDashboardMe } from '../../hooks/useDashboardMe';
+import {
+  resolveDashboardSections,
+  getDashboardSectionsSource,
+} from '../../policyEngine/safeMinimalPolicy';
 import { MessageSquare, Brain, MapPin, TrendingUp, AlertTriangle, BarChart3, Target, Users, Activity, Zap, Settings2 } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useCachedFetch } from '../../hooks/useCachedFetch';
@@ -25,8 +34,25 @@ import './DashboardInteligente.css';
 
 export default function DashboardInteligente({ embed = false }) {
   const navigate = useNavigate();
-  const { sections, userContext } = useDashboardVisibility();
+  const { sections: legacyVisibility, userContext } = useDashboardVisibility();
   const { payload: dashboardPayload, trackInteraction, refetch } = useDashboardMe({ enabled: true });
+
+  // ─── D15 — Resolução unificada de sections ──────────────────────────────────
+  // Com flag "legacy": usa useDashboardVisibility (comportamento anterior byte-a-byte).
+  // Com flag "backend": usa dashboardPayload.sections (source-of-truth governado).
+  // Deny-first absoluto: se ambos forem inválidos → SAFE_MINIMAL_SECTIONS.
+  const sectionsSource = getDashboardSectionsSource();
+  const sections = useMemo(() => {
+    const resolved = resolveDashboardSections({
+      backendSections: dashboardPayload?.sections ?? null,
+      legacyVisibility,
+      source: sectionsSource,
+    });
+    if (sectionsSource === 'backend') {
+      console.info('[Dashboard] Sections source: backend');
+    }
+    return resolved;
+  }, [dashboardPayload?.sections, legacyVisibility, sectionsSource]);
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [kpiWidgets, setKpiWidgets] = useState([]);
   const [kpiLoading, setKpiLoading] = useState(false);
