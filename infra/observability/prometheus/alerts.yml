@@ -1,0 +1,53 @@
+# IMPETUS — regras de alerta Prometheus (observe-only até paging configurado)
+
+groups:
+  - name: impetus_slo
+    rules:
+      - alert: ImpetusDashboardLatencyHigh
+        expr: impetus_apm_span_duration_ms{domain="dashboard",quantile="avg"} > 1500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dashboard Engine V2 latência elevada"
+          description: "p95/avg acima do SLO T1.12 (1500ms)"
+
+      - alert: ImpetusAiChatLatencyHigh
+        expr: impetus_apm_span_duration_ms{domain="ai_chat",quantile="avg"} > 1500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latência IA chat elevada"
+
+      - alert: ImpetusErrorRateHigh
+        expr: rate(impetus_errors_total[5m]) > 0.02
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Taxa de erros APM > 2%"
+
+      - alert: ImpetusAiSafetyReviewSpike
+        expr: rate(impetus_ai_safety_flags_total{requires_review="yes"}[15m]) > 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pico de flags AI safety (hallucination review)"
+
+      - alert: ImpetusSloBurnCritical
+        expr: impetus_slo_burn_rate > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO burn rate crítico"
+
+      - alert: ImpetusRuntimeHealthDown
+        expr: impetus_runtime_health == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Componente runtime unhealthy"

@@ -12,7 +12,8 @@ const DOMAINS = Object.freeze([
   'logistics',
   'platform',
   'cognitive',
-  'operational'
+  'operational',
+  'governance'
 ]);
 
 const INDUSTRIAL_EVENT_PATTERN = /^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/;
@@ -126,7 +127,17 @@ const CATALOG_ENTRIES = Object.freeze([
   { type: 'cognitive.llm.execution', domain: 'cognitive', critical: false, version: 1 },
   { type: 'cognitive.safety.block', domain: 'cognitive', critical: true, version: 1 },
   { type: 'operational.ingestion.completed', domain: 'operational', critical: false, version: 1 },
-  { type: 'operational.pipeline.stage', domain: 'operational', critical: false, version: 1 }
+  { type: 'operational.pipeline.stage', domain: 'operational', critical: false, version: 1 },
+  /** PROMPT 24 — Action Runtime HITL (audit trail backbone) */
+  { type: 'governance.action.executed', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.action.rejected', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.action.rolled_back', domain: 'governance', critical: false, version: 1 },
+  /** PROMPT 25 — Industrial Workflow Engine */
+  { type: 'governance.workflow.started', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.workflow.transitioned', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.workflow.completed', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.workflow.compensated', domain: 'governance', critical: false, version: 1 },
+  { type: 'governance.workflow.recovered', domain: 'governance', critical: false, version: 1 }
 ]);
 
 const _byType = new Map(CATALOG_ENTRIES.map((e) => [e.type, e]));

@@ -171,8 +171,12 @@ router.post('/connectors/reconnect', requireTechnicalRuntimeAccess('environment_
   const user = req.user;
   const companyId = user?.company_id;
   const source = req.body?.source || 'manual';
-  mqtt.simulateReconnect();
-  opcua.simulateReconnect();
+  if (companyId) await mqtt.reconnect(companyId).catch(() => mqtt.simulateReconnect());
+  else mqtt.simulateReconnect();
+  if (companyId) await opcua.reconnect(companyId).catch(() => opcua.simulateReconnect());
+  else opcua.simulateReconnect();
+  if (companyId) await modbus.reconnect(companyId).catch(() => modbus.simulateReconnect());
+  else modbus.simulateReconnect();
   await orchestrator.publishReconnectCompleted(companyId, user?.id, source);
   res.json({ ok: true, reconnect_completed: true });
 });

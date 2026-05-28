@@ -1,0 +1,64 @@
+# IMPETUS — Stack observabilidade externa (PROMPT 14)
+# Uso: docker compose -f infra/observability/docker-compose.yml up -d
+# Requer rede interna; scrape do backend via host ou reverse proxy.
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: impetus-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - impetus-obs
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: impetus-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - impetus-obs
+
+  # Collector OTLP HTTP (opcional — activar IMPETUS_OTEL_ENDPOINT=http://otel-collector:4318)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.99.0
+    container_name: impetus-otel-collector
+    restart: unless-stopped
+    profiles:
+      - otel
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4318:4318"
+    networks:
+      - impetus-obs
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  impetus-obs:
+    driver: bridge

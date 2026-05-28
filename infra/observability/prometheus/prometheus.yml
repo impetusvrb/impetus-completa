@@ -1,0 +1,27 @@
+# IMPETUS Prometheus — scrape config (PROMPT 14)
+# Ajustar IMPETUS_BACKEND_METRICS_URL e bearer token conforme ambiente.
+
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+
+rule_files:
+  - alerts.yml
+
+alerting:
+  alertmanagers: []
+
+scrape_configs:
+  - job_name: impetus-backend-apm
+    metrics_path: /api/internal/observability/metrics
+    scheme: http
+    scrape_interval: 30s
+    # Endpoint protegido por auth — usar bearer de serviço interno:
+    # bearer_token_file: /etc/prometheus/impetus_scrape_token
+    static_configs:
+      - targets:
+          - '${IMPETUS_BACKEND_METRICS_HOST:-host.docker.internal:3333}'
+        labels:
+          service: impetus-backend
+          environment: production

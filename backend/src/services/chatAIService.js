@@ -1,6 +1,9 @@
 /**
  * Integração IA no chat interno (mencionar assistente).
  *
+ * @deprecated PROMPT 27 — Use `chatAIService.loader.js` (consolidated + fallback).
+ * Debt ref D4. Não remover até migração 100% — ver `legacyDeprecationRegistry` id: chat_ai_service_legacy.
+ *
  * mentionsAI: deteção central (mentionsAI util).
  * handleAIMessage: resposta mínima funcional quando o fluxo consolidado não está ativo
  * (sem flags novas). Usa secureContextBuilder + orchestrator central.

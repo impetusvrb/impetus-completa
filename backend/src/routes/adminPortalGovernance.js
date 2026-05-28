@@ -229,6 +229,28 @@ router.get('/security/encryption-status', requireAdminAuth, requireGlobalGoverna
   }
 });
 
+router.get('/ai-governance/iso42001', requireAdminAuth, async (req, res) => {
+  try {
+    const gov = require('../services/aiGovernancePersistenceService');
+    const companyId = req.query.company_id != null ? String(req.query.company_id).trim() : null;
+    const report = await gov.getIso42001ReadinessReport(companyId);
+    res.json(report);
+  } catch (e) {
+    console.error('[ADMIN_PORTAL_ISO42001]', e);
+    res.status(500).json({ ok: false, error: 'Erro ao gerar relatório ISO 42001' });
+  }
+});
+
+router.get('/ai-governance/models', requireAdminAuth, async (req, res) => {
+  try {
+    const registry = require('../governance/aiModelRegistry');
+    const models = await registry.listModels();
+    res.json({ ok: true, models, diagnostics: registry.getDiagnostics() });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message });
+  }
+});
+
 router.get('/compliance/reports', requireAdminAuth, async (req, res) => {
   const perfil = req.adminUser?.perfil;
   if (!['super_admin', 'admin_comercial', 'admin_suporte'].includes(perfil)) {

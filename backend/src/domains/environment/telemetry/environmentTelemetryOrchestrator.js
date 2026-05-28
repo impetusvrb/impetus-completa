@@ -16,10 +16,22 @@ async function orchestrateHealth() {
 }
 
 async function orchestrateEdgeEnqueue(companyId, userId, payload) {
-  return edge.enqueueEdgeSample(companyId, payload);
+  const r = edge.enqueueEdgeSample(companyId, payload);
+  try {
+    const edgeReal = require('../../../industrial-edge/runtime/edgeRealSyncRuntime');
+    await edgeReal.persistEnqueueIfNeeded(companyId, r, payload);
+  } catch { /* optional */ }
+  return r;
 }
 
 async function orchestrateEdgeSync(companyId, userId) {
+  try {
+    const edgeFlags = require('../../../industrial-edge/config/edgeRuntimeFlags');
+    if (edgeFlags.isEdgeRuntimeRealEnabled()) {
+      const edgeReal = require('../../../industrial-edge/runtime/edgeRealSyncRuntime');
+      return edgeReal.syncAllLayers(companyId, userId, ingest.ingestSingle);
+    }
+  } catch { /* fallback memory sync */ }
   return edge.syncEdgeQueue(companyId, userId, ingest.ingestSingle);
 }
 

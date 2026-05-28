@@ -47,11 +47,15 @@ async function _persistRow(row) {
   if (!isIndustrialOutboxEnabled()) return { ok: true, persisted: false };
   try {
     const db = require('../../db');
+    const partitionMonth =
+      row.partition_month ||
+      (row.envelope && row.envelope.partition_month) ||
+      new Date(row.created_at || Date.now()).toISOString().slice(0, 7);
     await db.query(
       `INSERT INTO industrial_event_outbox
-       (id, event_name, domain, company_id, partition_key, idempotency_key,
+       (id, event_name, domain, company_id, partition_key, partition_month, idempotency_key,
         correlation_id, causation_id, trace_id, workflow_id, envelope, status, attempts, next_attempt_at, created_at)
-       VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14::timestamptz, $15::timestamptz)
+       VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $14, $15::timestamptz, $16::timestamptz)
        ON CONFLICT (idempotency_key) DO NOTHING`,
       [
         row.id,
@@ -59,6 +63,7 @@ async function _persistRow(row) {
         row.domain,
         row.company_id,
         row.partition_key,
+        partitionMonth,
         row.idempotency_key,
         row.correlation_id,
         row.causation_id,
@@ -73,6 +78,39 @@ async function _persistRow(row) {
     );
     return { ok: true, persisted: true };
   } catch (err) {
+    if (String(err?.message || '').includes('partition_month')) {
+      try {
+        const db = require('../../db');
+        await db.query(
+          `INSERT INTO industrial_event_outbox
+           (id, event_name, domain, company_id, partition_key, idempotency_key,
+            correlation_id, causation_id, trace_id, workflow_id, envelope, status, attempts, next_attempt_at, created_at)
+           VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14::timestamptz, $15::timestamptz)
+           ON CONFLICT (idempotency_key) DO NOTHING`,
+          [
+            row.id,
+            row.event_name,
+            row.domain,
+            row.company_id,
+            row.partition_key,
+            row.idempotency_key,
+            row.correlation_id,
+            row.causation_id,
+            row.trace_id,
+            row.workflow_id,
+            JSON.stringify(row.envelope),
+            row.status,
+            row.attempts,
+            row.next_attempt_at,
+            row.created_at
+          ]
+        );
+        return { ok: true, persisted: true, legacy_schema: true };
+      } catch (err2) {
+        _stats.persist_failures += 1;
+        return { ok: false, error: err2?.message || String(err2) };
+      }
+    }
     _stats.persist_failures += 1;
     return { ok: false, error: err?.message || String(err) };
   }
@@ -91,6 +129,7 @@ async function enqueueIndustrialEvent(envelope, opts = {}) {
     domain: env.domain,
     company_id: env.company_id,
     partition_key: env.partition_key,
+    partition_month: env.partition_month || null,
     idempotency_key: env.idempotency_key,
     correlation_id: env.correlation_id,
     causation_id: env.causation_id || null,
@@ -269,6 +308,19 @@ async function _markRetry(item, attempts, dueAt, lastError) {
   _enqueueMemory(item);
 }
 
+async function getPendingDbCount() {
+  if (!isIndustrialOutboxEnabled()) return 0;
+  try {
+    const db = require('../../db');
+    const r = await db.query(
+      `SELECT COUNT(*)::int AS c FROM industrial_event_outbox WHERE status = 'pending'`
+    );
+    return r.rows[0]?.c || 0;
+  } catch (_e) {
+    return 0;
+  }
+}
+
 function getOutboxStats() {
   return {
     ..._stats,
@@ -280,5 +332,6 @@ function getOutboxStats() {
 module.exports = {
   enqueueIndustrialEvent,
   drainOutboxBatch,
-  getOutboxStats
+  getOutboxStats,
+  getPendingDbCount
 };

@@ -1,0 +1,15 @@
+# Lab industrial IMPETUS — MQTT + Modbus TCP (OPC-UA: instalar Prosys localmente em 4840)
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  modbus-simulator:
+    image: oitc/modbus-server:latest
+    ports:
+      - "502:502"
+    restart: unless-stopped

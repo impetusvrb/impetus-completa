@@ -103,11 +103,17 @@ function buildIndustrialEnvelope(partial, opts = {}) {
     throw e;
   }
 
-  return {
+  const base = {
     ...parsed.data,
     event_id: partial.event_id || uuidv4(),
     catalog: catalogCheck.entry
   };
+  try {
+    const partition = require('./partition/partitionKeyService');
+    return partition.enrichPartitionFields(base);
+  } catch (_e) {
+    return base;
+  }
 }
 
 /**

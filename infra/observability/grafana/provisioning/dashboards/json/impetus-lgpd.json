@@ -1,0 +1,41 @@
+{
+  "uid": "impetus-lgpd",
+  "title": "IMPETUS — LGPD & Governança",
+  "tags": ["impetus", "lgpd", "governance"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "60s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Eventos LGPD",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(impetus_lgpd_events_total[15m])) by (event_type)", "legendFormat": "{{event_type}}" }]
+    },
+    {
+      "id": 2,
+      "title": "Governance events",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(impetus_governance_events_total[15m])) by (event_type)", "legendFormat": "{{event_type}}" }]
+    },
+    {
+      "id": 3,
+      "title": "Retenção / SZ5 (via runtime flags)",
+      "type": "text",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 8 },
+      "options": {
+        "content": "Consultar `/api/admin/runtime/retention-registry` e flags `IMPETUS_RETENTION_*`, `IMPETUS_SZ5_*` no painel admin."
+      }
+    },
+    {
+      "id": 4,
+      "title": "DSR throughput",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 12 },
+      "targets": [{ "expr": "sum(rate(impetus_lgpd_events_total{event_type=~\"dsr.*\"}[1h]))" }]
+    }
+  ]
+}

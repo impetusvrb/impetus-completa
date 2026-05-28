@@ -291,7 +291,7 @@ async function processOperationalSignal(input = {}) {
   if (task) store.bumpMetric(companyId, 'tasks_prepared', 1);
   if (reminder) store.bumpMetric(companyId, 'reminders_scheduled', 1);
 
-  return {
+  const pipelineResult = {
     ok: true,
     stage: stageInfo.stage,
     tenant_promoted: stageInfo.tenant_promoted,
@@ -316,6 +316,13 @@ async function processOperationalSignal(input = {}) {
     auto_execution: false,
     approval_required: true
   };
+
+  try {
+    const persistence = require('../persistence/sz4PersistenceRuntime');
+    persistence.persistPipelineOutcome(companyId, pipelineResult);
+  } catch (_) { /* never block pipeline */ }
+
+  return pipelineResult;
 }
 
 module.exports = {

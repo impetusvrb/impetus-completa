@@ -95,6 +95,11 @@ async function ingest(payload) {
     }
   }
 
+  try {
+    const bridge = require('../industrial-edge/runtime/edgePhysicalAgentBridge');
+    await bridge.onEdgeIngestComplete(company_id, list);
+  } catch { /* optional */ }
+
   return { processed };
 }
 
@@ -109,7 +114,7 @@ async function registerEdgeAgent(companyId, { edge_id, name }) {
     INSERT INTO edge_agents (company_id, edge_id, name, token_hash, enabled)
     VALUES ($1, $2, $3, $4, true)
     ON CONFLICT (company_id, edge_id) DO UPDATE SET
-      name = EXCLUDED.name, token_hash = EXCLUDED.token_hash, updated_at = now()
+      name = EXCLUDED.name, token_hash = EXCLUDED.token_hash
     RETURNING id
   `, [companyId, edge_id, name || edge_id, tokenHash]);
 

@@ -165,6 +165,11 @@ router.get('/subject/me/export', requireAuth, async (req, res) => {
       severity: 'warning',
     });
 
+    try {
+      const apm = require('../observability/apmEnterpriseBridge');
+      apm.recordLgpdEvent('dsr_export_submitted', { company_id: companyId });
+    } catch { /* non-blocking */ }
+
     // Non-blocking notifications
     const dsrNotify = require('../services/dsrNotificationService');
     dsrNotify.notify({ userId, companyId, type: dsrNotify.DSR_NOTIFICATION_TYPES.EXPORT_SUBMITTED, requestId: result.request.id }).catch(() => {});

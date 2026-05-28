@@ -55,6 +55,23 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Senha inválida' });
     }
 
+    try {
+      const mfaChallenge = require('../mfa/services/mfaChallengeService');
+      const mfaEval = await mfaChallenge.evaluateAfterPassword(user, req);
+      if (mfaEval.challenge) {
+        return res.status(200).json({
+          message: 'MFA necessário',
+          mfa_required: true,
+          mfa_challenge_token: mfaEval.mfa_challenge_token,
+          methods: mfaEval.methods,
+          expires_at: mfaEval.expires_at,
+          trace_id: mfaEval.trace_id,
+        });
+      }
+    } catch (mfaErr) {
+      console.warn('[LOGIN][MFA]', mfaErr?.message ?? mfaErr);
+    }
+
     const token = jwt.sign(
       {
         id: user.id,

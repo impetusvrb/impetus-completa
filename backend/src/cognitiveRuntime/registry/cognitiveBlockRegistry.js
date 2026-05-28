@@ -359,6 +359,8 @@ function getRegistryStats() {
   return {
     phase: 'Z.19',
     foundation_phase: 'Z.18',
+    registry_role: 'metadata_catalog',
+    ssot_read_facade: 'cognitiveRegistry/consolidation/unifiedCognitiveRegistry',
     total_blocks: MERGED_BLOCK_DEFINITIONS.length,
     quality_pilot_blocks: QUALITY_PILOT_BLOCKS.length,
     sst_pilot_blocks: SST_PILOT_BLOCKS.length,

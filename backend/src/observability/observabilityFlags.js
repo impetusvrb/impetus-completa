@@ -85,6 +85,30 @@ function isAlertsObserveOnly() {
   return process.env.IMPETUS_OBSERVABILITY_ALERTS_ENFORCE !== 'true';
 }
 
+/** PROMPT 14 — APM enterprise (requer V2) */
+function isApmEnterpriseEnabled() {
+  return isObservabilityV2Enabled() && envBool('IMPETUS_APM_ENTERPRISE_ENABLED', false);
+}
+
+function isApmShadowMode() {
+  if (!isApmEnterpriseEnabled()) return true;
+  const mode = String(process.env.IMPETUS_APM_ENTERPRISE_MODE || 'shadow').trim().toLowerCase();
+  if (mode === 'enforce' || mode === 'audit') return false;
+  return envBool('IMPETUS_APM_SHADOW_MODE', true);
+}
+
+function apmSamplingRate() {
+  const raw = Number(process.env.IMPETUS_APM_SAMPLING_RATE);
+  if (!Number.isFinite(raw)) {
+    return isApmShadowMode() ? 0.1 : 0.25;
+  }
+  return Math.min(1, Math.max(0.01, raw));
+}
+
+function isGrafanaProvisioningEnabled() {
+  return envBool('IMPETUS_GRAFANA_STACK_ENABLED', false);
+}
+
 module.exports = {
   envBool,
   envInt,
@@ -103,5 +127,9 @@ module.exports = {
   tenantMetricsCardinalityCap,
   otelExportIntervalMs,
   otelExportBatchSize,
-  isAlertsObserveOnly
+  isAlertsObserveOnly,
+  isApmEnterpriseEnabled,
+  isApmShadowMode,
+  apmSamplingRate,
+  isGrafanaProvisioningEnabled
 };

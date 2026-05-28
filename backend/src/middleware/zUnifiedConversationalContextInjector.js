@@ -11,6 +11,7 @@ const sz4Facade = require('../runtime-z-operational-nervous-system/facade/zOpera
 const cogInjector = require('./zCognitiveContextInjector');
 
 async function buildUnifiedConversationalContext(user, message, opts = {}) {
+  const t0 = Date.now();
   const parts = [];
   const meta = {
     sz5_active: false,
@@ -82,6 +83,18 @@ async function buildUnifiedConversationalContext(user, message, opts = {}) {
   } catch (err) {
     console.warn('[SZ5_INJECTOR] sz4:', err?.message ?? err);
   }
+
+  const elapsed = Date.now() - t0;
+  meta.elapsed_ms = elapsed;
+  try {
+    const apm = require('../observability/apmEnterpriseBridge');
+    apm.recordSz5Latency(elapsed, {
+      retrieval_hit: meta.retrieval_hit,
+      fact_count: meta.fact_count,
+      status: 'ok',
+    }, { company_id: user?.company_id });
+    apm.recordThroughput('sz5', 1, { company_id: user?.company_id });
+  } catch { /* non-blocking */ }
 
   return {
     block: parts.length ? `\n\n${parts.join('\n')}` : '',

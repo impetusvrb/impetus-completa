@@ -1,0 +1,73 @@
+{
+  "uid": "impetus-cognitive",
+  "title": "IMPETUS — Cognitivo",
+  "tags": ["impetus", "cognitive", "apm"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Dashboard Engine V2 — latência compose",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "impetus_apm_span_duration_ms{operation=\"dashboard.engine_v2.compose\",quantile=\"avg\"}",
+          "legendFormat": "avg ms"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1000 }, { "color": "red", "value": 1500 }] }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "AI Chat — latência resposta",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "impetus_apm_span_duration_ms{operation=\"ai.chat.response\",quantile=\"avg\"}",
+          "legendFormat": "avg ms"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "SZ5 context build",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "impetus_apm_span_duration_ms{operation=\"sz5.context.build\",quantile=\"avg\"}",
+          "legendFormat": "SZ5 ms"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Pressão cognitiva",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "targets": [{ "expr": "impetus_cognitive_pressure" }]
+    },
+    {
+      "id": 5,
+      "title": "Spans APM por domínio",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{ "expr": "sum(rate(impetus_apm_spans_total[5m])) by (domain)", "legendFormat": "{{domain}}" }]
+    },
+    {
+      "id": 6,
+      "title": "Saturation score",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 16 },
+      "targets": [{ "expr": "impetus_saturation_score" }]
+    }
+  ]
+}

@@ -37,6 +37,18 @@ let loggedSafeBlocked = false;
 
 const chatMetricsService = require('./chatMetricsService');
 
+function _recordLegacyUsage(rolloutKey, hint) {
+  try {
+    const dep = require('../legacyDeprecation/governance/legacyCompatibilityRouter');
+    dep.recordLegacyInvocation('chat_ai_service_legacy', {
+      caller_hint: hint || 'chatAIService.loader',
+      rolloutKey: rolloutKey != null ? String(rolloutKey) : null
+    });
+  } catch (_e) {
+    /* governance opcional */
+  }
+}
+
 function rolloutPercentConfigured() {
   const raw = Number(process.env.CHAT_ROLLOUT_PERCENT || 0);
   if (!Number.isFinite(raw)) return 0;
@@ -154,6 +166,7 @@ function pickModuleForRequest(rolloutKey) {
   maybeLogSafeBlocked();
 
   if (process.env.CHAT_ENABLE_CONSOLIDATED !== 'true') {
+    _recordLegacyUsage(rolloutKey, 'consolidated_disabled');
     logRolloutDecision(rolloutKey, 'legacy', false);
     return { mod: legacyModule, version: 'legacy' };
   }
@@ -180,6 +193,7 @@ function pickModuleForRequest(rolloutKey) {
   }
 
   recordConsolidatedFailure();
+  _recordLegacyUsage(rolloutKey, 'consolidated_failover');
   console.warn('[CHAT_FAILOVER]', 'Consolidado indisponível, usando legacy');
   logRolloutDecision(rolloutKey, 'legacy', true);
   return { mod: legacyModule, version: 'legacy' };
@@ -274,7 +288,12 @@ async function handleAIMessageWrapped(...args) {
       console.warn('[CHAT_FAILOVER]', err?.message ?? String(err));
       recordConsolidatedFailure();
       picked = { mod: legacyModule, version: 'legacy' };
+      _recordLegacyUsage(rolloutKey, 'consolidated_error_failover');
     }
+  }
+
+  if (picked.version === 'legacy') {
+    _recordLegacyUsage(rolloutKey, 'legacy_execution');
   }
 
   const execLegacyStart = Date.now();

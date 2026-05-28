@@ -21,6 +21,14 @@ function canonicalizeBlockId(blockId) {
 }
 
 function resolveBlock(blockId, ctx = {}) {
+  try {
+    const bridge = require('../../cognitiveRegistry/consolidation/cognitiveRegistryBridge');
+    if (bridge.shouldUseAuthoritativePath(ctx)) {
+      return bridge.resolveBlockEnriched(blockId, ctx);
+    }
+  } catch (_e) {
+    /* fallback legado */
+  }
   const canonical = canonicalizeBlockId(blockId);
   const block = registry.getBlockById(canonical);
   if (!block) {

@@ -8,7 +8,17 @@ const { RUNTIME_COMPOSITION_CONTRACT } = require('./runtimeCompositionContracts'
 
 function resolveEligibleBlocks(compositionCtx = {}) {
   const domain = compositionCtx.domain_axis || 'quality';
-  const candidates = registry.listBlocksByDomain(domain);
+  let candidates;
+  try {
+    const bridge = require('../../cognitiveRegistry/consolidation/cognitiveRegistryBridge');
+    if (bridge.shouldUseAuthoritativePath(compositionCtx)) {
+      candidates = bridge.listBlocksByDomain(domain, compositionCtx);
+    } else {
+      candidates = registry.listBlocksByDomain(domain);
+    }
+  } catch (_e) {
+    candidates = registry.listBlocksByDomain(domain);
+  }
   const denied = new Set(
     (compositionCtx.denied_publications || []).map((d) => String(d).toLowerCase())
   );

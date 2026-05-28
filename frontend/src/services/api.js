@@ -1284,6 +1284,16 @@ export const adminCognitiveGovernance = {
   getPolicyGovernanceEvolution: () => api.get('/admin/learning/policy-evolution')
 };
 
+/** Action Runtime + HITL — aprovações supervisionadas (backend: /api/action-runtime) */
+export const actionRuntimeApi = {
+  getHealth: () => api.get('/action-runtime/health'),
+  getPendingApprovals: (params) => api.get('/action-runtime/approvals/pending', { params }),
+  approve: (id) => api.post(`/action-runtime/approvals/${id}/approve`),
+  reject: (id, body) => api.post(`/action-runtime/approvals/${id}/reject`, body),
+  getTraces: (params) => api.get('/action-runtime/traces', { params }),
+  rollback: (traceId) => api.post(`/action-runtime/rollback/${encodeURIComponent(traceId)}`)
+};
+
 export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
   /** Alias de getAll */

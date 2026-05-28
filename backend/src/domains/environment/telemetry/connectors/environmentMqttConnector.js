@@ -3,10 +3,43 @@
 const flags = require('../environmentTelemetryRuntimeFlags');
 const obs = require('../environmentTelemetryObservability');
 
-const _state = { connected: false, last_reconnect: null, buffered: 0, topics: [] };
+const _state = { connected: false, last_reconnect: null, buffered: 0, topics: [], real_runtime: false };
+
+function _realRuntime() {
+  try {
+    return require('../../../../industrial-mqtt/runtime/mqttRealClientRuntime');
+  } catch {
+    return null;
+  }
+}
+
+function _realGov() {
+  try {
+    return require('../../../../industrial-mqtt/governance/mqttGovernanceService');
+  } catch {
+    return null;
+  }
+}
 
 function getMqttState() {
-  return { ..._state, enabled: flags.isEnvironmentTelemetryMqttEnabled() };
+  const base = { ..._state, enabled: flags.isEnvironmentTelemetryMqttEnabled() };
+  const real = _realRuntime();
+  const rg = _realGov();
+  try {
+    const mqttFlags = require('../../../../industrial-mqtt/config/mqttRealFlags');
+    if (real && mqttFlags.isMqttRealEnabled() && rg) {
+      const pilots = rg.getDiagnostics().pilot_tenants || [];
+      const pilotStats = pilots.map((id) => real.getClientStats(id));
+      return {
+        ...base,
+        real_runtime: true,
+        real_mode: rg.getDiagnostics().mode,
+        global_stats: real.getGlobalStats(),
+        pilot_clients: pilotStats,
+      };
+    }
+  } catch { /* optional */ }
+  return base;
 }
 
 /**
@@ -43,17 +76,56 @@ function simulateReconnect() {
   _state.connected = true;
   _state.last_reconnect = new Date().toISOString();
   _state.buffered = 0;
-  return { ok: true, reconnect_completed: true };
+  return { ok: true, reconnect_completed: true, simulation: true };
 }
 
 function simulateDisconnect() {
   _state.connected = false;
-  return { ok: true, disconnected: true };
+  return { ok: true, disconnected: true, simulation: true };
+}
+
+/**
+ * Reconnect unificado — real broker se IMPETUS_MQTT_REAL_ENABLED + modo audit/on; senão simulação legada.
+ */
+async function reconnect(companyId) {
+  const rg = _realGov();
+  const real = _realRuntime();
+  if (companyId && real && rg?.isActiveForTenant?.(companyId)) {
+    const config = await (async () => {
+      try {
+        const svc = require('../../../../industrial-mqtt/services/mqttBrokerConfigService');
+        return svc.getBrokerConfig(companyId);
+      } catch {
+        return null;
+      }
+    })();
+    const mode = rg.getEffectiveMode(config?.mode);
+    if (rg.shouldConnectReal(mode)) {
+      const r = await real.reconnect(companyId);
+      _state.connected = r.ok === true;
+      _state.last_reconnect = new Date().toISOString();
+      _state.real_runtime = true;
+      return { ...r, reconnect_completed: r.ok, real: true };
+    }
+  }
+  return simulateReconnect();
+}
+
+async function disconnect(companyId) {
+  const real = _realRuntime();
+  if (companyId && real) {
+    const r = await real.stopClient(companyId);
+    _state.connected = false;
+    return { ...r, real: true };
+  }
+  return simulateDisconnect();
 }
 
 module.exports = {
   getMqttState,
   ingestMqttMessage,
   simulateReconnect,
-  simulateDisconnect
+  simulateDisconnect,
+  reconnect,
+  disconnect,
 };

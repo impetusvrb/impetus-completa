@@ -450,6 +450,14 @@ function requireAuth(req, res, next) {
     }
     req.user = hydrated;
     req.session = { id: user.sessionId };
+    try {
+      const tenantDb = require('../tenant-isolation/runtime/tenantDbContext');
+      const rlsFlags = require('../tenant-isolation/config/tenantRlsFlags');
+      const rlsGov = require('../tenant-isolation/governance/tenantRlsGovernanceService');
+      if (rlsFlags.isRlsEnabled() && hydrated.company_id && rlsGov.isActiveForTenant(hydrated.company_id)) {
+        tenantDb.setRequestTenant(hydrated.company_id);
+      }
+    } catch { /* non-blocking */ }
     next();
   }).catch(err => {
     console.error('[AUTH_MIDDLEWARE_ERROR]', err.message);

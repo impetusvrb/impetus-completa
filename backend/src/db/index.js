@@ -33,8 +33,30 @@ const pool = databaseUrl
 
 pool.on('error', (err) => console.error('[DB] Pool error:', err.message));
 
+async function query(text, params) {
+  try {
+    const flags = require('../tenant-isolation/config/tenantRlsFlags');
+    const gov = require('../tenant-isolation/governance/tenantRlsGovernanceService');
+    const ctx = require('../tenant-isolation/runtime/tenantDbContext');
+    const rls = require('../tenant-isolation/runtime/tenantRlsRuntime');
+
+    const store = ctx.getTenantContext();
+    if (
+      flags.isRlsEnabled() &&
+      gov.shouldEnforceRls(flags.rlsMode()) &&
+      store?.companyId &&
+      gov.isActiveForTenant(store.companyId)
+    ) {
+      return rls.queryWithTenantContext(store.companyId, text, params);
+    }
+  } catch (rlsErr) {
+    console.warn('[DB][RLS_WRAPPER]', rlsErr?.message);
+  }
+  return pool.query(text, params);
+}
+
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+  query,
   pool,
   getPoolStats: () => ({ totalCount: pool.totalCount, idleCount: pool.idleCount, waitingCount: pool.waitingCount })
 };

@@ -57,6 +57,15 @@ module.exports = {
   isResilienceEnabled: () => _flag('IMPETUS_SZ4_RESILIENCE', true),
   isApiEnabled: () => _flag('IMPETUS_SZ4_API', true),
   isPersistenceEnabled: () => _flag('IMPETUS_SZ4_PERSISTENCE', false),
+  persistencePilotOnly: () => {
+    const v = process.env.IMPETUS_SZ4_PERSISTENCE_PILOT_ONLY;
+    if (v == null || v === '') return true;
+    return v === 'on' || v === 'true' || v === '1';
+  },
+  persistenceTtlDays: () => {
+    const v = parseInt(process.env.IMPETUS_SZ4_PERSISTENCE_TTL_DAYS || '90', 10);
+    return Number.isFinite(v) && v > 0 ? Math.min(v, 365) : 90;
+  },
   isVoiceIdentityPrepEnabled: () => _flag('IMPETUS_SZ4_VOICE_IDENTITY_PREP', true),
 
   defaultStage: () => _stage('IMPETUS_SZ4_DEFAULT_STAGE', 'SZ4_SHADOW'),

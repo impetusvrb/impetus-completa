@@ -116,8 +116,68 @@ function listMemoryDlq(limit = 50) {
   return _memoryDlq.slice(-Math.min(limit, _memoryDlq.length));
 }
 
+/**
+ * Redrive DLQ → outbox (WAVE 2). Requer DLQ + outbox ON; idempotency com sufixo :redrive:
+ * @param {{ limit?: number, company_id?: string, dry_run?: boolean }} [opts]
+ */
+async function redriveFromDlq(opts = {}) {
+  const { isIndustrialDlqEnabled, isIndustrialOutboxEnabled, isReplayDryRun, industrialReplayMode } = require('../industrialFlags');
+  if (!isIndustrialDlqEnabled() || !isIndustrialOutboxEnabled()) {
+    return { ok: false, reason: 'dlq_or_outbox_disabled' };
+  }
+  const dryRun = opts.dry_run != null ? !!opts.dry_run : isReplayDryRun() && industrialReplayMode() !== 'on';
+  const limit = Math.min(200, Math.max(1, Number(opts.limit) || 50));
+  const outbox = require('../outbox/industrialOutboxService');
+  let redriven = 0;
+  let skipped = 0;
+
+  try {
+    const db = require('../../db');
+    const params = [limit];
+    let sql = `SELECT id, envelope, idempotency_key, company_id FROM industrial_event_dlq WHERE redriven_at IS NULL`;
+    if (opts.company_id) {
+      sql += ` AND company_id = $2::uuid`;
+      params.push(opts.company_id);
+    }
+    sql += ` ORDER BY created_at ASC LIMIT $1`;
+    const r = await db.query(sql, params);
+
+    for (const row of r.rows || []) {
+      const env = typeof row.envelope === 'object' ? row.envelope : JSON.parse(row.envelope);
+      if (opts.company_id && String(env.company_id) !== String(opts.company_id)) {
+        skipped += 1;
+        continue;
+      }
+      if (dryRun) {
+        redriven += 1;
+        continue;
+      }
+      const replayEnv = {
+        ...env,
+        idempotency_key: `${env.idempotency_key}:redrive:${Date.now()}`,
+        metadata: { ...(env.metadata || {}), dlq_redrive: true, dlq_id: row.id }
+      };
+      const enq = await outbox.enqueueIndustrialEvent(replayEnv);
+      if (enq.ok) {
+        await db.query(
+          `UPDATE industrial_event_dlq SET redriven_at = now(), redrive_count = redrive_count + 1 WHERE id = $1::uuid`,
+          [row.id]
+        );
+        redriven += 1;
+      } else {
+        skipped += 1;
+      }
+    }
+
+    return { ok: true, dry_run: dryRun, redriven, skipped, examined: (r.rows || []).length };
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err) };
+  }
+}
+
 module.exports = {
   moveToDlq,
   getDlqStats,
-  listMemoryDlq
+  listMemoryDlq,
+  redriveFromDlq
 };

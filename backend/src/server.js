@@ -7,6 +7,12 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
 
 try {
+  require('child_process').execSync(`node "${path.join(__dirname, '../scripts/fix-opcua-hexy-cjs.js')}"`, {
+    stdio: 'pipe',
+  });
+} catch { /* opcua hexy CJS — mesmo host */ }
+
+try {
   require('./config/configValidator').validateConfigOrThrow();
 } catch (e) {
   console.error(e.name === 'ConfigError' ? e.message : e);
@@ -332,6 +338,9 @@ function useRoute(mountPath, modulePath, ...middlewares) {
 /* --- API (cada bloco isolado: dependência em falta não derruba o servidor) --- */
 useRoute('/api/media', './routes/mediaFile');
 useRoute('/api/auth', './routes/auth');
+useRoute('/api/auth/mfa', './routes/authMfa');
+useRoute('/api/federation', './routes/federation');
+useRoute('/api/federation/scim/v2', './routes/federationScim');
 useRoute('/api/factory-team', './routes/factoryTeam');
 useRoute('/api/companies', './routes/companies');
 useRoute('/api/onboarding', './routes/onboarding', requireAuth);
@@ -363,6 +372,11 @@ useRoute('/api/admin/structural', './routes/admin/structural');
 useRoute('/api/admin/ai-audit', './routes/admin/aiAudit');
 useRoute('/api/admin/incidents', './routes/admin/incidents');
 useRoute('/api/admin/ai-policies', './routes/admin/aiPolicies');
+useRoute('/api/ai/governance', './routes/aiGovernance', requireAuth);
+useRoute('/api/action-runtime', './routes/actionRuntime', requireAuth);
+useRoute('/api/workflow-engine', './routes/workflowEngine', requireAuth);
+useRoute('/api/cognitive-registry', './routes/cognitiveRegistry', requireAuth);
+useRoute('/api/deprecation-governance', './routes/deprecationGovernance', requireAuth);
 useRoute('/api/admin/learning', './routes/adminLearning');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
@@ -679,6 +693,7 @@ useRoute(
 useRoute('/api/internal/enterprise', './routes/internal/enterpriseConsolidation', requireAuth, internalNet('enterprise'), internalAcl('enterprise'), apiByUserLimiter);
 useRoute('/api/internal/operational-runtime', './routes/internal/operationalRuntime', requireAuth, internalNet('operational-runtime'), internalAcl('operational-runtime'), apiByUserLimiter);
 useRoute('/api/internal/shadow-routes', './routes/internal/shadowRoutes', requireAuth, internalNet('shadow-routes'), internalAcl('shadow-routes'), apiByUserLimiter);
+useRoute('/api/internal/tenant-rls', './routes/internal/tenantRls', requireAuth, internalNet('tenant-rls'), internalAcl('governance'), apiByUserLimiter);
 useRoute(
   '/api/internal/industrial-event-backbone',
   './routes/internal/industrialEventBackbone',
@@ -1677,6 +1692,111 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
   }
 }
 
+// ─── Industrial Event Backbone WAVE 2 (PROMPT 23) — recovery + scheduler opt-in ─
+{
+  try {
+    const backbone = require('./eventPipeline/industrialEventBackbone');
+    setTimeout(() => {
+      backbone
+        .bootIndustrialEventBackbone()
+        .then((boot) => {
+          console.info(
+            `[INDUSTRIAL_EVENT_BACKBONE_BOOT] ${JSON.stringify({
+              event: 'INDUSTRIAL_EVENT_BACKBONE_BOOT',
+              ...boot
+            })}`
+          );
+        })
+        .catch((e) => console.warn('[INDUSTRIAL_EVENT_BACKBONE_BOOT]', e?.message));
+    }, 8000);
+  } catch (e) {
+    console.warn('[INDUSTRIAL_EVENT_BACKBONE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Action Runtime + HITL (PROMPT 24) — health diagnostics ───────────────────
+{
+  try {
+    const actionFlags = require('./actionRuntime/config/actionRuntimeFlags');
+    const orchestrator = require('./actionRuntime/orchestration/actionRuntimeOrchestrator');
+    setTimeout(() => {
+      console.info(
+        `[ACTION_RUNTIME_BOOT] ${JSON.stringify({
+          event: 'ACTION_RUNTIME_BOOT',
+          mode: actionFlags.actionRuntimeMode(),
+          enabled: actionFlags.isActionRuntimeEnabled(),
+          pilot_tenants: actionFlags.pilotTenants(),
+          legacy_tool_calling: actionFlags.legacyToolCallingEnabled(),
+          health: orchestrator.getHealth()
+        })}`
+      );
+    }, 8500);
+  } catch (e) {
+    console.warn('[ACTION_RUNTIME_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Legacy Deprecation Governance (PROMPT 27) ────────────────────────────────
+{
+  try {
+    const depFlags = require('./legacyDeprecation/config/deprecationGovernanceFlags');
+    const depRouter = require('./legacyDeprecation/governance/legacyCompatibilityRouter');
+    setTimeout(() => {
+      console.info(
+        `[LEGACY_DEPRECATION_BOOT] ${JSON.stringify({
+          event: 'LEGACY_DEPRECATION_BOOT',
+          mode: depFlags.deprecationMode(),
+          active: depFlags.isDeprecationGovernanceActive(),
+          health: depRouter.getHealth()
+        })}`
+      );
+    }, 9600);
+  } catch (e) {
+    console.warn('[LEGACY_DEPRECATION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Cognitive Registry Consolidation (PROMPT 26) — SSOT facade ─────────────
+{
+  try {
+    const crFlags = require('./cognitiveRegistry/consolidation/cognitiveRegistryConsolidationFlags');
+    const unifiedCr = require('./cognitiveRegistry/consolidation/unifiedCognitiveRegistry');
+    setTimeout(() => {
+      console.info(
+        `[COGNITIVE_REGISTRY_CONSOLIDATION_BOOT] ${JSON.stringify({
+          event: 'COGNITIVE_REGISTRY_CONSOLIDATION_BOOT',
+          mode: crFlags.consolidationMode(),
+          active: crFlags.isConsolidationActive(),
+          health: unifiedCr.getHealth()
+        })}`
+      );
+    }, 9500);
+  } catch (e) {
+    console.warn('[COGNITIVE_REGISTRY_CONSOLIDATION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Industrial Workflow Engine (PROMPT 25) — BPMN + state machine ───────────
+{
+  try {
+    const wfFlags = require('./workflowEngine/config/workflowEngineFlags');
+    const wfOrch = require('./workflowEngine/orchestration/workflowOrchestrator');
+    setTimeout(() => {
+      console.info(
+        `[WORKFLOW_ENGINE_BOOT] ${JSON.stringify({
+          event: 'WORKFLOW_ENGINE_BOOT',
+          mode: wfFlags.workflowEngineMode(),
+          enabled: wfFlags.isWorkflowEngineActive(),
+          pilot_tenants: wfFlags.pilotTenants(),
+          health: wfOrch.getHealth()
+        })}`
+      );
+    }, 9000);
+  } catch (e) {
+    console.warn('[WORKFLOW_ENGINE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
 // ─── DSR Notification SLA Scheduler (T1.6.5) ─────────────────────────────────
 {
   try {
@@ -1697,6 +1817,219 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
     console.info(`[AI_ANON_WORKER_BOOT] ${JSON.stringify({ event: 'AI_ANON_WORKER_BOOT', enabled: stats.enabled, mode: stats.mode, scheduler: started })}`);
   } catch (e) {
     console.warn('[AI_ANON_WORKER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── AI Model Registry + Governance (PROMPT 12) ───────────────────────────────
+{
+  try {
+    const schemaBootstrap = require('./services/aiSchemaBootstrap');
+    const registry = require('./governance/aiModelRegistry');
+    schemaBootstrap.ensureAiGovernanceSchema().then(async (schema) => {
+      if (schema.ok) {
+        const sync = await registry.syncRegistryToDatabase();
+        console.info(`[AI_MODEL_REGISTRY_BOOT] ${JSON.stringify({ event: 'AI_MODEL_REGISTRY_BOOT', schema: true, sync, diagnostics: registry.getDiagnostics() })}`);
+      } else {
+        console.warn('[AI_MODEL_REGISTRY_BOOT] Schema bootstrap incomplete:', schema.error);
+      }
+    }).catch((e) => console.warn('[AI_MODEL_REGISTRY_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[AI_MODEL_REGISTRY_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Hallucination Detection V1 (PROMPT 13) ───────────────────────────────────
+{
+  try {
+    const hallucinationSvc = require('./services/hallucinationDetectionService');
+    const schemaBootstrap = require('./services/aiSchemaBootstrap');
+    schemaBootstrap.ensureAiGovernanceSchema().then((schema) => {
+      console.info(`[HALLUCINATION_DETECTION_BOOT] ${JSON.stringify({
+        event: 'HALLUCINATION_DETECTION_BOOT',
+        schema_ok: schema.ok,
+        diagnostics: hallucinationSvc.getDiagnostics(),
+      })}`);
+    }).catch((e) => console.warn('[HALLUCINATION_DETECTION_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[HALLUCINATION_DETECTION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Edge Runtime + Industrial Lab (PROMPT 22) ─────────────────────────────────
+{
+  try {
+    const edgeReal = require('./industrial-edge/runtime/edgeRealSyncRuntime');
+    const edgeTrace = require('./industrial-edge/observability/edgeTracing');
+    edgeReal.warmBoot()
+      .then(async (boot) => {
+        await edgeTrace.emitBootAudit().catch(() => {});
+        console.info(`[EDGE_RUNTIME_BOOT] ${JSON.stringify({
+          event: 'EDGE_RUNTIME_BOOT',
+          ...boot,
+          stats: edgeReal.getGlobalStats(),
+        })}`);
+      })
+      .catch((e) => console.warn('[EDGE_RUNTIME_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[EDGE_RUNTIME_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── MQTT Real Runtime (PROMPT 19) ───────────────────────────────────────────
+{
+  try {
+    const mqttReal = require('./industrial-mqtt/runtime/mqttRealClientRuntime');
+    const mqttTrace = require('./industrial-mqtt/observability/mqttTracing');
+    mqttReal.warmBoot()
+      .then(async (boot) => {
+        await mqttTrace.emitBootAudit().catch(() => {});
+        console.info(`[MQTT_REAL_BOOT] ${JSON.stringify({
+          event: 'MQTT_REAL_BOOT',
+          ...boot,
+          stats: mqttReal.getGlobalStats(),
+        })}`);
+      })
+      .catch((e) => console.warn('[MQTT_REAL_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[MQTT_REAL_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Modbus Real Runtime (PROMPT 21) ─────────────────────────────────────────
+{
+  try {
+    const modbusReal = require('./industrial-modbus/runtime/modbusRealPollRuntime');
+    const modbusTrace = require('./industrial-modbus/observability/modbusTracing');
+    modbusReal.warmBoot()
+      .then(async (boot) => {
+        await modbusTrace.emitBootAudit().catch(() => {});
+        console.info(`[MODBUS_REAL_BOOT] ${JSON.stringify({
+          event: 'MODBUS_REAL_BOOT',
+          ...boot,
+          stats: modbusReal.getGlobalStats(),
+        })}`);
+      })
+      .catch((e) => console.warn('[MODBUS_REAL_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[MODBUS_REAL_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── OPC-UA Real Runtime (PROMPT 20) ─────────────────────────────────────────
+{
+  try {
+    const opcuaReal = require('./industrial-opcua/runtime/opcuaRealClientRuntime');
+    const opcuaTrace = require('./industrial-opcua/observability/opcuaTracing');
+    const runOpcuaWarmBoot = () => opcuaReal.warmBoot()
+      .then(async (boot) => {
+        await opcuaTrace.emitBootAudit().catch(() => {});
+        console.info(`[OPCUA_REAL_BOOT] ${JSON.stringify({
+          event: 'OPCUA_REAL_BOOT',
+          ...boot,
+          stats: opcuaReal.getGlobalStats(),
+        })}`);
+        if (!boot?.clients?.[0]?.ok) {
+          setTimeout(() => {
+            opcuaReal.bootPilotClients()
+              .then((retry) => console.info(`[OPCUA_REAL_RETRY] ${JSON.stringify(retry)}`))
+              .catch((e) => console.warn('[OPCUA_REAL_RETRY]', e?.message));
+          }, 15000);
+        }
+      })
+      .catch((e) => console.warn('[OPCUA_REAL_BOOT]', e?.message));
+    setTimeout(runOpcuaWarmBoot, 12000);
+  } catch (e) {
+    console.warn('[OPCUA_REAL_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── RLS + Multi-tenant Hardening (PROMPT 18) ───────────────────────────────
+{
+  try {
+    const tenantRls = require('./tenant-isolation/runtime/tenantRlsRuntime');
+    const tenantGov = require('./tenant-isolation/governance/tenantRlsGovernanceService');
+    tenantRls.boot()
+      .then(async (boot) => {
+        await tenantRls.emitBootAudit().catch(() => {});
+        if (tenantGov.shouldRunFuzz(tenantGov.getEffectiveMode(tenantGov.getDiagnostics().mode))) {
+          const fuzz = require('./tenant-isolation/testing/tenantFuzzSuite');
+          const fuzzOut = await fuzz.runFullSuite().catch((e) => ({ ok: false, error: e?.message }));
+          console.info(`[TENANT_RLS_FUZZ_BOOT] ${JSON.stringify({
+            event: 'TENANT_RLS_FUZZ_BOOT',
+            ...fuzzOut?.summary,
+            ok: fuzzOut?.ok,
+          })}`);
+        }
+        console.info(`[TENANT_RLS_BOOT] ${JSON.stringify({
+          event: 'TENANT_RLS_BOOT',
+          ...boot,
+          diagnostics: tenantGov.getDiagnostics(),
+        })}`);
+      })
+      .catch((e) => console.warn('[TENANT_RLS_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[TENANT_RLS_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Enterprise MFA Universal (PROMPT 17) — TOTP · WebAuthn · Backup ───────
+{
+  try {
+    const mfaBootstrap = require('./mfa/bootstrap/mfaSchemaBootstrap');
+    const mfaAudit = require('./mfa/observability/mfaAuditTracing');
+    const mfaGov = require('./mfa/governance/mfaGovernanceService');
+    mfaBootstrap.ensureMfaSchema()
+      .then(async (schema) => {
+        await mfaAudit.emitBootAudit().catch(() => {});
+        console.info(`[MFA_BOOT] ${JSON.stringify({
+          event: 'MFA_BOOT',
+          schema_ok: schema.ok,
+          diagnostics: mfaGov.getDiagnostics(),
+        })}`);
+      })
+      .catch((e) => console.warn('[MFA_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[MFA_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Enterprise Federation (PROMPT 16) — OIDC · SAML · SCIM (pilot) ────────
+{
+  try {
+    const fedBootstrap = require('./federation/bootstrap/federationSchemaBootstrap');
+    fedBootstrap.ensureFederationSchema()
+      .then(async (schema) => {
+        await fedBootstrap.emitBootAuditTrail().catch(() => {});
+        const gov = require('./federation/governance/federationGovernanceService');
+        console.info(`[FEDERATION_BOOT] ${JSON.stringify({
+          event: 'FEDERATION_BOOT',
+          schema_ok: schema.ok,
+          diagnostics: gov.getDiagnostics(),
+        })}`);
+      })
+      .catch((e) => console.warn('[FEDERATION_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[FEDERATION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── SZ4 Persistence (PROMPT 15) — pilot tenant, replay on boot, TTL purge ───
+{
+  try {
+    const sz4Persistence = require('./runtime-z-operational-nervous-system/persistence/sz4PersistenceRuntime');
+    sz4Persistence.warmRecoveryOnBoot()
+      .then(async (recovery) => {
+        await sz4Persistence.purgeExpired().catch(() => {});
+        await sz4Persistence.emitBootAuditTrail().catch(() => {});
+        console.info(`[SZ4_PERSISTENCE_BOOT] ${JSON.stringify({
+          event: 'SZ4_PERSISTENCE_BOOT',
+          recovery,
+          diagnostics: sz4Persistence.getDiagnostics(),
+        })}`);
+      })
+      .catch((e) => console.warn('[SZ4_PERSISTENCE_BOOT]', e?.message));
+  } catch (e) {
+    console.warn('[SZ4_PERSISTENCE_BOOT] Não iniciado:', e?.message);
   }
 }
 
@@ -1918,6 +2251,15 @@ httpServer.on('error', (err) => {
     try {
       const obsV2 = require('./observability/enterpriseObservabilityV2Runtime');
       obsV2.bootstrap();
+      const apm = require('./observability/apmEnterpriseBridge');
+      apm.recordRuntimeHealth('impetus-backend', true);
+      apm.emitBootAuditTrail().catch(() => {});
+      console.info(
+        `[APM_ENTERPRISE_BOOT] ${JSON.stringify({
+          event: 'APM_ENTERPRISE_BOOT',
+          ...apm.getDiagnostics(),
+        })}`
+      );
     } catch (e) {
       console.warn('[OBSERVABILITY_V2_BOOT]', e && e.message ? e.message : e);
     }

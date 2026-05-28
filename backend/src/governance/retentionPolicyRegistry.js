@@ -210,6 +210,8 @@ const RETENTION_REGISTRY = Object.freeze([
   { table: 'industrial_event_outbox', ttl_days: 14, archive_days: 365, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'Outbox — transient' },
   { table: 'industrial_event_dlq', ttl_days: 90, archive_days: 365, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'DLQ — análise de falhas' },
   { table: 'industrial_event_replay_log', ttl_days: 90, archive_days: 365, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'Replay log' },
+  { table: 'industrial_event_archive', ttl_days: 365, archive_days: 1825, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'Arquivo frio outbox industrial' },
+  { table: 'industrial_event_backpressure_audit', ttl_days: 30, archive_days: 90, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.OPERATIONAL, pii: false, dsr_erasable: false, notes: 'Auditoria backpressure — sem payload' },
   { table: 'app_impetus_outbox', ttl_days: 14, archive_days: 365, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'Outbox app' },
   { table: 'orchestration_outcomes', ttl_days: 90, archive_days: 365, action: ACTIONS.PURGE, legal_basis: LEGAL_BASIS.LEGITIMATE_INTEREST, data_class: DATA_CLASS.WORKFLOW, pii: false, dsr_erasable: false, notes: 'Resultados de orquestração' },
 

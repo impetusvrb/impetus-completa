@@ -75,6 +75,16 @@ function getCognitiveRuntimeStatus(ctx = {}) {
     hr_native_cockpit: flagsZ26.hrNativeCockpitMode(),
     hr_cognitive_runtime: process.env.IMPETUS_HR_COGNITIVE_RUNTIME || 'off',
     registry_stats: registry.getRegistryStats(),
+    registry_consolidation: (() => {
+      try {
+        const crFlags = require('../../cognitiveRegistry/consolidation/cognitiveRegistryConsolidationFlags');
+        if (!crFlags.isConsolidationActive()) return { active: false };
+        const unifiedCr = require('../../cognitiveRegistry/consolidation/unifiedCognitiveRegistry');
+        return { active: true, mode: crFlags.consolidationMode(), health: unifiedCr.getHealth() };
+      } catch (_e) {
+        return { active: false };
+      }
+    })(),
     auto_compose_cockpit: false,
     replace_dashboard: false,
     auto_remediate: false,

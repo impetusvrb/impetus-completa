@@ -250,6 +250,23 @@ const TOOL_HANDLERS = Object.freeze({
  * @returns {Promise<Object>} resultado da execução
  */
 async function executeTool(toolName, args, ctx = {}) {
+  try {
+    const actionFlags = require('../../actionRuntime/config/actionRuntimeFlags');
+    if (actionFlags.shouldUseActionRuntime(ctx.companyId)) {
+      const orchestrator = require('../../actionRuntime/orchestration/actionRuntimeOrchestrator');
+      return orchestrator.executeToolCall(toolName, args, ctx);
+    }
+  } catch (_e) {
+    /* fallback legado */
+  }
+
+  return executeToolApproved(toolName, args, ctx);
+}
+
+/**
+ * Execução directa — apenas HITL aprovado ou legado sem action runtime.
+ */
+async function executeToolApproved(toolName, args, ctx = {}) {
   if (!ctx.companyId) {
     return { ok: false, message: 'Contexto de empresa ausente.' };
   }
@@ -264,7 +281,9 @@ async function executeTool(toolName, args, ctx = {}) {
     return { ok: false, message: `Ferramenta "${toolName}" não reconhecida.` };
   }
 
-  if (SHADOW_MODE) {
+  const bypassShadow = ctx._hitl_approved === true;
+
+  if (SHADOW_MODE && !bypassShadow) {
     _audit(`shadow:${toolName}`, args, { ok: true, shadow: true }, ctx.userId, ctx.companyId);
     console.info('[TOOL_SHADOW]', { tool: toolName, args, ctx: { companyId: ctx.companyId, userId: ctx.userId } });
     return { ok: true, message: `[Shadow] Ação "${toolName}" simulada com sucesso.`, shadow: true };
@@ -291,6 +310,7 @@ function getAuditLog() {
 
 module.exports = {
   executeTool,
+  executeToolApproved,
   getToolDefinitions,
   getAuditLog,
   TOOL_DEFINITIONS,

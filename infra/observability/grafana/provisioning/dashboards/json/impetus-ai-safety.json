@@ -1,0 +1,59 @@
+{
+  "uid": "impetus-ai-safety",
+  "title": "IMPETUS — AI Safety",
+  "tags": ["impetus", "ai-safety", "hallucination"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Hallucination confidence (gauge)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "impetus_ai_hallucination_confidence", "legendFormat": "confidence" }]
+    },
+    {
+      "id": 2,
+      "title": "AI safety flags",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(impetus_ai_safety_flags_total[15m])) by (severity, requires_review)",
+          "legendFormat": "{{severity}} review={{requires_review}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "SLO — AI safety review rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [{ "expr": "impetus_slo_burn_rate{sli_name=\"ai_safety_review_rate\"}" }],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "SLO — AI chat latency p95",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [{ "expr": "impetus_slo_burn_rate{sli_name=\"ai_chat_latency_p95\"}" }]
+    },
+    {
+      "id": 5,
+      "title": "APM sampling / shadow",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        { "expr": "impetus_apm_shadow_mode", "legendFormat": "shadow" },
+        { "expr": "impetus_apm_sampling_rate", "legendFormat": "sampling" }
+      ]
+    }
+  ]
+}

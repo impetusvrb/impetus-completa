@@ -172,6 +172,16 @@ async function compose(user, opts) {
   // 4) Decision-trace em-memória (Phase 3) — auditável via API
   try { decisionTrace.record({ gatewayResult: result, user }); } catch (_) { /* silent */ }
 
+  try {
+    const apm = require('../../observability/apmEnterpriseBridge');
+    apm.recordDashboardLatency(latency, {
+      engine: engineLabel,
+      mode,
+      status: primaryError ? 'error' : 'ok',
+    }, { company_id: user?.company_id });
+    apm.recordThroughput('dashboard', 1, { company_id: user?.company_id });
+  } catch (_) { /* silent */ }
+
   return result;
 }
 

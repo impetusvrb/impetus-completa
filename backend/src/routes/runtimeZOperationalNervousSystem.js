@@ -26,13 +26,38 @@ function _ctx(req) {
 }
 
 router.get('/health', _ensureApi, (req, res) => {
+  let persistence = null;
+  try {
+    const sz4p = require('../runtime-z-operational-nervous-system/persistence/sz4PersistenceRuntime');
+    persistence = {
+      active_for_tenant: sz4p.isActiveForTenant(req.user.company_id),
+      health: sz4p.getHealth(),
+    };
+  } catch (_) { /* optional */ }
   res.json({
     ok: true,
     runtime: 'runtime-z-operational-nervous-system',
     phase: 'SZ4',
     stage: facade.resolveStage(req.user.company_id),
+    persistence_enabled: flags.isPersistenceEnabled(),
+    persistence,
     invariants: flags.invariants
   });
+});
+
+router.get('/persistence/health', _ensureApi, (req, res) => {
+  try {
+    const sz4p = require('../runtime-z-operational-nervous-system/persistence/sz4PersistenceRuntime');
+    res.json({
+      ok: true,
+      tenant_id: req.user.company_id,
+      active_for_tenant: sz4p.isActiveForTenant(req.user.company_id),
+      health: sz4p.getHealth(),
+      assistive_only: true,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message });
+  }
 });
 
 router.get('/continuity', _ensureApi, (req, res) => {

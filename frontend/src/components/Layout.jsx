@@ -44,7 +44,8 @@ import {
   KeyRound,
   Palette,
   Monitor,
-  UsersRound
+  UsersRound,
+  ListChecks
 } from 'lucide-react';
 import { companies, auth } from '../services/api';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
@@ -417,6 +418,7 @@ export default function Layout({ children }) {
       { path: '/app/admin/audit-logs', icon: FileText, label: 'Logs de Auditoria' },
       { path: '/app/admin/ai-incidents', icon: AlertTriangle, label: 'Incidentes de IA' },
       { path: '/app/admin/cognitive-governance', icon: Shield, label: 'Governança Cognitiva' },
+      { path: '/app/admin/action-approvals', icon: ListChecks, label: 'Aprovações IA (HITL)' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
       { path: '/app/admin/help-center', icon: HelpCircle, label: 'Central de Ajuda do Admin' },

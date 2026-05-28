@@ -1,0 +1,54 @@
+{
+  "uid": "impetus-operational",
+  "title": "IMPETUS — Operacional",
+  "tags": ["impetus", "operational", "apm"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Requests / min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(rate(impetus_http_requests_total[5m])) * 60", "legendFormat": "req/min" }]
+    },
+    {
+      "id": 2,
+      "title": "HTTP Latência p95 (route_group)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "max(impetus_http_duration_ms{quantile=\"max\"}) by (route_group)", "legendFormat": "{{route_group}}" }]
+    },
+    {
+      "id": 3,
+      "title": "Throughput por domínio",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{ "expr": "sum(rate(impetus_throughput_total[5m])) by (domain)", "legendFormat": "{{domain}}" }]
+    },
+    {
+      "id": 4,
+      "title": "Error rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "targets": [{ "expr": "sum(rate(impetus_errors_total[5m]))" }],
+      "fieldConfig": { "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.02 }] } } }
+    },
+    {
+      "id": 5,
+      "title": "Runtime health",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "targets": [{ "expr": "min(impetus_runtime_health)" }]
+    },
+    {
+      "id": 6,
+      "title": "SLO burn rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [{ "expr": "impetus_slo_burn_rate", "legendFormat": "{{sli_name}}" }]
+    }
+  ]
+}

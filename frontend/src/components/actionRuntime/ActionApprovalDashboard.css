@@ -1,0 +1,240 @@
+.ar-hitl-page {
+  padding: 1.25rem 1.5rem 2rem;
+  max-width: 1400px;
+}
+
+.ar-hitl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ar-hitl-eyebrow {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 0 0 0.35rem;
+}
+
+.ar-hitl-title {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ar-hitl-sub {
+  color: var(--text-secondary);
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.ar-hitl-mono {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+}
+
+.ar-hitl-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ar-hitl-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.ar-hitl-banner--warn {
+  border-color: color-mix(in srgb, var(--amber) 40%, transparent);
+  color: var(--amber);
+}
+
+.ar-hitl-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ar-hitl-kpi {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: 4px;
+}
+
+.ar-hitl-kpi-icon {
+  color: var(--cyan);
+}
+
+.ar-hitl-kpi-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ar-hitl-kpi-value {
+  font-size: 1.1rem;
+  color: var(--text-accent);
+}
+
+.ar-hitl-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ar-hitl-tab {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ar-hitl-tab--active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.ar-hitl-panel {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.ar-hitl-table th {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.ar-hitl-empty,
+.ar-hitl-loading {
+  padding: 1.5rem;
+  color: var(--text-tertiary);
+}
+
+.ar-hitl-risk {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.ar-hitl-risk--high {
+  color: var(--red);
+  border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+}
+
+.ar-hitl-risk--medium {
+  color: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+}
+
+.ar-hitl-risk--low {
+  color: var(--green);
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+}
+
+.ar-hitl-explain {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.ar-hitl-args {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.ar-hitl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.ar-hitl-btn-approve {
+  border-color: color-mix(in srgb, var(--green) 45%, transparent);
+  color: var(--green);
+}
+
+.ar-hitl-btn-reject {
+  font-size: 0.75rem;
+}
+
+.ar-hitl-reject-input {
+  min-width: 120px;
+  max-width: 160px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  padding: 0.3rem 0.45rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-primary);
+}
+
+.ar-hitl-trace-id {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ar-hitl-status {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.ar-hitl-status--executed {
+  color: var(--green);
+}
+
+.ar-hitl-status--pending_approval,
+.ar-hitl-status--proposed {
+  color: var(--amber);
+}
+
+.ar-hitl-status--failed,
+.ar-hitl-status--rejected {
+  color: var(--red);
+}
+
+.ar-hitl-status--shadow_simulated {
+  color: var(--cyan);
+}
+
+.ar-hitl-btn-rollback {
+  font-size: 0.75rem;
+  color: var(--amber);
+}

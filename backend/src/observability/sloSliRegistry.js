@@ -37,6 +37,36 @@ const SLI_DEFINITIONS = Object.freeze([
     description: 'Pressão cognitiva média < 0.7',
     target_max: 0.7,
     window_samples: 50
+  },
+  {
+    name: 'dashboard_latency_p95',
+    description: 'Latência p95 Engine V2 compose < 1500ms (T1.12)',
+    target_ms: 1500,
+    window_samples: 100
+  },
+  {
+    name: 'ai_chat_latency_p95',
+    description: 'Latência p95 resposta IA chat < 1500ms (T1.12)',
+    target_ms: 1500,
+    window_samples: 100
+  },
+  {
+    name: 'sz5_query_latency_p95',
+    description: 'Latência p95 build contexto SZ5 < 800ms',
+    target_ms: 800,
+    window_samples: 80
+  },
+  {
+    name: 'error_rate',
+    description: 'Taxa de erros APM < 2%',
+    target_max: 0.02,
+    window_samples: 200
+  },
+  {
+    name: 'ai_safety_review_rate',
+    description: 'Taxa de revisão humana hallucination < 15%',
+    target_max: 0.15,
+    window_samples: 100
   }
 ]);
 
@@ -76,6 +106,20 @@ function recordDlqSli(countDelta) {
 function recordCognitivePressureSli(pressure) {
   if (!isSloMonitoringEnabled()) return;
   _pushSample('cognitive_pressure', pressure);
+}
+
+function recordApmSli(domain, durationMs, status) {
+  if (!isSloMonitoringEnabled()) return;
+  const err = status === 'error' ? 1 : 0;
+  _pushSample('error_rate', err);
+  if (domain === 'dashboard') _pushSample('dashboard_latency_p95', durationMs);
+  if (domain === 'ai_chat') _pushSample('ai_chat_latency_p95', durationMs);
+  if (domain === 'sz5') _pushSample('sz5_query_latency_p95', durationMs);
+}
+
+function recordAiSafetySli(requiresReview) {
+  if (!isSloMonitoringEnabled()) return;
+  _pushSample('ai_safety_review_rate', requiresReview ? 1 : 0);
 }
 
 function _percentile(values, p) {
@@ -120,6 +164,23 @@ function evaluateSlos() {
       current = values.reduce((s, v) => s + v, 0) / values.length;
       met = current <= def.target_max;
       burnRate = met ? 0 : current / def.target_max;
+    } else if (
+      (def.name === 'dashboard_latency_p95' ||
+        def.name === 'ai_chat_latency_p95' ||
+        def.name === 'sz5_query_latency_p95') &&
+      values.length
+    ) {
+      current = _percentile(values, 95);
+      met = current <= def.target_ms;
+      burnRate = met ? 0 : current / def.target_ms;
+    } else if (def.name === 'error_rate' && values.length) {
+      current = values.reduce((s, v) => s + v, 0) / values.length;
+      met = current <= def.target_max;
+      burnRate = met ? 0 : current / def.target_max;
+    } else if (def.name === 'ai_safety_review_rate' && values.length) {
+      current = values.reduce((s, v) => s + v, 0) / values.length;
+      met = current <= def.target_max;
+      burnRate = met ? 0 : current / def.target_max;
     }
 
     if (current != null) {
@@ -146,5 +207,7 @@ module.exports = {
   recordOutboxLagSli,
   recordDlqSli,
   recordCognitivePressureSli,
+  recordApmSli,
+  recordAiSafetySli,
   evaluateSlos
 };

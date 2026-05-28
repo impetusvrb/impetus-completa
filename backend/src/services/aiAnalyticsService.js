@@ -283,6 +283,42 @@ async function insertAiTrace(row) {
       : row.output_response && row.output_response.correction_needed === true;
 
   const schedulePostTraceIncidents = () => {
+    try {
+      const aiGovPersist = require('./aiGovernancePersistenceService');
+      aiGovPersist.enqueueTraceGovernance(row, {
+        chat_message_id: row.chat_message_id || null,
+        conversation_id: row.conversation_id || null,
+      });
+    } catch (e) {
+      console.warn('[AI_GOVERNANCE_HOOK]', e?.message || e);
+    }
+
+    try {
+      const hallucinationSvc = require('./hallucinationDetectionService');
+      hallucinationSvc.enqueueTraceAssessment(row, {
+        chat_message_id: row.chat_message_id || null,
+      });
+    } catch (e) {
+      console.warn('[HALLUCINATION_DETECTION_HOOK]', e?.message || e);
+    }
+
+    try {
+      const apm = require('../observability/apmEnterpriseBridge');
+      const rt =
+        row.response_time != null
+          ? Number(row.response_time)
+          : Number(row.output_response?.response_time);
+      if (Number.isFinite(rt) && rt > 0) {
+        apm.recordAiLatency(rt, {
+          module: row.module_name || 'chat',
+          status: row.failure_flag ? 'error' : 'ok',
+        }, { company_id: row.company_id });
+        apm.recordThroughput('ai_chat', 1, { company_id: row.company_id });
+      }
+    } catch (e) {
+      console.warn('[APM_AI_LATENCY_HOOK]', e?.message || e);
+    }
+
     const aiIncidentService = require('./aiIncidentService');
     if (row.compliance_incident && row.trace_id && row.company_id) {
       setImmediate(() => {

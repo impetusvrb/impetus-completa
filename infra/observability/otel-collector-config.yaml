@@ -1,0 +1,35 @@
+# OTLP HTTP receiver — compatível com otlpExporter.js do IMPETUS
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 50
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+
+exporters:
+  logging:
+    loglevel: info
+  # Descomentar para Tempo/Jaeger:
+  # otlp/tempo:
+  #   endpoint: tempo:4317
+  #   tls:
+  #     insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [logging]

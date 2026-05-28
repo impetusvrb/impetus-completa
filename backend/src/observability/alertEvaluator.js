@@ -80,6 +80,49 @@ function evaluateAlerts(snapshot) {
     );
   }
 
+  if (snap.apm && snap.apm.slos) {
+    for (const slo of snap.apm.slos) {
+      if (slo.name === 'ai_chat_latency_p95' && slo.met === false && slo.current > 3000) {
+        fired.push(
+          _emitAlert({
+            id: 'AI_LATENCY_SLO_BREACH',
+            severity: 'high',
+            p95_ms: slo.current,
+            sla_target_ms: 1500
+          })
+        );
+      }
+      if (slo.name === 'dashboard_latency_p95' && slo.met === false) {
+        fired.push(
+          _emitAlert({
+            id: 'DASHBOARD_LATENCY_SLO_BREACH',
+            severity: 'high',
+            p95_ms: slo.current,
+            sla_target_ms: 1500
+          })
+        );
+      }
+      if (slo.name === 'ai_safety_review_rate' && slo.met === false) {
+        fired.push(
+          _emitAlert({
+            id: 'AI_SAFETY_REVIEW_RATE_HIGH',
+            severity: 'warning',
+            rate: slo.current
+          })
+        );
+      }
+      if (slo.name === 'error_rate' && slo.met === false && slo.current > 0.05) {
+        fired.push(
+          _emitAlert({
+            id: 'ERROR_RATE_ELEVATED',
+            severity: 'high',
+            error_rate: slo.current
+          })
+        );
+      }
+    }
+  }
+
   return fired;
 }
 

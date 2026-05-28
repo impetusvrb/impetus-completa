@@ -52,6 +52,9 @@ function bootstrap() {
 function getEnabledFlags() {
   return {
     v2: flags.isObservabilityV2Enabled(),
+    apm_enterprise: flags.isApmEnterpriseEnabled(),
+    apm_shadow: flags.isApmShadowMode(),
+    apm_sampling_rate: flags.apmSamplingRate(),
     workflow_tracing: flags.isWorkflowTracingEnabled(),
     correlation: flags.isCorrelationPropagationEnabled(),
     otel: flags.isOtelExporterEnabled(),
@@ -75,6 +78,9 @@ async function collectPeriodicSnapshot() {
     slos: flags.isSloMonitoringEnabled() ? slo.evaluateSlos() : null,
     cognitive_pressure: flags.isCognitivePressureObservabilityEnabled()
       ? cognitiveObs.sampleCognitivePressure()
+      : null,
+    apm: flags.isApmEnterpriseEnabled()
+      ? { diagnostics: require('./apmEnterpriseBridge').getDiagnostics(), slos: flags.isSloMonitoringEnabled() ? slo.evaluateSlos().slos : [] }
       : null
   };
 
@@ -127,7 +133,13 @@ function recordHttpObservability(req, res, durationMs) {
 }
 
 function exportPrometheus() {
-  return tenantMetrics.exportPrometheusText();
+  let text = tenantMetrics.exportPrometheusText();
+  if (flags.isApmEnterpriseEnabled()) {
+    try {
+      text += require('./apmEnterpriseBridge').exportPrometheusExtension();
+    } catch (_e) { /* noop */ }
+  }
+  return text;
 }
 
 module.exports = {

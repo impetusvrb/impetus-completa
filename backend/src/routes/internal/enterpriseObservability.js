@@ -129,4 +129,36 @@ router.get(
   })
 );
 
+router.get(
+  '/apm',
+  _safe(async (_req, res) => {
+    const apm = require('../../observability/apmEnterpriseBridge');
+    const slo = require('../../observability/sloSliRegistry');
+    res.json({
+      ok: true,
+      apm: apm.getDiagnostics(),
+      slos: flags.isSloMonitoringEnabled() ? slo.evaluateSlos() : { enabled: false },
+      flags: runtime.getEnabledFlags(),
+      timestamp: new Date().toISOString()
+    });
+  })
+);
+
+router.get(
+  '/slas',
+  _safe(async (_req, res) => {
+    const slo = require('../../observability/sloSliRegistry');
+    const evaluated = slo.evaluateSlos();
+    const slas = (evaluated.slos || []).map((s) => ({
+      sli: s.name,
+      target_met: s.met,
+      current: s.current,
+      burn_rate: s.burn_rate,
+      sla_status: s.met ? 'within_sla' : 'breach',
+      description: slo.SLI_DEFINITIONS.find((d) => d.name === s.name)?.description
+    }));
+    res.json({ ok: true, slas, evaluated_at: evaluated.evaluated_at, timestamp: new Date().toISOString() });
+  })
+);
+
 module.exports = router;

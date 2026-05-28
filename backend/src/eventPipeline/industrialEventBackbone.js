@@ -9,10 +9,12 @@ const { validateCatalogType, getCatalogSnapshot } = require('./catalog/industria
 const {
   isIndustrialEventsEnabled,
   isIndustrialOutboxEnabled,
-  isEventCatalogStrict
+  isEventCatalogStrict,
+  industrialBackboneMode,
+  isIndustrialBackboneActive
 } = require('./industrialFlags');
 const outbox = require('./outbox/industrialOutboxService');
-const { checkTenantThrottle } = require('./throttling/tenantThrottleService');
+const { checkPublishBackpressure } = require('./backpressure/backpressureController');
 const { invokeSummarizationHooks } = require('./summarization/summarizationHooks');
 
 let _published = 0;
@@ -38,15 +40,22 @@ async function publishIndustrialEvent(partial, opts = {}) {
   } catch (_e) {}
 
   const envelope = buildIndustrialEnvelope(enrichedPartial, { strictCatalog: isEventCatalogStrict() });
-  const throttle = checkTenantThrottle(envelope.company_id, {
+  const backpressure = await checkPublishBackpressure({
+    company_id: envelope.company_id,
     domain: envelope.domain,
     event_name: envelope.event_name
   });
 
-  if (!throttle.allowed) {
+  if (!backpressure.allowed) {
     _throttle_blocked += 1;
-    return { ok: false, reason: 'tenant_throttled', throttle };
+    return {
+      ok: false,
+      reason: backpressure.reason || 'backpressure',
+      backpressure,
+      throttle: backpressure.tenant
+    };
   }
+  const throttle = backpressure.tenant;
 
   const outboxResult = await outbox.enqueueIndustrialEvent(envelope);
   try {
@@ -118,11 +127,29 @@ function getIndustrialBackboneHealth() {
   const dlq = require('./dlq/industrialDlqService');
   const replay = require('./replay/shadowReplayWorker');
   const summarization = require('./summarization/summarizationHooks');
+  let wave2 = {};
+  try {
+    const recovery = require('./recovery/streamRecoveryWorker');
+    const archive = require('./archive/industrialArchiveService');
+    const bp = require('./backpressure/backpressureController');
+    const orch = require('./replay/industrialReplayOrchestrator');
+    const sched = require('./scheduler/industrialBackboneScheduler');
+    wave2 = {
+      backbone_mode: industrialBackboneMode(),
+      recovery: recovery.getRecoveryStats(),
+      archive: archive.getArchiveStats(),
+      backpressure: bp.getBackpressureStats(),
+      replay_orchestrator: orch.getOrchestratorStats(),
+      scheduler_running: sched.isSchedulerRunning()
+    };
+  } catch (_e) {}
 
   return {
     enabled: isIndustrialEventsEnabled(),
     outbox_enabled: isIndustrialOutboxEnabled(),
     catalog_strict: isEventCatalogStrict(),
+    backbone_mode: industrialBackboneMode(),
+    backbone_active: isIndustrialBackboneActive(),
     published: _published,
     rejected: _rejected,
     throttle_blocked: _throttle_blocked,
@@ -131,8 +158,36 @@ function getIndustrialBackboneHealth() {
     dlq: dlq.getDlqStats(),
     replay: replay.getReplayStats(),
     throttle: require('./throttling/tenantThrottleService').getThrottleStats(),
-    summarization: summarization.getSummarizationStats()
+    summarization: summarization.getSummarizationStats(),
+    wave2
   };
+}
+
+/**
+ * Boot WAVE 2 — recovery + scheduler opt-in (não bloqueia server).
+ */
+async function bootIndustrialEventBackbone() {
+  const result = {
+    mode: industrialBackboneMode(),
+    recovery: null,
+    scheduler: null
+  };
+  if (!isIndustrialEventsEnabled() || !isIndustrialBackboneActive()) {
+    return { ok: true, skipped: true, ...result };
+  }
+  try {
+    const recovery = require('./recovery/streamRecoveryWorker');
+    result.recovery = await recovery.runStreamRecovery({ limit: 500 });
+  } catch (e) {
+    result.recovery = { ok: false, error: e?.message };
+  }
+  try {
+    const sched = require('./scheduler/industrialBackboneScheduler');
+    result.scheduler = sched.startScheduler();
+  } catch (e) {
+    result.scheduler = { started: false, error: e?.message };
+  }
+  return { ok: true, ...result };
 }
 
 module.exports = {
@@ -140,6 +195,7 @@ module.exports = {
   publishIndustrialEventDeferred,
   mirrorLegacyEventToIndustrial,
   getIndustrialBackboneHealth,
+  bootIndustrialEventBackbone,
   validateCatalogType,
   buildIndustrialEnvelope
 };
