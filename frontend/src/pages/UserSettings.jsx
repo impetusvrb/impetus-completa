@@ -661,9 +661,45 @@ export default function UserSettings() {
                 <option value="comfortable">Confortável</option>
               </select>
               <label className="form-label">Idioma</label>
-              <select className="form-input" value={uiPrefs.locale} onChange={(e) => saveUi({ locale: e.target.value })}>
+              <select className="form-input" value={uiPrefs.locale || 'pt-BR'} onChange={(e) => saveUi({ locale: e.target.value })}>
                 <option value="pt-BR">Português (Brasil)</option>
+                <option value="en-US">English (US)</option>
+                <option value="es-ES">Español</option>
               </select>
+              <label className="form-label">Fuso horário</label>
+              <select
+                className="form-input"
+                value={uiPrefs.timezone || 'America/Sao_Paulo'}
+                onChange={(e) => saveUi({ timezone: e.target.value })}
+              >
+                <option value="America/Sao_Paulo">América/São Paulo</option>
+                <option value="Europe/Lisbon">Europa/Lisboa</option>
+                <option value="America/New_York">América/New York</option>
+                <option value="UTC">UTC</option>
+              </select>
+              <label className="form-label">Região (residência de dados)</label>
+              <select
+                className="form-input"
+                value={uiPrefs.region_code || 'BR'}
+                onChange={(e) => saveUi({ region_code: e.target.value })}
+              >
+                <option value="BR">Brasil</option>
+                <option value="EU">União Europeia</option>
+                <option value="US">Estados Unidos</option>
+              </select>
+              <label className="form-label">Moeda de exibição</label>
+              <select
+                className="form-input"
+                value={uiPrefs.currency || 'BRL'}
+                onChange={(e) => saveUi({ currency: e.target.value })}
+              >
+                <option value="BRL">BRL — Real</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="USD">USD — Dólar</option>
+              </select>
+              <p className="us-muted" style={{ gridColumn: '1 / -1', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                Horários internos permanecem em UTC; a apresentação segue o fuso seleccionado.
+              </p>
               <CheckboxField
                 label="Sons do sistema"
                 name="system_sounds"

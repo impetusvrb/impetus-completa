@@ -45,7 +45,10 @@ import {
   Palette,
   Monitor,
   UsersRound,
-  ListChecks
+  ListChecks,
+  GitBranch,
+  Award,
+  ClipboardCheck
 } from 'lucide-react';
 import { companies, auth } from '../services/api';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
@@ -419,6 +422,9 @@ export default function Layout({ children }) {
       { path: '/app/admin/ai-incidents', icon: AlertTriangle, label: 'Incidentes de IA' },
       { path: '/app/admin/cognitive-governance', icon: Shield, label: 'Governança Cognitiva' },
       { path: '/app/admin/action-approvals', icon: ListChecks, label: 'Aprovações IA (HITL)' },
+      { path: '/app/admin/rollout-center', icon: GitBranch, label: 'Rollout Center' },
+      { path: '/app/admin/certification-readiness', icon: Award, label: 'Certification Readiness' },
+      { path: '/app/admin/final-consolidation', icon: ClipboardCheck, label: 'Consolidação Final' },
       { path: '/app/admin/integrations', icon: Zap, label: 'Integração e Conectividade' },
       { path: '/app/admin/nexusia-custos', icon: Cpu, label: 'Nexus IA — Custos e carteira' },
       { path: '/app/admin/help-center', icon: HelpCircle, label: 'Central de Ajuda do Admin' },

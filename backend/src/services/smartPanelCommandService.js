@@ -13,6 +13,7 @@ const personalizedInsightsService = require('./personalizedInsightsService');
 const maintenanceService = require('./dashboardMaintenanceService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
 const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
+const chatContextBridge = require('../runtimeUnification/bridge/chatContextBridge');
 
 let operationalBrain;
 try {
@@ -356,13 +357,16 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
   let chatReportAppend = '';
   if (chatWanted && impetusChatOperationalContextService.userHasChatAccess(user)) {
     try {
-      const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
+      const unified = await chatContextBridge.resolveChatContextForChannel(
         user,
-        queryText
+        queryText,
+        chatContextBridge.CHANNELS.PANEL,
+        { callerHint: 'smart_panel' }
       );
-      const chatTables = impetusChatOperationalContextService.buildPanelChatTables(chatCtx);
+      const chatCtx = unified.legacy_snapshot;
+      const chatTables = unified.tables || [];
       for (const tbl of chatTables) extraTables.push(tbl);
-      if (chatCtx.matchedConversation?.contactName) {
+      if (chatCtx?.matchedConversation?.contactName) {
         chatReportAppend = `\n\n**Chat — ${chatCtx.matchedConversation.contactName}**\n`;
         if (chatCtx.threadMessages?.length) {
           const lines = chatCtx.threadMessages.slice(-12).map((m) => {
@@ -373,8 +377,14 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
         } else if (chatCtx.matchedConversation.preview) {
           chatReportAppend += `Última prévia: ${chatCtx.matchedConversation.preview}`;
         }
-      } else if (chatCtx.unreadCount > 0) {
+      } else if (chatCtx?.unreadCount > 0) {
         chatReportAppend = `\n\n**Chat:** ${chatCtx.unreadCount} conversa(s) com mensagem não lida.`;
+      }
+      if (unified.source && unified.source !== 'legacy') {
+        console.info(
+          '[RUNTIME_UNIFICATION_SMART_PANEL]',
+          JSON.stringify({ source: unified.source, explainability: unified.explainability })
+        );
       }
       if (chatTables.length && (plan.type === 'mixed' || plan.type === 'chart')) {
         plan.type = 'table';

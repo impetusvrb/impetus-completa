@@ -1285,6 +1285,46 @@ export const adminCognitiveGovernance = {
 };
 
 /** Action Runtime + HITL — aprovações supervisionadas (backend: /api/action-runtime) */
+/** PROMPT 32 — Final consolidation audit */
+export const finalConsolidationAuditApi = {
+  getHealth: () => api.get('/final-consolidation-audit/health'),
+  listPrompts: () => api.get('/final-consolidation-audit/prompts'),
+  runAudit: (body) => api.post('/final-consolidation-audit/audit', body || {}),
+  quickAudit: (params) => api.get('/final-consolidation-audit/audit/quick', { params }),
+  getSnapshots: (params) => api.get('/final-consolidation-audit/snapshots', { params })
+};
+
+/** PROMPT 31 — Certification readiness */
+export const certificationReadinessApi = {
+  getHealth: () => api.get('/certification-readiness/health'),
+  getFrameworks: () => api.get('/certification-readiness/frameworks'),
+  runAssessment: (body) => api.post('/certification-readiness/assess', body || {}),
+  quickAssess: (params) => api.get('/certification-readiness/assess/quick', { params }),
+  getSnapshots: (params) => api.get('/certification-readiness/snapshots', { params })
+};
+
+/** PROMPT 30 — Enterprise locale / i18n / timezone */
+export const enterpriseLocaleApi = {
+  getHealth: () => api.get('/enterprise-locale/health'),
+  getContext: () => api.get('/enterprise-locale/context'),
+  getCatalogs: () => api.get('/enterprise-locale/catalogs'),
+  formatDateTime: (body) => api.post('/enterprise-locale/format/datetime', body),
+  formatCurrency: (body) => api.post('/enterprise-locale/format/currency', body),
+  convertCurrency: (body) => api.post('/enterprise-locale/currency/convert', body)
+};
+
+/** PROMPT 29 — Rollout Center unificado */
+export const rolloutCenterApi = {
+  getHealth: () => api.get('/rollout-center/health'),
+  getDashboard: () => api.get('/rollout-center/dashboard'),
+  getCapabilities: () => api.get('/rollout-center/capabilities'),
+  getEffectiveFlags: () => api.get('/rollout-center/flags/effective'),
+  getGates: (params) => api.get('/rollout-center/gates', { params }),
+  evaluateGate: (capabilityId, targetMode) =>
+    api.post('/rollout-center/gates/evaluate', { capability_id: capabilityId, target_mode: targetMode }),
+  getAudit: (params) => api.get('/rollout-center/audit', { params })
+};
+
 export const actionRuntimeApi = {
   getHealth: () => api.get('/action-runtime/health'),
   getPendingApprovals: (params) => api.get('/action-runtime/approvals/pending', { params }),

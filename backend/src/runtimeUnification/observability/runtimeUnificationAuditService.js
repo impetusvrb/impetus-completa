@@ -1,0 +1,61 @@
+'use strict';
+
+const { v4: uuidv4 } = require('uuid');
+const flags = require('../config/runtimeUnificationFlags');
+
+async function recordAudit(row = {}) {
+  if (!flags.shouldPersistAudit()) {
+    return { id: null, persisted: false };
+  }
+
+  const id = uuidv4();
+  try {
+    const db = require('../../db');
+    await db.query(
+      `INSERT INTO runtime_unification_audit
+       (id, company_id, channel, mode, source, sz5_fact_count, legacy_block_chars, unified_block_chars,
+        shadow_divergence, caller_hint, actor_user_id, explainability, payload)
+       VALUES ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$11::uuid,$12::jsonb,$13::jsonb)`,
+      [
+        id,
+        row.companyId || null,
+        row.channel,
+        flags.unificationMode(),
+        row.source || 'unknown',
+        row.sz5FactCount || 0,
+        row.legacyBlockChars || 0,
+        row.unifiedBlockChars || 0,
+        row.shadowDivergence === true,
+        row.callerHint || null,
+        row.actorUserId || null,
+        JSON.stringify(row.explainability || {}),
+        JSON.stringify(row.payload || {})
+      ]
+    );
+    return { id, persisted: true };
+  } catch (err) {
+    if (err.code === '42P01') return { id: null, persisted: false, table_missing: true };
+    throw err;
+  }
+}
+
+async function listRecent(companyId, limit = 50) {
+  try {
+    const db = require('../../db');
+    let sql = `SELECT * FROM runtime_unification_audit`;
+    const params = [];
+    if (companyId) {
+      sql += ` WHERE company_id = $1::uuid`;
+      params.push(companyId);
+    }
+    sql += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    params.push(Math.min(200, limit));
+    const r = await db.query(sql, params);
+    return r.rows || [];
+  } catch (err) {
+    if (err.code === '42P01') return [];
+    throw err;
+  }
+}
+
+module.exports = { recordAudit, listRecent };

@@ -1,0 +1,120 @@
+.rc-hub {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.rc-hub__header {
+  margin-bottom: 1.25rem;
+}
+
+.rc-hub__title {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0 0 0.35rem;
+}
+
+.rc-hub__subtitle {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.rc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.rc-kpi {
+  background: var(--bg-panel, #0f1a28);
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+.rc-kpi__label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-tertiary);
+}
+
+.rc-kpi__value {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-size: 1.35rem;
+  color: var(--cyan, #00d4ff);
+}
+
+.rc-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+  border-radius: 4px;
+  margin-bottom: 1.25rem;
+}
+
+.rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+}
+
+.rc-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-tertiary, #111d2e);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.rc-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.rc-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rc-badge--on {
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  color: var(--green, #00ff88);
+}
+
+.rc-badge--shadow {
+  border: 1px solid rgba(255, 170, 0, 0.4);
+  color: var(--amber, #ffaa00);
+}
+
+.rc-badge--audit {
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  color: var(--cyan, #00d4ff);
+}
+
+.rc-badge--off {
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.rc-gate-ok {
+  color: var(--green, #00ff88);
+}
+
+.rc-gate-fail {
+  color: var(--red, #ff4040);
+}

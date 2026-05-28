@@ -377,6 +377,11 @@ useRoute('/api/action-runtime', './routes/actionRuntime', requireAuth);
 useRoute('/api/workflow-engine', './routes/workflowEngine', requireAuth);
 useRoute('/api/cognitive-registry', './routes/cognitiveRegistry', requireAuth);
 useRoute('/api/deprecation-governance', './routes/deprecationGovernance', requireAuth);
+useRoute('/api/runtime-unification', './routes/runtimeUnification', requireAuth);
+useRoute('/api/rollout-center', './routes/rolloutCenter', requireAuth);
+useRoute('/api/enterprise-locale', './routes/enterpriseLocale', requireAuth);
+useRoute('/api/certification-readiness', './routes/certificationReadiness', requireAuth);
+useRoute('/api/final-consolidation-audit', './routes/finalConsolidationAudit', requireAuth);
 useRoute('/api/admin/learning', './routes/adminLearning');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
@@ -1753,6 +1758,106 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
     }, 9600);
   } catch (e) {
     console.warn('[LEGACY_DEPRECATION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Final Consolidation Audit (PROMPT 32) — maturidade enterprise/industrial ───
+{
+  try {
+    const fcFlags = require('./finalConsolidationAudit/config/finalConsolidationAuditFlags');
+    const fcFacade = require('./finalConsolidationAudit/facade/finalConsolidationAuditFacade');
+    setTimeout(() => {
+      console.info(
+        `[FINAL_CONSOLIDATION_AUDIT_BOOT] ${JSON.stringify({
+          event: 'FINAL_CONSOLIDATION_AUDIT_BOOT',
+          mode: fcFlags.consolidationAuditMode(),
+          active: fcFlags.isFinalConsolidationAuditActive(),
+          health: fcFacade.getHealth()
+        })}`
+      );
+    }, 10100);
+  } catch (e) {
+    console.warn('[FINAL_CONSOLIDATION_AUDIT_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Certification Readiness (PROMPT 31) — ISO 27001 / 42001 / SOC2 / IEC 62443 ─
+{
+  try {
+    const crFlags = require('./certificationReadiness/config/certificationReadinessFlags');
+    const crFacade = require('./certificationReadiness/facade/certificationReadinessFacade');
+    setTimeout(() => {
+      console.info(
+        `[CERTIFICATION_READINESS_BOOT] ${JSON.stringify({
+          event: 'CERTIFICATION_READINESS_BOOT',
+          mode: crFlags.certificationMode(),
+          active: crFlags.isCertificationReadinessActive(),
+          health: crFacade.getHealth()
+        })}`
+      );
+    }, 10000);
+  } catch (e) {
+    console.warn('[CERTIFICATION_READINESS_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Enterprise Locale / i18n / Timezone (PROMPT 30) ───────────────────────────
+{
+  try {
+    const elFlags = require('./enterpriseLocale/config/enterpriseLocaleFlags');
+    const elFacade = require('./enterpriseLocale/facade/enterpriseLocaleFacade');
+    setTimeout(() => {
+      console.info(
+        `[ENTERPRISE_LOCALE_BOOT] ${JSON.stringify({
+          event: 'ENTERPRISE_LOCALE_BOOT',
+          mode: elFlags.localeEngineMode(),
+          active: elFlags.isLocaleEngineActive(),
+          health: elFacade.getHealth()
+        })}`
+      );
+    }, 9900);
+  } catch (e) {
+    console.warn('[ENTERPRISE_LOCALE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Rollout Center (PROMPT 29) — painel unificado de flags e promoção ────────
+{
+  try {
+    const rcFlags = require('./rolloutCenter/config/rolloutCenterFlags');
+    const rcFacade = require('./rolloutCenter/facade/rolloutCenterFacade');
+    setTimeout(() => {
+      console.info(
+        `[ROLLOUT_CENTER_BOOT] ${JSON.stringify({
+          event: 'ROLLOUT_CENTER_BOOT',
+          mode: rcFlags.rolloutCenterMode(),
+          active: rcFlags.isRolloutCenterActive(),
+          health: rcFacade.getHealth()
+        })}`
+      );
+    }, 9800);
+  } catch (e) {
+    console.warn('[ROLLOUT_CENTER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── Runtime Unification SZ5 (PROMPT 28) — voice/panel/text/memory/orchestration ─
+{
+  try {
+    const ruFlags = require('./runtimeUnification/config/runtimeUnificationFlags');
+    const ruFacade = require('./runtimeUnification/facade/unifiedSz5RuntimeFacade');
+    setTimeout(() => {
+      console.info(
+        `[RUNTIME_UNIFICATION_BOOT] ${JSON.stringify({
+          event: 'RUNTIME_UNIFICATION_BOOT',
+          mode: ruFlags.unificationMode(),
+          active: ruFlags.isUnificationActive(),
+          health: ruFacade.getHealth()
+        })}`
+      );
+    }, 9700);
+  } catch (e) {
+    console.warn('[RUNTIME_UNIFICATION_BOOT] Não iniciado:', e?.message);
   }
 }
 

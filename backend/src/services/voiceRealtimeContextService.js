@@ -8,7 +8,7 @@ const dashboardAccessService = require('./dashboardAccessService');
 const dashboardComposerService = require('./dashboardComposerService');
 const structuralAIGovernance = require('./structuralAIGovernanceService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
-const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
+const chatContextBridge = require('../runtimeUnification/bridge/chatContextBridge');
 
 const MAX_KPI_LINES = 14;
 const MAX_INSTRUCTION_CHARS = 14000;
@@ -87,16 +87,22 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
         softwareOperationalSnapshotService.getSoftwareCatalogForUser(effectiveUser)
       );
     }
-    if (impetusChatOperationalContextService.userHasChatAccess(effectiveUser)) {
-      try {
-        const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
-          effectiveUser,
-          queryText
+    try {
+      const unified = await chatContextBridge.resolveChatContextForChannel(
+        effectiveUser,
+        queryText,
+        chatContextBridge.CHANNELS.VOICE,
+        { callerHint: 'voice_realtime' }
+      );
+      chatBlock = (unified.block || '').replace(/^\n+/, '');
+      if (unified.source && unified.source !== 'legacy') {
+        console.info(
+          '[RUNTIME_UNIFICATION_VOICE]',
+          JSON.stringify({ source: unified.source, explainability: unified.explainability })
         );
-        chatBlock = impetusChatOperationalContextService.formatForVoiceAppend(chatCtx);
-      } catch (e) {
-        console.warn('[voiceRealtimeContext] chat context', e?.message || e);
       }
+    } catch (e) {
+      console.warn('[voiceRealtimeContext] chat context', e?.message || e);
     }
   }
 

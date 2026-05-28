@@ -2,7 +2,7 @@
 
 **Data:** 2026-05-28  
 **Fase:** Governança de dívida técnica (D3–D8)  
-**Estado:** `shadow` — observabilidade + catálogo + integração loader (sem remoção)
+**Estado:** `on` — governança activa + audit trail + redirect semântico (fallback legado preservado) — promovido 2026-05-28
 
 ## Objetivo
 
@@ -24,7 +24,7 @@ Deprecar runtimes legados com **governança**, **compatibilidade**, **fallback**
 
 | Variável | Default | Função |
 |----------|---------|--------|
-| `IMPETUS_LEGACY_DEPRECATION_MODE` | `shadow` | `off` \| `shadow` \| `audit` \| `on` |
+| `IMPETUS_LEGACY_DEPRECATION_MODE` | `on` | `off` \| `shadow` \| `audit` \| `on` |
 | `IMPETUS_LEGACY_DEPRECATION_ENABLED` | `true` | Activa governança quando mode≠off |
 | `IMPETUS_LEGACY_DEPRECATION_PILOT_TENANTS` | (3 UUIDs) | Rollout por tenant |
 

@@ -5,7 +5,7 @@
 const claudeService = require('./claudeService');
 const dashboardAccessService = require('./dashboardAccessService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
-const impetusChatOperationalContextService = require('./impetusChatOperationalContextService');
+const chatContextBridge = require('../runtimeUnification/bridge/chatContextBridge');
 
 const ALLOWED_TYPES = new Set(['chart', 'table', 'kpi', 'report', 'alert']);
 
@@ -161,16 +161,22 @@ async function buildSystemPrompt(user, queryBlob = '') {
   }
 
   let chatBlock = '';
-  if (impetusChatOperationalContextService.userHasChatAccess(user)) {
-    try {
-      const chatCtx = await impetusChatOperationalContextService.buildChatOperationalContext(
-        user,
-        queryBlob
+  try {
+    const unified = await chatContextBridge.resolveChatContextForChannel(
+      user,
+      queryBlob,
+      chatContextBridge.CHANNELS.PANEL,
+      { callerHint: 'claude_panel' }
+    );
+    chatBlock = unified.block || '';
+    if (unified.source && unified.source !== 'legacy') {
+      console.info(
+        '[RUNTIME_UNIFICATION_PANEL]',
+        JSON.stringify({ source: unified.source, explainability: unified.explainability })
       );
-      chatBlock = `\n\n${impetusChatOperationalContextService.formatForVoiceAppend(chatCtx)}`;
-    } catch (e) {
-      console.warn('[claudePanel] chat context', e?.message || e);
     }
+  } catch (e) {
+    console.warn('[claudePanel] chat context', e?.message || e);
   }
 
   return `Você é o motor analítico visual do IMPETUS. O usuário conversou com a IA de voz (OpenAI); você NÃO fala, NÃO conversa — só define o que mostrar no painel direito.

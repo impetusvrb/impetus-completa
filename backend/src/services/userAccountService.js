@@ -19,6 +19,9 @@ const DEFAULT_UI_PREFS = {
   theme: 'dark',
   density: 'normal',
   locale: 'pt-BR',
+  timezone: 'America/Sao_Paulo',
+  region_code: 'BR',
+  currency: 'BRL',
   system_sounds: true,
   animations: true
 };
@@ -113,12 +116,25 @@ async function getAccountBundle(userId) {
   const row = await loadUserRow(userId);
   if (!row) return null;
   const base = buildAccountPayload(row);
+  let ui_prefs = base.ui_prefs;
+  let locale_context = null;
+  try {
+    const facade = require('../enterpriseLocale/facade/enterpriseLocaleFacade');
+    ui_prefs = facade.mergeUiPrefs(ui_prefs);
+    locale_context = facade.resolveUserLocaleContext(
+      { id: row.id, company_id: row.company_id, role: row.role },
+      ui_prefs
+    );
+  } catch (_e) {
+    /* motor opcional PROMPT 30 */
+  }
   return {
     ok: true,
     profile: base.profile,
     verification: base.verification,
     notification_prefs: base.notification_prefs,
-    ui_prefs: base.ui_prefs,
+    ui_prefs,
+    locale_context,
     profile_completion: base.profile_completion,
     read_only: base.read_only
   };
@@ -299,7 +315,13 @@ async function patchUiPrefs(userId, patch) {
   const row = await loadUserRow(userId);
   if (!row) return { ok: false, error: 'Usuário não encontrado' };
   const current = parseJson(row.ui_prefs, DEFAULT_UI_PREFS);
-  const next = { ...current, ...patch };
+  let next = { ...current, ...patch };
+  try {
+    const facade = require('../enterpriseLocale/facade/enterpriseLocaleFacade');
+    next = facade.mergeUiPrefs(next);
+  } catch (_e) {
+    /* normalização opcional */
+  }
   await db.query(`UPDATE users SET ui_prefs = $1::jsonb, updated_at = now() WHERE id = $2`, [
     JSON.stringify(next),
     userId

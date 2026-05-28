@@ -9,6 +9,7 @@
 import React, { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
+import { EnterpriseLocaleProvider } from './context/EnterpriseLocaleContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import BuildVersionGuard from './components/BuildVersionGuard';
 import PageLoader from './components/PageLoader';
@@ -88,6 +89,9 @@ const AdminOperationalTeams = lazy(() => import('./pages/AdminOperationalTeams')
 const AdminHelpCenter = lazy(() => import('./pages/AdminHelpCenter'));
 const CognitiveGovernanceDashboard = lazy(() => import('./pages/admin/CognitiveGovernanceDashboard'));
 const ActionApprovalDashboard = lazy(() => import('./components/actionRuntime/ActionApprovalDashboard'));
+const RolloutCenterHub = lazy(() => import('./domains/admin/rollout-center/RolloutCenterHub'));
+const CertificationReadinessHub = lazy(() => import('./domains/admin/certification-readiness/CertificationReadinessHub'));
+const FinalConsolidationHub = lazy(() => import('./domains/admin/final-consolidation/FinalConsolidationHub'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -445,6 +449,7 @@ function DirectorOrCEORouteGuard({ children }) {
 export default function App() {
   return (
     <NotificationProvider>
+      <EnterpriseLocaleProvider>
       <ErrorOffline />
       <ErrorBoundary>
       <BrowserRouter>
@@ -564,6 +569,9 @@ export default function App() {
         <Route path="/app/admin/ai-incidents" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminAiIncidents /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/cognitive-governance" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><CognitiveGovernanceDashboard /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/action-approvals" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><ActionApprovalDashboard /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/rollout-center" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><RolloutCenterHub /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/certification-readiness" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><CertificationReadinessHub /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/final-consolidation" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><FinalConsolidationHub /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/equipment-library" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><StrictAdminRouteGuard><AdminEquipmentLibrary /></StrictAdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />
@@ -753,6 +761,7 @@ export default function App() {
           </BuildVersionGuard>
         </BrowserRouter>
         </ErrorBoundary>
+      </EnterpriseLocaleProvider>
     </NotificationProvider>
   );
 }

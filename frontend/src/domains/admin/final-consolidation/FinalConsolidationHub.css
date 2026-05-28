@@ -1,0 +1,58 @@
+.fca-hub {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fca-hub__title {
+  font-family: var(--font-display, 'Rajdhani', sans-serif);
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0 0 0.35rem;
+}
+
+.fca-classification {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+
+.fca-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.fca-score-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.65rem 0.85rem;
+}
+
+.fca-score-card__label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-tertiary);
+}
+
+.fca-score-card__value {
+  font-size: 1.35rem;
+  color: var(--cyan);
+}
+
+.fca-prompt-on {
+  color: var(--green);
+}
+.fca-prompt-shadow {
+  color: var(--amber);
+}
+.fca-prompt-off {
+  color: var(--red);
+}
