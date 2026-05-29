@@ -617,6 +617,13 @@ useRoute(
   apiByUserLimiter
 );
 useRoute(
+  '/api/domain-governance-gate',
+  './routes/domainGovernanceGate',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
   '/api/environment-telemetry',
   './routes/environmentTelemetry',
   requireAuth,

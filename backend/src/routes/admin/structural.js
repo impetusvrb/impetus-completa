@@ -16,6 +16,7 @@ const { tenantAssertMiddleware } = require('../../middleware/tenantResourceAsser
 const { sendSuccess, sendFail } = require('../../utils/apiResponse');
 const { selectCompanyRowStructural, companyRowToApiPayload } = require('../../services/structuralCompanyPayload');
 const orgIdentity = require('../../services/organizationalIdentityEngine');
+const structuralRefs = require('../../services/structuralReferencesService');
 
 const adminMw = [requireAuth, requireHierarchy(1)];
 
@@ -274,7 +275,7 @@ router.get('/organizational-units', ...adminMw, async (req, res) => {
   }
 });
 
-router.post('/organizational-units', ...adminMw, async (req, res) => {
+router.post('/organizational-units', ...adminMw, auditMiddleware({ action: 'org_unit_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
   try {
     const cid = getCompanyId(req);
     const b = req.body || {};
@@ -285,9 +286,64 @@ router.post('/organizational-units', ...adminMw, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [cid, name, b.code || null, b.unit_type || 'matriz', b.description || null]
     );
+    invalidateStructuralOrgCache(cid);
     sendSuccess(res, r.rows[0], 201);
   } catch (err) {
     sendFail(res, 'Erro ao criar unidade', 500);
+  }
+});
+
+router.put('/organizational-units/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
+    const b = req.body || {};
+    const name = b.name != null ? String(b.name).trim() : null;
+    if (name !== null && name.length < 2) {
+      return sendFail(res, 'Nome da unidade deve ter ao menos 2 caracteres.', 400);
+    }
+    const r = await db.query(
+      `UPDATE organizational_units SET
+         name = COALESCE($3, name),
+         code = COALESCE($4, code),
+         unit_type = COALESCE($5, unit_type),
+         description = COALESCE($6, description),
+         updated_at = now()
+       WHERE id = $2 AND company_id = $1 AND active = true
+       RETURNING *`,
+      [cid, req.params.id, name, b.code, b.unit_type, b.description]
+    );
+    if (!r.rows.length) return sendFail(res, 'Unidade não encontrada', 404);
+    invalidateStructuralOrgCache(cid);
+    sendSuccess(res, r.rows[0]);
+  } catch (err) {
+    if (err.code === '42P01') return sendFail(res, 'Execute a migração organizational_identity_engine.', 500);
+    sendFail(res, 'Erro ao atualizar unidade', 500);
+  }
+});
+
+router.delete('/organizational-units/:id', ...adminMw, async (req, res) => {
+  try {
+    const cid = getCompanyId(req);
+    if (!isValidUUID(req.params.id)) return sendFail(res, 'ID inválido', 400);
+    const inUse = await db.query(
+      `SELECT 1 FROM company_roles
+       WHERE company_id = $1 AND organizational_unit_id = $2 AND active = true LIMIT 1`,
+      [cid, req.params.id]
+    );
+    if (inUse.rows.length) {
+      return sendFail(res, 'Unidade vinculada a cargos ativos. Reatribua os cargos antes de desativar.', 409);
+    }
+    await db.query(
+      `UPDATE organizational_units SET active = false, updated_at = now()
+       WHERE id = $1 AND company_id = $2`,
+      [req.params.id, cid]
+    );
+    invalidateStructuralOrgCache(cid);
+    sendSuccess(res, { ok: true });
+  } catch (err) {
+    if (err.code === '42P01') return sendSuccess(res, { ok: true });
+    sendFail(res, 'Erro ao desativar unidade', 500);
   }
 });
 
@@ -1923,38 +1979,15 @@ router.delete('/knowledge-documents/:id', ...adminMw, async (req, res) => {
 router.get('/references', ...adminMw, async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    const [depts, lines, processes, products, assets, users, roles, shifts, checklists, sectors, units] = await Promise.all([
-      db.query('SELECT id, name FROM departments WHERE company_id = $1 AND active ORDER BY name', [cid]),
-      db.query('SELECT id, name, code FROM production_lines WHERE company_id = $1 AND active ORDER BY name', [cid]),
-      db.query('SELECT id, name FROM company_processes WHERE company_id = $1 AND active ORDER BY name', [cid]),
-      db.query('SELECT id, name, code FROM company_products WHERE company_id = $1 AND active ORDER BY name', [cid]),
-      db.query('SELECT id, name, code_patrimonial FROM assets WHERE company_id = $1 AND active ORDER BY name', [cid]),
-      db.query('SELECT id, name, role FROM users WHERE company_id = $1 AND active AND deleted_at IS NULL ORDER BY name', [cid]),
-      db.query('SELECT id, name, hierarchy_level FROM company_roles WHERE company_id = $1 AND active ORDER BY hierarchy_level, name', [cid]),
-      db.query('SELECT id, name FROM shifts WHERE company_id = $1 AND active ORDER BY start_time NULLS LAST', [cid]),
-      db.query('SELECT id, name FROM checklist_templates WHERE company_id = $1 ORDER BY name', [cid]),
-      db.query('SELECT id, name, department_id FROM company_sectors WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] })),
-      db.query('SELECT id, name, unit_type FROM organizational_units WHERE company_id = $1 AND active ORDER BY name', [cid]).catch(() => ({ rows: [] }))
-    ]);
-    sendSuccess(res, {
-        departments: depts.rows,
-        productionLines: lines.rows,
-        processes: processes.rows,
-        products: products.rows,
-        assets: assets.rows,
-        users: users.rows,
-        roles: roles.rows,
-        shifts: shifts.rows,
-        checklists: checklists.rows,
-        sectors: sectors.rows,
-        organizationalUnits: units.rows,
-        hierarchyLevels: orgIdentity.HIERARCHY_LEVELS,
-        operationalScopes: orgIdentity.OPERATIONAL_SCOPES,
-        criticalityLevels: orgIdentity.CRITICALITY_LEVELS,
-        sensitivityLevels: orgIdentity.SENSITIVITY_LEVELS,
-        maxScopeLimits: orgIdentity.MAX_SCOPE_LIMITS
-      }
-    );
+    if (!cid) return sendFail(res, 'Empresa não identificada', 400);
+    const result = await structuralRefs.loadStructuralReferences(cid);
+    if (!result.data) {
+      return sendFail(res, result.error || 'Erro ao buscar referências', 500);
+    }
+    if (result.error) {
+      return sendSuccess(res, { ...result.data, _warnings: [result.error] });
+    }
+    sendSuccess(res, result.data);
   } catch (err) {
     console.error('[STRUCTURAL_REFERENCES]', err);
     sendFail(res, 'Erro ao buscar referências', 500);

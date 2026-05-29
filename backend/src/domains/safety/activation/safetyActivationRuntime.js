@@ -7,16 +7,39 @@ const stability = require('./safetyPublicationStabilityMonitor');
 const telemetry = require('./safetyActivationTelemetry');
 const audit = require('./safetyActivationAudit');
 
+let _policyEngine = null;
+function _getPolicyEngine() {
+  if (!_policyEngine) {
+    try { _policyEngine = require('../../../../governance/domainPolicyEngine'); } catch (_) { _policyEngine = null; }
+  }
+  return _policyEngine;
+}
+
 function runActivationOrchestration(ctx = {}) {
   const checks = health.runSafeActivationChecks({
     tenantId: ctx.tenantId || null,
     hasSafetyIntelligenceModule: ctx.hasSafetyIntelligenceModule
   });
   stability.recordStabilitySample({ ok: checks.readiness.ready, stage: checks.activation_stage });
+
+  let policyGate = null;
+  const pe = _getPolicyEngine();
+  if (pe) {
+    policyGate = pe.evaluate({
+      domain: 'safety',
+      action_type: 'activate',
+      user_role: ctx.user_role || '',
+      risk_level: 'high',
+      runtime_mode: checks.activation_stage === 'full' ? 'on' : 'shadow',
+      company_id: ctx.tenantId
+    });
+  }
+
   return {
     checks,
     rollout: rollout.describeRolloutProgress(checks.activation_stage),
-    audience_engine: 'safetyAudienceActivationEngine_v1'
+    audience_engine: 'safetyAudienceActivationEngine_v1',
+    policy_gate: policyGate
   };
 }
 

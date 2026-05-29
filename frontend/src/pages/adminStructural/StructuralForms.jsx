@@ -156,6 +156,13 @@ export function structuralSerializePayload(module, form) {
         code: form.code || null,
         description: form.description || null
       };
+    case 'organizational-units':
+      return {
+        name: form.name || '',
+        code: form.code || null,
+        unit_type: form.unit_type || 'matriz',
+        description: form.description || null
+      };
     case 'assets':
       return {
         name: form.name || '',
@@ -421,6 +428,8 @@ export function StructuralGenericForm({
   module,
   form,
   refs,
+  refsLoading = false,
+  refsError = null,
   onChange,
   editingRoleId,
   roleListItems,
@@ -449,6 +458,8 @@ export function StructuralGenericForm({
       <RoleIdentityForm
         form={form}
         refs={refs}
+        refsLoading={refsLoading}
+        refsError={refsError}
         onChange={onChange}
         editingRoleId={editingRoleId}
         roleListItems={roleListItems}
@@ -463,6 +474,7 @@ export function StructuralGenericForm({
           value={form.department_id || ''}
           onChange={onChange}
           required
+          disabled={refsLoading}
           options={deptOpts}
           placeholder="Selecione o departamento oficial"
         />
@@ -471,6 +483,28 @@ export function StructuralGenericForm({
           <InputField label="Código" name="code" value={form.code} onChange={onChange} placeholder="Opcional" />
         </div>
         <TextAreaField label="Descrição / escopo" name="description" value={form.description} onChange={onChange} rows={2} />
+      </>
+    ),
+    'organizational-units': (
+      <>
+        <div className="form-grid-2">
+          <InputField label="Nome da unidade" name="name" value={form.name} onChange={onChange} required />
+          <InputField label="Código" name="code" value={form.code} onChange={onChange} placeholder="Ex.: MATRIZ, PLT-01" />
+        </div>
+        <SelectField
+          label="Tipo"
+          name="unit_type"
+          value={form.unit_type || 'matriz'}
+          onChange={onChange}
+          options={[
+            { value: 'matriz', label: 'Matriz' },
+            { value: 'filial', label: 'Filial' },
+            { value: 'planta', label: 'Planta / fábrica' },
+            { value: 'unidade_negocio', label: 'Unidade de negócio' }
+          ]}
+          showPlaceholder={false}
+        />
+        <TextAreaField label="Descrição" name="description" value={form.description} onChange={onChange} rows={2} />
       </>
     ),
     assets: (

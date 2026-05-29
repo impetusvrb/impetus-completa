@@ -67,8 +67,15 @@ export function SelectField({
   required = false,
   disabled = false,
   error,
-  helperText
+  helperText,
+  /** false quando options já inclui entrada com value vazio (evita duplicar placeholder) */
+  showPlaceholder = true
 }) {
+  const hasEmptyOption = options.some(
+    (option) => option.value === '' || option.value === null || option.value === undefined
+  );
+  const renderPlaceholder = showPlaceholder && placeholder && !hasEmptyOption;
+
   return (
     <div className="form-field">
       {label && (
@@ -86,11 +93,11 @@ export function SelectField({
         disabled={disabled}
         className={`form-select ${error ? 'error' : ''}`}
       >
-        {placeholder ? <option value="">{placeholder}</option> : null}
+        {renderPlaceholder ? <option value="">{placeholder}</option> : null}
         {options.map((option, idx) => (
           <option
             key={option.value !== '' && option.value != null ? String(option.value) : `empty-${idx}`}
-            value={option.value}
+            value={option.value ?? ''}
           >
             {option.label}
           </option>

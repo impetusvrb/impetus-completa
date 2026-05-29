@@ -24,7 +24,8 @@ import {
   Edit,
   Trash2,
   ChevronRight,
-  ListTree
+  ListTree,
+  MapPin
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
@@ -44,6 +45,7 @@ const MODULES = [
   { id: 'company-data', label: 'Dados da Empresa', icon: Building2 },
   { id: 'roles', label: 'Identidade Organizacional (Cargos)', icon: Briefcase },
   { id: 'sectors', label: 'Setores Oficiais', icon: ListTree },
+  { id: 'organizational-units', label: 'Unidades Organizacionais', icon: MapPin },
   { id: 'lines', label: 'Linhas de Produção', icon: Factory },
   { id: 'assets', label: 'Máquinas e Ativos', icon: Cpu },
   { id: 'processes', label: 'Processos', icon: GitBranch },
@@ -62,6 +64,8 @@ export default function AdminStructural() {
   const notify = useNotification();
   const [activeModule, setActiveModule] = useState('company-data');
   const [references, setReferences] = useState(null);
+  const [refsLoading, setRefsLoading] = useState(true);
+  const [refsError, setRefsError] = useState(null);
 
   useEffect(() => {
     loadReferences();
@@ -69,10 +73,27 @@ export default function AdminStructural() {
 
   const loadReferences = async () => {
     try {
+      setRefsLoading(true);
+      setRefsError(null);
       const r = await adminStructural.getReferences();
-      setReferences(r.data?.data || null);
+      const payload = r.data?.data;
+      if (!payload) {
+        setRefsError('Referências estruturais indisponíveis.');
+        setReferences(null);
+        return null;
+      }
+      setReferences(payload);
+      if (payload._warnings?.length) {
+        setRefsError(payload._warnings.join(' '));
+      }
+      return payload;
     } catch (e) {
       console.error('Erro ao carregar referências:', e);
+      setRefsError(e.apiMessage || 'Erro ao carregar referências estruturais.');
+      setReferences(null);
+      return null;
+    } finally {
+      setRefsLoading(false);
     }
   };
 
@@ -109,9 +130,16 @@ export default function AdminStructural() {
 
           <main className="structural-content">
             {activeModule === 'company-data' && <CompanyDataModule loadRefs={loadReferences} />}
+            {refsError && (
+              <div className="structural-refs-banner" role="alert">
+                {refsError}
+              </div>
+            )}
             {activeModule === 'roles' && (
               <CrudModule
                 refs={references}
+                refsLoading={refsLoading}
+                refsError={refsError}
                 module="roles"
                 entityLabel="Cargo"
                 api={adminStructural.roles}
@@ -137,6 +165,8 @@ export default function AdminStructural() {
             {activeModule === 'sectors' && (
               <CrudModule
                 refs={references}
+                refsLoading={refsLoading}
+                refsError={refsError}
                 module="sectors"
                 entityLabel="Setor"
                 api={adminStructural.sectors}
@@ -147,6 +177,23 @@ export default function AdminStructural() {
                 ]}
                 loadRefs={loadReferences}
                 extraDescription="Setores vinculados a departamentos cadastrados. Obrigatório para cargos na identidade organizacional."
+              />
+            )}
+            {activeModule === 'organizational-units' && (
+              <CrudModule
+                refs={references}
+                refsLoading={refsLoading}
+                refsError={refsError}
+                module="organizational-units"
+                entityLabel="Unidade"
+                api={adminStructural.organizationalUnits}
+                columns={[
+                  { key: 'name', label: 'Unidade' },
+                  { key: 'unit_type', label: 'Tipo' },
+                  { key: 'code', label: 'Código' }
+                ]}
+                loadRefs={loadReferences}
+                extraDescription="Unidades organizacionais (matriz, filial, planta). Alimentam o cadastro de cargos e a governança multi-unidade."
               />
             )}
             {activeModule === 'lines' && <LinesModule refs={references} loadRefs={loadReferences} />}
@@ -518,7 +565,17 @@ function CompanyDataModule({ loadRefs }) {
 // MÓDULO CRUD GENÉRICO
 // ============================================================================
 
-function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDescription }) {
+function CrudModule({
+  refs,
+  refsLoading = false,
+  refsError = null,
+  module,
+  entityLabel,
+  api,
+  columns,
+  loadRefs,
+  extraDescription
+}) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -551,14 +608,26 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
     setEditing(null);
   };
 
-  const openCreate = () => {
+  const refreshRefsForModal = async () => {
+    if (!loadRefs) return refs;
+    const next = await loadRefs();
+    return next ?? refs;
+  };
+
+  const openCreate = async () => {
     resetForm();
+    if (['roles', 'sectors', 'organizational-units'].includes(module)) {
+      await refreshRefsForModal();
+    }
     setShowModal(true);
   };
 
   const openEdit = async (item) => {
     setEditing(item);
     setFormErrors({});
+    if (['roles', 'sectors', 'organizational-units'].includes(module)) {
+      await refreshRefsForModal();
+    }
     if (module === 'roles' && typeof api.getIdentity === 'function') {
       try {
         const r = await api.getIdentity(item.id);
@@ -709,6 +778,8 @@ function CrudModule({ refs, module, entityLabel, api, columns, loadRefs, extraDe
           module={module}
           form={form}
           refs={refs}
+          refsLoading={refsLoading}
+          refsError={refsError}
           onChange={handleChange}
           editingRoleId={module === 'roles' ? editing?.id : undefined}
           roleListItems={module === 'roles' ? items : undefined}

@@ -39,6 +39,8 @@ function buildSuperiorRoleOptions(refsRoles, listItems, excludeRoleId) {
 export default function RoleIdentityForm({
   form,
   refs,
+  refsLoading = false,
+  refsError = null,
   onChange,
   editingRoleId,
   roleListItems,
@@ -96,10 +98,30 @@ export default function RoleIdentityForm({
 
   const sectorOpts = useMemo(() => {
     const deptId = form.department_id;
+    if (!deptId) return [];
     return (refs?.sectors || [])
-      .filter((s) => !deptId || String(s.department_id) === String(deptId))
+      .filter((s) => String(s.department_id) === String(deptId))
       .map((s) => ({ value: s.id, label: s.name }));
   }, [refs?.sectors, form.department_id]);
+
+  const sectorSelectDisabled = refsLoading || !form.department_id || sectorOpts.length === 0;
+  const sectorHelperText = (() => {
+    if (refsLoading) return 'Carregando setores oficiais…';
+    if (refsError) return 'Falha ao carregar referências. Feche e reabra o formulário ou atualize a página.';
+    if (!form.department_id) return 'Selecione o departamento para listar os setores vinculados.';
+    if (sectorOpts.length === 0) {
+      return 'Nenhum setor neste departamento — cadastre em Base Estrutural → Setores Oficiais.';
+    }
+    return 'Obrigatório — vinculado ao departamento selecionado.';
+  })();
+
+  const unitHelperText = (() => {
+    if (refsLoading) return 'Carregando unidades…';
+    if (unitOpts.length === 0) {
+      return 'Cadastre unidades em Base Estrutural → Unidades Organizacionais (ou aguarde o bootstrap da matriz).';
+    }
+    return 'Opcional — unidade física ou jurídica da empresa.';
+  })();
 
   const superiorOpts = buildSuperiorRoleOptions(refs?.roles, roleListItems, editingRoleId);
 
@@ -167,10 +189,17 @@ export default function RoleIdentityForm({
           value={form.department_id || ''}
           onChange={onChange}
           required
+          disabled={refsLoading || !deptOpts.length}
           options={deptOpts}
-          placeholder="Selecione o departamento cadastrado"
+          placeholder={deptOpts.length ? 'Selecione o departamento cadastrado' : 'Nenhum departamento ativo'}
           error={err('department_id')}
-          helperText="Obrigatório — sem texto manual"
+          helperText={
+            refsLoading
+              ? 'Carregando departamentos…'
+              : deptOpts.length
+                ? 'Obrigatório — sem texto manual'
+                : 'Cadastre departamentos em Administração → Departamentos.'
+          }
         />
         <SelectField
           label="Setor principal"
@@ -178,14 +207,11 @@ export default function RoleIdentityForm({
           value={form.sector_id || ''}
           onChange={onChange}
           required
+          disabled={sectorSelectDisabled}
           options={sectorOpts}
           placeholder={form.department_id ? 'Selecione o setor' : 'Selecione o departamento primeiro'}
           error={err('sector_id')}
-          helperText={
-            sectorOpts.length === 0 && form.department_id
-              ? 'Cadastre setores em Base Estrutural → Setores Oficiais'
-              : 'Obrigatório — vinculado ao departamento'
-          }
+          helperText={sectorHelperText}
         />
       </div>
       <div className="form-grid-2">
@@ -194,8 +220,10 @@ export default function RoleIdentityForm({
           name="organizational_unit_id"
           value={form.organizational_unit_id || ''}
           onChange={onChange}
+          disabled={refsLoading}
           options={[{ value: '', label: 'Nenhuma / padrão empresa' }, ...unitOpts]}
-          placeholder="Opcional"
+          showPlaceholder={false}
+          helperText={unitHelperText}
         />
         <SelectField
           label="Cargo superior direto"

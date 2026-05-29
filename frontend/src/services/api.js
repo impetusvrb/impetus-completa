@@ -1160,7 +1160,9 @@ export const adminStructural = {
   },
   organizationalUnits: {
     list: () => api.get('/admin/structural/organizational-units'),
-    create: (data) => api.post('/admin/structural/organizational-units', data)
+    create: (data) => api.post('/admin/structural/organizational-units', data),
+    update: (id, data) => api.put(`/admin/structural/organizational-units/${id}`, data),
+    delete: (id) => api.delete(`/admin/structural/organizational-units/${id}`)
   },
   lines: structuralProductionLinesApi,
   /** Alias para a UI da Base Estrutural (mesmo método que `lines`) */

@@ -1,0 +1,45 @@
+[
+  {
+    "policy_id": "ENVIRONMENT_PUBLICATION_GATE",
+    "version": "1.0.0",
+    "domain": "environment",
+    "description": "Gate obrigatório para qualquer publicação definitiva no domínio Ambiental",
+    "conditions": [
+      { "field": "action_type", "operator": "in", "value": ["publish", "activate", "promote"] },
+      { "field": "domain", "operator": "eq", "value": "environment" }
+    ],
+    "severity": "critical",
+    "requires_human_approval": true,
+    "required_action": "block_until_approved",
+    "explanation_template": "Publicação ambiental requer aprovação de engenheiro ambiental responsável."
+  },
+  {
+    "policy_id": "ENVIRONMENT_EMISSION_THRESHOLD",
+    "version": "1.0.0",
+    "domain": "environment",
+    "description": "Limites de emissão/efluente — ação obrigatória se ultrapassados",
+    "conditions": [
+      { "field": "risk_level", "operator": "gte", "value": "high" },
+      { "field": "action_type", "operator": "in", "value": ["publish", "alert", "report"] }
+    ],
+    "severity": "critical",
+    "requires_human_approval": true,
+    "required_action": "require_environmental_review",
+    "explanation_template": "Evento ambiental de risco alto/crítico exige revisão e aprovação humana."
+  },
+  {
+    "policy_id": "ENVIRONMENT_DATA_ACCESS_CONTROLLED",
+    "version": "1.0.0",
+    "domain": "environment",
+    "description": "Acesso a dados ambientais reais controlado por RBAC",
+    "conditions": [
+      { "field": "action_type", "operator": "in", "value": ["read_real_data", "generate_report"] },
+      { "field": "runtime_mode", "operator": "eq", "value": "on" }
+    ],
+    "severity": "high",
+    "requires_human_approval": false,
+    "required_action": "enforce_rbac",
+    "required_roles": ["coordinator_environment", "supervisor_environment", "manager_environment", "environmental_engineer"],
+    "explanation_template": "Dados ambientais reais disponíveis apenas para perfis autorizados."
+  }
+]

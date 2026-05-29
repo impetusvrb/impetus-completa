@@ -69,6 +69,27 @@ function environmentPublicationRuntime(user, opts = {}) {
     stage
   });
 
+  let policyGate = null;
+  try {
+    const pe = require('../../../../governance/domainPolicyEngine');
+    const userRole = user?.role || user?.profile_code || user?.cargo || '';
+    policyGate = pe.evaluate({
+      domain: 'environment',
+      action_type: 'publish',
+      user_role: userRole,
+      risk_level: 'high',
+      runtime_mode: stage === 'full' ? 'on' : 'shadow',
+      company_id: companyId
+    });
+    pack.policy_gate = policyGate;
+
+    if (policyGate.mode === 'on' && policyGate.result === 'REQUIRE_APPROVAL' && !navFlags.isShadowPublication()) {
+      pack.publication_blocked_by_policy = true;
+      pack.publication_allowed = false;
+      pack.denied_reason = 'policy_requires_approval';
+    }
+  } catch (_) {}
+
   return pack;
 }
 

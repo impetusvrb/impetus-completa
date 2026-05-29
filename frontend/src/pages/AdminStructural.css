@@ -88,6 +88,17 @@
   color: var(--red, #ff4040);
 }
 
+.structural-refs-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.75rem;
+  color: var(--amber, #ffaa00);
+  background: rgba(255, 170, 0, 0.08);
+  border: 1px solid rgba(255, 170, 0, 0.35);
+  border-radius: 4px;
+}
+
 .structural-header {
   margin-bottom: 24px;
 }

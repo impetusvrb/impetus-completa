@@ -1,0 +1,45 @@
+[
+  {
+    "policy_id": "SAFETY_PUBLICATION_GATE",
+    "version": "1.0.0",
+    "domain": "safety",
+    "description": "Gate obrigatório para qualquer publicação definitiva no domínio SST",
+    "conditions": [
+      { "field": "action_type", "operator": "in", "value": ["publish", "activate", "promote"] },
+      { "field": "domain", "operator": "eq", "value": "safety" }
+    ],
+    "severity": "critical",
+    "requires_human_approval": true,
+    "required_action": "block_until_approved",
+    "explanation_template": "Publicação SST requer aprovação de engenheiro de segurança responsável."
+  },
+  {
+    "policy_id": "SAFETY_RISK_ASSESSMENT_REQUIRED",
+    "version": "1.0.0",
+    "domain": "safety",
+    "description": "Avaliação de risco obrigatória antes de ações que envolvam NR-12/NR-06/NR-35",
+    "conditions": [
+      { "field": "risk_level", "operator": "gte", "value": "high" },
+      { "field": "domain", "operator": "eq", "value": "safety" }
+    ],
+    "severity": "critical",
+    "requires_human_approval": true,
+    "required_action": "require_risk_assessment",
+    "explanation_template": "Ação SST com risco alto/crítico exige avaliação formal e aprovação."
+  },
+  {
+    "policy_id": "SAFETY_DATA_ACCESS_CONTROLLED",
+    "version": "1.0.0",
+    "domain": "safety",
+    "description": "Acesso a dados industriais SST reais requer papel de operador ou superior",
+    "conditions": [
+      { "field": "action_type", "operator": "in", "value": ["read_real_data", "generate_report"] },
+      { "field": "runtime_mode", "operator": "eq", "value": "on" }
+    ],
+    "severity": "high",
+    "requires_human_approval": false,
+    "required_action": "enforce_rbac",
+    "required_roles": ["coordinator_safety", "supervisor_safety", "manager_safety", "safety_engineer"],
+    "explanation_template": "Dados industriais SST reais disponíveis apenas para perfis autorizados."
+  }
+]
