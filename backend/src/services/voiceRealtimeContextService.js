@@ -123,6 +123,14 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
         'Podes explicar métodos e boas práticas; não cites KPIs ou estados operacionais desta empresa sem nova pergunta operacional.'
       ].join('\n');
 
+  let truthAppendix = '';
+  try {
+    const truthEnforcement = require('./industrialTruthEnforcementService');
+    truthAppendix = truthEnforcement.buildPromptTruthAppendix();
+  } catch (e) {
+    console.warn('[voiceRealtimeContext] truth appendix', e?.message || e);
+  }
+
   const instructions_append = [
     gov.system_append,
     '',
@@ -130,7 +138,8 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
     '',
     injectOperational
       ? 'Tens acesso aos dados acima nesta sessão. Não peças ao utilizador "onde clicar" para ver KPIs do snapshot. Se faltar um detalhe específico, diz que não está neste extracto e oferece aprofundar no módulo certo do IMPETUS.'
-      : 'Mantém a identidade do utilizador (Base Estrutural) mas responde em modo educativo sem inventar dados do tenant.'
+      : 'Mantém a identidade do utilizador (Base Estrutural) mas responde em modo educativo sem inventar dados do tenant.',
+    truthAppendix ? `\n${truthAppendix}` : ''
   ].join('\n');
 
   const trimmed =

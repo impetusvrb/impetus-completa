@@ -43,16 +43,27 @@ export default function LiveOperationalFeed({ items = [], localTick = 0 }) {
         <span className="cog-panel__count">{displayItems.length} eventos</span>
       </header>
       <ul className="cog-feed__list" ref={listRef}>
-        {displayItems.map((ev) => (
+        {displayItems.map((ev) => {
+          const isSynthetic =
+            ev.synthetic === true ||
+            ev.verification_state === 'synthetic' ||
+            ev.source_runtime === 'synthetic_operational';
+          return (
           <li
             key={ev.id}
-            className={`cog-feed__item cog-feed__item--${ev.severity || 'low'} ${ev.synthetic ? 'cog-feed__item--syn' : ''}`}
+            className={`cog-feed__item cog-feed__item--${ev.severity || 'low'} ${isSynthetic ? 'cog-feed__item--syn' : ''}`}
           >
             <span className="cog-feed__time">[{ev.time}]</span>
-            <span className="cog-feed__type">{ev.type || 'ops'}</span>
+            <span className="cog-feed__type">{isSynthetic ? 'sim' : ev.type || 'ops'}</span>
+            {isSynthetic ? (
+              <span className="cog-feed__syn-tag" title="Evento de simulação — não é telemetria PLC">
+                SIM
+              </span>
+            ) : null}
             <span className="cog-feed__msg">{ev.message}</span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

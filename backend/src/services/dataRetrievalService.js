@@ -34,6 +34,7 @@ const { getLearningSummary } = require('./operationalLearningService');
 const { generateOperationalPlan, deriveTemporalInsights, mergeTemporalInsights } = require('./operationalPlanningService');
 const operationalDecisionEngine = require('./operationalDecisionEngine');
 const { executeOperationalActions } = require('./operationalActionExecutor');
+const plcChatGroundingService = require('./plcChatGroundingService');
 
 function emptyResult() {
   return {
@@ -48,6 +49,24 @@ function classifyDataState({ machines = [], events = [] }) {
   if (machines.length === 0) return 'tenant_empty';
   if (machines.length > 0 && events.length === 0) return 'tenant_inactive';
   return 'production_active';
+}
+
+/**
+ * FASE 39 — Resolve data_state com telemetria PLC quando não há registry MES.
+ * @returns {Promise<{ data_state: string, plc_grounding: object|null }>}
+ */
+async function resolveOperationalDataState(companyId, { machines = [], events = [] } = {}) {
+  if (machines.length > 0) {
+    return {
+      data_state: classifyDataState({ machines, events }),
+      plc_grounding: null
+    };
+  }
+  const plc = await plcChatGroundingService.countDistinctPlcEquipment(companyId);
+  if (plc.distinct_equipment > 0) {
+    return { data_state: 'telemetry_only', plc_grounding: plc };
+  }
+  return { data_state: 'tenant_empty', plc_grounding: plc };
 }
 
 /**
@@ -316,10 +335,99 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
         correlation_insights: correlationBundle.insights,
         learned_patterns: correlationBundle.learned_patterns
       };
+      const resolved = await resolveOperationalDataState(safeUser.company_id, { machines, events });
+      let plcSummary = null;
+      let plcIntelligence = null;
+      let trendPack = null;
+      let anomalyPack = null;
+      let correlationPack = null;
+      let eventPack = null;
+      let patternPack = null;
+      let explanationPack = null;
+      let priorityPack = null;
+      if (resolved.data_state === 'telemetry_only') {
+        plcSummary = await plcChatGroundingService.fetchMinimalPlcGroundingSummary(safeUser.company_id);
+        plcIntelligence = plcSummary?.plc_intelligence || null;
+        trendPack = plcSummary?.trend_pack || null;
+        anomalyPack = plcSummary?.anomaly_pack || null;
+        correlationPack = plcSummary?.correlation_pack || null;
+        eventPack = plcSummary?.event_pack || null;
+        patternPack = plcSummary?.pattern_pack || null;
+        explanationPack = plcSummary?.explanation_pack || null;
+        priorityPack = plcSummary?.priority_pack || null;
+      }
       result.metrics = {
-        data_state: classifyDataState({ machines, events }),
+        data_state: resolved.data_state,
         machines_count: machines.length,
-        events_count: events.length
+        events_count: events.length,
+        ...(resolved.plc_grounding
+          ? {
+              plc_equipment_count: resolved.plc_grounding.distinct_equipment,
+              plc_last_collected_at: resolved.plc_grounding.last_collected_at
+            }
+          : {}),
+        ...(plcSummary
+          ? {
+              plc_grounding_summary: plcSummary,
+              active_equipment_ids: plcSummary.active_equipment_ids,
+              plc_alarm_summary: plcSummary.alarm_summary,
+              plc_runtime_hours: plcSummary.runtime_hours,
+              plc_telemetry_health: plcSummary.telemetry_health,
+              equipment_operational_summary: plcSummary.equipment_operational_summary
+            }
+          : {}),
+        ...(plcIntelligence?.snapshot
+          ? { plc_intelligence_snapshot: plcIntelligence.snapshot }
+          : {}),
+        ...(trendPack?.trend_snapshot
+          ? {
+              trend_snapshot: trendPack.trend_snapshot,
+              equipment_risk: trendPack.equipment_risk,
+              baseline_summary: trendPack.baseline_summary
+            }
+          : {}),
+        ...(anomalyPack
+          ? {
+              anomaly_pack: anomalyPack,
+              equipment_attention: anomalyPack.equipment_attention,
+              anomaly_count: anomalyPack.anomaly_count
+            }
+          : {}),
+        ...(correlationPack
+          ? {
+              correlation_pack: correlationPack,
+              equipment_interaction: correlationPack.equipment_interaction,
+              correlation_count: correlationPack.correlation_count
+            }
+          : {}),
+        ...(eventPack
+          ? {
+              event_pack: eventPack,
+              operational_timeline: eventPack.timeline,
+              operational_event_count: eventPack.event_count
+            }
+          : {}),
+        ...(patternPack
+          ? {
+              pattern_pack: patternPack,
+              operational_pattern_history: patternPack.history,
+              operational_pattern_count: patternPack.pattern_count
+            }
+          : {}),
+        ...(explanationPack
+          ? {
+              explanation_pack: explanationPack,
+              operational_traceability: explanationPack.traceability,
+              operational_explanation_count: explanationPack.explanation_count
+            }
+          : {}),
+        ...(priorityPack
+          ? {
+              priority_pack: priorityPack,
+              operational_priority_queue: priorityPack.priority_queue,
+              operational_priority_count: priorityPack.priority_count
+            }
+          : {})
       };
       return result;
     }
@@ -573,5 +681,7 @@ async function retrieveContextualData({ user, intent, entities } = {}) {
 }
 
 module.exports = {
-  retrieveContextualData
+  retrieveContextualData,
+  classifyDataState,
+  resolveOperationalDataState
 };

@@ -384,6 +384,53 @@ async function buildCognitivePulse(user) {
   heatmap = living.enrichHeatmap(heatmap, seed);
 
   let feed = await loadRecentFeedEventsWithTasks(companyId, user, scope, 8);
+  try {
+    const plcAnomaly = require('./plcAnomalyAnalysisService');
+    const plcCount = await db.query(
+      `SELECT COUNT(*)::int AS c FROM plc_collected_data
+       WHERE company_id = $1 AND collected_at > NOW() - INTERVAL '30 days'`,
+      [companyId]
+    );
+    if ((plcCount.rows[0]?.c ?? 0) > 0) {
+      const anomalyPack = await plcAnomaly.buildOperationalAnomalyPack(companyId);
+      const plcFeed = plcAnomaly.buildLiveFeedEvents(anomalyPack);
+      if (plcFeed.length) {
+        feed = [...plcFeed, ...feed].slice(0, 25);
+      }
+      const plcCorrelation = require('./plcCorrelationAnalysisService');
+      const corrPack = await plcCorrelation.buildOperationalCorrelationPack(companyId);
+      const corrFeed = plcCorrelation.buildLiveFeedEvents(corrPack);
+      if (corrFeed.length) {
+        feed = [...corrFeed, ...feed].slice(0, 28);
+      }
+      const operationalEvents = require('./operationalEventIntelligenceService');
+      const eventPack = await operationalEvents.buildOperationalEventPack(companyId);
+      const evFeed = operationalEvents.buildLiveFeedEvents(eventPack);
+      if (evFeed.length) {
+        feed = [...evFeed, ...feed].slice(0, 32);
+      }
+      const operationalPatterns = require('./operationalPatternIntelligenceService');
+      const patternPack = await operationalPatterns.buildOperationalPatternPack(companyId);
+      const patFeed = operationalPatterns.buildLiveFeedPatterns(patternPack);
+      if (patFeed.length) {
+        feed = [...patFeed, ...feed].slice(0, 36);
+      }
+      const operationalExplanation = require('./operationalExplanationService');
+      const explanationPack = await operationalExplanation.buildOperationalExplanationPack(companyId);
+      const explFeed = operationalExplanation.buildLiveFeedExplanations(explanationPack);
+      if (explFeed.length) {
+        feed = [...explFeed, ...feed].slice(0, 40);
+      }
+      const operationalPrioritization = require('./operationalPrioritizationService');
+      const priorityPack = await operationalPrioritization.buildOperationalPriorityPack(companyId);
+      const priFeed = operationalPrioritization.buildLiveFeedPriorities(priorityPack);
+      if (priFeed.length) {
+        feed = [...priFeed, ...feed].slice(0, 44);
+      }
+    }
+  } catch (plcFeedErr) {
+    console.warn('[COGNITIVE_PULSE][plc_anomaly_feed]', plcFeedErr?.message ?? plcFeedErr);
+  }
   feed = living.expandFeedIntelligently(feed, orgCtx, global, seed, 20);
 
   let timeline = await loadTimeline(companyId, 6);

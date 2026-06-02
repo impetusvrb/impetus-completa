@@ -448,7 +448,23 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
     extraTables.find((tbl) => String(tbl?.title || '').startsWith('Conversa —')) ||
     extraTables.find((tbl) => String(tbl?.title || '').includes('Chat Impetus'));
 
-  return {
+  const truthEnforcement = require('./industrialTruthEnforcementService');
+  const barHasPositive = barData.some((b) => Number(b?.valor ?? b?.value ?? 0) > 0);
+  const hasSnapshotEvidence =
+    kpis.length > 0 ||
+    barHasPositive ||
+    (softwareBundle.snapshots || []).some(
+      (s) => s.permitted && ((s.rows && s.rows.length) || (s.metrics && s.metrics.length))
+    );
+  const availability = {
+    ...(await truthEnforcement.checkOperationalAvailability(user, {
+      queryText,
+      domains: datasets
+    })),
+    has_snapshot_evidence: hasSnapshotEvidence
+  };
+
+  const panelPayload = {
     permissionGranted: true,
     denialReason: null,
     type,
@@ -491,6 +507,8 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
       iaDepth: dashboardAccessService.getIADataDepth(user)
     }
   };
+
+  return truthEnforcement.guardPanelVisualizationPayload(panelPayload, availability);
 }
 
 function buildSystemPrompt(userCtxPayload) {

@@ -388,7 +388,20 @@ router.post('/live-assistance/chat', manuiaGuard, apiByUserLimiter, async (req, 
       dossier: dossier || {},
       billing
     });
-    res.json({ ok: true, reply });
+    const truthClosure = require('../services/cognitiveTruthClosureService');
+    const finalized = await truthClosure.finalizeManuIaCopilotReply(req.user, reply, {
+      messages: messages.slice(-12),
+      dossier: dossier || {}
+    });
+    if (finalized.trace_id) res.setHeader('X-AI-Trace-ID', String(finalized.trace_id));
+    res.json({
+      ok: true,
+      reply: finalized.reply,
+      trace_id: finalized.trace_id,
+      industrial_truth: finalized.industrial_truth,
+      evidence_binding: finalized.evidence_binding,
+      data_lineage: finalized.data_lineage
+    });
   } catch (err) {
     console.warn('[MANUIA_LIVE_CHAT]', err?.message);
     res.status(500).json({ ok: false, error: err?.message || 'Erro no copiloto' });

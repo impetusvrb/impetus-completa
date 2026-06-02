@@ -116,10 +116,18 @@ function buildOperationalContextRuntime(user = {}, payload = {}, ctx = {}) {
   const synthetic = ctx.synthetic_events || [];
   const { events, new_count, total } = appendOperationalContext(user, payload, synthetic);
 
+  let events_sample = events.slice(-8);
+  try {
+    const syntheticGuard = require('../../services/syntheticVisibilityGuard');
+    events_sample = syntheticGuard.applyToEventsArray(events_sample);
+  } catch (_) {
+    /* non-blocking */
+  }
+
   return {
     timeline_event_count: total,
     new_events_appended: new_count,
-    events_sample: events.slice(-8),
+    events_sample,
     cross_session: true,
     causal_ready: total >= 3,
     auto_mutation: false

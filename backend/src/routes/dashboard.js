@@ -223,6 +223,31 @@ router.get('/voice-realtime-context', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /dashboard/voice-truth-shadow-validate
+ * FASE 34 — validação shadow de transcript de voz (não altera resposta falada).
+ * Body: { assistant_text, query_text?, channel? }
+ */
+router.post('/voice-truth-shadow-validate', requireAuth, async (req, res) => {
+  try {
+    const assistantText = String(req.body?.assistant_text ?? req.body?.assistantText ?? '').trim();
+    if (!assistantText) {
+      return res.status(400).json({ ok: false, error: 'assistant_text obrigatório.' });
+    }
+    const truthClosure = require('../services/cognitiveTruthClosureService');
+    const assessment = await truthClosure.assessVoiceTranscriptShadow(req.user, {
+      assistant_text: assistantText,
+      query_text: String(req.body?.query_text ?? req.body?.queryText ?? req.body?.user_text ?? '').trim(),
+      channel: String(req.body?.channel || 'anam_voice').slice(0, 64),
+      inject_operational: req.body?.inject_operational !== false
+    });
+    res.json({ ok: true, assessment, shadow_only: true });
+  } catch (err) {
+    console.warn('[VOICE_TRUTH_SHADOW]', err?.message ?? err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro na validação shadow de voz.' });
+  }
+});
+
 function _logVisibility(event, data) {
   try {
     const entry = { _type: 'dashboard_visibility', event, ts: new Date().toISOString(), ...data };
@@ -1184,6 +1209,13 @@ router.get('/me', requireAuth, async (req, res) => {
       }
       if (c2out.payload?.cognitive_convergence_metrics) {
         legacyResponse.cognitive_convergence_metrics = c2out.payload.cognitive_convergence_metrics;
+      }
+      try {
+        const syntheticGuard = require('../services/syntheticVisibilityGuard');
+        const guardedMe = syntheticGuard.applyToDashboardPayload(legacyResponse);
+        Object.assign(legacyResponse, guardedMe);
+      } catch (synGuardErr) {
+        console.warn('[SYNTHETIC_VISIBILITY_GUARD]', synGuardErr?.message ?? synGuardErr);
       }
     } catch (c2Err) {
       console.warn('[COGNITIVE_CONVERGENCE_C2]', c2Err?.message ?? c2Err);
@@ -3036,7 +3068,50 @@ router.post('/panel-command', requireAuth, userRateLimit('executive_query'), asy
       return res.status(400).json({ ok: false, error: 'Comando vazio ou demasiado longo.' });
     }
     const output = await smartPanelCommandService.processPanelCommand(req.user, cmd);
-    res.json({ ok: true, output });
+    const { v4: uuidv4 } = require('uuid');
+    const truthClosure = require('../services/cognitiveTruthClosureService');
+    const dataLineageService = require('../services/dataLineageService');
+    const truthEnforcement = require('../services/industrialTruthEnforcementService');
+    let availability = { has_any_data: false, domain_checks: [] };
+    try {
+      availability = await truthEnforcement.checkOperationalAvailability(req.user, {
+        queryText: cmd,
+        injectOperational: true
+      });
+    } catch (panelAvailErr) {
+      console.warn('[PANEL_COMMAND_AVAILABILITY]', panelAvailErr?.message ?? panelAvailErr);
+    }
+    const traceId = uuidv4();
+    const lineage = dataLineageService.buildLineageForChatContext({
+      messagePreview: cmd.slice(0, 500),
+      historyTurns: 0,
+      snapshotIso: new Date().toISOString()
+    });
+    const industrial_truth = truthClosure.buildPanelCommandTruthMeta(output, availability);
+    if (req.user?.company_id) {
+      truthClosure.enqueueCognitiveTrace({
+        trace_id: traceId,
+        user_id: req.user.id,
+        company_id: req.user.company_id,
+        module_name: 'smart_panel',
+        input_payload: { command: cmd.slice(0, 4000), data_lineage: lineage },
+        output_response: {
+          panel_type: output?.type,
+          permission_granted: output?.permissionGranted !== false,
+          industrial_truth
+        },
+        model_info: { provider: 'smart_panel', channel: 'panel_command' }
+      });
+    }
+    res.setHeader('X-AI-Trace-ID', traceId);
+    res.json({
+      ok: true,
+      output,
+      trace_id: traceId,
+      industrial_truth,
+      evidence_binding: industrial_truth.evidence_binding,
+      data_lineage: lineage
+    });
   } catch (err) {
     console.error('[PANEL_COMMAND]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao processar o painel.' });
@@ -3059,7 +3134,14 @@ router.post('/claude-panel', requireAuth, userRateLimit('executive_query'), asyn
       userTranscript,
       assistantResponse
     });
-    res.json(result);
+    const truthClosure = require('../services/cognitiveTruthClosureService');
+    const finalized = await truthClosure.finalizeClaudePanelResponse(req.user, result, {
+      userTranscript,
+      assistantResponse,
+      queryBlob: `${userTranscript}\n${assistantResponse}`.trim()
+    });
+    if (finalized.trace_id) res.setHeader('X-AI-Trace-ID', String(finalized.trace_id));
+    res.json(finalized);
   } catch (err) {
     console.error('[CLAUDE_PANEL]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro no painel Claude.', shouldRender: false });
@@ -3322,6 +3404,25 @@ router.post('/chat', requireAuth, async (req, res) => {
             const cognitiveSafetyRuntimeService = require('../services/cognitiveSafetyRuntimeService');
             const safetyCouncil = await cognitiveSafetyRuntimeService.applySafetyToChatText(textCouncil, u);
             textCouncil = safetyCouncil.text;
+
+            let industrialTruthMetaCouncil = null;
+            try {
+              const truthClosure = require('../services/cognitiveTruthClosureService');
+              const truthApplied = await truthClosure.applyCognitiveTextTruth(textCouncil, {
+                user: u,
+                channel: 'dashboard_chat_council',
+                queryText: message,
+                injectOperational: allowOperationalPack,
+                contextualPack: dashboardContextualPack,
+                interpretation,
+                dataState: interpretation?.data_state
+              });
+              textCouncil = truthApplied.text;
+              industrialTruthMetaCouncil = truthApplied.meta;
+            } catch (truthCouncilErr) {
+              console.warn('[INDUSTRIAL_TRUTH_COUNCIL]', truthCouncilErr?.message ?? truthCouncilErr);
+            }
+
             const tidCouncil = councilResult.trace_id || councilResult.traceId || traceId;
             res.setHeader('X-AI-Trace-ID', String(tidCouncil));
             if (safetyCouncil.safety_blocked) {
@@ -3357,6 +3458,33 @@ router.post('/chat', requireAuth, async (req, res) => {
                 );
               } catch (_log) {}
             }
+
+            try {
+              const truthClosure = require('../services/cognitiveTruthClosureService');
+              truthClosure.enqueueCognitiveTrace({
+                trace_id: tidCouncil,
+                user_id: u.id,
+                company_id: u.company_id,
+                module_name: 'dashboard_chat_council',
+                input_payload: {
+                  user_message: message.slice(0, 8000),
+                  history_turns: history.length,
+                  cognitive_escalation: true
+                },
+                output_response: {
+                  reply: textCouncil.slice(0, 20000),
+                  cognitive_council: true,
+                  industrial_truth: industrialTruthMetaCouncil
+                },
+                model_info: {
+                  provider: 'cognitive_council',
+                  channel: 'dashboard_chat_council'
+                }
+              });
+            } catch (traceCouncilErr) {
+              console.warn('[TRUTH_CLOSURE_COUNCIL_TRACE]', traceCouncilErr?.message ?? traceCouncilErr);
+            }
+
             return res.json({
               ok: true,
               reply: textCouncil,
@@ -3372,7 +3500,8 @@ router.post('/chat', requireAuth, async (req, res) => {
               cognitive_council: true,
               system_influence: systemInfluenceMessage || null,
               safety_blocked: !!safetyCouncil.safety_blocked,
-              safety_reason: safetyCouncil.reason || undefined
+              safety_reason: safetyCouncil.reason || undefined,
+              ...(industrialTruthMetaCouncil ? { industrial_truth: industrialTruthMetaCouncil } : {})
             });
           }
         }
@@ -3381,32 +3510,103 @@ router.post('/chat', requireAuth, async (req, res) => {
       }
     }
 
-    const isNoData =
-      interpretation?.data_state === 'tenant_empty' ||
-      interpretation?.data_state === 'tenant_inactive';
+    const isTenantEmpty = interpretation?.data_state === 'tenant_empty';
+    const isTenantInactive = interpretation?.data_state === 'tenant_inactive';
+    const isTelemetryOnly = interpretation?.data_state === 'telemetry_only';
+
+    let plcGroundingBlock = '';
+    let plcIntelligencePack = null;
+    let trendPack = null;
+    let anomalyPack = null;
+    let correlationPack = null;
+    let eventPack = null;
+    let patternPack = null;
+    let explanationPack = null;
+    let priorityPack = null;
+    if (isTelemetryOnly && u.company_id) {
+      try {
+        const plcGrounding = require('../services/plcChatGroundingService');
+        const summary =
+          dashboardContextualPack?.metrics?.plc_grounding_summary ||
+          (await plcGrounding.fetchMinimalPlcGroundingSummary(u.company_id));
+        plcIntelligencePack = summary?.plc_intelligence || null;
+        trendPack = summary?.trend_pack || plcIntelligencePack?.trend_pack || null;
+        anomalyPack = summary?.anomaly_pack || plcIntelligencePack?.anomaly_pack || null;
+        correlationPack = summary?.correlation_pack || plcIntelligencePack?.correlation_pack || null;
+        eventPack = summary?.event_pack || plcIntelligencePack?.event_pack || null;
+        patternPack = summary?.pattern_pack || plcIntelligencePack?.pattern_pack || null;
+        explanationPack = summary?.explanation_pack || plcIntelligencePack?.explanation_pack || null;
+        priorityPack = summary?.priority_pack || plcIntelligencePack?.priority_pack || null;
+        plcGroundingBlock = plcGrounding.formatForUserTurn(summary);
+        if (dashboardContextualPack?.metrics && summary?.equipment_count) {
+          dashboardContextualPack.metrics.plc_grounding_summary = summary;
+          dashboardContextualPack.metrics.plc_intelligence = plcIntelligencePack;
+          if (trendPack) {
+            dashboardContextualPack.metrics.trend_snapshot = trendPack.trend_snapshot;
+            dashboardContextualPack.metrics.equipment_risk = trendPack.equipment_risk;
+          }
+          if (anomalyPack) {
+            dashboardContextualPack.metrics.anomaly_pack = anomalyPack;
+            dashboardContextualPack.metrics.equipment_attention = anomalyPack.equipment_attention;
+          }
+          if (correlationPack) {
+            dashboardContextualPack.metrics.correlation_pack = correlationPack;
+            dashboardContextualPack.metrics.equipment_interaction = correlationPack.equipment_interaction;
+          }
+          if (eventPack) {
+            dashboardContextualPack.metrics.event_pack = eventPack;
+            dashboardContextualPack.metrics.operational_timeline = eventPack.timeline;
+          }
+          if (patternPack) {
+            dashboardContextualPack.metrics.pattern_pack = patternPack;
+            dashboardContextualPack.metrics.operational_pattern_history = patternPack.history;
+          }
+          if (explanationPack) {
+            dashboardContextualPack.metrics.explanation_pack = explanationPack;
+            dashboardContextualPack.metrics.operational_traceability = explanationPack.traceability;
+          }
+          if (priorityPack) {
+            dashboardContextualPack.metrics.priority_pack = priorityPack;
+            dashboardContextualPack.metrics.operational_priority_queue = priorityPack.priority_queue;
+          }
+        }
+      } catch (plcGroundingErr) {
+        console.warn('[DASHBOARD_CHAT_PLC_GROUNDING]', plcGroundingErr?.message ?? plcGroundingErr);
+      }
+    }
 
     const { buildDashboardChatPrompt } = require('../ai/prompts/dashboardChatPrompt');
     const { buildNoDataPrompt } = require('../ai/prompts/noDataModePrompt');
+    const { buildTelemetryOnlyPrompt } = require('../ai/prompts/telemetryOnlyModePrompt');
 
-    const system = isNoData
-      ? buildNoDataPrompt({
-          user: chatUser,
-          data_state: interpretation.data_state,
-          briefing: interpretation.briefing,
-          must_avoid_phrases: interpretation.must_avoid_phrases,
-          must_propose_actions: interpretation.must_propose_actions
-        })
-      : buildDashboardChatPrompt(
-          interpretation
-            ? {
-                user: chatUser,
-                briefing: interpretation.briefing,
-                must_avoid_phrases: interpretation.must_avoid_phrases,
-                narrative_mode: interpretation.narrative_mode,
-                structuralPromptBlock
-              }
-            : { user: chatUser, structuralPromptBlock }
-        );
+    const system =
+      isTenantEmpty || isTenantInactive
+        ? buildNoDataPrompt({
+            user: chatUser,
+            data_state: interpretation.data_state,
+            briefing: interpretation.briefing,
+            must_avoid_phrases: interpretation.must_avoid_phrases,
+            must_propose_actions: interpretation.must_propose_actions
+          })
+        : isTelemetryOnly
+          ? buildTelemetryOnlyPrompt({
+              user: chatUser,
+              briefing: interpretation.briefing,
+              must_avoid_phrases: interpretation.must_avoid_phrases,
+              must_propose_actions: interpretation.must_propose_actions,
+              plcGroundingBlock
+            })
+          : buildDashboardChatPrompt(
+              interpretation
+                ? {
+                    user: chatUser,
+                    briefing: interpretation.briefing,
+                    must_avoid_phrases: interpretation.must_avoid_phrases,
+                    narrative_mode: interpretation.narrative_mode,
+                    structuralPromptBlock
+                  }
+                : { user: chatUser, structuralPromptBlock }
+            );
 
     const lineageCtx = dataLineageService.buildLineageForChatContext({
       messagePreview: message,
@@ -3465,6 +3665,9 @@ router.post('/chat', requireAuth, async (req, res) => {
       if (snippet.length > 2) {
         userTurnContent = `Contexto operacional (resumo fornecido pelo sistema):\n${snippet}\n\nPergunta do utilizador:\n${message}`;
       }
+    }
+    if (isTelemetryOnly && plcGroundingBlock) {
+      userTurnContent = `${plcGroundingBlock}\n\n${userTurnContent}`;
     }
     if (voicePanelContext) {
       userTurnContent = `${userTurnContent}\n\nContexto do último painel visual mostrado ao utilizador:\n${voicePanelContext}\n\nSe a pergunta referir "esse gráfico/painel", baseie a resposta neste contexto visual.`;
@@ -3564,6 +3767,48 @@ router.post('/chat', requireAuth, async (req, res) => {
       : await cognitiveSafetyRuntimeService.applySafetyToChatText(text, u);
     text = safetyChat.text;
     if (typeof synthesis.content === 'string') synthesis.content = text;
+
+    let industrialTruthMeta = null;
+    try {
+      const truthEnforcement = require('../services/industrialTruthEnforcementService');
+      const truthResult = await truthEnforcement.enforceTextResponse(text, {
+        user: u,
+        channel: 'dashboard_chat',
+        queryText: message,
+        injectOperational: allowOperationalPack,
+        contextualPack: dashboardContextualPack,
+        interpretation,
+        dataState: interpretation?.data_state,
+        plcIntelligencePack,
+        trendPack,
+        anomalyPack,
+        correlationPack,
+        eventPack,
+        patternPack,
+        explanationPack,
+        priorityPack,
+        instructions_append: plcGroundingBlock || undefined
+      });
+      text = truthResult.text;
+      industrialTruthMeta = {
+        action: truthResult.action,
+        mode: truthResult.mode,
+        evidence_binding: truthResult.evidence_binding,
+        unsupported_claims: truthResult.unsupported_claims,
+        telemetry_supported_claims: truthResult.telemetry_supported_claims,
+        trend_supported_claims: truthResult.trend_supported_claims,
+        anomaly_supported_claims: truthResult.anomaly_supported_claims,
+        correlation_supported_claims: truthResult.correlation_supported_claims,
+        event_supported_claims: truthResult.event_supported_claims,
+        pattern_supported_claims: truthResult.pattern_supported_claims,
+        explanation_supported_claims: truthResult.explanation_supported_claims,
+        priority_supported_claims: truthResult.priority_supported_claims
+      };
+      if (typeof synthesis.content === 'string') synthesis.content = text;
+    } catch (truthErr) {
+      console.warn('[INDUSTRIAL_TRUTH_ENFORCEMENT]', truthErr?.message ?? truthErr);
+    }
+
     const needsHitlPending =
       !!synthesis.requires_action ||
       (synthesis.confidence_score != null && synthesis.confidence_score < 70) ||
@@ -3589,6 +3834,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         confidence_score: synthesis.confidence_score,
         requires_action: synthesis.requires_action,
         degraded,
+        industrial_truth: industrialTruthMeta,
         related_operational_insight_id:
           req.body?.related_operational_insight_id != null
             ? req.body.related_operational_insight_id
@@ -3726,7 +3972,8 @@ router.post('/chat', requireAuth, async (req, res) => {
       ...(_chatNarrativeIntegrityBlock ? { chat_narrative_integrity: _chatNarrativeIntegrityBlock } : {}),
       ...(_chatLeakageAnalysisBlock ? { chat_leakage_analysis: _chatLeakageAnalysisBlock } : {}),
       ...(_chatRuntimeEnrichmentBlock ? { runtime_enrichment: _chatRuntimeEnrichmentBlock } : {}),
-      ...(_chatOperationalDensityBlock ? { operational_density: _chatOperationalDensityBlock } : {})
+      ...(_chatOperationalDensityBlock ? { operational_density: _chatOperationalDensityBlock } : {}),
+      ...(industrialTruthMeta ? { industrial_truth: industrialTruthMeta } : {})
     });
 
     // ── [VIRADA_CHAVE] SZ2 turn ingestion para continuidade cognitiva ─────────
@@ -3840,6 +4087,21 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
     });
     text = egressMm.text;
 
+    let industrialTruthMetaMm = null;
+    try {
+      const truthClosure = require('../services/cognitiveTruthClosureService');
+      const truthApplied = await truthClosure.applyCognitiveTextTruth(text, {
+        user: u,
+        channel: 'dashboard_chat_multimodal',
+        queryText: message,
+        injectOperational: true
+      });
+      text = truthApplied.text;
+      industrialTruthMetaMm = truthApplied.meta;
+    } catch (truthErr) {
+      console.warn('[INDUSTRIAL_TRUTH_MULTIMODAL]', truthErr?.message ?? truthErr);
+    }
+
     const traceId = require('uuid').v4();
     const lineageCtx = dataLineageService.buildLineageForChatContext({
       messagePreview: (message || 'multimodal').slice(0, 2000),
@@ -3867,7 +4129,8 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       },
       output_response: {
         reply: text,
-        modality: hasImage ? 'vision' : fileCtx ? 'document' : 'text'
+        modality: hasImage ? 'vision' : fileCtx ? 'document' : 'text',
+        industrial_truth: industrialTruthMetaMm
       },
       model_info: {
         provider: 'openai',
@@ -3893,7 +4156,19 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
   } catch (err) {
       console.warn('[routes/dashboard][multimodal_processing_transparency]', err?.message ?? err);
     }
-    res.json({ ok: true, reply: text, message: text, content: text, processing_transparency });
+    res.json({
+      ok: true,
+      reply: text,
+      message: text,
+      content: text,
+      processing_transparency,
+      trace_id: traceId,
+      ...(industrialTruthMetaMm ? { industrial_truth: industrialTruthMetaMm } : {}),
+      ...(industrialTruthMetaMm?.evidence_binding
+        ? { evidence_binding: industrialTruthMetaMm.evidence_binding }
+        : {}),
+      data_lineage: lineageCtx
+    });
   } catch (err) {
     console.error('[DASHBOARD_CHAT_MULTIMODAL]', err);
     res.status(500).json({

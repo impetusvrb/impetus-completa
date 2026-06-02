@@ -23,6 +23,19 @@ import {
   dispatchVoiceSessionClose
 } from '../voice/voiceSessionCloseIntent';
 
+/** FASE 34 — shadow truth (audit only; não altera fala da persona). */
+function scheduleVoiceTruthShadow(userText, assistantText, channel = 'anam_voice') {
+  const assistant = String(assistantText || '').trim();
+  if (assistant.length < 8) return;
+  void dashboard
+    .voiceTruthShadowValidate({
+      assistant_text: assistant,
+      query_text: String(userText || '').trim(),
+      channel
+    })
+    .catch((e) => console.warn('[anam] voice truth shadow', e?.message || e));
+}
+
 function blockPersonaOpeningIfNeeded(client, g, spoken) {
   if (!client || !spoken) return false;
   const sessionAgeMs = g?.sessionStartedAt ? Date.now() - g.sessionStartedAt : 999_999;
@@ -391,6 +404,7 @@ export function wireAnamPanelBridge(client, g) {
             `hist-commit:${lastUser?.id || 'u'}:${lastPersona.id}:${lastPersona.content.length}`
           );
         }
+        scheduleVoiceTruthShadow(u, lastPersona.content, 'anam_voice');
         maybeScheduleSessionClose(client, g, {
           userText: u,
           assistantText: lastPersona.content
@@ -473,6 +487,7 @@ export function wireAnamPanelBridge(client, g) {
           if (!skipPanelCommit) {
             pushPanelTurn(g, 'assistant', assistant);
           }
+          scheduleVoiceTruthShadow(lastUserFinal, assistant, 'anam_voice');
           maybeScheduleSessionClose(client, g, {
             userText: lastUserFinal,
             assistantText: assistant

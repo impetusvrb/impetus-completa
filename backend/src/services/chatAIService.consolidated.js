@@ -282,13 +282,16 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       }
       if (raw.length > 0) {
         console.info('[TRIADE_CHAT_ACTIVE]');
-        const saved = await chatService.saveMessage({
+        const saved = await finalizeAndDeliverChatReply({
           conversationId,
-          senderId: AI_USER_ID,
-          type: 'ai',
-          content: raw
+          io,
+          rawContent: raw,
+          userContext,
+          queryText: normalizedMessage,
+          contextualPack: contextualData,
+          allowOperational: triadeGov.allow_operational_data !== false,
+          moduleName: 'chat_interno_triade'
         });
-        if (io) io.to(conversationId).emit('new_message', saved);
         return saved;
       }
     } catch (triErr) {
@@ -347,8 +350,16 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
           const txt = (reply || '').startsWith('FALLBACK:')
             ? 'Resposta temporariamente indisponível. Tente novamente.'
             : reply;
-          const saved = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt });
-          if (io) io.to(conversationId).emit('new_message', saved);
+          const saved = await finalizeAndDeliverChatReply({
+            conversationId,
+            io,
+            rawContent: txt,
+            userContext: { id: null, company_id: companyId },
+            queryText: normalizedMessage,
+            contextualPack: null,
+            allowOperational: true,
+            moduleName: 'chat_interno_orchestrator'
+          });
           return saved;
         } catch (orchErr) {
           console.warn('[CHAT_AI] Orchestrator fallback:', orchErr.message);
@@ -375,8 +386,16 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
           const txt = reply.startsWith('FALLBACK:')
             ? 'Resposta temporariamente indisponível. Tente novamente.'
             : reply;
-          const saved = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt });
-          if (io) io.to(conversationId).emit('new_message', saved);
+          const saved = await finalizeAndDeliverChatReply({
+            conversationId,
+            io,
+            rawContent: txt,
+            userContext: { id: null, company_id: companyId },
+            queryText: normalizedMessage,
+            contextualPack: null,
+            allowOperational: true,
+            moduleName: 'chat_interno_orchestrator'
+          });
           return saved;
         } catch (orchErr) {
           console.warn('[CHAT_AI] Orchestrator process() fallback:', orchErr.message);
@@ -500,6 +519,49 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       }
     }
 
+    let chatUserCtx = { id: null, company_id: companyId };
+    let contextualPackChat = null;
+    let allowOperationalChat = true;
+    try {
+      const participantsCtx = await loadParticipantRows(conversationId);
+      const humanCtx = participantsCtx.find((p) => String(p.user_id) !== String(AI_USER_ID));
+      if (humanCtx?.user_id) {
+        const fullCtx = await db.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [humanCtx.user_id]);
+        if (fullCtx.rows[0]) {
+          chatUserCtx = await enrichUserForDashboardAsync(fullCtx.rows[0]);
+        } else {
+          chatUserCtx = {
+            id: humanCtx.user_id,
+            company_id: companyId,
+            role: humanCtx.role,
+            name: humanCtx.name
+          };
+        }
+        const govPackChat = await structuralAIGovernance.buildAIGovernancePackage(chatUserCtx, {
+          channel: 'chat_impetus',
+          queryText: normalizedMessage,
+          companyId
+        });
+        chatUserCtx = govPackChat.enrichedUser || chatUserCtx;
+        allowOperationalChat = govPackChat.allow_operational_data !== false;
+        if (companyId && allowOperationalChat) {
+          try {
+            const retrieveContextualData =
+              require('./dataRetrievalService').retrieveContextualData;
+            contextualPackChat = await retrieveContextualData({
+              user: chatUserCtx,
+              intent: 'operational_overview',
+              entities: {}
+            });
+          } catch (dataCtxErr) {
+            console.warn('[CHAT_CONTEXT_RETRIEVAL]', dataCtxErr?.message || dataCtxErr);
+          }
+        }
+      }
+    } catch (ctxPackErr) {
+      console.warn('[CHAT_TRUTH_CONTEXT]', ctxPackErr?.message ?? ctxPackErr);
+    }
+
     const msgs = [
       { role: 'system', content: systemContent },
       ...history.slice(-20).map((m) =>
@@ -560,16 +622,32 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
         temperature: 0.45
       });
       const txt2 = r2.choices[0]?.message?.content || 'Ação processada.';
-      const saved2 = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt2 });
-      if (io) io.to(conversationId).emit('new_message', saved2);
+      const saved2 = await finalizeAndDeliverChatReply({
+        conversationId,
+        io,
+        rawContent: txt2,
+        userContext: chatUserCtx,
+        queryText: normalizedMessage,
+        contextualPack: contextualPackChat,
+        allowOperational: allowOperationalChat,
+        moduleName: 'chat_interno_tools'
+      });
 
       _ingestAfterReply(companyId, normalizedMessage, conversationId);
       return saved2;
     }
 
     const txt = choice?.message?.content || 'Não consegui processar.';
-    const saved = await chatService.saveMessage({ conversationId, senderId: AI_USER_ID, type: 'ai', content: txt });
-    if (io) io.to(conversationId).emit('new_message', saved);
+    const saved = await finalizeAndDeliverChatReply({
+      conversationId,
+      io,
+      rawContent: txt,
+      userContext: chatUserCtx,
+      queryText: normalizedMessage,
+      contextualPack: contextualPackChat,
+      allowOperational: allowOperationalChat,
+      moduleName: 'chat_interno'
+    });
 
     _ingestAfterReply(companyId, normalizedMessage, conversationId);
     return saved;
@@ -589,6 +667,59 @@ async function handleAIMessage(conversationId, triggerMessage, io) {
       return { ok: false, message: 'Falha ao processar mensagem de IA' };
     }
   }
+}
+
+/**
+ * FASE 34 — Truth Enforcement + audit trace antes de entregar mensagem ao utilizador.
+ */
+async function finalizeAndDeliverChatReply({
+  conversationId,
+  io,
+  rawContent,
+  userContext,
+  queryText,
+  contextualPack,
+  allowOperational,
+  moduleName = 'chat_interno'
+}) {
+  const { v4: uuidv4 } = require('uuid');
+  const truthClosure = require('./cognitiveTruthClosureService');
+  const { text, meta } = await truthClosure.applyCognitiveTextTruth(String(rawContent || ''), {
+    user: userContext,
+    channel: 'chat_impetus',
+    queryText,
+    injectOperational: allowOperational !== false,
+    contextualPack
+  });
+  if (userContext?.company_id) {
+    truthClosure.enqueueCognitiveTrace({
+      trace_id: uuidv4(),
+      user_id: userContext.id,
+      company_id: userContext.company_id,
+      module_name: moduleName,
+      input_payload: {
+        user_message: String(queryText || '').slice(0, 8000),
+        has_contextual_pack: !!contextualPack
+      },
+      output_response: {
+        reply: text.slice(0, 20000),
+        industrial_truth: meta
+      },
+      model_info: {
+        provider: 'openai',
+        channel: 'chat_impetus',
+        model: LIVE_CHAT_MODEL
+      }
+    });
+  }
+  const saved = await chatService.saveMessage({
+    conversationId,
+    senderId: AI_USER_ID,
+    type: 'ai',
+    content: text
+  });
+  if (io) io.to(conversationId).emit('new_message', saved);
+  return saved;
 }
 
 function _ingestAfterReply(companyId, message, conversationId) {

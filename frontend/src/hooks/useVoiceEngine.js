@@ -1829,6 +1829,16 @@ export function useVoiceEngine(options = {}) {
               });
             }
 
+            if (snapForDid.length >= 8) {
+              void dashboard
+                .voiceTruthShadowValidate({
+                  assistant_text: snapForDid,
+                  query_text: phraseSnap,
+                  channel: 'openai_realtime'
+                })
+                .catch(() => {});
+            }
+
             // Sempre esperar o PCM local acabar antes de cortar lipsync (D-ID ou não).
             // Com D-ID, transcript.done já pode ter disparado o pedido; aqui só fallback + fechar boca.
             const sess = realtimeSessionRef.current;

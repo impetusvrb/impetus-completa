@@ -13,6 +13,8 @@ function detectTelemetryGaps(payload, ctx = {}) {
   }
   if (metrics.data_state === 'tenant_empty' || metrics.data_state === 'tenant_inactive') {
     gaps.push({ type: 'telemetry_gap', severity: 'critical', data_state: metrics.data_state });
+  } else if (metrics.data_state === 'telemetry_only') {
+    gaps.push({ type: 'telemetry_partial', severity: 'medium', data_state: metrics.data_state });
   }
   if (metrics.stale === true || metrics.is_stale === true || ctx.stale_enrichment) {
     gaps.push({ type: 'stale_operational_data', severity: 'medium' });

@@ -60,6 +60,45 @@ const DECISION_TABLE = {
     confidence_ceiling: 40
   },
 
+  telemetry_only: {
+    narrative_mode: 'telemetry_limited',
+    buildBriefing: (coverage) => {
+      const n = coverage.plc_equipment_count || 0;
+      const ids =
+        Array.isArray(coverage.active_equipment_ids) && coverage.active_equipment_ids.length
+          ? coverage.active_equipment_ids
+              .slice(0, 8)
+              .map((e) => (typeof e === 'string' ? e : e.id || e.name))
+              .filter(Boolean)
+              .join(', ')
+          : '—';
+      return (
+        'A empresa possui telemetria industrial ativa, porém não possui cadastro operacional completo ' +
+        'de máquinas ou linhas de produção no MES. ' +
+        `Foram detectados ${n} equipamento(s) com leitura PLC recente (ex.: ${ids}). ` +
+        'Reconheça a telemetria existente. Não afirme ausência total de operação nem que o sistema está vazio. ' +
+        'Não invente OEE, produção, volumes ou percentagens — explique que KPIs completos exigem cadastro MES e eventos de produção.'
+      );
+    },
+    must_avoid_phrases: [
+      ...COMMON_AVOID_PHRASES,
+      'não existem dados operacionais',
+      'não há dados operacionais',
+      'sem dados operacionais',
+      'sistema está vazio',
+      'sistema vazio',
+      'não existem máquinas cadastradas',
+      'não há máquinas cadastradas',
+      'informação indisponível para análise operacional'
+    ],
+    must_propose_actions: [
+      { id: 'open_machine_registration', label: 'Completar cadastro de máquinas', intent: 'open_wizard' },
+      { id: 'see_integration_guide', label: 'Como integrar PLC/MES', intent: 'show_doc' }
+    ],
+    confidence_floor: 25,
+    confidence_ceiling: 55
+  },
+
   production_paused: {
     narrative_mode: 'operational_attention',
     buildBriefing: (coverage) =>
@@ -98,7 +137,7 @@ function md5(text) {
  * @param {object} params
  * @param {object} params.user
  * @param {string} params.intent
- * @param {string} params.data_state - tenant_empty | tenant_inactive | production_paused | production_active
+ * @param {string} params.data_state - tenant_empty | tenant_inactive | telemetry_only | production_paused | production_active
  * @param {object} params.data_completeness
  * @param {object} params.coverage
  * @param {object} [params.session_context]
@@ -190,7 +229,15 @@ function interpretContext({ data_state, metrics } = {}) {
           : 0,
     events_count:
       typeof fromMetrics.events_count === 'number' ? fromMetrics.events_count : 0,
-    last_event_at: fromMetrics.last_event_at
+    last_event_at: fromMetrics.last_event_at,
+    plc_equipment_count:
+      typeof fromMetrics.plc_equipment_count === 'number'
+        ? fromMetrics.plc_equipment_count
+        : fromMetrics.plc_grounding_summary?.equipment_count ?? 0,
+    active_equipment_ids:
+      fromMetrics.active_equipment_ids ||
+      fromMetrics.plc_grounding_summary?.active_equipment_ids ||
+      []
   };
 
   const interpreted = interpret({

@@ -34,10 +34,18 @@ function parseFinalStructuredResponse(finalText) {
   if (!parsed || typeof parsed !== 'object') {
     return { finalRaw: trimmed, structuredFinal: null };
   }
-  const fromContent =
-    parsed.content != null && String(parsed.content).trim()
-      ? String(parsed.content).trim()
-      : '';
+  let fromContent = '';
+  if (parsed.content != null) {
+    if (typeof parsed.content === 'string' && parsed.content.trim()) {
+      fromContent = parsed.content.trim();
+    } else if (typeof parsed.content === 'object' && parsed.content !== null) {
+      const inner =
+        parsed.content.content ?? parsed.content.message ?? parsed.content.text ?? '';
+      if (inner != null && String(inner).trim()) {
+        fromContent = String(inner).trim();
+      }
+    }
+  }
   const legacy =
     parsed.resposta_final != null
       ? String(parsed.resposta_final).trim()

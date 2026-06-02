@@ -277,6 +277,8 @@ export const dashboard = {
     api.get('/dashboard/voice-realtime-context', {
       params: { channel: 'anam_voice', force: '1', ...(params || {}) }
     }),
+  /** FASE 34 — validação shadow de transcript de voz (não altera áudio) */
+  voiceTruthShadowValidate: (body) => api.post('/dashboard/voice-truth-shadow-validate', body),
   /** Layout personalizado (perfil, modulos, assistente_ia, layout, layout_rules_version para telemetria/debug) */
   getPersonalizado: () => api.get('/dashboard/personalizado'),
   /** Painel vivo dinamico orientado a eventos */

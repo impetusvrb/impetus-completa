@@ -35,6 +35,24 @@ function run() {
     assert.strictEqual(r.briefing_schema_version, 'v1');
   });
 
+  test('telemetry_only → telemetry_limited', () => {
+    const r = interpret({
+      user: { id: 'u1', company_id: 'c1' },
+      intent: 'operational_overview',
+      data_state: 'telemetry_only',
+      data_completeness: { score: 0.2, reason: 'plc_without_mes', missing_signals: [] },
+      coverage: {
+        machines_known: 0,
+        plc_equipment_count: 2,
+        active_equipment_ids: [{ id: 'LAB-EQ-001', name: 'LAB-EQ-001' }]
+      },
+      session_context: {}
+    });
+    assert.strictEqual(r.narrative_mode, 'telemetry_limited');
+    assert(r.briefing.includes('telemetria industrial ativa'));
+    assert(r.must_avoid_phrases.some((p) => p.includes('não existem dados operacionais')));
+  });
+
   test('tenant_inactive → config_diagnostic', () => {
     const r = interpret({
       user: { id: 'u1', company_id: 'c1' },

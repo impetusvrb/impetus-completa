@@ -172,12 +172,73 @@ router.post('/execute', async (req, res) => {
       applied: true
     });
 
+    let industrialTruthMeta = null;
+    if (result && typeof result === 'object' && result.result) {
+      try {
+        const truthClosure = require('../services/cognitiveTruthClosureService');
+        const primary =
+          (typeof result.result.answer === 'string' && result.result.answer) ||
+          (typeof result.result.content === 'string' && result.result.content) ||
+          '';
+        if (primary.trim()) {
+          const truthApplied = await truthClosure.applyCognitiveTextTruth(primary, {
+            user,
+            channel: 'cognitive_council',
+            queryText: requestText,
+            injectOperational: true,
+            dataState,
+            contextualPack: data
+          });
+          if (typeof result.result.answer === 'string') result.result.answer = truthApplied.text;
+          if (typeof result.result.content === 'string') result.result.content = truthApplied.text;
+          industrialTruthMeta = truthApplied.meta;
+        }
+      } catch (truthErr) {
+        console.warn('[INDUSTRIAL_TRUTH_COGNITIVE_COUNCIL]', truthErr?.message ?? truthErr);
+      }
+    }
+
     const tid = result.trace_id || result.traceId;
     if (tid) res.setHeader('X-AI-Trace-ID', String(tid));
     res.setHeader('X-AI-HITL-Pending', '1');
     if (result && result.safety_blocked) {
       res.setHeader('X-AI-Cognitive-Safety', 'blocked');
     }
+
+    if (tid && user?.company_id) {
+      try {
+        const truthClosure = require('../services/cognitiveTruthClosureService');
+        const outText =
+          (typeof result?.result?.answer === 'string' && result.result.answer) ||
+          (typeof result?.result?.content === 'string' && result.result.content) ||
+          '';
+        truthClosure.enqueueCognitiveTrace({
+          trace_id: tid,
+          user_id: user.id,
+          company_id: user.company_id,
+          module_name: String(moduleName).slice(0, 96),
+          input_payload: {
+            user_message: requestText.slice(0, 8000),
+            module: moduleName
+          },
+          output_response: {
+            reply: outText.slice(0, 20000),
+            industrial_truth: industrialTruthMeta
+          },
+          model_info: { provider: 'cognitive_council', channel: 'cognitive_council_api' }
+        });
+      } catch (traceErr) {
+        console.warn('[TRUTH_CLOSURE_COUNCIL_API_TRACE]', traceErr?.message ?? traceErr);
+      }
+    }
+
+    if (industrialTruthMeta) {
+      result.industrial_truth = industrialTruthMeta;
+      if (industrialTruthMeta.evidence_binding) {
+        result.evidence_binding = industrialTruthMeta.evidence_binding;
+      }
+    }
+    if (tid) result.trace_id = tid;
     res.json(result);
   } catch (err) {
     if (err.code === 'PROMPT_SECURITY_INGRESS') {

@@ -54,9 +54,17 @@ function applyCognitiveConvergence(user = {}, payload = {}, ctx = {}) {
     emitC2('EVENT_DENSITY', { tenant_id: user?.company_id, synthetic: synthetic.synthetic_count });
   }
 
+  let syntheticEventsTagged = synthetic.events || [];
+  try {
+    const syntheticGuard = require('../../../services/syntheticVisibilityGuard');
+    syntheticEventsTagged = syntheticGuard.tagIncomingSyntheticEvents(syntheticEventsTagged);
+  } catch (_) {
+    /* non-blocking */
+  }
+
   const operationalContext = buildOperationalContextRuntime(user, payload, {
     ...ctx,
-    synthetic_events: synthetic.events
+    synthetic_events: syntheticEventsTagged
   });
 
   const events = getOperationalTimeline(user);
