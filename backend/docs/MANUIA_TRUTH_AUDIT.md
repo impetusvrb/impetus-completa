@@ -1,64 +1,67 @@
-# MANUIA_TRUTH_AUDIT — FASE 35C (read-only)
+# MANUIA_TRUTH_AUDIT — FASE 47-E
 
-**Data:** 2026-06-01  
-**Endpoint:** `POST /api/manutencao-ia/live-assistance/chat`  
-**Rota:** `backend/src/routes/manutencao-ia.js` (379-396)  
-**Serviço:** `backend/src/services/manuiaLiveAssistanceService.js` → `generateCopilotReply`
+**Data:** 2026-06-03 (actualização FASE 47)  
+**Prioridade:** P1  
+**Serviço:** `backend/src/services/manuiaLiveAssistanceService.js`  
+**Rotas:** `backend/src/routes/manutencao-ia.js`
 
 ---
 
-## Fluxo mapeado
+## Rotas mapeadas
 
-```text
-Pergunta (messages[] + dossier opcional)
-  ↓
-manuiaGuard + apiByUserLimiter
-  ↓
-generateCopilotReply
-  ├─ COPILOT_SYSTEM (governança IMPETUS + regras «não invente»)
-  ├─ Dossiê JSON (visão Gemini / pesquisa / OS — se existir)
-  └─ ai.chatCompletionMessages (OpenAI gpt-4o-mini)
-  ↓
-res.json({ ok: true, reply })  — texto livre
+| Rota | Função | Truth |
+|------|--------|-------|
+| `POST .../live-assistance/chat` | `generateCopilotReply` → OpenAI | **SIM** — `finalizeManuIaCopilotReply` na rota |
+| `POST .../live-assistance/analyze-frame` | Gemini visão + dossiê JSON | **NÃO** — sem `applyCognitiveTextTruth` na resposta estruturada |
+| `POST .../live-assistance/save-session` | Persistência | N/A |
+
+---
+
+## Verificações
+
+| Dimensão | Estado |
+|----------|--------|
+| Visão (Gemini) | `identifyPartFromImageWithGemini` — **bloqueada** se chave Gemini inválida |
+| Multimodal | Imagem + texto no dossiê; chat usa JSON dossiê no system prompt |
+| Respostas textuais (copiloto) | `applyCognitiveTextTruth` channel `manuia_live_assistance` |
+| Fechamento truth | `finalizeManuIaCopilotReply` + trace `ai_interaction_traces` |
+| Hallucination block | Via `enforceTextResponse` quando block ON |
+
+---
+
+## Evidência (código)
+
+```javascript
+// manutencao-ia.js L391-404
+const finalized = await truthClosure.finalizeManuIaCopilotReply(req.user, reply, { ... });
+res.json({ reply: finalized.reply, industrial_truth: finalized.industrial_truth, ... });
 ```
 
-**Sem:** `industrialTruthEnforcementService`, `cognitiveTruthClosureService`, `enqueueAiTrace`, `data_lineage`.
+`generateCopilotReply` (L262–276) — OpenAI apenas; truth **só** na rota HTTP.
 
 ---
 
-## Questionário obrigatório
+## Classificação FASE 47-E
 
-| # | Pergunta | Resposta |
-|---|----------|----------|
-| 1 | Existe Truth Enforcement? | **NÃO** |
-| 2 | Existe Evidence Binding? | **NÃO** |
-| 3 | Existe Audit Trace? | **NÃO** |
-| 4 | Possibilidade de inventar KPI? | **SIM** — texto livre sem pós-validação |
-| 5 | Possibilidade de inventar manutenção? | **SIM** — depende do dossiê; LLM pode extrapolar além do JSON |
+| Superfície | Classificação |
+|------------|---------------|
+| Live assistance **chat** | **SAFE** |
+| Analyze-frame (visão) | **PARTIAL** — prompt + Gemini; sem closure texto |
+| Global ManuIA | **PARTIAL** |
 
 ---
 
-## Contexto e prompt
+## Comparação com TRUTH_GAP_REPORT
 
-| Fonte | Verificável? |
-|-------|--------------|
-| `dossier` no body | Parcial (Gemini vision, pesquisa interna, OS) |
-| `COPILOT_SYSTEM` | Instrui «Use APENAS o dossiê» |
-| Billing `companyId` | Sim (tenant) |
-| RBAC | `manuiaGuard` |
-
-**Gap:** Não há verificação de que cada afirmação numérica no `reply` existe no dossiê.
+GAP-07 (ManuIA sem truth) — **desactualizado** para live chat após Fase 36-B. Analyze-frame mantém risco **PARTIAL**.
 
 ---
 
-## Classificação
+## Dependências
 
-| Nível | **NOT VERIFIED** |
+- **Gemini inválida** → analyze-frame degradado; chat OpenAI pode operar.
+- Dossiê pode misturar pesquisa web/library — classificar origem em `TRUTH_SOURCE_INVENTORY.md`.
 
 ---
 
-## Nota de segurança operacional
-
-O módulo ManuIA é **assistência de campo** (não dashboard OEE). O risco é **inventar códigos de peça, horas de parada ou KPI de manutenção** não presentes no dossiê — alinhado ao relatório F34 `EVIDENCE_BINDING_AUDIT` (NONE).
-
-**Sem alterações nesta fase.**
+*FASE 47-E — read-only.*

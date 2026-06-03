@@ -1,78 +1,63 @@
-# CLAUDE_PANEL_TRUTH_AUDIT — FASE 35B (read-only)
+# CLAUDE_PANEL_TRUTH_AUDIT — FASE 47-D
 
-**Data:** 2026-06-01  
-**Endpoint:** `POST /api/dashboard/claude-panel`  
-**Implementação:** `backend/src/services/claudePanelService.js` → `routes/dashboard.js`
+**Data:** 2026-06-03 (actualização FASE 47)  
+**Prioridade:** P1  
+**Ficheiro:** `backend/src/services/claudePanelService.js`  
+**Rota:** `POST /api/dashboard/claude-panel`
 
 ---
 
-## Fluxo mapeado
+## Fluxo auditado
 
 ```text
-Pergunta (userTranscript + assistantResponse da voz)
-  ↓
-hasNoDataSignal(assistantResponse) → shouldRender:false (atalho)
-  ↓
-buildSystemPrompt(user, queryBlob)
-  ├─ dashboardAccessService (permissões)
-  ├─ softwareOperationalSnapshotService.buildSnapshotsForQuery
-  └─ chatContextBridge (CHANNELS.PANEL / SZ5)
-  ↓
-claudeService.completeOpenAIStyleMessages (LLM)
-  ↓
-parseClaudePanelJson → validateAndNormalizePanel
-  ↓
-JSON painel → frontend (sem industrialTruthEnforcementService)
+userTranscript + assistantResponse
+  → claudePanelService.generateVisualPanel (Claude API → JSON painel)
+  → cognitiveTruthClosureService.finalizeClaudePanelResponse (F36-A)
+  → res.json(finalized) directo ao frontend
 ```
 
 ---
 
-## Questionário obrigatório
+## Verificações
 
-| # | Pergunta | Resposta |
-|---|----------|----------|
-| 1 | Existe `enforceTextResponse`? | **NÃO** |
-| 2 | Existe `industrialTruthEnforcementService`? | **NÃO** (nenhum import/uso em `claudePanelService.js`) |
-| 3 | Existe `evidence_binding`? | **NÃO** na resposta HTTP |
-| 4 | Existe `data_lineage`? | **NÃO** |
-| 5 | Existe audit trace? | **NÃO** — sem `enqueueAiTrace` nesta rota |
-| 6 | Existe bypass? | **SIM** — saída Claude vai directo ao cliente após parse JSON |
+| Pergunta | Resposta |
+|----------|----------|
+| Passa por Truth? | **SIM** — `finalizeClaudePanelResponse`, `guardClaudePanelPayload`, `applyCognitiveTextTruth` em `description` |
+| Passa por Hallucination? | **SIM** via pipeline `enforceTextResponse` na narrativa; guard em payload visual |
+| Existe bypass? | Plano LLM intermédio em `smartPanelCommandService` **não** nesta rota; risco em **valores chart** não comparados número-a-número |
+| Retorno directo ao frontend? | **SIM** — `res.json(finalized)` com `trace_id`, `industrial_truth`, `evidence_binding` |
 
 ---
 
-## Protecções existentes (não Truth Enforcement)
+## Evidência (código)
 
-| Mecanismo | Ficheiro | Efeito |
-|-----------|----------|--------|
-| Regras prompt «NÃO invente números» | `buildSystemPrompt` | Soft |
-| `hasNoDataSignal` | `claudePanelService.js:129-146` | `shouldRender: false` se assistente disser «sem dados» |
-| Snapshot real no prompt | `softwareOperationalSnapshotService` | Contexto verificável **entrada** |
-| Fallback parse | `parseClaudePanelJson` | Alerta genérico se JSON inválido |
-
-**Ausente:** `guardPanelVisualizationPayload`, comparação numérica pós-LLM.
+- `dashboard.js` L3128–3146: chama `finalizeClaudePanelResponse` antes de `res.json`.
+- `cognitiveTruthClosureService.js` L99–200: availability check, guard, trace enqueue.
+- `industrialTruthEnforcementService.guardClaudePanelPayload` — downgrade chart sem dados.
 
 ---
 
-## Risco observado na certificação (EF-10)
+## Classificação FASE 47-D
 
-Com `assistantResponse` explícito sem dados, Claude devolveu `type: alert` **sem** números — **PASS** no teste.
+# **SAFE**
 
-Se `assistantResponse` contiver números inventados pela voz **sem** `hasNoDataSignal`, o painel **pode** renderizar `chart`/`kpi` com datasets do LLM — **CRITICAL GAP** teórico confirmado por código.
-
----
-
-## Classificação
-
-| Nível | **NOT VERIFIED** |
-|-------|------------------|
-| Subtipo | **PARTIAL** apenas por prompt + snapshot de entrada + atalho `hasNoDataSignal` |
+Com ressalva **PARTIAL** em:
+- Séries numéricas no JSON Claude vs snapshot (guard heurístico, não enforcement texto completo em todos os campos).
+- Dependência da qualidade de `assistantResponse` (voz) que pode ter sido dita antes da validação Anam.
 
 ---
 
-## Evidência de código
+## Comparação com TRUTH_GAP_REPORT (01/06)
 
-- Entrada: `generateVisualPanel` — linhas 244-293 `claudePanelService.js`
-- Rota: `dashboard.js` `POST /claude-panel` (sem truth pós-processamento)
-- Nenhuma referência a `industrialTruthEnforcementService` no ficheiro
+GAP-06 listava Claude Panel como HIGH sem truth — **desactualizado** após Fase 36-A. Este audit **corrige** o registo para SAFE/PARTIAL.
 
-**Sem alterações nesta fase (conforme instrução).**
+---
+
+## Acções (fora FASE 47 — não executadas)
+
+- Teste E2E: pedido gráfico OEE sem PLC → painel sem barras positivas inventadas.
+- Paridade numérica chart ↔ `softwareOperationalSnapshotService`.
+
+---
+
+*FASE 47-D — read-only.*
