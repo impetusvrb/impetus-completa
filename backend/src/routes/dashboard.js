@@ -241,7 +241,9 @@ router.post('/voice-truth-shadow-validate', requireAuth, async (req, res) => {
       channel: String(req.body?.channel || 'anam_voice').slice(0, 64),
       inject_operational: req.body?.inject_operational !== false
     });
-    res.json({ ok: true, assessment, shadow_only: true });
+    const oralEnforce =
+      String(process.env.IMPETUS_VOICE_TRUTH_ORAL_ENFORCE || '').trim().toLowerCase() === 'true';
+    res.json({ ok: true, assessment, shadow_only: !oralEnforce, oral_enforce_enabled: oralEnforce });
   } catch (err) {
     console.warn('[VOICE_TRUTH_SHADOW]', err?.message ?? err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro na validação shadow de voz.' });

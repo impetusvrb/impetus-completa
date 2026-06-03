@@ -109,7 +109,7 @@ export default function RolloutCenterHub() {
               </div>
             </div>
 
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: 2px, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
               <Activity size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Capacidades e flags efetivas
             </h2>
@@ -138,7 +138,7 @@ export default function RolloutCenterHub() {
               </table>
             </div>
 
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: 2px, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 8 }}>
               <GitBranch size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
               Promotion gates
             </h2>

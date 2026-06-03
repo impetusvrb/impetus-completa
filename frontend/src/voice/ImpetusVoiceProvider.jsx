@@ -23,6 +23,7 @@ import {
 } from '../features/smartPanel/smartPanelEvents';
 import { executePanelVoiceMeta, executePanelVoiceMetaWithMeta } from '../features/smartPanel/panelVoiceMetaExecutor';
 import { registerPanelMetaDirectHandler } from '../features/smartPanel/smartPanelEvents';
+import { markVoiceUserInitiated } from '../utils/defaultAppEntry';
 
 export default function ImpetusVoiceProvider({ children }) {
   const notify = useNotification();
@@ -224,6 +225,7 @@ export default function ImpetusVoiceProvider({ children }) {
   useEffect(() => {
     if (!voiceEnabled) return;
     const onWake = () => {
+      markVoiceUserInitiated();
       setOverlayOpen(true);
     };
     window.addEventListener('impetus-wake-toast', onWake);
@@ -280,6 +282,7 @@ export default function ImpetusVoiceProvider({ children }) {
   const openOverlayActionRef = useRef(async () => {});
   useEffect(() => {
     openOverlayActionRef.current = async () => {
+      markVoiceUserInitiated();
       setOverlayOpen(true);
       if (!voiceStateRef.current.isContinuous) {
         await engineToggleVoice();
@@ -347,10 +350,15 @@ export default function ImpetusVoiceProvider({ children }) {
     return () => clearInterval(iv);
   }, [voiceEnabled, voiceState.alertsEnabled]);
 
-  // Overlay abre automaticamente quando o modo voz está ligado
+  // Overlay só reabre em modo contínuo se o utilizador abriu a IA ao vivo (não ao entrar no app)
   useEffect(() => {
-    if (!voiceEnabled) return;
-    if (voiceState.isContinuous) setOverlayOpen(true);
+    if (!voiceEnabled || !voiceState.isContinuous) return;
+    try {
+      if (sessionStorage.getItem('impetus_voice_user_initiated') !== '1') return;
+    } catch (_) {
+      return;
+    }
+    setOverlayOpen(true);
   }, [voiceState.isContinuous, voiceEnabled]);
 
   const closeLiveSession = useCallback(() => {
@@ -368,6 +376,31 @@ export default function ImpetusVoiceProvider({ children }) {
     setOverlayOpen(false);
     void import('../services/anamSessionSingleton').then((m) => m.stopAnamStreamNow?.()).catch(() => {});
   }, [engineToggleVoice, stopSpeaking, stopVoiceCapture]);
+
+  /** Após login: não manter overlay Anam/Realtime aberto — utilizador entra no dashboard ou IA texto. */
+  useEffect(() => {
+    if (!voiceEnabled) return;
+    let shouldReset = false;
+    try {
+      shouldReset = sessionStorage.getItem('impetus_reset_voice_on_entry') === '1';
+    } catch (_) {}
+    if (!shouldReset) return;
+    try {
+      sessionStorage.removeItem('impetus_reset_voice_on_entry');
+    } catch (_) {}
+    setOverlayOpen(false);
+    if (voiceStateRef.current.isContinuous) {
+      void closeLiveSession();
+    } else {
+      try {
+        stopSpeaking();
+      } catch (_) {}
+      try {
+        stopVoiceCapture();
+      } catch (_) {}
+      void import('../services/anamSessionSingleton').then((m) => m.stopAnamStreamNow?.()).catch(() => {});
+    }
+  }, [voiceEnabled, location.pathname, closeLiveSession, stopSpeaking, stopVoiceCapture]);
 
   useEffect(() => {
     if (!voiceEnabled) return undefined;
@@ -402,6 +435,7 @@ export default function ImpetusVoiceProvider({ children }) {
       wakePhraseIssue,
       /** Abre o painel e liga microfone/Realtime se ainda não estiver em modo contínuo (sidebar / atalhos). */
       openOverlay: async () => {
+        markVoiceUserInitiated();
         setOverlayOpen(true);
         if (!voiceStateRef.current.isContinuous) {
           await engineToggleVoice();
@@ -409,6 +443,7 @@ export default function ImpetusVoiceProvider({ children }) {
       },
       closeOverlay: closeLiveSession,
       toggleVoice: async () => {
+        markVoiceUserInitiated();
         setOverlayOpen(true);
         return engineToggleVoice();
       },

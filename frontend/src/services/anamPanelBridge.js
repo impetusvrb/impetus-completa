@@ -23,8 +23,11 @@ import {
   dispatchVoiceSessionClose
 } from '../voice/voiceSessionCloseIntent';
 
-/** FASE 34 — shadow truth (audit only; não altera fala da persona). */
-function scheduleVoiceTruthShadow(userText, assistantText, channel = 'anam_voice') {
+const MSG_NO_DATA_PT =
+  'Não tenho dados operacionais verificados no IMPETUS para afirmar isso com segurança. Posso consultar outra área ou outro indicador?';
+
+/** FASE 34/36 — shadow truth; com IMPETUS_VOICE_TRUTH_ORAL_ENFORCE corrige fala inventada. */
+function scheduleVoiceTruthShadow(userText, assistantText, channel = 'anam_voice', client = null, g = null) {
   const assistant = String(assistantText || '').trim();
   if (assistant.length < 8) return;
   void dashboard
@@ -32,6 +35,23 @@ function scheduleVoiceTruthShadow(userText, assistantText, channel = 'anam_voice
       assistant_text: assistant,
       query_text: String(userText || '').trim(),
       channel
+    })
+    .then(async (res) => {
+      const assessment = res?.data?.assessment;
+      if (!assessment) return;
+      const shouldCorrect = Boolean(assessment.would_block || assessment.would_replace);
+      if (!shouldCorrect) return;
+      if (!res?.data?.oral_enforce_enabled || !client?.talk || g?.client !== client) return;
+      const line = String(assessment.would_replace_text || MSG_NO_DATA_PT).trim().slice(0, 280);
+      try {
+        client.interruptPersona?.();
+      } catch (_) {}
+      try {
+        await client.talk(line);
+        g.lastMetaTalkAt = Date.now();
+      } catch (e) {
+        console.warn('[anam] voice truth enforce talk', e?.message || e);
+      }
     })
     .catch((e) => console.warn('[anam] voice truth shadow', e?.message || e));
 }
@@ -404,7 +424,7 @@ export function wireAnamPanelBridge(client, g) {
             `hist-commit:${lastUser?.id || 'u'}:${lastPersona.id}:${lastPersona.content.length}`
           );
         }
-        scheduleVoiceTruthShadow(u, lastPersona.content, 'anam_voice');
+        scheduleVoiceTruthShadow(u, lastPersona.content, 'anam_voice', client, g);
         maybeScheduleSessionClose(client, g, {
           userText: u,
           assistantText: lastPersona.content
@@ -487,7 +507,7 @@ export function wireAnamPanelBridge(client, g) {
           if (!skipPanelCommit) {
             pushPanelTurn(g, 'assistant', assistant);
           }
-          scheduleVoiceTruthShadow(lastUserFinal, assistant, 'anam_voice');
+          scheduleVoiceTruthShadow(lastUserFinal, assistant, 'anam_voice', client, g);
           maybeScheduleSessionClose(client, g, {
             userText: lastUserFinal,
             assistantText: assistant

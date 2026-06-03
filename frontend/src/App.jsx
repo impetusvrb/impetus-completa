@@ -23,6 +23,7 @@ import {
   isStrictAdminRole,
   userHasSystemAdministrationCapability
 } from './utils/roleUtils';
+import { resolveDefaultAppPath } from './utils/defaultAppEntry';
 import { factoryTeam } from './services/api';
 import './components/FactoryTeamOperatorBar.css';
 
@@ -177,8 +178,10 @@ function RoleGuard({ children, allowedRoles }) {
   const role = getUserRole();
   if (allowedRoles && !roleGuardAllows(allowedRoles)) {
     console.debug('[ROLE_GUARD_BLOCK] RoleGuard bloqueou — role=%s allowedRoles=%o', role, allowedRoles);
-    const defaults = { admin: '/app/admin/implantacao-guia', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
-    const dest = isStrictAdminRole(readStoredUserSafe()) ? '/app/admin/implantacao-guia' : defaults[role] || '/app';
+    const defaults = { admin: '/app/chatbot', ceo: '/app', diretor: '/app', gerente: '/app', coordenador: '/app', supervisor: '/app', colaborador: '/app', auxiliar_producao: '/app', auxiliar: '/app', operador: '/app' };
+    const dest = isStrictAdminRole(readStoredUserSafe())
+      ? '/app/chatbot'
+      : defaults[role] || resolveDefaultAppPath(readStoredUserSafe());
     return <Navigate to={dest} replace />;
   }
   return children;
@@ -483,14 +486,14 @@ export default function App() {
         <Route path="/app" element={
           <PrivateRoute>
             <SetupGuard>
-              {isStrictAdmin() ? <Navigate to="/app/admin/implantacao-guia" replace /> : <DashboardRouteEntry />}
+              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <DashboardRouteEntry />}
             </SetupGuard>
           </PrivateRoute>
         } />
         <Route path="/app/dashboard-vivo" element={
           <PrivateRoute>
             <SetupGuard>
-              {isStrictAdmin() ? <Navigate to="/app/admin/implantacao-guia" replace /> : <Navigate to="/app" replace />}
+              {isStrictAdmin() ? <Navigate to="/app/chatbot" replace /> : <Navigate to="/app" replace />}
             </SetupGuard>
           </PrivateRoute>
         } />

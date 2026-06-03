@@ -183,3 +183,22 @@ Ver [`ANAM_REALTIME_TRUTH_AUDIT.md`](./ANAM_REALTIME_TRUTH_AUDIT.md).
 3. `guardPanelVisualizationPayload` no Claude panel ou desactivar chart types sem dados.
 4. Chat consolidado: mesmo pipeline que dashboard chat.
 5. Feature flag C2 synthetic: default OFF em produção ou filtro em contexto LLM.
+
+---
+
+## Plano de correção — activação runtime (2026-06-03)
+
+| Etapa | Acção aplicada | Estado pós-activação |
+|-------|----------------|----------------------|
+| 2 Truth Enforcement | `IMPETUS_INDUSTRIAL_TRUTH_MODE=enforce`, `IMPETUS_HALLUCINATION_BLOCK=on` | **Ligado** |
+| 3 Geração de dados | `IMPETUS_C2_SYNTHETIC_EVENTS_WHEN_SPARSE=off` | **Ligado** (sem eventos sintéticos como reais) |
+| 4 Anam Realtime | `IMPETUS_VOICE_TRUTH_ORAL_ENFORCE=true` + correção oral em `anamPanelBridge.js` | **Ligado** (shadow → enforce oral) |
+| 5–6 Gateway / cognitivo | `IMPETUS_AI_GATEWAY_*`, `IMPETUS_COGNITIVE_SAFETY_ENABLED=true`, `IMPETUS_GEMINI_INGRESS_ENABLED=true` | **Ligado** (ingress Gemini depende de chave válida) |
+| 7 Stress test | `phase37-real-factory-audit.js` | **Executado** — hallucination `mode: enforce`, `block_enabled: true` |
+| 8 Gap Report | Este documento + addendum | **Actualizado** |
+| 9 Plano correção | Flags + oral enforce + triade | **Iniciado** (ver `.env` bloco «Plano Operacional Truth») |
+| 10 Certificação | `IMPETUS_CERTIFICATION_READINESS_MODE` (já on) + triade `UNIFIED_DECISION_*` | **Reforçado** |
+
+**Pendente manual:** `GEMINI_API_KEY` inválida no ambiente — substituir chave Google AI Studio e `pm2 restart impetus-backend --update-env`; validar com `node scripts/gemini-readiness-audit.js` (`live_ping.ok=true`).
+
+**GAPs ainda abertos (código):** GAP-01 conselho sem `enforceTextResponse` em todos os ramos; GAP-03 chat @ImpetusIA — mitigar via triade + safety ligados.

@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { auth } from '../services/api';
-import { isColaboradorSimples, isMaintenanceProfile } from '../utils/roleUtils';
+import { markVoiceResetOnNextEntry, resolveDefaultAppPath } from '../utils/defaultAppEntry';
 import loginBg from '../assets/login-bg.png';
 import logoImpetus from '../assets/logo-impetus-login.png';
 import './Login.css';
@@ -36,49 +36,14 @@ export default function Login() {
 
       localStorage.setItem('impetus_token', data.token);
       localStorage.setItem('impetus_user', JSON.stringify(data.user));
+      markVoiceResetOnNextEntry();
 
-      const redirect = data.redirect || (data.user?.is_first_access ? '/setup-empresa' : null);
+      const redirect = data.redirect || null;
       if (redirect) {
         navigate(redirect);
         return;
       }
-      if (data.user?.needs_factory_member_selection) {
-        navigate('/app/equipe-operacional');
-        return;
-      }
-      const userRole = (data.user?.role || '').toLowerCase();
-      const rolesComDashboard = ['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor'];
-      const temDashboard = rolesComDashboard.includes(userRole);
-      // Quem tem dashboard: primeira tela após login é sempre o dashboard (não a validação).
-      if (temDashboard) {
-        navigate('/app');
-        return;
-      }
-      if (data.user?.needs_role_verification) {
-        navigate('/validacao-cargo');
-        return;
-      }
-      if (userRole === 'admin') {
-        navigate('/app/chatbot');
-        return;
-      }
-      if (userRole === 'operador') {
-        navigate('/app');
-        return;
-      }
-      if (['colaborador', 'auxiliar_producao', 'auxiliar'].includes(userRole)) {
-        if (isColaboradorSimples(data.user)) {
-          navigate('/app');
-          return;
-        }
-        if (isMaintenanceProfile(data.user)) {
-          navigate('/app');
-          return;
-        }
-        navigate('/app');
-        return;
-      }
-      navigate('/app');
+      navigate(resolveDefaultAppPath(data.user));
     } catch (err) {
       console.error('Erro no login:', err);
       setError(err.apiMessage || err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
