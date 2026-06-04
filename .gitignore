@@ -1,13 +1,13 @@
 # ============================================================================
-# IMPETUS COMUNICA IA - ARQUIVOS IGNORADOS PELO GIT
-# NUNCA commite credenciais ou dados sensíveis!
+# IMPETUS — ARQUIVOS IGNORADOS PELO GIT
+# NUNCA commite credenciais, dependências ou artefactos de build locais.
 # ============================================================================
 
 # Google Cloud TTS — chave de serviço (nunca commitar)
 backend/config/google-tts.json
 impetus_complete/backend/config/google-tts.json
 
-# Variáveis de ambiente (CONTÉM SECRETOS - CRÍTICO)
+# Variáveis de ambiente (CONTÉM SECRETOS — CRÍTICO)
 .env
 .env.local
 .env.*.local
@@ -19,7 +19,10 @@ backend/.env
 frontend/.env
 **/.env
 !**/.env.example
-# Backups de .env (.env.bkp*, .env.backup*, .env.*.bak) — nunca versionar
+# Agentes / lab local (tokens gerados em runtime)
+backend/.env.edge-agent
+backend/.env.edge-agent.*
+# Backups de .env
 .env.bkp*
 .env.backup*
 .env.*.bak
@@ -27,7 +30,12 @@ frontend/.env
 **/.env.backup*
 **/.env.*.bak
 
-# Chaves e credenciais (nunca versionar)
+# Lab industrial OPC-UA (gerado localmente)
+backend/.opcua-lab-endpoint.txt
+backend/.opcua-lab-nodes.json
+backend/.opcua-lab-*
+
+# Chaves e credenciais
 *.pem
 *.key
 *.p12
@@ -38,9 +46,12 @@ service-account*.json
 google-services.json
 secrets/
 
-# Dependências
+# Dependências (principal causa de “excesso de alterações” no IDE)
 node_modules/
 **/node_modules/
+vendor/
+**/vendor/
+bower_components/
 
 # Build e distribuição
 dist/
@@ -48,41 +59,69 @@ build/
 **/dist/
 **/build/
 *.min.js
+.next/
+out/
+.nuxt/
+.parcel-cache/
 
-# Backend - código ofuscado (opcional)
+# Backend — artefactos
 backend/dist/
 
-# Frontend - build de produção
+# Frontend — build de produção e snapshots locais
 frontend/dist/
-
-# Snapshots locais de dist (rollback manual de build — não versionar)
 frontend/dist.prev.*/
 frontend/dist_backup_*/
+admin-portal/dist/
 
-# Backups locais e dados de runtime (não versionar — centenas de MB)
+# Deploy / restart backups locais (centenas de MB — nunca versionar)
+deploy_backups/
+**/deploy_backups/
+
+# Backups locais e dados de runtime
 backups/
 backend/backups/
 backend/data/
+backend/logs/
 
-# Logs e arquivos temporários
+# Logs e temporários
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 logs/
 tmp/
-impetus_complete/backend/scripts/test-voz-out/
-backend/scripts/test-voz-out/
 temp/
 *.tmp
+impetus_complete/backend/scripts/test-voz-out/
+backend/scripts/test-voz-out/
 
-# Uploads (dados de usuários)
+# Uploads (dados de utilizadores)
 uploads/
 **/uploads/
 
-# Memória cognitiva persistente local (auditoria — não versionar por defeito)
+# Memória cognitiva persistente local
 backend/storage/cognitive-memory.json
 backend/storage/cognitive-memory.json.tmp
+
+# Python (lipsync / scripts lab)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+lipsync/.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Wav2Lip — pesos grandes
+lipsync/Wav2Lip/checkpoints/*.pth
+lipsync/Wav2Lip/face_detection/detection/sfd/*.pth
 
 # IDE e editores
 .idea/
@@ -94,25 +133,26 @@ backend/storage/cognitive-memory.json.tmp
 # Sistema operacional
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Cache
 .cache/
 *.tsbuildinfo
+.eslintcache
 
 # Testes e cobertura
 coverage/
 .nyc_output/
 *.lcov
 
-# Wav2Lip (venv local + pesos grandes — não versionar)
-lipsync/.venv/
-lipsync/Wav2Lip/checkpoints/*.pth
-lipsync/Wav2Lip/face_detection/detection/sfd/*.pth
-
-# Docker (se usar volumes locais)
+# Docker volumes locais
 .docker/
 
-# Estrutura duplicada (evitar pasta aninhada)
+# Espelho legado (não usar como base de produção — ver .cursor/rules)
 impetus_complete/
 **/backend (1)/
 **/frontend (1)/
+
+# PM2 / runtime dumps locais (se existirem na raiz)
+.pm2/
+pids/
