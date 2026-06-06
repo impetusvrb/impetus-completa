@@ -1,0 +1,31 @@
+{
+  "companyId": "21dd3cee-2efa-4936-908f-9ff1ba04e2a3",
+  "model_config": {
+    "chat": "openai",
+    "supervision": "google_vertex",
+    "reports": "anthropic"
+  },
+  "disclosure": {
+    "provider_label": "Pipeline (Conselho Cognitivo)",
+    "model": "gemini-2.5-flash → claude-3-5-sonnet-latest → gpt-4o-mini",
+    "privacy_path": "/app/admin/nexusia-custos?tab=infra",
+    "footer_pt": "Conselho Cognitivo: OpenAI (percepção), Anthropic (análise), OpenAI (síntese). Detalhes de privacidade no Nexus IA.",
+    "pipeline": {
+      "perception": {
+        "provider_key": "openai",
+        "provider_label": "OpenAI",
+        "model": "gemini-2.5-flash"
+      },
+      "analysis": {
+        "provider_key": "anthropic",
+        "provider_label": "Anthropic",
+        "model": "claude-3-5-sonnet-latest"
+      },
+      "synthesis": {
+        "provider_key": "openai",
+        "provider_label": "OpenAI",
+        "model": "gpt-4o-mini"
+      }
+    }
+  }
+}

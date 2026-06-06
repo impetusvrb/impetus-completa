@@ -1,0 +1,110 @@
+{
+  "generated_at": "2026-06-04T13:52:28.730Z",
+  "gemini_available": false,
+  "root_cause": "Credenciais Gemini/Vertex ausentes no ambiente (GEMINI_API_KEY, GOOGLE_API_KEY ou GOOGLE_GENAI_USE_VERTEXAI + GOOGLE_CLOUD_PROJECT).",
+  "env": {
+    "GEMINI_API_KEY_set": false,
+    "GOOGLE_API_KEY_set": false,
+    "GOOGLE_GENAI_USE_VERTEXAI": null,
+    "GOOGLE_CLOUD_PROJECT_set": false,
+    "GEMINI_MODEL": "gemini-2.5-flash",
+    "IMPETUS_STRICT_AI_PIPELINE": null,
+    "IMPETUS_ENFORCE_GEMINI_INGRESS": null
+  },
+  "architecture_health": {
+    "pipeline_integrity": "BROKEN",
+    "strict_mode": false,
+    "orchestrator_gate_enforced": false,
+    "missing_stages": [
+      "gemini_credentials",
+      "anthropic_api_key",
+      "openai_api_key"
+    ],
+    "last_failures": [],
+    "violations_recent": [],
+    "gemini_available": false,
+    "orchestration": {
+      "orchestrator_id": "vertex_central_sim",
+      "coordination_engine": "vertex_central_sim",
+      "gemini_transport": "unavailable",
+      "vertex_ai_assists_gemini": false,
+      "strict_pipeline": false,
+      "pipeline_stages": [
+        "entrada",
+        "gemini_intent",
+        "vertex_route",
+        "gemini_perception",
+        "vertex_route",
+        "claude_technical",
+        "vertex_route",
+        "claude_internal_plan",
+        "vertex_route",
+        "chatgpt_final"
+      ]
+    },
+    "checked_at": "2026-06-04T13:52:28.730Z"
+  },
+  "live_ping": {
+    "ok": false,
+    "reason": "client_not_configured"
+  },
+  "affected_modules": [
+    {
+      "id": "executionLayer",
+      "path": "src/ai/layers/executionLayer.js",
+      "fn": "perception multimodal"
+    },
+    {
+      "id": "geminiIngressEngine",
+      "path": "src/services/geminiIngressEngine.js",
+      "fn": "ingress gate"
+    },
+    {
+      "id": "intentRefinement",
+      "path": "src/eventPipeline/intent/intentRefinementService.js",
+      "fn": "event pipeline"
+    },
+    {
+      "id": "cognitiveIntentIngress",
+      "path": "src/ai/cognitiveIntentIngress.js",
+      "fn": "cognitive ingress"
+    },
+    {
+      "id": "aiOrchestrator",
+      "path": "src/services/aiOrchestrator.js",
+      "fn": "orchestrator multimodal"
+    },
+    {
+      "id": "aiComplaintDetection",
+      "path": "src/services/aiComplaintDetectionService.js",
+      "fn": "quality complaint"
+    },
+    {
+      "id": "manuiaLiveAssistance",
+      "path": "src/services/manuiaLiveAssistanceService.js",
+      "fn": "ManuIA vision"
+    },
+    {
+      "id": "cadastrarComIA",
+      "path": "src/routes/cadastrarComIA.js",
+      "fn": "cadastro IA imagem"
+    },
+    {
+      "id": "humanValidationClosure",
+      "path": "src/services/humanValidationClosureService.js",
+      "fn": "HITL classifier"
+    },
+    {
+      "id": "operationalRealtimeCoordinator",
+      "path": "src/services/operationalRealtimeCoordinator.js",
+      "fn": "chat realtime"
+    }
+  ],
+  "recovery_plan": [
+    "Definir GEMINI_API_KEY (Google AI Studio) OU GOOGLE_GENAI_USE_VERTEXAI=true + GOOGLE_CLOUD_PROJECT + credenciais ADC.",
+    "Reiniciar PM2: pm2 restart impetus-backend --update-env",
+    "Validar: node scripts/gemini-readiness-audit.js (live_ping.ok=true)",
+    "Monitorar architecture health: gemini_available=true"
+  ],
+  "regression_risk": "Baixo se apenas credenciais forem adicionadas; médio se IMPETUS_STRICT_AI_PIPELINE=true sem todas as chaves."
+}

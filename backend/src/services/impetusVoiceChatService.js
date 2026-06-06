@@ -108,6 +108,19 @@ async function processVoiceTurn(user, message, { reset } = {}) {
   }
   reply = (reply || '').trim().slice(0, 3500);
 
+  try {
+    const truthClosure = require('./cognitiveTruthClosureService');
+    const finalized = await truthClosure.applyCognitiveTextTruth(reply, {
+      user,
+      channel: 'voice_assistant',
+      queryText: trimmed,
+      injectOperational: true
+    });
+    reply = finalized.text;
+  } catch (truthErr) {
+    console.warn('[VOICE_TRUTH_CLOSURE]', truthErr?.message ?? truthErr);
+  }
+
   voiceSession.append(user.id, 'user', trimmed);
   voiceSession.append(user.id, 'assistant', reply);
 

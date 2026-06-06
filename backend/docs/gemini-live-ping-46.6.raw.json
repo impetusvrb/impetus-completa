@@ -1,0 +1,40 @@
+[GEMINI] generateText: {"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key not valid. Please pass a valid API key."}]}}
+{
+  "generated_at": "2026-06-02T13:15:18.333Z",
+  "phase": "46.6",
+  "env": {
+    "GEMINI_API_KEY_set": true,
+    "GOOGLE_API_KEY_set": false,
+    "GOOGLE_GENAI_USE_VERTEXAI": "false",
+    "GEMINI_MODEL": "gemini-2.5-flash",
+    "geminiService_isAvailable": true
+  },
+  "geminiService_generateText": {
+    "prompt": "Responda apenas OK",
+    "model": "gemini-2.5-flash",
+    "latency_ms": 1074,
+    "returned": null,
+    "ok": false,
+    "thrown": null
+  },
+  "direct_sdk": {
+    "ok": false,
+    "path": "direct_sdk",
+    "model": "gemini-2.5-flash",
+    "latency_ms": 165,
+    "error": {
+      "name": "ApiError",
+      "message": "{\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+      "status": 400,
+      "stack": "ApiError: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}\n    at throwErrorIfNotOK (/var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:12706:30)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async /var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:12409:13\n    at async Models.generateContent (/var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:13810:24)\n    at async directSdkPing (/var/www/impetus-completa/backend/scripts/gemini-live-ping.js:91:22)\n    at async main (/var/www/impetus-completa/backend/scripts/gemini-live-ping.js:149:23)",
+      "raw_json": {
+        "stack": "ApiError: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}\n    at throwErrorIfNotOK (/var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:12706:30)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async /var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:12409:13\n    at async Models.generateContent (/var/www/impetus-completa/backend/node_modules/@google/genai/dist/node/index.cjs:13810:24)\n    at async directSdkPing (/var/www/impetus-completa/backend/scripts/gemini-live-ping.js:91:22)\n    at async main (/var/www/impetus-completa/backend/scripts/gemini-live-ping.js:149:23)",
+        "message": "{\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+        "name": "ApiError",
+        "status": 400
+      }
+    },
+    "classification": "INVALID_API_KEY"
+  },
+  "classification": "INVALID_API_KEY"
+}

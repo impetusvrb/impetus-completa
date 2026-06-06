@@ -1,0 +1,781 @@
+'use strict';
+
+/**
+ * AIOI-P3.5 — Testes automatizados da Enterprise Intelligence Sustainability Layer
+ * T1–T101 | node src/tests/aioi/aioiSustainabilityReadModel.test.js
+ */
+
+let _passed = 0, _failed = 0;
+function assert(c, m) { if (!c) throw new Error(`ASSERTION FAILED: ${m}`); }
+function assertEqual(a, e, m) {
+  if (a !== e) throw new Error(`${m} — expected: ${JSON.stringify(e)}, got: ${JSON.stringify(a)}`);
+}
+async function test(name, fn) {
+  try { await fn(); _passed++; console.log(`  ✓  ${name}`); }
+  catch (err) { _failed++; console.error(`  ✗  ${name}`); console.error(`     ${err.message}`); }
+}
+function suite(n) { console.log(`\n[SUITE] ${n}`); }
+
+const path = require('path');
+const fs = require('fs');
+const SERVICES_PATH = path.resolve(__dirname, '../../services/aioi');
+const COMPANY_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+const COMPANY_ID_B = 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22';
+const DB_MOD_PATH = require.resolve('../../db');
+require(DB_MOD_PATH);
+let _originalDb;
+function patchDb(mock) { _originalDb = require.cache[DB_MOD_PATH].exports; require.cache[DB_MOD_PATH].exports = mock; }
+function restoreDb() { if (_originalDb) require.cache[DB_MOD_PATH].exports = _originalDb; }
+
+const P35_EXPORTS = [
+  'aioiSustainabilityMetrics', 'aioiIntelligenceHealthService', 'aioiGovernanceContinuityService',
+  'aioiValueSustainabilityService', 'aioiEnterpriseSustainabilityService', 'aioiSustainabilityReadModelService',
+  'aioiValueGovernanceReadModelService', 'aioiBenchmarkAnalysisService'
+];
+
+function clearAioiModuleCache() {
+  for (const key of Object.keys(require.cache)) {
+    if (key.includes('/services/aioi/')) delete require.cache[key];
+  }
+}
+
+let _svcCache = null;
+
+function loadP35() {
+  if (_svcCache) return _svcCache;
+  const loaded = {};
+  for (const mod of P35_EXPORTS) {
+    loaded[mod] = require(`${SERVICES_PATH}/${mod}`);
+  }
+  _svcCache = loaded;
+  return loaded;
+}
+
+function reloadP35() {
+  _svcCache = null;
+  clearAioiModuleCache();
+  return loadP35();
+}
+
+function getSusMetrics() {
+  delete require.cache[require.resolve(`${SERVICES_PATH}/aioiSustainabilityMetrics`)];
+  if (_svcCache) delete _svcCache.aioiSustainabilityMetrics;
+  const m = require(`${SERVICES_PATH}/aioiSustainabilityMetrics`);
+  if (_svcCache) _svcCache.aioiSustainabilityMetrics = m;
+  return m;
+}
+
+function buildIoes() {
+  const base = {
+    company_id: COMPANY_ID, source_type: 'plc_event', category: 'equipment_degradation',
+    priority_band: 'high', correlation_id: 'c1', decision_type: 'maintenance_work_order',
+    decision_payload: null, approved_by_user_id: null, approved_at: null,
+    workflow_instance_id: null, execution_trace_id: null,
+    created_at: '2026-06-05T08:00:00.000Z', updated_at: '2026-06-05T10:00:00.000Z', resolved_at: null
+  };
+  return [
+    { ...base, id: 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380d44', status: 'open' },
+    { ...base, id: '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a01', status: 'approved',
+      approved_by_user_id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380e55', approved_at: '2026-06-05T12:00:00.000Z' },
+    { ...base, id: '17eebc99-9c0b-4ef8-bb6d-6bb9bd380a02', status: 'in_progress',
+      workflow_instance_id: 'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380f66',
+      approved_by_user_id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380e55', approved_at: '2026-06-05T12:00:00.000Z' },
+    { ...base, id: '28eebc99-9c0b-4ef8-bb6d-6bb9bd380a03', status: 'resolved',
+      workflow_instance_id: 'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380f66', approved_at: '2026-06-05T12:00:00.000Z',
+      resolved_at: '2026-06-05T14:00:00.000Z',
+      decision_payload: { aioi_outcome: { outcome_status: 'success' }, aioi_learning_submitted: true,
+        aioi_learning_processed: true } }
+  ];
+}
+
+function buildSnapshots() {
+  const now = Date.now();
+  const recent = new Date(now - 5 * 86400000).toISOString();
+  const mid = new Date(now - 15 * 86400000).toISOString();
+  const old = new Date(now - 45 * 86400000).toISOString();
+  return [
+    { company_id: COMPANY_ID, snapshot_type: 'backlog_snapshot',
+      snapshot_payload: { approval: 5, execution: 2, outcome: 1, learning: 0 }, created_at: old },
+    { company_id: COMPANY_ID, snapshot_type: 'backlog_snapshot',
+      snapshot_payload: { approval: 1, execution: 1, outcome: 0, learning: 0 }, created_at: recent },
+    { company_id: COMPANY_ID, snapshot_type: 'cycle_kpis',
+      snapshot_payload: { end_to_end_cycle_ms: 35000000, open_to_triaged_ms: 2000000,
+        triaged_to_approval_ms: 5000000, approval_to_execution_ms: 2000000,
+        execution_to_outcome_ms: 10000000, outcome_to_learning_ms: 3000000 }, created_at: mid },
+    { company_id: COMPANY_ID, snapshot_type: 'cycle_kpis',
+      snapshot_payload: { end_to_end_cycle_ms: 40000000 }, created_at: recent },
+    { company_id: COMPANY_ID, snapshot_type: 'lifecycle_snapshot',
+      snapshot_payload: { operational_success_rate: 0.85 }, created_at: recent },
+    { company_id: COMPANY_ID, snapshot_type: 'throughput_snapshot',
+      snapshot_payload: { daily_throughput: 6 }, created_at: recent }
+  ];
+}
+
+function _ioeCounts(filtered) {
+  return {
+    total: filtered.length,
+    with_decision: filtered.filter(i => i.decision_type).length,
+    with_hitl: filtered.filter(i => i.approved_by_user_id).length,
+    with_approval: filtered.filter(i => i.approved_by_user_id).length,
+    with_execution: filtered.filter(i => i.workflow_instance_id || i.execution_trace_id).length,
+    with_outcome: filtered.filter(i => i.decision_payload?.aioi_outcome).length,
+    with_learning: filtered.filter(i =>
+      i.decision_payload?.aioi_learning_processed || i.decision_payload?.aioi_learning_submitted).length
+  };
+}
+
+function createReadinessDbMock(ioes = buildIoes(), snapshots = buildSnapshots()) {
+  const calls = [];
+  const store = ioes.map(i => ({ ...i }));
+  const snapStore = snapshots.map(s => ({ ...s }));
+  const client = {
+    _calls: calls,
+    async query(sql, params) {
+      const s = sql.trim();
+      calls.push({ sql: s, params });
+      if (['set_config', 'BEGIN', 'COMMIT', 'ROLLBACK'].some(k => s.includes(k) || s === k)) return { rows: [] };
+      const companyId = params?.[0] || COMPANY_ID;
+      const filtered = store.filter(i => i.company_id === companyId);
+
+      if (s.includes('decision_type IS NOT NULL')) {
+        const c = _ioeCounts(filtered);
+        const row = { total: String(c.total), with_decision: String(c.with_decision),
+          with_hitl: String(c.with_hitl), with_execution: String(c.with_execution),
+          with_outcome: String(c.with_outcome), with_learning: String(c.with_learning) };
+        if (s.includes('with_approval')) row.with_approval = String(c.with_approval);
+        return { rows: [row] };
+      }
+      if (s.includes('event_type ILIKE') && s.includes('trust')) return { rows: [{ cnt: '1' }] };
+      if (s.includes('event_type ILIKE') && (s.includes('assurance') || s.includes('compliance'))) {
+        return { rows: [{ cnt: '1' }] };
+      }
+      if (s.includes('aioi_audit_events') && s.includes('COUNT') && !s.includes('ILIKE')) {
+        return { rows: [{ cnt: '2' }] };
+      }
+      if (s.includes('aioi_processing_history') && s.includes('COUNT') && !s.includes('GROUP BY')) {
+        return { rows: [{ cnt: '3' }] };
+      }
+      if (s.includes('aioi_metrics_snapshots') && s.includes('COUNT') && !s.includes('snapshot_payload')) {
+        return { rows: [{ cnt: String(snapStore.filter(x => x.company_id === companyId).length) }] };
+      }
+      if (s.includes('industrial_operational_events') && s.includes('COUNT')) {
+        if (s.includes("'resolved'") || s.includes("'closed'")) {
+          return { rows: [{ cnt: String(filtered.filter(i => i.status === 'resolved').length) }] };
+        }
+        return { rows: [{ cnt: String(filtered.length) }] };
+      }
+      if (s.includes('aioi_metrics_snapshots')) {
+        let rows = snapStore.filter(x => x.company_id === companyId);
+        if (params[1]) rows = rows.filter(x => x.snapshot_type === params[1]);
+        if (s.includes('ORDER BY created_at DESC')) {
+          rows = [...rows].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          return { rows: rows.slice(0, 1) };
+        }
+        return { rows };
+      }
+      if (s.includes('aioi_processing_history')) {
+        if (s.includes('learning_processed') && s.includes('COUNT')) return { rows: [{ cnt: '1' }] };
+        if (s.includes('GROUP BY')) return { rows: [{ day: '2026-06-04', cnt: '2' }] };
+        return { rows: [] };
+      }
+      if (s.includes('approved') && s.includes('executed') && s.includes('learning_processed_ioe')) {
+        return { rows: [{ approved: '3', executed: '2', resolved: '1', learning_processed_ioe: '1' }] };
+      }
+      if (s.includes('learning_done') && s.includes('resolved')) {
+        const resolved = filtered.filter(i => i.status === 'resolved').length;
+        const learning = filtered.filter(i => i.decision_payload?.aioi_learning_processed).length;
+        return { rows: [{ resolved: String(resolved), learning_done: String(learning) }] };
+      }
+      if (s.includes("status = 'resolved'") && s.includes('GROUP BY')) {
+        return { rows: [{ day: '2026-06-04', cnt: '2' }] };
+      }
+      if (s.includes('open_to_triaged_ms')) {
+        return { rows: [{ open_to_triaged_ms: '2000000', triaged_to_approval_ms: '5000000',
+          approval_to_execution_ms: '2000000', execution_to_outcome_ms: '10000000',
+          outcome_to_learning_ms: '3000000', end_to_end_cycle_ms: '40000000' }] };
+      }
+      if (s.includes('approval_backlog') && s.includes('COUNT')) {
+        return { rows: [{ approval_backlog: '1', execution_backlog: '1', outcome_backlog: '0', learning_backlog: '0' }] };
+      }
+      if (s.includes("status = 'open'") && s.includes('critical_events')) {
+        return { rows: [{ open: '1', triaged: '0', pending_approval: '0', approved: '1',
+          rejected: '0', in_progress: '1', resolved: '1', critical_events: '0',
+          avg_resolution_time_ms: '7200000', avg_approval_time_ms: '3600000',
+          avg_execution_time_ms: '5400000', success_count: '1', total_with_outcome: '1' }] };
+      }
+      if (s.includes('GROUP BY priority_band') || s.includes('GROUP BY category') || s.includes('GROUP BY status')) {
+        return { rows: [] };
+      }
+      return { rows: [] };
+    },
+    release: () => {}
+  };
+  return { pool: { connect: async () => client }, _client: client };
+}
+
+function stripComments(c) { return c.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, ''); }
+function assertNoWrites(calls) {
+  for (const c of calls) {
+    const s = c.sql.trim().toUpperCase();
+    if (['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'ALTER', 'DROP', 'CREATE', 'MERGE'].some(k => s.startsWith(k))) {
+      throw new Error(`escrita: ${c.sql.slice(0, 60)}`);
+    }
+  }
+}
+
+const SAMPLE_VGRM = {
+  readiness_read_model: {
+    auditability_read_model: {
+      assurance_read_model: {
+        trust_read_model: {
+          executive_command_read_model: {
+            governance_read_model: {}, predictive_read_model: {}, strategic_read_model: {},
+            value_read_model: {}, resilience_read_model: {},
+            maturity_read_model: { maturity: { score: 75 }, benchmark: { score: 70 } },
+            scenario_read_model: {}, digital_twin_read_model: { operational_state: {} },
+            executive_command_state: { operational_state: {} }
+          },
+          intelligence_trust: { trust_score: 80 }
+        },
+        intelligence_assurance: { assurance_score: 82 }
+      },
+      enterprise_auditability: { auditability_score: 84 }
+    },
+    adoption_analysis: { adoption_score: 85 },
+    enterprise_scale_readiness: { enterprise_readiness_score: 78 }
+  },
+  enterprise_value_governance: { value_governance_score: 85, value_governance_level: 'advanced' },
+  intelligence_utilization: { utilization_score: 85 },
+  outcome_alignment: { alignment_score: 78 },
+  value_coverage: { coverage_score: 88 }
+};
+
+const EMPTY_VGRM = {};
+
+async function runTests() {
+  let sm = getSusMetrics();
+  sm.resetSessionCounters();
+
+  const mock = createReadinessDbMock();
+  patchDb(mock);
+  const svc = reloadP35();
+  let cachedSus = null;
+  async function getCachedSus() {
+    if (!cachedSus) {
+      cachedSus = await svc.aioiSustainabilityReadModelService.getSustainabilityReadModel(COMPANY_ID);
+    }
+    return cachedSus;
+  }
+
+  // T1–T20 Intelligence Health
+  suite('T1'); await test('T1: classifyHealthStatus healthy', () => {
+    assertEqual(getSusMetrics().classifyHealthStatus(80), 'healthy', '');
+  });
+  suite('T2'); await test('T2: classifyHealthStatus stable', () => {
+    assertEqual(getSusMetrics().classifyHealthStatus(55), 'stable', '');
+  });
+  suite('T3'); await test('T3: classifyHealthStatus degraded', () => {
+    assertEqual(getSusMetrics().classifyHealthStatus(30), 'degraded', '');
+  });
+  suite('T4'); await test('T4: HEALTH_PILLARS 5', () => {
+    assertEqual(svc.aioiIntelligenceHealthService.HEALTH_PILLARS.length, 5, '');
+  });
+  suite('T5'); await test('T5: buildIntelligenceHealth', () => {
+    const r = svc.aioiIntelligenceHealthService.buildIntelligenceHealth(SAMPLE_VGRM);
+    assert(r.health_score >= 70 && r.health_status === 'healthy');
+  });
+  suite('T6'); await test('T6: computeHealthScore range', () => {
+    const s = svc.aioiIntelligenceHealthService.computeHealthScore(SAMPLE_VGRM);
+    assert(s >= 0 && s <= 100);
+  });
+  suite('T7'); await test('T7: getIntelligenceHealth ok', async () => {
+    const r = await getCachedSus();
+    assert(r.ok && r.sustainability_read_model.intelligence_health.health_status);
+  });
+  suite('T8'); await test('T8: companyId inválido health', async () => {
+    const r = await svc.aioiIntelligenceHealthService.getIntelligenceHealth('bad');
+    assert(!r.ok);
+  });
+  suite('T9'); await test('T9: composição P3.4 valueGovernanceReadModel', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiIntelligenceHealthService.js'), 'utf8'));
+    assert(code.includes('valueGovernanceReadModel') && !code.includes('getTrustReadModel'));
+  });
+  suite('T10'); await test('T10: determinístico health', () => {
+    assertEqual(
+      svc.aioiIntelligenceHealthService.computeHealthScore(SAMPLE_VGRM),
+      svc.aioiIntelligenceHealthService.computeHealthScore(SAMPLE_VGRM), '');
+  });
+  suite('T11'); await test('T11: recordHealthAnalyzed', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordHealthAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().health_analysis_count >= 1);
+  });
+  suite('T12'); await test('T12: zero writes health path', async () => {
+    await getCachedSus();
+    assertNoWrites(mock._client._calls);
+  });
+  suite('T13'); await test('T13: limite 70 healthy', () => {
+    assertEqual(getSusMetrics().classifyHealthStatus(70), 'healthy', '');
+  });
+  suite('T14'); await test('T14: empty vgrm score baixo', () => {
+    assert(svc.aioiIntelligenceHealthService.computeHealthScore(EMPTY_VGRM) <= 40);
+  });
+  suite('T15'); await test('T15: status permitidos health', () => {
+    const allowed = ['degraded', 'stable', 'healthy'];
+    for (const s of [80, 50, 20]) assert(allowed.includes(getSusMetrics().classifyHealthStatus(s)));
+  });
+  suite('T16'); await test('T16: _extractGovernanceSignals trust', () => {
+    const sig = getSusMetrics()._extractGovernanceSignals(SAMPLE_VGRM);
+    assertEqual(sig.trustScore, 80, '');
+  });
+  suite('T17'); await test('T17: _extractGovernanceSignals assurance', () => {
+    const sig = getSusMetrics()._extractGovernanceSignals(SAMPLE_VGRM);
+    assertEqual(sig.assuranceScore, 82, '');
+  });
+  suite('T18'); await test('T18: _extractGovernanceSignals auditability', () => {
+    const sig = getSusMetrics()._extractGovernanceSignals(SAMPLE_VGRM);
+    assertEqual(sig.auditabilityScore, 84, '');
+  });
+  suite('T19'); await test('T19: _extractGovernanceSignals readiness', () => {
+    const sig = getSusMetrics()._extractGovernanceSignals(SAMPLE_VGRM);
+    assertEqual(sig.readinessScore, 78, '');
+  });
+  suite('T20'); await test('T20: _extractGovernanceSignals value governance', () => {
+    const sig = getSusMetrics()._extractGovernanceSignals(SAMPLE_VGRM);
+    assertEqual(sig.valueGovernanceScore, 85, '');
+  });
+
+  // T21–T40 Governance Continuity
+  suite('T21'); await test('T21: classifyContinuityStatus continuous', () => {
+    assertEqual(getSusMetrics().classifyContinuityStatus(80), 'continuous', '');
+  });
+  suite('T22'); await test('T22: classifyContinuityStatus partial', () => {
+    assertEqual(getSusMetrics().classifyContinuityStatus(55), 'partial', '');
+  });
+  suite('T23'); await test('T23: classifyContinuityStatus broken', () => {
+    assertEqual(getSusMetrics().classifyContinuityStatus(30), 'broken', '');
+  });
+  suite('T24'); await test('T24: CONTINUITY_STAGES 5', () => {
+    assertEqual(svc.aioiGovernanceContinuityService.CONTINUITY_STAGES.length, 5, '');
+  });
+  suite('T25'); await test('T25: buildGovernanceContinuity', () => {
+    const r = svc.aioiGovernanceContinuityService.buildGovernanceContinuity(SAMPLE_VGRM);
+    assert(r.continuity_score >= 70 && r.continuity_status === 'continuous');
+  });
+  suite('T26'); await test('T26: computeContinuityScore range', () => {
+    const s = svc.aioiGovernanceContinuityService.computeContinuityScore(SAMPLE_VGRM);
+    assert(s >= 0 && s <= 100);
+  });
+  suite('T27'); await test('T27: getGovernanceContinuity ok', async () => {
+    const r = await svc.aioiGovernanceContinuityService.getGovernanceContinuity(COMPANY_ID);
+    assert(r.ok && r.governance_continuity.continuity_status);
+  });
+  suite('T28'); await test('T28: companyId inválido continuity', async () => {
+    const r = await svc.aioiGovernanceContinuityService.getGovernanceContinuity('x');
+    assert(!r.ok);
+  });
+  suite('T29'); await test('T29: empty vgrm continuity baixo', () => {
+    assert(svc.aioiGovernanceContinuityService.computeContinuityScore(EMPTY_VGRM) <= 40);
+  });
+  suite('T30'); await test('T30: recordContinuityAnalyzed', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordContinuityAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().continuity_analysis_count >= 1);
+  });
+  suite('T31'); await test('T31: zero writes continuity', async () => {
+    assertNoWrites(mock._client._calls);
+  });
+  suite('T32'); await test('T32: limite 70 continuous', () => {
+    assertEqual(getSusMetrics().classifyContinuityStatus(70), 'continuous', '');
+  });
+  suite('T33'); await test('T33: determinístico continuity', () => {
+    assertEqual(
+      svc.aioiGovernanceContinuityService.computeContinuityScore(SAMPLE_VGRM),
+      svc.aioiGovernanceContinuityService.computeContinuityScore(SAMPLE_VGRM), '');
+  });
+  suite('T34'); await test('T34: cadeia trust→value_governance', () => {
+    const stages = svc.aioiGovernanceContinuityService.CONTINUITY_STAGES;
+    assertEqual(stages[0], 'trust', '');
+    assertEqual(stages[4], 'value_governance', '');
+  });
+  suite('T35'); await test('T35: status permitidos continuity', () => {
+    const allowed = ['broken', 'partial', 'continuous'];
+    for (const s of [80, 50, 20]) assert(allowed.includes(getSusMetrics().classifyContinuityStatus(s)));
+  });
+  suite('T36'); await test('T36: partial vgrm só trust', () => {
+    const partial = {
+      readiness_read_model: {
+        auditability_read_model: {
+          assurance_read_model: {
+            trust_read_model: { intelligence_trust: { trust_score: 75 } }
+          }
+        }
+      }
+    };
+    const r = svc.aioiGovernanceContinuityService.buildGovernanceContinuity(partial);
+    assert(r.continuity_score > 0 && r.continuity_status);
+  });
+  suite('T37'); await test('T37: composição P3.4 continuity', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiGovernanceContinuityService.js'), 'utf8'));
+    assert(code.includes('valueGovernanceReadModel') && !code.includes('getAssuranceReadModel'));
+  });
+  suite('T38'); await test('T38: presence ratio continuity', () => {
+    const full = svc.aioiGovernanceContinuityService.computeContinuityScore(SAMPLE_VGRM);
+    const partial = svc.aioiGovernanceContinuityService.computeContinuityScore({
+      readiness_read_model: {
+        auditability_read_model: {
+          assurance_read_model: {
+            trust_read_model: { intelligence_trust: { trust_score: 80 } }
+          }
+        }
+      }
+    });
+    assert(full > partial);
+  });
+  suite('T39'); await test('T39: limite 40 partial', () => {
+    assertEqual(getSusMetrics().classifyContinuityStatus(40), 'partial', '');
+  });
+  suite('T40'); await test('T40: buildGovernanceContinuity campos', () => {
+    const r = svc.aioiGovernanceContinuityService.buildGovernanceContinuity(SAMPLE_VGRM);
+    assert('continuity_score' in r && 'continuity_status' in r);
+  });
+
+  // T41–T55 Value Sustainability
+  suite('T41'); await test('T41: classifyValueSustainabilityStatus highly_sustainable', () => {
+    assertEqual(getSusMetrics().classifyValueSustainabilityStatus(80), 'highly_sustainable', '');
+  });
+  suite('T42'); await test('T42: classifyValueSustainabilityStatus sustainable', () => {
+    assertEqual(getSusMetrics().classifyValueSustainabilityStatus(55), 'sustainable', '');
+  });
+  suite('T43'); await test('T43: classifyValueSustainabilityStatus fragile', () => {
+    assertEqual(getSusMetrics().classifyValueSustainabilityStatus(30), 'fragile', '');
+  });
+  suite('T44'); await test('T44: VALUE_SUSTAINABILITY_PILLARS 3', () => {
+    assertEqual(svc.aioiValueSustainabilityService.VALUE_SUSTAINABILITY_PILLARS.length, 3, '');
+  });
+  suite('T45'); await test('T45: buildValueSustainability', () => {
+    const r = svc.aioiValueSustainabilityService.buildValueSustainability(SAMPLE_VGRM);
+    assert(r.sustainability_score >= 70 && r.sustainability_status === 'highly_sustainable');
+  });
+  suite('T46'); await test('T46: computeValueSustainabilityScore range', () => {
+    const s = svc.aioiValueSustainabilityService.computeValueSustainabilityScore(SAMPLE_VGRM);
+    assert(s >= 0 && s <= 100);
+  });
+  suite('T47'); await test('T47: getValueSustainability ok', async () => {
+    const r = await svc.aioiValueSustainabilityService.getValueSustainability(COMPANY_ID);
+    assert(r.ok && r.value_sustainability.sustainability_status);
+  });
+  suite('T48'); await test('T48: companyId inválido value sustainability', async () => {
+    const r = await svc.aioiValueSustainabilityService.getValueSustainability('invalid');
+    assert(!r.ok);
+  });
+  suite('T49'); await test('T49: empty vgrm score baixo', () => {
+    assert(svc.aioiValueSustainabilityService.computeValueSustainabilityScore(EMPTY_VGRM) <= 40);
+  });
+  suite('T50'); await test('T50: recordValueSustainabilityAnalyzed', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordValueSustainabilityAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().value_sustainability_count >= 1);
+  });
+  suite('T51'); await test('T51: zero writes value sustainability', async () => {
+    assertNoWrites(mock._client._calls);
+  });
+  suite('T52'); await test('T52: limite 70 highly_sustainable', () => {
+    assertEqual(getSusMetrics().classifyValueSustainabilityStatus(70), 'highly_sustainable', '');
+  });
+  suite('T53'); await test('T53: determinístico value sustainability', () => {
+    assertEqual(
+      svc.aioiValueSustainabilityService.computeValueSustainabilityScore(SAMPLE_VGRM),
+      svc.aioiValueSustainabilityService.computeValueSustainabilityScore(SAMPLE_VGRM), '');
+  });
+  suite('T54'); await test('T54: pilares value_governance readiness trust', () => {
+    const pillars = svc.aioiValueSustainabilityService.VALUE_SUSTAINABILITY_PILLARS;
+    assert(pillars.includes('value_governance') && pillars.includes('readiness') && pillars.includes('trust'));
+  });
+  suite('T55'); await test('T55: status permitidos value sustainability', () => {
+    const allowed = ['fragile', 'sustainable', 'highly_sustainable'];
+    for (const s of [80, 50, 20]) assert(allowed.includes(getSusMetrics().classifyValueSustainabilityStatus(s)));
+  });
+
+  // T56–T70 Enterprise Sustainability
+  suite('T56'); await test('T56: classifyEnterpriseSustainabilityLevel enterprise_sustainable', () => {
+    assertEqual(getSusMetrics().classifyEnterpriseSustainabilityLevel(92), 'enterprise_sustainable', '');
+  });
+  suite('T57'); await test('T57: classifyEnterpriseSustainabilityLevel sustainable', () => {
+    assertEqual(getSusMetrics().classifyEnterpriseSustainabilityLevel(75), 'sustainable', '');
+  });
+  suite('T58'); await test('T58: classifyEnterpriseSustainabilityLevel developing', () => {
+    assertEqual(getSusMetrics().classifyEnterpriseSustainabilityLevel(55), 'developing', '');
+  });
+  suite('T59'); await test('T59: classifyEnterpriseSustainabilityLevel emerging', () => {
+    assertEqual(getSusMetrics().classifyEnterpriseSustainabilityLevel(30), 'emerging', '');
+  });
+  suite('T60'); await test('T60: ENTERPRISE_SUSTAINABILITY_WEIGHTS 0.25', () => {
+    const w = svc.aioiEnterpriseSustainabilityService.ENTERPRISE_SUSTAINABILITY_WEIGHTS;
+    assertEqual(w.health, 0.25, '');
+    assertEqual(w.continuity, 0.25, '');
+    assertEqual(w.valueSustainability, 0.25, '');
+    assertEqual(w.trust, 0.25, '');
+  });
+  suite('T61'); await test('T61: buildEnterpriseSustainability', () => {
+    const health = svc.aioiIntelligenceHealthService.computeHealthScore(SAMPLE_VGRM);
+    const cont = svc.aioiGovernanceContinuityService.computeContinuityScore(SAMPLE_VGRM);
+    const val = svc.aioiValueSustainabilityService.computeValueSustainabilityScore(SAMPLE_VGRM);
+    const r = svc.aioiEnterpriseSustainabilityService.buildEnterpriseSustainability({
+      healthScore: health, continuityScore: cont, valueSustainabilityScore: val, trustScore: 80
+    });
+    assert(r.enterprise_sustainability_score >= 70 && r.enterprise_sustainability_level);
+  });
+  suite('T62'); await test('T62: computeEnterpriseSustainabilityScore range', () => {
+    const s = svc.aioiEnterpriseSustainabilityService.computeEnterpriseSustainabilityScore({
+      healthScore: 80, continuityScore: 80, valueSustainabilityScore: 80, trustScore: 80
+    });
+    assert(s >= 0 && s <= 100);
+  });
+  suite('T63'); await test('T63: getEnterpriseSustainability ok', async () => {
+    const r = await svc.aioiEnterpriseSustainabilityService.getEnterpriseSustainability(COMPANY_ID);
+    assert(r.ok && r.enterprise_sustainability.enterprise_sustainability_level);
+  });
+  suite('T64'); await test('T64: companyId inválido enterprise', async () => {
+    const r = await svc.aioiEnterpriseSustainabilityService.getEnterpriseSustainability('bad-id');
+    assert(!r.ok);
+  });
+  suite('T65'); await test('T65: recordEnterpriseSustainabilityAnalyzed', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordEnterpriseSustainabilityAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().enterprise_sustainability_count >= 1);
+  });
+  suite('T66'); await test('T66: zero writes enterprise sustainability', async () => {
+    assertNoWrites(mock._client._calls);
+  });
+  suite('T67'); await test('T67: limite 90 enterprise_sustainable', () => {
+    assertEqual(getSusMetrics().classifyEnterpriseSustainabilityLevel(90), 'enterprise_sustainable', '');
+  });
+  suite('T68'); await test('T68: determinístico enterprise', () => {
+    const inp = { healthScore: 80, continuityScore: 75, valueSustainabilityScore: 82, trustScore: 78 };
+    assertEqual(
+      svc.aioiEnterpriseSustainabilityService.computeEnterpriseSustainabilityScore(inp),
+      svc.aioiEnterpriseSustainabilityService.computeEnterpriseSustainabilityScore(inp), '');
+  });
+  suite('T69'); await test('T69: pesos iguais soma ponderada', () => {
+    const s = svc.aioiEnterpriseSustainabilityService.computeEnterpriseSustainabilityScore({
+      healthScore: 100, continuityScore: 100, valueSustainabilityScore: 100, trustScore: 100
+    });
+    assertEqual(s, 100, '');
+  });
+  suite('T70'); await test('T70: níveis permitidos enterprise', () => {
+    const allowed = ['emerging', 'developing', 'sustainable', 'enterprise_sustainable'];
+    for (const s of [30, 55, 75, 92]) assert(allowed.includes(getSusMetrics().classifyEnterpriseSustainabilityLevel(s)));
+  });
+
+  // T71–T85 Sustainability Read Model
+  suite('T71'); await test('T71: getSustainabilityReadModel ok', async () => {
+    const r = await getCachedSus();
+    assert(r.ok && r.sustainability_read_model);
+  });
+  suite('T72'); await test('T72: estrutura obrigatória read model', async () => {
+    const r = await getCachedSus();
+    const srm = r.sustainability_read_model;
+    assert(srm.value_governance_read_model && srm.intelligence_health &&
+      srm.governance_continuity && srm.value_sustainability && srm.enterprise_sustainability);
+  });
+  suite('T73'); await test('T73: companyId inválido read model', async () => {
+    const r = await svc.aioiSustainabilityReadModelService.getSustainabilityReadModel('invalid');
+    assert(!r.ok);
+  });
+  suite('T74'); await test('T74: anti-duplication build* local', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiSustainabilityReadModelService.js'), 'utf8'));
+    assert(code.includes('buildIntelligenceHealth') && code.includes('buildGovernanceContinuity'));
+    assert(!code.includes('getIntelligenceHealth(') && !code.includes('getGovernanceContinuity('));
+  });
+  suite('T75'); await test('T75: getValueGovernanceReadModel uma vez', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiSustainabilityReadModelService.js'), 'utf8'));
+    const matches = code.match(/getValueGovernanceReadModel/g) || [];
+    assertEqual(matches.length, 1, 'single vgrm call');
+  });
+  suite('T76'); await test('T76: sem LLM/IA P3.5', () => {
+    const files = ['aioiIntelligenceHealthService.js', 'aioiGovernanceContinuityService.js',
+      'aioiValueSustainabilityService.js', 'aioiEnterpriseSustainabilityService.js',
+      'aioiSustainabilityReadModelService.js'];
+    for (const f of files) {
+      const code = stripComments(fs.readFileSync(path.join(SERVICES_PATH, f), 'utf8'));
+      assert(!code.includes('openai') && !code.includes('generateText'), f);
+    }
+  });
+  suite('T77'); await test('T77: sem forecast novo', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiSustainabilityReadModelService.js'), 'utf8'));
+    assert(!code.includes('getBacklogForecast') && !code.includes('BacklogForecast'));
+  });
+  suite('T78'); await test('T78: Promise.all agregador', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiSustainabilityReadModelService.js'), 'utf8'));
+    assert(code.includes('Promise.all'));
+  });
+  suite('T79'); await test('T79: value_governance nested', async () => {
+    const r = await getCachedSus();
+    assert(r.sustainability_read_model.value_governance_read_model.enterprise_value_governance);
+  });
+  suite('T80'); await test('T80: readiness nested P3.3', async () => {
+    const r = await getCachedSus();
+    assert(r.sustainability_read_model.value_governance_read_model.readiness_read_model);
+  });
+  suite('T81'); await test('T81: intelligence_health campos', async () => {
+    const r = await getCachedSus();
+    const ih = r.sustainability_read_model.intelligence_health;
+    assert('health_score' in ih && 'health_status' in ih);
+  });
+  suite('T82'); await test('T82: governance_continuity campos', async () => {
+    const r = await getCachedSus();
+    const gc = r.sustainability_read_model.governance_continuity;
+    assert('continuity_score' in gc && 'continuity_status' in gc);
+  });
+  suite('T83'); await test('T83: value_sustainability campos', async () => {
+    const r = await getCachedSus();
+    const vs = r.sustainability_read_model.value_sustainability;
+    assert('sustainability_score' in vs && 'sustainability_status' in vs);
+  });
+  suite('T84'); await test('T84: enterprise_sustainability campos', async () => {
+    const r = await getCachedSus();
+    const es = r.sustainability_read_model.enterprise_sustainability;
+    assert('enterprise_sustainability_score' in es && 'enterprise_sustainability_level' in es);
+  });
+  suite('T85'); await test('T85: recordSustainabilityRequested/Completed', () => {
+    sm = getSusMetrics();
+    if (_svcCache) _svcCache.aioiSustainabilityMetrics = sm;
+    sm.resetSessionCounters();
+    sm.recordSustainabilityRequested(COMPANY_ID);
+    sm.recordSustainabilityCompleted(COMPANY_ID, 42);
+    const c = sm.getSessionCounters();
+    assertEqual(c.sustainability_requests, 1, '');
+    assertEqual(c.avg_query_latency_ms, 42, '');
+  });
+
+  // T86–T88 READ ONLY Guard
+  suite('T86'); await test('T86: INSERT bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('INSERT INTO x VALUES (1)'); } catch (e) {
+      threw = true; assertEqual(e.message, 'READ_ONLY_LAYER_VIOLATION', '');
+    }
+    assert(threw);
+  });
+  suite('T87'); await test('T87: UPDATE bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('UPDATE x SET y=1'); } catch (e) { threw = true; } assert(threw);
+  });
+  suite('T88'); await test('T88: DELETE bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('DELETE FROM x'); } catch (e) { threw = true; } assert(threw);
+  });
+
+  // T89 RLS
+  suite('T89'); await test('T89: RLS company_id + bypass false', async () => {
+    await svc.aioiBenchmarkAnalysisService.getBenchmarkAnalysis(COMPANY_ID);
+    const t = mock._client._calls.find(c => c.sql.includes('app.current_company_id'));
+    const b = mock._client._calls.filter(c => c.sql.includes('app.bypass_rls'));
+    assert(t && t.params[0] === COMPANY_ID);
+    assert(b.length >= 1);
+  });
+
+  // T90 Multi-tenant
+  suite('T90'); await test('T90: tenant B benchmark only', async () => {
+    const mockB = createReadinessDbMock(
+      buildIoes().map(i => ({ ...i, company_id: COMPANY_ID_B })),
+      buildSnapshots().map(s => ({ ...s, company_id: COMPANY_ID_B }))
+    );
+    patchDb(mockB);
+    _svcCache = null;
+    clearAioiModuleCache();
+    const svcB = loadP35();
+    const bench = await svcB.aioiBenchmarkAnalysisService.getBenchmarkAnalysis(COMPANY_ID_B);
+    assert(bench.ok && bench.benchmark);
+    const t = mockB._client._calls.filter(c => c.sql.includes('app.current_company_id'))
+      .find(c => c.params && c.params[0] === COMPANY_ID_B);
+    assert(t, 'RLS tenant B');
+  });
+
+  restoreDb();
+
+  // T91–T94 Logs
+  suite('T91'); await test('T91: recordSustainabilityRequested log', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordSustainabilityRequested(COMPANY_ID);
+    assert(sm.getSessionCounters().sustainability_requests === 1);
+  });
+  suite('T92'); await test('T92: recordHealthAnalyzed log', () => {
+    sm = getSusMetrics(); sm.recordHealthAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().health_analysis_count >= 1);
+  });
+  suite('T93'); await test('T93: recordContinuityAnalyzed log', () => {
+    sm = getSusMetrics(); sm.recordContinuityAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().continuity_analysis_count >= 1);
+  });
+  suite('T94'); await test('T94: recordValueSustainabilityAnalyzed log', () => {
+    sm = getSusMetrics(); sm.recordValueSustainabilityAnalyzed(COMPANY_ID);
+    assert(sm.getSessionCounters().value_sustainability_count >= 1);
+  });
+
+  // T95–T96 Métricas
+  suite('T95'); await test('T95: getSessionCounters campos', () => {
+    sm = getSusMetrics(); sm.resetSessionCounters();
+    sm.recordEnterpriseSustainabilityAnalyzed(COMPANY_ID);
+    const c = sm.getSessionCounters();
+    assert(c.enterprise_sustainability_count >= 1 && 'avg_query_latency_ms' in c);
+    assert('sustainability_requests' in c && 'health_analysis_count' in c);
+  });
+  suite('T96'); await test('T96: clampScore', () => {
+    assertEqual(getSusMetrics().clampScore(150), 100, '');
+  });
+
+  // T97–T101 guards + soberanos
+  suite('T97'); await test('T97: TRUNCATE bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('TRUNCATE TABLE x'); } catch (e) { threw = true; } assert(threw);
+  });
+  suite('T98'); await test('T98: ON CONFLICT bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('INSERT INTO x VALUES (1) ON CONFLICT DO NOTHING'); } catch (e) {
+      threw = true; assertEqual(e.message, 'READ_ONLY_LAYER_VIOLATION', '');
+    }
+    assert(threw);
+  });
+  suite('T99'); await test('T99: MERGE bloqueado', () => {
+    sm = getSusMetrics(); let threw = false;
+    try { sm.assertReadOnlySql('MERGE INTO x'); } catch (e) { threw = true; } assert(threw);
+  });
+  suite('T100'); await test('T100: anti-duplication composição P3.0–P3.4', () => {
+    const code = stripComments(fs.readFileSync(
+      path.join(SERVICES_PATH, 'aioiSustainabilityReadModelService.js'), 'utf8'));
+    assert(code.includes('valueGovernanceReadModel') && !code.includes('getTrustReadModel'));
+    assert(code.includes('_extractGovernanceSignals'));
+  });
+  suite('T101'); await test('T101: soberanos ausentes P3.5', () => {
+    const files = ['aioiSustainabilityMetrics.js', 'aioiIntelligenceHealthService.js',
+      'aioiGovernanceContinuityService.js', 'aioiValueSustainabilityService.js',
+      'aioiEnterpriseSustainabilityService.js', 'aioiSustainabilityReadModelService.js'];
+    const forbidden = ['operationalDecisionEngine', 'operationalLearningService', 'workflowOrchestrator',
+      'actionRuntimeOrchestrator', 'computePriorityScore', 'classificationConsumer', 'aioiOutboxConsumerService'];
+    for (const f of files) {
+      const code = stripComments(fs.readFileSync(path.join(SERVICES_PATH, f), 'utf8'));
+      for (const bad of forbidden) assert(!code.includes(bad), `${f} contém ${bad}`);
+    }
+  });
+
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`AIOI-P3.5 Sustainability Tests: ${_passed} passed, ${_failed} failed`);
+  console.log(`${'='.repeat(60)}`);
+  if (_failed === 0) {
+    console.log('\nAIOI_P3_5_ENTERPRISE_INTELLIGENCE_SUSTAINABILITY_PASS\n');
+  } else {
+    process.exitCode = 1;
+  }
+}
+
+runTests().catch(err => {
+  console.error('FATAL:', err);
+  process.exitCode = 1;
+});

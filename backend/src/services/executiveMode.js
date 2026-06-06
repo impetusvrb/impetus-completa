@@ -309,8 +309,28 @@ REGRAS:
 - Máximo 3-5 parágrafos curtos.
 - Aplique a constituição Impetus IA: para CEO, omita microtarefas, checklists técnicos locais e ruído operacional sem impacto estratégico.`;
 
-  const response = await ai.chatCompletion(prompt, { max_tokens: 600 });
-  return (response || 'Não foi possível processar a consulta no momento.').trim();
+  let response = (await ai.chatCompletion(prompt, { max_tokens: 600 }) ||
+    'Não foi possível processar a consulta no momento.').trim();
+
+  try {
+    const truthClosure = require('./cognitiveTruthClosureService');
+    const { rows: userRows } = await db.query(
+      'SELECT id, name, email, role, company_id FROM users WHERE id = $1 LIMIT 1',
+      [userId]
+    );
+    const execUser = userRows[0] || { id: userId, company_id: companyId };
+    const finalized = await truthClosure.applyCognitiveTextTruth(response, {
+      user: execUser,
+      channel: 'executive_ceo_chat',
+      queryText: query,
+      injectOperational: true
+    });
+    response = finalized.text;
+  } catch (truthErr) {
+    console.warn('[EXECUTIVE_TRUTH_CLOSURE]', truthErr?.message ?? truthErr);
+  }
+
+  return response;
 }
 
 /**

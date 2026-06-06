@@ -1,0 +1,32 @@
+[GEMINI] generateText: {"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key not valid. Please pass a valid API key."}]}}
+{
+  "generated_at": "2026-06-02T13:31:46.252Z",
+  "providers": {
+    "openai": {
+      "status": "up",
+      "configured": true,
+      "detail": null
+    },
+    "anthropic": {
+      "status": "up",
+      "configured": true,
+      "detail": null
+    },
+    "google_vertex": {
+      "status": "down",
+      "configured": true,
+      "detail": "Gemini sem texto de resposta"
+    }
+  },
+  "gemini": {
+    "isAvailable": true,
+    "transport": "google_ai_studio",
+    "missing_stages": [],
+    "model": "gemini-2.5-flash"
+  },
+  "credentialsConfigured": {
+    "openai": true,
+    "anthropic": true,
+    "gemini": true
+  }
+}
