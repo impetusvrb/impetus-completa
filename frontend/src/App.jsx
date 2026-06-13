@@ -93,6 +93,29 @@ const ActionApprovalDashboard = lazy(() => import('./components/actionRuntime/Ac
 const RolloutCenterHub = lazy(() => import('./domains/admin/rollout-center/RolloutCenterHub'));
 const CertificationReadinessHub = lazy(() => import('./domains/admin/certification-readiness/CertificationReadinessHub'));
 const FinalConsolidationHub = lazy(() => import('./domains/admin/final-consolidation/FinalConsolidationHub'));
+const ExecutivePortalRoute = lazy(() => import('./modules/aioi/router/ExecutivePortalRoute.jsx'));
+const ExecutiveAccessGuard = lazy(() => import('./modules/aioi/access/ExecutiveAccessGuard.jsx'));
+const ExecutiveNavigationProvider = lazy(() => import('./modules/aioi/navigation/ExecutiveNavigationProvider.jsx'));
+const ExecutiveModuleRoute = lazy(() => import('./modules/aioi/deep-linking/ExecutiveModuleRoute.jsx'));
+const ExecutiveWorkspaceProvider = lazy(() => import('./modules/aioi/workspace/ExecutiveWorkspaceProvider.jsx'));
+const ExecutiveWorkspacePreferencesProvider = lazy(() => import('./modules/aioi/workspace/ExecutiveWorkspacePreferencesProvider.jsx'));
+const ExecutiveSessionProvider = lazy(() => import('./modules/aioi/session/ExecutiveSessionProvider.jsx'));
+const ExecutiveFavoritesProvider = lazy(() => import('./modules/aioi/favorites/ExecutiveFavoritesProvider.jsx'));
+const ExecutiveShortcutsProvider = lazy(() => import('./modules/aioi/shortcuts/ExecutiveShortcutsProvider.jsx'));
+const ExecutiveIntelligenceProvider = lazy(() => import('./modules/aioi/intelligence/ExecutiveIntelligenceProvider.jsx'));
+const ExecutiveIntelligenceGovernanceProvider = lazy(() => import('./modules/aioi/intelligence-governance/ExecutiveIntelligenceGovernanceProvider.jsx'));
+const ExecutiveIntelligenceActivationProvider = lazy(() => import('./modules/aioi/intelligence-activation/ExecutiveIntelligenceActivationProvider.jsx'));
+const ExecutiveCapabilityContractsProvider = lazy(() => import('./modules/aioi/intelligence-contracts/ExecutiveCapabilityContractsProvider.jsx'));
+const ExecutiveInsightsFoundationProvider = lazy(() => import('./modules/aioi/intelligence-insights/ExecutiveInsightsFoundationProvider.jsx'));
+const ExecutiveRecommendationsFoundationProvider = lazy(() => import('./modules/aioi/intelligence-recommendations/ExecutiveRecommendationsFoundationProvider.jsx'));
+const ExecutiveAssistantFoundationProvider = lazy(() => import('./modules/aioi/intelligence-assistant/ExecutiveAssistantFoundationProvider.jsx'));
+const ExecutiveCognitiveRuntimeProvider = lazy(() => import('./modules/aioi/cognitive-runtime/ExecutiveCognitiveRuntimeProvider.jsx'));
+const ExecutiveRuntimeGovernanceProvider = lazy(() => import('./modules/aioi/runtime-governance/ExecutiveRuntimeGovernanceProvider.jsx'));
+const ExecutiveRuntimeAuthorizationProvider = lazy(() => import('./modules/aioi/runtime-authorization/ExecutiveRuntimeAuthorizationProvider.jsx'));
+const ExecutiveRuntimeAuditProvider = lazy(() => import('./modules/aioi/runtime-audit/ExecutiveRuntimeAuditProvider.jsx'));
+const ExecutiveInsightsRuntimeProvider = lazy(() => import('./modules/aioi/insights-runtime/ExecutiveInsightsRuntimeProvider.jsx'));
+const ExecutiveRecommendationsRuntimeProvider = lazy(() => import('./modules/aioi/recommendations-runtime/ExecutiveRecommendationsRuntimeProvider.jsx'));
+const ExecutiveAssistantRuntimeProvider = lazy(() => import('./modules/aioi/assistant-runtime/ExecutiveAssistantRuntimeProvider.jsx'));
 function needSetup() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -449,6 +472,59 @@ function DirectorOrCEORouteGuard({ children }) {
   return <Navigate to="/app" replace />;
 }
 
+function ExecutivePortalDeepLinkShell() {
+  return (
+    <ExecutiveAccessGuard>
+      {/* P8.6 <ExecutiveAssistantRuntimeProvider> · P8.5 <ExecutiveRecommendationsRuntimeProvider> · P8.4 <ExecutiveInsightsRuntimeProvider> · P8.3 <ExecutiveRuntimeAuditProvider> · P8.2 <ExecutiveRuntimeAuthorizationProvider> · P8.1 <ExecutiveRuntimeGovernanceProvider> · P8.0 <ExecutiveCognitiveRuntimeProvider> · P7.6 <ExecutiveAssistantFoundationProvider> · P7.5 <ExecutiveRecommendationsFoundationProvider> · P7.4 <ExecutiveInsightsFoundationProvider> · P7.3 <ExecutiveCapabilityContractsProvider> · P7.2 <ExecutiveIntelligenceActivationProvider> · P7.1 <ExecutiveIntelligenceGovernanceProvider> · P7.0 <ExecutiveIntelligenceProvider> · P6.8 <ExecutiveShortcutsProvider> · P6.4 <ExecutiveWorkspaceProvider> · P6.2 <ExecutiveNavigationProvider> · P6.0 <ExecutivePortalRoute /> via P6.3 */}
+      <ExecutiveWorkspacePreferencesProvider>
+        <ExecutiveSessionProvider>
+          <ExecutiveFavoritesProvider>
+            <ExecutiveShortcutsProvider>
+              <ExecutiveIntelligenceProvider>
+                <ExecutiveIntelligenceGovernanceProvider>
+                  <ExecutiveIntelligenceActivationProvider>
+                    <ExecutiveCapabilityContractsProvider>
+                      <ExecutiveInsightsFoundationProvider>
+                        <ExecutiveRecommendationsFoundationProvider>
+                          <ExecutiveAssistantFoundationProvider>
+                            <ExecutiveCognitiveRuntimeProvider>
+                              <ExecutiveRuntimeGovernanceProvider>
+                                <ExecutiveRuntimeAuthorizationProvider>
+                                  <ExecutiveRuntimeAuditProvider>
+                                    <ExecutiveInsightsRuntimeProvider>
+                                      <ExecutiveRecommendationsRuntimeProvider>
+                                        <ExecutiveAssistantRuntimeProvider>
+                                          <ExecutiveWorkspaceProvider>
+                                            <ExecutiveModuleRoute
+                                              render={({ moduleId }) => (
+                                                <ExecutiveNavigationProvider activeSection={moduleId}>
+                                                  <ExecutivePortalRoute />
+                                                </ExecutiveNavigationProvider>
+                                              )}
+                                            />
+                                          </ExecutiveWorkspaceProvider>
+                                        </ExecutiveAssistantRuntimeProvider>
+                                      </ExecutiveRecommendationsRuntimeProvider>
+                                    </ExecutiveInsightsRuntimeProvider>
+                                  </ExecutiveRuntimeAuditProvider>
+                                </ExecutiveRuntimeAuthorizationProvider>
+                              </ExecutiveRuntimeGovernanceProvider>
+                            </ExecutiveCognitiveRuntimeProvider>
+                          </ExecutiveAssistantFoundationProvider>
+                        </ExecutiveRecommendationsFoundationProvider>
+                      </ExecutiveInsightsFoundationProvider>
+                    </ExecutiveCapabilityContractsProvider>
+                  </ExecutiveIntelligenceActivationProvider>
+                </ExecutiveIntelligenceGovernanceProvider>
+              </ExecutiveIntelligenceProvider>
+            </ExecutiveShortcutsProvider>
+          </ExecutiveFavoritesProvider>
+        </ExecutiveSessionProvider>
+      </ExecutiveWorkspacePreferencesProvider>
+    </ExecutiveAccessGuard>
+  );
+}
+
 export default function App() {
   return (
     <NotificationProvider>
@@ -755,6 +831,56 @@ export default function App() {
         <Route path="/m" element={<PrivateRoute><SetupGuard><AppMobile /></SetupGuard></PrivateRoute>} />
         <Route path="/license-expired" element={<LicenseExpired />} />
         <Route path="/subscription-expired" element={<SubscriptionExpired />} />
+        <Route
+          path="/executive-portal"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ExecutivePortalDeepLinkShell />
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/executive-portal/cockpit"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ExecutivePortalDeepLinkShell />
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/executive-portal/decision-visualization"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ExecutivePortalDeepLinkShell />
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/executive-portal/interface-intelligence"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ExecutivePortalDeepLinkShell />
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/executive-portal/executive-reports"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ExecutivePortalDeepLinkShell />
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
         <Route path="/404" element={<Error404 />} />
         <Route path="/500" element={<Error500 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />

@@ -1481,3 +1481,73 @@ export const technicalLibrary = {
   /** Payload visual unificado (alarme ou resultado IA) → contrato Unity */
   buildUnityVisualPayload: (body) => api.post('/technical-library/unity/build-visual-payload', body)
 };
+
+/**
+ * AIOI — Algoritmo Industrial Operacional Inteligente
+ * Queue API: fonte única de verdade para fila executiva CEO.
+ * ORG-1: aioi_executive_queue_snapshot é AUTHORITATIVE.
+ * READ ONLY — nenhuma escrita via frontend.
+ */
+export const aioi = {
+  /** GET /api/aioi/health — status da camada AIOI */
+  health: () => api.get('/aioi/health'),
+  /** GET /api/aioi/queue — fila executiva CEO (snapshot AIOI) */
+  getQueue: (params) => api.get('/aioi/queue', { params }),
+  /** GET /api/aioi/queue/bundle — queue + read model + view model */
+  getQueueBundle: (params) => api.get('/aioi/queue/bundle', { params }),
+  /** GET /api/aioi/runtime/health — P1A.6 health do runtime contínuo */
+  getRuntimeHealth: () => api.get('/aioi/runtime/health'),
+  /** GET /api/aioi/runtime/metrics — P1A.5 métricas operacionais */
+  getRuntimeMetrics: () => api.get('/aioi/runtime/metrics'),
+  /** GET /api/aioi/runtime/status — estado do continuous worker */
+  getRuntimeStatus: () => api.get('/aioi/runtime/status'),
+  /** GET /api/aioi/governance/status — P1D.6 governance consolidado */
+  getGovernanceStatus: () => api.get('/aioi/governance/status'),
+  /** GET /api/aioi/governance/capacity — capacity guardrails */
+  getGovernanceCapacity: () => api.get('/aioi/governance/capacity'),
+  /** GET /api/aioi/governance/retention — dry-run retenção */
+  getGovernanceRetention: () => api.get('/aioi/governance/retention'),
+  /** GET /api/aioi/scale/status — P1E.7 horizontal scale consolidado */
+  getScaleStatus: () => api.get('/aioi/scale/status'),
+  /** GET /api/aioi/scale/partitions — tenant partition map */
+  getScalePartitions: () => api.get('/aioi/scale/partitions'),
+  /** GET /api/aioi/scale/workers — cluster & benchmark */
+  getScaleWorkers: () => api.get('/aioi/scale/workers'),
+  /** GET /api/aioi/scale/validation — P1F shadow validation summary */
+  getScaleValidation: () => api.get('/aioi/scale/validation'),
+  /** GET /api/aioi/scale/leases — lease health metrics */
+  getScaleLeases: () => api.get('/aioi/scale/leases'),
+  /** GET /api/aioi/scale/ownership — partition ownership metrics */
+  getScaleOwnership: () => api.get('/aioi/scale/ownership'),
+  /** GET /api/aioi/scale/runtime — P1G activation runtime status */
+  getScaleRuntime: () => api.get('/aioi/scale/runtime'),
+  /** GET /api/aioi/scale/registry — P1G registry activation status */
+  getScaleRegistry: () => api.get('/aioi/scale/registry'),
+  /** GET /api/aioi/scale/benchmark — P1G benchmark metrics */
+  getScaleBenchmark: () => api.get('/aioi/scale/benchmark'),
+  /** GET /api/aioi/scale/distributed — P1H distributed runtime status */
+  getScaleDistributed: () => api.get('/aioi/scale/distributed'),
+  /** GET /api/aioi/scale/telemetry — P1I distributed telemetry */
+  getScaleTelemetry: () => api.get('/aioi/scale/telemetry'),
+  /** GET /api/aioi/scale/health — P1I cluster health */
+  getScaleHealth: () => api.get('/aioi/scale/health'),
+  /** GET /api/aioi/scale/capacity — P1I capacity planning */
+  getScaleCapacity: () => api.get('/aioi/scale/capacity'),
+  /** GET /api/aioi/scale/audit — P1I distributed audit trail */
+  getScaleAudit: () => api.get('/aioi/scale/audit'),
+
+  getProductionReadiness: () => api.get('/aioi/production/readiness'),
+  getProductionRisk: () => api.get('/aioi/production/risk'),
+  getProductionCertifications: () => api.get('/aioi/production/certifications'),
+  getProductionAudit: () => api.get('/aioi/production/audit'),
+
+  getDeploymentGovernance: () => api.get('/aioi/production/deployment'),
+  getDeploymentApproval: (approvalId) => api.get('/aioi/production/approval', { params: approvalId ? { approval_id: approvalId } : {} }),
+  getProductionRollouts: (params) => api.get('/aioi/production/rollouts', { params }),
+  getReadinessHistory: (params) => api.get('/aioi/production/readiness-history', { params }),
+
+  getOperationalDataset: () => api.get('/aioi/operations/dataset'),
+  getOperationalWorkload: () => api.get('/aioi/operations/workload'),
+  getOperationalConsistency: () => api.get('/aioi/operations/consistency'),
+  getOperationalCertification: () => api.get('/aioi/operations/certification')
+};

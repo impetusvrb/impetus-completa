@@ -1648,3 +1648,720 @@
     max-width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   AIOI-P0C — Widget Fila Executiva CEO (WidgetAIOIQueue)
+   READ ONLY · NO COGNITIVE ACTIVATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.aioi-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 340px;
+}
+
+/* cabeçalho */
+.aioi-queue__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0,212,255,0.03);
+}
+.aioi-queue__header-icon { color: var(--cyan); display: flex; align-items: center; }
+.aioi-queue__header-title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  flex: 1;
+}
+.aioi-queue__header-badge {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  background: rgba(0,212,255,0.08);
+  border: 1px solid rgba(0,212,255,0.25);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+.aioi-queue__refresh-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+.aioi-queue__refresh-btn:hover { color: var(--cyan); }
+.aioi-queue__refresh-btn--spin svg { animation: aioi-spin 0.8s linear infinite; }
+@keyframes aioi-spin { to { transform: rotate(360deg); } }
+.aioi-queue__updated {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+}
+
+/* indicadores de faixa */
+.aioi-queue__indicators {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border-subtle);
+}
+.aioi-queue__ind-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  background: var(--bg-panel, #0f1a28);
+  gap: 2px;
+}
+.aioi-queue__ind-card--skeleton {
+  height: 48px;
+  background: var(--bg-tertiary);
+  animation: cc-shimmer 1.4s ease infinite;
+}
+.aioi-queue__ind-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.aioi-queue__ind-label {
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.aioi-queue__ind-card--total .aioi-queue__ind-value   { color: var(--text-primary); }
+.aioi-queue__ind-card--critical .aioi-queue__ind-value { color: var(--red); }
+.aioi-queue__ind-card--high .aioi-queue__ind-value     { color: var(--amber); }
+.aioi-queue__ind-card--medium .aioi-queue__ind-value   { color: var(--cyan); }
+
+/* barra de fonte */
+.aioi-queue__source-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 14px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.aioi-queue__source-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+.aioi-queue__source-ts {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+}
+
+/* lista de itens */
+.aioi-queue__list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border-subtle);
+  max-height: 420px;
+}
+.aioi-queue__list::-webkit-scrollbar { width: 3px; }
+.aioi-queue__list::-webkit-scrollbar-track { background: transparent; }
+.aioi-queue__list::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+
+/* item de fila */
+.aioi-queue__item {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-panel, #0f1a28);
+  gap: 10px;
+  padding: 8px 12px;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+  cursor: default;
+}
+.aioi-queue__item--skeleton {
+  height: 68px;
+  background: var(--bg-tertiary);
+  animation: cc-shimmer 1.4s ease infinite;
+}
+.aioi-queue__item:hover { background: rgba(0,212,255,0.04); }
+
+/* cor lateral por banda */
+.aioi-queue__band--critical { border-left-color: var(--red) !important; }
+.aioi-queue__band--high     { border-left-color: var(--amber) !important; }
+.aioi-queue__band--medium   { border-left-color: var(--cyan) !important; }
+.aioi-queue__band--low      { border-left-color: var(--border-default) !important; }
+
+.aioi-queue__item-rank {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  width: 24px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.aioi-queue__item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aioi-queue__item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aioi-queue__band-badge {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.aioi-queue__band--critical .aioi-queue__band-badge { background: rgba(255,64,64,0.15); color: var(--red); }
+.aioi-queue__band--high .aioi-queue__band-badge     { background: rgba(255,170,0,0.12); color: var(--amber); }
+.aioi-queue__band--medium .aioi-queue__band-badge   { background: rgba(0,212,255,0.1);  color: var(--cyan); }
+.aioi-queue__band--low .aioi-queue__band-badge      { background: rgba(255,255,255,0.05); color: var(--text-tertiary); }
+
+.aioi-queue__item-score {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.aioi-queue__item-cat {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+}
+.aioi-queue__item-provisional {
+  font-size: 0.6rem;
+  color: var(--amber);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  opacity: 0.7;
+  title: 'Score provisório';
+}
+.aioi-queue__item-mid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aioi-queue__item-status {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.aioi-queue__item-entity {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  background: rgba(255,255,255,0.04);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.aioi-queue__breach-tag {
+  font-size: 0.6rem;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+.aioi-queue__breach--ok     { background: rgba(0,255,136,0.08);  color: var(--green); }
+.aioi-queue__breach--risk   { background: rgba(255,170,0,0.1);   color: var(--amber); }
+.aioi-queue__breach--breach { background: rgba(255,64,64,0.12);  color: var(--red); }
+
+.aioi-queue__item-bot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.aioi-queue__item-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+}
+.aioi-queue__item-corr {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+.aioi-queue__item-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* skeleton title */
+.aioi-queue__skeleton-title {
+  height: 12px;
+  width: 160px;
+  border-radius: 3px;
+  background: var(--border-default);
+  animation: cc-shimmer 1.4s ease infinite;
+}
+
+/* estado vazio */
+.aioi-queue__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  text-align: center;
+}
+.aioi-queue__empty-icon { color: var(--text-tertiary); opacity: 0.35; }
+.aioi-queue__empty-msg {
+  font-family: var(--font-ui, 'Rajdhani', sans-serif);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.aioi-queue__empty-sub {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  opacity: 0.55;
+  letter-spacing: 1px;
+}
+.aioi-queue__retry {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.2);
+  color: var(--cyan);
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s;
+}
+.aioi-queue__retry:hover { background: rgba(0,212,255,0.12); }
+
+/* rodapé */
+.aioi-queue__footer {
+  padding: 5px 14px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0,0,0,0.15);
+}
+.aioi-queue__footer-info {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.52rem;
+  color: var(--text-tertiary);
+  opacity: 0.45;
+  letter-spacing: 0.5px;
+}
+
+/* loading state */
+.aioi-queue--loading { pointer-events: none; }
+
+/* ───────────────────────────────────────────────────────────────
+   AIOI Runtime Widget (P1A.7)
+   ─────────────────────────────────────────────────────────────── */
+.aioi-runtime__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  min-height: 180px;
+}
+
+.aioi-runtime__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.aioi-runtime__header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.aioi-runtime__header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aioi-runtime__title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.aioi-runtime__mode {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.52rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.aioi-runtime__worker-status {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.aioi-runtime__invariants {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.52rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.aioi-runtime__section-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.aioi-runtime__tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.aioi-runtime__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+
+.aioi-runtime__tile-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.aioi-runtime__tile-unit {
+  font-size: 0.52rem;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.aioi-runtime__tile-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.aioi-runtime__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.aioi-runtime__tenants,
+.aioi-runtime__last-fetch {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.8px;
+}
+
+.aioi-runtime__loading,
+.aioi-runtime__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  padding: 12px 0;
+}
+
+.aioi-runtime__dot {
+  display: inline-block;
+}
+
+/* ── AIOI Governance Widget (P1D.5) ── */
+.aioi-gov__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  min-height: 160px;
+}
+.aioi-gov__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 8px;
+}
+.aioi-gov__header-left { display: flex; align-items: center; gap: 7px; }
+.aioi-gov__title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.aioi-gov__mode {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.aioi-gov__status-badge {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+.aioi-gov__section-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.aioi-gov__tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.aioi-gov__tiles--2 { grid-template-columns: repeat(2, 1fr); }
+.aioi-gov__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+.aioi-gov__tile-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.aioi-gov__tile-unit { font-size: 0.52rem; opacity: 0.7; margin-left: 2px; }
+.aioi-gov__tile-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.aioi-gov__info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.52rem;
+  color: var(--text-tertiary);
+}
+.aioi-gov__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+.aioi-gov__invariants {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--green);
+  letter-spacing: 1px;
+}
+.aioi-gov__last-fetch {
+  margin-left: auto;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+}
+.aioi-gov__loading, .aioi-gov__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  padding: 12px 0;
+}
+
+/* ── AIOI Scale Widget (P1E.6) ── */
+.aioi-scale__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  min-height: 160px;
+}
+.aioi-scale__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 8px;
+}
+.aioi-scale__header-left { display: flex; align-items: center; gap: 7px; }
+.aioi-scale__title {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.aioi-scale__mode {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.aioi-scale__badge {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+.aioi-scale__section-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.5rem;
+  color: var(--text-tertiary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.aioi-scale__tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.aioi-scale__tiles--3 { grid-template-columns: repeat(3, 1fr); }
+.aioi-scale__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 6px 4px;
+}
+.aioi-scale__tile-value {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.aioi-scale__tile-unit { font-size: 0.52rem; opacity: 0.7; margin-left: 2px; }
+.aioi-scale__tile-label {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.aioi-scale__info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.52rem;
+  color: var(--text-tertiary);
+}
+.aioi-scale__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+.aioi-scale__invariants {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--green);
+  letter-spacing: 1px;
+}
+.aioi-scale__last-fetch {
+  margin-left: auto;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.48rem;
+  color: var(--text-tertiary);
+}
+.aioi-scale__loading, .aioi-scale__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  padding: 12px 0;
+}

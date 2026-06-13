@@ -36,6 +36,9 @@ const metrics = require('./aioiExecutionMetrics');
 const LAYER = 'AIOI_EXECUTION_BRIDGE';
 const DEFAULT_BATCH_SIZE = 10;
 
+/** PC-EXE-04 — status proibidos para execução */
+const BLOCKED_EXECUTION_STATUSES = Object.freeze(['open', 'triaged', 'pending_approval']);
+
 // ---------------------------------------------------------------------------
 // Helpers RLS
 // ---------------------------------------------------------------------------
@@ -61,7 +64,8 @@ async function _fetchApprovedIoe(companyId, ioeId) {
   return _withTenantClient(companyId, async (client) => {
     const result = await client.query(
       `SELECT id, company_id, status, category, source_type, priority_band, priority_score,
-              entity_type, entity_id, equipment_id, correlation_id,
+              entity_type, entity_id, equipment_id, correlation_id, external_ref_id,
+              truth_state, evidence_refs,
               decision_type, decision_payload,
               approved_by_user_id, approved_at,
               execution_trace_id, workflow_instance_id
@@ -77,7 +81,8 @@ async function _fetchApprovedIoesForExecution(companyId, limit) {
   return _withTenantClient(companyId, async (client) => {
     const result = await client.query(
       `SELECT id, company_id, status, category, source_type, priority_band, priority_score,
-              entity_type, entity_id, equipment_id, correlation_id,
+              entity_type, entity_id, equipment_id, correlation_id, external_ref_id,
+              truth_state, evidence_refs,
               decision_type, decision_payload,
               approved_by_user_id, approved_at,
               execution_trace_id, workflow_instance_id
@@ -108,16 +113,27 @@ function _validateHitlAndDecision(ioe) {
   if (!ioe) {
     return { ok: false, error: 'IOE não encontrado' };
   }
+  if (BLOCKED_EXECUTION_STATUSES.includes(ioe.status)) {
+    return { ok: false, error: 'EXECUTION_BLOCKED_STATUS' };
+  }
   if (ioe.status !== 'approved') {
     return { ok: false, error: 'HITL_REQUIRED' };
   }
-  if (!ioe.approved_by_user_id || !ioe.approved_at) {
+  if (!ioe.approved_by_user_id) {
+    return { ok: false, error: 'HITL_REQUIRED' };
+  }
+  if (!ioe.approved_at) {
     return { ok: false, error: 'HITL_REQUIRED' };
   }
   if (!ioe.decision_type || !ioe.decision_payload) {
     return { ok: false, error: 'DECISION_REQUIRED' };
   }
   return { ok: true };
+}
+
+/** PC-EXE-01..06 — validação exportada para auditoria P1 */
+function validateExecutionEligibility(ioe) {
+  return _validateHitlAndDecision(ioe);
 }
 
 /**
@@ -382,5 +398,7 @@ async function processBatch({ companyId, batchSize = DEFAULT_BATCH_SIZE }) {
 module.exports = {
   requestExecution,
   processApprovedIoe,
-  processBatch
+  processBatch,
+  validateExecutionEligibility,
+  BLOCKED_EXECUTION_STATUSES
 };

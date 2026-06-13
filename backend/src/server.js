@@ -381,6 +381,14 @@ useRoute('/api/runtime-unification', './routes/runtimeUnification', requireAuth)
 useRoute('/api/rollout-center', './routes/rolloutCenter', requireAuth);
 useRoute('/api/enterprise-locale', './routes/enterpriseLocale', requireAuth);
 useRoute('/api/certification-readiness', './routes/certificationReadiness', requireAuth);
+useRoute('/api/aioi/cockpit', './routes/aioi/aioiCockpitRoutes');
+useRoute('/api/aioi/executive-cockpit', './routes/aioi/aioiExecutiveCockpitViewModelRoutes');
+useRoute('/api/aioi/runtime', './routes/aioi/aioiRuntimeRoutes');
+useRoute('/api/aioi/governance', './routes/aioi/aioiGovernanceRoutes');
+useRoute('/api/aioi/scale', './routes/aioi/aioiScaleRoutes');
+useRoute('/api/aioi/production', './routes/aioi/aioiProductionRoutes');
+useRoute('/api/aioi/operations', './routes/aioi/aioiOperationsRoutes');
+useRoute('/api/aioi', './routes/aioi/aioiQueueRoutes');
 useRoute('/api/final-consolidation-audit', './routes/finalConsolidationAudit', requireAuth);
 useRoute('/api/admin/learning', './routes/adminLearning');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
@@ -2160,6 +2168,54 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
   }
 }
 
+// ─── AIOI Outbox Worker (P2.1) — ativação explícita ─────────────────────────
+{
+  try {
+    const aioiWorker = require('./services/aioi/aioiOutboxWorkerService');
+    aioiWorker.registerShutdownHandlers();
+    const workerEnabled = String(process.env.IMPETUS_AIOI_OUTBOX_WORKER_ENABLED || 'false').toLowerCase() === 'true';
+    if (workerEnabled) {
+      const started = aioiWorker.startWorker();
+      const stats = aioiWorker.getWorkerStatus();
+      console.info(`[AIOI_OUTBOX_WORKER_BOOT] ${JSON.stringify({ event: 'AIOI_OUTBOX_WORKER_BOOT', started, ...stats })}`);
+    } else {
+      console.info('[AIOI_OUTBOX_WORKER_BOOT] Worker desativado (IMPETUS_AIOI_OUTBOX_WORKER_ENABLED=false)');
+    }
+  } catch (e) {
+    console.warn('[AIOI_OUTBOX_WORKER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── AIOI Continuous Worker (P1A.2) — runtime operacional contínuo ───────────
+{
+  try {
+    const aioiContinuousWorker = require('./services/aioi/runtime/aioiContinuousWorkerService');
+    aioiContinuousWorker.registerShutdownHandlers();
+    const continuousEnabled = String(process.env.IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED || 'false').toLowerCase() === 'true';
+    if (continuousEnabled) {
+      const started = aioiContinuousWorker.startWorker();
+      const stats   = aioiContinuousWorker.getWorkerStatus();
+      console.info(`[AIOI_CONTINUOUS_WORKER_BOOT] ${JSON.stringify({ event: 'AIOI_CONTINUOUS_WORKER_BOOT', started, ...stats })}`);
+    } else {
+      console.info('[AIOI_CONTINUOUS_WORKER_BOOT] Worker desativado (IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED=false)');
+    }
+  } catch (e) {
+    console.warn('[AIOI_CONTINUOUS_WORKER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── AIOI Runtime Aggregation (P1D.3) — cache observabilidade ────────────────
+{
+  try {
+    const aioiAggregation = require('./services/aioi/runtime/aioiRuntimeAggregationService');
+    aioiAggregation.startPeriodicRefresh();
+    aioiAggregation.refreshAggregateCache().catch(() => {});
+    console.info('[AIOI_AGGREGATION_BOOT] Periodic refresh iniciado');
+  } catch (e) {
+    console.warn('[AIOI_AGGREGATION_BOOT] Não iniciado:', e?.message);
+  }
+}
+
 // ─── Retention Worker Unified (T1.7) ─────────────────────────────────────────
 {
   try {
@@ -2211,6 +2267,24 @@ function gracefulShutdown(signal) {
     if (typeof machineMonitoring.stop === 'function') machineMonitoring.stop();
   } catch (e) {
     console.warn('[SHUTDOWN] machineMonitoring:', e?.message);
+  }
+  try {
+    const aioiWorker = require('./services/aioi/aioiOutboxWorkerService');
+    if (typeof aioiWorker.stopWorker === 'function') aioiWorker.stopWorker();
+  } catch (e) {
+    console.warn('[SHUTDOWN] aioiOutboxWorker:', e?.message);
+  }
+  try {
+    const aioiContinuousWorker = require('./services/aioi/runtime/aioiContinuousWorkerService');
+    if (typeof aioiContinuousWorker.stopWorker === 'function') aioiContinuousWorker.stopWorker();
+  } catch (e) {
+    console.warn('[SHUTDOWN] aioiContinuousWorker:', e?.message);
+  }
+  try {
+    const aioiAggregation = require('./services/aioi/runtime/aioiRuntimeAggregationService');
+    if (typeof aioiAggregation.stopPeriodicRefresh === 'function') aioiAggregation.stopPeriodicRefresh();
+  } catch (e) {
+    console.warn('[SHUTDOWN] aioiAggregation:', e?.message);
   }
   // Cron jobs registados (Nexus billing, etc.)
   try {

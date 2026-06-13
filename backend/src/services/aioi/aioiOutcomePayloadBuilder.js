@@ -18,7 +18,8 @@ const VALID_OUTCOME_STATUSES = Object.freeze([
   'success',
   'partial_success',
   'failure',
-  'cancelled'
+  'cancelled',
+  'rejected'
 ]);
 
 const CATEGORY_TO_CONTEXT_TAG = {
@@ -115,6 +116,8 @@ function buildLearningContext(ioe, outcome) {
     context_tag:           contextTag,
     ioe_id:                ioe.id,
     correlation_id:        ioe.correlation_id || null,
+    external_ref_id:       ioe.external_ref_id || null,
+    truth_state:           ioe.truth_state || null,
     decision_type:         ioe.decision_type || null,
     outcome_status:        outcome.outcome_status,
     execution_duration_ms: outcome.execution_duration_ms,

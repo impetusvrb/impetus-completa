@@ -56,7 +56,8 @@ async function _withTenantClient(companyId, fn) {
 async function _fetchResolvedIoe(companyId, ioeId) {
   return _withTenantClient(companyId, async (client) => {
     const result = await client.query(
-      `SELECT id, company_id, status, correlation_id, decision_type, decision_payload
+      `SELECT id, company_id, status, correlation_id, external_ref_id,
+              truth_state, evidence_refs, decision_type, decision_payload
        FROM industrial_operational_events
        WHERE id = $1::uuid AND company_id = $2::uuid`,
       [ioeId, companyId]
@@ -68,7 +69,8 @@ async function _fetchResolvedIoe(companyId, ioeId) {
 async function _fetchResolvedIoesForLearning(companyId, limit) {
   return _withTenantClient(companyId, async (client) => {
     const result = await client.query(
-      `SELECT id, company_id, status, correlation_id, decision_type, decision_payload
+      `SELECT id, company_id, status, correlation_id, external_ref_id,
+              truth_state, evidence_refs, decision_type, decision_payload
        FROM industrial_operational_events
        WHERE company_id = $1::uuid
          AND status = 'resolved'
@@ -187,7 +189,16 @@ async function processResolvedIoe({ companyId, ioeId }) {
     }
 
     // L2 — delegação ao soberano (sem aprendizado local)
-    const learningPayload = payloadBuilder.buildLearningPayload(learningContext);
+    const enrichedContext = {
+      ...learningContext,
+      correlation_id:  learningContext.correlation_id || ioe.correlation_id || null,
+      external_ref_id: learningContext.external_ref_id || ioe.external_ref_id || null,
+      truth_state:     learningContext.truth_state || ioe.truth_state || null,
+      evidence_refs:   Array.isArray(learningContext.evidence_refs)
+        ? learningContext.evidence_refs
+        : (Array.isArray(ioe.evidence_refs) ? ioe.evidence_refs : [])
+    };
+    const learningPayload = payloadBuilder.buildLearningPayload(enrichedContext);
 
     // L6 — transação: soberano primeiro, persistência só após sucesso
     try {

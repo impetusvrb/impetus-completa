@@ -1,0 +1,158 @@
+/**
+ * AIOI-P6.2 — Executive Navigation Experience styles (Industrial 4.0)
+ */
+
+.providerShell {
+  min-height: 100vh;
+  background: var(--bg-primary, #070c14);
+  display: flex;
+  flex-direction: column;
+}
+
+.providerContent {
+  flex: 1;
+}
+
+.indicatorsBar {
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-secondary, #0d1520);
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+}
+
+.indicatorsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.indicatorsEyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  margin: 0;
+}
+
+.breadcrumbList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumbItem {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-primary, #e8f4ff);
+}
+
+.breadcrumbItem:not(:last-child)::after {
+  content: '›';
+  margin-left: 0.5rem;
+  color: var(--text-tertiary, #5a7088);
+}
+
+.indicatorsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.metaLabel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary, #5a7088);
+}
+
+.metaValue {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary, #8ba4bc);
+}
+
+.metaMono {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-accent, #00d4ff);
+  letter-spacing: 0.5px;
+}
+
+.moduleMap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.moduleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  border-radius: 4px;
+  background: var(--bg-panel, #0f1a28);
+}
+
+.moduleChipActive {
+  border-color: var(--cyan, rgba(0, 212, 255, 0.45));
+  box-shadow: 0 0 8px var(--glow-cyan, rgba(0, 212, 255, 0.15));
+}
+
+.moduleLabel {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #8ba4bc);
+}
+
+.moduleChipActive .moduleLabel {
+  color: var(--text-primary, #e8f4ff);
+}
+
+.readinessDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.readinessReady {
+  background: var(--green, #00ff88);
+  animation: navBlink 2s ease-in-out infinite;
+}
+
+.readinessPending {
+  background: var(--amber, #ffaa00);
+}
+
+.readinessSummary {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-tertiary, #5a7088);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+@keyframes navBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

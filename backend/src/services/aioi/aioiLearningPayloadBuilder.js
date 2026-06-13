@@ -75,12 +75,19 @@ function buildLearningPayload(learningContext) {
       machine_id:  String(learningContext.machine_id).trim(),
       company_id:  String(learningContext.company_id).trim(),
       action_type: String(learningContext.action_type).trim(),
+      correlation_id: learningContext.correlation_id || null,
+      external_ref_id: learningContext.external_ref_id || null,
+      truth_state: learningContext.truth_state || null,
+      evidence_refs: Array.isArray(learningContext.evidence_refs) ? learningContext.evidence_refs : [],
       context_tag: learningContext.context_tag || null
     },
     result: {
       success:        learningContext.success,
       context_tag:    learningContext.context_tag || null,
-      outcome_status: learningContext.outcome_status || null
+      outcome_status: learningContext.outcome_status || null,
+      correlation_id: learningContext.correlation_id || null,
+      truth_state:    learningContext.truth_state || null,
+      evidence_refs:  Array.isArray(learningContext.evidence_refs) ? learningContext.evidence_refs : []
     },
     company_id: String(learningContext.company_id).trim()
   };

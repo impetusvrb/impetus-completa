@@ -1,0 +1,56 @@
+/**
+ * AIOI-P6.3 — Executive Deep Linking styles (Industrial 4.0)
+ */
+
+.guardShell {
+  min-height: inherit;
+}
+
+.fallbackPanel {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg-secondary, #0d1520);
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+  border-radius: 4px;
+  text-align: center;
+}
+
+.fallbackEyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  margin: 0 0 1rem;
+}
+
+.fallbackTitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-primary, #e8f4ff);
+  margin: 0 0 1rem;
+}
+
+.fallbackMessage {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  color: var(--text-secondary, #8ba4bc);
+  max-width: 32rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.fallbackMeta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-tertiary, #5a7088);
+  margin: 0;
+}

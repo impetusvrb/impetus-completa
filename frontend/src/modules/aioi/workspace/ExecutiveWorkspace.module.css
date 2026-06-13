@@ -1,0 +1,168 @@
+/**
+ * AIOI-P6.4 — Executive Workspace styles (Industrial 4.0)
+ */
+
+.providerShell {
+  min-height: 100vh;
+  background: var(--bg-primary, #070c14);
+  display: flex;
+  flex-direction: column;
+}
+
+.providerShell[data-workspace-layout='compact'] .indicatorsBar {
+  padding: 0.4rem 0.85rem;
+}
+
+.providerShell[data-workspace-layout='compact'] .metricsGrid {
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.providerShell[data-workspace-layout='compact'] .metricValue {
+  font-size: 12px;
+}
+
+.providerShell[data-workspace-layout='expanded'] .indicatorsBar {
+  padding: 1rem 1.75rem;
+}
+
+.providerShell[data-workspace-layout='expanded'] .metricsGrid {
+  gap: 1rem 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.providerShell[data-workspace-layout='expanded'] .metricValue {
+  font-size: 16px;
+}
+
+.providerShell[data-workspace-density='compact'] .providerContent {
+  padding: 0.5rem 0.75rem;
+}
+
+.providerShell[data-workspace-density='compact'] .metricLabel {
+  font-size: 9px;
+}
+
+.providerShell[data-workspace-density='comfortable'] .providerContent {
+  padding: 1rem 1.25rem;
+}
+
+.providerShell[data-workspace-density='executive'] .providerContent {
+  padding: 1.5rem 2rem;
+}
+
+.providerShell[data-workspace-density='executive'] .indicatorsEyebrow {
+  letter-spacing: 3px;
+}
+
+.providerContent {
+  flex: 1;
+}
+
+.guardShell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.indicatorsBar {
+  padding: 0.65rem 1.25rem;
+  background: var(--bg-tertiary, #111d2e);
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+}
+
+.indicatorsEyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  margin: 0 0 0.65rem;
+}
+
+.metricsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.metricItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.metricLabel {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary, #5a7088);
+}
+
+.metricValue {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #e8f4ff);
+}
+
+.levelSummary {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--green, #00ff88);
+  margin: 0;
+}
+
+.fallbackPanel {
+  min-height: 40vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg-secondary, #0d1520);
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.15));
+  border-radius: 4px;
+  text-align: center;
+  margin: 1rem;
+}
+
+.fallbackEyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  margin: 0 0 1rem;
+}
+
+.fallbackTitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-primary, #e8f4ff);
+  margin: 0 0 1rem;
+}
+
+.fallbackMessage {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  color: var(--text-secondary, #8ba4bc);
+  max-width: 32rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.fallbackMeta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-tertiary, #5a7088);
+  margin: 0;
+}

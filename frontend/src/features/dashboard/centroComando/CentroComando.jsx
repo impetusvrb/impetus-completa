@@ -35,6 +35,10 @@ import WidgetOperacoes from './WidgetOperacoes';
 import WidgetEnergia from './WidgetEnergia';
 import WidgetRastreabilidade from './WidgetRastreabilidade';
 import WidgetReceitas from './WidgetReceitas';
+import WidgetAIOIQueue from './WidgetAIOIQueue';
+import WidgetAIOIRuntime from './WidgetAIOIRuntime';
+import WidgetAIOIGovernance from './WidgetAIOIGovernance';
+import WidgetAIOIScale from './WidgetAIOIScale';
 import LiveDashboardUnifiedPanel from '../components/LiveDashboardUnifiedPanel';
 import ModuleErrorBoundary from '../../../components/ModuleErrorBoundary';
 import { canAccessLiveDashboardUser, isHrDashboardLayout } from '../../../utils/roleUtils';
@@ -82,7 +86,11 @@ const WIDGET_COMPONENTS = {
   operacoes: WidgetOperacoes,
   energia: WidgetEnergia,
   rastreabilidade: WidgetRastreabilidade,
-  receitas: WidgetReceitas
+  receitas: WidgetReceitas,
+  aioi_queue:    WidgetAIOIQueue,
+  aioi_runtime:  WidgetAIOIRuntime,
+  aioi_governance: WidgetAIOIGovernance,
+  aioi_scale: WidgetAIOIScale
 };
 
 function getWidgetComponent(id) {

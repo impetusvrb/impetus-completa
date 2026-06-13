@@ -77,6 +77,8 @@ function buildWorkflowPayload(ioe) {
     || CATEGORY_TO_PROCESS_KEY[ioe.category]
     || 'aioi_operational_response';
 
+  const evidenceRefs = Array.isArray(ioe.evidence_refs) ? ioe.evidence_refs : [];
+
   return {
     processKey,
     companyId:     ioe.company_id,
@@ -91,6 +93,10 @@ function buildWorkflowPayload(ioe) {
       equipment_id:   ioe.equipment_id,
       priority_band:  ioe.priority_band,
       priority_score: ioe.priority_score,
+      truth_state:    ioe.truth_state || null,
+      evidence_refs:  evidenceRefs,
+      external_ref_id: ioe.external_ref_id || null,
+      correlation_id: ioe.correlation_id || null,
       recommendation: payload.recommendation || null,
       rationale:      payload.rationale || null,
       decision_type:  ioe.decision_type,
@@ -117,6 +123,7 @@ function buildActionPayload(ioe) {
     || 'criar_tarefa';
 
   const recommendation = payload.recommendation || 'Ação operacional AIOI';
+  const evidenceRefs = Array.isArray(ioe.evidence_refs) ? ioe.evidence_refs : [];
   const args = {
     title:       payload.action_title || recommendation.slice(0, 200),
     description: payload.rationale || recommendation,
@@ -125,13 +132,19 @@ function buildActionPayload(ioe) {
     equipment_id: ioe.equipment_id || null,
     ioe_id:      ioe.id,
     category:    ioe.category,
-    source:      'aioi_execution_bridge'
+    source:      'aioi_execution_bridge',
+    truth_state: ioe.truth_state || null,
+    evidence_refs: evidenceRefs,
+    external_ref_id: ioe.external_ref_id || null
   };
 
   const ctx = {
     companyId:      ioe.company_id,
     userId:         ioe.approved_by_user_id,
     correlation_id: ioe.correlation_id,
+    external_ref_id: ioe.external_ref_id || null,
+    truth_state:    ioe.truth_state || null,
+    evidence_refs:  evidenceRefs,
     ioe_id:         ioe.id,
     _hitl_approved: true,
     _aioi_approved: true,

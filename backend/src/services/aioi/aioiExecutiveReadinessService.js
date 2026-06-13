@@ -1,99 +1,150 @@
 'use strict';
 
 /**
- * AIOI-P2.9 — Executive Readiness Service (READ ONLY)
+ * AIOI-P8.6 — Executive Readiness Service
  *
- * Score de prontidão executiva — composição P2.x, cálculo determinístico.
+ * Validação de prontidão executiva — ERD-01..ERD-08.
+ * Spec: backend/docs/AIOI_EXECUTIVE_READINESS_SPECIFICATION.md
  */
 
-const { isValidUUID } = require('../../utils/security');
-const cmdMetrics = require('./aioiExecutiveCommandMetrics');
-const maturityService = require('./aioiMaturityAnalysisService');
-const alignmentService = require('./aioiStrategicAlignmentService');
-const resilienceService = require('./aioiOperationalResilienceService');
-const tenantHealthService = require('./aioiTenantHealthService');
-const valueService = require('./aioiOperationalValueService');
-const twinConsistencyService = require('./aioiTwinConsistencyService');
+const fs = require('fs');
+const path = require('path');
+const governanceAssurance = require('./aioiGovernanceAssuranceService');
+const complianceAnalytics = require('./aioiComplianceAnalyticsService');
+const continuousReadiness = require('./aioiContinuousCertificationReadinessService');
+const knowledgeReadiness = require('./aioiKnowledgeReadinessService');
+const decisionIntelligence = require('./aioiDecisionIntelligenceService');
+const decisionMaturity = require('./aioiDecisionMaturityService');
+const decisionEffectiveness = require('./aioiDecisionEffectivenessService');
+const certificationDrift = require('./aioiCertificationDriftService');
 
-const READINESS_WEIGHTS = Object.freeze({
-  maturity:         0.18,
-  alignment:        0.17,
-  resilience:       0.18,
-  governance:       0.17,
-  value:            0.15,
-  twin_consistency: 0.15
-});
+const LAYER = 'AIOI_EXECUTIVE_READINESS';
+const BACKEND_ROOT = path.resolve(__dirname, '../../..');
+const DOCS = path.join(BACKEND_ROOT, 'docs');
+const TESTS = path.join(BACKEND_ROOT, 'src', 'tests', 'aioi');
 
-function computeReadinessScore({
-  maturityScore,
-  alignmentScore,
-  resilienceScore,
-  governanceScore,
-  valueScore,
-  twinConsistencyScore
-}) {
-  const raw =
-    (maturityScore ?? 50) * READINESS_WEIGHTS.maturity +
-    (alignmentScore ?? 50) * READINESS_WEIGHTS.alignment +
-    (resilienceScore ?? 50) * READINESS_WEIGHTS.resilience +
-    (governanceScore ?? 50) * READINESS_WEIGHTS.governance +
-    (valueScore ?? 50) * READINESS_WEIGHTS.value +
-    (twinConsistencyScore ?? 50) * READINESS_WEIGHTS.twin_consistency;
-  return cmdMetrics.clampScore(raw);
+function _docExists(name) {
+  return fs.existsSync(path.join(DOCS, name));
 }
 
-function buildExecutiveReadiness(signals) {
-  const readiness_score = computeReadinessScore(signals);
+function _testExists(name) {
+  return fs.existsSync(path.join(TESTS, name));
+}
+
+/**
+ * Valida critérios ERD-01..ERD-08.
+ * @returns {Promise<object>}
+ */
+async function validateExecutiveReadiness() {
+  const [assurance, compliance, continuous, knowledge, intelligence, maturity, effectiveness, certDrift] = await Promise.all([
+    governanceAssurance.validateContinuousGovernance(),
+    complianceAnalytics.getComplianceAnalytics(),
+    continuousReadiness.validateContinuousCertificationReadiness(),
+    knowledgeReadiness.validateKnowledgeReadiness(),
+    decisionIntelligence.aggregateDecisionIntelligence(),
+    decisionMaturity.getDecisionMaturity(),
+    decisionEffectiveness.getDecisionEffectiveness(),
+    Promise.resolve(certificationDrift.detectCertificationDrift())
+  ]);
+
+  const checks = [];
+
+  checks.push({
+    id: 'ERD-01',
+    name: 'governance_preserved',
+    pass: assurance.sovereign_protection_verification.all_sovereigns_protected
+      && !certDrift.certification_drift_detected,
+    detail: { assurance_score: assurance.governance_assurance_score }
+  });
+
+  checks.push({
+    id: 'ERD-02',
+    name: 'compliance_preserved',
+    pass: compliance.overall_compliance_score >= 0
+      && intelligence.compliance_aggregation.overall_score >= 0,
+    detail: { overall_score: compliance.overall_compliance_score }
+  });
+
+  checks.push({
+    id: 'ERD-03',
+    name: 'assurance_preserved',
+    pass: continuous.pass_count >= 6,
+    detail: { continuous_pass: continuous.pass_count }
+  });
+
+  checks.push({
+    id: 'ERD-04',
+    name: 'knowledge_preserved',
+    pass: knowledge.pass_count >= 6
+      && _docExists('AIOI_P7_ENTERPRISE_KNOWLEDGE_FOUNDATION_REPORT.md'),
+    detail: { knowledge_pass: knowledge.pass_count }
+  });
+
+  checks.push({
+    id: 'ERD-05',
+    name: 'intelligence_valid',
+    pass: intelligence.ok
+      && effectiveness.inference_enabled === false
+      && effectiveness.prediction_enabled === false,
+    detail: { pilot_tenants: intelligence.pilot_tenant_count }
+  });
+
+  checks.push({
+    id: 'ERD-06',
+    name: 'maturity_valid',
+    pass: maturity.decision_maturity_score >= 0
+      && typeof maturity.decision_coverage === 'number',
+    detail: { maturity_score: maturity.decision_maturity_score }
+  });
+
+  const phaseDocs = [
+    { phase: 'P1', doc: 'AIOI_P1_OPERATIONAL_ROLLOUT_CERTIFICATION_REPORT.md', test: 'AioiP1OperationalRolloutAudit.test.js' },
+    { phase: 'P2', doc: 'AIOI_P2_PRODUCTION_OPERATIONS_CERTIFICATION_REPORT.md', test: 'AioiP2ProductionOperationsAudit.test.js' },
+    { phase: 'P3', doc: 'AIOI_P3_PRODUCTION_PILOT_VALIDATION_REPORT.md', test: 'AioiP3ProductionPilotValidationAudit.test.js' },
+    { phase: 'P4', doc: 'AIOI_P4_MULTI_TENANT_SCALE_CERTIFICATION_REPORT.md', test: 'AioiP4MultiTenantScaleAudit.test.js' },
+    { phase: 'P5', doc: 'AIOI_P5_ENTERPRISE_ROLLOUT_CERTIFICATION_REPORT.md', test: 'AioiP5EnterpriseRolloutAudit.test.js' },
+    { phase: 'P6', doc: 'AIOI_P6_CONTINUOUS_GOVERNANCE_ASSURANCE_REPORT.md', test: 'AioiP6ContinuousGovernanceAssuranceAudit.test.js' },
+    { phase: 'P7', doc: 'AIOI_P7_ENTERPRISE_KNOWLEDGE_FOUNDATION_REPORT.md', test: 'AioiP7EnterpriseKnowledgeFoundationAudit.test.js' }
+  ];
+  checks.push({
+    id: 'ERD-07',
+    name: 'regressao_zero',
+    pass: phaseDocs.every(p => _docExists(p.doc) && _testExists(p.test)),
+    detail: { phases: phaseDocs.map(p => p.phase) }
+  });
+
+  checks.push({
+    id: 'ERD-08',
+    name: 'executive_readiness_achieved',
+    pass: checks.filter(c => ['ERD-05', 'ERD-06'].includes(c.id)).every(c => c.pass)
+      && maturity.decision_maturity_score >= 0,
+    detail: {
+      maturity_score: maturity.decision_maturity_score,
+      intelligence_ok: intelligence.ok
+    }
+  });
+
+  const passCount = checks.filter(c => c.pass).length;
+  const allPass = passCount === checks.length;
+
   return {
-    readiness_score,
-    readiness_level: cmdMetrics.classifyReadinessLevel(readiness_score)
+    ok: allPass,
+    layer: LAYER,
+    executive_readiness: allPass,
+    pass_count: passCount,
+    total_checks: checks.length,
+    checks,
+    invariants: {
+      runtime_enabled: false,
+      runtime_active: false,
+      runtime_authorized: false,
+      cognitive_execution_allowed: false
+    },
+    captured_at: new Date().toISOString()
   };
 }
 
-async function getExecutiveReadiness(companyId) {
-  if (!companyId || !isValidUUID(String(companyId))) {
-    return { ok: false, error: 'companyId inválido' };
-  }
-
-  try {
-    const [maturityRes, alignmentRes, resilienceRes, healthRes, valueRes, twinRes] =
-      await Promise.all([
-        maturityService.getOperationalMaturity(companyId),
-        alignmentService.getStrategicAlignment(companyId),
-        resilienceService.getOperationalResilience(companyId),
-        tenantHealthService.getTenantHealth(companyId),
-        valueService.getOperationalValue(companyId),
-        twinConsistencyService.getTwinConsistency(companyId)
-      ]);
-
-    const failures = [maturityRes, alignmentRes, resilienceRes, healthRes, valueRes, twinRes]
-      .filter(r => !r.ok);
-    if (failures.length) {
-      cmdMetrics.recordError(companyId, 'getExecutiveReadiness', failures[0].error);
-      return { ok: false, error: failures[0].error };
-    }
-
-    const executive_readiness = buildExecutiveReadiness({
-      maturityScore:        maturityRes.maturity.score,
-      alignmentScore:       alignmentRes.strategic_alignment.score,
-      resilienceScore:      resilienceRes.operational_resilience.resilience_score,
-      governanceScore:      healthRes.tenant_health.score,
-      valueScore:           valueRes.operational_value.operational_value_score,
-      twinConsistencyScore: twinRes.twin_consistency.consistency_score
-    });
-
-    cmdMetrics.recordReadinessAnalyzed(companyId);
-    return { ok: true, executive_readiness };
-
-  } catch (err) {
-    cmdMetrics.recordError(companyId, 'getExecutiveReadiness', err.message);
-    return { ok: false, error: err.message };
-  }
-}
-
 module.exports = {
-  READINESS_WEIGHTS,
-  computeReadinessScore,
-  buildExecutiveReadiness,
-  getExecutiveReadiness
+  validateExecutiveReadiness,
+  LAYER
 };

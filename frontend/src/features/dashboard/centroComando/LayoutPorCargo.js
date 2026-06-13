@@ -64,7 +64,11 @@ export const WIDGET_IDS = {
   RASTREABILIDADE: 'rastreabilidade',
   RECEITAS: 'receitas',
   OPERACOES: 'operacoes',
-  ENERGIA: 'energia'
+  ENERGIA: 'energia',
+  AIOI_QUEUE:    'aioi_queue',
+  AIOI_RUNTIME:  'aioi_runtime',
+  AIOI_GOVERNANCE: 'aioi_governance',
+  AIOI_SCALE: 'aioi_scale'
 };
 
 /**
@@ -158,19 +162,24 @@ export function getLayoutPorCargo(role = '', department = '', dashboardProfile =
 
   // CEO — Prompt: faturamento, lucro, custo industrial, OEE, eficiência, desperdício, previsão 30d;
   // gráficos crescimento, produção vs demanda, custos por setor, margem; centros Custos, Performance, Cérebro
+  // AIOI-P0C: Fila Executiva CEO na posição de destaque (row 0 col 0 width 2)
   if (r === 'ceo' || r === 'admin' || r.includes('execut')) {
     return [
-      { id: WIDGET_IDS.RESUMO_EXECUTIVO, label: 'Resumo executivo IA', position: pos(0, 0, 2) },
-      { id: WIDGET_IDS.INDICADORES_EXECUTIVOS, label: 'Indicadores', position: pos(0, 2, 2) },
-      { id: WIDGET_IDS.GRAFICO_PRODUCAO_DEMANDA, label: 'Produção vs Demanda', position: pos(1, 0, 2) },
-      { id: WIDGET_IDS.GRAFICO_CUSTOS_SETOR, label: 'Custos por setor', position: pos(1, 2, 2) },
-      { id: WIDGET_IDS.CENTRO_CUSTOS, label: 'Centro de Custos', position: pos(2, 0, 2) },
-      { id: WIDGET_IDS.PERFORMANCE, label: 'Centro de Performance', position: pos(2, 2, 2) },
-      { id: WIDGET_IDS.CENTRO_PREVISAO, label: 'Previsão 30 dias', position: pos(3, 0, 2) },
-      { id: WIDGET_IDS.ALERTAS, label: 'Alertas', position: pos(3, 2, 1) },
-      { id: WIDGET_IDS.PERGUNTE_IA, label: 'Cérebro Operacional', position: pos(3, 3, 1) },
-      { id: WIDGET_IDS.RELATORIO_IA, label: 'Relatório IA', position: pos(4, 0, 2) },
-      { id: WIDGET_IDS.INSIGHTS_IA, label: 'Insights IA', position: pos(4, 2, 2) }
+      { id: WIDGET_IDS.AIOI_QUEUE,              label: 'Fila Executiva CEO',     position: pos(0, 0, 2) },
+      { id: WIDGET_IDS.INDICADORES_EXECUTIVOS,  label: 'Indicadores',            position: pos(0, 2, 2) },
+      { id: WIDGET_IDS.AIOI_RUNTIME,            label: 'Runtime Operacional',    position: pos(1, 0, 2) },
+      { id: WIDGET_IDS.RESUMO_EXECUTIVO,        label: 'Resumo executivo IA',    position: pos(1, 2, 2) },
+      { id: WIDGET_IDS.AIOI_GOVERNANCE,         label: 'Governance Lifecycle',   position: pos(2, 0, 2) },
+      { id: WIDGET_IDS.AIOI_SCALE,              label: 'Horizontal Scale',       position: pos(2, 2, 2) },
+      { id: WIDGET_IDS.GRAFICO_PRODUCAO_DEMANDA,label: 'Produção vs Demanda',    position: pos(3, 0, 2) },
+      { id: WIDGET_IDS.GRAFICO_CUSTOS_SETOR,    label: 'Custos por setor',       position: pos(3, 2, 2) },
+      { id: WIDGET_IDS.CENTRO_CUSTOS,           label: 'Centro de Custos',       position: pos(4, 0, 2) },
+      { id: WIDGET_IDS.PERFORMANCE,             label: 'Centro de Performance',  position: pos(4, 2, 2) },
+      { id: WIDGET_IDS.CENTRO_PREVISAO,         label: 'Previsão 30 dias',       position: pos(5, 0, 2) },
+      { id: WIDGET_IDS.ALERTAS,                 label: 'Alertas',                position: pos(5, 2, 1) },
+      { id: WIDGET_IDS.PERGUNTE_IA,             label: 'Cérebro Operacional',    position: pos(6, 0, 1) },
+      { id: WIDGET_IDS.RELATORIO_IA,            label: 'Relatório IA',           position: pos(6, 1, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA,             label: 'Insights IA',            position: pos(6, 0, 2) }
     ];
   }
 
