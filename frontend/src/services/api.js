@@ -1549,5 +1549,20 @@ export const aioi = {
   getOperationalDataset: () => api.get('/aioi/operations/dataset'),
   getOperationalWorkload: () => api.get('/aioi/operations/workload'),
   getOperationalConsistency: () => api.get('/aioi/operations/consistency'),
-  getOperationalCertification: () => api.get('/aioi/operations/certification')
+  getOperationalCertification: () => api.get('/aioi/operations/certification'),
+
+  getAuthorizationPolicies: () => api.get('/aioi/authorization/policies'),
+  getAuthorizationRequests: (params) => api.get('/aioi/authorization/requests', { params }),
+  getAuthorizationHistory: (params) => api.get('/aioi/authorization/history', { params }),
+  getAuthorizationStatus: () => api.get('/aioi/authorization/status'),
+
+  getComplianceIntegrity: () => api.get('/aioi/compliance/integrity'),
+  getComplianceDrift: () => api.get('/aioi/compliance/drift'),
+  getComplianceGovernance: () => api.get('/aioi/compliance/governance'),
+  getComplianceStatus: () => api.get('/aioi/compliance/status'),
+
+  getBaselineStatus: () => api.get('/aioi/baseline/status'),
+  getBaselineManifest: () => api.get('/aioi/baseline/manifest'),
+  getBaselineReproducibility: () => api.get('/aioi/baseline/reproducibility'),
+  getBaselineAudit: () => api.get('/aioi/baseline/audit')
 };

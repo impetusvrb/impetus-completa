@@ -52,13 +52,18 @@ export default function WidgetAIOIScale() {
   const [operationalDataset, setOperationalDataset] = useState(null);
   const [operationalConsistency, setOperationalConsistency] = useState(null);
   const [operationalWorkload, setOperationalWorkload] = useState(null);
+  const [authStatus, setAuthStatus] = useState(null);
+  const [authRequests, setAuthRequests] = useState(null);
+  const [authHistory, setAuthHistory] = useState(null);
+  const [complianceStatus, setComplianceStatus] = useState(null);
+  const [baselineStatus, setBaselineStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes] = await Promise.all([
+  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes] = await Promise.all([
         aioi.getScaleStatus(),
         aioi.getScaleValidation(),
         aioi.getScaleRuntime(),
@@ -79,7 +84,12 @@ export default function WidgetAIOIScale() {
         aioi.getOperationalCertification(),
         aioi.getOperationalDataset(),
         aioi.getOperationalConsistency(),
-        aioi.getOperationalWorkload()
+        aioi.getOperationalWorkload(),
+        aioi.getAuthorizationStatus(),
+        aioi.getAuthorizationRequests({ limit: 10 }),
+        aioi.getAuthorizationHistory({ limit: 10 }),
+        aioi.getComplianceStatus(),
+        aioi.getBaselineStatus()
       ]);
       setStatus(statusRes?.data ?? statusRes);
       setValidation(validationRes?.data ?? validationRes);
@@ -102,6 +112,11 @@ export default function WidgetAIOIScale() {
       setOperationalDataset(opDatasetRes?.data ?? opDatasetRes);
       setOperationalConsistency(opConsistencyRes?.data ?? opConsistencyRes);
       setOperationalWorkload(opWorkloadRes?.data ?? opWorkloadRes);
+      setAuthStatus(authStatusRes?.data ?? authStatusRes);
+      setAuthRequests(authRequestsRes?.data ?? authRequestsRes);
+      setAuthHistory(authHistoryRes?.data ?? authHistoryRes);
+      setComplianceStatus(complianceRes?.data ?? complianceRes);
+      setBaselineStatus(baselineRes?.data ?? baselineRes);
       setError(null);
       setLastFetch(new Date().toISOString());
     } catch (err) {
@@ -164,10 +179,11 @@ export default function WidgetAIOIScale() {
   const workerInventory = telemetry?.workers?.workers || [];
   const shardInventory = telemetry?.shards?.shards || [];
   const leaseInventory = telemetry?.leases?.local_leases || [];
-  const statusLabel = distFlags.IMPETUS_AIOI_DISTRIBUTED_RUNTIME_ACTIVE ? 'DIST ON' : 'P1L READY';
+  const statusLabel = distFlags.IMPETUS_AIOI_DISTRIBUTED_RUNTIME_ACTIVE ? 'DIST ON' : 'P1O READY';
   const readinessScore = readiness?.readiness_score ?? 0;
   const overallReady = readiness?.overall_ready ? 'READY' : 'PENDING';
   const certCount = certifications?.phases?.filter(p => p.certified)?.length ?? 0;
+  const p1jRegistryTotal = certifications?.phases?.length ?? 9;
   const overallRisk = risk?.overall_risk ?? 'LOW';
   const prodReady = productionAudit?.ready_for_production ? 'YES' : 'NO';
   const deployEligible = deployment?.eligible ? 'YES' : 'NO';
@@ -179,6 +195,28 @@ export default function WidgetAIOIScale() {
   const consistencyOk = operationalConsistency?.consistency_certified ? 'PASS' : '—';
   const soakCycles = operationalCert?.soak?.cycles ?? 0;
   const workloadEvents = operationalWorkload?.events_processed ?? 0;
+  const authPending = authStatus?.pending_approvals ?? authRequests?.pending_count ?? 0;
+  const authRuntime = authStatus?.runtime_authorized ? 'YES' : 'NO';
+  const authExpired = authStatus?.registry?.by_status?.EXPIRED ?? 0;
+  const authAuditOk = authStatus?.audit_integrity?.audit_integrity ? 'OK' : '—';
+  const integrityScore = complianceStatus?.integrity_score ?? 0;
+  const complianceScore = complianceStatus?.compliance_score ?? 0;
+  const certDrift = complianceStatus?.certification_drift ? 'DRIFT' : 'OK';
+  const docConsistent = complianceStatus?.documentation?.documentation_consistent ? 'OK' : '—';
+  const chainPresent = complianceStatus?.certification_chain?.phases_present ?? 0;
+  const chainTotal = complianceStatus?.certification_chain?.phases_total
+    ?? complianceStatus?.expected_phases_total ?? 14;
+  const soakCompleted = complianceStatus?.soak?.long_term_integrity_completed ? 'PASS' : '—';
+  const soakCyclesP1N = complianceStatus?.soak?.cycles ?? 0;
+  const p1nVerdict = complianceStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
+  const baselineVersion = baselineStatus?.baseline_version ?? '—';
+  const baselineRegStatus = baselineStatus?.baseline_status ?? '—';
+  const freezeStatus = baselineStatus?.freeze_status ?? '—';
+  const reproOk = baselineStatus?.reproducibility ? 'YES' : 'NO';
+  const auditChainOk = baselineStatus?.audit_chain?.audit_chain_complete ? 'OK' : '—';
+  const certChainPhases = baselineStatus?.certification_chain?.phases_present ?? 0;
+  const certChainTotal = baselineStatus?.certification_chain?.phases_total ?? 14;
+  const p1oVerdict = baselineStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
   const riskColor = overallRisk === 'LOW' ? 'var(--green)'
     : overallRisk === 'MEDIUM' ? 'var(--amber)' : 'var(--red)';
 
@@ -188,11 +226,59 @@ export default function WidgetAIOIScale() {
         <div className="aioi-scale__header-left">
           <Layers size={14} style={{ color: 'var(--cyan)' }} />
           <span className="aioi-scale__title">AIOI HORIZONTAL SCALE</span>
-          <span className="aioi-scale__mode">P1L · READ ONLY</span>
+          <span className="aioi-scale__mode">P1O · READ ONLY</span>
         </div>
         <span className="aioi-scale__badge" style={{ color: healthColor, borderColor: healthColor }}>
           {clusterHealthStatus}
         </span>
+      </div>
+
+      <div className="aioi-scale__section-label">ENTERPRISE BASELINE (P1O)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Version" value={baselineVersion} accent="--cyan" />
+        <ScaleTile label="Baseline" value={baselineRegStatus} accent={baselineRegStatus === 'REGISTERED' ? '--green' : '--amber'} />
+        <ScaleTile label="Freeze" value={freezeStatus} accent={freezeStatus === 'FROZEN' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Repro" value={reproOk} accent={reproOk === 'YES' ? '--green' : '--amber'} />
+        <ScaleTile label="Cert chain" value={`${certChainPhases}/${certChainTotal}`} accent="--cyan" />
+        <ScaleTile label="Audit chain" value={auditChainOk} accent={auditChainOk === 'OK' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1oVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1O {p1oVerdict} · baseline P1A→P1N · governance only
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">COMPLIANCE & INTEGRITY (P1N)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Integrity" value={`${integrityScore}%`} accent={integrityScore === 100 ? '--green' : '--amber'} />
+        <ScaleTile label="Compliance" value={`${complianceScore}%`} accent={complianceScore === 100 ? '--green' : '--amber'} />
+        <ScaleTile label="Drift" value={certDrift} accent={certDrift === 'OK' ? '--green' : '--red'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Chain" value={`${chainPresent}/${chainTotal}`} accent="--cyan" />
+        <ScaleTile label="Docs" value={docConsistent} accent={docConsistent === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Soak" value={soakCompleted} accent={soakCompleted === 'PASS' ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1nVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1N {p1nVerdict} · soak {soakCyclesP1N} cycles · observation only
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">RUNTIME AUTHORIZATION (P1M)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Runtime auth" value={authRuntime} accent="--green" />
+        <ScaleTile label="Pending" value={authPending} accent="--amber" />
+        <ScaleTile label="Audit" value={authAuditOk} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Expired" value={authExpired} accent="--text-secondary" />
+        <ScaleTile label="Policies" value={authStatus?.policies?.length ?? 0} accent="--cyan" />
+        <ScaleTile label="History" value={authHistory?.total ?? 0} accent="--text-secondary" />
       </div>
 
       <div className="aioi-scale__section-label">OPERATIONAL CERTIFICATION (P1L)</div>
@@ -228,9 +314,9 @@ export default function WidgetAIOIScale() {
 
       <div className="aioi-scale__section-label">CERTIFICATION & RISK</div>
       <div className="aioi-scale__tiles aioi-scale__tiles--3">
-        <ScaleTile label="Phases" value={`${certCount}/9`} accent="--cyan" />
+        <ScaleTile label="Baseline" value={`${chainPresent}/${chainTotal}`} accent={chainPresent === chainTotal ? '--green' : '--amber'} />
+        <ScaleTile label="P1J reg" value={`${certCount}/${p1jRegistryTotal}`} accent="--text-secondary" />
         <ScaleTile label="Risk" value={overallRisk} accent="--text-secondary" />
-        <ScaleTile label="Gov risk" value={risk?.governance_risk ?? '—'} accent="--text-secondary" />
       </div>
       <div className="aioi-scale__info-row">
         <ShieldCheck size={12} style={{ color: riskColor }} />
