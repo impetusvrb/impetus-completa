@@ -1564,5 +1564,70 @@ export const aioi = {
   getBaselineStatus: () => api.get('/aioi/baseline/status'),
   getBaselineManifest: () => api.get('/aioi/baseline/manifest'),
   getBaselineReproducibility: () => api.get('/aioi/baseline/reproducibility'),
-  getBaselineAudit: () => api.get('/aioi/baseline/audit')
+  getBaselineAudit: () => api.get('/aioi/baseline/audit'),
+
+  getAssuranceStatus: () => api.get('/aioi/assurance/status'),
+  getAssurancePreservation: () => api.get('/aioi/assurance/preservation'),
+  getAssuranceConsistency: () => api.get('/aioi/assurance/consistency'),
+  getAssuranceTraceability: () => api.get('/aioi/assurance/traceability'),
+
+  getRecoveryStatus: () => api.get('/aioi/recovery/status'),
+  getRecoveryChain: () => api.get('/aioi/recovery/chain'),
+  getRecoveryRebuild: () => api.get('/aioi/recovery/rebuild'),
+  getRecoveryContinuity: () => api.get('/aioi/recovery/continuity'),
+
+  getReleaseStatus: () => api.get('/aioi/release/status'),
+  getReleaseRegistry: () => api.get('/aioi/release/registry'),
+  getReleaseGovernance: () => api.get('/aioi/release/governance'),
+  getReleaseReadiness: () => api.get('/aioi/release/readiness'),
+  getClosureStatus: () => api.get('/aioi/archive/status'),
+  getArchiveRegistry: () => api.get('/aioi/archive/registry'),
+  getEnterpriseMilestone: () => api.get('/aioi/archive/milestone'),
+  getClosureReport: () => api.get('/aioi/archive/report')
+};
+
+/** F49-D — Gemini readiness (READ ONLY) */
+export const f49 = {
+  getGeminiStatus: () => api.get('/f49/gemini/status'),
+  getGeminiReadiness: (params) => api.get('/f49/gemini/readiness', { params }),
+  getGeminiVision: () => api.get('/f49/gemini/vision'),
+  getGeminiBenchmark: () => api.get('/f49/gemini/benchmark'),
+  /** F49-F — Truth program closure (READ ONLY) */
+  getClosureStatus: () => api.get('/f49/closure/status'),
+  getClosureRegistry: () => api.get('/f49/closure/registry'),
+  getClosureReport: () => api.get('/f49/closure/report'),
+  getClosureFinalStatus: () => api.get('/f49/closure/final-status')
+};
+
+/** P0A — Continuous operation (READ ONLY) */
+export const operations = {
+  getContinuousStatus: () => api.get('/operations/continuous/status'),
+  getContinuousReadiness: () => api.get('/operations/continuous/readiness'),
+  getContinuousObservation: (params) => api.get('/operations/continuous/observation', { params }),
+  getContinuousHealth: () => api.get('/operations/continuous/health'),
+  /** P0B — Continuous operation observation (READ ONLY) */
+  getObservationStatus: (params) => api.get('/operations/observation/status', { params }),
+  getObservationIngestion: (params) => api.get('/operations/observation/ingestion', { params }),
+  getObservationWorkflows: (params) => api.get('/operations/observation/workflows', { params }),
+  getObservationAI: (params) => api.get('/operations/observation/ai', { params }),
+  getObservationPlatform: () => api.get('/operations/observation/platform'),
+  getObservationRegistry: (params) => api.get('/operations/observation/registry', { params }),
+  /** P0C — Active continuous operation validation (READ ONLY) */
+  getActiveStatus: (params) => api.get('/operations/active/status', { params }),
+  getActiveIoe: (params) => api.get('/operations/active/ioe', { params }),
+  getActiveRuntime: (params) => api.get('/operations/active/runtime', { params }),
+  getActiveOutbox: (params) => api.get('/operations/active/outbox', { params }),
+  getActiveStability: (params) => api.get('/operations/active/stability', { params }),
+  /** P0D — Runtime activation & stabilization (READ ONLY) */
+  getRuntimeStatus: (params) => api.get('/operations/runtime/status', { params }),
+  getRuntimeActivation: (params) => api.get('/operations/runtime/activation', { params }),
+  getRuntimeStabilization: (params) => api.get('/operations/runtime/stabilization', { params }),
+  getRuntimeHealth: () => api.get('/operations/runtime/health'),
+  getRuntimeRegistry: (params) => api.get('/operations/runtime/registry', { params }),
+  /** P0E — Go-live monitoring & production acceptance (READ ONLY) */
+  getGoLiveStatus: () => api.get('/operations/golive/status'),
+  getGoLive24h: () => api.get('/operations/golive/24h'),
+  getGoLive72h: () => api.get('/operations/golive/72h'),
+  getGoLiveAcceptance: () => api.get('/operations/golive/acceptance'),
+  getGoLiveRegistry: (params) => api.get('/operations/golive/registry', { params })
 };

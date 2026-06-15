@@ -110,16 +110,25 @@ function validateDashboard() {
   const exists = fs.existsSync(WIDGET_PATH);
   let hasP1N = false;
   let hasP1O = false;
+  let hasP1P = false;
+  let hasP1Q = false;
+  let hasP1R = false;
   if (exists) {
     const content = fs.readFileSync(WIDGET_PATH, 'utf8');
     hasP1N = /P1N|getComplianceStatus/.test(content);
     hasP1O = /P1O|getBaselineStatus/.test(content);
+    hasP1P = /P1P|getAssuranceStatus/.test(content);
+    hasP1Q = /P1Q|getRecoveryStatus/.test(content);
+    hasP1R = /P1R|getReleaseStatus/.test(content);
   }
   return {
     widget_present: exists,
     p1n_section: hasP1N,
     p1o_section: hasP1O,
-    dashboard_ready: exists && hasP1N && hasP1O
+    p1p_section: hasP1P,
+    p1q_section: hasP1Q,
+    p1r_section: hasP1R,
+    dashboard_ready: exists && hasP1N && hasP1O && hasP1P && hasP1Q && hasP1R
   };
 }
 

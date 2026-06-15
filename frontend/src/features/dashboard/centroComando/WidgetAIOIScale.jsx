@@ -2,7 +2,7 @@
  * AIOI-P1E.6 / P1F–P1I — Widget Horizontal Scale (READ ONLY)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { aioi } from '../../../services/api';
+import { aioi, f49, operations } from '../../../services/api';
 import {
   Layers,
   Server,
@@ -57,13 +57,25 @@ export default function WidgetAIOIScale() {
   const [authHistory, setAuthHistory] = useState(null);
   const [complianceStatus, setComplianceStatus] = useState(null);
   const [baselineStatus, setBaselineStatus] = useState(null);
+  const [assuranceStatus, setAssuranceStatus] = useState(null);
+  const [recoveryStatus, setRecoveryStatus] = useState(null);
+  const [releaseStatus, setReleaseStatus] = useState(null);
+  const [closureStatus, setClosureStatus] = useState(null);
+  const [geminiF49, setGeminiF49] = useState(null);
+  const [triAiF49, setTriAiF49] = useState(null);
+  const [truthClosureF49, setTruthClosureF49] = useState(null);
+  const [continuousOpP0A, setContinuousOpP0A] = useState(null);
+  const [observationP0B, setObservationP0B] = useState(null);
+  const [activeOpP0C, setActiveOpP0C] = useState(null);
+  const [runtimeP0D, setRuntimeP0D] = useState(null);
+  const [goLiveP0E, setGoLiveP0E] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes] = await Promise.all([
+  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes, assuranceRes, recoveryRes, releaseRes, closureRes, geminiF49Res, triAiF49Res, truthClosureF49Res, continuousOpP0ARes, observationP0BRes, activeOpP0CRes, runtimeP0DRes, goLiveP0ERes] = await Promise.all([
         aioi.getScaleStatus(),
         aioi.getScaleValidation(),
         aioi.getScaleRuntime(),
@@ -89,7 +101,19 @@ export default function WidgetAIOIScale() {
         aioi.getAuthorizationRequests({ limit: 10 }),
         aioi.getAuthorizationHistory({ limit: 10 }),
         aioi.getComplianceStatus(),
-        aioi.getBaselineStatus()
+        aioi.getBaselineStatus(),
+        aioi.getAssuranceStatus(),
+        aioi.getRecoveryStatus(),
+        aioi.getReleaseStatus(),
+        aioi.getClosureStatus(),
+        f49.getGeminiStatus().catch(() => null),
+        f49.getGeminiBenchmark().catch(() => null),
+        f49.getClosureFinalStatus().catch(() => null),
+        operations.getContinuousHealth().catch(() => null),
+        operations.getObservationStatus({ window_days: 7 }).catch(() => null),
+        operations.getActiveStatus({ window_minutes: 60 }).catch(() => null),
+        operations.getRuntimeStatus({ window_hours: 24 }).catch(() => null),
+        operations.getGoLiveStatus().catch(() => null)
       ]);
       setStatus(statusRes?.data ?? statusRes);
       setValidation(validationRes?.data ?? validationRes);
@@ -117,6 +141,18 @@ export default function WidgetAIOIScale() {
       setAuthHistory(authHistoryRes?.data ?? authHistoryRes);
       setComplianceStatus(complianceRes?.data ?? complianceRes);
       setBaselineStatus(baselineRes?.data ?? baselineRes);
+      setAssuranceStatus(assuranceRes?.data ?? assuranceRes);
+      setRecoveryStatus(recoveryRes?.data ?? recoveryRes);
+      setReleaseStatus(releaseRes?.data ?? releaseRes);
+      setClosureStatus(closureRes?.data ?? closureRes);
+      setGeminiF49(geminiF49Res?.data ?? geminiF49Res);
+      setTriAiF49(triAiF49Res?.data ?? triAiF49Res);
+      setTruthClosureF49(truthClosureF49Res?.data ?? truthClosureF49Res);
+      setContinuousOpP0A(continuousOpP0ARes?.data ?? continuousOpP0ARes);
+      setObservationP0B(observationP0BRes?.data ?? observationP0BRes);
+      setActiveOpP0C(activeOpP0CRes?.data ?? activeOpP0CRes);
+      setRuntimeP0D(runtimeP0DRes?.data ?? runtimeP0DRes);
+      setGoLiveP0E(goLiveP0ERes?.data ?? goLiveP0ERes);
       setError(null);
       setLastFetch(new Date().toISOString());
     } catch (err) {
@@ -179,7 +215,7 @@ export default function WidgetAIOIScale() {
   const workerInventory = telemetry?.workers?.workers || [];
   const shardInventory = telemetry?.shards?.shards || [];
   const leaseInventory = telemetry?.leases?.local_leases || [];
-  const statusLabel = distFlags.IMPETUS_AIOI_DISTRIBUTED_RUNTIME_ACTIVE ? 'DIST ON' : 'P1O READY';
+  const statusLabel = distFlags.IMPETUS_AIOI_DISTRIBUTED_RUNTIME_ACTIVE ? 'DIST ON' : 'P1R READY';
   const readinessScore = readiness?.readiness_score ?? 0;
   const overallReady = readiness?.overall_ready ? 'READY' : 'PENDING';
   const certCount = certifications?.phases?.filter(p => p.certified)?.length ?? 0;
@@ -205,7 +241,7 @@ export default function WidgetAIOIScale() {
   const docConsistent = complianceStatus?.documentation?.documentation_consistent ? 'OK' : '—';
   const chainPresent = complianceStatus?.certification_chain?.phases_present ?? 0;
   const chainTotal = complianceStatus?.certification_chain?.phases_total
-    ?? complianceStatus?.expected_phases_total ?? 14;
+    ?? complianceStatus?.expected_phases_total ?? 17;
   const soakCompleted = complianceStatus?.soak?.long_term_integrity_completed ? 'PASS' : '—';
   const soakCyclesP1N = complianceStatus?.soak?.cycles ?? 0;
   const p1nVerdict = complianceStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
@@ -215,10 +251,104 @@ export default function WidgetAIOIScale() {
   const reproOk = baselineStatus?.reproducibility ? 'YES' : 'NO';
   const auditChainOk = baselineStatus?.audit_chain?.audit_chain_complete ? 'OK' : '—';
   const certChainPhases = baselineStatus?.certification_chain?.phases_present ?? 0;
-  const certChainTotal = baselineStatus?.certification_chain?.phases_total ?? 14;
+  const certChainTotal = baselineStatus?.certification_chain?.phases_total
+    ?? baselineStatus?.expected_phases_total ?? 17;
   const p1oVerdict = baselineStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
+  const assuranceOk = assuranceStatus?.assurance_status ?? '—';
+  const preservationOk = assuranceStatus?.preservation_status ?? '—';
+  const consistencyOkP1P = assuranceStatus?.consistency ? 'OK' : '—';
+  const traceOk = assuranceStatus?.traceability ? 'OK' : '—';
+  const soakP1P = assuranceStatus?.soak?.long_horizon_preservation_completed ? 'PASS' : '—';
+  const soakCyclesP1P = assuranceStatus?.soak?.cycles ?? 0;
+  const p1pVerdict = assuranceStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
+  const recoveryOk = recoveryStatus?.recovery_status ?? '—';
+  const rebuildOk = recoveryStatus?.rebuild_status ?? '—';
+  const continuityOk = recoveryStatus?.continuity_status ?? '—';
+  const auditChainRecovery = recoveryStatus?.audit_chain?.audit_chain_complete ? 'OK' : '—';
+  const soakP1Q = recoveryStatus?.soak?.long_horizon_recovery_completed ? 'PASS' : '—';
+  const soakCyclesP1Q = recoveryStatus?.soak?.cycles ?? 0;
+  const p1qVerdict = recoveryStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
+  const releaseId = releaseStatus?.release_identifier ?? '—';
+  const releaseRegStatus = releaseStatus?.release_status ?? '—';
+  const acceptanceStatus = releaseStatus?.acceptance_status ?? '—';
+  const governanceStatusRelease = releaseStatus?.governance_status ?? '—';
+  const readinessStatusRelease = releaseStatus?.readiness_status ?? '—';
+  const soakP1R = releaseStatus?.soak?.release_soak_completed ? 'PASS' : '—';
+  const soakCyclesP1R = releaseStatus?.soak?.cycles ?? 0;
+  const p1rVerdict = releaseStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
+  const closureStatusVal = closureStatus?.closure_status ?? '—';
+  const archiveStatusVal = closureStatus?.archive?.archive_status ?? '—';
+  const milestoneStatusVal = closureStatus?.milestone?.milestone_status ?? '—';
+  const soakP1S = closureStatus?.soak?.archive_soak_completed ? 'PASS' : '—';
+  const soakCyclesP1S = closureStatus?.soak?.cycles ?? 0;
+  const archiveId = closureStatus?.archive?.archive_identifier ?? '—';
+  const p1sVerdict = closureStatus?.verdict?.includes('PASS') ? 'PASS' : '—';
   const riskColor = overallRisk === 'LOW' ? 'var(--green)'
     : overallRisk === 'MEDIUM' ? 'var(--amber)' : 'var(--red)';
+
+  const geminiLive = geminiF49?.live_ping_ok ? 'UP' : geminiF49?.gemini_configured ? 'DEGRADED' : 'DOWN';
+  const geminiVisionHint = geminiF49?.live_ping_ok ? 'READY' : '—';
+  const triAiReady = triAiF49?.tri_ai_ready ? 'READY' : 'PENDING';
+  const f49ReadinessScore = geminiF49?.readiness_score ?? '—';
+  const geminiLatency = geminiF49?.latency_ms != null ? `${geminiF49.latency_ms}ms` : '—';
+
+  const truthProgramClosed = truthClosureF49?.truth_program_closed ? 'CLOSED' : 'OPEN';
+  const f47TruthStatus = truthClosureF49?.f47_truth_enforcement ?? '—';
+  const f48StressStatus = truthClosureF49?.f48_stress_validation ?? '—';
+  const f49OpsStatus = truthClosureF49?.f49_pm2_audit === 'pass' ? 'PASS' : '—';
+  const triAiClosure = truthClosureF49?.tri_ai_operational ? 'OPERATIONAL' : 'PENDING';
+  const productionValidated = truthClosureF49?.production_validation_completed ? 'COMPLETE' : '—';
+  const closureVerdict = truthClosureF49?.verdict?.includes('CLOSED') ? 'CLOSED' : '—';
+
+  const p0aMetrics = continuousOpP0A?.metrics ?? {};
+  const p0aReady = continuousOpP0A?.activation_ready ? 'READY' : 'PENDING';
+  const p0aIoeHour = p0aMetrics.ioe_per_hour ?? '—';
+  const p0aOutboxRate = p0aMetrics.outbox_delivery_rate_pct != null ? `${p0aMetrics.outbox_delivery_rate_pct}%` : '—';
+  const p0aTenants = p0aMetrics.active_tenants ?? '—';
+  const p0aPlcRate = p0aMetrics.plc_telemetry_rate_per_hour ?? '—';
+  const p0aWfRunning = p0aMetrics.workflow_running ?? '—';
+  const p0aQueueOk = continuousOpP0A?.queue_healthy ? 'OK' : '—';
+
+  const p0bSummary = observationP0B?.summary ?? {};
+  const p0bObsStatus = observationP0B?.observation_running ? 'ACTIVE' : '—';
+  const p0bIoeHour = p0bSummary.ioe_per_hour ?? '—';
+  const p0bIoeDay = p0bSummary.ioe_per_day ?? '—';
+  const p0bTenants = p0bSummary.active_tenants ?? '—';
+  const p0bOutboxRate = p0bSummary.outbox_delivery_rate_pct != null ? `${p0bSummary.outbox_delivery_rate_pct}%` : '—';
+  const p0bWfActivity = p0bSummary.workflow_running ?? '—';
+  const p0bTriAi = p0bSummary.tri_ai_status === 'TRI_AI_OPERATIONAL' ? 'OK' : (p0bSummary.tri_ai_status ?? '—');
+  const p0bPm2 = p0bSummary.platform_status ?? '—';
+
+  const p0cPass = activeOpP0C?.pass ? 'PASS' : 'FAIL';
+  const p0cSummary = activeOpP0C?.summary ?? {};
+  const p0cIoeHour = p0cSummary.ioe_per_hour ?? '—';
+  const p0cNewEvents = p0cSummary.new_events ?? '—';
+  const p0cWorkers = p0cSummary.active_workers ? 'ON' : 'OFF';
+  const p0cTenants = p0cSummary.active_tenants ?? '—';
+  const p0cOutbox = p0cSummary.outbox_rate_pct != null ? `${p0cSummary.outbox_rate_pct}%` : '—';
+  const p0cRuntime = p0cSummary.runtime_status ?? '—';
+  const p0cReason = activeOpP0C?.reason ?? '—';
+
+  const p0dPass = runtimeP0D?.pass ? 'PASS' : 'FAIL';
+  const p0dSummary = runtimeP0D?.summary ?? {};
+  const p0dRuntime = p0dSummary.runtime_status ?? '—';
+  const p0dWorkers = p0dSummary.workers_online ? 'ON' : 'OFF';
+  const p0dIoeHour = p0dSummary.ioe_per_hour ?? '—';
+  const p0dDelHour = p0dSummary.deliveries_per_hour ?? '—';
+  const p0dTenants = p0dSummary.active_tenants ?? '—';
+  const p0dBacklog = p0dSummary.backlog ?? '—';
+  const p0dHealth = p0dSummary.runtime_health ?? '—';
+
+  const p0ePass = goLiveP0E?.pass ? 'PASS' : 'MONITOR';
+  const p0eSummary = goLiveP0E?.summary ?? {};
+  const p0eActivation = p0eSummary.activation_status ?? '—';
+  const p0eUptime = p0eSummary.runtime_uptime_hours != null ? `${p0eSummary.runtime_uptime_hours}h` : '—';
+  const p0eIoeHour = p0eSummary.ioe_per_hour ?? '—';
+  const p0eDelHour = p0eSummary.deliveries_per_hour ?? '—';
+  const p0eTenants = p0eSummary.active_tenants ?? '—';
+  const p0eBacklog = p0eSummary.backlog ?? '—';
+  const p0ePm2 = p0eSummary.pm2_health ?? '—';
+  const p0eAccept = p0eSummary.acceptance_status ?? '—';
 
   return (
     <div className="impetus-card aioi-scale__card">
@@ -226,10 +356,238 @@ export default function WidgetAIOIScale() {
         <div className="aioi-scale__header-left">
           <Layers size={14} style={{ color: 'var(--cyan)' }} />
           <span className="aioi-scale__title">AIOI HORIZONTAL SCALE</span>
-          <span className="aioi-scale__mode">P1O · READ ONLY</span>
+          <span className="aioi-scale__mode">P0A · READ ONLY</span>
         </div>
         <span className="aioi-scale__badge" style={{ color: healthColor, borderColor: healthColor }}>
           {clusterHealthStatus}
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">GO-LIVE MONITORING (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="P0E" value={p0ePass} accent={p0ePass === 'PASS' ? '--green' : '--amber'} />
+        <ScaleTile label="Activation" value={p0eActivation} accent={p0eActivation === 'LIVE' ? '--green' : '--amber'} />
+        <ScaleTile label="Uptime" value={p0eUptime} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="IOE/h" value={p0eIoeHour} accent="--cyan" />
+        <ScaleTile label="Del/h" value={p0eDelHour} accent="--text-secondary" />
+        <ScaleTile label="Tenants" value={p0eTenants} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Backlog" value={p0eBacklog} accent={p0eBacklog === 0 ? '--green' : '--amber'} />
+        <ScaleTile label="PM2" value={p0ePm2} accent={p0ePm2 === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Acceptance" value={p0eAccept} accent={p0eAccept === 'ACCEPTED' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: p0ePass === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P0E · go-live produção · GET /api/operations/golive/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">CONTINUOUS RUNTIME STABILIZATION (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="P0D" value={p0dPass} accent={p0dPass === 'PASS' ? '--green' : '--red'} />
+        <ScaleTile label="Runtime" value={p0dRuntime} accent={p0dRuntime === 'RUNNING' ? '--green' : '--amber'} />
+        <ScaleTile label="Workers" value={p0dWorkers} accent={p0dWorkers === 'ON' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="IOE/h" value={p0dIoeHour} accent="--cyan" />
+        <ScaleTile label="Del/h" value={p0dDelHour} accent="--text-secondary" />
+        <ScaleTile label="Tenants" value={p0dTenants} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Backlog" value={p0dBacklog} accent={p0dBacklog === 0 ? '--green' : '--amber'} />
+        <ScaleTile label="Health" value={p0dHealth} accent={p0dHealth === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Window" value="24h" accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Server size={12} style={{ color: p0dPass === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P0D · estabilização runtime · GET /api/operations/runtime/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">ACTIVE CONTINUOUS OPERATION (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="P0C" value={p0cPass} accent={p0cPass === 'PASS' ? '--green' : '--red'} />
+        <ScaleTile label="IOE/h" value={p0cIoeHour} accent="--cyan" />
+        <ScaleTile label="New events" value={p0cNewEvents} accent={p0cNewEvents > 0 ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Workers" value={p0cWorkers} accent={p0cWorkers === 'ON' ? '--green' : '--amber'} />
+        <ScaleTile label="Tenants" value={p0cTenants} accent="--cyan" />
+        <ScaleTile label="Outbox" value={p0cOutbox} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Runtime" value={p0cRuntime} accent={p0cRuntime === 'RUNNING' ? '--green' : '--amber'} />
+        <ScaleTile label="Verdict" value={activeOpP0C?.verdict?.replace('ACTIVE_CONTINUOUS_OPERATION_', '') ?? '—'} accent={p0cPass === 'PASS' ? '--green' : '--amber'} />
+        <ScaleTile label="Reason" value={p0cReason === '—' ? '—' : p0cReason.slice(0, 12)} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <AlertTriangle size={12} style={{ color: p0cPass === 'PASS' ? 'var(--green)' : 'var(--amber)' }} />
+        <span>
+          P0C · validação activa · GET /api/operations/active/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">CONTINUOUS OPERATION OBSERVATION (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Observation" value={p0bObsStatus} accent={p0bObsStatus === 'ACTIVE' ? '--green' : '--amber'} />
+        <ScaleTile label="IOE/h" value={p0bIoeHour} accent="--cyan" />
+        <ScaleTile label="IOE/day" value={p0bIoeDay} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Tenants" value={p0bTenants} accent="--cyan" />
+        <ScaleTile label="Outbox" value={p0bOutboxRate} accent="--text-secondary" />
+        <ScaleTile label="Workflows" value={p0bWfActivity} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="TRI-AI" value={p0bTriAi} accent={p0bTriAi === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="PM2" value={p0bPm2} accent={p0bPm2 === 'online' ? '--green' : '--amber'} />
+        <ScaleTile label="Window" value="7d" accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: p0bObsStatus === 'ACTIVE' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P0B · observação contínua · GET /api/operations/observation/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">CONTINUOUS OPERATION (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Activation" value={p0aReady} accent={p0aReady === 'READY' ? '--green' : '--amber'} />
+        <ScaleTile label="IOE/h" value={p0aIoeHour} accent="--cyan" />
+        <ScaleTile label="Outbox rate" value={p0aOutboxRate} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Tenants" value={p0aTenants} accent="--cyan" />
+        <ScaleTile label="PLC/h" value={p0aPlcRate} accent={p0aPlcRate !== '—' && p0aPlcRate > 0 ? '--green' : '--text-secondary'} />
+        <ScaleTile label="Workflows" value={p0aWfRunning} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Queue" value={p0aQueueOk} accent={p0aQueueOk === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Workers" value={continuousOpP0A?.workers_enabled ? 'ON' : 'OFF'} accent={continuousOpP0A?.workers_enabled ? '--green' : '--amber'} />
+        <ScaleTile label="Pipeline" value={continuousOpP0A?.pipeline_enabled ? 'ON' : 'OFF'} accent={continuousOpP0A?.pipeline_enabled ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: 'var(--text-tertiary)' }} />
+        <span>
+          P0A · IOE contínuo preparado · workers {continuousOpP0A?.workers_enabled ? 'activos' : 'desactivados (operador)'} · GET /api/operations/continuous/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">TRUTH PROGRAM CLOSURE (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Program" value={truthProgramClosed} accent={truthProgramClosed === 'CLOSED' ? '--green' : '--amber'} />
+        <ScaleTile label="F47 Truth" value={f47TruthStatus} accent={f47TruthStatus === 'certified' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="F48 Stress" value={f48StressStatus} accent={f48StressStatus === 'certified' ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="F49 Ops" value={f49OpsStatus} accent={f49OpsStatus === 'PASS' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="TRI-AI" value={triAiClosure} accent={triAiClosure === 'OPERATIONAL' ? '--green' : '--amber'} />
+        <ScaleTile label="Production" value={productionValidated} accent={productionValidated === 'COMPLETE' ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Closure" value={closureVerdict} accent={closureVerdict === 'CLOSED' ? '--green' : '--amber'} />
+        <ScaleTile label="CEO Session" value={truthClosureF49?.f49_ceo_session ?? '—'} accent={truthClosureF49?.f49_ceo_session === 'pass' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="Gemini" value={truthClosureF49?.f49_gemini_certification ?? '—'} accent={truthClosureF49?.f49_gemini_certification === 'pass' ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: truthProgramClosed === 'CLOSED' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          F49-F · {truthClosureF49?.registered_phases ?? '—'}/8 fases · GET /api/f49/closure/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">F49 GEMINI READINESS (READ ONLY)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Gemini" value={geminiLive} accent={geminiLive === 'UP' ? '--green' : geminiLive === 'DEGRADED' ? '--amber' : '--red'} />
+        <ScaleTile label="Vision" value={geminiVisionHint} accent={geminiLive === 'UP' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="TRI-AI" value={triAiReady} accent={triAiReady === 'READY' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Readiness" value={`${f49ReadinessScore}%`} accent="--cyan" />
+        <ScaleTile label="Ping" value={geminiLatency} accent="--text-secondary" />
+        <ScaleTile label="OpenAI" value={triAiF49?.openai ? 'UP' : '—'} accent={triAiF49?.openai ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: 'var(--text-tertiary)' }} />
+        <span>
+          F49-D · Anthropic {triAiF49?.anthropic ? 'UP' : '—'} · Gemini {triAiF49?.gemini ? 'UP' : '—'} · GET /api/f49/gemini/*
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">HISTORICAL CLOSURE (P1S)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Closure" value={closureStatusVal} accent={closureStatusVal === 'CLOSED' ? '--green' : '--amber'} />
+        <ScaleTile label="Archive" value={archiveStatusVal} accent={archiveStatusVal === 'ARCHIVED' ? '--green' : '--amber'} />
+        <ScaleTile label="Milestone" value={milestoneStatusVal} accent={milestoneStatusVal === 'CERTIFIED' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Soak" value={soakP1S} accent={soakP1S === 'PASS' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="Cycles" value={soakCyclesP1S} accent="--cyan" />
+        <ScaleTile label="Archive ID" value={archiveId.replace('IMPETUS-AIOI-', '')} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1sVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1S {p1sVerdict} · soak {soakCyclesP1S} cycles · Linha P1 fechada · P1A→P1R
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">ENTERPRISE RELEASE (P1R)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Release" value={releaseRegStatus} accent={releaseRegStatus === 'ACCEPTED' ? '--green' : '--amber'} />
+        <ScaleTile label="Acceptance" value={acceptanceStatus} accent={acceptanceStatus === 'ACCEPTED' ? '--green' : '--amber'} />
+        <ScaleTile label="Governance" value={governanceStatusRelease} accent={governanceStatusRelease === 'VALID' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Readiness" value={readinessStatusRelease} accent={readinessStatusRelease === 'READY' ? '--green' : '--amber'} />
+        <ScaleTile label="Release ID" value={releaseId.replace('IMPETUS-AIOI-P1-', '')} accent="--cyan" />
+        <ScaleTile label="Soak" value={soakP1R} accent={soakP1R === 'PASS' ? '--green' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1rVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1R {p1rVerdict} · soak {soakCyclesP1R} cycles · Linha P1 · P1A→P1Q
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">RECOVERY & CONTINUITY (P1Q)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Recovery" value={recoveryOk} accent={recoveryOk === 'RECOVERABLE' ? '--green' : '--amber'} />
+        <ScaleTile label="Rebuild" value={rebuildOk} accent={rebuildOk === 'REBUILDABLE' ? '--green' : '--amber'} />
+        <ScaleTile label="Continuity" value={continuityOk} accent={continuityOk === 'CERTIFIED' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Audit chain" value={auditChainRecovery} accent={auditChainRecovery === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Soak" value={soakP1Q} accent={soakP1Q === 'PASS' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="Chain" value={`${certChainPhases}/${certChainTotal}`} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1qVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1Q {p1qVerdict} · soak {soakCyclesP1Q} cycles · baseline P1A→P1Q
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">BASELINE ASSURANCE (P1P)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Assurance" value={assuranceOk} accent={assuranceOk === 'ASSURED' ? '--green' : '--amber'} />
+        <ScaleTile label="Preservation" value={preservationOk} accent={preservationOk === 'PRESERVED' ? '--green' : '--red'} />
+        <ScaleTile label="Consistency" value={consistencyOkP1P} accent={consistencyOkP1P === 'OK' ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Traceability" value={traceOk} accent={traceOk === 'OK' ? '--green' : '--amber'} />
+        <ScaleTile label="Soak" value={soakP1P} accent={soakP1P === 'PASS' ? '--green' : '--text-secondary'} />
+        <ScaleTile label="Chain" value={`${certChainPhases}/${certChainTotal}`} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: p1pVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          P1P {p1pVerdict} · soak {soakCyclesP1P} cycles · baseline P1A→P1Q
         </span>
       </div>
 
@@ -247,7 +605,7 @@ export default function WidgetAIOIScale() {
       <div className="aioi-scale__info-row">
         <ShieldCheck size={12} style={{ color: p1oVerdict === 'PASS' ? 'var(--green)' : 'var(--text-tertiary)' }} />
         <span>
-          P1O {p1oVerdict} · baseline P1A→P1N · governance only
+          P1O {p1oVerdict} · baseline P1A→P1Q · governance only
         </span>
       </div>
 

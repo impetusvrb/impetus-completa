@@ -1,17 +1,17 @@
 'use strict';
 
 /**
- * Cadeia canónica enterprise P1A → P1N (14 fases).
- * Fonte única para P1N (compliance/drift/docs) e P1O (baseline).
+ * Cadeia canónica enterprise P1A → P1Q (17 fases).
+ * Fonte única para P1N–P1R (compliance, baseline, assurance, recovery, release).
  * O registry P1J (aioiCertificationRegistryService) permanece scoped a P1A–P1I (9).
  */
 
-const ENTERPRISE_BASELINE_PHASE_COUNT = 14;
-const ENTERPRISE_BASELINE_RANGE = 'P1A-P1N';
+const ENTERPRISE_BASELINE_PHASE_COUNT = 18;
+const ENTERPRISE_BASELINE_RANGE = 'P1A-P1R';
 const P1J_REGISTRY_PHASE_COUNT = 9;
 
 /** Contagens obsoletas que indicam deriva documental */
-const STALE_PHASE_COUNTS = Object.freeze([9, 13]);
+const STALE_PHASE_COUNTS = Object.freeze([9, 13, 14, 15, 16, 17]);
 
 const ENTERPRISE_BASELINE_PHASES = Object.freeze([
   { id: 'P1A', doc: 'AIOI_P1A_RUNTIME_AUDIT.md', verdict: 'AIOI_P1A_CONTINUOUS_RUNTIME_FOUNDATION_PASS', deps: [] },
@@ -27,7 +27,11 @@ const ENTERPRISE_BASELINE_PHASES = Object.freeze([
   { id: 'P1K', doc: 'AIOI_P1K_ENTERPRISE_DEPLOYMENT_GOVERNANCE.md', verdict: 'AIOI_P1K_ENTERPRISE_DEPLOYMENT_GOVERNANCE_PASS', deps: ['P1J'] },
   { id: 'P1L', doc: 'AIOI_P1L_ENTERPRISE_OPERATIONAL_CERTIFICATION.md', verdict: 'AIOI_P1L_ENTERPRISE_OPERATIONAL_CERTIFICATION_PASS', deps: ['P1K'] },
   { id: 'P1M', doc: 'AIOI_P1M_ENTERPRISE_RUNTIME_AUTHORIZATION.md', verdict: 'AIOI_P1M_ENTERPRISE_RUNTIME_AUTHORIZATION_PASS', deps: ['P1L'] },
-  { id: 'P1N', doc: 'AIOI_P1N_ENTERPRISE_COMPLIANCE.md', verdict: 'AIOI_P1N_ENTERPRISE_COMPLIANCE_AND_OPERATIONAL_INTEGRITY_PASS', deps: ['P1M'] }
+  { id: 'P1N', doc: 'AIOI_P1N_ENTERPRISE_COMPLIANCE.md', verdict: 'AIOI_P1N_ENTERPRISE_COMPLIANCE_AND_OPERATIONAL_INTEGRITY_PASS', deps: ['P1M'] },
+  { id: 'P1O', doc: 'AIOI_P1O_ENTERPRISE_BASELINE.md', verdict: 'AIOI_P1O_ENTERPRISE_BASELINE_PRESERVATION_AND_RELEASE_PASS', deps: ['P1N'] },
+  { id: 'P1P', doc: 'AIOI_P1P_ENTERPRISE_BASELINE_ASSURANCE.md', verdict: 'AIOI_P1P_ENTERPRISE_BASELINE_ASSURANCE_PASS', deps: ['P1O'] },
+  { id: 'P1Q', doc: 'AIOI_P1Q_ENTERPRISE_RECOVERY.md', verdict: 'AIOI_P1Q_ENTERPRISE_BASELINE_RECOVERY_AND_CONTINUITY_PASS', deps: ['P1P'] },
+  { id: 'P1R', doc: 'AIOI_P1R_ENTERPRISE_RELEASE.md', verdict: 'AIOI_P1R_ENTERPRISE_RELEASE_GOVERNANCE_AND_ACCEPTANCE_PASS', deps: ['P1Q'] }
 ]);
 
 function isCanonicalPhaseCount(count) {

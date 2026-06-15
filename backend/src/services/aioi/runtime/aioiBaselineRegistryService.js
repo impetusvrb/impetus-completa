@@ -66,7 +66,6 @@ function getBaselineRegistry() {
     expected_phases_total: ENTERPRISE_BASELINE_PHASE_COUNT,
     baseline_range: ENTERPRISE_BASELINE_RANGE,
     baseline_version: BASELINE_VERSION,
-    baseline_range: 'P1A-P1N',
     phases,
     chain,
     timestamp: new Date().toISOString()

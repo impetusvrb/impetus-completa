@@ -7,6 +7,7 @@
 
 const baselineRegistry = require('./aioiBaselineRegistryService');
 const continuousWorker = require('./aioiContinuousWorkerService');
+const { ENTERPRISE_BASELINE_RANGE } = require('./aioiEnterprisePhaseChain');
 
 const LAYER = 'AIOI_RELEASE_MANIFEST';
 
@@ -18,7 +19,7 @@ function generateReleaseManifest() {
     ok: true,
     layer: LAYER,
     read_only: true,
-    baseline: 'P1A-P1N',
+    baseline: ENTERPRISE_BASELINE_RANGE,
     baseline_version: baselineRegistry.BASELINE_VERSION,
     phases: phases.length,
     certified: registry.baseline_registered,
