@@ -403,6 +403,30 @@ useRoute('/api/operations/observation', './routes/operations/continuousOperation
 useRoute('/api/operations/active', './routes/operations/activeContinuousOperationRoutes');
 useRoute('/api/operations/runtime', './routes/operations/runtimeStabilizationRoutes');
 useRoute('/api/operations/golive', './routes/operations/goLiveMonitoringRoutes');
+useRoute('/api/mes', './domains/mes/routes/mesRoutes', requireAuth);
+useRoute('/api/logistics', './domains/logistics/routes/logisticsRoutes', requireAuth);
+useRoute('/api/analytics', './domains/analytics/routes/analyticsRoutes', requireAuth);
+/* M1.6 — Production Domain Operational Validation (READ ONLY) */
+useRoute('/api/m1/validation', './routes/m1ValidationRoutes', requireAuth);
+/* M1.7 — Pilot Readiness Simulation (READ ONLY) */
+useRoute('/api/m1/pilot-readiness', './routes/m1PilotReadinessRoutes', requireAuth);
+/* M1.8 — Food Base Go-Live Readiness (READ ONLY · SIMULATION ONLY) */
+useRoute('/api/m1/foodbase', './routes/m1FoodBaseReadinessRoutes', requireAuth);
+/* M1.9 — Pilot Execution Dry Run (READ ONLY · tenant proxy Fresh & Fit) */
+useRoute('/api/m1/pilot-execution', './routes/m1PilotExecutionRoutes', requireAuth);
+/* M1.10 — Food Base Pilot Provisioning & Controlled Go-Live */
+useRoute('/api/m1/foodbase-pilot', './routes/m1FoodBasePilotRoutes', requireAuth);
+/* M1.11 — Pilot Operation Window (READ ONLY · real usage audit) */
+useRoute('/api/m1/pilot-operation', './routes/m1PilotOperationRoutes', requireAuth);
+/* M1.12 — Environmental & Maintenance Operational Closure (READ ONLY) */
+useRoute('/api/m1/pilot-closure', './routes/m1PilotClosureRoutes', requireAuth);
+/* M1.13 — Pilot Adoption & Domain Utilization Assessment (READ ONLY) */
+useRoute('/api/m1/pilot-adoption', './routes/m1PilotAdoptionRoutes', requireAuth);
+/* M1.14 — M2 Readiness Governance Assessment (READ ONLY) */
+useRoute('/api/m1/governance', './routes/m1GovernanceRoutes', requireAuth);
+useRoute('/api/m1/platform-closure', './routes/m1PlatformClosureRoutes', requireAuth);
+useRoute('/api/m1/critical-remediation', './routes/m1CriticalRemediationRoutes', requireAuth);
+useRoute('/api/m1/pilot-adoption-closure', './routes/m1PilotAdoptionClosureRoutes', requireAuth);
 useRoute('/api/aioi', './routes/aioi/aioiQueueRoutes');
 useRoute('/api/final-consolidation-audit', './routes/finalConsolidationAudit', requireAuth);
 useRoute('/api/admin/learning', './routes/adminLearning');

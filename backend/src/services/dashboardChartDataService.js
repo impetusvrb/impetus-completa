@@ -63,8 +63,10 @@ function mergeMonthlyScaffold(scaffold, rows, valueKey = 'total') {
 }
 
 function userCanSeeFinancialValues(user) {
+  const perms = new Set(Array.isArray(user?.permissions) ? user.permissions : []);
+  if (perms.has('*') || perms.has('VIEW_FINANCIAL') || perms.has('VIEW_STRATEGIC')) return true;
   const role = String(user?.role || '').toLowerCase();
-  if (['ceo', 'financeiro', 'admin'].includes(role)) return true;
+  if (role === 'financeiro' || role === 'admin') return true;
   const cfg = dashboardProfileResolver.getDashboardConfigForUser(user);
   const area = String(cfg?.functional_area || '').toLowerCase();
   const code = String(cfg?.profile_code || '').toLowerCase();

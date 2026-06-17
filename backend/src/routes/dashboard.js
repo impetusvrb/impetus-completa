@@ -3167,11 +3167,13 @@ router.post('/chat', requireAuth, async (req, res) => {
     const { analyzePrompt } = require('../middleware/promptFirewall');
     const pfChat = await analyzePrompt(message, req.user);
     if (!pfChat.allowed) {
-      return res.status(403).json({
-        ok: false,
-        error: pfChat.message || pfChat.reason || 'Conteúdo não permitido.',
-        code: pfChat.reason
-      });
+      const { buildTruthSafePermissionDenial } = require('../middleware/authorize');
+      return res.status(403).json(
+        buildTruthSafePermissionDenial(pfChat.reason || 'VIEW_FINANCIAL', {
+          error: pfChat.message || pfChat.reply,
+          channel: 'dashboard_chat',
+        })
+      );
     }
     const humanValidationClosureService = require('../services/humanValidationClosureService');
     const modalityHint = req.body?.validation_modality === 'VIDEO' ? 'VIDEO' : 'TEXT';
@@ -4023,11 +4025,13 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       const { analyzePrompt: analyzePromptMm } = require('../middleware/promptFirewall');
       const pfMm = await analyzePromptMm(scanMultimodal, u);
       if (!pfMm.allowed) {
-        return res.status(403).json({
-          ok: false,
-          error: pfMm.message || pfMm.reason || 'Conteúdo não permitido.',
-          code: pfMm.reason
-        });
+        const { buildTruthSafePermissionDenial } = require('../middleware/authorize');
+        return res.status(403).json(
+          buildTruthSafePermissionDenial(pfMm.reason || 'VIEW_FINANCIAL', {
+            error: pfMm.message || pfMm.reply,
+            channel: 'dashboard_chat_multimodal',
+          })
+        );
       }
     }
 

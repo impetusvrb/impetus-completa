@@ -596,6 +596,11 @@ async function applyCognitiveFoundationToDashboard(user = {}, payload = {}, ctx 
     }
   }
 
+  // M1.16 — payload consumidor imutável em quality shadow_only (metadados ficam no report)
+  if (report.quality_cockpit_pilot?.mode === 'shadow_only') {
+    finalPayload = payload;
+  }
+
   return {
     payload: finalPayload,
     cognitive_runtime_report: report

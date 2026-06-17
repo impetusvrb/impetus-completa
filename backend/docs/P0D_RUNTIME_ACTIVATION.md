@@ -1,6 +1,6 @@
 # P0D — Runtime Activation
 
-**Gerado:** 2026-06-15T00:23:28.901Z
+**Gerado:** 2026-06-15T15:31:03.994Z
 
 ## Veredicto
 
@@ -8,8 +8,8 @@
 {
   "phase": "P0D",
   "pass": false,
-  "verdict": "CONTINUOUS_RUNTIME_NOT_ENABLED",
-  "reason": "CONTINUOUS_RUNTIME_NOT_ENABLED"
+  "verdict": "CONTINUOUS_RUNTIME_STABILIZATION_PENDING",
+  "reason": "RUNTIME_ACTIVATED_BUT_STABILIZATION_CRITERIA_NOT_MET"
 }
 ```
 
@@ -17,24 +17,34 @@
 
 ```json
 {
-  "runtime_activated": false,
-  "reason": "CONTINUOUS_RUNTIME_NOT_ENABLED",
-  "workers_online": false,
-  "pipeline_active": false,
-  "scheduler_active": false,
-  "leases_valid": false,
-  "edge_queues_active": false,
-  "flags": {
-    "IMPETUS_AIOI_OUTBOX_WORKER_ENABLED": false,
-    "IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED": false,
-    "IMPETUS_EVENT_PIPELINE_ENABLED": false
+  "runtime_activated": true,
+  "reason": null,
+  "workers_online": true,
+  "outbox_worker_running": false,
+  "continuous_worker_running": true,
+  "pipeline_active": true,
+  "scheduler_active": true,
+  "leases_valid": true,
+  "edge_queues_active": true,
+  "edge_queue_pending": 0,
+  "boot_evidence": {
+    "event_pipeline_boot_ok": true,
+    "outbox_worker_boot_active": true,
+    "continuous_worker_boot_active": true
+  },
+  "live_runtime": {
+    "api_reachable": true,
+    "continuous_worker_enabled": true,
+    "continuous_worker_running": true,
+    "worker_status": "RUNNING",
+    "run_count": 14,
+    "last_run_at": "2026-06-15T15:30:53.536Z",
+    "outbox_pending": 0,
+    "outbox_failed": 0
   }
 }
 ```
 
 ### Passos operador
 
-1. `IMPETUS_AIOI_OUTBOX_WORKER_ENABLED=true`
-2. `IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED=true`
-3. `IMPETUS_EVENT_PIPELINE_ENABLED=true`
-4. `pm2 restart impetus-backend --update-env`
+

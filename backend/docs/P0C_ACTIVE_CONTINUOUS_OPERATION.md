@@ -1,6 +1,6 @@
 # P0C — Active Continuous Operation Validation
 
-**Gerado:** 2026-06-14T23:48:29.223Z  
+**Gerado:** 2026-06-15T15:30:22.336Z  
 **Modo:** READ ONLY · VALIDATION ONLY
 
 ---
@@ -11,8 +11,8 @@
 {
   "phase": "P0C",
   "pass": false,
-  "verdict": "CONTINUOUS_PIPELINE_NOT_ACTIVATED",
-  "reason": "CONTINUOUS_PIPELINE_NOT_ACTIVATED"
+  "verdict": "ACTIVE_CONTINUOUS_OPERATION_PENDING",
+  "reason": "ACTIVE_PIPELINE_BUT_VALIDATION_CRITERIA_NOT_MET"
 }
 ```
 
@@ -20,30 +20,27 @@
 
 ```json
 {
-  "pipeline_activated": false,
-  "env_ok": false,
-  "boot_ok": false,
-  "runtime_ok": false,
+  "pipeline_activated": true,
+  "env_ok": true,
+  "boot_ok": true,
+  "runtime_ok": true,
   "flags": {
-    "IMPETUS_AIOI_OUTBOX_WORKER_ENABLED": false,
-    "IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED": false,
-    "IMPETUS_EVENT_PIPELINE_ENABLED": false
+    "IMPETUS_AIOI_OUTBOX_WORKER_ENABLED": true,
+    "IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED": true,
+    "IMPETUS_EVENT_PIPELINE_ENABLED": true
   },
   "boot_evidence": {
-    "event_pipeline_boot_ok": false,
-    "outbox_worker_boot_active": false,
-    "continuous_worker_boot_active": false
+    "event_pipeline_boot_ok": true,
+    "outbox_worker_boot_active": true,
+    "continuous_worker_boot_active": true
   },
-  "reason": "CONTINUOUS_PIPELINE_NOT_ACTIVATED"
+  "reason": null
 }
 ```
 
 ## Passos operador obrigatórios
 
-1. `IMPETUS_AIOI_OUTBOX_WORKER_ENABLED=true`
-2. `IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED=true`
-3. `IMPETUS_EVENT_PIPELINE_ENABLED=true`
-4. `pm2 restart impetus-backend --update-env`
+
 
 ---
 

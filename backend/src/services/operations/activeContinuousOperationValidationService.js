@@ -125,6 +125,7 @@ async function validateActiveIoe(db, options = {}) {
         COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS last_hour,
         COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '2 hours'
           AND created_at <= NOW() - INTERVAL '1 hour')::int AS prev_hour
+      FROM industrial_operational_events
     `)
   ]);
 

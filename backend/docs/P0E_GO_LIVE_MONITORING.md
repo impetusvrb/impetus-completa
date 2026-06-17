@@ -1,6 +1,6 @@
 # P0E — Go-Live Monitoring
 
-**Gerado:** 2026-06-15T00:55:26.068Z  
+**Gerado:** 2026-06-15T15:31:37.285Z  
 **Modo:** READ ONLY · OBSERVATIONAL ONLY
 
 ## Veredicto
@@ -8,9 +8,9 @@
 ```json
 {
   "phase": "P0E",
-  "pass": false,
-  "verdict": "GO_LIVE_PENDING",
-  "reason": "AWAITING_OPERATOR_ACTIVATION"
+  "pass": true,
+  "verdict": "CONTINUOUS_OPERATION_GO_LIVE_ACCEPTED",
+  "reason": null
 }
 ```
 
@@ -18,25 +18,31 @@
 
 ```json
 {
-  "go_live_detected": false,
-  "activation_timestamp": null,
-  "pipeline_activated": false,
-  "workers_active": false,
-  "first_ioe_at": null,
-  "first_outbox_delivery_at": null,
-  "reason": "AWAITING_OPERATOR_ACTIVATION",
-  "flags": {
-    "IMPETUS_AIOI_OUTBOX_WORKER_ENABLED": false,
-    "IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED": false,
-    "IMPETUS_EVENT_PIPELINE_ENABLED": false
+  "go_live_detected": true,
+  "activation_timestamp": "2026-06-12T04:21:34.295Z",
+  "pipeline_activated": true,
+  "workers_active": true,
+  "pipeline_active": true,
+  "first_ioe_at": "2026-06-12T04:21:34.295Z",
+  "first_outbox_delivery_at": "2026-06-12T15:55:10.247Z",
+  "recent_ioe_last_hour": 0,
+  "reason": null,
+  "boot_evidence": {
+    "event_pipeline_boot_ok": true,
+    "outbox_worker_boot_active": true,
+    "continuous_worker_boot_active": true
+  },
+  "live_runtime": {
+    "api_reachable": true,
+    "continuous_worker_enabled": true,
+    "continuous_worker_running": true,
+    "worker_status": "RUNNING",
+    "run_count": 15,
+    "last_run_at": "2026-06-15T15:31:23.553Z",
+    "outbox_pending": 0,
+    "outbox_failed": 0
   }
 }
 ```
 
-### Activacao pendente
 
-1. `IMPETUS_AIOI_OUTBOX_WORKER_ENABLED=true`
-2. `IMPETUS_AIOI_CONTINUOUS_RUNTIME_ENABLED=true`
-3. `IMPETUS_EVENT_PIPELINE_ENABLED=true`
-4. `pm2 restart impetus-backend --update-env`
-5. `Aguardar primeiro IOE e re-executar GET /api/operations/golive/status`

@@ -1,6 +1,6 @@
 # P0C — Final Operational Validation
 
-**Gerado:** 2026-06-14T23:48:29.223Z
+**Gerado:** 2026-06-15T15:30:22.336Z
 
 ---
 
@@ -10,8 +10,8 @@
 {
   "phase": "P0C",
   "pass": false,
-  "verdict": "CONTINUOUS_PIPELINE_NOT_ACTIVATED",
-  "reason": "CONTINUOUS_PIPELINE_NOT_ACTIVATED"
+  "verdict": "ACTIVE_CONTINUOUS_OPERATION_PENDING",
+  "reason": "ACTIVE_PIPELINE_BUT_VALIDATION_CRITERIA_NOT_MET"
 }
 ```
 
@@ -20,10 +20,10 @@
 ```json
 {
   "continuous_ingestion_active": false,
-  "continuous_runtime_operational": false,
-  "outbox_operational": false,
+  "continuous_runtime_operational": true,
+  "outbox_operational": true,
   "multi_tenant_operational": false,
-  "platform_stable": false,
+  "platform_stable": true,
   "active_operation_validated": false
 }
 ```
@@ -34,10 +34,10 @@
 {
   "ioe_per_hour": 0,
   "new_events": 0,
-  "active_workers": false,
+  "active_workers": true,
   "active_tenants": 0,
   "outbox_rate_pct": null,
-  "runtime_status": "NOT_ACTIVATED"
+  "runtime_status": "RUNNING"
 }
 ```
 

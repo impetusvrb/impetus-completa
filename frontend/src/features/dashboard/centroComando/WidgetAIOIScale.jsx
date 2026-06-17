@@ -2,7 +2,7 @@
  * AIOI-P1E.6 / P1F–P1I — Widget Horizontal Scale (READ ONLY)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { aioi, f49, operations } from '../../../services/api';
+import { aioi, f49, operations, m1Validation, m1PilotReadiness, m1PilotExecution, m1FoodBasePilot, m1PilotOperation, m1PilotClosure, m1PilotAdoption, m1Governance, m1PlatformClosure, m1CriticalRemediation, m1PilotAdoptionClosure, m1FoodBase } from '../../../services/api';
 import {
   Layers,
   Server,
@@ -69,13 +69,25 @@ export default function WidgetAIOIScale() {
   const [activeOpP0C, setActiveOpP0C] = useState(null);
   const [runtimeP0D, setRuntimeP0D] = useState(null);
   const [goLiveP0E, setGoLiveP0E] = useState(null);
+  const [m16Validation, setM16Validation] = useState(null);
+  const [m17Readiness, setM17Readiness] = useState(null);
+  const [m18FoodBase, setM18FoodBase] = useState(null);
+  const [m19DryRun, setM19DryRun] = useState(null);
+  const [m110Pilot, setM110Pilot] = useState(null);
+  const [m111Operation, setM111Operation] = useState(null);
+  const [m112Closure, setM112Closure] = useState(null);
+  const [m113Adoption, setM113Adoption] = useState(null);
+  const [m114Governance, setM114Governance] = useState(null);
+  const [m115Closure, setM115Closure] = useState(null);
+  const [m116Remediation, setM116Remediation] = useState(null);
+  const [m117AdoptionClosure, setM117AdoptionClosure] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes, assuranceRes, recoveryRes, releaseRes, closureRes, geminiF49Res, triAiF49Res, truthClosureF49Res, continuousOpP0ARes, observationP0BRes, activeOpP0CRes, runtimeP0DRes, goLiveP0ERes] = await Promise.all([
+  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes, assuranceRes, recoveryRes, releaseRes, closureRes, geminiF49Res, triAiF49Res, truthClosureF49Res, continuousOpP0ARes, observationP0BRes, activeOpP0CRes, runtimeP0DRes, goLiveP0ERes, m16Res, m17Res, m18Res, m19Res, m110Res, m111Res, m112Res, m113Res, m114Res, m115Res, m116Res, m117Res] = await Promise.all([
         aioi.getScaleStatus(),
         aioi.getScaleValidation(),
         aioi.getScaleRuntime(),
@@ -113,7 +125,19 @@ export default function WidgetAIOIScale() {
         operations.getObservationStatus({ window_days: 7 }).catch(() => null),
         operations.getActiveStatus({ window_minutes: 60 }).catch(() => null),
         operations.getRuntimeStatus({ window_hours: 24 }).catch(() => null),
-        operations.getGoLiveStatus().catch(() => null)
+        operations.getGoLiveStatus().catch(() => null),
+        m1Validation.getStatus().catch(() => null),
+        m1PilotReadiness.getStatus().catch(() => null),
+        m1FoodBase.getStatus().catch(() => null),
+        m1PilotExecution.getStatus().catch(() => null),
+        m1FoodBasePilot.getStatus().catch(() => null),
+        m1PilotOperation.getStatus().catch(() => null),
+        m1PilotClosure.getStatus().catch(() => null),
+        m1PilotAdoption.getStatus().catch(() => null),
+        m1Governance.getStatus().catch(() => null),
+        m1PlatformClosure.getStatus().catch(() => null),
+        m1CriticalRemediation.getStatus().catch(() => null),
+        m1PilotAdoptionClosure.getStatus().catch(() => null)
       ]);
       setStatus(statusRes?.data ?? statusRes);
       setValidation(validationRes?.data ?? validationRes);
@@ -153,6 +177,18 @@ export default function WidgetAIOIScale() {
       setActiveOpP0C(activeOpP0CRes?.data ?? activeOpP0CRes);
       setRuntimeP0D(runtimeP0DRes?.data ?? runtimeP0DRes);
       setGoLiveP0E(goLiveP0ERes?.data ?? goLiveP0ERes);
+      setM16Validation(m16Res?.data ?? m16Res);
+      setM17Readiness(m17Res?.data ?? m17Res);
+      setM18FoodBase(m18Res?.data ?? m18Res);
+      setM19DryRun(m19Res?.data ?? m19Res);
+      setM110Pilot(m110Res?.data ?? m110Res);
+      setM111Operation(m111Res?.data ?? m111Res);
+      setM112Closure(m112Res?.data ?? m112Res);
+      setM113Adoption(m113Res?.data ?? m113Res);
+      setM114Governance(m114Res?.data ?? m114Res);
+      setM115Closure(m115Res?.data ?? m115Res);
+      setM116Remediation(m116Res?.data ?? m116Res);
+      setM117AdoptionClosure(m117Res?.data ?? m117Res);
       setError(null);
       setLastFetch(new Date().toISOString());
     } catch (err) {
@@ -350,6 +386,182 @@ export default function WidgetAIOIScale() {
   const p0ePm2 = p0eSummary.pm2_health ?? '—';
   const p0eAccept = p0eSummary.acceptance_status ?? '—';
 
+  // M1.14 — M2 Readiness Governance
+  const m114Verdict = m114Governance?.verdict ?? '—';
+  const m114Rec = m114Governance?.recommendation?.recommendation ?? m114Governance?.m2_gate_governance?.recommended_action;
+  const m114RecLabel = m114Rec === 'open_m2_gate' ? 'OPEN M2' : (m114Rec === 'keep_gate_closed' ? 'KEEP CLOSED' : '—');
+  const m114Deps = m114Governance?.dependencies?.m2_dependencies_satisfied;
+  const m114Risks = m114Governance?.summary?.risk_profile ?? {};
+  const m115Verdict = m115Closure?.verdict ?? '—';
+  const m115Ready = m115Closure?.ready_for_remediation === true;
+  const m116Verdict = m116Remediation?.verdict ?? '—';
+  function m114RiskLevel(key) {
+    const v = m114Risks[key];
+    if (!v) return '—';
+    return String(v).toUpperCase();
+  }
+  function m114RiskAccent(level) {
+    if (level === 'LOW') return '--green';
+    if (level === 'MEDIUM') return '--amber';
+    if (level === 'HIGH') return '--red';
+    return '--text-tertiary';
+  }
+
+  // M1.13 — Pilot Adoption Assessment
+  const m113Verdict = m113Adoption?.verdict ?? '—';
+  const m113Index = m113Adoption?.utilization?.pilot_utilization_index;
+  const m113Adopted = m113Adoption?.utilization?.adopted_domains;
+  const m113Diagnosis = m113Adoption?.tenant_adoption_gap
+    ? 'ADOPTION GAP'
+    : (m113Adoption?.platform_problem ? 'PLATFORM' : 'FULL');
+  function m113Usage(key) {
+    const v = m113Adoption?.utilization?.[`${key}_usage`];
+    if (v === true) return 'YES';
+    if (v === false) return 'NO';
+    return '—';
+  }
+  function m113UsageAccent(v) {
+    if (v === true) return '--green';
+    if (v === false) return '--amber';
+    return '--text-tertiary';
+  }
+
+  // M1.12 — Pilot Operational Closure (Environment + Maintenance blockers)
+  const m112Closed = m112Closure?.pilot_operation_window_complete;
+  const m112Verdict = m112Closed === true ? 'CLOSED' : (m112Closure ? 'BLOCKERS' : '—');
+  const m112EnvOp = m112Closure?.environment_operational;
+  const m112MaintOp = m112Closure?.maintenance_operational;
+  const m112M2Open = m112Closure?.m2_gate_open;
+  function m112OpStatus(v) {
+    if (v === true) return 'OPERATIONAL';
+    if (v === false) return 'NOT_OPERATIONAL';
+    return '—';
+  }
+  function m112OpAccent(v) {
+    if (v === true) return '--green';
+    if (v === false) return '--red';
+    return '--text-tertiary';
+  }
+
+  // M1.11 — Pilot Operation Window (real usage)
+  const m111Complete = m111Operation?.pilot_operation_window_complete;
+  const m111Verdict = m111Complete === true ? 'COMPLETE' : (m111Operation ? 'PARTIAL' : 'NOT_OPERATIONAL');
+  const m111Summary = m111Operation?.summary ?? {};
+  function m111DomainStatus(key) {
+    const section = m111Operation?.[key];
+    if (section?.status) return section.status;
+    const crit = m111Operation?.[`${key}_operational`];
+    if (crit === true) return 'OPERATIONAL';
+    if (crit === false) return 'PARTIAL';
+    return '—';
+  }
+  function m111DomainAccent(key) {
+    const s = m111DomainStatus(key);
+    if (s === 'OPERATIONAL') return '--green';
+    if (s === 'PARTIAL') return '--amber';
+    return '--text-tertiary';
+  }
+  function m111BoolStatus(v) {
+    if (v === true) return 'OPERATIONAL';
+    if (v === false) return 'PARTIAL';
+    return '—';
+  }
+  function m111BoolAccent(v) {
+    if (v === true) return '--green';
+    if (v === false) return '--amber';
+    return '--text-tertiary';
+  }
+
+  // M1.10 — Food Base Pilot Go-Live
+  const m110Active = m110Pilot?.food_base_pilot_active;
+  const m110Verdict = m110Active === true ? 'ACTIVE' : (m110Pilot ? 'PARTIAL' : 'NOT_ACTIVE');
+  const m110Summary = m110Pilot?.summary ?? {};
+  const m110Strategy = m110Pilot?.strategy?.strategy ?? '—';
+  const m110TenantShort = m110Pilot?.tenant?.company_id?.slice(0, 8) ?? '511f4819';
+  function m110Criterion(key) {
+    const v = m110Pilot?.[key];
+    if (v === true) return 'READY';
+    if (v === false) return 'PARTIAL';
+    return '—';
+  }
+  function m110CriterionAccent(key) {
+    const v = m110Pilot?.[key];
+    if (v === true) return '--green';
+    if (v === false) return '--amber';
+    return '--text-tertiary';
+  }
+
+  // M1.9 — Pilot Execution Dry Run (Fresh & Fit proxy)
+  const m19PilotReady = m19DryRun?.pilot_execution_ready;
+  const m19Verdict = m19PilotReady === true ? 'READY' : (m19DryRun ? 'PARTIAL' : 'NOT_READY');
+  const m19Summary = m19DryRun?.summary ?? {};
+  const m19TenantShort = m19DryRun?.company_id?.slice(0, 8) ?? '511f4819';
+  function m19JourneyComplete(key) {
+    const v = m19DryRun?.[`${key}_journey_complete`];
+    if (v === true) return 'READY';
+    if (v === false) return 'PARTIAL';
+    return '—';
+  }
+  function m19JourneyAccent(key) {
+    const v = m19DryRun?.[`${key}_journey_complete`];
+    if (v === true) return '--green';
+    if (v === false) return '--amber';
+    return '--text-tertiary';
+  }
+  function m19BoolAccent(v) { return v === true ? '--green' : (v === false ? '--amber' : '--text-tertiary'); }
+
+  // M1.8 — Food Base Go-Live Readiness
+  const m18GoLive = m18FoodBase?.food_base_ready_for_go_live;
+  const m18Verdict = m18GoLive === true ? 'READY' : (m18FoodBase ? 'PARTIAL' : 'NOT_READY');
+  const m18Summary = m18FoodBase?.summary ?? {};
+  function m18DimReady(key) {
+    const v = m18FoodBase?.[`${key}_ready`];
+    if (v === true) return 'READY';
+    if (v === false) return 'NOT_READY';
+    return '—';
+  }
+  function m18DimAccent(key) {
+    return m18FoodBase?.[`${key}_ready`] === true ? '--green' : (m18FoodBase?.[`${key}_ready`] === false ? '--amber' : '--text-tertiary');
+  }
+
+  // M1.7 — Pilot Readiness Simulation
+  const m17PilotReady = m17Readiness?.pilot_ready;
+  const m17Summary = m17Readiness?.summary ?? {};
+  const m17UserJourney = m17Readiness?.user_journey_complete;
+  const m17CrossDomain = m17Readiness?.cross_domain_flow_complete;
+  const m17ExecVis = m17Readiness?.executive_visibility_complete;
+  const m17Verdict = m17PilotReady === true ? 'READY' : (m17Readiness ? 'PARTIAL' : 'NOT_READY');
+  function m17ScenarioStatus(key) {
+    const v = m17Readiness?.[`${key}_journey_complete`];
+    if (v === true) return 'READY';
+    if (m17Readiness?.[key]?.status) return m17Readiness[key].status;
+    return 'NOT_READY';
+  }
+  function m17Accent(key) {
+    const s = m17ScenarioStatus(key);
+    if (s === 'READY') return '--green';
+    if (s === 'PARTIAL') return '--amber';
+    return '--text-tertiary';
+  }
+  function m17BoolAccent(v) { return v === true ? '--green' : (v === false ? '--amber' : '--text-tertiary'); }
+
+  // M1.6 — Production Domain Operational Validation
+  const m16Scores = m16Validation?.scores ?? {};
+  const m16Summary = m16Validation?.summary ?? {};
+  const m16Verdict = m16Validation?.pass ? 'VALIDATED' : (m16Validation ? 'PARTIAL' : 'NOT_VALIDATED');
+  function m16DomainStatus(key) {
+    const v = m16Scores[`${key}_operational`];
+    if (v === true) return 'VALIDATED';
+    if (v === false) return 'PARTIAL';
+    return 'NOT_VALIDATED';
+  }
+  function m16Accent(key) {
+    const s = m16DomainStatus(key);
+    if (s === 'VALIDATED') return '--green';
+    if (s === 'PARTIAL') return '--amber';
+    return '--text-tertiary';
+  }
+
   return (
     <div className="impetus-card aioi-scale__card">
       <div className="aioi-scale__header">
@@ -360,6 +572,19 @@ export default function WidgetAIOIScale() {
         </div>
         <span className="aioi-scale__badge" style={{ color: healthColor, borderColor: healthColor }}>
           {clusterHealthStatus}
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">INDUSTRIAL DOMAIN FOUNDATION (M1)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="MES" value="FOUNDATION_READY" accent="--cyan" />
+        <ScaleTile label="LOGISTICS" value="FOUNDATION_READY" accent="--cyan" />
+        <ScaleTile label="ANALYTICS" value="FOUNDATION_READY" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: 'var(--cyan)' }} />
+        <span>
+          M1 · bounded contexts · /api/mes · /api/logistics · /api/analytics
         </span>
       </div>
 
@@ -802,6 +1027,315 @@ export default function WidgetAIOIScale() {
         <Activity size={12} style={{ color: 'var(--text-tertiary)' }} />
         <span>
           Throughput seq: {parBench.sequential?.throughput_eps ?? 0} eps
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT ADOPTION CLOSURE ASSESSMENT (M1.17)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="ADOPTION"
+          value={m117AdoptionClosure?.adoption_verdict === 'PILOT_ADOPTION_COMPLETE' ? 'COMPLETE' : (m117AdoptionClosure?.adoption_verdict === 'PILOT_ADOPTION_PENDING' ? 'PENDING' : '—')}
+          accent={m117AdoptionClosure?.adoption_verdict === 'PILOT_ADOPTION_COMPLETE' ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="UTILIZATION"
+          value={m117AdoptionClosure ? `${m117AdoptionClosure.pilot_utilization_index ?? '—'}%` : '—'}
+          accent={m117AdoptionClosure?.pilot_utilization_index >= 100 ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="DOMAINS"
+          value={m117AdoptionClosure ? `${m117AdoptionClosure.adopted_domains ?? '—'}/${m117AdoptionClosure.available_domains ?? 6}` : '—'}
+          accent={m117AdoptionClosure?.adopted_domains === 6 ? '--green' : '--amber'}
+        />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="ENVIRONMENT"
+          value={m117AdoptionClosure?.environment_adoption_confirmed === true ? 'ADOPTED' : (m117AdoptionClosure?.environment_adoption_confirmed === false ? 'PENDING' : '—')}
+          accent={m117AdoptionClosure?.environment_adoption_confirmed ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="MAINTENANCE"
+          value={m117AdoptionClosure?.maintenance_adoption_confirmed === true ? 'ADOPTED' : (m117AdoptionClosure?.maintenance_adoption_confirmed === false ? 'PENDING' : '—')}
+          accent={m117AdoptionClosure?.maintenance_adoption_confirmed ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="M2 GATE"
+          value={m117AdoptionClosure?.m2_gate_open === true ? 'OPEN' : (m117AdoptionClosure?.m2_gate_open === false ? 'PENDING' : '—')}
+          accent={m117AdoptionClosure?.m2_gate_open ? '--cyan' : '--amber'}
+        />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: m117AdoptionClosure?.pass ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>M1.17 · adoption closure · GET /api/m1/pilot-adoption-closure/status</span>
+      </div>
+
+      <div className="aioi-scale__section-label">CRITICAL REMEDIATION (M1.16)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="VERDICT" value={m116Verdict === 'M1_PLATFORM_FULLY_OPERATIONAL' ? 'OPERATIONAL' : m116Verdict} accent={m116Remediation?.pass ? '--green' : '--amber'} />
+        <ScaleTile label="RBAC" value={m116Remediation?.financial_rbac_unified ? 'UNIFIED' : '—'} accent={m116Remediation?.financial_rbac_unified ? '--green' : '--amber'} />
+        <ScaleTile label="F48 Denial" value={m116Remediation?.financial_empty_responses_eliminated ? 'SAFE' : '—'} accent={m116Remediation?.financial_empty_responses_eliminated ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Production" value={m116Remediation?.production_runtime_promoted ? 'ACTIVE' : '—'} accent={m116Remediation?.production_runtime_promoted ? '--green' : '--amber'} />
+        <ScaleTile label="Quality" value={m116Remediation?.quality_bridge_promoted ? 'ACTIVE' : '—'} accent={m116Remediation?.quality_bridge_promoted ? '--green' : '--amber'} />
+        <ScaleTile label="Regression" value={m116Remediation?.regression_validation_passed ? 'PASS' : '—'} accent={m116Remediation?.regression_validation_passed ? '--green' : '--red'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: m116Remediation?.pass ? 'var(--green)' : 'var(--amber)' }} />
+        <span>M1.16 · remediation · GET /api/m1/critical-remediation/status</span>
+      </div>
+
+      <div className="aioi-scale__section-label">PLATFORM CLOSURE AUDIT (M1.15)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="VERDICT" value={m115Verdict === 'M1_15_CRITICAL_FINDINGS_IDENTIFIED' ? 'FINDINGS' : m115Verdict} accent={m115Closure?.pass ? '--amber' : '--text-secondary'} />
+        <ScaleTile label="F48 RCA" value={m115Closure?.financial_f48_root_cause_identified ? 'OK' : '—'} accent={m115Closure?.financial_f48_root_cause_identified ? '--green' : '--amber'} />
+        <ScaleTile label="Remediation" value={m115Ready ? 'READY' : '—'} accent={m115Ready ? '--cyan' : '--text-secondary'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="AIOI Worker" value={m115Closure?.aioi?.worker_operational ? 'OK' : '—'} accent={m115Closure?.aioi?.worker_operational ? '--green' : '--amber'} />
+        <ScaleTile label="Telemetry" value={m115Closure?.telemetry?.telemetry_diagnosis ?? '—'} accent="--cyan" />
+        <ScaleTile label="Shadow" value={m115Closure?.shadow?.production_runtime_shadow ? 'PROD' : '—'} accent={m115Closure?.shadow?.quality_bridge_shadow ? '--amber' : '--green'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: m115Closure?.pass ? 'var(--amber)' : 'var(--text-tertiary)' }} />
+        <span>M1.15 · root cause only · GET /api/m1/platform-closure/status</span>
+      </div>
+
+      <div className="aioi-scale__section-label">M2 READINESS GOVERNANCE (M1.14)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="GOVERNANCE" value={m114Verdict === 'M2_GOVERNANCE_DECISION_READY' ? 'READY' : (m114Verdict === 'M2_GOVERNANCE_ASSESSMENT_PARTIAL' ? 'PARTIAL' : '—')} accent={m114Governance?.pass ? '--green' : '--amber'} />
+        <ScaleTile label="Recommend" value={m114RecLabel} accent={m114Rec === 'open_m2_gate' ? '--green' : '--amber'} />
+        <ScaleTile label="M2 Deps" value={m114Deps === true ? 'OK' : (m114Deps === false ? 'BLOCK' : '—')} accent={m114Deps ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Tech Risk" value={m114RiskLevel('technical')} accent={m114RiskAccent(m114RiskLevel('technical'))} />
+        <ScaleTile label="Adopt Risk" value={m114RiskLevel('adoption')} accent={m114RiskAccent(m114RiskLevel('adoption'))} />
+        <ScaleTile label="Biz Risk" value={m114RiskLevel('business')} accent={m114RiskAccent(m114RiskLevel('business'))} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Platform" value={m114Governance?.platform_ready ? 'READY' : 'NO'} accent={m114Governance?.platform_ready ? '--green' : '--amber'} />
+        <ScaleTile label="Adopt Gap" value={m114Governance?.adoption_gap_identified ? 'YES' : 'NO'} accent={m114Governance?.adoption_gap_identified ? '--amber' : '--green'} />
+        <ScaleTile label="Phase" value="M1.14" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m114Governance?.pass ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.14 · M2 governance · GET /api/m1/governance/status
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT ADOPTION ASSESSMENT (M1.13)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="VERDICT" value={m113Verdict === 'PLATFORM_READY_ADOPTION_PENDING' ? 'ADOPTION' : (m113Verdict === 'PILOT_FULLY_ADOPTED' ? 'FULL' : m113Verdict)} accent={m113Adoption?.pass ? '--green' : '--amber'} />
+        <ScaleTile label="Index" value={m113Index != null ? `${m113Index}%` : '—'} accent={m113Index >= 66 ? '--green' : '--amber'} />
+        <ScaleTile label="Diagnosis" value={m113Diagnosis} accent={m113Diagnosis === 'ADOPTION GAP' ? '--amber' : (m113Diagnosis === 'FULL' ? '--green' : '--red')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Adopted" value={`${m113Adopted ?? '—'}/6`} accent="--cyan" />
+        <ScaleTile label="Exec" value={m113Usage('executive')} accent={m113UsageAccent(m113Adoption?.utilization?.executive_usage)} />
+        <ScaleTile label="Finance" value={m113Usage('financial')} accent={m113UsageAccent(m113Adoption?.utilization?.financial_usage)} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="HR" value={m113Usage('hr')} accent={m113UsageAccent(m113Adoption?.utilization?.hr_usage)} />
+        <ScaleTile label="Safety" value={m113Usage('safety')} accent={m113UsageAccent(m113Adoption?.utilization?.safety_usage)} />
+        <ScaleTile label="Env/Maint" value={`${m113Usage('environment')}/${m113Usage('maintenance')}`} accent="--amber" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Platform" value={m113Adoption?.platform_ready ? 'READY' : 'NOT'} accent={m113Adoption?.platform_ready ? '--green' : '--amber'} />
+        <ScaleTile label="M2 Tech" value={m113Adoption?.m2_technical_readiness ? 'READY' : 'NO'} accent={m113Adoption?.m2_technical_readiness ? '--green' : '--amber'} />
+        <ScaleTile label="Phase" value="M1.13" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m113Adoption?.pass ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.13 · adoption vs platform · GET /api/m1/pilot-adoption/status
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT OPERATIONAL CLOSURE (M1.12)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="CLOSURE" value={m112Verdict} accent={m112Verdict === 'CLOSED' ? '--green' : m112Verdict === 'BLOCKERS' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="ENV" value={m112OpStatus(m112EnvOp)} accent={m112OpAccent(m112EnvOp)} />
+        <ScaleTile label="MAINT" value={m112OpStatus(m112MaintOp)} accent={m112OpAccent(m112MaintOp)} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="M2 Gate" value={m112M2Open ? 'OPEN' : 'CLOSED'} accent={m112M2Open ? '--green' : '--amber'} />
+        <ScaleTile label="Env Blocker" value={m112Closure?.environment_blocker ?? '—'} accent="--text-secondary" />
+        <ScaleTile label="Maint Blocker" value={m112Closure?.maintenance_blocker ?? '—'} accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Window 7d" value="ON" accent="--cyan" />
+        <ScaleTile label="Window 30d" value="ON" accent="--cyan" />
+        <ScaleTile label="Phase" value="M1.12" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m112Verdict === 'CLOSED' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.12 · tenant-scoped closure · GET /api/m1/pilot-closure/status
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT OPERATION WINDOW (M1.11)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="PILOT WINDOW" value={m111Verdict} accent={m111Verdict === 'COMPLETE' ? '--green' : m111Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Domains" value={`${m111Summary.domains_operational ?? '—'}/${m111Summary.domains_total ?? 6}`} accent={m111Complete ? '--green' : '--amber'} />
+        <ScaleTile label="Phase" value="M1.11" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="EXECUTIVE" value={m111DomainStatus('executive')} accent={m111DomainAccent('executive')} />
+        <ScaleTile label="FINANCIAL" value={m111DomainStatus('financial')} accent={m111DomainAccent('financial')} />
+        <ScaleTile label="HR" value={m111DomainStatus('hr')} accent={m111DomainAccent('hr')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="SAFETY" value={m111DomainStatus('safety')} accent={m111DomainAccent('safety')} />
+        <ScaleTile label="ENVIRONMENT" value={m111DomainStatus('environment')} accent={m111DomainAccent('environment')} />
+        <ScaleTile label="MAINTENANCE" value={m111DomainStatus('maintenance')} accent={m111DomainAccent('maintenance')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="TENANT ACTIVITY" value={m111BoolStatus(m111Operation?.tenant_activity_confirmed)} accent={m111BoolAccent(m111Operation?.tenant_activity_confirmed)} />
+        <ScaleTile label="RUNTIME HEALTH" value={m111BoolStatus(m111Operation?.runtime_health_confirmed)} accent={m111BoolAccent(m111Operation?.runtime_health_confirmed)} />
+        <ScaleTile label="M2 Gate" value={m111Operation?.m2_gate?.authorized ? 'OPEN' : 'CLOSED'} accent={m111Operation?.m2_gate?.authorized ? '--green' : '--amber'} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m111Verdict === 'COMPLETE' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.11 · real usage audit · GET /api/m1/pilot-operation/status · gate M2
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">FOOD BASE PILOT GO-LIVE (M1.10)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="PILOT" value={m110Verdict} accent={m110Verdict === 'ACTIVE' ? '--green' : m110Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Criteria" value={`${m110Summary.criteria_met ?? '—'}/${m110Summary.criteria_total ?? 8}`} accent={m110Active ? '--green' : '--amber'} />
+        <ScaleTile label="Strategy" value={m110Strategy === 'promote_existing' ? 'PROMOTE' : (m110Strategy === 'new_company' ? 'NEW' : '—')} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Tenant" value={m110Criterion('tenant_created')} accent={m110CriterionAccent('tenant_created')} />
+        <ScaleTile label="Security" value={m110Criterion('security_enabled')} accent={m110CriterionAccent('security_enabled')} />
+        <ScaleTile label="Lists" value={m110Criterion('pilot_lists_enabled')} accent={m110CriterionAccent('pilot_lists_enabled')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Executive" value={m110Criterion('executive_go_live')} accent={m110CriterionAccent('executive_go_live')} />
+        <ScaleTile label="Domains" value={m110Criterion('domains_go_live')} accent={m110CriterionAccent('domains_go_live')} />
+        <ScaleTile label="AIOI" value={m110Criterion('tenant_scoped_aioi')} accent={m110CriterionAccent('tenant_scoped_aioi')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="FoodBase API" value={m110Criterion('foodbase_api_live')} accent={m110CriterionAccent('foodbase_api_live')} />
+        <ScaleTile label="Tenant ID" value={m110TenantShort} accent="--text-secondary" />
+        <ScaleTile label="Phase" value="M1.10" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m110Verdict === 'ACTIVE' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.10 · Food Base Pilot · GET /api/m1/foodbase-pilot/status · encerra ciclo M1
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT EXECUTION DRY RUN (M1.9)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="PILOT" value={m19Verdict} accent={m19Verdict === 'READY' ? '--green' : m19Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Journeys" value={`${m19Summary.journeys_complete ?? '—'}/${m19Summary.journeys_total ?? 7}`} accent={m19PilotReady ? '--green' : '--amber'} />
+        <ScaleTile label="Tenant" value={m19TenantShort} accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="CEO" value={m19JourneyComplete('ceo')} accent={m19JourneyAccent('ceo')} />
+        <ScaleTile label="CFO" value={m19JourneyComplete('cfo')} accent={m19JourneyAccent('cfo')} />
+        <ScaleTile label="HR" value={m19JourneyComplete('hr')} accent={m19JourneyAccent('hr')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="SST" value={m19JourneyComplete('safety')} accent={m19JourneyAccent('safety')} />
+        <ScaleTile label="Ambiental" value={m19JourneyComplete('environment')} accent={m19JourneyAccent('environment')} />
+        <ScaleTile label="MANUIA" value={m19JourneyComplete('maintenance')} accent={m19JourneyAccent('maintenance')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="NAV" value={m19DryRun?.navigation_ready === true ? 'READY' : (m19DryRun?.navigation_ready === false ? 'PARTIAL' : '—')} accent={m19BoolAccent(m19DryRun?.navigation_ready)} />
+        <ScaleTile label="Mode" value={m19DryRun?.mode ?? 'pilot_proxy'} accent="--text-secondary" />
+        <ScaleTile label="Phase" value="M1.9" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m19Verdict === 'READY' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.9 · Fresh &amp; Fit · GET /api/m1/pilot-execution/status · read only
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">FOOD BASE GO-LIVE READINESS (M1.8)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="GO LIVE" value={m18Verdict} accent={m18Verdict === 'READY' ? '--green' : m18Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Dims" value={`${m18Summary.dimensions_ready ?? '—'}/${m18Summary.dimensions_total ?? 8}`} accent={m18GoLive ? '--green' : '--amber'} />
+        <ScaleTile label="Phase" value="M1.8" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="TENANT" value={m18DimReady('tenant')} accent={m18DimAccent('tenant')} />
+        <ScaleTile label="SECURITY" value={m18DimReady('security')} accent={m18DimAccent('security')} />
+        <ScaleTile label="EXEC" value={m18DimReady('executive')} accent={m18DimAccent('executive')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="SAFETY" value={m18DimReady('safety')} accent={m18DimAccent('safety')} />
+        <ScaleTile label="ENVIRON" value={m18DimReady('environment')} accent={m18DimAccent('environment')} />
+        <ScaleTile label="MAINT" value={m18DimReady('maintenance')} accent={m18DimAccent('maintenance')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="HR" value={m18DimReady('hr')} accent={m18DimAccent('hr')} />
+        <ScaleTile label="FINANCE" value={m18DimReady('financial')} accent={m18DimAccent('financial')} />
+        <ScaleTile label="SIM ID" value="prospective" accent="--text-secondary" />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m18Verdict === 'READY' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.8 · prospective tenant · GET /api/m1/foodbase/status · no BD writes
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PILOT READINESS SIMULATION (M1.7)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="PILOT" value={m17Verdict} accent={m17Verdict === 'READY' ? '--green' : m17Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Journeys" value={`${m17Summary.journeys_complete ?? '—'}/${m17Summary.journeys_total ?? 6}`} accent={m17Summary.all_complete ? '--green' : '--amber'} />
+        <ScaleTile label="Phase" value="M1.7" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Safety" value={m17ScenarioStatus('safety')} accent={m17Accent('safety')} />
+        <ScaleTile label="Environ" value={m17ScenarioStatus('environment')} accent={m17Accent('environment')} />
+        <ScaleTile label="Maint" value={m17ScenarioStatus('maintenance')} accent={m17Accent('maintenance')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="HR" value={m17ScenarioStatus('hr')} accent={m17Accent('hr')} />
+        <ScaleTile label="Finance" value={m17ScenarioStatus('financial')} accent={m17Accent('financial')} />
+        <ScaleTile label="Exec" value={m17ScenarioStatus('executive')} accent={m17Accent('executive')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="USER JOURNEY" value={m17UserJourney === true ? 'COMPLETE' : (m17UserJourney === false ? 'PARTIAL' : '—')} accent={m17BoolAccent(m17UserJourney)} />
+        <ScaleTile label="CROSS DOMAIN" value={m17CrossDomain === true ? 'COMPLETE' : (m17CrossDomain === false ? 'PARTIAL' : '—')} accent={m17BoolAccent(m17CrossDomain)} />
+        <ScaleTile label="EXEC VIS" value={m17ExecVis === true ? 'COMPLETE' : (m17ExecVis === false ? 'PARTIAL' : '—')} accent={m17BoolAccent(m17ExecVis)} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m17Verdict === 'READY' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.7 · pilot journeys · GET /api/m1/pilot-readiness/status
+        </span>
+      </div>
+
+      <div className="aioi-scale__section-label">PRODUCTION DOMAIN VALIDATION (M1.6)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="VERDICT" value={m16Verdict} accent={m16Verdict === 'VALIDATED' ? '--green' : m16Verdict === 'PARTIAL' ? '--amber' : '--text-tertiary'} />
+        <ScaleTile label="Domains" value={`${m16Summary.validated_count ?? '—'}/${m16Summary.total_count ?? 6}`} accent={m16Summary.all_operational ? '--green' : '--amber'} />
+        <ScaleTile label="Phase" value="M1.6" accent="--cyan" />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Safety" value={m16DomainStatus('safety')} accent={m16Accent('safety')} />
+        <ScaleTile label="Environ" value={m16DomainStatus('environment')} accent={m16Accent('environment')} />
+        <ScaleTile label="Exec" value={m16DomainStatus('executive')} accent={m16Accent('executive')} />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile label="Maint" value={m16DomainStatus('maintenance')} accent={m16Accent('maintenance')} />
+        <ScaleTile label="HR" value={m16DomainStatus('hr')} accent={m16Accent('hr')} />
+        <ScaleTile label="Finance" value={m16DomainStatus('financial')} accent={m16Accent('financial')} />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: m16Verdict === 'VALIDATED' ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>
+          M1.6 · operational value · GET /api/m1/validation/status
         </span>
       </div>
 

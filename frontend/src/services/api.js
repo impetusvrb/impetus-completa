@@ -1631,3 +1631,131 @@ export const operations = {
   getGoLiveAcceptance: () => api.get('/operations/golive/acceptance'),
   getGoLiveRegistry: (params) => api.get('/operations/golive/registry', { params })
 };
+
+/** M1.6 — Production Domain Operational Validation (READ ONLY) */
+export const m1Validation = {
+  getStatus:      () => api.get('/m1/validation/status'),
+  getSafety:      () => api.get('/m1/validation/safety'),
+  getEnvironment: () => api.get('/m1/validation/environment'),
+  getExecutive:   () => api.get('/m1/validation/executive'),
+  getMaintenance: () => api.get('/m1/validation/maintenance'),
+  getHR:          () => api.get('/m1/validation/hr'),
+  getFinancial:   () => api.get('/m1/validation/financial'),
+};
+
+/** M1.7 — Pilot Readiness Simulation (READ ONLY) */
+export const m1PilotReadiness = {
+  getStatus:      () => api.get('/m1/pilot-readiness/status'),
+  getSafety:      () => api.get('/m1/pilot-readiness/safety'),
+  getEnvironment: () => api.get('/m1/pilot-readiness/environment'),
+  getMaintenance: () => api.get('/m1/pilot-readiness/maintenance'),
+  getHR:          () => api.get('/m1/pilot-readiness/hr'),
+  getFinancial:   () => api.get('/m1/pilot-readiness/financial'),
+  getExecutive:   () => api.get('/m1/pilot-readiness/executive'),
+};
+
+/** M1.14 — M2 Readiness Governance Assessment (READ ONLY) */
+export const m1Governance = {
+  getStatus:         () => api.get('/m1/governance/status'),
+  getEvidence:       () => api.get('/m1/governance/evidence'),
+  getRisks:          () => api.get('/m1/governance/risks'),
+  getDependencies:   () => api.get('/m1/governance/dependencies'),
+  getRecommendation: () => api.get('/m1/governance/recommendation'),
+};
+
+/** M1.15 — Platform Closure Audit (READ ONLY) */
+export const m1PlatformClosure = {
+  getStatus:       () => api.get('/m1/platform-closure/status'),
+  getFinancial:    () => api.get('/m1/platform-closure/financial'),
+  getAioiWorker:   () => api.get('/m1/platform-closure/aioi-worker'),
+  getTelemetry:    () => api.get('/m1/platform-closure/telemetry'),
+  getShadowRuntime: () => api.get('/m1/platform-closure/shadow-runtime'),
+};
+
+/** M1.16 — Critical Remediation (READ ONLY assessment) */
+export const m1CriticalRemediation = {
+  getStatus:     () => api.get('/m1/critical-remediation/status'),
+  getFinancial:  () => api.get('/m1/critical-remediation/financial'),
+  getProduction: () => api.get('/m1/critical-remediation/production'),
+  getQuality:    () => api.get('/m1/critical-remediation/quality'),
+  getRegression: () => api.get('/m1/critical-remediation/regression'),
+};
+
+/** M1.17 — Pilot Adoption Closure Assessment (READ ONLY) */
+export const m1PilotAdoptionClosure = {
+  getStatus:       () => api.get('/m1/pilot-adoption-closure/status'),
+  getEnvironment:  () => api.get('/m1/pilot-adoption-closure/environment'),
+  getMaintenance:  () => api.get('/m1/pilot-adoption-closure/maintenance'),
+  getUtilization:  () => api.get('/m1/pilot-adoption-closure/utilization'),
+  getGate:         () => api.get('/m1/pilot-adoption-closure/gate'),
+};
+
+/** M1.13 — Pilot Adoption Assessment (READ ONLY) */
+export const m1PilotAdoption = {
+  getStatus:         () => api.get('/m1/pilot-adoption/status'),
+  getEnvironment:    () => api.get('/m1/pilot-adoption/environment'),
+  getMaintenance:    () => api.get('/m1/pilot-adoption/maintenance'),
+  getUtilization:    () => api.get('/m1/pilot-adoption/utilization'),
+  getRecommendation: () => api.get('/m1/pilot-adoption/recommendation'),
+};
+
+/** M1.12 — Pilot Operational Closure (Environment + Maintenance blockers) */
+export const m1PilotClosure = {
+  getStatus:      () => api.get('/m1/pilot-closure/status'),
+  getEnvironment: () => api.get('/m1/pilot-closure/environment'),
+  getMaintenance: () => api.get('/m1/pilot-closure/maintenance'),
+  getGate:        () => api.get('/m1/pilot-closure/gate'),
+};
+
+/** M1.11 — Pilot Operation Window (READ ONLY · real usage) */
+export const m1PilotOperation = {
+  getStatus:      () => api.get('/m1/pilot-operation/status'),
+  getExecutive:   () => api.get('/m1/pilot-operation/executive'),
+  getFinancial:   () => api.get('/m1/pilot-operation/financial'),
+  getHr:          () => api.get('/m1/pilot-operation/hr'),
+  getSafety:      () => api.get('/m1/pilot-operation/safety'),
+  getEnvironment: () => api.get('/m1/pilot-operation/environment'),
+  getMaintenance: () => api.get('/m1/pilot-operation/maintenance'),
+  getActivity:    () => api.get('/m1/pilot-operation/activity'),
+  getRuntime:     () => api.get('/m1/pilot-operation/runtime'),
+};
+
+/** M1.10 — Food Base Pilot Provisioning (Controlled Go-Live) */
+export const m1FoodBasePilot = {
+  getStatus:      () => api.get('/m1/foodbase-pilot/status'),
+  getStrategy:    () => api.get('/m1/foodbase-pilot/strategy'),
+  getProvisioning: () => api.get('/m1/foodbase-pilot/provisioning'),
+  getPilotLists:  () => api.get('/m1/foodbase-pilot/pilot-lists'),
+  getProfiles:    () => api.get('/m1/foodbase-pilot/profiles'),
+  getExecutive:   () => api.get('/m1/foodbase-pilot/executive'),
+  getDomains:     () => api.get('/m1/foodbase-pilot/domains'),
+  getAioi:        () => api.get('/m1/foodbase-pilot/aioi'),
+  getFoodbaseApi: () => api.get('/m1/foodbase-pilot/foodbase-api'),
+};
+
+/** M1.9 — Pilot Execution Dry Run (READ ONLY · tenant proxy) */
+export const m1PilotExecution = {
+  getStatus:      () => api.get('/m1/pilot-execution/status'),
+  getCeo:         () => api.get('/m1/pilot-execution/ceo'),
+  getCfo:         () => api.get('/m1/pilot-execution/cfo'),
+  getHr:          () => api.get('/m1/pilot-execution/hr'),
+  getSafety:      () => api.get('/m1/pilot-execution/safety'),
+  getEnvironment: () => api.get('/m1/pilot-execution/environment'),
+  getMaintenance: () => api.get('/m1/pilot-execution/maintenance'),
+  getNavigation:  () => api.get('/m1/pilot-execution/navigation'),
+};
+
+/** M1.8 — Food Base Go-Live Readiness (READ ONLY · SIMULATION ONLY) */
+export const m1FoodBase = {
+  getStatus:      () => api.get('/m1/foodbase/status'),
+  getTenant:      () => api.get('/m1/foodbase/tenant'),
+  getSecurity:    () => api.get('/m1/foodbase/security'),
+  getRoles:       () => api.get('/m1/foodbase/roles'),
+  getPermissions: () => api.get('/m1/foodbase/permissions'),
+  getExecutive:   () => api.get('/m1/foodbase/executive'),
+  getSafety:      () => api.get('/m1/foodbase/safety'),
+  getEnvironment: () => api.get('/m1/foodbase/environment'),
+  getHR:          () => api.get('/m1/foodbase/hr'),
+  getFinancial:   () => api.get('/m1/foodbase/financial'),
+  getMaintenance: () => api.get('/m1/foodbase/maintenance'),
+};

@@ -3,7 +3,7 @@
  * Analisa a pergunta ANTES de enviar à OpenAI.
  * Bloqueia termos sensíveis sem permissão e tentativas de prompt injection.
  */
-const { getUserPermissions } = require('./authorize');
+const { getUserPermissions, permissionDenialReply, DEFAULT_DENIAL_REPLY } = require('./authorize');
 const aiPromptGuardService = require('../services/aiPromptGuardService');
 
 const SECURITY_BLOCK_MESSAGE =
@@ -31,7 +31,7 @@ const XSS_AND_MARKUP_PATTERNS = [
   /<\s*iframe/i
 ];
 
-const BLOCK_MESSAGE = 'Você não possui permissão para acessar informações estratégicas. Entre em contato com o administrador para solicitar acesso.';
+const BLOCK_MESSAGE = DEFAULT_DENIAL_REPLY;
 
 /**
  * Analisa o texto e retorna { allowed, blocked, reason }
@@ -67,7 +67,8 @@ async function analyzePrompt(message, user) {
       blocked: true,
       reason: 'PROMPT_SECURITY',
       message: SECURITY_BLOCK_MESSAGE,
-      security: { risk_score: ingress.risk_score, classification: ingress.classification }
+      reply: permissionDenialReply('PROMPT_SECURITY'),
+      security: { risk_score: ingress.risk_score, classification: ingress.classification },
     };
   }
 
@@ -97,17 +98,23 @@ async function analyzePrompt(message, user) {
 
   for (const term of financialTerms) {
     if (text.includes(term) && !hasFinancial) {
-      return { allowed: false, blocked: true, reason: 'VIEW_FINANCIAL', message: BLOCK_MESSAGE };
+      const reason = 'VIEW_FINANCIAL';
+      const reply = permissionDenialReply(reason);
+      return { allowed: false, blocked: true, reason, message: reply, reply };
     }
   }
   for (const term of hrTerms) {
     if (text.includes(term) && !hasHR) {
-      return { allowed: false, blocked: true, reason: 'VIEW_HR', message: BLOCK_MESSAGE };
+      const reason = 'VIEW_HR';
+      const reply = permissionDenialReply(reason);
+      return { allowed: false, blocked: true, reason, message: reply, reply };
     }
   }
   for (const term of strategicTerms) {
     if (text.includes(term) && !hasStrategic) {
-      return { allowed: false, blocked: true, reason: 'VIEW_STRATEGIC', message: BLOCK_MESSAGE };
+      const reason = 'VIEW_STRATEGIC';
+      const reply = permissionDenialReply(reason);
+      return { allowed: false, blocked: true, reason, message: reply, reply };
     }
   }
 
@@ -127,7 +134,7 @@ function promptFirewall(req, res, next) {
     next();
   }).catch((err) => {
     console.error('[PROMPT_FIREWALL_ERROR]', err);
-    req.promptFirewall = { allowed: false, blocked: true, reason: 'Erro na análise', message: BLOCK_MESSAGE };
+    req.promptFirewall = { allowed: false, blocked: true, reason: 'Erro na análise', message: BLOCK_MESSAGE, reply: BLOCK_MESSAGE };
     next();
   });
 }

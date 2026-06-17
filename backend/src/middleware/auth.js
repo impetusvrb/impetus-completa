@@ -448,6 +448,12 @@ function requireAuth(req, res, next) {
     } catch (_e) {
       /* não bloquear auth */
     }
+    try {
+      const { hydrateUserPermissions } = require('./authorize');
+      hydrated = await hydrateUserPermissions(hydrated);
+    } catch (_e) {
+      console.warn('[AUTH] hydrateUserPermissions:', _e?.message);
+    }
     req.user = hydrated;
     req.session = { id: user.sessionId };
     try {

@@ -62,6 +62,26 @@ const DOMAINS = Object.freeze({
     status: 'shadow',
     runtime_internal: null
   },
+  mes: {
+    id: 'mes',
+    label: 'MES (Manufacturing Execution)',
+    legacy_services: [],
+    legacy_routes: ['/api/mes'],
+    event_prefix: 'mes.',
+    scaffold_path: 'domains/mes',
+    status: 'foundation',
+    runtime_internal: null
+  },
+  analytics: {
+    id: 'analytics',
+    label: 'Analytics Industrial',
+    legacy_services: [],
+    legacy_routes: ['/api/analytics'],
+    event_prefix: 'analytics.',
+    scaffold_path: 'domains/analytics',
+    status: 'foundation',
+    runtime_internal: null
+  },
   operational: {
     id: 'operational',
     label: 'Operacional (ponte)',

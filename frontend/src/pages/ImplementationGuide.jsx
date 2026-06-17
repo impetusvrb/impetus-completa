@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, ArrowLeft, CheckCircle2, Clock3, Layers, Users, Building2, Settings } from 'lucide-react';
-import { adminDepartments, adminUsers, adminStructural, companies } from '../services/api';
+import { adminDepartments, adminUsers, adminStructural, adminSettings } from '../services/api';
 import './ImplementationGuide.css';
 
 const STEP_STATUS = {
@@ -14,6 +14,7 @@ function hasMeaningfulCompanyConfig(company) {
   if (!company || typeof company !== 'object') return false;
   const keys = [
     'company_policy_text',
+    'internal_policy',
     'company_description',
     'mission',
     'vision',
@@ -23,6 +24,44 @@ function hasMeaningfulCompanyConfig(company) {
     'strategic_notes'
   ];
   return keys.some((k) => String(company[k] || '').trim() !== '');
+}
+
+/** Extrai array da resposta axios ({ ok, departments } | { success, data: [] }). */
+function unwrapApiList(result, listKeys = []) {
+  const body = result?.data;
+  if (!body || typeof body !== 'object') return [];
+  for (const key of listKeys) {
+    if (Array.isArray(body[key])) return body[key];
+  }
+  if (body.success === true && Array.isArray(body.data)) return body.data;
+  if (Array.isArray(body.data)) return body.data;
+  return [];
+}
+
+/** Extrai objeto da resposta axios ({ success, data } | { company }). */
+function unwrapApiObject(result) {
+  const body = result?.data;
+  if (!body || typeof body !== 'object') return {};
+  if (body.success === true && body.data && typeof body.data === 'object' && !Array.isArray(body.data)) {
+    return body.data;
+  }
+  if (body.company && typeof body.company === 'object') return body.company;
+  return body;
+}
+
+function hasStructuralBaseData(refs = {}, structuralCompany = {}) {
+  const lists = [
+    refs.roles,
+    refs.productionLines,
+    refs.assets,
+    refs.processes,
+    refs.products,
+    refs.sectors,
+    refs.checklists,
+    refs.shifts
+  ];
+  if (lists.some((entry) => Array.isArray(entry) && entry.length > 0)) return true;
+  return hasMeaningfulCompanyConfig(structuralCompany);
 }
 
 function statusLabel(status) {
@@ -38,53 +77,53 @@ export default function ImplementationGuide() {
   const [userCount, setUserCount] = useState(0);
   const [hasStructuralBase, setHasStructuralBase] = useState(false);
   const [hasFinalConfigs, setHasFinalConfigs] = useState(false);
+  const [sectorCount, setSectorCount] = useState(0);
+
+  const loadProgress = async () => {
+    setLoading(true);
+    try {
+      const [depsRes, usersRes, companyRes, refsRes, structuralRes] = await Promise.allSettled([
+        adminDepartments.list(),
+        adminUsers.list({ limit: 200, active: 'true' }),
+        adminSettings.getCompany(),
+        adminStructural.getReferences(),
+        adminStructural.getCompanyData()
+      ]);
+
+      const deps = depsRes.status === 'fulfilled' ? unwrapApiList(depsRes.value, ['departments']) : [];
+      const users = usersRes.status === 'fulfilled' ? unwrapApiList(usersRes.value, ['users']) : [];
+      const companySettings = companyRes.status === 'fulfilled' ? unwrapApiObject(companyRes.value) : {};
+      const refs = refsRes.status === 'fulfilled' ? unwrapApiObject(refsRes.value) : {};
+      const structuralCompany =
+        structuralRes.status === 'fulfilled' ? unwrapApiObject(structuralRes.value) : {};
+
+      const sectors = Array.isArray(refs.sectors) ? refs.sectors : [];
+
+      setDeptCount(deps.length);
+      setSectorCount(sectors.length);
+      setUserCount(users.length);
+      setHasStructuralBase(hasStructuralBaseData(refs, structuralCompany));
+      setHasFinalConfigs(hasMeaningfulCompanyConfig({ ...structuralCompany, ...companySettings }));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const [depsRes, usersRes, companyRes, structuralRes] = await Promise.allSettled([
-          adminDepartments.list(),
-          adminUsers.list({ limit: 200 }),
-          companies.getMe(),
-          adminStructural.getCompanyData()
-        ]);
-
-        if (!mounted) return;
-
-        const deps = depsRes.status === 'fulfilled' ? depsRes.value?.data?.data || [] : [];
-        const users = usersRes.status === 'fulfilled' ? usersRes.value?.data?.data || [] : [];
-        const company = companyRes.status === 'fulfilled' ? companyRes.value?.data?.company || {} : {};
-        const structural = structuralRes.status === 'fulfilled' ? structuralRes.value?.data || {} : {};
-
-        setDeptCount(Array.isArray(deps) ? deps.length : 0);
-        setUserCount(Array.isArray(users) ? users.length : 0);
-
-        const structuralSignals = [
-          structural?.roles,
-          structural?.production_lines,
-          structural?.assets,
-          structural?.processes,
-          structural?.products,
-          structural?.indicators
-        ];
-        const structuralHasData = structuralSignals.some((entry) => Array.isArray(entry) && entry.length > 0);
-        setHasStructuralBase(structuralHasData);
-        setHasFinalConfigs(hasMeaningfulCompanyConfig(company));
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
+    loadProgress();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadProgress();
     };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   const steps = useMemo(() => {
     const s1 =
       hasStructuralBase ? STEP_STATUS.DONE : STEP_STATUS.NOT_STARTED;
+    const orgStructureCount = deptCount + sectorCount;
     const s2 =
-      deptCount > 0 ? STEP_STATUS.DONE : STEP_STATUS.NOT_STARTED;
+      orgStructureCount > 0 ? STEP_STATUS.DONE : STEP_STATUS.NOT_STARTED;
     const s3 =
       userCount >= 2 ? STEP_STATUS.DONE : userCount === 1 ? STEP_STATUS.IN_PROGRESS : STEP_STATUS.NOT_STARTED;
     const s4 =
@@ -137,7 +176,7 @@ export default function ImplementationGuide() {
         ]
       }
     ];
-  }, [deptCount, userCount, hasStructuralBase, hasFinalConfigs]);
+  }, [deptCount, sectorCount, userCount, hasStructuralBase, hasFinalConfigs]);
 
   const completed = steps.filter((s) => s.status === STEP_STATUS.DONE).length;
   const progress = Math.round((completed / steps.length) * 100);

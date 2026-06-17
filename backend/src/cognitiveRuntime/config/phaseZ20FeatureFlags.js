@@ -8,7 +8,7 @@ function _flag(name, defaultVal = false) {
 
 function _mode(name, defaultMode = 'off') {
   const v = String(process.env[name] || defaultMode).toLowerCase();
-  if (v === 'shadow' || v === 'on' || v === 'enrich') return v;
+  if (v === 'shadow' || v === 'on' || v === 'enrich' || v === 'active') return v === 'active' ? 'on' : v;
   return 'off';
 }
 
