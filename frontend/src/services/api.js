@@ -102,10 +102,13 @@ function handleFinalError(error) {
 
   // 401 em Pró-Ação/login não deve derrubar toda a sessão do usuário.
   // Em /auth/login precisamos devolver a mensagem de erro na própria tela.
+  // Em /anam/* o 401 pode ser do serviço externo Anam (API key inválida),
+  // não uma falha de autenticação do utilizador IMPETUS — nunca fazer logout.
   const isProacaoRequest = urlPath.includes('/proacao');
   const isLoginRequest = urlPath.includes('/auth/login');
+  const isAnamRequest = urlPath.includes('/anam/');
 
-  if (error.response?.status === 401 && !isProacaoRequest && !isLoginRequest) {
+  if (error.response?.status === 401 && !isProacaoRequest && !isLoginRequest && !isAnamRequest) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     import('./anamSessionSingleton')
@@ -198,7 +201,32 @@ export const appCommunications = {
   list: (limit = 30, offset = 0) =>
     api.get('/app-communications', { params: { limit, offset } }),
   send: (formData) =>
-    api.post('/app-communications', formData)
+    api.post('/app-communications', formData),
+  notifications: {
+    list: (params = {}) =>
+      api.get('/app-communications/notifications', {
+        params: {
+          limit: params.limit ?? 15,
+          offset: params.offset ?? 0,
+          ...(params.unread ? { unread: 'true' } : {})
+        }
+      }),
+    unreadCount: () => api.get('/app-communications/notifications/unread-count'),
+    markRead: (id) => api.patch(`/app-communications/notifications/${id}/read`)
+  },
+  unifiedNotifications: {
+    list: (params = {}) =>
+      api.get('/app-communications/unified-notifications', {
+        params: {
+          limit: params.limit ?? 20,
+          offset: params.offset ?? 0,
+          ...(params.source ? { source: params.source } : {}),
+          ...(params.severity ? { severity: params.severity } : {}),
+          ...(params.category ? { category: params.category } : {}),
+          ...(params.unread ? { unread: 'true' } : {})
+        }
+      })
+  }
 };
 
 // ============================================================================
@@ -485,10 +513,12 @@ export const dashboard = {
     updateConfig: (data) => api.put('/dashboard/forecasting/config', data)
   },
   costs: {
-    getExecutiveSummary: () => api.get('/dashboard/costs/executive-summary'),
+    getExecutiveSummary: (period) =>
+      api.get('/dashboard/costs/executive-summary', { params: period ? { period } : {} }),
     getByOrigin: () => api.get('/dashboard/costs/by-origin'),
     getTopLoss: () => api.get('/dashboard/costs/top-loss'),
-    getProjectedLoss: () => api.get('/dashboard/costs/projected-loss'),
+    getProjectedLoss: (hours) =>
+      api.get('/dashboard/costs/projected-loss', { params: hours ? { hours } : {} }),
     listItems: () => api.get('/dashboard/costs/items'),
     createItem: (data) => api.post('/dashboard/costs/items', data),
     updateItem: (id, data) => api.put(`/dashboard/costs/items/${id}`, data),
@@ -1342,11 +1372,15 @@ export const intelligentRegistration = {
   getAll: (params) => api.get('/intelligent-registration', { params }),
   /** Alias de getAll */
   list: (params) => api.get('/intelligent-registration', { params }),
-  create: (data) =>
-    api.post(
+  create: (data) => {
+    if (data instanceof FormData) {
+      return api.post('/intelligent-registration', data);
+    }
+    return api.post(
       '/intelligent-registration',
       typeof data === 'string' ? { text: data } : data
-    ),
+    );
+  },
   /** Registos de toda a empresa (hierarchy ≤ 2 no backend) */
   leadership: (params) => api.get('/intelligent-registration/leadership', { params }),
   update: (id, data) => api.put(`/intelligent-registration/${id}`, data),
@@ -1688,6 +1722,34 @@ export const m1PilotAdoptionClosure = {
   getMaintenance:  () => api.get('/m1/pilot-adoption-closure/maintenance'),
   getUtilization:  () => api.get('/m1/pilot-adoption-closure/utilization'),
   getGate:         () => api.get('/m1/pilot-adoption-closure/gate'),
+};
+
+/** M1.21 — Operational Adoption Enablement (READ ONLY) */
+export const m1OperationalAdoptionEnablement = {
+  getStatus:     () => api.get('/m1/operational-adoption-enablement/status'),
+  getEsg:        () => api.get('/m1/operational-adoption-enablement/esg'),
+  getWorkflow:   () => api.get('/m1/operational-adoption-enablement/workflow'),
+  getFoundation: () => api.get('/m1/operational-adoption-enablement/foundation'),
+  getReadiness:  () => api.get('/m1/operational-adoption-enablement/readiness'),
+};
+
+/** M1.22 — Operational Roadmap Consolidation (READ ONLY) */
+export const m1OperationalRoadmap = {
+  getStatus:  () => api.get('/m1/operational-roadmap/status'),
+  getGaps:    () => api.get('/m1/operational-roadmap/gaps'),
+  getP0:      () => api.get('/m1/operational-roadmap/p0'),
+  getRoadmap: () => api.get('/m1/operational-roadmap/roadmap'),
+  getP17P20:  () => api.get('/m1/operational-roadmap/p17-p20'),
+};
+
+/** Adoption Progress Tracker — M1.22–M1.27 Gate Measurement (READ ONLY) */
+export const adoptionProgressTracker = {
+  getStatus:   () => api.get('/m1/adoption-progress/status'),
+  getEsg:      () => api.get('/m1/adoption-progress/esg'),
+  getWorkflow: () => api.get('/m1/adoption-progress/workflow'),
+  getMes:      () => api.get('/m1/adoption-progress/mes'),
+  getAnalytics:() => api.get('/m1/adoption-progress/analytics'),
+  getLogistics:() => api.get('/m1/adoption-progress/logistics'),
 };
 
 /** M1.13 — Pilot Adoption Assessment (READ ONLY) */

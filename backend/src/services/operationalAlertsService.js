@@ -3,7 +3,7 @@
  * Gera alertas quando detecta situações críticas
  */
 const db = require('../db');
-const unifiedMessaging = require('./unifiedMessagingService');
+const notificationBridge = require('./notificationBridgeService');
 
 const ALERT_WINDOW_MIN = 20; // Máquina parada há X min = alerta
 
@@ -98,6 +98,11 @@ async function persistDecisionEngineAlerts(companyId, alerts, source = '') {
         ]
       );
       inserted += 1;
+      notificationBridge
+        .bridgeOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta })
+        .catch((err) => {
+          console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
+        });
     } catch (err) {
       console.warn('[operationalAlertsService][persistDecisionEngineAlerts]', err?.message ?? err);
     }
@@ -133,19 +138,33 @@ async function checkAndCreate(companyId) {
 
     for (const p of paradas.rows || []) {
       const mins = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 60000);
+      const titulo = `${p.equipamento || 'Máquina'}${p.linha ? ` linha ${p.linha}` : ''} parada há ${mins} minutos`;
+      const mensagem = p.descricao || `Parada detectada há ${mins} minutos.`;
       const r = await db.query(`
         INSERT INTO operational_alerts (company_id, tipo_alerta, titulo, mensagem, severidade, equipamento, linha, evento_origem_id)
         VALUES ($1, 'maquina_parada', $2, $3, 'alta', $4, $5, $6)
         RETURNING id
       `, [
         companyId,
-        `${p.equipamento || 'Máquina'}${p.linha ? ` linha ${p.linha}` : ''} parada há ${mins} minutos`,
-        p.descricao || `Parada detectada há ${mins} minutos.`,
+        titulo,
+        mensagem,
         p.equipamento || null,
         p.linha || null,
         p.id
       ]);
-      if (r.rows?.[0]) created.push(r.rows[0]);
+      if (r.rows?.[0]) {
+        created.push(r.rows[0]);
+        notificationBridge
+          .bridgeOperationalAlert(companyId, {
+            severidade: 'alta',
+            titulo,
+            mensagem,
+            tipo_alerta: 'maquina_parada'
+          })
+          .catch((err) => {
+            console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
+          });
+      }
     }
 
     // 2. Tarefas atrasadas
@@ -256,7 +275,15 @@ async function createPlanningDerivedAlert(companyId, opts = {}) {
       `,
       [cid, tipo, titulo, mensagem, severidade, JSON.stringify(meta), sourceCol]
     );
-    return r.rows?.[0]?.id ? String(r.rows[0].id) : null;
+    const alertId = r.rows?.[0]?.id ? String(r.rows[0].id) : null;
+    if (alertId) {
+      notificationBridge
+        .bridgeOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta: tipo })
+        .catch((err) => {
+          console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
+        });
+    }
+    return alertId;
   } catch (err) {
     console.warn('[operationalAlertsService][createPlanningDerivedAlert]', err?.message ?? err);
     return null;

@@ -51,6 +51,7 @@ import {
   ClipboardCheck
 } from 'lucide-react';
 import { companies, auth } from '../services/api';
+import { useNotificationCenter, UNIFIED_CATEGORIES } from '../hooks/useNotificationCenter';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
@@ -139,7 +140,17 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const isNarrowViewport = useMatchMedia(MQ_NAV_DRAWER);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [notificationCount] = useState(0);
+  const {
+    displayItems: notificationItems,
+    unreadCount: notificationCount,
+    displayLoading: notificationsLoading,
+    markRead: markNotificationRead,
+    markUnifiedRead,
+    feedMode,
+    setFeedMode,
+    categoryFilter,
+    setCategoryFilter
+  } = useNotificationCenter();
   const [subscriptionOverdue, setSubscriptionOverdue] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -941,13 +952,106 @@ export default function Layout({ children }) {
                 )}
               </button>
               {showNotifications && (
-                <div className="header-dropdown">
+                <div className="header-dropdown header-dropdown--notifications">
                   <h4 className="header-dropdown__title">Notificações</h4>
-                  <div className="header-dropdown__empty">
-                    <Mail size={32} />
-                    <p>Nenhuma notificação nova</p>
-                    <span className="header-dropdown__hint">Alertas e comunicados aparecerão aqui</span>
+                  <div className="header-dropdown__feed-tabs" role="tablist" aria-label="Modo de feed">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={feedMode === 'default'}
+                      className={`header-dropdown__feed-tab${feedMode === 'default' ? ' header-dropdown__feed-tab--active' : ''}`}
+                      onClick={() => setFeedMode('default')}
+                    >
+                      Centro
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={feedMode === 'unified'}
+                      className={`header-dropdown__feed-tab${feedMode === 'unified' ? ' header-dropdown__feed-tab--active' : ''}`}
+                      onClick={() => setFeedMode('unified')}
+                    >
+                      Unified Feed
+                    </button>
                   </div>
+                  {feedMode === 'unified' && (
+                    <div className="header-dropdown__filter-row" role="group" aria-label="Filtros">
+                      {UNIFIED_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          className={`header-dropdown__filter-chip${categoryFilter === cat.id ? ' header-dropdown__filter-chip--active' : ''}`}
+                          onClick={() => setCategoryFilter(cat.id)}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {notificationsLoading && notificationItems.length === 0 ? (
+                    <div className="header-dropdown__empty">
+                      <span className="header-dropdown__hint">Carregando…</span>
+                    </div>
+                  ) : notificationItems.length === 0 ? (
+                    <div className="header-dropdown__empty">
+                      <Mail size={32} />
+                      <p>Nenhuma notificação nova</p>
+                      <span className="header-dropdown__hint">
+                        {feedMode === 'unified'
+                          ? 'Eventos federados de todos os módulos aparecerão aqui'
+                          : 'Alertas e comunicados aparecerão aqui'}
+                      </span>
+                    </div>
+                  ) : (
+                    <ul className="header-dropdown__notif-list" role="list">
+                      {notificationItems.map((n) => {
+                        const isUnified = feedMode === 'unified';
+                        const isUnread = isUnified ? !n.read : !n.read_at;
+                        const sentAt = isUnified ? n.created_at : n.sent_at;
+                        const sentLabel = sentAt
+                          ? new Date(sentAt).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : '—';
+                        const key = isUnified ? n.id : n.id;
+                        const title = isUnified ? (n.title || 'Notificação') : null;
+                        const body = isUnified ? (n.message || '—') : (n.text_content || '—');
+                        const meta = isUnified
+                          ? `${(n.origin_module || n.source || '').toUpperCase()} · ${sentLabel}`
+                          : sentLabel;
+                        return (
+                          <li key={key}>
+                            <button
+                              type="button"
+                              className={`header-dropdown__notif-item${isUnread ? ' header-dropdown__notif-item--unread' : ''}`}
+                              onClick={() => {
+                                if (isUnread) {
+                                  if (isUnified) {
+                                    markUnifiedRead(n).catch(() => {});
+                                  } else {
+                                    markNotificationRead(n.id).catch(() => {});
+                                  }
+                                }
+                                if (isUnified && n.deep_link) {
+                                  navigate(n.deep_link);
+                                  setShowNotifications(false);
+                                }
+                              }}
+                            >
+                              {isUnified && title && (
+                                <span className="header-dropdown__notif-title">{title}</span>
+                              )}
+                              <span className="header-dropdown__notif-text">{body}</span>
+                              <span className="header-dropdown__notif-meta">{meta}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

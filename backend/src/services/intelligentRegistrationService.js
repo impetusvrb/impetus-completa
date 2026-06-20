@@ -191,7 +191,14 @@ Responda APENAS com um JSON válido (sem markdown, sem texto extra), no formato:
 /**
  * Cria registro inteligente (texto + processamento IA + persistência)
  */
-async function createRegistration(companyId, userId, originalText, shiftName = null, operationalTeamMemberId = null) {
+async function createRegistration(
+  companyId,
+  userId,
+  originalText,
+  shiftName = null,
+  operationalTeamMemberId = null,
+  attachmentMeta = null
+) {
   if (!originalText || typeof originalText !== 'string' || originalText.trim().length < 3) {
     throw new Error('Texto muito curto. Descreva o que aconteceu no seu dia de trabalho.');
   }
@@ -200,6 +207,14 @@ async function createRegistration(companyId, userId, originalText, shiftName = n
   const userName = userResult.rows[0]?.name || 'Usuário';
 
   const processed = await processWithAI(originalText.trim(), companyId, userName);
+
+  if (attachmentMeta && typeof attachmentMeta === 'object') {
+    processed.ai_metadata = processed.ai_metadata || {};
+    processed.ai_metadata.attachments = [attachmentMeta];
+    if (attachmentMeta.type === 'audio' && attachmentMeta.transcription) {
+      processed.ai_metadata.audio_transcription = attachmentMeta.transcription;
+    }
+  }
 
   const metaJson = JSON.stringify(processed.ai_metadata && Object.keys(processed.ai_metadata).length ? processed.ai_metadata : {});
 

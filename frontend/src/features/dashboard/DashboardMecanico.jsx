@@ -420,7 +420,7 @@ export default function DashboardMecanico() {
                 className="mecanico-turn-textarea"
               />
               <button type="button" className="btn btn-primary" onClick={handleRecordTurn} disabled={!turnRecord.trim() || turnRecord.trim().length < 10 || sendingTurn}>
-                <Sparkles size={16} /> {sendingTurn ? 'Processando...' : 'Registrar com IA'}
+                <Sparkles size={16} /> {sendingTurn ? 'Processando...' : 'Registro Inteligente'}
               </button>
             </section>
 

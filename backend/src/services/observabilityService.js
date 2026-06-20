@@ -30,7 +30,16 @@ const ALLOWED_INCREMENT_METRICS = new Set([
   'ai_responses_blocked',
   'policy_violations_count',
   'compliance_incidents_count',
-  'errors_count'
+  'errors_count',
+  'billing_notification_email_day3_attempt',
+  'billing_notification_email_day3_success',
+  'billing_notification_app_day5_attempt',
+  'billing_notification_app_day5_success',
+  'billing_notification_nc_day7_attempt',
+  'billing_notification_nc_day7_success',
+  'notification_federation_queries',
+  'notification_federation_results',
+  'notification_federation_latency_ms'
 ]);
 
 const metrics = {
@@ -39,7 +48,16 @@ const metrics = {
   ai_responses_blocked: 0,
   policy_violations_count: 0,
   compliance_incidents_count: 0,
-  errors_count: 0
+  errors_count: 0,
+  billing_notification_email_day3_attempt: 0,
+  billing_notification_email_day3_success: 0,
+  billing_notification_app_day5_attempt: 0,
+  billing_notification_app_day5_success: 0,
+  billing_notification_nc_day7_attempt: 0,
+  billing_notification_nc_day7_success: 0,
+  notification_federation_queries: 0,
+  notification_federation_results: 0,
+  notification_federation_latency_ms: 0
 };
 
 const latencyCognitive = { sum: 0, count: 0 };

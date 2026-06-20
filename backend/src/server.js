@@ -427,6 +427,11 @@ useRoute('/api/m1/governance', './routes/m1GovernanceRoutes', requireAuth);
 useRoute('/api/m1/platform-closure', './routes/m1PlatformClosureRoutes', requireAuth);
 useRoute('/api/m1/critical-remediation', './routes/m1CriticalRemediationRoutes', requireAuth);
 useRoute('/api/m1/pilot-adoption-closure', './routes/m1PilotAdoptionClosureRoutes', requireAuth);
+useRoute('/api/m1/enterprise-promotion', './routes/m1EnterprisePromotionRoutes', requireAuth);
+useRoute('/api/m1/enterprise-remaining', './routes/m1EnterpriseRemainingRoutes', requireAuth);
+useRoute('/api/m1/operational-adoption-enablement', './routes/m1OperationalAdoptionEnablementRoutes', requireAuth);
+useRoute('/api/m1/operational-roadmap', './routes/m1OperationalRoadmapRoutes', requireAuth);
+useRoute('/api/m1/adoption-progress', './routes/adoptionProgressTrackerRoutes', requireAuth);
 useRoute('/api/aioi', './routes/aioi/aioiQueueRoutes');
 useRoute('/api/final-consolidation-audit', './routes/finalConsolidationAudit', requireAuth);
 useRoute('/api/admin/learning', './routes/adminLearning');
@@ -2207,6 +2212,20 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
   }
 }
 
+// ─── MES/ERP Async Consumer (M1.19) ─────────────────────────────────────────
+{
+  try {
+    const mesConsumer = require('./workers/mesErpConsumer');
+    const mesEnabled = String(process.env.IMPETUS_MES_ERP_CONSUMER_ENABLED || 'true').toLowerCase() !== 'false';
+    if (mesEnabled) {
+      const started = mesConsumer.startMesErpConsumer();
+      console.info(`[MES_ERP_CONSUMER_BOOT] ${JSON.stringify({ event: 'MES_ERP_CONSUMER_BOOT', ...started })}`);
+    }
+  } catch (e) {
+    console.warn('[MES_ERP_CONSUMER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
 // ─── AIOI Outbox Worker (P2.1) — ativação explícita ─────────────────────────
 {
   try {
@@ -2390,6 +2409,18 @@ if (String(process.env.ENABLE_NEXUS_TOKEN_BILLING_CRON || '').toLowerCase() === 
     console.log('[server] NexusIA token billing: cron dia 1 às 08:00 (' + tz + ')');
   } catch (e) {
     console.warn('[server] NexusIA cron não iniciado:', e.message);
+  }
+}
+
+// ─── Subscription Governance Cron (AUD-WORKERS-01-FIX-SUBSCRIPTION) ───────────
+{
+  try {
+    const subscriptionGovernance = require('./services/subscription/subscriptionGovernanceScheduler');
+    subscriptionGovernance.startSubscriptionGovernanceCron((task) => {
+      try { _nodeCronTasks.push(task); } catch (_e) { /* ignore */ }
+    });
+  } catch (e) {
+    console.warn('[server] Subscription governance cron não iniciado:', e.message);
   }
 }
 

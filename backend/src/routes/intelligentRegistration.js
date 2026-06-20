@@ -1,22 +1,50 @@
 /**
  * ROTAS - REGISTRO INTELIGENTE
  * Módulo disponível para todos os usuários
+ * Aceita: texto, foto, documento ou áudio
  */
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireFactoryOperationalMember } = require('../middleware/auth');
 const { apiByUserLimiter } = require('../middleware/globalRateLimit');
 const { logAction } = require('../middleware/audit');
 const intelligentRegistrationService = require('../services/intelligentRegistrationService');
+const attachmentService = require('../services/intelligentRegistrationAttachments');
 const claudeAnalytics = require('../services/claudeAnalyticsService');
+
+const UPLOAD_DIR = path.join(__dirname, '../../../uploads/registro-inteligente');
+const MAX_FILE_MB = 15;
+
+function ensureUploadDir() {
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      ensureUploadDir();
+      cb(null, UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname || ''))
+  }),
+  limits: { fileSize: MAX_FILE_MB * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = (path.extname(file.originalname || '') || '').toLowerCase();
+    cb(null, attachmentService.ALLOWED_EXT.includes(ext));
+  }
+});
 
 const protected = [requireAuth];
 
 /**
  * POST /api/intelligent-registration
- * Registrar texto com processamento por IA
+ * Registrar texto e/ou anexo com processamento por IA
  */
-router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter, async (req, res) => {
+router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter, upload.single('file'), async (req, res) => {
   try {
     const companyId = req.user?.company_id;
     const userId = req.user?.id;
@@ -24,17 +52,36 @@ router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter
       return res.status(400).json({ ok: false, error: 'Usuário ou empresa não identificados' });
     }
 
-    const { text, shift_name } = req.body;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ ok: false, error: 'Texto obrigatório' });
+    const text = typeof req.body?.text === 'string' ? req.body.text : '';
+    const shift_name = req.body?.shift_name;
+
+    let finalText = text.trim();
+    let attachmentMeta = null;
+
+    if (req.file) {
+      const processed = await attachmentService.processUploadedFile(req.file, text, {
+        companyId,
+        userId,
+        userName: req.user?.name
+      });
+      finalText = processed.text;
+      attachmentMeta = processed.meta;
+    }
+
+    if (!finalText || finalText.length < 3) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Descreva o registro em texto ou envie foto, documento ou áudio.'
+      });
     }
 
     const registration = await intelligentRegistrationService.createRegistration(
       companyId,
       userId,
-      text,
+      finalText,
       shift_name,
-      req.user?.active_operational_team_member_id || null
+      req.user?.active_operational_team_member_id || null,
+      attachmentMeta
     );
 
     if (req.user?.is_factory_team_account && req.user?.active_operational_team_member_id) {

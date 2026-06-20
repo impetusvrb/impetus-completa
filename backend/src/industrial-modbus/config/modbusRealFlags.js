@@ -16,16 +16,16 @@ module.exports = {
   isModbusRealEnabled: () => _flag('IMPETUS_MODBUS_REAL_ENABLED', false),
   modbusRealMode: () => _mode('IMPETUS_MODBUS_REAL_MODE', 'shadow'),
   modbusPilotOnly: () => {
-    const v = process.env.IMPETUS_MODBUS_REAL_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
+    return routing.resolveOtPilotOnly(process.env.IMPETUS_MODBUS_REAL_PILOT_ONLY, true);
   },
   modbusPilotTenants: () => {
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
     const raw = process.env.IMPETUS_MODBUS_REAL_PILOT_TENANTS
       || process.env.IMPETUS_MQTT_REAL_PILOT_TENANTS
       || process.env.IMPETUS_RLS_PILOT_TENANTS
       || '';
-    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    return routing.getEnterpriseOtTenants(raw);
   },
   defaultHost: () => process.env.IMPETUS_MODBUS_HOST || '127.0.0.1',
   defaultPort: () => parseInt(process.env.IMPETUS_MODBUS_PORT || '502', 10) || 502,

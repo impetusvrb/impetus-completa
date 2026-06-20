@@ -36,9 +36,20 @@ async function ensureDefinitionRow(definition) {
   return id;
 }
 
-async function startWorkflow({ processKey, companyId, userId, context = {}, correlationId }) {
+async function startWorkflow({ processKey, companyId, userId, user, context = {}, correlationId }) {
   if (!flags.shouldUseWorkflowEngine(companyId)) {
     return { ok: false, reason: 'workflow_engine_inactive' };
+  }
+
+  if (user) {
+    const permissionGate = require('../permission/workflowPermissionGate');
+    const perm = permissionGate.assertWorkflowPermission({
+      user,
+      processKey,
+      companyId,
+      capabilities: user.permissions,
+    });
+    if (!perm.ok) return perm;
   }
 
   const definition = bpmnRegistry.getDefinition(processKey, 1);

@@ -28,7 +28,7 @@ const OPERACIONAL_CARDS = [
     : []),
   { path: '/app/proacao', icon: Lightbulb, title: 'Pró-Ação', description: 'Envie propostas de melhoria e acompanhe as suas sugestões', color: 'teal' },
   { path: '/app/biblioteca', icon: FolderOpen, title: 'Instruções e Procedimentos', description: 'Manuais, POPs e procedimentos operacionais', color: 'blue' },
-  { path: '/app/registro-inteligente', icon: FileEdit, title: 'Registro de Atividades', description: 'Registre suas atividades e ocorrências do turno', color: 'purple' },
+  { path: '/app/registro-inteligente', icon: FileEdit, title: 'Registro Inteligente', description: 'Registre atividades com texto, foto, documento ou áudio', color: 'purple' },
   { path: '/diagnostic', icon: Wrench, title: 'Reportar Problema', description: 'Assistência da IA para diagnosticar falhas e equipamentos', color: 'orange' },
   { path: '/app/chatbot', icon: MessageSquare, title: 'Impetus IA', description: 'Tire dúvidas e consulte informações com a IA', color: 'green' }
 ];

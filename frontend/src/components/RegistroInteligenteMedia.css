@@ -1,0 +1,152 @@
+.rim,
+.rim-chat {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-default, rgba(0, 212, 255, 0.25));
+  border-radius: 6px;
+  background: rgba(0, 212, 255, 0.04);
+}
+
+.rim-chat {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.rim__label,
+.rim-chat__label {
+  display: block;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #9ca3af);
+  margin-bottom: 4px;
+}
+
+.rim__hint,
+.rim-chat__hint {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--text-tertiary, #6b7280);
+}
+
+.rim__actions,
+.rim-chat__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rim__btn,
+.rim-chat__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-active, rgba(0, 212, 255, 0.4));
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cyan, #00d4ff);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rim-chat__btn {
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+
+.rim__btn:hover:not(:disabled),
+.rim-chat__btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.rim-chat__btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.rim__btn--rec,
+.rim-chat__btn--rec {
+  border-color: var(--red, #ff4040);
+  color: var(--red, #ff4040);
+  animation: rimPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rimPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.rim__btn:disabled,
+.rim-chat__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rim__input,
+.rim-chat__input {
+  display: none;
+}
+
+.rim__preview,
+.rim-chat__preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--bg-tertiary, #111d2e);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.rim-chat__preview {
+  background: #0f172a;
+}
+
+.rim__name,
+.rim-chat__name {
+  flex: 1;
+  min-width: 120px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  color: var(--text-secondary, #d1d5db);
+}
+
+.rim__thumb,
+.rim-chat__thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.rim__audio,
+.rim-chat__audio {
+  width: 100%;
+  max-width: 220px;
+  height: 32px;
+}
+
+.rim__remove,
+.rim-chat__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+}
+
+.rim__remove:hover,
+.rim-chat__remove:hover {
+  color: var(--red, #ff4040);
+  background: rgba(255, 64, 64, 0.1);
+}

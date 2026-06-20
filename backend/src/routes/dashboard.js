@@ -5,6 +5,7 @@ const express = require('express');
 const { z } = require('zod');
 const router = express.Router();
 const requireAuth = require('../middleware/auth').requireAuth;
+const { requireTenantAdminRole } = require('../middleware/auth');
 const db = require('../db');
 const dashboardPersonalizadoService = require('../services/dashboardPersonalizadoService');
 const dashboardMaintenanceRouter = require('./dashboardMaintenance');
@@ -2583,6 +2584,132 @@ router.get('/costs/executive-summary', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DASHBOARD_COSTS_EXEC]', err);
     res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar resumo financeiro' });
+  }
+});
+
+const industrialCostService = require('../services/industrialCostService');
+
+function costsTableMissing(err) {
+  const msg = String(err?.message || '');
+  return err?.code === '42P01' || /does not exist/i.test(msg);
+}
+
+/** GET /dashboard/costs/items — cadastro admin */
+router.get('/costs/items', requireAuth, requireTenantAdminRole, async (req, res) => {
+  try {
+    if (!req.user?.company_id) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    }
+    const items = await industrialCostService.listCostItems(req.user.company_id);
+    res.json({ ok: true, items });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.json({ ok: true, items: [] });
+    }
+    console.error('[DASHBOARD_COSTS_ITEMS_LIST]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao listar itens de custo' });
+  }
+});
+
+/** POST /dashboard/costs/items */
+router.post('/costs/items', requireAuth, requireTenantAdminRole, express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    if (!req.user?.company_id) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    }
+    const result = await industrialCostService.upsertCostItem(req.user.company_id, req.body || {});
+    res.status(201).json({ ok: true, ...result });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Tabelas de custos industriais não configuradas. Execute a migration industrial_cost_center.'
+      });
+    }
+    console.error('[DASHBOARD_COSTS_ITEMS_CREATE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao criar item de custo' });
+  }
+});
+
+/** PUT /dashboard/costs/items/:id */
+router.put('/costs/items/:id', requireAuth, requireTenantAdminRole, express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    if (!req.user?.company_id) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    }
+    const result = await industrialCostService.upsertCostItem(req.user.company_id, {
+      ...(req.body || {}),
+      id: req.params.id
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Tabelas de custos industriais não configuradas. Execute a migration industrial_cost_center.'
+      });
+    }
+    console.error('[DASHBOARD_COSTS_ITEMS_UPDATE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao atualizar item de custo' });
+  }
+});
+
+/** DELETE /dashboard/costs/items/:id */
+router.delete('/costs/items/:id', requireAuth, requireTenantAdminRole, async (req, res) => {
+  try {
+    if (!req.user?.company_id) {
+      return res.status(400).json({ ok: false, error: 'Empresa não identificada' });
+    }
+    await industrialCostService.deleteCostItem(req.user.company_id, req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Tabelas de custos industriais não configuradas. Execute a migration industrial_cost_center.'
+      });
+    }
+    console.error('[DASHBOARD_COSTS_ITEMS_DELETE]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao remover item de custo' });
+  }
+});
+
+/** GET /dashboard/costs/top-loss */
+router.get('/costs/top-loss', requireAuth, async (req, res) => {
+  try {
+    if (!req.user?.company_id) return res.json({ ok: true, top_loss: null, recent_impacts: [] });
+    const chartProfile = dashboardChartData.resolveChartProfile(req.user);
+    if (!chartProfile.can_see_costs) {
+      return res.json({ ok: true, top_loss: null, recent_impacts: [], meta: { restricted: true } });
+    }
+    const report = await industrialCostService.getTopLossReport(req.user.company_id);
+    res.json({ ok: true, ...report });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.json({ ok: true, top_loss: null, recent_impacts: [] });
+    }
+    console.error('[DASHBOARD_COSTS_TOP_LOSS]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao carregar maior perda' });
+  }
+});
+
+/** GET /dashboard/costs/projected-loss */
+router.get('/costs/projected-loss', requireAuth, async (req, res) => {
+  try {
+    if (!req.user?.company_id) return res.json({ ok: true, projected_loss: 0, hours_ahead: 48, baseline_24h: 0 });
+    const chartProfile = dashboardChartData.resolveChartProfile(req.user);
+    if (!chartProfile.can_see_costs) {
+      return res.json({ ok: true, projected_loss: 0, meta: { restricted: true } });
+    }
+    const hours = Math.min(168, Math.max(1, parseInt(req.query.hours, 10) || 48));
+    const data = await industrialCostService.getProjectedLoss(req.user.company_id, hours);
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    if (costsTableMissing(err)) {
+      return res.json({ ok: true, projected_loss: 0, hours_ahead: 48, baseline_24h: 0 });
+    }
+    console.error('[DASHBOARD_COSTS_PROJECTED_LOSS]', err);
+    res.status(500).json({ ok: false, error: err?.message || 'Erro ao projetar perdas' });
   }
 });
 

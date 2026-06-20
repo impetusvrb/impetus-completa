@@ -93,33 +93,37 @@ async function processVoiceTurn(user, message, { reset } = {}) {
   const { systemPrompt } = await buildSystemPrompt(user, trimmed);
   const history = voiceSession.getMessages(user.id);
 
-  let reply = await runAI({
-    input: trimmed,
+  const truthPipeline = require('./truthProtectedCognitivePipeline');
+  const pipelineResult = await truthPipeline.runTruthProtectedTurn({
     user,
-    context: {
-      extraContext: systemPrompt
+    queryText: trimmed,
+    channel: 'voice_assistant',
+    injectOperational: true,
+    maxTokens: 500,
+    invokeLlm: async ({ query, secureCtx, maxTokens: mt }) => {
+      const extra = secureCtx?.contextString
+        ? `${systemPrompt}\n\n${secureCtx.contextString}`
+        : systemPrompt;
+      let reply = await runAI({
+        input: query,
+        user,
+        context: { extraContext: extra },
+        mode: 'voice',
+        history,
+        maxTokens: mt || 500,
+      });
+      if (!reply || (reply || '').startsWith('FALLBACK:')) {
+        reply = CHAT_FALLBACK;
+      }
+      return String(reply || '').trim().slice(0, 3500);
     },
-    mode: 'voice',
-    history,
-    maxTokens: 500
   });
-  if (!reply || (reply || '').startsWith('FALLBACK:')) {
-    reply = CHAT_FALLBACK;
-  }
-  reply = (reply || '').trim().slice(0, 3500);
 
-  try {
-    const truthClosure = require('./cognitiveTruthClosureService');
-    const finalized = await truthClosure.applyCognitiveTextTruth(reply, {
-      user,
-      channel: 'voice_assistant',
-      queryText: trimmed,
-      injectOperational: true
-    });
-    reply = finalized.text;
-  } catch (truthErr) {
-    console.warn('[VOICE_TRUTH_CLOSURE]', truthErr?.message ?? truthErr);
+  if (pipelineResult.blocked) {
+    return { reply: pipelineResult.reply || CHAT_FALLBACK, audio: null };
   }
+
+  let reply = (pipelineResult.text || pipelineResult.reply || CHAT_FALLBACK).trim().slice(0, 3500);
 
   voiceSession.append(user.id, 'user', trimmed);
   voiceSession.append(user.id, 'assistant', reply);

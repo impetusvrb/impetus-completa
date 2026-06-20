@@ -41,10 +41,10 @@ async function listConnectors(companyId) {
 }
 
 /**
- * Processa payload push de MES/ERP (webhook)
+ * Processa payload push de MES/ERP (webhook) — processamento directo (síncrono ou consumer).
  * Payload esperado: { production: [{ line_identifier, line_name, shift_date, shift_code, produced_qty, target_qty, ... }], ... }
  */
-async function processPush(companyId, connectorId, payload) {
+async function processPushDirect(companyId, connectorId, payload) {
   let recordsCount = 0;
   let errorMsg = null;
 
@@ -172,9 +172,18 @@ async function assertMesErpPushAuthorized(companyId, connectorId, presentedToken
   return r.rows[0].id;
 }
 
+/**
+ * Enfileira ou processa push MES/ERP (async por defeito M1.19).
+ */
+async function processPush(companyId, connectorId, payload) {
+  const queue = require('./mesErpIngestQueueService');
+  return queue.enqueueMesErpPush(companyId, connectorId, payload);
+}
+
 module.exports = {
   createConnector,
   listConnectors,
   processPush,
+  processPushDirect,
   assertMesErpPushAuthorized
 };

@@ -15,7 +15,7 @@ function socketBase() {
  * (logout, troca de conta) recicla a ligação. Se não houver token, devolve
  * `null` em vez de manter uma ligação stale.
  */
-function getSocket() {
+export function getSocket() {
   const token = localStorage.getItem('impetus_token');
   if (!token) {
     if (socketInstance) {
@@ -39,6 +39,10 @@ function getSocket() {
   return socketInstance;
 }
 
+function getSocketInternal() {
+  return getSocket();
+}
+
 export function disconnectChatSocket() {
   try {
     if (socketInstance) {
@@ -55,7 +59,7 @@ export function useChatSocket({ onMessage, onTyping, onStopTyping, onOnline, onO
   const h = useRef({});
   useEffect(() => { h.current = { onMessage, onTyping, onStopTyping, onOnline, onOffline, onReaction, onRead, onProfileUpdate, onMessageDeleted }; });
   useEffect(() => {
-    const s = getSocket();
+    const s = getSocketInternal();
     socketRef.current = s;
     if (!s) return; // sem token: não há socket — caller perderá silenciosamente até relogin.
     s.emit('join_conversations');

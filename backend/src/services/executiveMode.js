@@ -309,28 +309,32 @@ REGRAS:
 - Máximo 3-5 parágrafos curtos.
 - Aplique a constituição Impetus IA: para CEO, omita microtarefas, checklists técnicos locais e ruído operacional sem impacto estratégico.`;
 
-  let response = (await ai.chatCompletion(prompt, { max_tokens: 600 }) ||
-    'Não foi possível processar a consulta no momento.').trim();
+  const { rows: userRows } = await db.query(
+    'SELECT id, name, email, role, company_id FROM users WHERE id = $1 LIMIT 1',
+    [userId]
+  );
+  const execUser = userRows[0] || { id: userId, company_id: companyId };
 
-  try {
-    const truthClosure = require('./cognitiveTruthClosureService');
-    const { rows: userRows } = await db.query(
-      'SELECT id, name, email, role, company_id FROM users WHERE id = $1 LIMIT 1',
-      [userId]
-    );
-    const execUser = userRows[0] || { id: userId, company_id: companyId };
-    const finalized = await truthClosure.applyCognitiveTextTruth(response, {
-      user: execUser,
-      channel: 'executive_ceo_chat',
-      queryText: query,
-      injectOperational: true
-    });
-    response = finalized.text;
-  } catch (truthErr) {
-    console.warn('[EXECUTIVE_TRUTH_CLOSURE]', truthErr?.message ?? truthErr);
+  const truthPipeline = require('./truthProtectedCognitivePipeline');
+  const pipelineResult = await truthPipeline.runTruthProtectedTurn({
+    user: execUser,
+    queryText: query,
+    channel: 'executive_ceo_chat',
+    injectOperational: true,
+    maxTokens: 600,
+    invokeLlm: async () => {
+      return (
+        (await ai.chatCompletion(prompt, { max_tokens: 600 }) ||
+          'Não foi possível processar a consulta no momento.'
+      ).trim();
+    },
+  });
+
+  if (pipelineResult.blocked) {
+    return pipelineResult.reply || 'Consulta bloqueada pela política de segurança IMPETUS.';
   }
 
-  return response;
+  return pipelineResult.text || pipelineResult.reply || 'Não foi possível processar a consulta no momento.';
 }
 
 /**
@@ -475,6 +479,12 @@ async function sendCEOResponse(companyId, phone, message) {
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
   await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+  try {
+    const notificationBridge = require('./notificationBridgeService');
+    await notificationBridge.bridgeExecutiveMessage(companyId, null, toSend, message);
+  } catch (err) {
+    console.warn('[executiveMode][NC_BRIDGE]', err?.message ?? err);
+  }
 }
 
 module.exports = {

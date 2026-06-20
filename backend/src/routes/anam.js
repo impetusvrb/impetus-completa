@@ -65,7 +65,12 @@ router.post('/session-token', requireAuth, async (req, res) => {
       return res.status(503).json({ ok: false, error: e.message, code: e.code });
     }
     if (e.code === 'ANAM_RATE_LIMIT' || e.code === 'ANAM_API_ERROR') {
-      const status = e.status && e.status >= 400 ? e.status : 502;
+      // Nunca reencaminhar 401/403 da API Anam (externa) como HTTP 401 para o cliente.
+      // O HTTP 401 do IMPETUS significa "utilizador não autenticado". Neste caso, o
+      // utilizador ESTÁ autenticado — a falha é de configuração do serviço externo Anam
+      // (API key inválida ou revogada). Usar 503 para não disparar logout global no frontend.
+      let status = e.status && e.status >= 400 ? e.status : 502;
+      if (status === 401 || status === 403) status = 503;
       if (status === 429) {
         res.set('Retry-After', '120');
       }

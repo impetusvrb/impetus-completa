@@ -12,6 +12,8 @@ const { requireAuth } = require('../middleware/auth');
 const { requireCompanyActive } = require('../middleware/multiTenant');
 const { isValidUUID } = require('../utils/security');
 const appCommunicationService = require('../services/appCommunicationService');
+const notificationCenter = require('../services/notificationCenterService');
+const notificationFederation = require('../services/notificationFederationService');
 const db = require('../db');
 
 const UPLOAD_DIR = path.join(__dirname, '../../..', 'uploads', 'app-communications');
@@ -126,19 +128,73 @@ router.get('/', protected, async (req, res) => {
   }
 });
 
+router.get('/notifications/unread-count', protected, async (req, res) => {
+  try {
+    const unread_count = await notificationCenter.getUnreadCount(req.user.id, req.user.company_id);
+    res.json({ ok: true, unread_count });
+  } catch (err) {
+    console.error('[APP_COMM_NOTIF_UNREAD]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.patch('/notifications/:id/read', protected, async (req, res) => {
+  try {
+    const result = await notificationCenter.markAsRead(
+      req.params.id,
+      req.user.id,
+      req.user.company_id
+    );
+    if (!result.ok) {
+      const status = result.error === 'Notificação não encontrada' ? 404 : 400;
+      return res.status(status).json({ ok: false, error: result.error });
+    }
+    res.json({ ok: true, id: result.id, read_at: result.read_at });
+  } catch (err) {
+    console.error('[APP_COMM_NOTIF_READ]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 router.get('/notifications', protected, async (req, res) => {
   try {
-    const limit = Math.min(30, parseInt(req.query.limit, 10) || 15);
-    const r = await db.query(`
-      SELECT id, text_content, communication_id, sent_at, read_at
-      FROM app_notifications
-      WHERE recipient_id = $1
-      ORDER BY sent_at DESC
-      LIMIT $2
-    `, [req.user.id, limit]);
-    res.json({ ok: true, notifications: r.rows });
+    const limit = Math.min(50, parseInt(req.query.limit, 10) || 15);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const unreadOnly =
+      req.query.unread === 'true' || req.query.unread === '1' || req.query.unread === true;
+
+    const notifications = await notificationCenter.listForUser(req.user.id, req.user.company_id, {
+      limit,
+      offset,
+      unreadOnly
+    });
+    res.json({ ok: true, notifications, limit, offset });
   } catch (err) {
+    console.error('[APP_COMM_NOTIF_LIST]', err);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/unified-notifications', protected, async (req, res) => {
+  try {
+    const limit = Math.min(50, parseInt(req.query.limit, 10) || 20);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const source = req.query.source ? String(req.query.source).trim() : undefined;
+    const severity = req.query.severity ? String(req.query.severity).trim() : undefined;
+    const category = req.query.category ? String(req.query.category).trim() : undefined;
+    const unread =
+      req.query.unread === 'true' || req.query.unread === '1' || req.query.unread === true;
+
+    const result = await notificationFederation.getUnifiedNotifications(
+      req.user.id,
+      req.user.company_id,
+      { limit, offset, source, severity, category, unread }
+    );
+
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[APP_COMM_UNIFIED_NOTIF]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro ao agregar notificações' });
   }
 });
 

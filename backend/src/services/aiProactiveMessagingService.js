@@ -5,6 +5,7 @@
  */
 const db = require('../db');
 const appImpetusService = require('./appImpetusService');
+const notificationBridge = require('./notificationBridgeService');
 
 const AI_PROACTIVE_CONSENT_REQUIRED = process.env.AI_PROACTIVE_CONSENT_REQUIRED !== 'false';
 const AI_PROACTIVE_BUSINESS_HOURS_ONLY = process.env.AI_PROACTIVE_BUSINESS_HOURS_ONLY !== 'false';
@@ -117,6 +118,12 @@ async function sendProactiveMessage(params) {
       SET success = true, sent_at = now(), zapi_message_id = $2
       WHERE id = $1
     `, [auditId, result?.id]);
+
+    notificationBridge
+      .bridgeProactiveMessage(companyId, recipientUserId, recipientPhone, message)
+      .catch((err) => {
+        console.warn('[AI_PROACTIVE][NC_BRIDGE]', err?.message ?? err);
+      });
 
     return { ok: true, auditId, messageId: result?.id };
   } catch (err) {

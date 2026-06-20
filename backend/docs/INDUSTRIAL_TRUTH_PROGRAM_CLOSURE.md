@@ -31,7 +31,7 @@ Não há bloqueio técnico para considerar o programa Truth **certificável em p
 | TRI-AI OpenAI + Anthropic | 49-B | ✅ UP |
 | ETAPA 10 matrix | 49-D | ✅ 9 PASS, 0 FAIL |
 | CEO Truth proxy (OEE) | 49-A | ✅ PASS (API) |
-| Documentação auditável | 37–49 | ✅ `backend/docs/` |
+| Documentação auditável | 37–49 | ✅ `backend/docs/` + [`TRUTH_PROGRAM_ETAPAS_CLOSURE_REGISTRY.md`](./TRUTH_PROGRAM_ETAPAS_CLOSURE_REGISTRY.md) |
 
 ---
 

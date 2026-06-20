@@ -16,13 +16,13 @@ module.exports = {
   isMqttRealEnabled: () => _flag('IMPETUS_MQTT_REAL_ENABLED', false),
   mqttRealMode: () => _mode('IMPETUS_MQTT_REAL_MODE', 'shadow'),
   mqttPilotOnly: () => {
-    const v = process.env.IMPETUS_MQTT_REAL_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
+    return routing.resolveOtPilotOnly(process.env.IMPETUS_MQTT_REAL_PILOT_ONLY, true);
   },
   mqttPilotTenants: () => {
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
     const raw = process.env.IMPETUS_MQTT_REAL_PILOT_TENANTS || process.env.IMPETUS_RLS_PILOT_TENANTS || '';
-    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    return routing.getEnterpriseOtTenants(raw);
   },
   defaultBrokerUrl: () => process.env.IMPETUS_MQTT_BROKER_URL || 'mqtt://127.0.0.1:1883',
   bufferMax: () => {

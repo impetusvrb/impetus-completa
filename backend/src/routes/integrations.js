@@ -50,7 +50,15 @@ router.post('/mes-erp/push', async (req, res) => {
 
     await mesErp.assertMesErpPushAuthorized(companyId, connectorId, apiToken);
     const result = await mesErp.processPush(companyId, connectorId, req.body);
-    res.json({ ok: true, recordsCount: result.recordsCount });
+    if (result.async) {
+      return res.status(202).json({
+        ok: true,
+        async: true,
+        job_id: result.job_id,
+        message: 'Push enfileirado para processamento assíncrono',
+      });
+    }
+    res.json({ ok: true, async: false, recordsCount: result.recordsCount });
   } catch (err) {
     const status = Number(err.status) >= 400 && Number(err.status) < 600 ? err.status : 500;
     logMesErpAuthFailure(status, req, err?.message);

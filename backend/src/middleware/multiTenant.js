@@ -10,7 +10,7 @@ async function requireCompanyActive(req, res, next) {
       return res.status(403).json({ ok: false, error: 'Empresa não vinculada ao usuário' });
     }
     const r = await db.query(
-      `SELECT id, active, tenant_status FROM companies WHERE id = $1`,
+      `SELECT id, active, tenant_status, subscription_status FROM companies WHERE id = $1`,
       [cid]
     );
     if (!r.rows.length) {
@@ -26,7 +26,16 @@ async function requireCompanyActive(req, res, next) {
       });
     }
     if (row.active !== true) {
-      return res.status(403).json({ ok: false, error: 'Empresa inativa ou não encontrada' });
+      const subStatus = String(row.subscription_status || '').toLowerCase();
+      const billingInactive = ['overdue', 'suspended', 'pending', 'canceled'].includes(subStatus);
+      return res.status(403).json({
+        ok: false,
+        error: billingInactive
+          ? 'Assinatura em atraso. Regularize o pagamento para continuar.'
+          : 'Empresa inativa ou não encontrada',
+        code: 'COMPANY_INACTIVE',
+        redirect: '/subscription-expired'
+      });
     }
     next();
   } catch (e) {

@@ -16,9 +16,8 @@ module.exports = {
   isRlsEnabled: () => _flag('IMPETUS_RLS_ENABLED', false),
   rlsMode: () => _mode('IMPETUS_RLS_MODE', 'shadow'),
   rlsPilotOnly: () => {
-    const v = process.env.IMPETUS_RLS_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const enterprise = require('../../services/enterprise/enterpriseSecurityRolloutService');
+    return enterprise.resolvePilotOnly(process.env.IMPETUS_RLS_PILOT_ONLY, true);
   },
   rlsPilotTenants: () => {
     const raw = process.env.IMPETUS_RLS_PILOT_TENANTS || process.env.IMPETUS_MFA_PILOT_TENANTS || '';

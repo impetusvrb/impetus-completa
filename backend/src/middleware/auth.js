@@ -454,6 +454,12 @@ function requireAuth(req, res, next) {
     } catch (_e) {
       console.warn('[AUTH] hydrateUserPermissions:', _e?.message);
     }
+    try {
+      const enterpriseRollout = require('../services/enterprise/enterpriseSecurityRolloutService');
+      if (enterpriseRollout.isEnterpriseSecurityRolloutActive()) {
+        hydrated._enterprise_security = enterpriseRollout.getEnterpriseSecurityStatus();
+      }
+    } catch { /* non-blocking M1.19 */ }
     req.user = hydrated;
     req.session = { id: user.sessionId };
     try {

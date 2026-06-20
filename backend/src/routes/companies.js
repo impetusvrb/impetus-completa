@@ -6,9 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { hashPassword, createSession } = require('../middleware/auth');
+const { hashPassword, createSession, requireAuth } = require('../middleware/auth');
 const { logAction } = require('../middleware/audit');
 const { z } = require('zod');
+const { getCompanySubscriptionUxProfile } = require('../services/subscription/subscriptionCompanyReader');
 
 const createCompanySchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(120),
@@ -145,6 +146,48 @@ router.post('/', async (req, res) => {
     });
   } finally {
     client.release();
+  }
+});
+
+/**
+ * GET /api/companies/me
+ * Perfil tenant-scoped da empresa do utilizador autenticado.
+ * FIX-SUBSCRIPTION-UX-01 — banner overdue + UX de assinatura (sem requireCompanyActive).
+ */
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) {
+      return res.status(403).json({
+        ok: false,
+        error: 'Empresa não vinculada ao usuário'
+      });
+    }
+
+    const profile = await getCompanySubscriptionUxProfile(companyId);
+    if (!profile) {
+      return res.status(404).json({
+        ok: false,
+        error: 'Empresa não encontrada'
+      });
+    }
+
+    res.json({
+      ok: true,
+      company: {
+        id: profile.id,
+        name: profile.name,
+        active: profile.active,
+        subscription_status: profile.subscription_status,
+        subscription_plan: profile.subscription_plan
+      }
+    });
+  } catch (err) {
+    console.error('[COMPANIES_ME_ERROR]', err);
+    res.status(500).json({
+      ok: false,
+      error: 'Erro ao obter dados da empresa'
+    });
   }
 });
 

@@ -5,6 +5,7 @@
 const db = require('../db');
 const organizationalAI = require('../services/organizationalAI');
 const appImpetusService = require('../services/appImpetusService');
+const notificationBridge = require('../services/notificationBridgeService');
 
 /**
  * Executa verificação de padrão de falhas e envia alerta proativo
@@ -24,7 +25,7 @@ async function runFailurePatternCheck() {
         const alertId = ins.rows[0]?.id;
 
         const recipients = await db.query(`
-          SELECT whatsapp_number, phone FROM users
+          SELECT id, whatsapp_number, phone FROM users
           WHERE company_id = $1 AND active = true AND (whatsapp_number IS NOT NULL OR phone IS NOT NULL)
           AND hierarchy_level <= 4
           LIMIT 15
@@ -37,6 +38,14 @@ async function runFailurePatternCheck() {
         for (const phone of [...new Set(phones)].slice(0, 5)) {
           try {
             await appImpetusService.sendMessage(row.id, phone, message, { originatedFrom: 'proactive' });
+            const userRow = recipients.rows.find(
+              (u) => (u.whatsapp_number || u.phone || '').replace(/\D/g, '') === phone
+            );
+            notificationBridge
+              .bridgeProactiveMessage(row.id, userRow?.id, phone, message)
+              .catch((err) => {
+                console.warn('[PROACTIVE_AI][NC_BRIDGE]', err?.message ?? err);
+              });
           } catch (e) {
             console.warn('[PROACTIVE_AI] send:', e.message);
           }
@@ -80,6 +89,11 @@ async function remindIncompleteEvents() {
       if (nextQ) {
         try {
           await appImpetusService.sendMessage(row.company_id, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`, { originatedFrom: 'proactive' });
+          notificationBridge
+            .bridgeProactiveMessage(row.company_id, null, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`)
+            .catch((err) => {
+              console.warn('[PROACTIVE_AI][NC_BRIDGE]', err?.message ?? err);
+            });
           await db.query(
             'UPDATE ai_incomplete_events SET last_reminder_at = now(), reminder_count = reminder_count + 1 WHERE id = $1',
             [row.id]

@@ -21,6 +21,7 @@ function initChatSocket(io) {
     onlineUsers.set(user.id, socket.id);
     chatService.setUserPresence(user.id, true).catch(() => {});
     socket.join('company:' + user.company_id);
+    socket.join(`user_${user.id}`);
     io.to('company:' + user.company_id).emit('user_online', { userId: user.id });
     try {
       const convs = await chatService.getConversations(user.id, user.company_id);

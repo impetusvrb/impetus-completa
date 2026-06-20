@@ -68,7 +68,11 @@ const chatApi = {
   /** Detalhe de auditoria (explicabilidade) por trace do conselho — mesma empresa do utilizador. */
   getCognitiveTrace: (traceId) =>
     http.get('/cognitive-council/trace/' + encodeURIComponent(String(traceId || ''))),
-  submitRegistration: (text) => http.post('/intelligent-registration', { text }),
+  submitRegistration: (payload) => {
+    if (payload instanceof FormData) return http.post('/intelligent-registration', payload);
+    if (typeof payload === 'string') return http.post('/intelligent-registration', { text: payload });
+    return http.post('/intelligent-registration', payload || {});
+  },
   listRegistrations: () => http.get('/intelligent-registration?limit=10'),
   updateAvatar: (file) => {
     const fd = new FormData();

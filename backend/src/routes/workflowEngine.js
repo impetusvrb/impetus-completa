@@ -14,6 +14,7 @@ const graph = require('../workflowEngine/graph/executionGraphService');
 const audit = require('../workflowEngine/audit/workflowAuditTracer');
 const recovery = require('../workflowEngine/recovery/workflowRecoveryService');
 const bpmnRegistry = require('../workflowEngine/bpmn/bpmnDefinitionRegistry');
+const permissionGate = require('../workflowEngine/permission/workflowPermissionGate');
 
 function _companyId(req) {
   return req.user?.company_id || null;
@@ -38,9 +39,11 @@ function _auditApi(req, action, meta = {}) {
 router.get('/health', requireAuth, (req, res) => {
   res.set('Cache-Control', 'no-store');
   const companyId = _companyId(req);
+  const permissionGate = require('../workflowEngine/permission/workflowPermissionGate');
   res.json({
     ok: true,
     health: orchestrator.getHealth(),
+    security: permissionGate.getWorkflowSecurityDiagnostics(),
     tenant: {
       company_id: companyId,
       pilot: flags.isPilotTenant(companyId),
@@ -61,10 +64,21 @@ router.post('/instances/start', requireAuth, async (req, res) => {
     if (!companyId) return res.status(403).json({ ok: false, code: 'TENANT_REQUIRED' });
 
     const processKey = req.body?.process_key || 'governance.approval_chain.v1';
+    const perm = permissionGate.assertWorkflowPermission({
+      user: req.user,
+      processKey,
+      companyId,
+      capabilities: req.user?.permissions,
+    });
+    if (!perm.ok) {
+      return res.status(403).json({ ok: false, code: perm.code, reason: perm.reason, decision: perm.decision });
+    }
+
     const result = await orchestrator.startWorkflow({
       processKey,
       companyId,
       userId: req.user.id,
+      user: req.user,
       context: req.body?.context || {},
       correlationId: req.body?.correlation_id
     });

@@ -2,7 +2,7 @@
  * AIOI-P1E.6 / P1F–P1I — Widget Horizontal Scale (READ ONLY)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { aioi, f49, operations, m1Validation, m1PilotReadiness, m1PilotExecution, m1FoodBasePilot, m1PilotOperation, m1PilotClosure, m1PilotAdoption, m1Governance, m1PlatformClosure, m1CriticalRemediation, m1PilotAdoptionClosure, m1FoodBase } from '../../../services/api';
+import { aioi, f49, operations, m1Validation, m1PilotReadiness, m1PilotExecution, m1FoodBasePilot, m1PilotOperation, m1PilotClosure, m1PilotAdoption, m1Governance, m1PlatformClosure, m1CriticalRemediation, m1PilotAdoptionClosure, m1OperationalAdoptionEnablement, m1OperationalRoadmap, adoptionProgressTracker, m1FoodBase } from '../../../services/api';
 import {
   Layers,
   Server,
@@ -81,13 +81,16 @@ export default function WidgetAIOIScale() {
   const [m115Closure, setM115Closure] = useState(null);
   const [m116Remediation, setM116Remediation] = useState(null);
   const [m117AdoptionClosure, setM117AdoptionClosure] = useState(null);
+  const [m121Enablement, setM121Enablement] = useState(null);
+  const [m122Roadmap, setM122Roadmap] = useState(null);
+  const [adoptionProgress, setAdoptionProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes, assuranceRes, recoveryRes, releaseRes, closureRes, geminiF49Res, triAiF49Res, truthClosureF49Res, continuousOpP0ARes, observationP0BRes, activeOpP0CRes, runtimeP0DRes, goLiveP0ERes, m16Res, m17Res, m18Res, m19Res, m110Res, m111Res, m112Res, m113Res, m114Res, m115Res, m116Res, m117Res] = await Promise.all([
+  const [statusRes, validationRes, runtimeRes, registryRes, benchmarkRes, distributedRes, telemetryRes, healthRes, capacityRes, readinessRes, riskRes, certRes, auditRes, deploymentRes, approvalRes, rolloutsRes, historyRes, opCertRes, opDatasetRes, opConsistencyRes, opWorkloadRes, authStatusRes, authRequestsRes, authHistoryRes, complianceRes, baselineRes, assuranceRes, recoveryRes, releaseRes, closureRes, geminiF49Res, triAiF49Res, truthClosureF49Res, continuousOpP0ARes, observationP0BRes, activeOpP0CRes, runtimeP0DRes, goLiveP0ERes, m16Res, m17Res, m18Res, m19Res, m110Res, m111Res, m112Res, m113Res, m114Res, m115Res, m116Res, m117Res, m121Res, m122Res, adoptionProgressRes] = await Promise.all([
         aioi.getScaleStatus(),
         aioi.getScaleValidation(),
         aioi.getScaleRuntime(),
@@ -137,7 +140,10 @@ export default function WidgetAIOIScale() {
         m1Governance.getStatus().catch(() => null),
         m1PlatformClosure.getStatus().catch(() => null),
         m1CriticalRemediation.getStatus().catch(() => null),
-        m1PilotAdoptionClosure.getStatus().catch(() => null)
+        m1PilotAdoptionClosure.getStatus().catch(() => null),
+        m1OperationalAdoptionEnablement.getStatus().catch(() => null),
+        m1OperationalRoadmap.getStatus().catch(() => null),
+        adoptionProgressTracker.getStatus().catch(() => null)
       ]);
       setStatus(statusRes?.data ?? statusRes);
       setValidation(validationRes?.data ?? validationRes);
@@ -189,6 +195,9 @@ export default function WidgetAIOIScale() {
       setM115Closure(m115Res?.data ?? m115Res);
       setM116Remediation(m116Res?.data ?? m116Res);
       setM117AdoptionClosure(m117Res?.data ?? m117Res);
+      setM121Enablement(m121Res?.data ?? m121Res);
+      setM122Roadmap(m122Res?.data ?? m122Res);
+      setAdoptionProgress(adoptionProgressRes?.data ?? adoptionProgressRes);
       setError(null);
       setLastFetch(new Date().toISOString());
     } catch (err) {
@@ -1028,6 +1037,127 @@ export default function WidgetAIOIScale() {
         <span>
           Throughput seq: {parBench.sequential?.throughput_eps ?? 0} eps
         </span>
+      </div>
+
+      <div className="aioi-scale__section-label">OPERATIONAL ROADMAP CONSOLIDATION (M1.22)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="ROADMAP"
+          value={m122Roadmap?.verdict === 'OPERATIONAL_ROADMAP_CONSOLIDATED' ? 'CONSOLIDATED' : (m122Roadmap?.verdict ?? '—')}
+          accent={m122Roadmap?.pass ? '--cyan' : '--amber'}
+        />
+        <ScaleTile
+          label="NEXT"
+          value={m122Roadmap?.executive_summary?.next_phase?.replace('M1.22 ', '') ?? '—'}
+          accent="--cyan"
+        />
+        <ScaleTile
+          label="OPEN"
+          value={m122Roadmap?.executive_summary?.remaining_operational_domains?.length != null ? String(m122Roadmap.executive_summary.remaining_operational_domains.length) : '—'}
+          accent={m122Roadmap?.executive_summary?.remaining_operational_domains?.length === 0 ? '--green' : '--amber'}
+        />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="ENTERPRISE"
+          value={m122Roadmap?.executive_summary?.enterprise_core_complete ? 'CORE OK' : '—'}
+          accent="--green"
+        />
+        <ScaleTile
+          label="M2"
+          value={m122Roadmap?.executive_summary?.remaining_strategic_program?.replace('_', ' ') ?? '—'}
+          accent="--amber"
+        />
+        <ScaleTile
+          label="P17-P20"
+          value={m122Roadmap?.p17_p20?.answer?.aioi_cognitive_p17_p20_open_and_prohibited ? 'AIOI OFF' : '—'}
+          accent="--text-secondary"
+        />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: m122Roadmap?.pass ? 'var(--cyan)' : 'var(--text-tertiary)' }} />
+        <span>M1.22 · roadmap · GET /api/m1/operational-roadmap/status</span>
+      </div>
+
+      {/* ── Adoption Progress Tracker M1.22–M1.27 ──────────────────────────── */}
+      <div className="aioi-scale__section-label">ADOPTION PROGRESS TRACKER — M1.22–M1.27 GATES</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="ESG GATE"
+          value={adoptionProgress?.primary_gates?.esg?.gate_open ? 'OPEN' : `${adoptionProgress?.primary_gates?.esg?.overall_progress_pct ?? 0}%`}
+          accent={adoptionProgress?.primary_gates?.esg?.gate_open ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="WORKFLOW GATE"
+          value={adoptionProgress?.primary_gates?.workflow?.gate_open ? 'OPEN' : `${adoptionProgress?.primary_gates?.workflow?.overall_progress_pct ?? 0}%`}
+          accent={adoptionProgress?.primary_gates?.workflow?.gate_open ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="MES GATE"
+          value={adoptionProgress?.primary_gates?.mes?.gate_open ? 'OPEN' : `${adoptionProgress?.primary_gates?.mes?.overall_progress_pct ?? 0}%`}
+          accent={adoptionProgress?.primary_gates?.mes?.gate_open ? '--green' : '--amber'}
+        />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="GATES OPEN"
+          value={adoptionProgress?.summary?.primary_gates_open ?? '—'}
+          accent={adoptionProgress?.summary?.primary_gates_open === '3/3' ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="PROGRESS"
+          value={adoptionProgress?.summary?.platform_progress_pct != null ? `${adoptionProgress.summary.platform_progress_pct}%` : '—'}
+          accent="--cyan"
+        />
+        <ScaleTile
+          label="BLOCKER"
+          value={adoptionProgress?.summary?.bottleneck === 'operational_evidence_not_architecture' ? 'OPS' : '—'}
+          accent="--text-secondary"
+        />
+      </div>
+      <div className="aioi-scale__info-row">
+        <Activity size={12} style={{ color: 'var(--cyan)' }} />
+        <span>tracker · gates M1.22–M1.27 · GET /api/m1/adoption-progress/status</span>
+      </div>
+
+      <div className="aioi-scale__section-label">OPERATIONAL ADOPTION ENABLEMENT (M1.21)</div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="VERDICT"
+          value={m121Enablement?.verdict === 'OPERATIONAL_ADOPTION_READY' ? 'READY' : (m121Enablement?.verdict ?? '—')}
+          accent={m121Enablement?.pass ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="ESG PATH"
+          value={m121Enablement?.esg_activation_ready ? 'READY' : '—'}
+          accent={m121Enablement?.esg_activation_ready ? '--green' : '--amber'}
+        />
+        <ScaleTile
+          label="WORKFLOW"
+          value={m121Enablement?.workflow_activation_ready ? 'READY' : '—'}
+          accent={m121Enablement?.workflow_activation_ready ? '--green' : '--amber'}
+        />
+      </div>
+      <div className="aioi-scale__tiles aioi-scale__tiles--3">
+        <ScaleTile
+          label="FOUNDATION"
+          value={m121Enablement?.foundation_activation_ready ? 'MAPPED' : '—'}
+          accent={m121Enablement?.foundation_activation_ready ? '--cyan' : '--amber'}
+        />
+        <ScaleTile
+          label="ARCH"
+          value={m121Enablement?.architecture_changes === 0 ? '0 CHG' : '—'}
+          accent="--green"
+        />
+        <ScaleTile
+          label="RBAC"
+          value={m121Enablement?.rbac_changes === 0 ? '0 CHG' : '—'}
+          accent="--green"
+        />
+      </div>
+      <div className="aioi-scale__info-row">
+        <ShieldCheck size={12} style={{ color: m121Enablement?.pass ? 'var(--green)' : 'var(--text-tertiary)' }} />
+        <span>M1.21 · adoption enablement · GET /api/m1/operational-adoption-enablement/status</span>
       </div>
 
       <div className="aioi-scale__section-label">PILOT ADOPTION CLOSURE ASSESSMENT (M1.17)</div>

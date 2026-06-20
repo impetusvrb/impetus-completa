@@ -594,6 +594,123 @@
   opacity: 0.8;
 }
 
+.header-dropdown--notifications {
+  min-width: 320px;
+  max-width: min(92vw, 420px);
+}
+
+.header-dropdown__feed-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border-subtle, #243848);
+}
+
+.header-dropdown__feed-tab {
+  flex: 1;
+  padding: 6px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary, var(--gray-500));
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.header-dropdown__feed-tab--active {
+  color: var(--cyan, #00d4ff);
+  border-color: rgba(0, 212, 255, 0.35);
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.header-dropdown__filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 12px;
+  max-height: 72px;
+  overflow-y: auto;
+}
+
+.header-dropdown__filter-chip {
+  padding: 3px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary, var(--gray-500));
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid var(--border-subtle, #243848);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.header-dropdown__filter-chip--active {
+  color: var(--cyan, #00d4ff);
+  border-color: rgba(0, 212, 255, 0.4);
+}
+
+.header-dropdown__notif-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header-dropdown__notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.header-dropdown__notif-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle, #243848);
+  background: transparent;
+  color: var(--text-secondary, var(--gray-500));
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+.header-dropdown__notif-item:hover {
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.header-dropdown__notif-item--unread {
+  border-left: 3px solid var(--cyan, #00d4ff);
+  padding-left: 13px;
+}
+
+.header-dropdown__notif-text {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-primary, var(--gray-900));
+  word-break: break-word;
+}
+
+.header-dropdown__notif-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, var(--gray-500));
+  opacity: 0.85;
+}
+
 .header-dropdown__profile {
   display: flex;
   align-items: center;

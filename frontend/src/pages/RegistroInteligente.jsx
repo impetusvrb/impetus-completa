@@ -21,6 +21,7 @@ import {
   LayoutList
 } from 'lucide-react';
 import Layout from '../components/Layout';
+import RegistroInteligenteMedia from '../components/RegistroInteligenteMedia';
 import { intelligentRegistration } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import './RegistroInteligente.css';
@@ -73,6 +74,7 @@ export default function RegistroInteligente() {
   const notify = useNotification();
   const [text, setText] = useState('');
   const [shiftName, setShiftName] = useState('');
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [registrations, setRegistrations] = useState([]);
   const [leadershipRegs, setLeadershipRegs] = useState([]);
@@ -136,19 +138,35 @@ export default function RegistroInteligente() {
 
   const handleSubmit = async () => {
     const trimmed = text.trim();
-    if (!trimmed || trimmed.length < 10) {
+    if (!trimmed && !file) {
+      notify.error('Descreva o registro ou envie foto, documento ou áudio.');
+      return;
+    }
+    if (!file && trimmed.length < 10) {
       notify.error('Digite pelo menos uma frase descrevendo o que aconteceu.');
       return;
     }
 
     try {
       setLoading(true);
-      await intelligentRegistration.create({
-        text: trimmed,
-        shift_name: shiftName.trim() || undefined
-      });
-      notify.success('Registro processado pela IA e guardado na memória operacional.');
+      let payload;
+      if (file) {
+        const fd = new FormData();
+        fd.append('text', trimmed);
+        if (shiftName.trim()) fd.append('shift_name', shiftName.trim());
+        fd.append('file', file);
+        payload = fd;
+      } else {
+        payload = {
+          text: trimmed,
+          shift_name: shiftName.trim() || undefined
+        };
+      }
+
+      await intelligentRegistration.create(payload);
+      notify.success('Registro Inteligente processado e guardado na memória operacional.');
       setText('');
+      setFile(null);
       loadRegistrations();
       if (tab === 'leadership') loadLeadership();
     } catch (e) {
@@ -157,6 +175,8 @@ export default function RegistroInteligente() {
       setLoading(false);
     }
   };
+
+  const canSubmit = !loading && (file || text.trim().length >= 10);
 
   const listData = tab === 'leadership' ? leadershipRegs : registrations;
   const listLoading = tab === 'leadership' ? loadingLeadership : loadingList;
@@ -173,7 +193,7 @@ export default function RegistroInteligente() {
               <div>
                 <h1 className="registro-title">Registro Inteligente</h1>
                 <p className="registro-subtitle">
-                  Memória operacional assistida por IA — registe o seu dia, pendências, ocorrências e sugestões.
+                  Memória operacional assistida por IA — registe o seu dia com texto, foto, documento ou áudio.
                 </p>
               </div>
             </div>
@@ -183,8 +203,8 @@ export default function RegistroInteligente() {
         <div className="registro-main">
           <div className="registro-card registro-card--composer">
             <p className="registro-instruction">
-              Registre aqui tudo o que você achar importante sobre seu dia de trabalho. Conte o que foi feito, o que
-              aconteceu, problemas encontrados, atualizações, pendências, observações e qualquer informação relevante.
+              Registre aqui tudo o que você achar importante sobre seu dia de trabalho. Você pode escrever,
+              enviar foto, documento (PDF/DOC) ou áudio — a IA interpreta e organiza automaticamente.
             </p>
 
             <div className="registro-shortcuts">
@@ -213,6 +233,13 @@ export default function RegistroInteligente() {
               disabled={loading}
             />
 
+            <RegistroInteligenteMedia
+              file={file}
+              onFileChange={setFile}
+              disabled={loading}
+              variant="page"
+            />
+
             <div className="registro-shift-row">
               <label className="registro-shift-label" htmlFor="reg-shift">
                 Turno (opcional)
@@ -233,10 +260,10 @@ export default function RegistroInteligente() {
                 type="button"
                 className="btn-registrar-ia"
                 onClick={handleSubmit}
-                disabled={loading || !text.trim()}
+                disabled={!canSubmit}
               >
                 <Sparkles size={20} />
-                {loading ? 'A processar com IA…' : 'Registrar com IA'}
+                {loading ? 'Processando registro…' : 'Registro Inteligente'}
               </button>
             </div>
           </div>
@@ -471,6 +498,26 @@ function RegistroCard({ reg, expanded, onToggle, showUser }) {
             <div className="registro-suggest-action">
               <Sparkles size={16} />
               <span>{meta.suggested_followup_message}</span>
+            </div>
+          )}
+
+          {meta.attachments?.length > 0 && (
+            <div className="registro-attachments-view">
+              <strong>Anexos</strong>
+              <ul>
+                {meta.attachments.map((att, i) => (
+                  <li key={i}>
+                    <span className="registro-attachment-type">{att.type || 'arquivo'}</span>
+                    {att.filename && <span>{att.filename}</span>}
+                    {att.url && (
+                      <a href={att.url} target="_blank" rel="noopener noreferrer">
+                        Abrir
+                      </a>
+                    )}
+                    {att.transcription && <p className="registro-attachment-transcript">{att.transcription}</p>}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

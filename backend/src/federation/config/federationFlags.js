@@ -24,9 +24,8 @@ module.exports = {
   isSamlEnabled: () => _flag('IMPETUS_FEDERATION_SAML_ENABLED', true),
   isScimEnabled: () => _flag('IMPETUS_FEDERATION_SCIM_ENABLED', true),
   federationPilotOnly: () => {
-    const v = process.env.IMPETUS_FEDERATION_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const enterprise = require('../../services/enterprise/enterpriseSecurityRolloutService');
+    return enterprise.resolvePilotOnly(process.env.IMPETUS_FEDERATION_PILOT_ONLY, true);
   },
   federationPilotTenants: () => {
     const raw = process.env.IMPETUS_FEDERATION_PILOT_TENANTS || '';

@@ -1,5 +1,8 @@
 # TRUTH_GAP_REPORT
 
+> **Nome canónico Etapa 8:** [`OPERATIONAL_TRUTH_GAP_REPORT.md`](./OPERATIONAL_TRUTH_GAP_REPORT.md)  
+> Este ficheiro mantém-se como alias histórico — conteúdo técnico equivalente.
+
 **Auditoria:** PROMPT 33A (read-only)  
 **Data:** 2026-06-01
 

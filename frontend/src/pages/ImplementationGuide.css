@@ -251,6 +251,27 @@
   border-bottom-color: var(--border-active);
 }
 
+.impl-guide-card__score {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.6px;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.impl-guide-card__missing {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.impl-guide-card__missing li {
+  margin-bottom: 4px;
+}
+
 .impl-guide-card__hint {
   font-family: var(--font-mono);
   color: var(--amber);

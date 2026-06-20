@@ -6,6 +6,7 @@ import MessageInput from './components/MessageInput';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useMessages } from './hooks/useMessages';
 import chatApi from './services/chatApi';
+import RegistroInteligenteMedia from '../components/RegistroInteligenteMedia';
 import ProacaoWorkspace from '../features/proacao/ProacaoWorkspace';
 import { User, ArrowLeft, Menu, Send, ClipboardList, X, CheckCircle, AlertTriangle, FileText, Upload, Target, AlertCircle, Brain, Info } from 'lucide-react';
 import chatBrandImg from '../assets/chat-brand.png';
@@ -65,6 +66,7 @@ export default function ChatApp(){
   const [advancedCouncilMode,setAdvancedCouncilMode]=useState(false);
   const [showRegistro,setShowRegistro]=useState(false);
   const [registroText,setRegistroText]=useState('');
+  const [registroFile,setRegistroFile]=useState(null);
   const [registroLoading,setRegistroLoading]=useState(false);
   const [registroResult,setRegistroResult]=useState(null);
   const [showCadastrarIa,setShowCadastrarIa]=useState(false);
@@ -240,12 +242,23 @@ export default function ChatApp(){
   }
 
   async function handleRegistro(){
-    if(!registroText.trim()||registroLoading) return;
+    const trimmed = registroText.trim();
+    if((!trimmed && !registroFile) || registroLoading) return;
     setRegistroLoading(true); setRegistroResult(null);
     try{
-      const {data}=await chatApi.submitRegistration(registroText.trim());
+      let payload;
+      if(registroFile){
+        const fd = new FormData();
+        fd.append('text', trimmed);
+        fd.append('file', registroFile);
+        payload = fd;
+      } else {
+        payload = { text: trimmed };
+      }
+      const {data}=await chatApi.submitRegistration(payload);
       setRegistroResult({ok:true, data:data?.data||data});
       setRegistroText('');
+      setRegistroFile(null);
     }catch(e){
       setRegistroResult({ok:false, msg:e?.response?.data?.error||'Erro ao registrar'});
     } finally{ setRegistroLoading(false); }
@@ -301,7 +314,7 @@ export default function ChatApp(){
       )}
       <div className="chat-header__actions">
         <button
-          onClick={()=>{setShowRegistro(true);setRegistroResult(null);}}
+          onClick={()=>{setShowRegistro(true);setRegistroResult(null);setRegistroFile(null);}}
           title="Registro Inteligente"
           style={{background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:13,fontWeight:500}}
         >
@@ -345,10 +358,16 @@ export default function ChatApp(){
           </div>
         ):(
           <>
-            <textarea value={registroText} onChange={e=>setRegistroText(e.target.value)} placeholder="Descreva o ocorrido, problema, observação ou situação... A IA irá analisar, classificar e registrar automaticamente." rows={5} style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:10,padding:12,color:'#fff',fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit'}}/>
+            <textarea value={registroText} onChange={e=>setRegistroText(e.target.value)} placeholder="Descreva o ocorrido, problema, observação ou situação. Você também pode anexar foto, arquivo ou áudio." rows={5} style={{background:'#1e1e2e',border:'1px solid #3a3a5e',borderRadius:10,padding:12,color:'#fff',fontSize:14,resize:'vertical',outline:'none',fontFamily:'inherit'}}/>
+            <RegistroInteligenteMedia
+              file={registroFile}
+              onFileChange={setRegistroFile}
+              disabled={registroLoading}
+              variant="chat"
+            />
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={()=>setShowRegistro(false)} style={{padding:'8px 16px',borderRadius:8,background:'#1e1e2e',border:'1px solid #3a3a5e',color:'#9ca3af',cursor:'pointer',fontSize:14}}>Cancelar</button>
-              <button onClick={handleRegistro} disabled={registroLoading||!registroText.trim()} style={{padding:'8px 20px',borderRadius:8,background:registroLoading||!registroText.trim()?'#2a2a3e':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',color:'#fff',cursor:registroLoading||!registroText.trim()?'not-allowed':'pointer',fontSize:14,fontWeight:500}}>{registroLoading?'Registrando...':'Registrar'}</button>
+              <button onClick={()=>{setShowRegistro(false);setRegistroResult(null);setRegistroFile(null);}} style={{padding:'8px 16px',borderRadius:8,background:'#1e1e2e',border:'1px solid #3a3a5e',color:'#9ca3af',cursor:'pointer',fontSize:14}}>Cancelar</button>
+              <button onClick={handleRegistro} disabled={registroLoading||(!registroText.trim()&&!registroFile)} style={{padding:'8px 20px',borderRadius:8,background:registroLoading||(!registroText.trim()&&!registroFile)?'#2a2a3e':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',color:'#fff',cursor:registroLoading||(!registroText.trim()&&!registroFile)?'not-allowed':'pointer',fontSize:14,fontWeight:500}}>{registroLoading?'Processando...':'Registro Inteligente'}</button>
             </div>
           </>
         )}

@@ -12,6 +12,10 @@ function setSocketIo(io) {
   ioInstance = io;
 }
 
+function isSocketEnabled() {
+  return !!ioInstance;
+}
+
 /**
  * Envia mensagem para usuário do app
  * @param {string} companyId - UUID da empresa
@@ -23,6 +27,14 @@ function setSocketIo(io) {
 async function sendToUser(companyId, recipientUserId, message, opts = {}) {
   if (!companyId || !recipientUserId || !message) {
     return { ok: false, error: 'Parâmetros obrigatórios ausentes' };
+  }
+
+  let ncMetrics;
+  try {
+    ncMetrics = require('./notificationCenterService');
+    ncMetrics.recordDeliveryAttempt();
+  } catch (_m) {
+    ncMetrics = null;
   }
 
   try {
@@ -61,6 +73,7 @@ async function sendToUser(companyId, recipientUserId, message, opts = {}) {
       }
     }
 
+    if (ncMetrics) ncMetrics.recordDeliverySuccess();
     return { ok: true, sentViaSocket, notificationId: notifResult.rows[0].id };
   } catch (err) {
     console.error('[UNIFIED_MESSAGING] sendToUser:', err);
@@ -97,6 +110,7 @@ async function sendToUserByPhone(companyId, phone, message, opts = {}) {
 
 module.exports = {
   setSocketIo,
+  isSocketEnabled,
   sendToUser,
   sendToUserByPhone
 };

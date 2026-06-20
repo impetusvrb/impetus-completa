@@ -16,15 +16,15 @@ module.exports = {
   isEdgeRuntimeRealEnabled: () => _flag('IMPETUS_EDGE_RUNTIME_REAL_ENABLED', false),
   edgeRuntimeMode: () => _mode('IMPETUS_EDGE_RUNTIME_MODE', 'shadow'),
   edgePilotOnly: () => {
-    const v = process.env.IMPETUS_EDGE_RUNTIME_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
+    return routing.resolveOtPilotOnly(process.env.IMPETUS_EDGE_RUNTIME_PILOT_ONLY, true);
   },
   edgePilotTenants: () => {
+    const routing = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
     const raw = process.env.IMPETUS_EDGE_RUNTIME_PILOT_TENANTS
       || process.env.IMPETUS_MQTT_REAL_PILOT_TENANTS
       || '';
-    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    return routing.getEnterpriseOtTenants(raw);
   },
   persistQueue: () => _flag('IMPETUS_EDGE_RUNTIME_PERSIST_QUEUE', true),
   bufferMax: () => {

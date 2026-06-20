@@ -28,9 +28,8 @@ module.exports = {
     return Number.isFinite(v) && v > 0 ? Math.min(v, 90) : 14;
   },
   mfaPilotOnly: () => {
-    const v = process.env.IMPETUS_MFA_PILOT_ONLY;
-    if (v == null || v === '') return true;
-    return v === 'on' || v === 'true' || v === '1';
+    const enterprise = require('../../services/enterprise/enterpriseSecurityRolloutService');
+    return enterprise.resolvePilotOnly(process.env.IMPETUS_MFA_PILOT_ONLY, true);
   },
   mfaPilotTenants: () => {
     const raw = process.env.IMPETUS_MFA_PILOT_TENANTS || '';

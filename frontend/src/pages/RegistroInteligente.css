@@ -84,6 +84,133 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+
+.registro-attachments {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md, 6px);
+  background: rgba(0, 212, 255, 0.04);
+}
+
+.registro-attachments__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.registro-attachments__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.registro-attachments__types span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.registro-attachments__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.registro-attachments__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-active);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.registro-attachments__pick:hover {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.registro-attachments__input {
+  display: none;
+}
+
+.registro-attachments__hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.registro-attachments__file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.registro-attachments__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.registro-attachments__remove:hover {
+  color: var(--red);
+  background: rgba(255, 64, 64, 0.1);
+}
+
+.registro-attachments-view {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.registro-attachments-view ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.registro-attachment-type {
+  display: inline-block;
+  margin-right: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--cyan);
+}
+
+.registro-attachment-transcript {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
 .registro-shift-row {
   margin-top: 16px;
   display: flex;

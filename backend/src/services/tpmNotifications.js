@@ -173,6 +173,13 @@ async function notifyTpmIncident(companyId, incident) {
       }
     }
 
+    try {
+      const notificationBridge = require('./notificationBridgeService');
+      await notificationBridge.bridgeTpmIncident(cid, incident, msg, recipients);
+    } catch (bridgeErr) {
+      console.warn('[TPM_NOTIFY][NC_BRIDGE]', bridgeErr?.message ?? bridgeErr);
+    }
+
     await maybePersistAlertRow(cid, incident, msg);
   } catch (err) {
     console.warn('[TPM_NOTIFY][FATAL]', err && err.message ? err.message : err);

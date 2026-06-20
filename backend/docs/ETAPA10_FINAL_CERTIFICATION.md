@@ -68,4 +68,24 @@ A ETAPA 10 está **substancialmente completa** para certificação Truth industr
 
 ---
 
+## Closure registry (2026-06-28)
+
+Documentação canónica Etapas 1–10 consolidada em:
+
+- [`TRUTH_PROGRAM_ETAPAS_CLOSURE_REGISTRY.md`](./TRUTH_PROGRAM_ETAPAS_CLOSURE_REGISTRY.md)
+- [`TRUTH_PROGRAM_FINAL_CORRECTION_PLAN.md`](./TRUTH_PROGRAM_FINAL_CORRECTION_PLAN.md)
+- [`ANAM_TRUTH_AUDIT_REPORT.md`](./ANAM_TRUTH_AUDIT_REPORT.md) (Etapa 4)
+- [`DATA_GENERATION_AUDIT_SCENARIOS_ABC.md`](./DATA_GENERATION_AUDIT_SCENARIOS_ABC.md) (Etapa 3)
+- [`OPERATIONAL_TRUTH_GAP_REPORT.md`](./OPERATIONAL_TRUTH_GAP_REPORT.md) (Etapa 8)
+
+**Pendências PARTIAL — acção recomendada (sem alterar maturidade):**
+
+| Item | Acção | Referência |
+|------|-------|------------|
+| CEO Anam 15 min | Gravação humana piloto | `CEO_FIELD_CERTIFICATION.md` |
+| Safety FULL ON | Rollout quando dados MES completos | `SAFETY_ENVIRONMENT_FULL_ON_BLOCKING_REPORT.md` |
+| Environment adopção | Path operacional M1.21 | `M1_21_OPERATIONAL_ADOPTION_ENABLEMENT.md` |
+
+---
+
 *FASE 49-D — matriz read-only.*

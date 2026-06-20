@@ -298,14 +298,35 @@ async function auditTelemetryPersistence(companyId = PILOT_TENANT.company_id) {
     /* optional */
   }
 
-  const pilotLists = {
+  let pilotLists = {
     mqtt: process.env.IMPETUS_MQTT_REAL_PILOT_TENANTS || '',
     opcua: process.env.IMPETUS_OPCUA_REAL_PILOT_TENANTS || '',
     modbus: process.env.IMPETUS_MODBUS_REAL_PILOT_TENANTS || '',
     edge: process.env.IMPETUS_EDGE_RUNTIME_PILOT_TENANTS || '',
   };
 
-  const pilotHasFreshFit = Object.values(pilotLists).some((v) => v.includes(companyId.slice(0, 8)));
+  let enterpriseRouting = null;
+  let officialAuditTable = 'telemetry_timeseries_v1';
+  try {
+    enterpriseRouting = require('../../domains/environment/telemetry/environmentTelemetryEnterpriseRouting');
+    officialAuditTable = enterpriseRouting.getOfficialTelemetryAuditSource();
+    if (enterpriseRouting.isEnterpriseTelemetryRoutingActive()) {
+      const mqttFlags = require('../../industrial-mqtt/config/mqttRealFlags');
+      pilotLists = {
+        mqtt: mqttFlags.mqttPilotTenants().join(','),
+        opcua: require('../../industrial-opcua/config/opcuaRealFlags').opcuaPilotTenants().join(','),
+        modbus: require('../../industrial-modbus/config/modbusRealFlags').modbusPilotTenants().join(','),
+        edge: require('../../industrial-edge/config/edgeRuntimeFlags').edgePilotTenants().join(','),
+        enterprise_routing: true,
+      };
+    }
+  } catch {
+    /* optional */
+  }
+
+  const pilotHasFreshFit =
+    enterpriseRouting?.isEnterpriseTelemetryRoutingActive?.() === true ||
+    Object.values(pilotLists).some((v) => String(v).includes(companyId.slice(0, 8)));
 
   let classification = 'C_table_routing_mismatch';
   let classification_label =
@@ -318,6 +339,10 @@ async function auditTelemetryPersistence(companyId = PILOT_TENANT.company_id) {
     classification = 'A_not_reaching_pilot_tenant';
     classification_label +=
       '; Fresh Fit ausente das listas pilot MQTT/OPC-UA/Modbus/Edge — dados concentrados no tenant lab';
+  } else if (enterpriseRouting?.isEnterpriseTelemetryRoutingActive?.()) {
+    classification = 'E_enterprise_routing_active';
+    classification_label =
+      'M1.19 enterprise telemetry routing — fonte oficial audit: telemetry_timeseries_v1; OT pilot-only desactivado';
   }
 
   return {
@@ -353,6 +378,9 @@ async function auditTelemetryPersistence(companyId = PILOT_TENANT.company_id) {
     },
     pilot_tenant_lists: pilotLists,
     fresh_fit_in_ot_pilot_lists: pilotHasFreshFit,
+    official_audit_table: officialAuditTable,
+    audit_consistency: officialAuditTable === 'telemetry_timeseries_v1',
+    enterprise_telemetry_routing: enterpriseRouting?.isEnterpriseTelemetryRoutingActive?.() === true,
     domain_breakdown: domainSample,
     root_cause: {
       summary:
