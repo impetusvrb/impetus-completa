@@ -478,12 +478,38 @@ async function sendCEOResponse(companyId, phone, message) {
   const normalized = normalizePhone(phone);
   if (normalized.length < 10) return;
   const toSend = normalized.startsWith('55') ? normalized : `55${normalized}`;
-  await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+
   try {
-    const notificationBridge = require('./notificationBridgeService');
-    await notificationBridge.bridgeExecutiveMessage(companyId, null, toSend, message);
+    const adapter = require('./governanceAdapters/executiveGovernanceAdapter');
+    const dispatch = await adapter.dispatchExecutiveMessage({
+      companyId,
+      recipientPhone: toSend,
+      message,
+      source: 'executiveMode',
+      eventType: 'executive_response'
+    });
+
+    const useLegacy =
+      dispatch.mode === 'shadow' ||
+      dispatch.mode === 'legacy_fallback' ||
+      (dispatch.mode === 'governance' && dispatch.useLegacy === true);
+
+    if (useLegacy) {
+      await adapter.runLegacyDistribution({
+        companyId,
+        recipientPhone: toSend,
+        message
+      });
+    }
   } catch (err) {
-    console.warn('[executiveMode][NC_BRIDGE]', err?.message ?? err);
+    console.warn('[executiveMode][governance_dispatch]', err?.message ?? err);
+    try {
+      await appImpetusService.sendMessage(companyId, toSend, message, { originatedFrom: 'executive' });
+      const notificationBridge = require('./notificationBridgeService');
+      await notificationBridge.bridgeExecutiveMessage(companyId, null, toSend, message);
+    } catch (fallbackErr) {
+      console.warn('[executiveMode][NC_BRIDGE]', fallbackErr?.message ?? fallbackErr);
+    }
   }
 }
 

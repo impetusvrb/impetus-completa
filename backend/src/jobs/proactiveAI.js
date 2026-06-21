@@ -4,8 +4,27 @@
  */
 const db = require('../db');
 const organizationalAI = require('../services/organizationalAI');
-const appImpetusService = require('../services/appImpetusService');
-const notificationBridge = require('../services/notificationBridgeService');
+
+async function _dispatchProactiveToRecipient(companyId, recipientUserId, recipientPhone, message, context) {
+  const adapter = require('../services/governanceAdapters/aiProactiveGovernanceAdapter');
+  const dispatch = await adapter.dispatchAiProactive({
+    companyId,
+    recipientUserId,
+    recipientPhone,
+    message,
+    source: context.source || 'proactiveAI',
+    triggerType: context.triggerType || 'generic'
+  });
+
+  if (dispatch.mode === 'governance' && dispatch.distribution?.success) {
+    return dispatch;
+  }
+
+  return adapter.runLegacyDistribution(
+    { companyId, recipientUserId, recipientPhone, message },
+    { logCommunication: false }
+  );
+}
 
 /**
  * Executa verificação de padrão de falhas e envia alerta proativo
@@ -37,15 +56,13 @@ async function runFailurePatternCheck() {
 
         for (const phone of [...new Set(phones)].slice(0, 5)) {
           try {
-            await appImpetusService.sendMessage(row.id, phone, message, { originatedFrom: 'proactive' });
             const userRow = recipients.rows.find(
               (u) => (u.whatsapp_number || u.phone || '').replace(/\D/g, '') === phone
             );
-            notificationBridge
-              .bridgeProactiveMessage(row.id, userRow?.id, phone, message)
-              .catch((err) => {
-                console.warn('[PROACTIVE_AI][NC_BRIDGE]', err?.message ?? err);
-              });
+            await _dispatchProactiveToRecipient(row.id, userRow?.id, phone, message, {
+              source: 'proactiveAI',
+              triggerType: 'failure_pattern'
+            });
           } catch (e) {
             console.warn('[PROACTIVE_AI] send:', e.message);
           }
@@ -88,12 +105,11 @@ async function remindIncompleteEvents() {
 
       if (nextQ) {
         try {
-          await appImpetusService.sendMessage(row.company_id, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`, { originatedFrom: 'proactive' });
-          notificationBridge
-            .bridgeProactiveMessage(row.company_id, null, row.sender_phone, `[IMPETUS] Lembrete: ${nextQ}`)
-            .catch((err) => {
-              console.warn('[PROACTIVE_AI][NC_BRIDGE]', err?.message ?? err);
-            });
+          const reminderMsg = `[IMPETUS] Lembrete: ${nextQ}`;
+          await _dispatchProactiveToRecipient(row.company_id, null, row.sender_phone, reminderMsg, {
+            source: 'proactiveAI',
+            triggerType: 'proactive_reminder'
+          });
           await db.query(
             'UPDATE ai_incomplete_events SET last_reminder_at = now(), reminder_count = reminder_count + 1 WHERE id = $1',
             [row.id]

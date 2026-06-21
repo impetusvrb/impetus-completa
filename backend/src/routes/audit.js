@@ -14,6 +14,19 @@ const notificationBridge = require('../services/notificationBridgeService');
 const subscriptionUxAudit = require('../services/subscription/subscriptionUxAuditService');
 const billingNotifications = require('../services/subscription/subscriptionBillingNotificationService');
 const notificationFederation = require('../services/notificationFederationService');
+const eventGovernance = require('../services/eventGovernanceService');
+const eventGovernanceExecution = require('../services/eventGovernanceExecutionService');
+const operationalAlertsGovernance = require('../services/governanceAdapters/operationalAlertsGovernanceAdapter');
+const aiProactiveGovernance = require('../services/governanceAdapters/aiProactiveGovernanceAdapter');
+const tpmGovernance = require('../services/governanceAdapters/tpmGovernanceAdapter');
+const executiveGovernance = require('../services/governanceAdapters/executiveGovernanceAdapter');
+const billingGovernance = require('../services/governanceAdapters/billingGovernanceAdapter');
+const dsrGovernance = require('../services/governanceAdapters/dsrGovernanceAdapter');
+const manuiaGovernance = require('../services/governanceAdapters/manuiaGovernanceAdapter');
+const qualityGovernance = require('../services/governanceAdapters/qualityGovernanceAdapter');
+const sstGovernance = require('../services/governanceAdapters/sstGovernanceAdapter');
+const esgGovernance = require('../services/governanceAdapters/esgGovernanceAdapter');
+const aioiGovernance = require('../services/governanceAdapters/aioiGovernanceAdapter');
 
 /**
  * GET /api/audit/subscription-governance/status
@@ -123,6 +136,257 @@ router.get('/notification-center/federation', requireAuth, requireTenantAdminRol
     res.status(500).json({
       ok: false,
       error: err?.message || 'Erro ao obter status de federação'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/status
+ * Estado read-only da governança de eventos (EVENT-GOVERNANCE-01 shadow mode).
+ */
+router.get('/event-governance/status', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = eventGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de event governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/execution
+ * Estado read-only do registry e planos de execução (EVENT-GOVERNANCE-02).
+ */
+router.get('/event-governance/execution', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = eventGovernanceExecution.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de event governance execution'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/executors
+ * Estado read-only dos executores de canal (EVENT-GOVERNANCE-03).
+ */
+router.get('/event-governance/executors', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = eventGovernanceExecution.getExecutorsAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de event governance executors'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/operational-alerts
+ * Estado read-only da migração Operational Alerts → Governance (EVENT-GOVERNANCE-04).
+ */
+router.get('/event-governance/operational-alerts', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = operationalAlertsGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de operational alerts governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/ai-proactive
+ * Estado read-only da migração IA Proactiva → Governance (EVENT-GOVERNANCE-05).
+ */
+router.get('/event-governance/ai-proactive', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = aiProactiveGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de ai proactive governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/tpm
+ * Estado read-only da migração TPM → Governance (EVENT-GOVERNANCE-06).
+ */
+router.get('/event-governance/tpm', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = tpmGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de tpm governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/executive
+ * Estado read-only da migração Executive Mode → Governance (EVENT-GOVERNANCE-07).
+ */
+router.get('/event-governance/executive', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = executiveGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de executive governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/billing
+ * Estado read-only da migração Billing → Governance (EVENT-GOVERNANCE-08).
+ */
+router.get('/event-governance/billing', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = billingGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de billing governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/dsr
+ * Estado read-only da migração DSR/LGPD → Governance (EVENT-GOVERNANCE-09).
+ */
+router.get('/event-governance/dsr', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = dsrGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de dsr governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/manuia
+ * Estado read-only da migração ManuIA → Governance (EVENT-GOVERNANCE-10).
+ */
+router.get('/event-governance/manuia', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = manuiaGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de manuia governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/quality
+ * Estado read-only da migração Quality → Governance (EVENT-GOVERNANCE-11A).
+ */
+router.get('/event-governance/quality', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = qualityGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de quality governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/sst
+ * Estado read-only da migração SST → Governance (EVENT-GOVERNANCE-11B).
+ */
+router.get('/event-governance/sst', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = sstGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de sst governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/esg
+ * Estado read-only da migração ESG → Governance (EVENT-GOVERNANCE-11C).
+ */
+router.get('/event-governance/esg', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const status = esgGovernance.getAuditStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de esg governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/aioi
+ * Estado read-only integração AIOI → Governance (EVENT-GOVERNANCE-12).
+ */
+router.get('/event-governance/aioi', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const feed = require('../services/aioiGovernanceFeedService');
+    const status = aioiGovernance.getAuditStatus();
+    res.json({
+      ok: true,
+      ...status,
+      feed: feed.getFeedStats(),
+      catalog: feed.getGovernanceCatalogSnapshot()
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de aioi governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/learning
+ * Estado read-only camada de aprendizagem (EVENT-GOVERNANCE-13).
+ */
+router.get('/event-governance/learning', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const learning = require('../services/governanceLearningService');
+    const confidence = require('../services/governanceConfidenceService');
+    res.json({
+      ok: true,
+      ...learning.getAuditStatus(),
+      confidence: confidence.getAuditStatus()
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de learning governance'
     });
   }
 });

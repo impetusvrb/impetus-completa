@@ -14,20 +14,10 @@ function wantPushAfterIngest() {
 }
 
 /**
- * Regista uma notificação na caixa do utilizador e aplica regras de entrega.
+ * Execução legada de ingest (inbox + push opcional) — usado pelo adapter EG-10.
  * @param {object} opts
- * @param {string} opts.companyId
- * @param {string} opts.userId — destinatário (técnico)
- * @param {string} [opts.eventType]
- * @param {string} [opts.severity]
- * @param {string} opts.title
- * @param {string} [opts.body]
- * @param {object} [opts.payload]
- * @param {string} [opts.machineId]
- * @param {string} [opts.workOrderId]
- * @param {boolean} [opts.requiresAck]
  */
-async function ingestForUser(opts) {
+async function executeLegacyIngest(opts) {
   const {
     companyId,
     userId,
@@ -106,6 +96,79 @@ async function ingestForUser(opts) {
   return { row, decision: decisionResult, push: pushResult };
 }
 
+/**
+ * EG-10 — delega distribuição ao adapter (shadow/migrado) com fallback legado.
+ * @param {object} opts
+ */
+async function _dispatchManuiaIngest(opts) {
+  try {
+    const adapter = require('../governanceAdapters/manuiaGovernanceAdapter');
+    const dispatch = await adapter.dispatchManuiaNotification(opts);
+    if (dispatch.mode === 'governance' && dispatch.distribution?.success) {
+      return dispatch.distribution.result;
+    }
+    if (dispatch.useLegacy !== false) {
+      return executeLegacyIngest(opts);
+    }
+    throw new Error(dispatch.reason || 'dispatch_failed');
+  } catch (err) {
+    console.warn('[MANUIA_INBOX][governance_dispatch]', err?.message ?? err);
+    try {
+      return executeLegacyIngest(opts);
+    } catch (fallbackErr) {
+      console.error('[MANUIA_INBOX][legacy_fallback]', fallbackErr?.message ?? fallbackErr);
+      throw fallbackErr;
+    }
+  }
+}
+
+/**
+ * Regista uma notificação na caixa do utilizador e aplica regras de entrega.
+ * @param {object} opts
+ * @param {string} opts.companyId
+ * @param {string} opts.userId — destinatário (técnico)
+ * @param {string} [opts.eventType]
+ * @param {string} [opts.severity]
+ * @param {string} opts.title
+ * @param {string} [opts.body]
+ * @param {object} [opts.payload]
+ * @param {string} [opts.machineId]
+ * @param {string} [opts.workOrderId]
+ * @param {boolean} [opts.requiresAck]
+ */
+async function ingestForUser(opts) {
+  const {
+    companyId,
+    userId,
+    eventType = 'generic',
+    severity = 'medium',
+    title,
+    body = null,
+    payload = {},
+    machineId = null,
+    workOrderId = null,
+    requiresAck = false
+  } = opts;
+
+  if (!companyId || !userId || !title) {
+    throw new Error('ingestForUser: companyId, userId e title são obrigatórios');
+  }
+
+  return _dispatchManuiaIngest({
+    companyId,
+    userId,
+    eventType,
+    severity,
+    title,
+    body,
+    payload,
+    machineId,
+    workOrderId,
+    requiresAck,
+    source: opts.source || 'system'
+  });
+}
+
 async function notifyUserForWorkOrderCreated({ companyId, userId, workOrderId, woTitle, machineName }) {
   return ingestForUser({
     companyId,
@@ -123,5 +186,6 @@ async function notifyUserForWorkOrderCreated({ companyId, userId, workOrderId, w
 
 module.exports = {
   ingestForUser,
+  executeLegacyIngest,
   notifyUserForWorkOrderCreated
 };

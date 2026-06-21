@@ -2565,10 +2565,17 @@ httpServer.on('error', (err) => {
       console.warn('[Z17_PILOT_RECOVERY_BOOT]', e && e.message ? e.message : e);
     }
 
-    httpServer.listen(PORT, () => {
-      const env = String(process.env.NODE_ENV || 'development').toLowerCase();
+    const listenHost = (process.env.LISTEN_HOST || '127.0.0.1').trim() || '127.0.0.1';
+    const env = String(process.env.NODE_ENV || 'development').toLowerCase();
+    if (env === 'production' && listenHost === '0.0.0.0' && process.env.ALLOW_PUBLIC_BIND !== 'true') {
+      console.error(
+        '[impetus-backend] LISTEN_HOST=0.0.0.0 em produção recusado. Use 127.0.0.1 + reverse proxy ou ALLOW_PUBLIC_BIND=true.'
+      );
+      process.exit(1);
+    }
+    httpServer.listen(PORT, listenHost, () => {
       console.log(
-        `[impetus-backend] http://0.0.0.0:${PORT}  env=${env}  (health: /health  deep: /api/system/health/deep)`
+        `[impetus-backend] http://${listenHost}:${PORT}  env=${env}  (health: /health  deep: /api/system/health/deep)`
       );
     });
   })();

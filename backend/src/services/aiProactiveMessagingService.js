@@ -5,7 +5,6 @@
  */
 const db = require('../db');
 const appImpetusService = require('./appImpetusService');
-const notificationBridge = require('./notificationBridgeService');
 
 const AI_PROACTIVE_CONSENT_REQUIRED = process.env.AI_PROACTIVE_CONSENT_REQUIRED !== 'false';
 const AI_PROACTIVE_BUSINESS_HOURS_ONLY = process.env.AI_PROACTIVE_BUSINESS_HOURS_ONLY !== 'false';
@@ -106,26 +105,47 @@ async function sendProactiveMessage(params) {
   const auditId = ins.rows[0]?.id;
 
   try {
-    // 2. Enviar via App Impetus (outbox)
-    const result = await appImpetusService.sendMessage(companyId, recipientPhone, message, { originatedFrom: 'proactive' });
+    const adapter = require('./governanceAdapters/aiProactiveGovernanceAdapter');
+    const dispatch = await adapter.dispatchAiProactive({
+      companyId,
+      recipientUserId,
+      recipientPhone,
+      message,
+      source: 'aiProactiveMessagingService',
+      triggerType
+    });
 
-    // 3. Registrar em communications para rastreabilidade
+    let result;
+
+    if (dispatch.mode === 'governance') {
+      const allSteps = (dispatch.distribution?.results || []).flatMap((r) => r.executionPlan || []);
+      const appStep = allSteps.find((s) => s.channel === 'app_impetus');
+      result = {
+        ok: dispatch.distribution?.success === true,
+        id: appStep?.result?.id || appStep?.result?.result?.id || null
+      };
+      if (!result.ok) {
+        result = await adapter.runLegacyDistribution(
+          { companyId, recipientUserId, recipientPhone, message },
+          { logCommunication: false }
+        );
+      }
+    } else {
+      result = await adapter.runLegacyDistribution(
+        { companyId, recipientUserId, recipientPhone, message },
+        { logCommunication: false }
+      );
+    }
+
     await appImpetusService.logOutboundCommunication(companyId, recipientPhone, message, {});
 
-    // 4. Atualizar auditoria com sucesso
     await db.query(`
       UPDATE ai_outbound_audit
       SET success = true, sent_at = now(), zapi_message_id = $2
       WHERE id = $1
-    `, [auditId, result?.id]);
+    `, [auditId, result?.appResult?.id || result?.id || null]);
 
-    notificationBridge
-      .bridgeProactiveMessage(companyId, recipientUserId, recipientPhone, message)
-      .catch((err) => {
-        console.warn('[AI_PROACTIVE][NC_BRIDGE]', err?.message ?? err);
-      });
-
-    return { ok: true, auditId, messageId: result?.id };
+    return { ok: true, auditId, messageId: result?.appResult?.id || result?.id };
   } catch (err) {
     // 5. Atualizar auditoria com falha
     await db.query(`

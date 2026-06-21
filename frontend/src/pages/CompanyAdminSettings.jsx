@@ -1,11 +1,11 @@
 /**
  * Gestão de conteúdo e políticas da empresa (administração)
- * POPs, manuais, política, contatos operacionais — não confundir com Configurações do usuário (/app/settings)
+ * POPs, política, contatos operacionais — manuais ficam na Biblioteca / Base Estrutural
  */
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Settings, MessageSquare, FileText, BookOpen, Bell, Shield, Phone, LayoutDashboard, Check, Users } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Settings, MessageSquare, FileText, Bell, Shield, Phone, Check, Users, Upload, Activity } from 'lucide-react';
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
 import { adminSettings, appImpetus, pulse, tenantAdmins, adminUsers } from '../services/api';
@@ -13,36 +13,32 @@ import { useNotification } from '../context/NotificationContext';
 import { isStrictAdminRole } from '../utils/roleUtils';
 import './AdminSettings.css';
 
-const SECTION_LABELS = {
-  operational_interactions: 'Interações Operacionais',
-  ai_insights: 'Insights IA',
-  proposals: 'Propostas Pró-Ação',
-  trend_chart: 'Gráfico de Tendência',
-  insights_list: 'Lista de Insights',
-  recent_interactions: 'Interações Recentes',
-  smart_summary: 'Resumo Inteligente',
-  plc_alerts: 'Alertas PLC',
-  kpi_request: 'Solicitar KPIs (IA)',
-  communication_panel: 'Painel de Comunicação'
-};
-
-const HIERARCHY_LABELS = {
-  2: 'Gerente',
-  3: 'Coordenador',
-  4: 'Supervisor',
-  5: 'Colaborador'
-};
-
-const VALID_TABS = ['comunicacao', 'policy', 'pops', 'manuals', 'notification-contacts', 'notifications', 'dashboard-visibility', 'pulse', 'tenant-admins'];
+const VALID_TABS = ['comunicacao', 'policy', 'pops', 'notification-contacts', 'notifications', 'pulse', 'tenant-admins'];
 const TAB_ALIAS = { 'whatsapp-contacts': 'notification-contacts' };
 
 export default function CompanyAdminSettings() {
   const notify = useNotification();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const effectiveTab = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
   const initialTab = VALID_TABS.includes(effectiveTab || '') ? effectiveTab : 'comunicacao';
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  const selectTab = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'comunicacao') {
+      setSearchParams({}, { replace: true });
+    } else {
+      setSearchParams({ tab }, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (tabFromUrl === 'manuals') {
+      navigate('/app/biblioteca', { replace: true });
+    }
+  }, [tabFromUrl, navigate]);
 
   useEffect(() => {
     const effective = TAB_ALIAS[tabFromUrl || ''] || tabFromUrl;
@@ -51,7 +47,6 @@ export default function CompanyAdminSettings() {
     }
   }, [tabFromUrl]);
   const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-  const canConfigDashboard = (user.hierarchy_level ?? 5) <= 1 || isStrictAdminRole(user);
   const isStrictAdmin = isStrictAdminRole(user);
   const showTenantGovernanceTab = !!(user.is_tenant_admin || isStrictAdminRole(user));
   const [connectionStatus, setConnectionStatus] = useState(null);
@@ -68,24 +63,27 @@ export default function CompanyAdminSettings() {
       } else if (activeTab === 'pops') {
         const r = await adminSettings.listPops();
         setPops(r.data.pops || []);
-      } else if (activeTab === 'manuals') {
-        const r = await adminSettings.listManuals();
-        setManuals(r.data.manuals || []);
       } else if (activeTab === 'policy') {
         const r = await adminSettings.getCompany();
-        setCompanyPolicy(r.data.company?.company_policy_text || '');
+        const company = r.data.company || {};
+        setCompanyPolicy(company.company_policy_text || '');
+        setPolicyAttachment(company.config?.policy_attachment || null);
       } else if (activeTab === 'notifications') {
         const r = await adminSettings.getNotificationConfig();
         setNotifConfig(r.data.config || notifConfig);
       } else if (activeTab === 'notification-contacts') {
         const r = await adminSettings.listNotificationContacts();
         setWhatsappContacts(r.data?.contacts || []);
-      } else if (activeTab === 'dashboard-visibility') {
-        const r = await adminSettings.getDashboardVisibilityConfigs();
-        setVisibilityConfigs(r.data.configs || []);
       } else if (activeTab === 'pulse' && isStrictAdmin) {
-        const r = await pulse.getAdminSettings();
-        setPulseEnabled(!!r.data?.settings?.pulse_enabled);
+        try {
+          const r = await pulse.getAdminSettings();
+          setPulseEnabled(!!r.data?.settings?.pulse_enabled);
+          setPulseLoadError('');
+        } catch (e) {
+          const msg = e.response?.data?.error || e.apiMessage || 'Erro ao carregar Impetus Pulse';
+          setPulseLoadError(msg);
+          notify.error(msg);
+        }
       } else if (activeTab === 'tenant-admins' && showTenantGovernanceTab) {
         setTenantGovLoading(true);
         try {
@@ -113,11 +111,13 @@ export default function CompanyAdminSettings() {
 
   const [loading, setLoading] = useState(true);
   const [pops, setPops] = useState([]);
-  const [manuals, setManuals] = useState([]);
   const [companyPolicy, setCompanyPolicy] = useState('');
+  const [policyAttachment, setPolicyAttachment] = useState(null);
+  const [policyUploadMode, setPolicyUploadMode] = useState('replace');
   const [whatsappContacts, setWhatsappContacts] = useState([]);
   const [notifConfig, setNotifConfig] = useState({ email_enabled: true, whatsapp_enabled: true, failure_alerts: true });
-  const [visibilityConfigs, setVisibilityConfigs] = useState([]);
+  const [pulseEnabled, setPulseEnabled] = useState(false);
+  const [pulseLoadError, setPulseLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [tenantAdminList, setTenantAdminList] = useState([]);
   const [tenantGovLoading, setTenantGovLoading] = useState(false);
@@ -144,43 +144,11 @@ export default function CompanyAdminSettings() {
     setNotifConfig(prev => ({ ...prev, [name]: checked }));
   };
 
-  const getVisibilityForLevel = (level) => {
-    const cfg = visibilityConfigs.find(c => c.hierarchy_level === level);
-    const sections = cfg?.sections || {};
-    return Object.keys(SECTION_LABELS).reduce((acc, k) => ({
-      ...acc,
-      [k]: sections[k] !== false
-    }), {});
-  };
-
-  const handleVisibilityChange = (level, key, value) => {
-    const current = getVisibilityForLevel(level);
-    const updated = { ...current, [key]: value };
-    setVisibilityConfigs(prev => {
-      const rest = prev.filter(c => c.hierarchy_level !== level);
-      const existing = prev.find(c => c.hierarchy_level === level);
-      return [...rest, { hierarchy_level: level, sections: updated, ...existing }];
-    });
-  };
-
   const handleSavePulse = async () => {
     try {
       setSaving(true);
       await pulse.putAdminSettings({ pulse_enabled: pulseEnabled });
       notify.success('Impetus Pulse atualizado.');
-    } catch (e) {
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveVisibility = async (level) => {
-    try {
-      setSaving(true);
-      const sections = getVisibilityForLevel(level);
-      await adminSettings.saveDashboardVisibility(level, sections);
-      notify.success(`Configuração do nível ${HIERARCHY_LABELS[level]} salva!`);
     } catch (e) {
       notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
     } finally {
@@ -218,6 +186,29 @@ export default function CompanyAdminSettings() {
     }
   };
 
+  const handleUploadPolicy = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (!form.file?.files?.[0]) {
+      notify.warning('Selecione um arquivo (PDF, DOC, DOCX ou TXT)');
+      return;
+    }
+    const fd = new FormData(form);
+    fd.set('mode', policyUploadMode);
+    try {
+      setSaving(true);
+      const r = await adminSettings.uploadCompanyPolicy(fd);
+      setCompanyPolicy(r.data.company_policy_text || '');
+      setPolicyAttachment(r.data.policy_attachment || null);
+      notify.success(r.data.message || 'Documento importado com sucesso.');
+      form.reset();
+    } catch (err) {
+      notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao importar documento');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAddWhatsappContact = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -250,27 +241,6 @@ export default function CompanyAdminSettings() {
       notify.success('Contato removido');
     } catch (err) {
       notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao remover');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUploadManual = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    if (!form.file?.files?.[0]) {
-      notify.warning('Selecione um arquivo');
-      return;
-    }
-    const fd = new FormData(form);
-    try {
-      setSaving(true);
-      await adminSettings.uploadManual(fd);
-      notify.success('Manual enviado!');
-      form.reset();
-      loadData();
-    } catch (err) {
-      notify.error(err.apiMessage || err.response?.data?.error || 'Erro ao enviar');
     } finally {
       setSaving(false);
     }
@@ -316,26 +286,22 @@ export default function CompanyAdminSettings() {
             <div className="page-icon"><Settings size={24} /></div>
             <div>
               <h1 className="page-title">Conteúdo da empresa</h1>
-              <p className="page-subtitle">Política, POPs, manuais, notificações operacionais e visibilidade do dashboard</p>
+              <p className="page-subtitle">Política, POPs e notificações operacionais</p>
             </div>
           </div>
         </div>
 
         <div className="settings-tabs">
-          <button className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => setActiveTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
-          <button className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => setActiveTab('policy')}><Shield size={18} /> Política da Empresa</button>
-          <button className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => setActiveTab('pops')}><FileText size={18} /> POPs</button>
-          <button className={`stab ${activeTab === 'manuals' ? 'active' : ''}`} onClick={() => setActiveTab('manuals')}><BookOpen size={18} /> Manuais</button>
-          <button className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => setActiveTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
-          <button className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}><Bell size={18} /> Notificações</button>
-          {canConfigDashboard && (
-            <button className={`stab ${activeTab === 'dashboard-visibility' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard-visibility')}><LayoutDashboard size={18} /> Visibilidade Dashboard</button>
-          )}
+          <button type="button" className={`stab ${activeTab === 'comunicacao' ? 'active' : ''}`} onClick={() => selectTab('comunicacao')}><MessageSquare size={18} /> Comunicação</button>
+          <button type="button" className={`stab ${activeTab === 'policy' ? 'active' : ''}`} onClick={() => selectTab('policy')}><Shield size={18} /> Política da Empresa</button>
+          <button type="button" className={`stab ${activeTab === 'pops' ? 'active' : ''}`} onClick={() => selectTab('pops')}><FileText size={18} /> POPs</button>
+          <button type="button" className={`stab ${activeTab === 'notification-contacts' ? 'active' : ''}`} onClick={() => selectTab('notification-contacts')}><Phone size={18} /> Contatos para Notificações</button>
+          <button type="button" className={`stab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => selectTab('notifications')}><Bell size={18} /> Notificações</button>
           {isStrictAdmin && (
-            <button className={`stab ${activeTab === 'pulse' ? 'active' : ''}`} onClick={() => setActiveTab('pulse')}><Shield size={18} /> Impetus Pulse</button>
+            <button type="button" className={`stab ${activeTab === 'pulse' ? 'active' : ''}`} onClick={() => selectTab('pulse')}><Activity size={18} /> Impetus Pulse</button>
           )}
           {showTenantGovernanceTab && (
-            <button className={`stab ${activeTab === 'tenant-admins' ? 'active' : ''}`} onClick={() => setActiveTab('tenant-admins')}><Users size={18} /> Admins do tenant</button>
+            <button type="button" className={`stab ${activeTab === 'tenant-admins' ? 'active' : ''}`} onClick={() => selectTab('tenant-admins')}><Users size={18} /> Admins do tenant</button>
           )}
         </div>
 
@@ -364,6 +330,44 @@ export default function CompanyAdminSettings() {
               <p className="form-hint">A IA integrada sempre consulta este conteúdo para garantir que as sugestões estejam alinhadas às políticas, normas e procedimentos internos da sua empresa.</p>
               {loading ? <p>Carregando...</p> : (
                 <>
+                  <form onSubmit={handleUploadPolicy} className="policy-upload-form">
+                    <label className="form-label">Importar documento de política</label>
+                    <p className="form-hint" style={{ marginTop: 0 }}>
+                      Envie PDF, DOC, DOCX ou TXT — o texto será extraído automaticamente para a IA consultar.
+                    </p>
+                    <input
+                      type="file"
+                      name="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="form-file"
+                      required
+                    />
+                    <label className="form-label" style={{ marginTop: 12 }}>Modo de importação</label>
+                    <select
+                      className="form-input"
+                      value={policyUploadMode}
+                      onChange={(e) => setPolicyUploadMode(e.target.value)}
+                      style={{ maxWidth: 360 }}
+                    >
+                      <option value="replace">Substituir texto da política</option>
+                      <option value="append">Anexar ao texto existente</option>
+                    </select>
+                    {policyAttachment?.filename && (
+                      <p className="form-hint policy-upload-meta">
+                        Último arquivo: <strong>{policyAttachment.filename}</strong>
+                        {policyAttachment.uploaded_at && (
+                          <> — {new Date(policyAttachment.uploaded_at).toLocaleString('pt-BR')}</>
+                        )}
+                      </p>
+                    )}
+                    <div className="panel-actions">
+                      <button type="submit" className="btn btn-secondary" disabled={saving}>
+                        <Upload size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                        Importar documento
+                      </button>
+                    </div>
+                  </form>
+
                   <label className="form-label">Texto da política (POPs gerais, normas de segurança, diretrizes, etc.)</label>
                   <textarea
                     className="form-textarea"
@@ -373,7 +377,7 @@ export default function CompanyAdminSettings() {
                     onChange={e => setCompanyPolicy(e.target.value)}
                   />
                   <div className="panel-actions">
-                    <button className="btn btn-primary" onClick={handleSavePolicy} disabled={saving}>Salvar Política</button>
+                    <button type="button" className="btn btn-primary" onClick={handleSavePolicy} disabled={saving}>Salvar Política</button>
                   </div>
                 </>
               )}
@@ -400,37 +404,6 @@ export default function CompanyAdminSettings() {
                 {loading ? <p>Carregando...</p> : pops.length === 0 ? <p>Nenhum POP</p> : (
                   <ul className="simple-list">
                     {pops.map(p => <li key={p.id}>{p.title} - {p.category || '-'}</li>)}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'manuals' && (
-            <div className="settings-panel">
-              <h3>Manuais Operacionais e de Máquinas</h3>
-              <p className="form-hint">Manuais operacionais: procedimentos e processos. Manuais de máquina: equipamentos específicos. A IA usa este conteúdo para sugerir diagnósticos e procedimentos.</p>
-              <form onSubmit={handleUploadManual} className="manual-form">
-                <label className="form-label">Tipo de Manual *</label>
-                <select name="manual_type" required className="form-input">
-                  <option value="operacional">Manual Operacional (procedimentos/processos)</option>
-                  <option value="maquina">Manual de Máquina (equipamento específico)</option>
-                </select>
-                <label className="form-label">Tipo de Equipamento / Assunto</label>
-                <input type="text" name="equipment_type" placeholder="Ex: Prensa ou Processo X" className="form-input" />
-                <label className="form-label">Modelo</label>
-                <input type="text" name="model" placeholder="Ex: PR-500" className="form-input" />
-                <label className="form-label">Fabricante</label>
-                <input type="text" name="manufacturer" placeholder="Ex: Fabricante XYZ" className="form-input" />
-                <label className="form-label">Arquivo PDF *</label>
-                <input type="file" name="file" accept=".pdf" required className="form-file" />
-                <button type="submit" className="btn btn-primary" disabled={saving}>Enviar Manual</button>
-              </form>
-              <div className="list-section">
-                <h4>Manuais</h4>
-                {loading ? <p>Carregando...</p> : manuals.length === 0 ? <p>Nenhum manual</p> : (
-                  <ul className="simple-list">
-                    {manuals.map(m => <li key={m.id}>{m.title || m.equipment_type} - {m.manual_type}</li>)}
                   </ul>
                 )}
               </div>
@@ -472,24 +445,6 @@ export default function CompanyAdminSettings() {
             </div>
           )}
 
-          {activeTab === 'dashboard-visibility' && canConfigDashboard && (
-            <div className="settings-panel">
-              <h3>Visibilidade do Dashboard por Nível</h3>
-              <p className="settings-panel-desc">Configure quais seções cada nível hierárquico visualiza no Dashboard Inteligente (Gerente a Colaborador).</p>
-              {[2, 3, 4, 5].map(level => (
-                <div key={level} className="visibility-level-card">
-                  <h4>{HIERARCHY_LABELS[level]}</h4>
-                  <div className="visibility-checkboxes visibility-checkboxes--grid">
-                    {Object.entries(SECTION_LABELS).map(([key, label]) => (
-                      <CheckboxField key={key} name={key} label={label} checked={getVisibilityForLevel(level)[key] !== false} onChange={e => handleVisibilityChange(level, key, e.target.checked)} />
-                    ))}
-                  </div>
-                  <button className="btn btn-secondary" onClick={() => handleSaveVisibility(level)} disabled={saving}>Salvar {HIERARCHY_LABELS[level]}</button>
-                </div>
-              ))}
-            </div>
-          )}
-
           {activeTab === 'pulse' && isStrictAdmin && (
             <div className="settings-panel">
               <h3>Impetus Pulse</h3>
@@ -500,6 +455,8 @@ export default function CompanyAdminSettings() {
               </p>
               {loading ? (
                 <p>Carregando...</p>
+              ) : pulseLoadError ? (
+                <p className="form-hint" style={{ color: 'var(--red, #ff4040)' }}>{pulseLoadError}</p>
               ) : (
                 <>
                   <CheckboxField
@@ -508,6 +465,9 @@ export default function CompanyAdminSettings() {
                     checked={pulseEnabled}
                     onChange={(e) => setPulseEnabled(e.target.checked)}
                   />
+                  <p className="form-hint" style={{ marginTop: 8 }}>
+                    Após ativar, o RH gere ciclos em <strong>Impetus Pulse (RH)</strong> no menu lateral.
+                  </p>
                   <div className="panel-actions">
                     <button type="button" className="btn btn-primary" onClick={handleSavePulse} disabled={saving}>
                       Salvar

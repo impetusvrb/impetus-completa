@@ -195,6 +195,44 @@ Identifique possíveis causas (lote, fornecedor, máquina, operador, processo) e
 }
 
 /**
+ * EG-11A — delega distribuição ao adapter (shadow/migrado) com fallback legado.
+ * @param {string} companyId
+ * @param {object} alertRow
+ */
+async function _dispatchQualityAlert(companyId, alertRow) {
+  const input = {
+    companyId,
+    alertRow,
+    eventType: `quality_${alertRow.alert_type || 'generic'}`,
+    alertType: alertRow.alert_type,
+    severity: alertRow.severity || 'medium',
+    title: alertRow.title,
+    targetRoleLevel: alertRow.target_role_level
+  };
+
+  try {
+    const adapter = require('./governanceAdapters/qualityGovernanceAdapter');
+    const dispatch = await adapter.dispatchQualityNotification(input);
+    if (dispatch.mode === 'governance' && dispatch.distribution?.success) {
+      return { ok: true };
+    }
+    if (dispatch.useLegacy !== false) {
+      return adapter.runLegacyDistribution(input);
+    }
+    return { ok: false, reason: dispatch.reason || 'dispatch_failed' };
+  } catch (err) {
+    console.warn('[QUALITY][governance_dispatch]', err?.message ?? err);
+    try {
+      const adapter = require('./governanceAdapters/qualityGovernanceAdapter');
+      return adapter.runLegacyDistribution(input);
+    } catch (fallbackErr) {
+      console.error('[QUALITY][legacy_fallback]', fallbackErr?.message ?? fallbackErr);
+      return { ok: false, error: fallbackErr?.message };
+    }
+  }
+}
+
+/**
  * Cria alerta de qualidade e distribui por cargo
  */
 async function createQualityAlert(companyId, alert) {
@@ -211,10 +249,7 @@ async function createQualityAlert(companyId, alert) {
   ]);
   const row = r.rows?.[0];
   if (row) {
-    const eventDispatch = require('./manuiaApp/manuiaEventDispatchService');
-    eventDispatch.scheduleDispatch('[MANUIA_DISPATCH_QUALITY]', () =>
-      eventDispatch.dispatchFromQualityAlert(companyId, row)
-    );
+    await _dispatchQualityAlert(companyId, row);
   }
   return row;
 }

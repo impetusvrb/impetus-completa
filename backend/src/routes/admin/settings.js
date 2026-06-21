@@ -12,6 +12,7 @@ const db = require('../../db');
 const { requireAuth, requireHierarchy, requireTenantAdminRole } = require('../../middleware/auth');
 const { auditMiddleware, logAction } = require('../../middleware/audit');
 const manualsService = require('../../services/manuals');
+const companyPolicyUpload = require('../../services/companyPolicyUploadService');
 const dashboardVisibility = require('../../services/dashboardVisibility');
 const { isValidUUID } = require('../../utils/security');
 
@@ -45,6 +46,18 @@ const upload = multer({
     } else {
       cb(new Error('Tipo de arquivo não permitido'));
     }
+  }
+});
+
+const policyDocUpload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.pdf', '.doc', '.docx', '.txt'].includes(ext)) {
+      return cb(null, true);
+    }
+    cb(new Error('Use PDF, DOC, DOCX ou TXT'));
   }
 });
 
@@ -226,6 +239,99 @@ router.put('/company',
       });
     }
 });
+
+/**
+ * POST /api/admin/settings/company/policy-upload
+ * Upload de documento de política (PDF, DOC, DOCX, TXT) — extrai texto para company_policy_text
+ */
+router.post('/company/policy-upload',
+  requireAuth,
+  requireTenantAdminRole,
+  policyDocUpload.single('file'),
+  auditMiddleware({
+    action: 'company_policy_uploaded',
+    entityType: 'company',
+    severity: 'info'
+  }),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ ok: false, error: 'Arquivo não enviado' });
+      }
+
+      const mode = req.body.mode === 'append' ? 'append' : 'replace';
+      const filePath = req.file.path;
+      const extracted = await companyPolicyUpload.extractPolicyTextFromFile(filePath);
+
+      if (!extracted || extracted.length < 20) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Não foi possível extrair texto suficiente do arquivo. Use PDF/DOC/DOCX/TXT com conteúdo legível.'
+        });
+      }
+
+      const current = await db.query(
+        'SELECT company_policy_text, config FROM companies WHERE id = $1',
+        [req.user.company_id]
+      );
+      if (current.rows.length === 0) {
+        return res.status(404).json({ ok: false, error: 'Empresa não encontrada' });
+      }
+
+      const existingText = current.rows[0].company_policy_text || '';
+      const config = current.rows[0].config || {};
+      const merged = companyPolicyUpload.mergePolicyText(
+        existingText,
+        extracted,
+        mode,
+        req.file.originalname
+      );
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      const policyAttachment = {
+        filename: req.file.originalname,
+        file_url: fileUrl,
+        uploaded_at: new Date().toISOString(),
+        uploaded_by: req.user.id,
+        mode
+      };
+
+      const nextConfig = { ...config, policy_attachment: policyAttachment };
+
+      const result = await db.query(`
+        UPDATE companies
+        SET company_policy_text = $1,
+            config = $2::jsonb,
+            updated_at = now()
+        WHERE id = $3
+        RETURNING id, company_policy_text, config
+      `, [merged, JSON.stringify(nextConfig), req.user.company_id]);
+
+      await logAction({
+        companyId: req.user.company_id,
+        userId: req.user.id,
+        action: 'company_policy_uploaded',
+        entityType: 'company',
+        entityId: req.user.company_id,
+        details: { filename: req.file.originalname, mode, chars: merged.length },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      res.json({
+        ok: true,
+        company_policy_text: result.rows[0].company_policy_text,
+        policy_attachment: policyAttachment,
+        message: mode === 'append'
+          ? 'Documento importado e anexado ao texto da política.'
+          : 'Política atualizada a partir do documento.'
+      });
+    } catch (err) {
+      console.error('[ADMIN_POLICY_UPLOAD_ERROR]', err);
+      res.status(500).json({ ok: false, error: err.message || 'Erro ao processar arquivo' });
+    }
+  }
+);
 
 // ============================================================================
 // POPs (PROCEDIMENTOS OPERACIONAIS PADRÃO)

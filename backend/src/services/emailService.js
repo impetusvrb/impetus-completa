@@ -155,6 +155,61 @@ async function sendOverdueNotificationEmail(opts) {
   return false;
 }
 
+/**
+ * Email genérico para Event Governance (EG-03) — reutiliza SMTP existente.
+ * @param {{ to: string, subject: string, message: string, companyName?: string }} opts
+ */
+async function sendGovernanceNotificationEmail(opts) {
+  const { to, subject, message, companyName } = opts;
+  if (!to || !message) {
+    return { sent: false, error: 'to e message obrigatórios' };
+  }
+
+  const safeSubject = String(subject || '[IMPETUS] Notificação').slice(0, 200);
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>${safeSubject}</title></head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    ${companyName ? `<p><strong>${companyName}</strong></p>` : ''}
+    <p>${String(message).replace(/\n/g, '<br>')}</p>
+    <p style="color: #64748b; font-size: 0.85em; margin-top: 30px;">Notificação automática IMPETUS.</p>
+  </div>
+</body>
+</html>`;
+  const text = String(message);
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to,
+        subject: safeSubject,
+        text,
+        html
+      });
+      return { sent: true };
+    } catch (err) {
+      console.error('[GOVERNANCE_EMAIL_ERROR]', err.message);
+      return { sent: false, error: err.message };
+    }
+  }
+
+  console.warn('[GOVERNANCE_EMAIL_NO_SMTP]', {
+    to_domain: emailRecipientDomain(to),
+    reason: 'smtp_not_configured'
+  });
+  return { sent: false, fallback: true };
+}
+
 
 async function sendPasswordResetEmail({ to, name, resetUrl }) {
   const html = `
@@ -280,6 +335,7 @@ module.exports = {
   generateSecurePassword,
   sendActivationEmail,
   sendOverdueNotificationEmail,
+  sendGovernanceNotificationEmail,
   sendPasswordResetEmail,
   sendTenantAdminActivationEmail
 };

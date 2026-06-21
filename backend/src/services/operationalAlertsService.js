@@ -30,6 +30,39 @@ function mapEngineSeverityToDb(sev) {
 }
 
 /**
+ * EG-04 — delega distribuição ao adapter (shadow ou migrado); fallback silencioso.
+ * @param {string} companyId
+ * @param {object} alert
+ */
+async function _dispatchOperationalAlert(companyId, alert) {
+  try {
+    const esgNotify = require('./esgNotificationService');
+    if (esgNotify.isEsgOperationalAlert(alert)) {
+      await esgNotify.dispatchFromOperationalAlert(companyId, alert);
+      return;
+    }
+
+    const sstNotify = require('./sstNotificationService');
+    if (sstNotify.isSstOperationalAlert(alert)) {
+      await sstNotify.dispatchFromOperationalAlert(companyId, alert);
+      return;
+    }
+
+    const adapter = require('./governanceAdapters/operationalAlertsGovernanceAdapter');
+    await adapter.dispatchOperationalAlert(companyId, alert);
+  } catch (err) {
+    console.warn('[operationalAlertsService][governance_dispatch]', err?.message ?? err);
+    if (notificationBridge.isOperationalSeverityEligible(alert?.severidade || alert?.severity)) {
+      notificationBridge
+        .bridgeOperationalAlert(companyId, alert)
+        .catch((bridgeErr) => {
+          console.warn('[operationalAlertsService][nc_bridge_fallback]', bridgeErr?.message ?? bridgeErr);
+        });
+    }
+  }
+}
+
+/**
  * Persiste alertas gerados por operationalDecisionEngine com deduplicação por (company, tipo_alerta) em janela temporal.
  * @param {string} companyId
  * @param {object[]} alerts — itens com code, message, severity
@@ -98,11 +131,7 @@ async function persistDecisionEngineAlerts(companyId, alerts, source = '') {
         ]
       );
       inserted += 1;
-      notificationBridge
-        .bridgeOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta })
-        .catch((err) => {
-          console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
-        });
+      _dispatchOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta }).catch(() => {});
     } catch (err) {
       console.warn('[operationalAlertsService][persistDecisionEngineAlerts]', err?.message ?? err);
     }
@@ -154,16 +183,12 @@ async function checkAndCreate(companyId) {
       ]);
       if (r.rows?.[0]) {
         created.push(r.rows[0]);
-        notificationBridge
-          .bridgeOperationalAlert(companyId, {
-            severidade: 'alta',
-            titulo,
-            mensagem,
-            tipo_alerta: 'maquina_parada'
-          })
-          .catch((err) => {
-            console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
-          });
+        _dispatchOperationalAlert(companyId, {
+          severidade: 'alta',
+          titulo,
+          mensagem,
+          tipo_alerta: 'maquina_parada'
+        }).catch(() => {});
       }
     }
 
@@ -190,7 +215,15 @@ async function checkAndCreate(companyId) {
         `Responsável: ${t.assignee || 'não atribuído'}. Agendada para ${t.scheduled_at ? new Date(t.scheduled_at).toLocaleString('pt-BR') : '-'}`,
         JSON.stringify({ task_id: t.id })
       ]);
-      if (r.rows?.[0]) created.push(r.rows[0]);
+      if (r.rows?.[0]) {
+        created.push(r.rows[0]);
+        _dispatchOperationalAlert(companyId, {
+          severidade: 'media',
+          titulo: `Tarefa atrasada: ${(t.title || '').slice(0, 80)}`,
+          mensagem: `Responsável: ${t.assignee || 'não atribuído'}. Agendada para ${t.scheduled_at ? new Date(t.scheduled_at).toLocaleString('pt-BR') : '-'}`,
+          tipo_alerta: 'tarefa_atrasada'
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.warn('[OPERATIONAL_ALERTS]', err?.message);
@@ -277,11 +310,7 @@ async function createPlanningDerivedAlert(companyId, opts = {}) {
     );
     const alertId = r.rows?.[0]?.id ? String(r.rows[0].id) : null;
     if (alertId) {
-      notificationBridge
-        .bridgeOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta: tipo })
-        .catch((err) => {
-          console.warn('[operationalAlertsService][nc_bridge]', err?.message ?? err);
-        });
+      _dispatchOperationalAlert(cid, { severidade, titulo, mensagem, tipo_alerta: tipo }).catch(() => {});
     }
     return alertId;
   } catch (err) {

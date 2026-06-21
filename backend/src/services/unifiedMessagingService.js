@@ -16,6 +16,10 @@ function isSocketEnabled() {
   return !!ioInstance;
 }
 
+function getSocketIo() {
+  return ioInstance;
+}
+
 /**
  * Envia mensagem para usuário do app
  * @param {string} companyId - UUID da empresa
@@ -111,6 +115,7 @@ async function sendToUserByPhone(companyId, phone, message, opts = {}) {
 module.exports = {
   setSocketIo,
   isSocketEnabled,
+  getSocketIo,
   sendToUser,
   sendToUserByPhone
 };

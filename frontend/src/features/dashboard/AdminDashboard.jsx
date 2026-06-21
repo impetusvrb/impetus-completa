@@ -16,7 +16,7 @@ import './AdminDashboard.css';
 const DOC_CARDS = [
   { id: 'policy', icon: Shield, title: 'Política da Empresa', desc: 'Normas, POPs gerais e diretrizes para a IA', tab: 'policy', path: '/app/admin/conteudo-empresa?tab=policy' },
   { id: 'pops', icon: FileText, title: 'POPs', desc: 'Procedimentos Operacionais Padrão', tab: 'pops', path: '/app/admin/conteudo-empresa?tab=pops' },
-  { id: 'manuals', icon: BookOpen, title: 'Manuais Técnicos', desc: 'Manuais operacionais e de máquinas', tab: 'manuals', path: '/app/admin/conteudo-empresa?tab=manuals' },
+  { id: 'manuals', icon: BookOpen, title: 'Manuais Técnicos', desc: 'Biblioteca de arquivos e manuais de equipamentos', path: '/app/biblioteca' },
   { id: 'notification-contacts', icon: Phone, title: 'Contatos para Notificações', desc: 'Contatos para a IA e notificações TPM', tab: 'notification-contacts', path: '/app/admin/conteudo-empresa?tab=notification-contacts' },
 ];
 
@@ -163,10 +163,10 @@ export default function AdminDashboard() {
               Carregue políticas, POPs, manuais e normativas. A IA utilizará este conteúdo nas sugestões.
             </p>
             <div className="admin-dashboard__cards">
-              {DOC_CARDS.map(({ id, icon: Icon, title, desc, tab, path }) => (
+              {DOC_CARDS.map(({ id, icon: Icon, title, desc, path }) => (
                 <Link
                   key={id}
-                  to={`${path}?tab=${tab}`}
+                  to={path}
                   className="admin-dashboard__card"
                 >
                   <div className="admin-dashboard__card-icon">

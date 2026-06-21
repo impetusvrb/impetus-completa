@@ -82,38 +82,26 @@ async function notify(params) {
     return { ok: false, reason: 'missing_params' };
   }
 
-  const title = TITLES[type] || 'Notificação LGPD';
   const priority = PRIORITY_MAP[type] || 'medium';
-  const finalMessage = message || _buildDefaultMessage(type, requestId);
 
   try {
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 30);
-
-    await db.query(`
-      INSERT INTO notifications (
-        company_id, user_id, type, priority, title, message,
-        related_entity_type, related_entity_id,
-        action_required, action_url, action_deadline,
-        read, dismissed, created_at, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, false, NOW(), $12)
-    `, [
-      companyId,
+    const result = await _dispatchDsrNotify({
       userId,
+      companyId,
       type,
-      priority,
-      title,
-      finalMessage,
-      'lgpd_data_request',
-      requestId || null,
-      type === DSR_NOTIFICATION_TYPES.SLA_APPROACHING,
-      actionUrl || null,
-      deadline || null,
-      expires,
-    ]);
+      requestId,
+      message,
+      actionUrl,
+      deadline
+    });
 
-    _log('notify_sent', { userId, companyId, type, requestId, priority });
-    return { ok: true };
+    if (result.ok) {
+      _log('notify_sent', { userId, companyId, type, requestId, priority });
+    } else {
+      _log('notify_error', { userId, companyId, type, error: result.error || result.reason });
+    }
+
+    return result;
   } catch (err) {
     _log('notify_error', { userId, companyId, type, error: err?.message });
     return { ok: false, error: err?.message };
@@ -235,6 +223,57 @@ function _buildDefaultMessage(type, requestId) {
   }
 }
 
+/**
+ * Conteúdo normalizado para INSERT em notifications (usado pelo adapter EG-09).
+ * @param {object} params
+ */
+function buildNotificationContent(params) {
+  const { type, requestId, message, actionUrl, deadline } = params;
+  const title = TITLES[type] || 'Notificação LGPD';
+  const priority = PRIORITY_MAP[type] || 'medium';
+  const finalMessage = message || _buildDefaultMessage(type, requestId);
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 30);
+
+  return {
+    title,
+    priority,
+    finalMessage,
+    actionRequired: type === DSR_NOTIFICATION_TYPES.SLA_APPROACHING,
+    actionUrl: actionUrl || null,
+    actionDeadline: deadline || null,
+    expiresAt: expires
+  };
+}
+
+/**
+ * EG-09 — delega distribuição ao adapter (shadow/migrado) com fallback legado.
+ * @param {object} params
+ * @returns {Promise<{ ok: boolean, reason?: string, error?: string }>}
+ */
+async function _dispatchDsrNotify(params) {
+  try {
+    const adapter = require('./governanceAdapters/dsrGovernanceAdapter');
+    const dispatch = await adapter.dispatchDsrNotification(params);
+    if (dispatch.mode === 'governance' && dispatch.distribution?.success) {
+      return { ok: true };
+    }
+    if (dispatch.useLegacy !== false) {
+      return adapter.runLegacyDistribution(params);
+    }
+    return { ok: false, reason: dispatch.reason || 'dispatch_failed' };
+  } catch (err) {
+    console.warn('[DSR_NOTIFICATION][governance_dispatch]', err?.message ?? err);
+    try {
+      const adapter = require('./governanceAdapters/dsrGovernanceAdapter');
+      return adapter.runLegacyDistribution(params);
+    } catch (fallbackErr) {
+      console.error('[DSR_NOTIFICATION][legacy_fallback]', fallbackErr?.message ?? fallbackErr);
+      return { ok: false, error: fallbackErr?.message };
+    }
+  }
+}
+
 // SLA scheduler (non-blocking, runs every 6h)
 let _slaInterval = null;
 function startSlaScheduler(intervalMs = 6 * 3600 * 1000) {
@@ -249,6 +288,7 @@ function startSlaScheduler(intervalMs = 6 * 3600 * 1000) {
 
 module.exports = {
   DSR_NOTIFICATION_TYPES,
+  buildNotificationContent,
   notify,
   notifyDpoTeam,
   scanSlaApproaching,

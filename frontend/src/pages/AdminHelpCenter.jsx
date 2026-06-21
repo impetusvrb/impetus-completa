@@ -101,9 +101,9 @@ const ADMIN_TOPICS = [
     label: 'Conteudo da Empresa',
     pageRoute: '/app/admin/conteudo-empresa',
     pageName: 'Conteudo da Empresa',
-    whatIs: 'Configuracao de politicas, POPs, manuais e contatos de notificacao.',
+    whatIs: 'Configuracao de politicas, POPs e contatos de notificacao.',
     purpose: 'Consolidar conhecimento institucional e governanca operacional.',
-    howToFill: 'Preencha politica, anexe documentos e configure contatos/visibilidade.',
+    howToFill: 'Preencha politica, anexe documentos e configure contatos/visibilidade. Manuais ficam na Biblioteca de Arquivos.',
     keywords: ['conteudo empresa', 'politica', 'pop', 'manual']
   },
   {

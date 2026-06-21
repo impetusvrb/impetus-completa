@@ -6,6 +6,20 @@
   padding: 24px;
 }
 
+.policy-upload-form {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle, var(--border-color));
+  border-radius: 4px;
+  background: var(--bg-tertiary, var(--bg-secondary));
+}
+
+.policy-upload-meta {
+  margin-top: 8px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.8rem;
+}
+
 .communication-connected {
   text-align: center;
   padding: 24px;

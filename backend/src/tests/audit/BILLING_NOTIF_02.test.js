@@ -97,32 +97,38 @@ async function test(label, fn) {
   });
 
   await test('T6 — dia 3 usa emailService.sendOverdueNotificationEmail + recipientResolver', () => {
-    const src = readSrc('services/subscription/subscriptionBillingNotificationService.js');
-    assert(src.includes('sendOverdueNotificationEmail'));
-    assert(src.includes('subscriptionRecipientResolver'));
-    assert(src.includes('billing_notification_email_day3_attempt'));
-    assert(src.includes('billing_notification_email_day3_success'));
+    const billingSrc = readSrc('services/subscription/subscriptionBillingNotificationService.js');
+    const adapterSrc = readSrc('services/governanceAdapters/billingGovernanceAdapter.js');
+    assert(billingSrc.includes('billingGovernanceAdapter'));
+    assert(billingSrc.includes('_dispatchBillingSend'));
+    assert(billingSrc.includes('subscriptionRecipientResolver'));
+    assert(billingSrc.includes('billing_notification_email_day3_attempt'));
+    assert(billingSrc.includes('billing_notification_email_day3_success'));
+    assert(adapterSrc.includes('sendOverdueNotificationEmail'));
   });
 
   await test('T7 — dia 5 usa appImpetusService sem Z-API/WhatsApp', () => {
-    const src = readSrc('services/subscription/subscriptionBillingNotificationService.js');
-    assert(src.includes('appImpetusService'));
-    assert(src.includes("originatedFrom: 'subscription'"));
-    assert(src.includes('billing_notification_app_day5_attempt'));
-    assert(src.includes('billing_notification_app_day5_success'));
-    assert(!src.includes('zapi'));
-    assert(!src.includes('Z-API'));
+    const billingSrc = readSrc('services/subscription/subscriptionBillingNotificationService.js');
+    const adapterSrc = readSrc('services/governanceAdapters/billingGovernanceAdapter.js');
+    assert(billingSrc.includes('_dispatchBillingSend'));
+    assert(billingSrc.includes('billing_notification_app_day5_attempt'));
+    assert(billingSrc.includes('billing_notification_app_day5_success'));
+    assert(adapterSrc.includes('appImpetusService'));
+    assert(adapterSrc.includes("originatedFrom: 'subscription'"));
+    assert(!adapterSrc.includes('zapi'));
+    assert(!adapterSrc.includes('Z-API'));
   });
 
   await test('T8 — dia 7 usa unifiedMessagingService + admins hierarchy/tenant_admin', () => {
-    const src = readSrc('services/subscription/subscriptionBillingNotificationService.js');
-    assert(src.includes('unifiedMessagingService'));
-    assert(src.includes('hierarchy_level <= 1'));
-    assert(src.includes('tenant_admins'));
-    assert(src.includes('findSupervisorNcRecipients'));
-    assert(src.includes('billing_notification_nc_day7_attempt'));
-    assert(src.includes('billing_notification_nc_day7_success'));
-    assert(src.includes("type: 'warning'"));
+    const billingSrc = readSrc('services/subscription/subscriptionBillingNotificationService.js');
+    const adapterSrc = readSrc('services/governanceAdapters/billingGovernanceAdapter.js');
+    assert(billingSrc.includes('hierarchy_level <= 1'));
+    assert(billingSrc.includes('tenant_admins'));
+    assert(billingSrc.includes('findSupervisorNcRecipients'));
+    assert(billingSrc.includes('billing_notification_nc_day7_attempt'));
+    assert(billingSrc.includes('billing_notification_nc_day7_success'));
+    assert(adapterSrc.includes('unifiedMessagingService'));
+    assert(adapterSrc.includes("type: 'warning'"));
   });
 
   await test('T9 — scheduler integra billing antes de checkGracePeriodAndSuspend', () => {

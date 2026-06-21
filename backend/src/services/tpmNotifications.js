@@ -152,32 +152,48 @@ async function notifyTpmIncident(companyId, incident) {
 
     const recipients = await getNotifyRecipients(cid);
     const msg = formatIncidentSummary(incident);
+    const totalLosses =
+      (incident.losses_before || 0) + (incident.losses_during || 0) + (incident.losses_after || 0);
 
-    let appImpetusService;
     try {
-      appImpetusService = require('./appImpetusService');
-    } catch (err) {
-      console.warn('[TPM_NOTIFY][LOAD_APP_IMPETUS]', err && err.message ? err.message : err);
-      await maybePersistAlertRow(cid, incident, msg);
-      return;
-    }
+      const adapter = require('./governanceAdapters/tpmGovernanceAdapter');
+      const dispatch = await adapter.dispatchTpmIncident({
+        companyId: cid,
+        incident,
+        incidentId: incident.id,
+        severity: incident.severity,
+        priority: incident.priority,
+        losses: totalLosses,
+        recipients,
+        message: msg
+      });
 
-    for (const rec of recipients) {
-      const phone = String(rec.phone || rec.whatsapp_number || '').replace(/\D/g, '');
-      if (phone.length >= 10) {
-        try {
-          await appImpetusService.sendMessage(cid, phone, msg, { originatedFrom: 'tpm' });
-        } catch (err) {
-          console.warn('[TPM_NOTIFY] Envio falhou para', rec.name, err && err.message ? err.message : err);
-        }
+      const useLegacy =
+        dispatch.mode === 'shadow' ||
+        dispatch.mode === 'legacy_fallback' ||
+        (dispatch.mode === 'governance' && dispatch.useLegacy === true);
+
+      if (useLegacy) {
+        await adapter.runLegacyDistribution({
+          companyId: cid,
+          incident,
+          message: msg,
+          recipients
+        });
       }
-    }
-
-    try {
-      const notificationBridge = require('./notificationBridgeService');
-      await notificationBridge.bridgeTpmIncident(cid, incident, msg, recipients);
-    } catch (bridgeErr) {
-      console.warn('[TPM_NOTIFY][NC_BRIDGE]', bridgeErr?.message ?? bridgeErr);
+    } catch (govErr) {
+      console.warn('[TPM_NOTIFY][GOVERNANCE]', govErr?.message ?? govErr);
+      try {
+        const adapter = require('./governanceAdapters/tpmGovernanceAdapter');
+        await adapter.runLegacyDistribution({
+          companyId: cid,
+          incident,
+          message: msg,
+          recipients
+        });
+      } catch (legacyErr) {
+        console.warn('[TPM_NOTIFY][LEGACY_FALLBACK]', legacyErr?.message ?? legacyErr);
+      }
     }
 
     await maybePersistAlertRow(cid, incident, msg);

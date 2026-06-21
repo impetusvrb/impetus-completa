@@ -1008,6 +1008,9 @@ export const adminSettings = {
   
   updateCompany: (data) => 
     api.put('/admin/settings/company', data),
+
+  uploadCompanyPolicy: (formData) =>
+    api.post('/admin/settings/company/policy-upload', formData),
   
   // POPs
   listPops: () => 

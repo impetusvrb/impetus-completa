@@ -27,7 +27,7 @@ INSERT INTO nexus_wallet_global_rates (servico, credits_per_unit, description) V
   ('tts', 0.5, 'TTS — por caractere (ajustar quantidade)'),
   ('analise', 1, 'Análises IA'),
   ('conteudo', 1, 'Geração de conteúdo'),
-  ('akool', 120, 'Akool / APIs terceiros — por requisição base'),
+  ('akool', 120, 'Anam / APIs terceiros — por requisição base'),
   ('openai_embed', 0.3, 'Embeddings'),
   ('outro', 1, 'Padrão')
 ON CONFLICT (servico) DO NOTHING;

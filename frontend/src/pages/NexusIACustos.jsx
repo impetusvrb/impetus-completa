@@ -53,7 +53,7 @@ const IA_COST_TABLE = [
     custo: 'R$25,00 (input) / R$125,00 (output) por 1M tokens'
   },
   {
-    ia: 'Akool',
+    ia: 'Anam',
     funcao: 'Avatar em tempo real (vídeo com IA)',
     custo: 'R$1,00 a R$2,00 por minuto'
   }
@@ -190,7 +190,7 @@ export default function NexusIACustos() {
     if (s === 'chat') return 'ChatGPT (OpenAI)';
     if (s === 'gemini') return 'Gemini (Google)';
     if (s === 'claude') return 'Claude (Anthropic)';
-    if (s === 'akool') return 'Akool';
+    if (s === 'akool') return 'Anam';
     return servico || '—';
   }, []);
 
@@ -236,7 +236,7 @@ export default function NexusIACustos() {
               <h1>Nexus IA — custos e carteira</h1>
               <p className="nexus-custos-sub">
                 Consumo unificado de tokens (faturamento) e carteira pré-paga de créditos para APIs de terceiros
-                (OpenAI, voz, Akool, etc.), com taxas configuráveis por serviço.
+                (OpenAI, voz, Anam, etc.), com taxas configuráveis por serviço.
               </p>
             </div>
           </div>

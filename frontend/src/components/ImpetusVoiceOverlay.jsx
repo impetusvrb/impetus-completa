@@ -166,8 +166,8 @@ export default function ImpetusVoiceOverlay({
                     </span>
                   )}
                   {presenceAkoolReady && (
-                    <span className="impetus-voice-overlay__presence-akool" title="Motor Akool configurado no servidor">
-                      Akool
+                    <span className="impetus-voice-overlay__presence-akool" title="Motor Anam configurado no servidor">
+                      Anam
                     </span>
                   )}
                 </p>

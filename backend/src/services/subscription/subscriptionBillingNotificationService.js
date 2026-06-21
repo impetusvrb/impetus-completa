@@ -124,6 +124,35 @@ async function _findNcDay7Recipients(companyId) {
   return [...ids];
 }
 
+/**
+ * EG-08 — delega distribuição ao adapter (shadow/migrado) com fallback legado.
+ * Dedupe e recordNotificationSent permanecem neste serviço.
+ * @param {object} ctx
+ * @returns {Promise<boolean>}
+ */
+async function _dispatchBillingSend(ctx) {
+  try {
+    const adapter = require('../governanceAdapters/billingGovernanceAdapter');
+    const dispatch = await adapter.dispatchBillingNotification(ctx);
+    if (dispatch.mode === 'governance' && dispatch.distribution?.success) {
+      return true;
+    }
+    if (dispatch.useLegacy !== false) {
+      return adapter.runLegacyDistribution(ctx);
+    }
+    return false;
+  } catch (err) {
+    console.warn('[BILLING_NOTIF][governance_dispatch]', err?.message ?? err);
+    try {
+      const adapter = require('../governanceAdapters/billingGovernanceAdapter');
+      return adapter.runLegacyDistribution(ctx);
+    } catch (fallbackErr) {
+      console.error('[BILLING_NOTIF][legacy_fallback]', fallbackErr?.message ?? fallbackErr);
+      return false;
+    }
+  }
+}
+
 async function _sendDay3Email(row, days, stats) {
   if (days < 3) return;
   const notifType = NOTIFICATION_TYPES[3];
@@ -135,19 +164,17 @@ async function _sendDay3Email(row, days, stats) {
   _metric(METRICS.EMAIL_DAY3_ATTEMPT);
   stats.email_day3_attempted += 1;
 
-  const { sendOverdueNotificationEmail } = require('../emailService');
-  let sent = false;
-  try {
-    sent = await sendOverdueNotificationEmail({
-      to: recipient.email,
-      companyName: row.company_name,
-      daysOverdue: days,
-      gracePeriodDays: row.grace_period_days || 10,
-      dueDate: row.overdue_since_date
-    });
-  } catch (err) {
-    console.error('[BILLING_NOTIF][day3_email]', err?.message ?? err);
-  }
+  const sent = await _dispatchBillingSend({
+    billingDay: 3,
+    companyId: row.company_id,
+    subscriptionId: row.id,
+    daysOverdue: days,
+    recipientEmail: recipient.email,
+    companyName: row.company_name,
+    gracePeriodDays: row.grace_period_days || 10,
+    dueDate: row.overdue_since_date,
+    recipientSource: recipient.source
+  });
 
   if (sent) {
     _metric(METRICS.EMAIL_DAY3_SUCCESS);
@@ -212,16 +239,15 @@ async function _sendDay5App(row, days, stats) {
   stats.app_day5_attempted += 1;
 
   const message = await _buildDay5Message(row.company_id);
-  let sent = false;
-  try {
-    const appImpetusService = require('../appImpetusService');
-    const result = await appImpetusService.sendMessage(row.company_id, phone, message, {
-      originatedFrom: 'subscription'
-    });
-    sent = result?.ok === true;
-  } catch (err) {
-    console.error('[BILLING_NOTIF][day5_app]', err?.message ?? err);
-  }
+  const sent = await _dispatchBillingSend({
+    billingDay: 5,
+    companyId: row.company_id,
+    subscriptionId: row.id,
+    daysOverdue: days,
+    recipientPhone: phone,
+    message,
+    companyName: row.company_name
+  });
 
   if (sent) {
     _metric(METRICS.APP_DAY5_SUCCESS);
@@ -253,32 +279,29 @@ async function _sendDay7Nc(row, days, stats) {
   _metric(METRICS.NC_DAY7_ATTEMPT);
   stats.nc_day7_attempted += 1;
 
-  const unifiedMessaging = require('../unifiedMessagingService');
-  let sentCount = 0;
-  for (const userId of recipients) {
-    try {
-      const result = await unifiedMessaging.sendToUser(row.company_id, userId, message, {
-        type: 'warning'
-      });
-      if (result?.ok) sentCount += 1;
-    } catch (err) {
-      console.warn('[BILLING_NOTIF][day7_nc_user]', userId, err?.message ?? err);
-    }
-  }
+  const sent = await _dispatchBillingSend({
+    billingDay: 7,
+    companyId: row.company_id,
+    subscriptionId: row.id,
+    daysOverdue: days,
+    recipientUserIds: recipients,
+    message,
+    companyName: row.company_name
+  });
 
-  if (sentCount > 0) {
+  if (sent) {
     _metric(METRICS.NC_DAY7_SUCCESS);
     stats.nc_day7_sent += 1;
     await recordNotificationSent(row.id, row.company_id, notifType, {
       daysOverdue: days,
-      recipients: sentCount
+      recipients: recipients.length
     });
     await logAction({
       companyId: row.company_id,
       action: 'subscription_notification_day7',
       entityType: 'subscription',
       entityId: row.id,
-      description: `Notificação billing dia 7 (NC) enviada para ${sentCount} destinatário(s)`,
+      description: `Notificação billing dia 7 (NC) enviada para ${recipients.length} destinatário(s)`,
       severity: 'warning'
     }).catch(() => {});
   }
