@@ -85,6 +85,10 @@ const EnvironmentOperationalWorkspacePage = lazy(() => import('./domains/environ
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
+const AlmoxarifadoInteligente = lazy(() => import('./pages/AlmoxarifadoInteligente'));
+const LogisticaInteligente = lazy(() => import('./pages/LogisticaInteligente'));
+const AdminWarehouse = lazy(() => import('./pages/AdminWarehouse'));
+const AdminLogistics = lazy(() => import('./pages/AdminLogistics'));
 const SelectTeamMember = lazy(() => import('./pages/SelectTeamMember'));
 const AdminOperationalTeams = lazy(() => import('./pages/AdminOperationalTeams'));
 const AdminHelpCenter = lazy(() => import('./pages/AdminHelpCenter'));
@@ -609,9 +613,15 @@ export default function App() {
         <Route path="/app/centro-operacoes-industrial" element={
           <PrivateRoute><SetupGuard>{canAccessIndustrialCore() ? <IndustrialOperationsCenter /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
         } />
-        <Route path="/app/monitored-points" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
-        <Route path="/app/almoxarifado-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
-        <Route path="/app/logistica-inteligente" element={<PrivateRoute><Navigate to="/app" replace /></PrivateRoute>} />
+        <Route path="/app/monitored-points" element={
+          <PrivateRoute><SetupGuard>{canAccessIndustrialCore() ? <IndustrialOperationsCenter /> : <Navigate to="/app" replace />}</SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/almoxarifado-inteligente" element={
+          <PrivateRoute><SetupGuard><ColaboradorRouteGuard><AlmoxarifadoInteligente /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/logistica-inteligente" element={
+          <PrivateRoute><SetupGuard><ColaboradorRouteGuard><LogisticaInteligente /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>
+        } />
 
         <Route path="/app/manutencao/manuia" element={
           <PrivateRoute><SetupGuard><ManuIA /></SetupGuard></PrivateRoute>
@@ -657,6 +667,8 @@ export default function App() {
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/help-center" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminHelpCenter /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/warehouse" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminWarehouse /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/logistics" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminLogistics /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/validacao-organizacional" element={<PrivateRoute><SetupGuard><RoleGuard allowedRoles={['internal_admin','diretor','gerente','coordenador','supervisor','ceo']}><OrganizationalValidationPanel /></RoleGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/equipe-operacional" element={<PrivateRoute><SetupGuard><ColaboradorRouteGuard><SelectTeamMember /></ColaboradorRouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/settings" element={<PrivateRoute><SetupGuard><SettingsAccessGuard><UserSettings /></SettingsAccessGuard></SetupGuard></PrivateRoute>} />

@@ -16,7 +16,7 @@ function getEnterpriseMetrics() {
     ...base,
     governance_confidence_score: shadow.governance_confidence_score ?? 0.85,
     shadow_alignment_rate: shadow.shadow_alignment_rate ?? 1 - (base.shadow_divergence_rate || 0),
-    sanitizer_aggressiveness: shadow.sanitizer_aggressiveness ?? base.sanitized_context_rate || 0,
+    sanitizer_aggressiveness: shadow.sanitizer_aggressiveness ?? (base.sanitized_context_rate || 0),
     policy_consistency_rate: shadow.policy_consistency_rate ?? 1 - (base.governance_conflict_rate || 0),
     exposure_stability_score: shadow.exposure_stability_score ?? 1 - (base.denied_exposure_rate || 0) * 0.5,
     governance_drift_rate: drift.rates?.deny_rate || 0,

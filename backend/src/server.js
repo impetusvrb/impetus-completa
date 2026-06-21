@@ -462,9 +462,9 @@ useRoute('/api/final-consolidation-audit', './routes/finalConsolidationAudit', r
 useRoute('/api/admin/learning', './routes/adminLearning');
 useRoute('/api/admin/equipment-library', './routes/admin/equipmentLibrary');
 useRoute('/api/technical-library', './routes/technicalLibrary');
-useRoute('/api/admin/warehouse', './routes/admin/warehouse');
-useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials');
-useRoute('/api/admin/logistics', './routes/admin/logistics');
+useRoute('/api/admin/warehouse', './routes/admin/warehouse', requireAuth);
+useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials', requireAuth);
+useRoute('/api/admin/logistics', './routes/admin/logistics', requireAuth);
 useRoute('/api/admin/time-clock', './routes/admin/timeClock');
 useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
 useRoute('/api/admin/nexus-wallet', './routes/admin/nexusWallet');

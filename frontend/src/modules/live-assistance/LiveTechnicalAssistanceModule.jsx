@@ -631,7 +631,7 @@ export default function LiveTechnicalAssistanceModule({
               >
                 <BookOpen size={16} /> Abrir manual
               </button>
-              <button type="button" className={styles.btn} onClick={() => {}} title="Use o painel de fontes">
+              <button type="button" className={styles.btn} onClick={() => sendChat('Liste o histórico de ordens de serviço relacionadas a este equipamento.')} title="Consultar histórico de OS via IA">
                 <History size={16} /> Histórico OS
               </button>
               <button type="button" className={styles.btn} onClick={() => sendChat('Quais são as falhas comuns desta peça?')}>

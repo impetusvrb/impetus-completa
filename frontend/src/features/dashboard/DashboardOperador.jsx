@@ -17,6 +17,28 @@ import './DashboardOperador.css';
 const STATUS_LABELS = { running: 'Rodando', stopped: 'Parado', setup: 'Setup', maintenance: 'Manutenção' };
 const PARADA_MOTIVOS = ['Falta de material', 'Quebra', 'Setup', 'Manutenção', 'Troca de ferramenta', 'Aguardando qualidade', 'Outro'];
 
+const EMPTY_PRODUCTION = {
+  machineStatus: null,
+  metaTurno: null,
+  realizado: null,
+  goodCount: null,
+  scrapCount: null,
+  cicloAtual: null,
+  cicloPadrao: null,
+  oee: null,
+  downtimeAtual: null,
+  downtimeAcumulado: null,
+  opAtual: null,
+  tempoRestante: null,
+  proximaOP: null,
+  alertas: []
+};
+
+function fmtMetric(value, suffix = '') {
+  if (value == null || Number.isNaN(value)) return '—';
+  return `${value}${suffix}`;
+}
+
 export default function DashboardOperador() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -24,24 +46,8 @@ export default function DashboardOperador() {
   const [events, setEvents] = useState([]);
   const [selectedParada, setSelectedParada] = useState('');
   const [showChecklist, setShowChecklist] = useState(false);
-
-  // Dados em tempo real (mock/API - substituir por endpoints reais quando disponíveis)
-  const [data, setData] = useState({
-    machineStatus: 'running',
-    metaTurno: 1200,
-    realizado: 847,
-    goodCount: 830,
-    scrapCount: 17,
-    cicloAtual: 28,
-    cicloPadrao: 30,
-    oee: 82,
-    downtimeAtual: 0,
-    downtimeAcumulado: 12,
-    opAtual: { numero: 'OP-2024-0042', produto: 'Peça X', quantidade: 5000 },
-    tempoRestante: '02:15:30',
-    proximaOP: { numero: 'OP-2024-0043', produto: 'Peça Y', quantidade: 3200 },
-    alertas: []
-  });
+  const [hasLiveProduction, setHasLiveProduction] = useState(false);
+  const [data, setData] = useState(EMPTY_PRODUCTION);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,20 +59,45 @@ export default function DashboardOperador() {
         ]);
         if (cancelled) return;
         const st = statusRes?.data ?? {};
-        setMachines(st.profiles || machinesRes?.data?.machines || []);
+        const machineList = st.profiles || machinesRes?.data?.machines || [];
+        setMachines(machineList);
         setEvents(st.events || []);
-        if (st.events?.length) {
-          setData((prev) => ({
-            ...prev,
-            alertas: st.events.slice(0, 5).map((e) => ({
-              tipo: e.severity === 'critical' ? 'critical' : 'high',
-              msg: e.description || e.event_type || 'Alerta',
-              hora: e.created_at
-            }))
-          }));
-        }
+
+        const production = st.production || st.shift || st.kpis || {};
+        const hasMetrics = [
+          production.meta_turno,
+          production.realizado,
+          production.oee,
+          production.good_count,
+          production.scrap_count
+        ].some((v) => v != null);
+
+        setHasLiveProduction(hasMetrics);
+        setData({
+          machineStatus: st.machine_status || machineList[0]?.status || null,
+          metaTurno: production.meta_turno ?? production.metaTurno ?? null,
+          realizado: production.realizado ?? production.produced ?? null,
+          goodCount: production.good_count ?? production.goodCount ?? null,
+          scrapCount: production.scrap_count ?? production.scrapCount ?? null,
+          cicloAtual: production.ciclo_atual ?? production.cicloAtual ?? null,
+          cicloPadrao: production.ciclo_padrao ?? production.cicloPadrao ?? null,
+          oee: production.oee ?? null,
+          downtimeAtual: production.downtime_atual ?? production.downtimeAtual ?? null,
+          downtimeAcumulado: production.downtime_acumulado ?? production.downtimeAcumulado ?? null,
+          opAtual: production.op_atual || production.opAtual || null,
+          tempoRestante: production.tempo_restante ?? production.tempoRestante ?? null,
+          proximaOP: production.proxima_op || production.proximaOP || null,
+          alertas: (st.events || []).slice(0, 5).map((e) => ({
+            tipo: e.severity === 'critical' ? 'critical' : 'high',
+            msg: e.description || e.event_type || 'Alerta',
+            hora: e.created_at
+          }))
+        });
       } catch {
-        if (!cancelled) setData((d) => ({ ...d, machineStatus: 'stopped' }));
+        if (!cancelled) {
+          setHasLiveProduction(false);
+          setData(EMPTY_PRODUCTION);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

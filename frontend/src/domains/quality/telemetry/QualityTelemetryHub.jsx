@@ -47,11 +47,15 @@ export default function QualityTelemetryHub({ companyId }) {
   useEffect(() => { loadHealth(); }, [loadHealth]);
 
   const triggerIngest = useCallback(async (metricKey) => {
+    const raw = window.prompt(`Informe o valor para ingestão da métrica "${metricKey}":`);
+    if (raw == null || String(raw).trim() === '') return;
+    const value = Number(String(raw).replace(',', '.'));
+    if (!Number.isFinite(value)) return;
     setLoading(true);
     try {
       const { data } = await qtApi.ingestV1({
         metric_key: metricKey,
-        value: Math.round(Math.random() * 900 + 100) / 100,
+        value,
         unit: 'count',
         correlation_id: safeUUID(),
         source: 'quality_telemetry_workspace'

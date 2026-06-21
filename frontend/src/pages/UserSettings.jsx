@@ -17,11 +17,13 @@ import {
   Upload,
   Trash2,
   LogOut,
-  Settings
+  Settings,
+  FileDown,
+  AlertTriangle
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
-import { meAccount } from '../services/api';
+import { meAccount, lgpd } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './UserSettings.css';
@@ -759,7 +761,156 @@ export default function UserSettings() {
             </>
           )}
         </section>
+
+        {/* ── LGPD / Privacidade ─────────────────────────────────────── */}
+        <section id="us-lgpd" className="us-card us-section-anchor">
+          <div className="us-card__head">
+            <Shield size={22} />
+            <div>
+              <h2 className="us-card__title">Privacidade e LGPD</h2>
+              <p className="us-muted">Gerencie seus dados pessoais conforme a Lei Geral de Proteção de Dados.</p>
+            </div>
+          </div>
+          <LgpdPanel notify={notify} saving={saving} setSaving={setSaving} />
+        </section>
       </div>
     </Layout>
+  );
+}
+
+function LgpdPanel({ notify, saving, setSaving }) {
+  const [requests, setRequests] = React.useState([]);
+  const [loadingReqs, setLoadingReqs] = React.useState(false);
+  const [exportLoading, setExportLoading] = React.useState(false);
+  const [deleteConfirm, setDeleteConfirm] = React.useState('');
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+
+  React.useEffect(() => {
+    setLoadingReqs(true);
+    lgpd.getMyDataRequests()
+      .then((r) => setRequests(r.data?.requests || r.data || []))
+      .catch(() => {})
+      .finally(() => setLoadingReqs(false));
+  }, []);
+
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const r = await lgpd.exportMyData();
+      const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `impetus-dados-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notify.success('Dados exportados com sucesso.');
+    } catch (e) {
+      notify.error(e?.response?.data?.error || 'Erro ao exportar dados');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleRequest = async (type) => {
+    setSaving(true);
+    try {
+      await lgpd.createDataRequest(type, type === 'deletion' ? 'Solicitação de exclusão de conta pelo usuário' : 'Portabilidade de dados pessoais');
+      notify.success('Solicitação enviada. Você será contactado em até 15 dias úteis.');
+      const r = await lgpd.getMyDataRequests();
+      setRequests(r.data?.requests || r.data || []);
+    } catch (e) {
+      notify.error(e?.response?.data?.error || 'Erro ao enviar solicitação');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'EXCLUIR MINHA CONTA') {
+      notify.error('Digite exatamente "EXCLUIR MINHA CONTA" para confirmar.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await lgpd.deleteAccount(deleteConfirm);
+      notify.success('Solicitação de exclusão registrada. Sua conta será desativada em até 5 dias úteis.');
+      setShowDeleteModal(false);
+    } catch (e) {
+      notify.error(e?.response?.data?.error || 'Erro ao solicitar exclusão');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const STATUS_LABELS = { pending: 'Pendente', in_progress: 'Em processamento', completed: 'Concluído', rejected: 'Recusado' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={exportLoading || saving}>
+          <FileDown size={16} /> {exportLoading ? 'Exportando…' : 'Exportar meus dados'}
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={() => handleRequest('portability')} disabled={saving}>
+          Solicitar portabilidade
+        </button>
+        <button type="button" className="btn btn-secondary" style={{ color: 'var(--red, #ef4444)' }} onClick={() => setShowDeleteModal(true)} disabled={saving}>
+          <AlertTriangle size={16} /> Solicitar exclusão de conta
+        </button>
+      </div>
+
+      {loadingReqs ? (
+        <p className="us-muted" style={{ fontSize: 13 }}>Carregando solicitações…</p>
+      ) : requests.length > 0 ? (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-secondary)' }}>Tipo</th>
+              <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-secondary)' }}>Status</th>
+              <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--text-secondary)' }}>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.map((req, i) => (
+              <tr key={req.id || i} style={{ borderBottom: '1px solid var(--border-subtle, #1a2233)' }}>
+                <td style={{ padding: '6px 8px' }}>{req.request_type || req.type || '—'}</td>
+                <td style={{ padding: '6px 8px' }}>{STATUS_LABELS[req.status] || req.status || '—'}</td>
+                <td style={{ padding: '6px 8px', color: 'var(--text-secondary)' }}>{req.created_at ? new Date(req.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="us-muted" style={{ fontSize: 13 }}>Nenhuma solicitação LGPD registrada.</p>
+      )}
+
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="us-card" style={{ maxWidth: 480, width: '90%', padding: '1.5rem', borderRadius: 8 }}>
+            <h3 style={{ color: 'var(--red, #ef4444)', marginBottom: 8 }}>⚠ Excluir conta</h3>
+            <p style={{ fontSize: 14, marginBottom: 16 }}>
+              Esta ação solicita a exclusão permanente de todos os seus dados pessoais. Para confirmar, digite exatamente:
+              <br /><strong style={{ fontFamily: 'monospace' }}>EXCLUIR MINHA CONTA</strong>
+            </p>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="EXCLUIR MINHA CONTA"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              style={{ marginBottom: 12 }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); }}>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-primary" style={{ background: 'var(--red, #ef4444)' }} onClick={handleDeleteAccount} disabled={saving}>
+                {saving ? 'Aguarde…' : 'Confirmar exclusão'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

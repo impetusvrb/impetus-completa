@@ -3,7 +3,9 @@ export const LOGISTICS_FALLBACK_PATHS = Object.freeze([
   '/app',
   '/app/chatbot',
   '/chat',
-  '/app/logistica-inteligente'
+  '/app/logistica-inteligente',
+  '/app/logistics/operational',
+  '/app/logistics/operational/workspace'
 ]);
 
 export function isLogisticsFallbackPath(path) {

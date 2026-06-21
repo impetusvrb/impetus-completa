@@ -1824,3 +1824,66 @@ export const m1FoodBase = {
   getFinancial:   () => api.get('/m1/foodbase/financial'),
   getMaintenance: () => api.get('/m1/foodbase/maintenance'),
 };
+/** Admin — Almoxarifado (warehouse) */
+export const adminWarehouse = {
+  getReferences:  () => api.get('/admin/warehouse/references'),
+  categories: {
+    list:   ()        => api.get('/admin/warehouse/categories'),
+    create: (data)    => api.post('/admin/warehouse/categories', data),
+    update: (id, d)   => api.put(`/admin/warehouse/categories/${id}`, d),
+    delete: (id)      => api.delete(`/admin/warehouse/categories/${id}`),
+  },
+  materials: {
+    list:   (params)  => api.get('/admin/warehouse/materials', { params }),
+    create: (data)    => api.post('/admin/warehouse/materials', data),
+    update: (id, d)   => api.put(`/admin/warehouse/materials/${id}`, d),
+    delete: (id)      => api.delete(`/admin/warehouse/materials/${id}`),
+  },
+  suppliers: {
+    list:   ()        => api.get('/admin/warehouse/suppliers'),
+    create: (data)    => api.post('/admin/warehouse/suppliers', data),
+    update: (id, d)   => api.put(`/admin/warehouse/suppliers/${id}`, d),
+    delete: (id)      => api.delete(`/admin/warehouse/suppliers/${id}`),
+  },
+  locations: {
+    list:   ()        => api.get('/admin/warehouse/locations'),
+    create: (data)    => api.post('/admin/warehouse/locations', data),
+    update: (id, d)   => api.put(`/admin/warehouse/locations/${id}`, d),
+    delete: (id)      => api.delete(`/admin/warehouse/locations/${id}`),
+  },
+  params: {
+    get:    ()        => api.get('/admin/warehouse/params'),
+    update: (data)    => api.put('/admin/warehouse/params', data),
+  },
+  movements: {
+    list:   (params)  => api.get('/admin/warehouse/movements', { params }),
+  },
+};
+
+/** Admin — Logística */
+export const adminLogistics = {
+  vehicles: {
+    list:   ()        => api.get('/admin/logistics/vehicles'),
+    create: (data)    => api.post('/admin/logistics/vehicles', data),
+    update: (id, d)   => api.put(`/admin/logistics/vehicles/${id}`, d),
+    delete: (id)      => api.delete(`/admin/logistics/vehicles/${id}`),
+  },
+  points: {
+    list:   ()        => api.get('/admin/logistics/points'),
+    create: (data)    => api.post('/admin/logistics/points', data),
+    update: (id, d)   => api.put(`/admin/logistics/points/${id}`, d),
+    delete: (id)      => api.delete(`/admin/logistics/points/${id}`),
+  },
+  routes: {
+    list:   ()        => api.get('/admin/logistics/routes'),
+    create: (data)    => api.post('/admin/logistics/routes', data),
+    update: (id, d)   => api.put(`/admin/logistics/routes/${id}`, d),
+    delete: (id)      => api.delete(`/admin/logistics/routes/${id}`),
+  },
+  drivers: {
+    list:   ()        => api.get('/admin/logistics/drivers'),
+    create: (data)    => api.post('/admin/logistics/drivers', data),
+    update: (id, d)   => api.put(`/admin/logistics/drivers/${id}`, d),
+    delete: (id)      => api.delete(`/admin/logistics/drivers/${id}`),
+  },
+};

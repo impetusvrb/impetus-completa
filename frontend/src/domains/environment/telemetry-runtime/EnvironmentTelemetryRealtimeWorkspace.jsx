@@ -51,8 +51,11 @@ export function EnvironmentTelemetryRealtimeWorkspace({ companyId }) {
   useEffect(() => { loadInitial(); }, [loadInitial]);
 
   const runIngest = useCallback(async (metric) => {
+    const raw = window.prompt(`Informe a leitura para ${metric.label} (${metric.unit}):`);
+    if (raw == null || String(raw).trim() === '') return;
+    const value = Number(String(raw).replace(',', '.'));
+    if (!Number.isFinite(value)) return;
     setLoadingKey(metric.key);
-    const value = Math.round(Math.random() * 1000) / 10;
     try {
       const { data } = await etApi.ingestV1({
         metric_key: metric.key,

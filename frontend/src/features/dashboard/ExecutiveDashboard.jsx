@@ -51,13 +51,16 @@ function getDynamicPhrase(summary, status) {
   return 'Operacao estavel. Sem ocorrencias criticas no periodo atual.';
 }
 
-function buildTrendData(summary) {
+function buildTrendData(summary, trendApi) {
+  if (trendApi && Array.isArray(trendApi)) return trendApi;
   const base = summary?.operational_interactions?.total ?? 20;
   const alerts = summary?.alerts?.critical ?? 2;
-  return ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day) => ({
+  const factors = [0.62, 0.78, 0.91, 1.05, 0.88, 0.55, 0.71];
+  const aFactors = [0.50, 0.85, 1.10, 0.70, 1.30, 0.40, 0.65];
+  return ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((day, i) => ({
     day,
-    interacoes: Math.max(0, Math.round(base * (0.5 + Math.random() * 0.9))),
-    alertas: Math.max(0, Math.round(alerts * (0.3 + Math.random() * 1.4))),
+    interacoes: Math.max(0, Math.round(base * factors[i])),
+    alertas: Math.max(0, Math.round(alerts * aFactors[i])),
   }));
 }
 
@@ -94,12 +97,13 @@ export default function ExecutiveDashboard() {
   const { data: summaryRes } = useCachedFetch('dashboard:summary', () => dashboard.getSummary(), { ttlMs: 2 * 60 * 1000 });
   const userId = user?.id || 'anon';
   const { data: kpisRes } = useCachedFetch(`dashboard:kpis:${userId}`, () => dashboard.getKPIs(), { ttlMs: 2 * 60 * 1000 });
+  const { data: trendRes } = useCachedFetch('dashboard:trend', () => dashboard.getTrend(1), { ttlMs: 5 * 60 * 1000 });
 
   const summary = summaryRes?.summary;
   const kpis = kpisRes?.kpis || [];
   const status = computeStatus(summary);
   const dynamicPhrase = getDynamicPhrase(summary, status);
-  const trendData = buildTrendData(summary);
+  const trendData = buildTrendData(summary, trendRes?.trend || trendRes?.data);
 
   const alertsCount = summary?.alerts?.critical ?? 0;
   const interactions = summary?.operational_interactions?.total ?? 0;

@@ -439,15 +439,11 @@ export default function NexusIACustos() {
                     <button
                       type="button"
                       className="nexus-btn-secondary"
-                      onClick={async () => {
-                        try {
-                          await nexusWallet.checkoutPagSeguro({});
-                        } catch (e) {
-                          notify.error(e?.response?.data?.error || 'PagSeguro ainda não disponível');
-                        }
-                      }}
+                      disabled
+                      title="Integração PagSeguro em configuração — disponível em breve"
+                      style={{ opacity: 0.5, cursor: 'not-allowed' }}
                     >
-                      PagSeguro (em breve)
+                      PagSeguro (indisponível)
                     </button>
                   </div>
 
