@@ -317,6 +317,24 @@
   margin-top: 4px;
 }
 
+.mecanico-preventive-form {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mecanico-preventive-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mecanico-preventive-form__row .impetus-input {
+  flex: 1 1 160px;
+  min-height: 40px;
+}
+
 .mecanico-preventive-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

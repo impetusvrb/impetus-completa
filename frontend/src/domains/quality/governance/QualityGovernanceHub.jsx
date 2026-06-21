@@ -98,6 +98,14 @@ function NcrCapaPanel() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    lot_number: '',
+    defects_description: '',
+    corrective_action: '',
+    defects_count: 1,
+    inspection_type: 'process'
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,10 +123,35 @@ function NcrCapaPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  const submitNc = async (e) => {
+    e.preventDefault();
+    if (!form.lot_number.trim() && !form.defects_description.trim()) return;
+    setSubmitting(true);
+    setErr('');
+    try {
+      await qiApi.createInspection({
+        lot_number: form.lot_number.trim() || `NC-${Date.now()}`,
+        result: 'non_conforming',
+        inspection_type: form.inspection_type,
+        defects_count: Number(form.defects_count) || 1,
+        defects_description: form.defects_description.trim() || 'Não conformidade registada via painel industrial',
+        corrective_action: form.corrective_action.trim() || undefined,
+        correlation_id: safeUUID()
+      });
+      setForm({ lot_number: '', defects_description: '', corrective_action: '', defects_count: 1, inspection_type: 'process' });
+      await load();
+    } catch (ex) {
+      setErr(ex?.response?.data?.error || ex.message || 'Erro ao registrar NC');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const ncrOpen = summary?.ncr_open ?? summary?.inspections_non_conforming ?? 0;
   const capaProgress = summary?.capa_in_progress ?? 0;
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ ...mono, color: 'var(--cyan)' }}>NCR & CAPA — Não Conformidades</span>
@@ -151,6 +184,58 @@ function NcrCapaPanel() {
           Sem NCR/CAPA activos — dados em tempo real via API certificada.
         </p>
       )}
+    </div>
+
+    <form className="impetus-card" style={{ padding: '1rem', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 10 }} onSubmit={submitNc}>
+      <div style={{ ...mono, color: 'var(--cyan)' }}>Registrar NC (inspeção não conforme)</div>
+      <input
+        className="impetus-input"
+        placeholder="Lote / referência"
+        value={form.lot_number}
+        onChange={(ev) => setForm((f) => ({ ...f, lot_number: ev.target.value }))}
+        style={{ borderRadius: 4 }}
+      />
+      <textarea
+        className="impetus-input"
+        placeholder="Descrição do desvio / defeito"
+        rows={3}
+        value={form.defects_description}
+        onChange={(ev) => setForm((f) => ({ ...f, defects_description: ev.target.value }))}
+        required
+        style={{ borderRadius: 4, resize: 'vertical' }}
+      />
+      <input
+        className="impetus-input"
+        placeholder="Acção correctiva proposta (opcional)"
+        value={form.corrective_action}
+        onChange={(ev) => setForm((f) => ({ ...f, corrective_action: ev.target.value }))}
+        style={{ borderRadius: 4 }}
+      />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={{ ...mono, color: 'var(--text-tertiary)', fontSize: 11 }}>Defeitos</label>
+        <input
+          type="number"
+          min={1}
+          className="impetus-input"
+          value={form.defects_count}
+          onChange={(ev) => setForm((f) => ({ ...f, defects_count: ev.target.value }))}
+          style={{ borderRadius: 4, width: 80 }}
+        />
+        <select
+          className="impetus-input"
+          value={form.inspection_type}
+          onChange={(ev) => setForm((f) => ({ ...f, inspection_type: ev.target.value }))}
+          style={{ borderRadius: 4, flex: '1 1 140px' }}
+        >
+          <option value="process">Processo</option>
+          <option value="incoming">Recebimento</option>
+          <option value="final">Final</option>
+        </select>
+      </div>
+      <button type="submit" className="btn-primary" style={{ minHeight: 44, borderRadius: 4, alignSelf: 'flex-start' }} disabled={submitting}>
+        {submitting ? 'Registando…' : 'Registar NC'}
+      </button>
+    </form>
     </div>
   );
 }

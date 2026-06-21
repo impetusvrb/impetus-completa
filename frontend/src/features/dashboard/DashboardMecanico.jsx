@@ -70,6 +70,22 @@ export default function DashboardMecanico() {
   const [passagemText, setPassagemText] = useState('');
   const [sendingTech, setSendingTech] = useState(false);
   const [sendingTurn, setSendingTurn] = useState(false);
+  const [preventiveForm, setPreventiveForm] = useState({ title: '', machine_name: '', sector: '' });
+  const [preventiveBusy, setPreventiveBusy] = useState(false);
+  const [preventiveMsg, setPreventiveMsg] = useState('');
+
+  const reloadPreventivesBoard = useCallback(async () => {
+    try {
+      const boardRes = await dashboard.maintenance.getPreventivesBoard();
+      setPreventivesBoard({
+        preventives_today: boardRes.data?.preventives_today || [],
+        preventives_overdue: boardRes.data?.preventives_overdue || [],
+        preventives_completed_today: boardRes.data?.preventives_completed_today || []
+      });
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const scrollToId = useCallback((id) => {
     const el = document.getElementById(id);
@@ -173,6 +189,47 @@ export default function DashboardMecanico() {
 
   const goChatHelp = (snippet) => {
     navigate('/app/chatbot', { state: { initialMessage: `${MAINTENANCE_IA_PREFIX}${snippet}` } });
+  };
+
+  const handleCreatePreventive = async (e) => {
+    e.preventDefault();
+    if (!preventiveForm.title.trim()) return;
+    setPreventiveBusy(true);
+    setPreventiveMsg('');
+    try {
+      await dashboard.maintenance.createPreventive({
+        title: preventiveForm.title.trim(),
+        machine_name: preventiveForm.machine_name.trim() || undefined,
+        sector: preventiveForm.sector.trim() || undefined,
+        scheduled_date: new Date().toISOString()
+      });
+      setPreventiveForm({ title: '', machine_name: '', sector: '' });
+      setPreventiveMsg('Preventiva registada.');
+      await reloadPreventivesBoard();
+      const cardsRes = await dashboard.maintenance.getCards().catch(() => null);
+      if (cardsRes?.data?.cards) setCards(cardsRes.data.cards);
+    } catch (ex) {
+      setPreventiveMsg(ex?.response?.data?.error || ex.message || 'Erro ao criar preventiva');
+    } finally {
+      setPreventiveBusy(false);
+    }
+  };
+
+  const handleCompletePreventive = async (id) => {
+    if (!id) return;
+    setPreventiveBusy(true);
+    setPreventiveMsg('');
+    try {
+      await dashboard.maintenance.completePreventive(id);
+      setPreventiveMsg('Preventiva concluída.');
+      await reloadPreventivesBoard();
+      const cardsRes = await dashboard.maintenance.getCards().catch(() => null);
+      if (cardsRes?.data?.cards) setCards(cardsRes.data.cards);
+    } catch (ex) {
+      setPreventiveMsg(ex?.response?.data?.error || 'Erro ao concluir');
+    } finally {
+      setPreventiveBusy(false);
+    }
   };
 
   if (loading) {
@@ -453,6 +510,37 @@ export default function DashboardMecanico() {
 
             <section className="dashboard-mecanico__block" id="dashboard-mecanico-preventivas">
               <h2><Calendar size={20} /> Preventivas</h2>
+              <form className="mecanico-preventive-form" onSubmit={handleCreatePreventive}>
+                <p className="block-desc subtle">Registo industrial TPM — POST /dashboard/maintenance/preventives</p>
+                <div className="mecanico-preventive-form__row">
+                  <input
+                    className="impetus-input"
+                    placeholder="Título da preventiva"
+                    value={preventiveForm.title}
+                    onChange={(ev) => setPreventiveForm((f) => ({ ...f, title: ev.target.value }))}
+                    required
+                    style={{ borderRadius: 4 }}
+                  />
+                  <input
+                    className="impetus-input"
+                    placeholder="Máquina"
+                    value={preventiveForm.machine_name}
+                    onChange={(ev) => setPreventiveForm((f) => ({ ...f, machine_name: ev.target.value }))}
+                    style={{ borderRadius: 4 }}
+                  />
+                  <input
+                    className="impetus-input"
+                    placeholder="Setor / linha"
+                    value={preventiveForm.sector}
+                    onChange={(ev) => setPreventiveForm((f) => ({ ...f, sector: ev.target.value }))}
+                    style={{ borderRadius: 4 }}
+                  />
+                  <button type="submit" className="btn btn-primary" disabled={preventiveBusy || !preventiveForm.title.trim()}>
+                    {preventiveBusy ? '…' : 'Agendar preventiva'}
+                  </button>
+                </div>
+                {preventiveMsg ? <p className="block-desc subtle" style={{ marginTop: 8 }}>{preventiveMsg}</p> : null}
+              </form>
               <div className="mecanico-preventive-columns">
                 <div>
                   <h3 className="mecanico-preventive-sub">Hoje</h3>
@@ -466,6 +554,11 @@ export default function DashboardMecanico() {
                       <span>{p.machine_name || p.sector} · {p.preventive_type}</span>
                           <span className={`badge badge-${p.status === 'overdue' ? 'overdue' : 'pending'}`}>{p.status}</span>
                           <span className="mecanico-preventive__time">{formatDt(p.scheduled_date)}</span>
+                          {p.status !== 'completed' && (
+                            <button type="button" className="btn btn-sm btn-ghost" disabled={preventiveBusy} onClick={() => handleCompletePreventive(p.id)}>
+                              Concluir
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -483,6 +576,9 @@ export default function DashboardMecanico() {
                           <span>{p.machine_name || p.sector}</span>
                           <span className="badge badge-overdue">{p.status}</span>
                           <span className="mecanico-preventive__time">{formatDt(p.scheduled_date)}</span>
+                          <button type="button" className="btn btn-sm btn-ghost" disabled={preventiveBusy} onClick={() => handleCompletePreventive(p.id)}>
+                            Concluir
+                          </button>
                         </li>
                       ))}
                     </ul>
