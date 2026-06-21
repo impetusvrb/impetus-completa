@@ -142,8 +142,8 @@ router.post('/simulation/compare', _safe((req) => cognitiveSimulation ? cognitiv
 router.post('/simulation/analyze-regression', _safe((req) => cognitiveSimulation ? cognitiveSimulation.analyzeRegression(req.body || {}) : { error: 'not_loaded' }));
 
 router.get('/environmental/health', _safe(() => environmentalCognitive ? environmentalCognitive.getHealth() : { error: 'not_loaded' }));
-router.get('/environmental/panel/:companyId', _safe((req) => environmentalCognitive ? environmentalCognitive.getExecutivePanelData(req.params.companyId) : { error: 'not_loaded' }));
-router.post('/environmental/ingest', _safe((req) => environmentalCognitive ? environmentalCognitive.ingestEnvironmentalData(req.body.company_id, req.body) : { error: 'not_loaded' }));
+router.get('/environmental/panel/:companyId', _safe((req) => environmentalCognitive ? environmentalCognitive.getExecutivePanelData(req.user?.company_id || req.params.companyId) : { error: 'not_loaded' }));
+router.post('/environmental/ingest', _safe((req) => environmentalCognitive ? environmentalCognitive.ingestEnvironmentalData(req.user?.company_id, req.body) : { error: 'not_loaded' }));
 
 /* ===== Consolidação Operacional Cognitiva (F1-F8) ===== */
 

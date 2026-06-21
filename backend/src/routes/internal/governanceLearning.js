@@ -43,7 +43,7 @@ router.get('/recommendations', (req, res) => {
   res.json({ ok: true, governance_learning });
 });
 router.get('/memory', (req, res) => {
-  const store = getOrchestrationLearningMemory(req.query.tenant_id || req.user?.company_id);
+  const store = getOrchestrationLearningMemory(req.user?.company_id);
   res.json({ ok: true, memory: { snapshot_count: store.snapshots?.length, updated_at: store.updated_at } });
 });
 router.get('/performance', (req, res) => {

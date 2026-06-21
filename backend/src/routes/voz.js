@@ -19,8 +19,7 @@ const { userRateLimit } = require('../middleware/userRateLimit');
 const openaiTts = require('../services/openaiVozService');
 const impetusVoiceChat = require('../services/impetusVoiceChatService');
 
-/** GET /api/voz/status - diagnóstico (sem auth): indica se OpenAI TTS está respondendo */
-router.get('/status', async (req, res) => {
+router.get('/status', requireAuth, async (req, res) => {
   try {
     const hasOpenAI = !!(process.env.OPENAI_API_KEY || '').trim();
     const bufOpenAI = hasOpenAI ? await openaiTts.gerarAudio('Ok') : null;

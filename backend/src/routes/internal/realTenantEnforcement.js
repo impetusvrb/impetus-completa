@@ -20,11 +20,11 @@ router.use((req, res, next) => {
 
 router.get('/status', (req, res) => res.json({ ok: true, ...facade.getRealTenantEnforcementStatus(req.query) }));
 router.get('/readiness', (req, res) => {
-  const tenantId = req.query.tenant_id || req.user?.company_id;
+  const tenantId = req.user?.company_id;
   res.json({ ok: true, ...facade.superviseRealTenantEnforcement(tenantId, req.user, req.body) });
 });
 router.get('/governance', (req, res) => {
-  const tenantId = req.query.tenant_id || req.user?.company_id;
+  const tenantId = req.user?.company_id;
   res.json({ ok: true, supervision: facade.superviseRealTenantEnforcement(tenantId, req.user, req.body) });
 });
 router.get('/stability', (req, res) => {
@@ -33,7 +33,7 @@ router.get('/stability', (req, res) => {
 });
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json(facade.getRealTenantEnforcementReport(req.user, { tenant_id: req.query.tenant_id, legacy: req.body?.legacy, ...req.body }));
+  res.json(facade.getRealTenantEnforcementReport(req.user, { tenant_id: req.user?.company_id, legacy: req.body?.legacy }));
 });
 router.post('/activate/:tenant', (req, res) => {
   const approved_by = req.body?.approved_by || req.user?.email || req.user?.id;

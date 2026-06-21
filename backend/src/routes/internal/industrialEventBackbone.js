@@ -61,7 +61,7 @@ router.post(
     const limit = req.body && req.body.limit != null ? Number(req.body.limit) : 100;
     const source = req.body && req.body.source ? String(req.body.source) : 'outbox';
     const mode = req.body && req.body.mode ? String(req.body.mode) : undefined;
-    const company_id = req.body && req.body.company_id ? String(req.body.company_id) : undefined;
+    const company_id = req.user?.company_id || undefined;
     const result = await orch.runGovernedReplay({ limit, source, mode, company_id });
     res.json(result);
   })
@@ -83,7 +83,7 @@ router.post(
   _safe(async (req, res) => {
     const archive = require('../../eventPipeline/archive/industrialArchiveService');
     const batch_size = req.body && req.body.batch_size != null ? Number(req.body.batch_size) : undefined;
-    const company_id = req.body && req.body.company_id ? String(req.body.company_id) : undefined;
+    const company_id = req.user?.company_id || undefined;
     const delivered_days = req.body && req.body.delivered_days != null ? Number(req.body.delivered_days) : undefined;
     const result = await archive.archiveDeliveredBatch({ batch_size, company_id, delivered_days });
     res.json(result);
@@ -95,7 +95,7 @@ router.post(
   _safe(async (req, res) => {
     const dlq = require('../../eventPipeline/dlq/industrialDlqService');
     const limit = req.body && req.body.limit != null ? Number(req.body.limit) : 50;
-    const company_id = req.body && req.body.company_id ? String(req.body.company_id) : undefined;
+    const company_id = req.user?.company_id || undefined;
     const dry_run = req.body && req.body.dry_run != null ? !!req.body.dry_run : undefined;
     const result = await dlq.redriveFromDlq({ limit, company_id, dry_run });
     res.json(result);

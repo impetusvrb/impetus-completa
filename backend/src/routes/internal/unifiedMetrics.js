@@ -13,10 +13,7 @@ router.use(requireAuth, requireRole('internal_admin'));
 
 router.get('/', (req, res) => {
   try {
-    const companyId =
-      req.query.company_id != null && String(req.query.company_id).trim() !== ''
-        ? req.query.company_id
-        : req.user?.company_id;
+    const companyId = req.user?.company_id;
     res.json({
       ok: true,
       company_id: companyId != null ? companyId : null,

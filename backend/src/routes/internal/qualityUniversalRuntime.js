@@ -23,10 +23,8 @@ function _safe(fn) {
   };
 }
 
-function _company(req, body) {
-  const fromBody = body?.company_id != null ? String(body.company_id) : null;
-  const fromQuery = req.query?.company_id != null ? String(req.query.company_id) : null;
-  return fromBody || fromQuery || req.user?.company_id || null;
+function _company(req, _body) {
+  return req.user?.company_id || null;
 }
 
 router.get(

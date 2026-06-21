@@ -495,7 +495,7 @@ router.get('/ai-governance', async (req, res) => {
       ok: true,
       registry: registry.getDiagnostics(),
       models_count: (await registry.listModels()).length,
-      iso42001: await gov.getIso42001ReadinessReport(req.query.company_id || null),
+      iso42001: await gov.getIso42001ReadinessReport(req.user?.company_id || null),
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -519,7 +519,7 @@ router.get('/ai-governance/iso42001', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
     const gov = require('../../services/aiGovernancePersistenceService');
-    const report = await gov.getIso42001ReadinessReport(req.query.company_id || null);
+    const report = await gov.getIso42001ReadinessReport(req.user?.company_id || null);
     res.json(report);
   } catch (err) {
     res.status(500).json({ ok: false, error: err?.message });
@@ -559,8 +559,8 @@ router.get('/hallucination-detection/review-queue', async (req, res) => {
 
 router.post('/hallucination-detection/false-positive', async (req, res) => {
   try {
-    const { trace_id, company_id, reason } = req.body || {};
-    const companyId = company_id || req.user?.company_id;
+    const { trace_id, reason } = req.body || {};
+    const companyId = req.user?.company_id;
     if (!trace_id || !companyId) {
       return res.status(400).json({ ok: false, error: 'trace_id and company_id required' });
     }
