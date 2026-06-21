@@ -201,11 +201,18 @@ function reconcileVisibility(input = {}) {
  */
 function buildObservabilityBlock(reconciliationResult) {
   if (!reconciliationResult) return null;
+  // Idempotência: se já for um bloco construído (sem o array bruto `mismatches`),
+  // devolve tal como está — evita dupla-processagem e leitura de undefined.length.
+  if (reconciliationResult.runtime === 'zVisibilityReconciliationRuntime'
+      || !Array.isArray(reconciliationResult.mismatches)) {
+    return reconciliationResult;
+  }
+  const mismatches = reconciliationResult.mismatches;
   return {
     reconciliation_applied: reconciliationResult.reconciliation_applied,
-    added_modules: reconciliationResult.added_modules,
-    mismatches_count: reconciliationResult.mismatches.length,
-    mismatches_high: reconciliationResult.mismatches.filter((m) => m.severity === 'high').length,
+    added_modules: reconciliationResult.added_modules || [],
+    mismatches_count: mismatches.length,
+    mismatches_high: mismatches.filter((m) => m.severity === 'high').length,
     domain_authority: reconciliationResult.normalized_identity?.domain_authority || null,
     normalized_role: reconciliationResult.normalized_identity?.normalized_role || null,
     runtime: 'zVisibilityReconciliationRuntime'
