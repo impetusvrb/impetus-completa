@@ -414,7 +414,14 @@ export function useVisibleModules() {
         !isExecutiveLeadershipRole(readStoredUser())
       ) {
         mods = [...new Set(gov.universal_modules)];
-      } else if (gov && Array.isArray(mods) && gov.denied_count > 0) {
+      } else if (
+        gov &&
+        Array.isArray(mods) &&
+        gov.denied_count > 0 &&
+        gov.executive_structural_bypass !== true
+      ) {
+        // Em bypass executivo, os "denied" são artefactos do cadastro estrutural
+        // incompleto — a liderança recebe o conjunto completo, não os filtramos.
         mods = mods.filter((k) => !gov.denied?.some((d) => d.menu_key === k));
       } else if (r?.data?.structural_module_filter?.skipped !== true && r?.data?.structural_profile) {
         mods = filterVisibleModulesByStructuralProfile(mods, r.data.structural_profile, {

@@ -202,10 +202,8 @@ router.get('/panel', requireAuth, requireCompanyActive, async (req, res) => {
  */
 router.get('/check-email', requireAuth, requireCompanyActive, async (req, res) => {
   try {
-    const companyRes = await db.query(`
-      SELECT company_domain, data_controller_email FROM companies WHERE id = $1
-    `, [req.user.company_id]);
-    const company = companyRes.rows[0] || {};
+    const subscriptionCompanyReader = require('../services/subscription/subscriptionCompanyReader');
+    const company = await subscriptionCompanyReader.loadCompanyRow(req.user.company_id) || {};
     const isCorporate = await roleVerification.checkCorporateEmail(req.user, company);
     res.json({ ok: true, is_corporate: isCorporate });
   } catch (e) {

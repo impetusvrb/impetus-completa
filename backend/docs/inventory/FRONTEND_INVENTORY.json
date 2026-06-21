@@ -1,0 +1,1278 @@
+{
+  "generatedAt": "2026-06-21T18:15:39.750Z",
+  "source": "frontend/src/App.jsx",
+  "importCount": 96,
+  "guardNames": [
+    "PrivateRoute",
+    "SetupGuard",
+    "RoleGuard",
+    "CEORouteGuard",
+    "ColaboradorRouteGuard",
+    "AdminRouteGuard",
+    "StrictAdminRouteGuard",
+    "DirectorOrCEORouteGuard",
+    "PulseRhRouteGuard",
+    "FactoryTeamMemberGate",
+    "SettingsAccessGuard",
+    "ExecutiveAccessGuard",
+    "Suspense",
+    "BuildVersionGuard",
+    "ErrorBoundary",
+    "NotificationProvider",
+    "EnterpriseLocaleProvider",
+    "ImpetusVoiceProvider",
+    "PageLoader",
+    "Navigate",
+    "DashboardRouteEntry"
+  ],
+  "screens": [
+    {
+      "route": "/",
+      "screen": "Login",
+      "screenFile": "./pages/Login",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "static"
+    },
+    {
+      "route": "/forgot-password",
+      "screen": "ForgotPassword",
+      "screenFile": "./pages/ForgotPassword",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "static"
+    },
+    {
+      "route": "/reset-password",
+      "screen": "ResetPassword",
+      "screenFile": "./pages/ResetPassword",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "static"
+    },
+    {
+      "route": "/setup-empresa",
+      "screen": "SetupEmpresa",
+      "screenFile": "./pages/SetupEmpresa",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/validacao-cargo",
+      "screen": "RoleVerificationPage",
+      "screenFile": "./pages/RoleVerificationPage",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/proacao",
+      "screen": "Proposals",
+      "screenFile": "./pages/Proposals",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/proacao/:id",
+      "screen": "ProposalDetail",
+      "screenFile": "./pages/ProposalDetail",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app",
+      "screen": "(redirect)",
+      "screenFile": null,
+      "screenFileExists": null,
+      "module": "Desconhecido",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate",
+        "DashboardRouteEntry"
+      ],
+      "allowedRoles": null,
+      "isRedirect": true,
+      "isLayout": false,
+      "loader": null
+    },
+    {
+      "route": "/app/dashboard-vivo",
+      "screen": "(redirect)",
+      "screenFile": null,
+      "screenFileExists": null,
+      "module": "Desconhecido",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": true,
+      "isLayout": false,
+      "loader": null
+    },
+    {
+      "route": "/app/ceo",
+      "screen": "Dashboard",
+      "screenFile": "./pages/Dashboard",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/operacional",
+      "screen": "Operacional",
+      "screenFile": "./pages/Operacional",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/registro-inteligente",
+      "screen": "RegistroInteligente",
+      "screenFile": "./pages/RegistroInteligente",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/cadastrar-com-ia",
+      "screen": "CadastrarComIA",
+      "screenFile": "./pages/CadastrarComIA",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/biblioteca",
+      "screen": "BibliotecaPage",
+      "screenFile": "./features/biblioteca",
+      "screenFileExists": true,
+      "module": "Biblioteca",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/chatbot",
+      "screen": "AIChatPage",
+      "screenFile": "./features/aiChat/AIChatPage",
+      "screenFileExists": true,
+      "module": "Chat/IA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/insights",
+      "screen": "InsightsPage",
+      "screenFile": "./pages/InsightsPage",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/pulse-rh",
+      "screen": "PulseRh",
+      "screenFile": "./pages/PulseRh",
+      "screenFileExists": true,
+      "module": "Pulse",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "PulseRhRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/pulse-gestao",
+      "screen": "PulseGestao",
+      "screenFile": "./pages/PulseGestao",
+      "screenFileExists": true,
+      "module": "Pulse",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "RoleGuard"
+      ],
+      "allowedRoles": [
+        "diretor",
+        "gerente",
+        "coordenador",
+        "supervisor"
+      ],
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/cerebro-operacional",
+      "screen": "OperationalIntelligencePanel",
+      "screenFile": "./pages/OperationalIntelligencePanel",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/centro-operacoes-industrial",
+      "screen": "IndustrialOperationsCenter",
+      "screenFile": "./pages/IndustrialOperationsCenter",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/monitored-points",
+      "screen": "IndustrialOperationsCenter",
+      "screenFile": "./pages/IndustrialOperationsCenter",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/almoxarifado-inteligente",
+      "screen": "AlmoxarifadoInteligente",
+      "screenFile": "./pages/AlmoxarifadoInteligente",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/logistica-inteligente",
+      "screen": "LogisticaInteligente",
+      "screenFile": "./pages/LogisticaInteligente",
+      "screenFileExists": true,
+      "module": "Logistics",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/manutencao/manuia",
+      "screen": "ManuIA",
+      "screenFile": "./pages/ManuIA",
+      "screenFileExists": true,
+      "module": "ManuIA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/manutencao/manuia-app",
+      "screen": "ManuIAExtensionApp",
+      "screenFile": "./manuia-app/ManuIAExtensionApp",
+      "screenFileExists": true,
+      "module": "ManuIA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/centro-previsao-operacional",
+      "screen": "CentroPrevisaoOperacional",
+      "screenFile": "./pages/CentroPrevisaoOperacional",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/centro-custos-industriais",
+      "screen": "CentroCustosExecutivo",
+      "screenFile": "./pages/CentroCustosExecutivo",
+      "screenFileExists": true,
+      "module": "Custos/Billing",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/mapa-vazamento-financeiro",
+      "screen": "MapaVazamentoFinanceiro",
+      "screenFile": "./pages/MapaVazamentoFinanceiro",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/configuracoes",
+      "screen": "(redirect)",
+      "screenFile": null,
+      "screenFileExists": null,
+      "module": "Desconhecido",
+      "guards": [
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": true,
+      "isLayout": false,
+      "loader": null
+    },
+    {
+      "route": "/app/admin/conteudo-empresa",
+      "screen": "CompanyAdminSettings",
+      "screenFile": "./pages/CompanyAdminSettings",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/proposals",
+      "screen": "(redirect)",
+      "screenFile": null,
+      "screenFileExists": null,
+      "module": "Desconhecido",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": true,
+      "isLayout": false,
+      "loader": null
+    },
+    {
+      "route": "/diagnostic",
+      "screen": "Diagnostic",
+      "screenFile": "./pages/Diagnostic",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/users",
+      "screen": "AdminUsers",
+      "screenFile": "./pages/AdminUsers",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/implantacao-guia",
+      "screen": "ImplementationGuide",
+      "screenFile": "./pages/ImplementationGuide",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/departments",
+      "screen": "AdminDepartments",
+      "screenFile": "./pages/AdminDepartments",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/equipes-operacionais",
+      "screen": "AdminOperationalTeams",
+      "screenFile": "./pages/AdminOperationalTeams",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/structural",
+      "screen": "AdminStructural",
+      "screenFile": "./pages/AdminStructural",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/audit-logs",
+      "screen": "AdminAuditLogs",
+      "screenFile": "./pages/AdminAuditLogs",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/ai-incidents",
+      "screen": "AdminAiIncidents",
+      "screenFile": "./pages/AdminAiIncidents",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/cognitive-governance",
+      "screen": "CognitiveGovernanceDashboard",
+      "screenFile": "./pages/admin/CognitiveGovernanceDashboard",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/action-approvals",
+      "screen": "ActionApprovalDashboard",
+      "screenFile": "./components/actionRuntime/ActionApprovalDashboard",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/rollout-center",
+      "screen": "RolloutCenterHub",
+      "screenFile": "./domains/admin/rollout-center/RolloutCenterHub",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/certification-readiness",
+      "screen": "CertificationReadinessHub",
+      "screenFile": "./domains/admin/certification-readiness/CertificationReadinessHub",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/final-consolidation",
+      "screen": "FinalConsolidationHub",
+      "screenFile": "./domains/admin/final-consolidation/FinalConsolidationHub",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/equipment-library",
+      "screen": "AdminEquipmentLibrary",
+      "screenFile": "./pages/AdminEquipmentLibrary",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/centro-custos",
+      "screen": "CentroCustosAdmin",
+      "screenFile": "./pages/CentroCustosAdmin",
+      "screenFileExists": true,
+      "module": "Custos/Billing",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/audio-logs",
+      "screen": "AdminAudioLogs",
+      "screenFile": "./pages/AdminAudioLogs",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "DirectorOrCEORouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/integrations",
+      "screen": "AdminIntegrations",
+      "screenFile": "./pages/AdminIntegrations",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/nexusia-custos",
+      "screen": "NexusIACustos",
+      "screenFile": "./pages/NexusIACustos",
+      "screenFileExists": true,
+      "module": "Custos/Billing",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/help-center",
+      "screen": "AdminHelpCenter",
+      "screenFile": "./pages/AdminHelpCenter",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/warehouse",
+      "screen": "AdminWarehouse",
+      "screenFile": "./pages/AdminWarehouse",
+      "screenFileExists": true,
+      "module": "Admin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/admin/logistics",
+      "screen": "AdminLogistics",
+      "screenFile": "./pages/AdminLogistics",
+      "screenFileExists": true,
+      "module": "Logistics",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/validacao-organizacional",
+      "screen": "OrganizationalValidationPanel",
+      "screenFile": "./pages/OrganizationalValidationPanel",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "RoleGuard"
+      ],
+      "allowedRoles": [
+        "internal_admin",
+        "diretor",
+        "gerente",
+        "coordenador",
+        "supervisor",
+        "ceo"
+      ],
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/equipe-operacional",
+      "screen": "SelectTeamMember",
+      "screenFile": "./pages/SelectTeamMember",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/settings",
+      "screen": "UserSettings",
+      "screenFile": "./pages/UserSettings",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "SettingsAccessGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/quality/operational",
+      "screen": "QualityOperationalLayout",
+      "screenFile": "./domains/quality/routes/QualityOperationalLayout.jsx",
+      "screenFileExists": true,
+      "module": "Quality",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": true,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/quality/operational",
+      "screen": "QualityOperationalWorkspacePage",
+      "screenFile": "./domains/quality/routes/QualityOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "Quality",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/quality/operational/workspace",
+      "screen": "QualityOperationalWorkspacePage",
+      "screenFile": "./domains/quality/routes/QualityOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "Quality",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/quality/operational/inspection",
+      "screen": "QualityInspectionRuntimePage",
+      "screenFile": "./domains/quality/routes/QualityInspectionRuntimePage.jsx",
+      "screenFileExists": true,
+      "module": "Quality",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/quality/operational/kiosk",
+      "screen": "QualityKioskRuntimePage",
+      "screenFile": "./domains/quality/routes/QualityKioskRuntimePage.jsx",
+      "screenFileExists": true,
+      "module": "Quality",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/safety/operational",
+      "screen": "SafetyOperationalLayout",
+      "screenFile": "./domains/safety/routes/SafetyOperationalLayout.jsx",
+      "screenFileExists": true,
+      "module": "SST",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": true,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/safety/operational",
+      "screen": "SafetyOperationalWorkspacePage",
+      "screenFile": "./domains/safety/routes/SafetyOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "SST",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/safety/operational/workspace",
+      "screen": "SafetyOperationalWorkspacePage",
+      "screenFile": "./domains/safety/routes/SafetyOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "SST",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/safety/operational/inspection",
+      "screen": "SafetyFieldInspectionPage",
+      "screenFile": "./domains/safety/routes/SafetyFieldInspectionPage.jsx",
+      "screenFileExists": true,
+      "module": "SST",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/logistics/operational",
+      "screen": "LogisticsOperationalLayout",
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalLayout.jsx",
+      "screenFileExists": true,
+      "module": "Logistics",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": true,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/logistics/operational",
+      "screen": "LogisticsOperationalWorkspacePage",
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "Logistics",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/logistics/operational/workspace",
+      "screen": "LogisticsOperationalWorkspacePage",
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "Logistics",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/environment/operational",
+      "screen": "EnvironmentOperationalLayout",
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalLayout.jsx",
+      "screenFileExists": true,
+      "module": "ESG",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": true,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/environment/operational",
+      "screen": "EnvironmentOperationalWorkspacePage",
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "ESG",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/environment/operational/workspace",
+      "screen": "EnvironmentOperationalWorkspacePage",
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx",
+      "screenFileExists": true,
+      "module": "ESG",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/chat",
+      "screen": "ChatPage",
+      "screenFile": "./pages/ChatPage",
+      "screenFileExists": true,
+      "module": "Chat/IA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/m",
+      "screen": "AppMobile",
+      "screenFile": "./pages/AppMobile",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/license-expired",
+      "screen": "LicenseExpired",
+      "screenFile": "./pages/LicenseExpired",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/subscription-expired",
+      "screen": "SubscriptionExpired",
+      "screenFile": "./pages/SubscriptionExpired",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/404",
+      "screen": "Error404",
+      "screenFile": "./pages/Error404",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/500",
+      "screen": "Error500",
+      "screenFile": "./pages/Error500",
+      "screenFileExists": true,
+      "module": "Core",
+      "guards": [],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/*",
+      "screen": "(redirect)",
+      "screenFile": null,
+      "screenFileExists": null,
+      "module": "Desconhecido",
+      "guards": [
+        "Navigate"
+      ],
+      "allowedRoles": null,
+      "isRedirect": true,
+      "isLayout": false,
+      "loader": null
+    }
+  ]
+}

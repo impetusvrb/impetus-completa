@@ -574,7 +574,14 @@ export default function Layout({ children }) {
       ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
       : undefined;
     const hybridBase = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
+    // Liderança executiva (CEO / Diretor) usa o menu curado implementado
+    // (MENUS.ceo / MENU_LIDERANCA). A navegação publicada por domínio
+    // (Quality/Safety/Logistics/Environment) NÃO é sobreposta nestes perfis —
+    // evita o "duplo menu" (overlay de domínio vs. menu base) e o flicker
+    // causado pelo carregamento assíncrono do contexto de publicação.
+    const suppressDomainPublicationNav = role === 'ceo' || role === 'diretor';
     const withQuality =
+      !suppressDomainPublicationNav &&
       shouldBlockPublicationMerge('quality', dashboardMePayload) === false
         ? safeMergeQualityPublicationIntoMenu(hybridBase, {
             user,
@@ -585,6 +592,7 @@ export default function Layout({ children }) {
           })
         : hybridBase;
     const withSafety =
+      !suppressDomainPublicationNav &&
       shouldBlockPublicationMerge('safety', dashboardMePayload) === false
         ? safeMergeSafetyPublicationIntoMenu(withQuality, {
             user,
@@ -595,6 +603,7 @@ export default function Layout({ children }) {
           })
         : withQuality;
     const withLogistics =
+      !suppressDomainPublicationNav &&
       shouldBlockPublicationMerge('logistics', dashboardMePayload) === false
         ? safeMergeLogisticsPublicationIntoMenu(withSafety, {
             user,
@@ -605,6 +614,7 @@ export default function Layout({ children }) {
           })
         : withSafety;
     const baseMenuItemsHybrid =
+      !suppressDomainPublicationNav &&
       shouldBlockPublicationMerge('environment', dashboardMePayload) === false
         ? safeMergeEnvironmentPublicationIntoMenu(withLogistics, {
             user,
