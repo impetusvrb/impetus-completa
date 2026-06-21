@@ -465,6 +465,8 @@ export const dashboard = {
     getInterventions: () => api.get('/dashboard/maintenance/interventions'),
     getPreventives: () => api.get('/dashboard/maintenance/preventives'),
     getPreventivesBoard: () => api.get('/dashboard/maintenance/preventives-board'),
+    createPreventive: (body) => api.post('/dashboard/maintenance/preventives', body),
+    completePreventive: (id, body) => api.patch(`/dashboard/maintenance/preventives/${id}`, body),
     getRecurringFailures: () => api.get('/dashboard/maintenance/recurring-failures')
   },
 
@@ -1079,6 +1081,23 @@ export const adminHelpManual = {
 export const qualityOperational = {
   health: () => api.get('/quality-operational/health'),
   publishEvent: (body) => api.post('/quality-operational/events', body)
+};
+
+/** Quality Intelligence — inspeções, NC, resumo NCR/CAPA (Parte 7.2 certificado). */
+export const qualityIntelligence = {
+  getInspections: (params) => api.get('/quality-intelligence/inspections', { params }),
+  createInspection: (body) => api.post('/quality-intelligence/inspections', body),
+  getNcrCapaSummary: () => api.get('/quality-intelligence/nc-capa-summary'),
+  getDashboard: () => api.get('/quality-intelligence/dashboard')
+};
+
+/** SST — runtime operacional (incidentes, quase-acidentes, treinamentos). */
+export const safetyOperational = {
+  health: () => api.get('/safety-operational/health'),
+  registerEvent: (body) => api.post('/safety-operational/events', body),
+  listEvents: (params) => api.get('/safety-operational/events', { params }),
+  getEventsSummary: () => api.get('/safety-operational/events/summary'),
+  workspaceSummary: () => api.get('/safety-operational/workspace/summary')
 };
 
 /** Environment — operational UX runtime (SGA/EHS Etapa 1). */

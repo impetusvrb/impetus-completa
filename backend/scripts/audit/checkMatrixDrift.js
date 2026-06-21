@@ -52,13 +52,17 @@ function main() {
   const committed = readJson(MATRIX_PATH);
   const committedFe = fs.existsSync(FE_INV) ? readJson(FE_INV) : null;
   const committedBe = fs.existsSync(BE_INV) ? readJson(BE_INV) : null;
+  const committedBackup = JSON.stringify(committed);
 
-  // Regenera em memória via build script (sobrescreve arquivos — ok para drift check)
+  // Regenera inventário (sobrescreve matriz base — restauramos overlay certificado depois)
   execSync(`node "${BUILD_SCRIPT}" --json`, { cwd: REPO_ROOT, stdio: 'pipe' });
 
   const fresh = readJson(MATRIX_PATH);
   const freshFe = readJson(FE_INV);
   const freshBe = readJson(BE_INV);
+
+  // Restaura matriz commitada (certifiedScenarios + status E2E não vêm do build estático)
+  fs.writeFileSync(MATRIX_PATH, committedBackup, 'utf8');
 
   const screenDrift = diffSets(committed.rows || [], fresh.rows || [], routeKey);
   const endpointDrift = diffSets(
@@ -67,7 +71,16 @@ function main() {
     endpointKey
   );
 
-  const statsChanged = JSON.stringify(committed.stats) !== JSON.stringify(fresh.stats);
+  const structuralStats = (s) => ({
+    screenCount: s?.screenCount,
+    endpointCount: s?.endpointCount,
+    mountCount: s?.mountCount,
+    referencedCount: s?.referencedCount,
+    apiCallCount: s?.apiCallCount,
+    unresolvedCount: s?.unresolvedCount
+  });
+  const statsChanged =
+    JSON.stringify(structuralStats(committed.stats)) !== JSON.stringify(structuralStats(fresh.stats));
 
   const report = {
     ok: screenDrift.orphanInCode.length === 0 &&
@@ -88,7 +101,11 @@ function main() {
     },
     endpoints: {
       orphanInCode: endpointDrift.orphanInCode.length,
-      obsoleteInMatrix: endpointDrift.obsoleteInMatrix.length
+      obsoleteInMatrix: endpointDrift.obsoleteInMatrix.length,
+      samples: {
+        orphan: endpointDrift.orphanInCode.slice(0, 10),
+        obsolete: endpointDrift.obsoleteInMatrix.slice(0, 10)
+      }
     },
     unvalidatedScreens: (fresh.rows || []).filter((r) => r.status === 'NAO_VALIDADO').length,
     evidenceRequired: (fresh.rows || []).filter((r) => r.status === 'VERDE' && !r.evidence).length

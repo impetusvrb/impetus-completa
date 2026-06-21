@@ -12,6 +12,7 @@ const SafetyPilotOperationalDashboard = lazy(() => import('../pilot/SafetyPilotO
 const SafetyTelemetryHub = lazy(() => import('../telemetry/SafetyTelemetryHub.jsx'));
 const SafetyCognitiveHub = lazy(() => import('../cognitive/SafetyCognitiveHub.jsx'));
 const SafetyRolloutHub = lazy(() => import('../rollout/SafetyRolloutHub.jsx'));
+const SafetyIncidentPanel = lazy(() => import('./SafetyIncidentPanel.jsx'));
 
 export function SafetyOperationalWorkspace() {
   const ctx = useOutletContext() || {};
@@ -39,7 +40,7 @@ export function SafetyOperationalWorkspace() {
     cognitive: { label: 'Inteligência SST', enabled: isSafetyCognitiveRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_COGNITIVE_RUNTIME_ENABLED' },
     rollout: { label: 'Rollout enterprise', enabled: isSafetyRolloutRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_ROLLOUT_RUNTIME_ENABLED' },
     executive: { label: 'Executive SST', enabled: isSafetyCognitiveRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_COGNITIVE_RUNTIME_ENABLED' },
-    incident: { label: 'Incidentes', enabled: true, env: null },
+    incident: { label: 'Incidentes', enabled: isSafetyOperationalRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_OPERATIONAL_RUNTIME_ENABLED' },
     ptw: { label: 'PT / APR / LOTO', enabled: isSafetyGovernanceRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_GOVERNANCE_RUNTIME_ENABLED' },
     epi: { label: 'EPI / EPC', enabled: isSafetyGovernanceRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_GOVERNANCE_RUNTIME_ENABLED' },
     pilot: { label: 'Validação operacional & pilot', enabled: isSafetyOperationalRuntimeEnabled(), env: 'VITE_IMPETUS_SAFETY_OPERATIONAL_RUNTIME_ENABLED' }
@@ -99,6 +100,13 @@ export function SafetyOperationalWorkspace() {
       </Suspense>
     );
   }
+  if (view === 'incident') {
+    return (
+      <Suspense fallback={<p style={{ color: 'var(--text-secondary)' }}>Carregando incidentes…</p>}>
+        <SafetyIncidentPanel companyId={companyId} />
+      </Suspense>
+    );
+  }
 
   return (
     <div {...uxShell}>
@@ -123,6 +131,7 @@ function motionlessLoadingCard() {
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         <Link to="/app/safety/operational?view=governance" className="btn-ghost" style={{ borderRadius: 4 }}>GHE & Risco</Link>
+        <Link to="/app/safety/operational?view=incident" className="btn-ghost" style={{ borderRadius: 4 }}>Incidentes</Link>
         <Link to="/app/safety/operational?view=ptw" className="btn-ghost" style={{ borderRadius: 4 }}>PT / LOTO</Link>
         <Link to="/app/safety/operational/inspection" className="btn-ghost" style={{ borderRadius: 4 }}>Inspeção</Link>
         <Link to="/app/safety/operational?view=pilot" className="btn-ghost" style={{ borderRadius: 4 }}>Pilot & validação</Link>

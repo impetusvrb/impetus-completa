@@ -1,14 +1,14 @@
 # MATRIZ FUNCIONAL REAL — IMPETUS (geração automática)
 
-> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-21T21:15:23.724Z.
+> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-21T22:19:21.307Z.
 > **Read-only.** Status preliminares são ESTÁTICOS. `NAO_VALIDADO` = estrutura íntegra aguardando validação E2E (Parte 7 do manual). Nenhuma linha é VERDE sem evidência de execução.
 
 ## Resumo
 
 - Telas/rotas mapeadas (frontend): **77**
-- Endpoints mapeados (backend): **1097** em **142** mounts
-- Endpoints referenciados pelo frontend (api.js): **617**
-- Chamadas de API distintas no cliente (api.js): **780**
+- Endpoints mapeados (backend): **1098** em **142** mounts
+- Endpoints referenciados pelo frontend (api.js): **621**
+- Chamadas de API distintas no cliente (api.js): **791**
 - Mounts não resolvidos: **0**
 
 ### Distribuição de status preliminar (telas)
@@ -1099,11 +1099,12 @@
 | GET | `/api/pulse/supervisor/pending` | sim | routes/pulse.js | sim |
 | GET | `/api/quality-intelligence/alerts` | sim | routes/qualityIntelligence.js | — |
 | POST | `/api/quality-intelligence/alerts/:id/acknowledge` | sim | routes/qualityIntelligence.js | — |
-| GET | `/api/quality-intelligence/dashboard` | sim | routes/qualityIntelligence.js | — |
+| GET | `/api/quality-intelligence/dashboard` | sim | routes/qualityIntelligence.js | sim |
 | GET | `/api/quality-intelligence/impact/forecasting` | sim | routes/qualityIntelligence.js | — |
 | GET | `/api/quality-intelligence/indicators` | sim | routes/qualityIntelligence.js | — |
-| GET | `/api/quality-intelligence/inspections` | sim | routes/qualityIntelligence.js | — |
-| POST | `/api/quality-intelligence/inspections` | sim | routes/qualityIntelligence.js | — |
+| GET | `/api/quality-intelligence/inspections` | sim | routes/qualityIntelligence.js | sim |
+| POST | `/api/quality-intelligence/inspections` | sim | routes/qualityIntelligence.js | sim |
+| GET | `/api/quality-intelligence/nc-capa-summary` | sim | routes/qualityIntelligence.js | sim |
 | GET | `/api/quality-intelligence/receipts` | sim | routes/qualityIntelligence.js | — |
 | POST | `/api/quality-intelligence/receipts` | sim | routes/qualityIntelligence.js | — |
 | POST | `/api/quality-intelligence/run-alerts` | sim | routes/qualityIntelligence.js | — |
@@ -1265,160 +1266,3 @@
 - Preencher coluna **Flags** por endpoint com o estado efetivo (`dumpEffectiveFlags.js`).
 - Executar cenários **E2E** por domínio e anexar as 6 evidências.
 - Reclassificar `NAO_VALIDADO` → VERDE/AMARELO/MOCK/INCOMPLETO conforme execução.
-## Cenários certificados (Parte 7.2 E2E)
-
-> Atualizado por `applyCertEvidenceToMatrix.js` — não sobrescrever com buildFunctionalMatrix.
-
-### Quality: NC → CAPA → Auditoria
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/quality/nc-create/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-1782077258269 |
-| Isolamento tenant | OK (HTTP 403) |
-| Gap UI | QualityGovernanceHub / NcrCapaPanel → **INCOMPLETO** |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Registrar NC (inspeção não conforme) | `POST /api/quality-intelligence/inspections` | VERDE |
-| Instanciar workflow NCR universal | `POST /api/internal/quality-universal/workflows/instance` | VERDE |
-| Transição NCR submit → quality.ncr.opened | `POST /api/internal/quality-universal/workflows/transition` | VERDE |
-| Instanciar CAPA vinculada à NC | `POST /api/internal/quality-universal/workflows/instance` | VERDE |
-| Transição CAPA submit → quality.capa.created | `POST /api/internal/quality-universal/workflows/transition` | VERDE |
-
-### SST: Incidente / Quase-acidente / Treinamento vencido
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/safety/lifecycle/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-sst-1782078195593 |
-| Isolamento tenant | OK (HTTP 200) |
-| Gap UI | SafetyOperationalWorkspace (view=incident) → **INCOMPLETO** |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Registrar incidente SST | `POST /api/safety-operational/events` | VERDE |
-| Registrar quase-acidente | `POST /api/safety-operational/events` | VERDE |
-| Treinamento vencido + alerta HR | `POST /api/safety-operational/events` | VERDE |
-| Listar alertas (Notification Center / Cérebro Operacional) | `GET /api/dashboard/operational-brain/alerts` | VERDE |
-
-### Executive: Dashboard executivo por perfil
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/executive/dashboard-profile/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-| Isolamento tenant | OK (HTTP —) |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Perfil + KPIs executivos | `GET /api/dashboard/me` | VERDE |
-| KPIs tenant-scoped | `GET /api/dashboard/kpis` | VERDE |
-
-### ManuIA: Diagnóstico → OS → Histórico
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/manuia/diagnosis-workorder/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Concluir sessão + criar OS | `POST /api/manutencao-ia/conclude-session` | VERDE |
-| Histórico sessões | `GET /api/manutencao-ia/sessions` | VERDE |
-
-### ESG: Emissão / Resíduo / Consumo
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/esg/emission-waste-consumption/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Alerta emissão | `POST /api/environment-operational/events` | VERDE |
-| Manifesto resíduo | `POST /api/environment-operational/events` | VERDE |
-| Amostra água/consumo | `POST /api/environment-operational/events` | VERDE |
-
-### TPM: Plano preventivo → execução → indicador
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/tpm/preventive-lifecycle/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Criar preventiva | `POST /api/dashboard/maintenance/preventives` | VERDE |
-| Concluir preventiva | `PATCH /api/dashboard/maintenance/preventives/:id` | VERDE |
-| Indicadores summary | `GET /api/dashboard/maintenance/summary` | VERDE |
-
-### DSR/LGPD: Pedido do titular
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/dsr/data-subject-request/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-| Isolamento tenant | OK (HTTP 200) |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Criar pedido LGPD | `POST /api/lgpd/data-request` | VERDE |
-| Processar pedido (DPO) | `PATCH /api/lgpd/data-requests/:id` | VERDE |
-
-### Billing: Webhook Asaas / subscrição
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/billing/asaas-webhook/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Webhook PAYMENT_CONFIRMED | `POST /api/webhooks/asaas` | VERDE |
-
-### Event Governance: Evento → política → decisão
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/governance/event-policy-decision/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Produtor SST | `POST /api/safety-operational/events` | VERDE |
-| Audit status EG | `GET /api/audit/event-governance/status` | VERDE |
-| Audit SST lifecycle | `GET /api/audit/event-governance/sst` | VERDE |
-
-### AIOI: Correlação → Insight → Escalonamento
-
-| Campo | Valor |
-|-------|-------|
-| Status | **VERDE** |
-| Evidência | `backend/docs/evidence/aioi/correlation-insight/` |
-| Validado em | 2026-06-21 |
-| Run ID | cert-p72-1782079418244 |
-
-| Fluxo | Endpoint | Status |
-|-------|----------|--------|
-| Eventos correlacionados (×3) | `POST /api/safety-operational/events` | VERDE |
-| Audit AIOI | `GET /api/audit/event-governance/aioi` | VERDE |
-

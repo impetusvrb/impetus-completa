@@ -102,4 +102,56 @@ router.post('/events', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/safety-operational/events/summary — KPIs SST (alertas pendentes por tipo)
+ */
+router.get('/events/summary', requireAuth, async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
+
+    const db = require('../db');
+    const r = await db.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE tipo_alerta LIKE 'sst_incident%')::int AS incidents,
+         COUNT(*) FILTER (WHERE tipo_alerta LIKE 'sst_near_miss%')::int AS near_misses,
+         COUNT(*) FILTER (WHERE tipo_alerta LIKE 'sst_training%')::int AS training_alerts,
+         COUNT(*)::int AS total
+       FROM operational_alerts
+       WHERE company_id = $1 AND resolvido IS NOT TRUE
+         AND (tipo_alerta LIKE 'sst_%' OR source = 'safety_operational')`,
+      [companyId]
+    );
+    res.json({ ok: true, summary: r.rows[0] || { incidents: 0, near_misses: 0, training_alerts: 0, total: 0 } });
+  } catch (err) {
+    console.error('[SAFETY_OPERATIONAL_SUMMARY]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro' });
+  }
+});
+
+/**
+ * GET /api/safety-operational/events — lista eventos SST recentes
+ */
+router.get('/events', requireAuth, async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+    const db = require('../db');
+    const r = await db.query(
+      `SELECT id, tipo_alerta, titulo, mensagem, severidade, created_at, metadata
+       FROM operational_alerts
+       WHERE company_id = $1 AND resolvido IS NOT TRUE
+         AND (tipo_alerta LIKE 'sst_%' OR source = 'safety_operational')
+       ORDER BY created_at DESC LIMIT $2`,
+      [companyId, limit]
+    );
+    res.json({ ok: true, events: r.rows || [] });
+  } catch (err) {
+    console.error('[SAFETY_OPERATIONAL_LIST]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro' });
+  }
+});
+
 module.exports = router;

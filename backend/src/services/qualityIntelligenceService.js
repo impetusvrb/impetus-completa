@@ -340,6 +340,58 @@ async function recordReceipt(companyId, data) {
   return r.rows?.[0];
 }
 
+/**
+ * Resumo NCR/CAPA para painel de governança (tenant-scoped, dados reais).
+ */
+async function getNcrCapaSummary(companyId) {
+  const summary = {
+    ncr_open: 0,
+    capa_in_progress: 0,
+    inspections_non_conforming: 0,
+    avg_closure_days: null,
+    recent: []
+  };
+  if (!companyId) return summary;
+
+  try {
+    const insp = await db.query(
+      `SELECT COUNT(*)::int AS n FROM quality_inspections
+       WHERE company_id = $1 AND result = 'non_conforming'`,
+      [companyId]
+    );
+    summary.inspections_non_conforming = insp.rows[0]?.n || 0;
+  } catch (_) {}
+
+  try {
+    const wf = await db.query(
+      `SELECT wi.id, wi.current_state, wd.workflow_key, wi.updated_at, wi.context
+       FROM impetus_quality_workflow_instance wi
+       JOIN impetus_quality_workflow_definition wd ON wd.id = wi.workflow_def_id
+       WHERE wi.company_id = $1 AND wd.workflow_key IN ('ncr_universal', 'capa_universal')
+       ORDER BY wi.updated_at DESC LIMIT 50`,
+      [companyId]
+    );
+    const rows = wf.rows || [];
+    for (const row of rows) {
+      if (row.workflow_key === 'ncr_universal' && !['closed'].includes(row.current_state)) {
+        summary.ncr_open += 1;
+      }
+      if (row.workflow_key === 'capa_universal' && ['draft', 'in_progress'].includes(row.current_state)) {
+        summary.capa_in_progress += 1;
+      }
+    }
+    summary.recent = rows.slice(0, 8).map((r) => ({
+      id: r.id,
+      kind: r.workflow_key === 'capa_universal' ? 'CAPA' : 'NCR',
+      state: r.current_state,
+      lot_number: r.context?.lot_number || null,
+      updated_at: r.updated_at
+    }));
+  } catch (_) {}
+
+  return summary;
+}
+
 module.exports = {
   getQualityProfileForUser,
   getInspections,
@@ -351,5 +403,6 @@ module.exports = {
   detectAndCreateQualityAlerts,
   getQualityImpactForForecasting,
   recordInspection,
-  recordReceipt
+  recordReceipt,
+  getNcrCapaSummary
 };

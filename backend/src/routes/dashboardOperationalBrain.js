@@ -120,7 +120,7 @@ router.get('/alerts', requireAuth, async (req, res) => {
 
 router.post('/alerts/:id/resolve', requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = String(req.params.id || '').trim();
     const companyId = req.user?.company_id;
     if (!id || !operationalAlerts?.resolve) {
       return res.status(400).json({ ok: false, error: 'Pedido inválido.' });

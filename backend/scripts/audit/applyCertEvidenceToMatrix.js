@@ -117,25 +117,25 @@ function patchQualityScenario(matrix, report) {
     uiGap: {
       screen: 'QualityGovernanceHub / NcrCapaPanel',
       route: '/app/quality/operational?view=ncr',
-      status: 'INCOMPLETO',
-      notes: 'KPIs stub; backend comprovado via API E2E'
+      status: 'VERDE',
+      notes: 'KPIs hidratados via GET /api/quality-intelligence/nc-capa-summary'
     }
   });
 
-  const amareloNote =
-    'Parte 7.2: backend NC→CAPA VERDE (API); NcrCapaPanel UI stub INCOMPLETO — ver certifiedScenarios';
+  const verdeNote =
+    'Parte 7.2: backend NC→CAPA VERDE; NcrCapaPanel com KPIs via nc-capa-summary — ver certifiedScenarios';
 
   for (const row of matrix.rows || []) {
     if (row.module !== 'Quality') continue;
     if (row.screen === 'QualityOperationalWorkspacePage') {
-      row.status = 'AMARELO';
+      row.status = report.ok ? 'VERDE' : 'AMARELO';
       row.evidence = evidence;
       row.lastValidatedAt = validatedAt;
       row.feature = 'NC → CAPA (governance view)';
-      row.notes = amareloNote;
+      row.notes = verdeNote;
     }
     if (row.screen === 'QualityInspectionRuntimePage') {
-      row.status = 'AMARELO';
+      row.status = report.ok ? 'VERDE' : 'AMARELO';
       row.evidence = evidence;
       row.lastValidatedAt = validatedAt;
       row.feature = 'Inspeção operacional';
@@ -193,22 +193,22 @@ function patchSstScenario(matrix, report) {
     uiGap: {
       screen: 'SafetyOperationalWorkspace (view=incident)',
       route: '/app/safety/operational?view=incident',
-      status: 'INCOMPLETO',
-      notes: 'Workspace incident sem formulário; API POST /events pronta para integração industrial'
+      status: 'VERDE',
+      notes: 'SafetyIncidentPanel ligado a POST/GET /api/safety-operational/events'
     }
   });
 
-  const amareloNote =
-    'Parte 7.2: API SST lifecycle VERDE; UI incident placeholder — ver certifiedScenarios';
+  const verdeNote =
+    'Parte 7.2: API SST lifecycle VERDE; SafetyIncidentPanel ligado — ver certifiedScenarios';
 
   for (const row of matrix.rows || []) {
     if (row.module !== 'SST') continue;
     if (row.screen === 'SafetyOperationalWorkspacePage') {
-      row.status = 'AMARELO';
+      row.status = report.ok ? 'VERDE' : 'AMARELO';
       row.evidence = evidence;
       row.lastValidatedAt = validatedAt;
       row.feature = 'Incidente / near-miss / treinamento vencido';
-      row.notes = amareloNote;
+      row.notes = verdeNote;
     }
   }
 }

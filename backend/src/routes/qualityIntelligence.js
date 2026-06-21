@@ -52,6 +52,27 @@ router.get('/inspections', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/quality-intelligence/nc-capa-summary
+ * KPIs NCR/CAPA para painel de governança (dados reais, tenant-scoped).
+ */
+router.get('/nc-capa-summary', requireAuth, async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não definida' });
+    const profile = qualityService.getQualityProfileForUser(req.user);
+    if (!profile.receives.some((x) => ['non_conformities', 'quality_indicators', 'inspection_records'].includes(x)) &&
+        !canManageQuality(req.user)) {
+      return res.status(403).json({ ok: false, error: 'Sem acesso a NCR/CAPA' });
+    }
+    const summary = await qualityService.getNcrCapaSummary(companyId);
+    res.json({ ok: true, summary });
+  } catch (err) {
+    console.error('[QUALITY_NC_CAPA_SUMMARY]', err);
+    res.status(500).json({ ok: false, error: err.message || 'Erro' });
+  }
+});
+
+/**
  * POST /api/quality-intelligence/inspections
  */
 router.post('/inspections', requireAuth, async (req, res) => {

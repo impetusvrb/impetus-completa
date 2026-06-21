@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T21:15:23.713Z",
+  "generatedAt": "2026-06-21T22:19:21.294Z",
   "source": "backend/src/server.js",
   "mounts": 142,
   "unresolved": [],
@@ -407,6 +407,14 @@
     {
       "method": "GET",
       "path": "/dashboard/maintenance/preventives-board"
+    },
+    {
+      "method": "POST",
+      "path": "/dashboard/maintenance/preventives"
+    },
+    {
+      "method": "PATCH",
+      "path": "/dashboard/maintenance/preventives/:p"
     },
     {
       "method": "GET",
@@ -1319,6 +1327,42 @@
     {
       "method": "POST",
       "path": "/quality-operational/events"
+    },
+    {
+      "method": "GET",
+      "path": "/quality-intelligence/inspections"
+    },
+    {
+      "method": "POST",
+      "path": "/quality-intelligence/inspections"
+    },
+    {
+      "method": "GET",
+      "path": "/quality-intelligence/nc-capa-summary"
+    },
+    {
+      "method": "GET",
+      "path": "/quality-intelligence/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/safety-operational/health"
+    },
+    {
+      "method": "POST",
+      "path": "/safety-operational/events"
+    },
+    {
+      "method": "GET",
+      "path": "/safety-operational/events"
+    },
+    {
+      "method": "GET",
+      "path": "/safety-operational/events/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/safety-operational/workspace/summary"
     },
     {
       "method": "GET",
@@ -29042,7 +29086,7 @@
       "tables": [
         "quality_alerts"
       ],
-      "calledFromFrontend": false
+      "calledFromFrontend": true
     },
     {
       "method": "GET",
@@ -29060,7 +29104,25 @@
       "tables": [
         "quality_alerts"
       ],
-      "calledFromFrontend": false
+      "calledFromFrontend": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/quality-intelligence/nc-capa-summary",
+      "mount": "/api/quality-intelligence",
+      "module": "routes/qualityIntelligence.js",
+      "guards": [
+        "requireAuth"
+      ],
+      "auth": true,
+      "flags": [],
+      "services": [
+        "../services/qualityIntelligenceService"
+      ],
+      "tables": [
+        "quality_alerts"
+      ],
+      "calledFromFrontend": true
     },
     {
       "method": "POST",
@@ -29078,7 +29140,7 @@
       "tables": [
         "quality_alerts"
       ],
-      "calledFromFrontend": false
+      "calledFromFrontend": true
     },
     {
       "method": "GET",

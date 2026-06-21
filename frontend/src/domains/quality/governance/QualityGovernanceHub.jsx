@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { safeUUID } from '../../../utils/safeUuid.js';
-import { qualityGovernance as qgApi } from '../../../services/api.js';
+import { qualityGovernance as qgApi, qualityIntelligence as qiApi } from '../../../services/api.js';
 import {
   isQualityGovernanceRuntimeEnabled,
   isQualityExecutiveDashboardsEnabled,
@@ -95,17 +95,62 @@ function SpcPanel({ companyId }) {
 }
 
 function NcrCapaPanel() {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      const { data } = await qiApi.getNcrCapaSummary();
+      setSummary(data?.summary || null);
+    } catch (e) {
+      setErr(e?.response?.data?.error || e.message || 'NCR/CAPA indisponível');
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const ncrOpen = summary?.ncr_open ?? summary?.inspections_non_conforming ?? 0;
+  const capaProgress = summary?.capa_in_progress ?? 0;
+
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
-      <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>NCR & CAPA — Não Conformidades</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-        <KpiCard label="NCRs abertas" value="—" sub="Requer API NCR" color="var(--amber)" />
-        <KpiCard label="CAPAs em andamento" value="—" sub="Requer API CAPA" color="var(--text-secondary)" />
-        <KpiCard label="Fechamento médio" value="— dias" sub="MTTR não conformidade" />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ ...mono, color: 'var(--cyan)' }}>NCR & CAPA — Não Conformidades</span>
+        <button type="button" className="btn-ghost" style={{ minHeight: 36, borderRadius: 4, fontSize: 12 }} onClick={load} disabled={loading}>
+          {loading ? '…' : 'Actualizar'}
+        </button>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>
-        Integração com módulo NCR/CAPA ativa. Dados exibidos ao conectar à API de rastreabilidade.
-      </p>
+      {err ? <p style={{ color: 'var(--amber)', fontSize: 12 }}>{err}</p> : null}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        <KpiCard label="NCRs abertas" value={loading ? '…' : ncrOpen} sub="workflow + inspeções NC" color={ncrOpen > 0 ? 'var(--amber)' : 'var(--green)'} />
+        <KpiCard label="CAPAs em andamento" value={loading ? '…' : capaProgress} sub="capa_universal" color="var(--cyan)" />
+        <KpiCard label="Inspeções NC" value={loading ? '…' : (summary?.inspections_non_conforming ?? '—')} sub="quality_inspections" />
+      </div>
+      {(summary?.recent?.length > 0) && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ ...labelH, marginBottom: 8 }}>Recentes</div>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: 12 }}>
+            {summary.recent.map((r) => (
+              <li key={r.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>{r.kind}</span>
+                {' · '}{r.state}
+                {r.lot_number ? ` · ${r.lot_number}` : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {!loading && !err && !summary?.recent?.length && ncrOpen === 0 && capaProgress === 0 && (
+        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>
+          Sem NCR/CAPA activos — dados em tempo real via API certificada.
+        </p>
+      )}
     </div>
   );
 }
