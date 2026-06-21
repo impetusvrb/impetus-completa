@@ -9,9 +9,13 @@
     "apiCallCount": 780,
     "unresolvedCount": 0,
     "statusDist": {
-      "NAO_VALIDADO": 72,
-      "REDIRECT": 5
-    }
+      "NAO_VALIDADO": 67,
+      "REDIRECT": 5,
+      "AMARELO": 5,
+      "SCENARIO_VERDE": 2
+    },
+    "certifiedScenarioCount": 2,
+    "lastCertificationAt": "2026-06-21T21:43:29.267Z"
   },
   "rows": [
     {
@@ -1188,12 +1192,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "Parte 7.2: backend NC→CAPA VERDE (API); NcrCapaPanel UI stub INCOMPLETO — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "NC → CAPA (governance view)"
     },
     {
       "module": "Quality",
@@ -1207,12 +1212,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "Parte 7.2: backend NC→CAPA VERDE (API); NcrCapaPanel UI stub INCOMPLETO — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "NC → CAPA (governance view)"
     },
     {
       "module": "Quality",
@@ -1226,12 +1232,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "POST inspections comprovado em certifiedScenarios",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Inspeção operacional"
     },
     {
       "module": "Quality",
@@ -1287,12 +1294,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "notes": "Parte 7.2: API SST lifecycle VERDE; UI incident placeholder — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Incidente / near-miss / treinamento vencido"
     },
     {
       "module": "SST",
@@ -1306,12 +1314,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "notes": "Parte 7.2: API SST lifecycle VERDE; UI incident placeholder — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Incidente / near-miss / treinamento vencido"
     },
     {
       "module": "SST",
@@ -1574,6 +1583,205 @@
       "evidence": null,
       "notes": "",
       "lastValidatedAt": null
+    }
+  ],
+  "certifiedScenarios": [
+    {
+      "domain": "Quality",
+      "scenario": "NC → CAPA → Auditoria",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-1782077258269",
+      "flows": [
+        {
+          "feature": "Registrar NC (inspeção não conforme)",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/quality-intelligence/inspections"
+          },
+          "backendService": "services/qualityIntelligenceService.js",
+          "tables": [
+            "quality_inspections"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "gerente",
+            "diretor",
+            "admin",
+            "ceo"
+          ]
+        },
+        {
+          "feature": "Instanciar workflow NCR universal",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/instance"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_workflow_instance"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Transição NCR submit → quality.ncr.opened",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/transition"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_audit_chain"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Instanciar CAPA vinculada à NC",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/instance"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_workflow_instance"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Transição CAPA submit → quality.capa.created",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/transition"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_audit_chain"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 403,
+        "leaked": false
+      },
+      "uiGap": {
+        "screen": "QualityGovernanceHub / NcrCapaPanel",
+        "route": "/app/quality/operational?view=ncr",
+        "status": "INCOMPLETO",
+        "notes": "KPIs stub; backend comprovado via API E2E"
+      }
+    },
+    {
+      "domain": "SST",
+      "scenario": "Incidente / Quase-acidente / Treinamento vencido",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-sst-1782078195593",
+      "flows": [
+        {
+          "feature": "Registrar incidente SST",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Registrar quase-acidente",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Treinamento vencido + alerta HR",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts",
+            "hr_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Listar alertas (Notification Center / Cérebro Operacional)",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/operational-brain/alerts"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "autenticado tenant"
+          ]
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 200,
+        "resolve_status": 400,
+        "leaked": []
+      },
+      "uiGap": {
+        "screen": "SafetyOperationalWorkspace (view=incident)",
+        "route": "/app/safety/operational?view=incident",
+        "status": "INCOMPLETO",
+        "notes": "Workspace incident sem formulário; API POST /events pronta para integração industrial"
+      }
     }
   ]
 }

@@ -278,12 +278,6 @@ async function resolve(id, userId, companyId) {
   return !!(r.rows && r.rows[0]);
 }
 
-/**
- * Alerta derivado do plano operacional (execução segura — só registo interno / painel).
- * @param {string} companyId
- * @param {object} opts
- * @returns {Promise<string|null>} id ou null
- */
 async function createPlanningDerivedAlert(companyId, opts = {}) {
   const cid = companyId != null ? String(companyId).trim() : '';
   if (!cid) {
@@ -337,11 +331,74 @@ async function getTimeline(companyId, opts = {}) {
   }));
 }
 
+/** Tipos SST canónicos para registo industrial (Parte 7.2 / NR integração). */
+const SST_LIFECYCLE_KINDS = Object.freeze({
+  incident: { tipo_alerta: 'sst_incident_created', default_severity: 'alta' },
+  near_miss: { tipo_alerta: 'sst_near_miss', default_severity: 'media' },
+  training_expired: { tipo_alerta: 'sst_training_expired', default_severity: 'media' }
+});
+
+/**
+ * Regista evento SST (incidente, quase-acidente, treinamento vencido) em operational_alerts
+ * e dispara SST_LIFECYCLE via sstNotificationService.
+ * @returns {Promise<{ id: string, tipo_alerta: string }|null>}
+ */
+async function createSstLifecycleAlert(companyId, opts = {}) {
+  const kind = SST_LIFECYCLE_KINDS[opts.kind];
+  if (!kind) {
+    throw new Error(`createSstLifecycleAlert: kind inválido (${opts.kind})`);
+  }
+  const titulo = opts.title != null ? String(opts.title).slice(0, 500) : 'Evento SST';
+  const mensagem = opts.message != null ? String(opts.message).slice(0, 4000) : '';
+  const severidade = opts.severity != null ? String(opts.severity).slice(0, 32) : kind.default_severity;
+  const meta = {
+    kind: opts.kind,
+    location: opts.location || null,
+    reported_by: opts.reported_by || null,
+    correlation_id: opts.correlation_id || null,
+    ...(opts.metadata && typeof opts.metadata === 'object' ? opts.metadata : {})
+  };
+
+  const id = await createPlanningDerivedAlert(companyId, {
+    tipo_alerta: kind.tipo_alerta,
+    titulo,
+    mensagem,
+    severidade,
+    source: 'safety_operational',
+    metadata: meta
+  });
+
+  if (!id) return null;
+
+  if (opts.kind === 'training_expired' && opts.hr_alert !== false) {
+    try {
+      await db.query(
+        `INSERT INTO hr_alerts (company_id, alert_type, severity, title, description, metrics)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+        [
+          companyId,
+          'treinamento_vencido',
+          severidade === 'alta' ? 'high' : 'medium',
+          titulo,
+          mensagem,
+          JSON.stringify({ source: 'sst_lifecycle', operational_alert_id: id, ...meta })
+        ]
+      );
+    } catch (err) {
+      console.warn('[operationalAlertsService][createSstLifecycleAlert][hr_alert]', err?.message ?? err);
+    }
+  }
+
+  return { id, tipo_alerta: kind.tipo_alerta };
+}
+
 module.exports = {
   checkAndCreate,
   listPending,
   resolve,
   getTimeline,
   createPlanningDerivedAlert,
-  persistDecisionEngineAlerts
+  createSstLifecycleAlert,
+  persistDecisionEngineAlerts,
+  SST_LIFECYCLE_KINDS
 };

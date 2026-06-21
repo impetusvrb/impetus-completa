@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "state": "in_progress",
+    "event_emitted": "quality.capa.created",
+    "shadow": false
+  }
+}

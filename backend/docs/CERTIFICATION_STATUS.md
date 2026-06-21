@@ -18,9 +18,9 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | Flags baseline | ✅ Congelado (`FLAG_BASELINE_FROZEN.md`) |
 | Anti-drift | ✅ Gate disponível (`checkMatrixDrift.js`) |
 | E2E smoke core (GET, 7 perfis) | ✅ 70 chamadas, 0×5xx |
-| E2E domínios (10 cenários Parte 7.2) | ❌ Pendente |
-| Evidências versionadas | ❌ Estrutura criada, 0 cenários |
-| Classificação VERDE | ❌ 0 telas |
+| E2E domínios (10 cenários Parte 7.2) | 🟡 2/10 (Quality, SST) |
+| Evidências versionadas | 🟡 2 cenários (`quality/nc-create/`, `safety/lifecycle/`) |
+| Classificação VERDE | 🟡 2 cenários backend (9 fluxos API) |
 | Selo Produção Enterprise | ❌ Não alcançado |
 
 ---
@@ -34,7 +34,7 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | 4 | `FLAG_BASELINE_FROZEN.md` | ✅ | `backend/docs/FLAG_BASELINE_FROZEN.md` |
 | 5 | Varredura mocks | 🟡 | Sem `Math.random` em `components/charts/`; widgets com "indisponível" = estado vazio legítimo |
 | 6 | Toda linha classificada | 🟡 | 72 `NAO_VALIDADO`, 5 `REDIRECT` — falta VERDE/AMARELO/MOCK por execução |
-| 7 | 10 cenários E2E + 6 evidências | ❌ | `backend/docs/evidence/` vazio |
+| 7 | 10 cenários E2E + 6 evidências | 🟡 | 2/10 — quality + safety |
 | 8 | `FUNCTIONAL_MATRIX.json` + `.md` sync | ✅ | Regenerado 2026-06-21 |
 | 9 | Gate drift CI | 🟡 | Script pronto; integração CI pendente |
 | 10 | Selo declarado | ❌ | — |
@@ -55,7 +55,10 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | `backend/scripts/audit/dumpEffectiveFlags.js` | Dump flags (Parte 4) |
 | `backend/scripts/audit/checkMatrixDrift.js` | Anti-drift (Parte 9) |
 | `backend/scripts/e2e_role_smoke.js` | Smoke GET por perfil |
-| `backend/docs/evidence/README.md` | Template evidências |
+| `backend/scripts/audit/e2e_quality_nc_capa.js` | E2E Quality NC→CAPA |
+| `backend/scripts/audit/e2e_sst_lifecycle.js` | E2E SST incidente/near-miss/treinamento |
+| `backend/scripts/audit/applyCertEvidenceToMatrix.js` | Reclassificação matriz pós-evidência |
+| `backend/migrations/operational_alerts_sst_tipo_alerta_migration.sql` | Tipos SST em operational_alerts |
 
 ---
 
@@ -69,14 +72,11 @@ Chamadas api.js:    780
 Endpoints ref. FE:  617
 UNRESOLVED:         0
 
-Status (estático):
-  NAO_VALIDADO:     72
+Status (estático + certificação):
+  NAO_VALIDADO:     67
   REDIRECT:         5
-  VERDE:            0
-  AMARELO:          0
-  MOCK:             0
-  INCOMPLETO:       0
-  DESABILITADO:     0
+  AMARELO:          5  (Quality + SST workspace — UI parcial)
+  Cenários VERDE:   2  (Quality NC→CAPA, SST lifecycle)
 ```
 
 > **Regra do manual:** VERDE nunca é atribuído por análise estática — exige Parte 7 (execução + 6 evidências).
@@ -125,20 +125,38 @@ Status (estático):
 
 403 em rotas admin para perfis operacionais = **gating correcto**.
 
-### 7.2 Cenários obrigatórios (Parte 7.2) — PENDENTES
+### 7.2 Cenários obrigatórios (Parte 7.2)
 
-| Domínio | Cenário | Status |
-|---------|---------|--------|
-| Quality | NC → CAPA → Auditoria | ❌ |
-| SST | Incidente / Treinamento vencido | ❌ |
-| ESG | Emissão / Resíduo | ❌ |
-| ManuIA | Diagnóstico → OS → Histórico | ❌ |
-| TPM | Plano preventivo → execução | ❌ |
-| AIOI | Correlação → Insight → Escalonamento | ❌ |
-| Executive | Dashboard por perfil | 🟡 smoke GET only |
-| Billing | Webhook Asaas | ❌ |
-| DSR/LGPD | Pedido titular | 🟡 GET 200 (ceo/admin) |
-| Event Governance | Evento → política → decisão | ❌ |
+| Domínio | Cenário | Status | Evidência |
+|---------|---------|--------|-----------|
+| **Quality** | NC → CAPA → Auditoria | ✅ **VERDE** (API+BD) | `backend/docs/evidence/quality/nc-create/` |
+| **SST** | Incidente / Quase-acidente / Treinamento vencido | ✅ **VERDE** (API+BD) | `backend/docs/evidence/safety/lifecycle/` |
+| ESG | Emissão / Resíduo | ❌ | — |
+| ManuIA | Diagnóstico → OS → Histórico | ❌ | — |
+| TPM | Plano preventivo → execução | ❌ | — |
+| AIOI | Correlação → Insight → Escalonamento | ❌ | — |
+| Executive | Dashboard por perfil | 🟡 smoke GET only | — |
+| Billing | Webhook Asaas | ❌ | — |
+| DSR/LGPD | Pedido titular | 🟡 GET 200 (ceo/admin) | — |
+| Event Governance | Evento → política → decisão | ❌ | — |
+
+#### SST Lifecycle — detalhe (2026-06-21)
+
+- **API:** `POST /api/safety-operational/events` (`incident`, `near_miss`, `training_expired`)
+- **Flag:** `IMPETUS_SAFETY_OPERATIONAL_RUNTIME_ENABLED=true`
+- **Persistência:** `operational_alerts` + `hr_alerts` (treinamento vencido)
+- **Notificação:** `SST_LIFECYCLE` via `sstNotificationService`
+- **Migration:** `operational_alerts_sst_tipo_alerta_migration.sql`
+- **Gap UI:** `SafetyOperationalWorkspace` view=incident — placeholder
+
+#### Quality NC→CAPA — detalhe (2026-06-21)
+
+- **Script:** `node backend/scripts/audit/e2e_quality_nc_capa.js`
+- **5 passos HTTP:** inspeção NC → NCR instance → NCR transition (`quality.ncr.opened`) → CAPA instance → CAPA transition (`quality.capa.created`)
+- **Persistência:** `quality_inspections`, `impetus_quality_workflow_instance`, `impetus_quality_audit_chain`
+- **Isolamento:** Tenant B → HTTP 403, sem leak do registo NC
+- **Gap UI:** `NcrCapaPanel` (QualityGovernanceHub) permanece **INCOMPLETO** — KPIs stub; telas Quality → **AMARELO**
+- **Matriz:** `certifiedScenarios[0]` + `applyCertEvidenceToMatrix.js`
 
 ---
 
@@ -146,8 +164,8 @@ Status (estático):
 
 | P | Problema | Classificação | Acção |
 |---|----------|---------------|-------|
-| P0 | 0 telas VERDE com evidência | Certificação bloqueada | Executar Parte 7.2 por domínio |
-| P1 | 72 telas NAO_VALIDADO | Cobertura | E2E + reclassificação |
+| P0 | 0 telas VERDE com evidência | Certificação bloqueada | Continuar Parte 7.2 (8 domínios restantes) |
+| P1 | 67 telas NAO_VALIDADO | Cobertura | E2E + reclassificação |
 | P1 | Telemetria PLC sem leitura recente | AMARELO | Widgets "indisponível" no dashboard CEO |
 | P2 | Gate drift não no CI | Governança | Adicionar job `checkMatrixDrift --fail-on-drift` |
 | P2 | Rastreio botão→endpoint (v2) | Matriz | Extender `buildFunctionalMatrix.js` com parse por componente |
@@ -169,18 +187,25 @@ node backend/scripts/audit/checkMatrixDrift.js --fail-on-drift
 
 # Smoke E2E por perfil
 node backend/scripts/e2e_role_smoke.js
+
+# Quality NC→CAPA (Parte 7.2)
+node backend/scripts/audit/e2e_quality_nc_capa.js
+
+# SST lifecycle (Parte 7.2)
+node backend/scripts/audit/e2e_sst_lifecycle.js
+
+# Reclassificar matriz
+node backend/scripts/audit/applyCertEvidenceToMatrix.js
 ```
 
 ---
 
 ## 10. Próximo ciclo (ordem obrigatória)
 
-1. **Quality** — cenário NC→CAPA com 6 evidências em `backend/docs/evidence/quality/nc-create/`
-2. **Executive** — dashboard CEO/Diretor: validar widgets com telemetria real ou classificar AMARELO
-3. **ManuIA** — fluxo diagnóstico→OS
-4. **Validação Organizacional** — revalidar após fix `roleVerification` (já funcional em teste directo)
-5. Integrar `checkMatrixDrift.js` no CI
-6. Reclassificar matriz: `NAO_VALIDADO` → VERDE/AMARELO conforme evidência
+1. ~~**Quality** — cenário NC→CAPA~~ ✅
+2. ~~**SST** — incidente / treinamento vencido~~ ✅
+3. **Executive** — dashboard CEO/Diretor
+4. **ManuIA** — fluxo diagnóstico→OS
 
 ---
 

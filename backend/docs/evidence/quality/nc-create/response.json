@@ -1,0 +1,164 @@
+{
+  "inspection": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "inspection": {
+        "id": "ed13cf85-1258-4c07-877b-22ba8a2f1205",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "inspection_date": "2026-06-21T00:00:00.000Z",
+        "inspection_type": "cert_e2e_process",
+        "raw_material_id": null,
+        "lot_number": "CERT-NC-77258269",
+        "product_id": null,
+        "machine_used": null,
+        "line_id": null,
+        "operator_id": null,
+        "operator_name": null,
+        "result": "non_conforming",
+        "defects_count": 3,
+        "rework_count": 0,
+        "defects_description": "[CERT-E2E cert-1782077258269] Desvio dimensional detectado em linha piloto.",
+        "corrective_action": "[CERT-E2E] CAPA pendente — acção correctiva de contenção.",
+        "inspector_id": "d565c345-7668-4f42-b196-404715578ee0",
+        "source_type": null,
+        "source_id": null,
+        "metadata": {},
+        "created_at": "2026-06-21T21:27:38.346Z"
+      }
+    }
+  },
+  "ncr_create": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "instance": {
+        "id": "d171575e-16c6-43fa-8171-038941a94031",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "workflow_def_id": "a1000000-0000-4000-8000-000000000001",
+        "current_state": "opened",
+        "context": {
+          "origin": "cert_e2e",
+          "severity": "major",
+          "lot_number": "CERT-NC-77258269",
+          "inspection_id": "ed13cf85-1258-4c07-877b-22ba8a2f1205"
+        },
+        "correlation_id": "76e16c59-e5e6-472f-8d7f-9874c8df910d",
+        "trace_id": "76e16c59-e5e6-472f-8d7f-9874c8df910d",
+        "idempotency_key": "cert:ncr:cert-1782077258269",
+        "created_at": "2026-06-21T21:27:38.388Z",
+        "updated_at": "2026-06-21T21:27:38.388Z"
+      },
+      "definition": {
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "definition": {
+          "events": {
+            "submit": "quality.ncr.opened",
+            "approve": "quality.workflow.transition",
+            "dispose": "quality.ncr.closed",
+            "escalate": "quality.risk.escalated"
+          },
+          "states": {
+            "closed": {
+              "transitions": {}
+            },
+            "opened": {
+              "transitions": {
+                "cancel": "closed",
+                "submit": "under_review"
+              }
+            },
+            "escalated": {
+              "transitions": {
+                "resolve": "closed"
+              }
+            },
+            "under_review": {
+              "transitions": {
+                "reject": "opened",
+                "approve": "disposition_pending"
+              }
+            },
+            "disposition_pending": {
+              "transitions": {
+                "dispose": "closed",
+                "escalate": "escalated"
+              }
+            }
+          },
+          "initial_state": "opened",
+          "schema_version": 1
+        }
+      }
+    }
+  },
+  "ncr_transition": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "state": "under_review",
+      "event_emitted": "quality.ncr.opened",
+      "shadow": false
+    }
+  },
+  "capa_create": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "instance": {
+        "id": "46c9666c-9593-4452-bab4-843a2cba4a41",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "workflow_def_id": "a1000000-0000-4000-8000-000000000002",
+        "current_state": "draft",
+        "context": {
+          "linked_nc": "CERT-NC-77258269",
+          "inspection_id": "ed13cf85-1258-4c07-877b-22ba8a2f1205",
+          "ncr_instance_id": "d171575e-16c6-43fa-8171-038941a94031",
+          "root_cause_hypothesis": "Variação de processo — cert E2E"
+        },
+        "correlation_id": "76e16c59-e5e6-472f-8d7f-9874c8df910d",
+        "trace_id": "76e16c59-e5e6-472f-8d7f-9874c8df910d",
+        "idempotency_key": "cert:capa:cert-1782077258269",
+        "created_at": "2026-06-21T21:27:38.442Z",
+        "updated_at": "2026-06-21T21:27:38.442Z"
+      },
+      "definition": {
+        "id": "a1000000-0000-4000-8000-000000000002",
+        "definition": {
+          "events": {
+            "extend": "quality.capa.extended",
+            "submit": "quality.capa.created",
+            "verify": "quality.capa.verified"
+          },
+          "states": {
+            "draft": {
+              "transitions": {
+                "submit": "in_progress"
+              }
+            },
+            "closed": {
+              "transitions": {}
+            },
+            "in_progress": {
+              "transitions": {
+                "extend": "in_progress",
+                "verify": "closed"
+              }
+            }
+          },
+          "initial_state": "draft",
+          "schema_version": 1
+        }
+      }
+    }
+  },
+  "capa_transition": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "state": "in_progress",
+      "event_emitted": "quality.capa.created",
+      "shadow": false
+    }
+  }
+}

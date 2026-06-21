@@ -1,0 +1,73 @@
+{
+  "run_id": "cert-sst-1782078195593",
+  "started_at": "2026-06-21T21:43:15.594Z",
+  "scenario": "SST Incidente / Quase-acidente / Treinamento vencido",
+  "steps": [
+    {
+      "step": "0_health",
+      "status": 200,
+      "enabled": true
+    },
+    {
+      "step": "post_incident",
+      "status": 200,
+      "event_id": "e427452a-a32d-49d4-97e2-8aca960c3ec8"
+    },
+    {
+      "step": "post_near_miss",
+      "status": 200,
+      "event_id": "fa1b8a30-5496-4a9f-9c45-70b9c968aee0"
+    },
+    {
+      "step": "post_training_expired",
+      "status": 200,
+      "event_id": "927eb707-334b-47a0-a6e6-e60e5688b7e4"
+    },
+    {
+      "step": "list_alerts",
+      "status": 200,
+      "count": 7
+    }
+  ],
+  "ok": true,
+  "alert_ids": [
+    "e427452a-a32d-49d4-97e2-8aca960c3ec8",
+    "fa1b8a30-5496-4a9f-9c45-70b9c968aee0",
+    "927eb707-334b-47a0-a6e6-e60e5688b7e4"
+  ],
+  "users": {
+    "actor": {
+      "name": "Carlos Henrique Ferreira",
+      "role": "supervisor",
+      "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
+    },
+    "other_tenant": {
+      "name": "Admin",
+      "company_id": "21dd3cee-2efa-4936-908f-9ff1ba04e2a3"
+    }
+  },
+  "safety_runtime": {
+    "ok": true,
+    "domain": "safety",
+    "enabled": true,
+    "flags": {
+      "operational": true,
+      "offline": false,
+      "kiosk": false
+    }
+  },
+  "isolation": {
+    "tested": true,
+    "ok": true,
+    "other_status": 200,
+    "resolve_status": 400,
+    "leaked": []
+  },
+  "finished_at": "2026-06-21T21:43:15.978Z",
+  "classification": {
+    "POST /api/safety-operational/events": "VERDE",
+    "GET /api/dashboard/operational-brain/alerts": "VERDE",
+    "SafetyOperationalWorkspace (UI incident)": "INCOMPLETO",
+    "evidence": "backend/docs/evidence/safety/lifecycle/"
+  }
+}

@@ -1265,3 +1265,44 @@
 - Preencher coluna **Flags** por endpoint com o estado efetivo (`dumpEffectiveFlags.js`).
 - Executar cenários **E2E** por domínio e anexar as 6 evidências.
 - Reclassificar `NAO_VALIDADO` → VERDE/AMARELO/MOCK/INCOMPLETO conforme execução.
+## Cenários certificados (Parte 7.2 E2E)
+
+> Atualizado por `applyCertEvidenceToMatrix.js` — não sobrescrever com buildFunctionalMatrix.
+
+### Quality: NC → CAPA → Auditoria
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/quality/nc-create/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-1782077258269 |
+| Isolamento tenant | OK (HTTP 403) |
+| Gap UI | QualityGovernanceHub / NcrCapaPanel → **INCOMPLETO** |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Registrar NC (inspeção não conforme) | `POST /api/quality-intelligence/inspections` | VERDE |
+| Instanciar workflow NCR universal | `POST /api/internal/quality-universal/workflows/instance` | VERDE |
+| Transição NCR submit → quality.ncr.opened | `POST /api/internal/quality-universal/workflows/transition` | VERDE |
+| Instanciar CAPA vinculada à NC | `POST /api/internal/quality-universal/workflows/instance` | VERDE |
+| Transição CAPA submit → quality.capa.created | `POST /api/internal/quality-universal/workflows/transition` | VERDE |
+
+### SST: Incidente / Quase-acidente / Treinamento vencido
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/safety/lifecycle/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-sst-1782078195593 |
+| Isolamento tenant | OK (HTTP 200) |
+| Gap UI | SafetyOperationalWorkspace (view=incident) → **INCOMPLETO** |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Registrar incidente SST | `POST /api/safety-operational/events` | VERDE |
+| Registrar quase-acidente | `POST /api/safety-operational/events` | VERDE |
+| Treinamento vencido + alerta HR | `POST /api/safety-operational/events` | VERDE |
+| Listar alertas (Notification Center / Cérebro Operacional) | `GET /api/dashboard/operational-brain/alerts` | VERDE |
+

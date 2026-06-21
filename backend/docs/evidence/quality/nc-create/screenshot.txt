@@ -1,0 +1,3 @@
+[Placeholder] UI NcrCapaPanel ainda stub — fluxo backend comprovado via API.
+Rota: /app/quality/operational?view=ncr
+Run: cert-1782077258269

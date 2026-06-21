@@ -1,0 +1,59 @@
+{
+  "run_id": "cert-1782077258269",
+  "started_at": "2026-06-21T21:27:38.270Z",
+  "scenario": "Quality NC → CAPA",
+  "steps": [
+    {
+      "step": "1_nc_inspection",
+      "status": 200,
+      "endpoint": "POST /api/quality-intelligence/inspections"
+    },
+    {
+      "step": "2_ncr_instance",
+      "status": 200
+    },
+    {
+      "step": "3_ncr_transition_submit",
+      "status": 200,
+      "event": "quality.ncr.opened"
+    },
+    {
+      "step": "4_capa_instance",
+      "status": 200
+    },
+    {
+      "step": "5_capa_transition_submit",
+      "status": 200,
+      "event": "quality.capa.created"
+    }
+  ],
+  "ok": true,
+  "classification": {
+    "POST /api/quality-intelligence/inspections (NC)": "VERDE",
+    "POST /api/internal/quality-universal/workflows/* (NCR+CAPA)": "VERDE",
+    "QualityGovernanceHub NcrCapaPanel (UI)": "INCOMPLETO",
+    "evidence": "backend/docs/evidence/quality/nc-create/"
+  },
+  "users": {
+    "actor": {
+      "name": "Carlos Henrrique Batista",
+      "role": "gerente",
+      "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
+    },
+    "admin": {
+      "name": "gustavo junior da silva",
+      "role": "admin"
+    },
+    "other_tenant": {
+      "name": "Admin",
+      "company_id": "21dd3cee-2efa-4936-908f-9ff1ba04e2a3"
+    }
+  },
+  "isolation": {
+    "tested": true,
+    "ok": true,
+    "other_status": 403,
+    "leaked": false
+  },
+  "finished_at": "2026-06-21T21:27:38.482Z"
+}

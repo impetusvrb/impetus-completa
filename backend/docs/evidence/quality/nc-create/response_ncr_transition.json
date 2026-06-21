@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "state": "under_review",
+    "event_emitted": "quality.ncr.opened",
+    "shadow": false
+  }
+}

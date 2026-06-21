@@ -1,0 +1,26 @@
+[
+  {
+    "id": "e427452a-a32d-49d4-97e2-8aca960c3ec8",
+    "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+    "tipo_alerta": "sst_incident_created",
+    "titulo": "[CERT cert-sst-1782078195593] Incidente — queda de objeto",
+    "severidade": "alta",
+    "source": "safety_operational"
+  },
+  {
+    "id": "fa1b8a30-5496-4a9f-9c45-70b9c968aee0",
+    "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+    "tipo_alerta": "sst_near_miss",
+    "titulo": "[CERT cert-sst-1782078195593] Quase-acidente — empilhadeira",
+    "severidade": "media",
+    "source": "safety_operational"
+  },
+  {
+    "id": "927eb707-334b-47a0-a6e6-e60e5688b7e4",
+    "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+    "tipo_alerta": "sst_training_expired",
+    "titulo": "[CERT cert-sst-1782078195593] NR-35 vencida",
+    "severidade": "media",
+    "source": "safety_operational"
+  }
+]

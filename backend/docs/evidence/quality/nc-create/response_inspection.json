@@ -1,0 +1,29 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "inspection": {
+      "id": "ed13cf85-1258-4c07-877b-22ba8a2f1205",
+      "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+      "inspection_date": "2026-06-21T00:00:00.000Z",
+      "inspection_type": "cert_e2e_process",
+      "raw_material_id": null,
+      "lot_number": "CERT-NC-77258269",
+      "product_id": null,
+      "machine_used": null,
+      "line_id": null,
+      "operator_id": null,
+      "operator_name": null,
+      "result": "non_conforming",
+      "defects_count": 3,
+      "rework_count": 0,
+      "defects_description": "[CERT-E2E cert-1782077258269] Desvio dimensional detectado em linha piloto.",
+      "corrective_action": "[CERT-E2E] CAPA pendente — acção correctiva de contenção.",
+      "inspector_id": "d565c345-7668-4f42-b196-404715578ee0",
+      "source_type": null,
+      "source_id": null,
+      "metadata": {},
+      "created_at": "2026-06-21T21:27:38.346Z"
+    }
+  }
+}
