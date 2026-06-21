@@ -1,0 +1,317 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "enabled": false,
+    "shadow_mode": true,
+    "events_observed": 4,
+    "correlations_detected": 7,
+    "insights_generated": 6,
+    "shadow_total": 6,
+    "shadow_matches": 6,
+    "policy_id": "AIOI_INSIGHT",
+    "feed": {
+      "tenants": 1,
+      "events_buffered": 4
+    },
+    "catalog": {
+      "policies": [
+        {
+          "id": "BILLING_EMAIL_DAY3",
+          "category": "billing",
+          "eventTypes": [
+            "subscription_notification_day3",
+            "billing_day3",
+            "billing_email_day3"
+          ],
+          "sourceModules": [
+            "subscriptionBillingNotificationService"
+          ],
+          "channels": [
+            "email"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "BILLING_APP_DAY5",
+          "category": "billing",
+          "eventTypes": [
+            "subscription_notification_day5",
+            "billing_day5",
+            "billing_app_day5"
+          ],
+          "sourceModules": [
+            "subscriptionBillingNotificationService"
+          ],
+          "channels": [
+            "app_impetus"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "BILLING_NC_DAY7",
+          "category": "billing",
+          "eventTypes": [
+            "subscription_notification_day7",
+            "billing_day7",
+            "billing_nc_day7"
+          ],
+          "sourceModules": [
+            "subscriptionBillingNotificationService"
+          ],
+          "channels": [
+            "notification_center"
+          ],
+          "escalationLevel": 3
+        },
+        {
+          "id": "DSR_LIFECYCLE",
+          "category": "dsr",
+          "eventTypes": [
+            "dsr_*"
+          ],
+          "sourceModules": [
+            "dsrNotificationService"
+          ],
+          "channels": [
+            "notification_center",
+            "notifications_table"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "MANUIA_INBOX",
+          "category": "manuia",
+          "eventTypes": [],
+          "sourceModules": [
+            "manuiaInboxIngestService",
+            "manuiaApp"
+          ],
+          "channels": [
+            "manuia_inbox",
+            "web_push_optional"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "QUALITY_LIFECYCLE",
+          "category": "quality",
+          "eventTypes": [
+            "quality_*"
+          ],
+          "sourceModules": [
+            "qualityIntelligenceService"
+          ],
+          "channels": [
+            "notification_center",
+            "dashboard",
+            "chat",
+            "app_impetus"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "SST_LIFECYCLE",
+          "category": "sst",
+          "eventTypes": [
+            "sst_*",
+            "safety_*"
+          ],
+          "sourceModules": [
+            "sstNotificationService"
+          ],
+          "channels": [
+            "notification_center",
+            "dashboard",
+            "chat",
+            "app_impetus"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "ESG_LIFECYCLE",
+          "category": "esg",
+          "eventTypes": [
+            "esg_*",
+            "environment_*",
+            "environmental_*"
+          ],
+          "sourceModules": [
+            "esgNotificationService"
+          ],
+          "channels": [
+            "notification_center",
+            "dashboard",
+            "chat",
+            "app_impetus"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "AIOI_INSIGHT",
+          "category": "aioi",
+          "eventTypes": [
+            "aioi_insight_*",
+            "aioi_*"
+          ],
+          "sourceModules": [
+            "aioiInsightService"
+          ],
+          "channels": [
+            "notification_center",
+            "dashboard",
+            "chat",
+            "app_impetus"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "TPM_CRITICAL",
+          "category": "tpm",
+          "eventTypes": [
+            "tpm_incident",
+            "tpm_*"
+          ],
+          "sourceModules": [
+            "tpmNotifications"
+          ],
+          "channels": [
+            "app_impetus",
+            "notification_center"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "AI_PROACTIVE",
+          "category": "ai",
+          "eventTypes": [
+            "failure_pattern",
+            "ai_proactive",
+            "proactive_*"
+          ],
+          "sourceModules": [
+            "aiProactiveMessagingService",
+            "proactiveAI",
+            "organizationalAI"
+          ],
+          "channels": [
+            "app_impetus",
+            "notification_center"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "EXECUTIVE_ALERT",
+          "category": "executive",
+          "eventTypes": [],
+          "sourceModules": [
+            "executiveMode",
+            "notificationBridgeService"
+          ],
+          "channels": [
+            "app_impetus",
+            "notification_center"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "OPERATIONAL_CRITICAL",
+          "category": "operational",
+          "eventTypes": [],
+          "sourceModules": [
+            "operationalAlertsService",
+            "operationalActionExecutor",
+            "operationalRealtimeCoordinator"
+          ],
+          "channels": [
+            "notification_center",
+            "dashboard",
+            "operational_alerts"
+          ],
+          "escalationLevel": 2
+        },
+        {
+          "id": "OPERATIONAL_MEDIUM",
+          "category": "operational",
+          "eventTypes": [],
+          "sourceModules": [
+            "operationalAlertsService",
+            "operationalActionExecutor",
+            "operationalRealtimeCoordinator"
+          ],
+          "channels": [
+            "dashboard",
+            "operational_alerts"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "CHAT_OPERATIONAL",
+          "category": "operational",
+          "eventTypes": [
+            "machine_stop",
+            "part_failure",
+            "operational_event",
+            "operational_decision"
+          ],
+          "sourceModules": [
+            "operationalRealtimeCoordinator",
+            "operationalActionExecutor"
+          ],
+          "channels": [
+            "notification_center",
+            "chat"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "NC_BRIDGE_MIRROR",
+          "category": "system",
+          "eventTypes": [],
+          "sourceModules": [
+            "notificationBridgeService",
+            "unifiedMessagingService"
+          ],
+          "channels": [
+            "notification_center"
+          ],
+          "escalationLevel": 1
+        },
+        {
+          "id": "DEFAULT_INFO",
+          "category": "general",
+          "eventTypes": [],
+          "sourceModules": [],
+          "channels": [
+            "dashboard"
+          ],
+          "escalationLevel": 0
+        }
+      ],
+      "severities": [
+        "medium",
+        "high",
+        "critical",
+        "low",
+        "info"
+      ],
+      "channels": [
+        "email",
+        "app_impetus",
+        "notification_center",
+        "notifications_table",
+        "manuia_inbox",
+        "web_push_optional",
+        "dashboard",
+        "chat",
+        "operational_alerts"
+      ],
+      "escalationLevels": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "domain": "Executive",
+  "run_id": "cert-p72-1782079418244",
+  "steps": [
+    {
+      "step": "dashboard_me",
+      "status": 200,
+      "profile": "director_financial"
+    },
+    {
+      "step": "dashboard_kpis",
+      "status": 200,
+      "count": 4
+    }
+  ],
+  "ok": true,
+  "isolation": {
+    "tested": true,
+    "ok": true
+  },
+  "finished_at": "2026-06-21T22:03:38.890Z",
+  "evidence": "backend/docs/evidence/executive/dashboard-profile/"
+}

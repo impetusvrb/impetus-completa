@@ -1,0 +1,171 @@
+{
+  "emission": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "result": {
+        "ok": true,
+        "envelope": {
+          "event_name": "environment.emission.alert_triggered",
+          "domain": "environment",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+          "trace_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "workflow_id": null,
+          "idempotency_key": "environment_op:environment.emission.alert_triggered:c187620e-c9d3-442b-b040-8f259bff5ee3:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
+          "payload": {
+            "stack_id": "CH-01",
+            "pm": 45,
+            "cert_run": "cert-p72-1782079418244"
+          },
+          "metadata": {
+            "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "origin_layer": "operational",
+            "intended_audience": "operator",
+            "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+            "environment_module": "operational_runtime",
+            "environment_shadow_mode": false,
+            "environment_runtime_version": 1,
+            "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "http_correlation_id": "imp-mqoc2o2z-qehyh293"
+          },
+          "occurred_at": "2026-06-21T22:03:39.006Z",
+          "schema_version": 1,
+          "event_id": "0b9de007-5b90-4404-bf38-1140899a8001",
+          "catalog": {
+            "type": "environment.emission.alert_triggered",
+            "domain": "environment",
+            "critical": true,
+            "version": 1
+          },
+          "partition_month": "2026-06"
+        },
+        "outbox": {
+          "ok": true,
+          "id": "0b9de007-5b90-4404-bf38-1140899a8001",
+          "persisted": true
+        },
+        "throttle": {
+          "allowed": true,
+          "observe_only": true,
+          "count": 49,
+          "limit": 2400
+        }
+      }
+    }
+  },
+  "waste": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "result": {
+        "ok": true,
+        "envelope": {
+          "event_name": "environment.waste.manifest_created",
+          "domain": "environment",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+          "trace_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "workflow_id": null,
+          "idempotency_key": "environment_op:environment.waste.manifest_created:c187620e-c9d3-442b-b040-8f259bff5ee3:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
+          "payload": {
+            "waste_class": "IIB",
+            "mtr_ref": "MTR-79418244"
+          },
+          "metadata": {
+            "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "origin_layer": "operational",
+            "intended_audience": "operator",
+            "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+            "environment_module": "operational_runtime",
+            "environment_shadow_mode": false,
+            "environment_runtime_version": 1,
+            "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "http_correlation_id": "imp-mqoc2o3r-ken998e3"
+          },
+          "occurred_at": "2026-06-21T22:03:39.026Z",
+          "schema_version": 1,
+          "event_id": "b3f117fe-4ca4-4f27-a8c1-cced87a88441",
+          "catalog": {
+            "type": "environment.waste.manifest_created",
+            "domain": "environment",
+            "critical": false,
+            "version": 1
+          },
+          "partition_month": "2026-06"
+        },
+        "outbox": {
+          "ok": true,
+          "id": "b3f117fe-4ca4-4f27-a8c1-cced87a88441",
+          "persisted": true
+        },
+        "throttle": {
+          "allowed": true,
+          "observe_only": true,
+          "count": 50,
+          "limit": 2400
+        }
+      }
+    }
+  },
+  "water": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "result": {
+        "ok": true,
+        "envelope": {
+          "event_name": "environment.water.sample_collected",
+          "domain": "environment",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+          "trace_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+          "workflow_id": null,
+          "idempotency_key": "environment_op:environment.water.sample_collected:c187620e-c9d3-442b-b040-8f259bff5ee3:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
+          "payload": {
+            "meter_id": "ETA-1",
+            "m3": 120.5
+          },
+          "metadata": {
+            "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "origin_layer": "operational",
+            "intended_audience": "operator",
+            "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+            "environment_module": "operational_runtime",
+            "environment_shadow_mode": false,
+            "environment_runtime_version": 1,
+            "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
+            "http_correlation_id": "imp-mqoc2o4c-hsvmu6vi"
+          },
+          "occurred_at": "2026-06-21T22:03:39.045Z",
+          "schema_version": 1,
+          "event_id": "bbdeac91-066e-4bbe-9917-de2e56f956d8",
+          "catalog": {
+            "type": "environment.water.sample_collected",
+            "domain": "environment",
+            "critical": false,
+            "version": 1
+          },
+          "partition_month": "2026-06"
+        },
+        "outbox": {
+          "ok": true,
+          "id": "bbdeac91-066e-4bbe-9917-de2e56f956d8",
+          "persisted": true
+        },
+        "throttle": {
+          "allowed": true,
+          "observe_only": true,
+          "count": 51,
+          "limit": 2400
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "events": [
+    {
+      "event_name": "environment.emission.alert_triggered",
+      "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+      "payload": {
+        "stack_id": "CH-01",
+        "pm": 45,
+        "cert_run": "cert-p72-1782079418244"
+      }
+    },
+    {
+      "event_name": "environment.waste.manifest_created",
+      "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+      "payload": {
+        "waste_class": "IIB",
+        "mtr_ref": "MTR-79418244"
+      }
+    },
+    {
+      "event_name": "environment.water.sample_collected",
+      "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3",
+      "payload": {
+        "meter_id": "ETA-1",
+        "m3": 120.5
+      }
+    }
+  ],
+  "correlation_id": "c187620e-c9d3-442b-b040-8f259bff5ee3"
+}

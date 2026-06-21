@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "enabled": false,
+    "shadow_mode": true,
+    "policies_loaded": 17,
+    "evaluations": 1,
+    "matches": 1,
+    "unmatched": 0,
+    "shadow_decisions": 1
+  }
+}

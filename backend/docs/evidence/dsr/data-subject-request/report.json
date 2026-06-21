@@ -1,0 +1,27 @@
+{
+  "domain": "DSR/LGPD",
+  "run_id": "cert-p72-1782079418244",
+  "steps": [
+    {
+      "step": "create_request",
+      "status": 201,
+      "id": "4eadbfb3-336b-4f6e-8c99-f54ba31c8406"
+    },
+    {
+      "step": "patch_request",
+      "status": 200
+    },
+    {
+      "step": "list_requests",
+      "status": 200
+    }
+  ],
+  "ok": true,
+  "isolation": {
+    "tested": true,
+    "ok": true,
+    "other_status": 200
+  },
+  "finished_at": "2026-06-21T22:03:39.170Z",
+  "evidence": "backend/docs/evidence/dsr/data-subject-request/"
+}

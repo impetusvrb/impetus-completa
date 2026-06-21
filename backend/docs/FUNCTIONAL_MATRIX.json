@@ -9,13 +9,14 @@
     "apiCallCount": 780,
     "unresolvedCount": 0,
     "statusDist": {
-      "NAO_VALIDADO": 67,
+      "NAO_VALIDADO": 63,
+      "AMARELO": 8,
       "REDIRECT": 5,
-      "AMARELO": 5,
-      "SCENARIO_VERDE": 2
+      "VERDE": 1,
+      "SCENARIO_VERDE": 10
     },
-    "certifiedScenarioCount": 2,
-    "lastCertificationAt": "2026-06-21T21:43:29.267Z"
+    "certifiedScenarioCount": 10,
+    "lastCertificationAt": "2026-06-21T22:03:59.929Z"
   },
   "rows": [
     {
@@ -95,12 +96,13 @@
       "guards": [
         "PrivateRoute"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/dsr/data-subject-request/",
+      "notes": "Pedido do titular",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Pedido do titular"
     },
     {
       "module": "Core",
@@ -194,12 +196,13 @@
         "SetupGuard",
         "Navigate"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "VERDE",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/executive/dashboard-profile/",
+      "notes": "Dashboard executivo por perfil",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Dashboard executivo por perfil"
     },
     {
       "module": "Core",
@@ -1437,12 +1440,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "notes": "Emissão / Resíduo / Consumo",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Emissão / Resíduo / Consumo"
     },
     {
       "module": "ESG",
@@ -1456,12 +1460,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "notes": "Emissão / Resíduo / Consumo",
+      "lastValidatedAt": "2026-06-21",
+      "feature": "Emissão / Resíduo / Consumo"
     },
     {
       "module": "Chat/IA",
@@ -1782,6 +1787,266 @@
         "status": "INCOMPLETO",
         "notes": "Workspace incident sem formulário; API POST /events pronta para integração industrial"
       }
+    },
+    {
+      "domain": "Executive",
+      "scenario": "Dashboard executivo por perfil",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/executive/dashboard-profile/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Perfil + KPIs executivos",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/me"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "KPIs tenant-scoped",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/kpis"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true
+      },
+      "uiGap": null
+    },
+    {
+      "domain": "ManuIA",
+      "scenario": "Diagnóstico → OS → Histórico",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Concluir sessão + criar OS",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/manutencao-ia/conclude-session"
+          },
+          "status": "VERDE",
+          "tables": [
+            "work_orders"
+          ]
+        },
+        {
+          "feature": "Histórico sessões",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/manutencao-ia/sessions"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "ESG",
+      "scenario": "Emissão / Resíduo / Consumo",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Alerta emissão",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Manifesto resíduo",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Amostra água/consumo",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "TPM",
+      "scenario": "Plano preventivo → execução → indicador",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/tpm/preventive-lifecycle/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Criar preventiva",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/dashboard/maintenance/preventives"
+          },
+          "status": "VERDE",
+          "tables": [
+            "maintenance_preventives"
+          ]
+        },
+        {
+          "feature": "Concluir preventiva",
+          "endpoint": {
+            "method": "PATCH",
+            "path": "/api/dashboard/maintenance/preventives/:id"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Indicadores summary",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/maintenance/summary"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "DSR/LGPD",
+      "scenario": "Pedido do titular",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/dsr/data-subject-request/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Criar pedido LGPD",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/lgpd/data-request"
+          },
+          "status": "VERDE",
+          "tables": [
+            "lgpd_data_requests"
+          ]
+        },
+        {
+          "feature": "Processar pedido (DPO)",
+          "endpoint": {
+            "method": "PATCH",
+            "path": "/api/lgpd/data-requests/:id"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 200
+      },
+      "uiGap": null
+    },
+    {
+      "domain": "Billing",
+      "scenario": "Webhook Asaas / subscrição",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/billing/asaas-webhook/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Webhook PAYMENT_CONFIRMED",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/webhooks/asaas"
+          },
+          "status": "VERDE",
+          "tables": [
+            "subscriptions",
+            "asaas_webhook_logs"
+          ]
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "Event Governance",
+      "scenario": "Evento → política → decisão",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/governance/event-policy-decision/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Produtor SST",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit status EG",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/status"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit SST lifecycle",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/sst"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "AIOI",
+      "scenario": "Correlação → Insight → Escalonamento",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/aioi/correlation-insight/",
+      "lastValidatedAt": "2026-06-21",
+      "run_id": "cert-p72-1782079418244",
+      "flows": [
+        {
+          "feature": "Eventos correlacionados (×3)",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit AIOI",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/aioi"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
     }
   ]
 }

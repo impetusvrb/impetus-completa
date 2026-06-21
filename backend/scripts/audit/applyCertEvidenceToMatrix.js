@@ -18,7 +18,15 @@ const MATRIX_MD = path.join(REPO, 'backend/docs/FUNCTIONAL_MATRIX.md');
 
 const REPORTS = {
   quality: path.join(REPO, 'backend/docs/evidence/quality/nc-create/report.json'),
-  sst: path.join(REPO, 'backend/docs/evidence/safety/lifecycle/report.json')
+  sst: path.join(REPO, 'backend/docs/evidence/safety/lifecycle/report.json'),
+  executive: path.join(REPO, 'backend/docs/evidence/executive/dashboard-profile/report.json'),
+  manuia: path.join(REPO, 'backend/docs/evidence/manuia/diagnosis-workorder/report.json'),
+  esg: path.join(REPO, 'backend/docs/evidence/esg/emission-waste-consumption/report.json'),
+  tpm: path.join(REPO, 'backend/docs/evidence/tpm/preventive-lifecycle/report.json'),
+  dsr: path.join(REPO, 'backend/docs/evidence/dsr/data-subject-request/report.json'),
+  billing: path.join(REPO, 'backend/docs/evidence/billing/asaas-webhook/report.json'),
+  governance: path.join(REPO, 'backend/docs/evidence/governance/event-policy-decision/report.json'),
+  aioi: path.join(REPO, 'backend/docs/evidence/aioi/correlation-insight/report.json')
 };
 
 function readJson(p) {
@@ -205,6 +213,149 @@ function patchSstScenario(matrix, report) {
   }
 }
 
+function patchFromConfig(matrix, report, cfg) {
+  const evidence = cfg.evidence || report.evidence;
+  const validatedAt = (report.finished_at || new Date().toISOString()).slice(0, 10);
+  upsertScenario(matrix, {
+    domain: cfg.domain,
+    scenario: cfg.scenario,
+    status: report.ok ? 'VERDE' : 'INCOMPLETO',
+    evidence,
+    lastValidatedAt: validatedAt,
+    run_id: report.run_id,
+    flows: cfg.flows,
+    tenantIsolation: report.isolation || null,
+    uiGap: cfg.uiGap || null
+  });
+  if (cfg.patchRows) {
+    for (const pr of cfg.patchRows) {
+      for (const row of matrix.rows || []) {
+        if (row.module === pr.module && (!pr.screen || row.screen === pr.screen)) {
+          row.status = report.ok ? pr.statusOk || 'AMARELO' : 'INCOMPLETO';
+          row.evidence = evidence;
+          row.lastValidatedAt = validatedAt;
+          row.feature = pr.feature || cfg.scenario;
+          row.notes = pr.notes || cfg.scenario;
+        }
+      }
+    }
+  }
+}
+
+function patchExecutive(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'Executive',
+    scenario: 'Dashboard executivo por perfil',
+    evidence: 'backend/docs/evidence/executive/dashboard-profile/',
+    flows: [
+      { feature: 'Perfil + KPIs executivos', endpoint: { method: 'GET', path: '/api/dashboard/me' }, status: 'VERDE' },
+      { feature: 'KPIs tenant-scoped', endpoint: { method: 'GET', path: '/api/dashboard/kpis' }, status: 'VERDE' }
+    ],
+    patchRows: [{ module: 'Core', screen: 'Dashboard', statusOk: 'VERDE', feature: 'Dashboard executivo por perfil' }]
+  });
+}
+
+function patchManuia(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'ManuIA',
+    scenario: 'Diagnóstico → OS → Histórico',
+    evidence: 'backend/docs/evidence/manuia/diagnosis-workorder/',
+    flows: [
+      { feature: 'Concluir sessão + criar OS', endpoint: { method: 'POST', path: '/api/manutencao-ia/conclude-session' }, status: 'VERDE', tables: ['work_orders'] },
+      { feature: 'Histórico sessões', endpoint: { method: 'GET', path: '/api/manutencao-ia/sessions' }, status: 'VERDE' }
+    ]
+  });
+}
+
+function patchEsg(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'ESG',
+    scenario: 'Emissão / Resíduo / Consumo',
+    evidence: 'backend/docs/evidence/esg/emission-waste-consumption/',
+    flows: [
+      { feature: 'Alerta emissão', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' },
+      { feature: 'Manifesto resíduo', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' },
+      { feature: 'Amostra água/consumo', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' }
+    ],
+    patchRows: [{ module: 'ESG', screen: 'EnvironmentOperationalWorkspacePage', statusOk: 'AMARELO' }]
+  });
+}
+
+function patchTpm(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'TPM',
+    scenario: 'Plano preventivo → execução → indicador',
+    evidence: 'backend/docs/evidence/tpm/preventive-lifecycle/',
+    flows: [
+      { feature: 'Criar preventiva', endpoint: { method: 'POST', path: '/api/dashboard/maintenance/preventives' }, status: 'VERDE', tables: ['maintenance_preventives'] },
+      { feature: 'Concluir preventiva', endpoint: { method: 'PATCH', path: '/api/dashboard/maintenance/preventives/:id' }, status: 'VERDE' },
+      { feature: 'Indicadores summary', endpoint: { method: 'GET', path: '/api/dashboard/maintenance/summary' }, status: 'VERDE' }
+    ]
+  });
+}
+
+function patchDsr(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'DSR/LGPD',
+    scenario: 'Pedido do titular',
+    evidence: 'backend/docs/evidence/dsr/data-subject-request/',
+    flows: [
+      { feature: 'Criar pedido LGPD', endpoint: { method: 'POST', path: '/api/lgpd/data-request' }, status: 'VERDE', tables: ['lgpd_data_requests'] },
+      { feature: 'Processar pedido (DPO)', endpoint: { method: 'PATCH', path: '/api/lgpd/data-requests/:id' }, status: 'VERDE' }
+    ],
+    patchRows: [{ module: 'Core', screen: 'RoleVerificationPage', statusOk: 'AMARELO' }]
+  });
+}
+
+function patchBilling(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'Billing',
+    scenario: 'Webhook Asaas / subscrição',
+    evidence: 'backend/docs/evidence/billing/asaas-webhook/',
+    flows: [
+      { feature: 'Webhook PAYMENT_CONFIRMED', endpoint: { method: 'POST', path: '/api/webhooks/asaas' }, status: 'VERDE', tables: ['subscriptions', 'asaas_webhook_logs'] }
+    ]
+  });
+}
+
+function patchGovernance(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'Event Governance',
+    scenario: 'Evento → política → decisão',
+    evidence: 'backend/docs/evidence/governance/event-policy-decision/',
+    flows: [
+      { feature: 'Produtor SST', endpoint: { method: 'POST', path: '/api/safety-operational/events' }, status: 'VERDE' },
+      { feature: 'Audit status EG', endpoint: { method: 'GET', path: '/api/audit/event-governance/status' }, status: 'VERDE' },
+      { feature: 'Audit SST lifecycle', endpoint: { method: 'GET', path: '/api/audit/event-governance/sst' }, status: 'VERDE' }
+    ]
+  });
+}
+
+function patchAioi(matrix, report) {
+  patchFromConfig(matrix, report, {
+    domain: 'AIOI',
+    scenario: 'Correlação → Insight → Escalonamento',
+    evidence: 'backend/docs/evidence/aioi/correlation-insight/',
+    flows: [
+      { feature: 'Eventos correlacionados (×3)', endpoint: { method: 'POST', path: '/api/safety-operational/events' }, status: 'VERDE' },
+      { feature: 'Audit AIOI', endpoint: { method: 'GET', path: '/api/audit/event-governance/aioi' }, status: 'VERDE' }
+    ]
+  });
+}
+
+const PATCHERS = {
+  quality: patchQualityScenario,
+  sst: patchSstScenario,
+  executive: patchExecutive,
+  manuia: patchManuia,
+  esg: patchEsg,
+  tpm: patchTpm,
+  dsr: patchDsr,
+  billing: patchBilling,
+  governance: patchGovernance,
+  aioi: patchAioi
+};
+
 function appendMdSection(matrix) {
   if (!fs.existsSync(MATRIX_MD)) return;
   let md = fs.readFileSync(MATRIX_MD, 'utf8');
@@ -261,13 +412,11 @@ function main() {
   const matrix = readJson(MATRIX);
   const applied = [];
 
-  if ((domain === 'all' || domain === 'quality') && fs.existsSync(REPORTS.quality)) {
-    patchQualityScenario(matrix, readJson(REPORTS.quality));
-    applied.push('quality');
-  }
-  if ((domain === 'all' || domain === 'sst') && fs.existsSync(REPORTS.sst)) {
-    patchSstScenario(matrix, readJson(REPORTS.sst));
-    applied.push('sst');
+  for (const [key, patcher] of Object.entries(PATCHERS)) {
+    if (domain !== 'all' && domain !== key) continue;
+    if (!fs.existsSync(REPORTS[key])) continue;
+    patcher(matrix, readJson(REPORTS[key]));
+    applied.push(key);
   }
 
   if (!applied.length) {

@@ -1,0 +1,27 @@
+{
+  "domain": "AIOI",
+  "run_id": "cert-p72-1782079418244",
+  "steps": [
+    {
+      "step": "near_miss_1",
+      "status": 200
+    },
+    {
+      "step": "near_miss_2",
+      "status": 200
+    },
+    {
+      "step": "near_miss_3",
+      "status": 200
+    },
+    {
+      "step": "audit_aioi",
+      "status": 200,
+      "correlations": 7,
+      "insights": 6
+    }
+  ],
+  "ok": true,
+  "finished_at": "2026-06-21T22:03:41.155Z",
+  "evidence": "backend/docs/evidence/aioi/correlation-insight/"
+}

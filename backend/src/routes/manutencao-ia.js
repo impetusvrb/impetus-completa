@@ -27,7 +27,12 @@ function requireMaintenanceProfile(req, res, next) {
   const profileStr = String(profile || '');
   const byCode = MAINTENANCE_PROFILES.has(profile);
   const byName = profileStr.includes('maintenance') || profileStr.includes('manutencao');
-  if (!byCode && !byName) {
+  const role = (user.role || '').toLowerCase();
+  const h = user.hierarchy_level ?? 5;
+  const fa = (user.functional_area || '').toLowerCase();
+  const byOperationalLead = ['gerente', 'supervisor', 'coordenador'].includes(role) && h <= 3;
+  const byFunctionalArea = ['maintenance', 'manutencao', 'manutenc'].some((x) => fa.includes(x));
+  if (!byCode && !byName && !byOperationalLead && !byFunctionalArea) {
     return res.status(403).json({
       ok: false,
       error: 'Acesso restrito à equipe de manutenção',

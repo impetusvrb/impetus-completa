@@ -510,6 +510,61 @@ async function getRecurringFailures(user) {
   }
 }
 
+function canManagePreventives(user) {
+  if (isMaintenanceProfile(user)) return true;
+  const role = (user?.role || '').toLowerCase();
+  return ['gerente', 'supervisor', 'coordenador', 'diretor', 'admin'].includes(role);
+}
+
+/**
+ * POST /preventives — cria preventiva agendada (fluxo industrial TPM).
+ */
+async function createPreventive(user, body = {}) {
+  if (!canManagePreventives(user)) {
+    return { error: 'Perfil de manutenção requerido', status: 403 };
+  }
+  const companyId = user.company_id;
+  if (!companyId) return { error: 'Empresa não definida', status: 400 };
+
+  const title = String(body.title || 'Preventiva CERT').slice(0, 500);
+  const machineName = body.machine_name != null ? String(body.machine_name).slice(0, 200) : null;
+  const sector = body.sector != null ? String(body.sector).slice(0, 120) : null;
+  const scheduledDate = body.scheduled_date || new Date().toISOString();
+
+  const r = await safeQuery(
+    `INSERT INTO maintenance_preventives
+      (company_id, title, machine_name, sector, preventive_type, status, scheduled_date, assigned_to)
+     VALUES ($1, $2, $3, $4, 'preventive', 'scheduled', $5::timestamptz, $6)
+     RETURNING id, title, machine_name, status, scheduled_date`,
+    [companyId, title, machineName, sector, scheduledDate, user.id],
+    []
+  );
+  if (!r[0]) return { error: 'Falha ao criar preventiva (tabela indisponível?)', status: 500 };
+  return { preventive: r[0] };
+}
+
+/**
+ * PATCH /preventives/:id — marca preventiva como concluída.
+ */
+async function completePreventive(user, id, _body = {}) {
+  if (!canManagePreventives(user)) {
+    return { error: 'Perfil de manutenção requerido', status: 403 };
+  }
+  const companyId = user.company_id;
+  if (!companyId || !id) return { error: 'Pedido inválido', status: 400 };
+
+  const r = await safeQuery(
+    `UPDATE maintenance_preventives
+     SET status = 'completed', updated_at = now()
+     WHERE id = $1::uuid AND company_id = $2::uuid
+     RETURNING id, title, status, scheduled_date`,
+    [id, companyId],
+    []
+  );
+  if (!r[0]) return { error: 'Preventiva não encontrada neste tenant', status: 404 };
+  return { preventive: r[0] };
+}
+
 module.exports = {
   isMaintenanceProfile,
   getSummary,
@@ -519,5 +574,7 @@ module.exports = {
   getInterventions,
   getPreventives,
   getPreventivesBoard,
-  getRecurringFailures
+  getRecurringFailures,
+  createPreventive,
+  completePreventive
 };

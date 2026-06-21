@@ -1,0 +1,44 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "enabled": false,
+    "registered_channels": 5,
+    "ready_channels": 5,
+    "execution_plans": 1,
+    "channels_ready_total": 4,
+    "channels_unavailable_total": 0,
+    "capabilities": [
+      {
+        "channel": "notification_center",
+        "available": true,
+        "executor_defined": true,
+        "executor": "notificationCenterExecutor"
+      },
+      {
+        "channel": "app_impetus",
+        "available": true,
+        "executor_defined": true,
+        "executor": "appImpetusExecutor"
+      },
+      {
+        "channel": "email",
+        "available": true,
+        "executor_defined": true,
+        "executor": "emailExecutor"
+      },
+      {
+        "channel": "dashboard",
+        "available": true,
+        "executor_defined": true,
+        "executor": "dashboardExecutor"
+      },
+      {
+        "channel": "chat",
+        "available": true,
+        "executor_defined": true,
+        "executor": "chatExecutor"
+      }
+    ]
+  }
+}

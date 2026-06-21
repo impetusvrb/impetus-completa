@@ -3,13 +3,9 @@
 > **Ciclo:** CERT-01.1  
 > **Data:** 2026-06-21  
 > **Metodologia:** `backend/docs/MANUAL_MATRIZ_FUNCIONAL_REAL.md` (fonte de verdade)  
-> **Selo alcançado:** **NENHUM** (ciclo em andamento — baseline instrumentada)
+> **Selo alcançado:** **Parcial** — Parte 7.2 completa (10/10 cenários backend VERDE)
 
----
-
-## 1. Resumo executivo
-
-O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria reproduzíveis**. A certificação operacional **não está concluída**: 72 de 77 telas permanecem `NAO_VALIDADO` (nenhuma linha VERDE com evidência E2E). Não foram detectados erros 5xx nos fluxos core testados por perfil.
+O IMPETUS possui **inventário estático completo**, **10 cenários E2E Parte 7.2 certificados** e ferramentas reproduzíveis. Telas UI parciais permanecem AMARELO onde aplicável.
 
 | Dimensão | Estado |
 |----------|--------|
@@ -18,10 +14,10 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | Flags baseline | ✅ Congelado (`FLAG_BASELINE_FROZEN.md`) |
 | Anti-drift | ✅ Gate disponível (`checkMatrixDrift.js`) |
 | E2E smoke core (GET, 7 perfis) | ✅ 70 chamadas, 0×5xx |
-| E2E domínios (10 cenários Parte 7.2) | 🟡 2/10 (Quality, SST) |
-| Evidências versionadas | 🟡 2 cenários (`quality/nc-create/`, `safety/lifecycle/`) |
-| Classificação VERDE | 🟡 2 cenários backend (9 fluxos API) |
-| Selo Produção Enterprise | ❌ Não alcançado |
+| E2E domínios (10 cenários Parte 7.2) | ✅ **10/10** |
+| Evidências versionadas | ✅ `backend/docs/evidence/*` |
+| Classificação cenários backend | ✅ 10× VERDE |
+| Selo Produção Enterprise | 🟡 Backend certificado; UI gaps documentados |
 
 ---
 
@@ -33,8 +29,8 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | 3 | Cadeias tela→BD rastreadas | 🟡 Parcial | Cruzamento path em `FUNCTIONAL_MATRIX.json`; botão→endpoint é v2 |
 | 4 | `FLAG_BASELINE_FROZEN.md` | ✅ | `backend/docs/FLAG_BASELINE_FROZEN.md` |
 | 5 | Varredura mocks | 🟡 | Sem `Math.random` em `components/charts/`; widgets com "indisponível" = estado vazio legítimo |
-| 6 | Toda linha classificada | 🟡 | 72 `NAO_VALIDADO`, 5 `REDIRECT` — falta VERDE/AMARELO/MOCK por execução |
-| 7 | 10 cenários E2E + 6 evidências | 🟡 | 2/10 — quality + safety |
+| 6 | Toda linha classificada | 🟡 | 63 `NAO_VALIDADO`, 8 `AMARELO`, 1 `VERDE`, 10 cenários certificados |
+| 7 | 10 cenários E2E + 6 evidências | ✅ | 10/10 — ver `backend/docs/evidence/README.md` |
 | 8 | `FUNCTIONAL_MATRIX.json` + `.md` sync | ✅ | Regenerado 2026-06-21 |
 | 9 | Gate drift CI | 🟡 | Script pronto; integração CI pendente |
 | 10 | Selo declarado | ❌ | — |
@@ -58,7 +54,11 @@ O IMPETUS possui **inventário estático completo** e **ferramentas de auditoria
 | `backend/scripts/audit/e2e_quality_nc_capa.js` | E2E Quality NC→CAPA |
 | `backend/scripts/audit/e2e_sst_lifecycle.js` | E2E SST incidente/near-miss/treinamento |
 | `backend/scripts/audit/applyCertEvidenceToMatrix.js` | Reclassificação matriz pós-evidência |
+| `backend/scripts/audit/e2e_cert_part72_batch.js` | E2E 8 domínios restantes |
+| `backend/scripts/audit/e2e_cert_all.js` | Runner 10 cenários |
+| `backend/scripts/audit/_certE2eCommon.js` | Utilitários E2E partilhados |
 | `backend/migrations/operational_alerts_sst_tipo_alerta_migration.sql` | Tipos SST em operational_alerts |
+| `backend/src/models/manuia_migration.sql` | work_orders + manuia (executar em BD nova) |
 
 ---
 
@@ -73,10 +73,11 @@ Endpoints ref. FE:  617
 UNRESOLVED:         0
 
 Status (estático + certificação):
-  NAO_VALIDADO:     67
+  NAO_VALIDADO:     63
   REDIRECT:         5
-  AMARELO:          5  (Quality + SST workspace — UI parcial)
-  Cenários VERDE:   2  (Quality NC→CAPA, SST lifecycle)
+  AMARELO:          8
+  VERDE (telas):    1  (Dashboard executivo)
+  Cenários VERDE:   10 (Parte 7.2 completa)
 ```
 
 > **Regra do manual:** VERDE nunca é atribuído por análise estática — exige Parte 7 (execução + 6 evidências).
@@ -129,16 +130,16 @@ Status (estático + certificação):
 
 | Domínio | Cenário | Status | Evidência |
 |---------|---------|--------|-----------|
-| **Quality** | NC → CAPA → Auditoria | ✅ **VERDE** (API+BD) | `backend/docs/evidence/quality/nc-create/` |
-| **SST** | Incidente / Quase-acidente / Treinamento vencido | ✅ **VERDE** (API+BD) | `backend/docs/evidence/safety/lifecycle/` |
-| ESG | Emissão / Resíduo | ❌ | — |
-| ManuIA | Diagnóstico → OS → Histórico | ❌ | — |
-| TPM | Plano preventivo → execução | ❌ | — |
-| AIOI | Correlação → Insight → Escalonamento | ❌ | — |
-| Executive | Dashboard por perfil | 🟡 smoke GET only | — |
-| Billing | Webhook Asaas | ❌ | — |
-| DSR/LGPD | Pedido titular | 🟡 GET 200 (ceo/admin) | — |
-| Event Governance | Evento → política → decisão | ❌ | — |
+| **Quality** | NC → CAPA → Auditoria | ✅ VERDE | `quality/nc-create/` |
+| **SST** | Incidente / Quase-acidente / Treinamento vencido | ✅ VERDE | `safety/lifecycle/` |
+| **Executive** | Dashboard por perfil | ✅ VERDE | `executive/dashboard-profile/` |
+| **ManuIA** | Diagnóstico → OS → Histórico | ✅ VERDE | `manuia/diagnosis-workorder/` |
+| **ESG** | Emissão / Resíduo / Consumo | ✅ VERDE | `esg/emission-waste-consumption/` |
+| **TPM** | Plano preventivo → execução | ✅ VERDE | `tpm/preventive-lifecycle/` |
+| **AIOI** | Correlação → Insight | ✅ VERDE | `aioi/correlation-insight/` |
+| **Billing** | Webhook Asaas | ✅ VERDE | `billing/asaas-webhook/` |
+| **DSR/LGPD** | Pedido titular | ✅ VERDE | `dsr/data-subject-request/` |
+| **Event Governance** | Evento → política → decisão | ✅ VERDE | `governance/event-policy-decision/` |
 
 #### SST Lifecycle — detalhe (2026-06-21)
 
@@ -188,24 +189,18 @@ node backend/scripts/audit/checkMatrixDrift.js --fail-on-drift
 # Smoke E2E por perfil
 node backend/scripts/e2e_role_smoke.js
 
-# Quality NC→CAPA (Parte 7.2)
-node backend/scripts/audit/e2e_quality_nc_capa.js
-
-# SST lifecycle (Parte 7.2)
-node backend/scripts/audit/e2e_sst_lifecycle.js
-
-# Reclassificar matriz
-node backend/scripts/audit/applyCertEvidenceToMatrix.js
+# Runner completo Parte 7.2 (10 cenários)
+node backend/scripts/audit/e2e_cert_all.js
 ```
 
 ---
 
-## 10. Próximo ciclo (ordem obrigatória)
+## 10. Próximo ciclo
 
-1. ~~**Quality** — cenário NC→CAPA~~ ✅
-2. ~~**SST** — incidente / treinamento vencido~~ ✅
-3. **Executive** — dashboard CEO/Diretor
-4. **ManuIA** — fluxo diagnóstico→OS
+1. ~~Parte 7.2 — 10 cenários E2E~~ ✅
+2. Integrar `checkMatrixDrift.js` no CI
+3. Ligar UI stub (NcrCapaPanel, Safety incident, etc.) às APIs certificadas
+4. Selo **Pronto para Piloto** após validação UI + telemetria PLC real
 
 ---
 
@@ -213,12 +208,12 @@ node backend/scripts/audit/applyCertEvidenceToMatrix.js
 
 | Selo | Alcançado? |
 |------|------------|
-| Funcionalmente Certificado | ❌ |
-| Operacionalmente Certificado | ❌ |
-| Pronto para Piloto | ❌ |
-| Pronto para Produção Enterprise | ❌ |
+| Funcionalmente Certificado (backend) | 🟡 10/10 cenários |
+| Operacionalmente Certificado | 🟡 Pendente UI + telemetria |
+| Pronto para Piloto | 🟡 APIs prontas; FE parcial |
+| Pronto para Produção Enterprise | ❌ CI drift + UI completa |
 
-**Conclusão:** O IMPETUS está **instrumentado para certificação** (baseline + ferramentas + manual). A **certificação industrial real** exige conclusão dos 10 cenários E2E com evidências e reclassificação de 100% das funcionalidades — trabalho contínuo, não concluído neste ciclo.
+**Conclusão:** Parte 7.2 **concluída** — 10 cenários backend certificados com evidências. Próximo passo: CI drift + integração UI industrial.
 
 ---
 

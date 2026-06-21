@@ -1,0 +1,19 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "enabled": false,
+    "shadow_mode": true,
+    "events_evaluated": 1,
+    "matches": 1,
+    "divergences": 0,
+    "migrated_events": 0,
+    "shadow_total": 1,
+    "escalation_levels": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}

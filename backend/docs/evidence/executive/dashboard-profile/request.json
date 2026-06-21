@@ -1,0 +1,6 @@
+{
+  "endpoints": [
+    "GET /api/dashboard/me",
+    "GET /api/dashboard/kpis"
+  ]
+}

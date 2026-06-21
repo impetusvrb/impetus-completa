@@ -1,0 +1,26 @@
+{
+  "domain": "ESG",
+  "run_id": "cert-p72-1782079418244",
+  "steps": [
+    {
+      "step": "health",
+      "status": 200,
+      "enabled": true
+    },
+    {
+      "step": "event_emission",
+      "status": 200
+    },
+    {
+      "step": "event_waste",
+      "status": 200
+    },
+    {
+      "step": "event_water",
+      "status": 200
+    }
+  ],
+  "ok": true,
+  "finished_at": "2026-06-21T22:03:39.057Z",
+  "evidence": "backend/docs/evidence/esg/emission-waste-consumption/"
+}

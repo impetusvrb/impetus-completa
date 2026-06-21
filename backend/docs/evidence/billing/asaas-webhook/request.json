@@ -1,0 +1,10 @@
+{
+  "event": "PAYMENT_CONFIRMED",
+  "payment": {
+    "id": "pay_2079418244",
+    "customer": "cust_cert_2079418244",
+    "subscription": "sub_cert_2079418244",
+    "status": "CONFIRMED",
+    "dueDate": "2026-06-21"
+  }
+}

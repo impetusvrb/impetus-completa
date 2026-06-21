@@ -1,0 +1,50 @@
+{
+  "run_id": "cert-p72-1782079418244",
+  "started_at": "2026-06-21T22:03:38.244Z",
+  "domains": [
+    {
+      "domain": "Executive",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "ManuIA",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "ESG",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "TPM",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "DSR/LGPD",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "Billing",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "Event Governance",
+      "ok": true,
+      "error": null
+    },
+    {
+      "domain": "AIOI",
+      "ok": true,
+      "error": null
+    }
+  ],
+  "finished_at": "2026-06-21T22:03:41.156Z",
+  "ok": true,
+  "passed": 8,
+  "total": 8
+}

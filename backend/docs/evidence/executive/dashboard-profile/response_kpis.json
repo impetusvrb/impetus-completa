@@ -1,0 +1,492 @@
+{
+  "status": 200,
+  "body": {
+    "kpis": [
+      {
+        "id": "k1",
+        "title": "Interações (semana)",
+        "value": 180,
+        "growth": 100,
+        "color": "blue",
+        "route": "/app/operacional",
+        "icon": "message",
+        "icon_key": "message"
+      },
+      {
+        "id": "k2",
+        "title": "Alertas críticos",
+        "value": 0,
+        "color": "red",
+        "route": "/app/chatbot",
+        "icon": "alert",
+        "icon_key": "alert",
+        "growth": null
+      },
+      {
+        "id": "k3",
+        "title": "Crescimento semanal",
+        "value": "100%",
+        "color": "green",
+        "icon": "trending",
+        "icon_key": "trending",
+        "growth": null
+      },
+      {
+        "id": "k4",
+        "title": "Propostas em aberto",
+        "value": 0,
+        "color": "purple",
+        "route": "/app/proacao",
+        "icon": "target",
+        "icon_key": "target",
+        "growth": null
+      }
+    ],
+    "delivery_governance_trace": {
+      "phase": "Z.15",
+      "channel": "kpis",
+      "kpi_delivery_audit": {
+        "original_kpis": [
+          "k1",
+          "k2",
+          "k3",
+          "k4"
+        ],
+        "contextual_filtered": [],
+        "removed_by_governance": [],
+        "restored_by_hardening": [],
+        "final_kpis": [
+          "k1",
+          "k2",
+          "k3",
+          "k4"
+        ],
+        "leakage_detected": false,
+        "governance_conflicts": [],
+        "duplicate_sources": []
+      },
+      "trace": [
+        {
+          "stage": "dashboard_kpis_raw",
+          "source": "dashboardKPIs",
+          "execution_order": 1,
+          "kpi_count_before": 0,
+          "kpi_count_after": 4,
+          "added": [
+            "k1",
+            "k2",
+            "k3",
+            "k4"
+          ],
+          "removed": [],
+          "governance_applied": false,
+          "fallback_applied": false,
+          "timestamp": "2026-06-21T22:03:38.639Z"
+        }
+      ],
+      "executive_leakage": 0
+    },
+    "semantic_alignment": {
+      "kpis": [
+        {
+          "id": "k1",
+          "title": "Interações (semana)",
+          "value": 180,
+          "growth": 100,
+          "color": "blue",
+          "route": "/app/operacional",
+          "icon": "message",
+          "icon_key": "message"
+        },
+        {
+          "id": "k2",
+          "title": "Alertas críticos",
+          "value": 0,
+          "color": "red",
+          "route": "/app/chatbot",
+          "icon": "alert",
+          "icon_key": "alert",
+          "growth": null
+        },
+        {
+          "id": "k3",
+          "title": "Crescimento semanal",
+          "value": "100%",
+          "color": "green",
+          "icon": "trending",
+          "icon_key": "trending",
+          "growth": null
+        },
+        {
+          "id": "k4",
+          "title": "Propostas em aberto",
+          "value": 0,
+          "color": "purple",
+          "route": "/app/proacao",
+          "icon": "target",
+          "icon_key": "target",
+          "growth": null
+        }
+      ],
+      "contextual_insufficiency": false,
+      "contextual_integrity_score": 1,
+      "semantic_alignment_score": 0.95,
+      "governance_confidence": 0.9,
+      "explanation": null
+    },
+    "precision_delivery": {
+      "kpi_delivery_confidence": 0.7,
+      "states": [
+        {
+          "state": "dependency_unavailable",
+          "kpi_id": "k1",
+          "issue": "missing_source",
+          "severity": "high"
+        },
+        {
+          "state": "dependency_unavailable",
+          "kpi_id": "k2",
+          "issue": "missing_source",
+          "severity": "high"
+        },
+        {
+          "state": "dependency_unavailable",
+          "kpi_id": "k3",
+          "issue": "missing_source",
+          "severity": "high"
+        },
+        {
+          "state": "dependency_unavailable",
+          "kpi_id": "k4",
+          "issue": "missing_source",
+          "severity": "high"
+        }
+      ],
+      "shadow_only": true,
+      "enforcement_active": false
+    },
+    "cognitive_convergence": {
+      "kpi_truth": {
+        "axis": "finance",
+        "item_count": 4,
+        "mismatch_count": 0
+      },
+      "consistent": true,
+      "cognitive_consistency_score": 0.95,
+      "shadow_only": true
+    },
+    "contextual_delivery": {
+      "kpi": {
+        "kpis": [
+          {
+            "id": "k1",
+            "title": "Interações (semana)",
+            "value": 180,
+            "growth": 100,
+            "color": "blue",
+            "route": "/app/operacional",
+            "icon": "message",
+            "icon_key": "message"
+          },
+          {
+            "id": "k2",
+            "title": "Alertas críticos",
+            "value": 0,
+            "color": "red",
+            "route": "/app/chatbot",
+            "icon": "alert",
+            "icon_key": "alert",
+            "growth": null
+          },
+          {
+            "id": "k3",
+            "title": "Crescimento semanal",
+            "value": "100%",
+            "color": "green",
+            "icon": "trending",
+            "icon_key": "trending",
+            "growth": null
+          },
+          {
+            "id": "k4",
+            "title": "Propostas em aberto",
+            "value": 0,
+            "color": "purple",
+            "route": "/app/proacao",
+            "icon": "target",
+            "icon_key": "target",
+            "growth": null
+          }
+        ],
+        "stabilized_kpis": [
+          "k1",
+          "k2",
+          "k3",
+          "k4"
+        ],
+        "KPI_targeting_precision": 1,
+        "denied": [],
+        "authority_trace": "unified_contextual_delivery"
+      },
+      "shadow_only": true
+    },
+    "runtime_consistency": {
+      "kpi": {
+        "channel": "kpi",
+        "consistent": true,
+        "axis": "finance",
+        "issues": []
+      },
+      "shadow_only": true
+    },
+    "decision_reliability": {
+      "kpi_channel": {
+        "cognitive_decision_reliability": 0.8,
+        "decision_quality": 0.75,
+        "trust": {
+          "operational_trust_score": 0.85,
+          "contextual_trust": 0.8075,
+          "runtime_decision_trust": 0.782,
+          "low_trust": false
+        },
+        "runtime_decision_confidence": 0.8037,
+        "enforcement_active": false,
+        "shadow_only": true,
+        "auto_remediate": false
+      },
+      "shadow_only": true
+    },
+    "kpi_governance": {
+      "phase": "T",
+      "shadow_only": true,
+      "observability": true,
+      "status": {
+        "phase": "T",
+        "observability": true,
+        "rollout_flag": false,
+        "channel_flag": false,
+        "global_auto_activation": false,
+        "memory": {
+          "activated": false,
+          "at": null,
+          "approved_by": null
+        },
+        "supervision": {
+          "observability": true,
+          "rollout_enabled": false,
+          "channel_governance": false,
+          "global_auto_activation": false,
+          "telemetry": {
+            "KPI_delivery_accuracy": 1,
+            "KPI_contextual_precision": 1,
+            "KPI_hierarchy_integrity": 1,
+            "KPI_operational_alignment": 1,
+            "KPI_delivery_confidence": 0.965,
+            "KPI_runtime_stability": 0.93,
+            "samples": 1,
+            "ts": "2026-06-21T22:03:38.633Z"
+          }
+        },
+        "telemetry": {
+          "KPI_delivery_accuracy": 1,
+          "KPI_contextual_precision": 1,
+          "KPI_hierarchy_integrity": 1,
+          "KPI_operational_alignment": 1,
+          "KPI_delivery_confidence": 0.965,
+          "KPI_runtime_stability": 0.93,
+          "samples": 1,
+          "ts": "2026-06-21T22:03:38.633Z"
+        },
+        "flags": {
+          "IMPETUS_KPI_GOVERNANCE_ROLLOUT": false,
+          "IMPETUS_KPI_TARGETING_VALIDATION": false,
+          "IMPETUS_KPI_PRECISION_RUNTIME": false,
+          "IMPETUS_KPI_DELIVERY_STABILIZATION": false,
+          "IMPETUS_KPI_GOVERNANCE_OBSERVABILITY": true,
+          "IMPETUS_KPI_GOVERNANCE": false
+        }
+      },
+      "readiness_score": 0.9475,
+      "auto_activate": false,
+      "global_activation": false
+    },
+    "kpi_precision": {
+      "KPI_precision": 1,
+      "KPI_delivery_accuracy": 1,
+      "KPI_contextual_precision": 1,
+      "KPI_hierarchy_integrity": 1,
+      "KPI_operational_alignment": 1,
+      "KPI_delivery_confidence": 0.965,
+      "contextual": {
+        "KPI_contextual_precision": 1,
+        "contextual_axis": "finance",
+        "ambiguous_axis": false,
+        "sufficient": true
+      },
+      "operational": {
+        "KPI_operational_alignment": 1,
+        "hierarchy_integrity": 1,
+        "domain_isolation": 1,
+        "operational_stability": 0.93
+      },
+      "enforcement_active": false,
+      "shadow_only": true
+    },
+    "kpi_delivery_validation": {
+      "valid": true,
+      "KPI_delivery_confidence": 1,
+      "targeting": {
+        "valid": true,
+        "targeting_precision": 1,
+        "aligned_count": 4,
+        "kpi_count": 4,
+        "issues": []
+      },
+      "hierarchy": {
+        "valid": true,
+        "hierarchy_band": "director",
+        "hierarchy_accuracy": 1,
+        "issues": []
+      },
+      "domain": {
+        "valid": true,
+        "user_axis": "finance",
+        "domain_isolation_score": 1,
+        "issues": []
+      },
+      "issues": []
+    },
+    "kpi_targeting_integrity": {
+      "targeting_precision": 1,
+      "valid": true,
+      "issues": [],
+      "hierarchy_accuracy": 1
+    },
+    "kpi_runtime_stabilization": {
+      "phase": "U",
+      "shadow_only": true,
+      "observability": true,
+      "status": {
+        "phase": "U",
+        "observability": true,
+        "runtime_stabilization": false,
+        "semantic_alignment": false,
+        "hierarchy_stabilization": false,
+        "delivery_precision_supervision": false,
+        "global_auto_correction": false,
+        "telemetry": {
+          "delivery_precision_score": 0.9883,
+          "contextual_alignment_score": 1,
+          "hierarchy_integrity_score": 1,
+          "semantic_relevance_score": 1,
+          "operational_delivery_accuracy": 1,
+          "samples": 1,
+          "ts": "2026-06-21T22:03:38.635Z"
+        },
+        "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
+      },
+      "stable": true,
+      "correction_summary": {
+        "issue_count": 0,
+        "recommendation_count": 0
+      },
+      "leakage": {
+        "detected": false,
+        "count": 0
+      },
+      "underdelivery": {
+        "detected": false,
+        "gap": 0
+      },
+      "auto_correct": false,
+      "supervised": true
+    },
+    "kpi_delivery_precision": {
+      "delivery_precision_score": 0.9883,
+      "contextual_alignment_score": 1,
+      "hierarchy_integrity_score": 1,
+      "semantic_relevance_score": 1,
+      "operational_delivery_accuracy": 1,
+      "recommendations": [],
+      "auto_correct": false
+    },
+    "kpi_semantic_stabilization": {
+      "KPI_semantic_relevance": 1,
+      "KPI_operational_usefulness": 1,
+      "KPI_hierarchy_coherence": 1,
+      "KPI_contextual_alignment": 1,
+      "corrections": [],
+      "recommendations": [],
+      "auto_correct": false
+    },
+    "kpi_hierarchy_delivery_integrity": {
+      "hierarchy_delivery_integrity": 1,
+      "stable": true,
+      "operational_hierarchy": {
+        "hierarchy_band": "director",
+        "operational_axis": "finance",
+        "governance_level": "strategic"
+      },
+      "stabilization_actions": [],
+      "recommendations": [],
+      "auto_correct": false
+    },
+    "runtime_enrichment": {
+      "phase": "X",
+      "shadow_only": true,
+      "observability": true,
+      "status": {
+        "phase": "X",
+        "observability": true,
+        "runtime_enrichment": false,
+        "operational_signal_analysis": false,
+        "contextual_density_engine": false,
+        "dashboard_enrichment": false,
+        "telemetry_gap_detection": false,
+        "global_auto_remediation": false,
+        "invented_data_policy": "forbidden",
+        "telemetry": {
+          "runtime_density_score": 0.9658,
+          "operational_density": 1,
+          "contextual_richness": 0.9317,
+          "semantic_usefulness": 0.9658,
+          "insight_feeding_quality": 0.9658,
+          "samples": 3,
+          "ts": "2026-06-21T22:03:38.636Z"
+        },
+        "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
+      },
+      "consolidated_signals": {
+        "density": {
+          "runtime_density_score": 0.9375,
+          "operational_density": 1,
+          "contextual_richness": 0.875,
+          "semantic_usefulness": 0.9375,
+          "insight_feeding_quality": 0.9375,
+          "entity_count": 4,
+          "invented_metrics": false
+        },
+        "signal_integrity": 1,
+        "telemetry_integrity": 0.92,
+        "insight_utility": 0.5,
+        "enrichment_integrity": 0.9
+      },
+      "low_density": false,
+      "channel": "kpi",
+      "invented_data": false,
+      "auto_remediate": false
+    },
+    "operational_density": {
+      "runtime_density_score": 0.9375,
+      "operational_density": 1,
+      "contextual_richness": 0.875,
+      "entity_count": 4
+    },
+    "enrichment_integrity": {
+      "enrichment_integrity_score": 0.9,
+      "valid": true,
+      "issues": [],
+      "leakage_free": true
+    }
+  }
+}

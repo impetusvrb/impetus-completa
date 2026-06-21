@@ -1306,3 +1306,119 @@
 | Treinamento vencido + alerta HR | `POST /api/safety-operational/events` | VERDE |
 | Listar alertas (Notification Center / Cérebro Operacional) | `GET /api/dashboard/operational-brain/alerts` | VERDE |
 
+### Executive: Dashboard executivo por perfil
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/executive/dashboard-profile/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+| Isolamento tenant | OK (HTTP —) |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Perfil + KPIs executivos | `GET /api/dashboard/me` | VERDE |
+| KPIs tenant-scoped | `GET /api/dashboard/kpis` | VERDE |
+
+### ManuIA: Diagnóstico → OS → Histórico
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/manuia/diagnosis-workorder/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Concluir sessão + criar OS | `POST /api/manutencao-ia/conclude-session` | VERDE |
+| Histórico sessões | `GET /api/manutencao-ia/sessions` | VERDE |
+
+### ESG: Emissão / Resíduo / Consumo
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/esg/emission-waste-consumption/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Alerta emissão | `POST /api/environment-operational/events` | VERDE |
+| Manifesto resíduo | `POST /api/environment-operational/events` | VERDE |
+| Amostra água/consumo | `POST /api/environment-operational/events` | VERDE |
+
+### TPM: Plano preventivo → execução → indicador
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/tpm/preventive-lifecycle/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Criar preventiva | `POST /api/dashboard/maintenance/preventives` | VERDE |
+| Concluir preventiva | `PATCH /api/dashboard/maintenance/preventives/:id` | VERDE |
+| Indicadores summary | `GET /api/dashboard/maintenance/summary` | VERDE |
+
+### DSR/LGPD: Pedido do titular
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/dsr/data-subject-request/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+| Isolamento tenant | OK (HTTP 200) |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Criar pedido LGPD | `POST /api/lgpd/data-request` | VERDE |
+| Processar pedido (DPO) | `PATCH /api/lgpd/data-requests/:id` | VERDE |
+
+### Billing: Webhook Asaas / subscrição
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/billing/asaas-webhook/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Webhook PAYMENT_CONFIRMED | `POST /api/webhooks/asaas` | VERDE |
+
+### Event Governance: Evento → política → decisão
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/governance/event-policy-decision/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Produtor SST | `POST /api/safety-operational/events` | VERDE |
+| Audit status EG | `GET /api/audit/event-governance/status` | VERDE |
+| Audit SST lifecycle | `GET /api/audit/event-governance/sst` | VERDE |
+
+### AIOI: Correlação → Insight → Escalonamento
+
+| Campo | Valor |
+|-------|-------|
+| Status | **VERDE** |
+| Evidência | `backend/docs/evidence/aioi/correlation-insight/` |
+| Validado em | 2026-06-21 |
+| Run ID | cert-p72-1782079418244 |
+
+| Fluxo | Endpoint | Status |
+|-------|----------|--------|
+| Eventos correlacionados (×3) | `POST /api/safety-operational/events` | VERDE |
+| Audit AIOI | `GET /api/audit/event-governance/aioi` | VERDE |
+
