@@ -20,7 +20,7 @@ router.post('/usage/event', express.json(), (req, res) => {
     const body = req.body || {};
     const row = orchestrator.collectUsageEvent({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json({ ok: true, recorded: !!row });
   } catch (e) {
@@ -34,7 +34,7 @@ router.post('/cycle', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = orchestrator.runShadowStabilizationCycle({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json(pack);
   } catch (e) {

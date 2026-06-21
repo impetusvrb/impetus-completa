@@ -25,7 +25,7 @@ router.get('/blindness', (req, res) => {
   const { protectOperationalKpiBlindness } = require('../../realKpiTargeting/operationalBlindnessProtection');
   res.json({ ok: true, ...protectOperationalKpiBlindness(req.body?.kpis || [], req.body?.kpis_before || [], req.body) });
 });
-router.get('/governance', (req, res) => res.json(facade.getRealKpiTargetingReport(req.user, req.body));
+router.get('/governance', (req, res) => res.json(facade.getRealKpiTargetingReport(req.user, req.body)));
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(facade.getRealKpiTargetingReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));

@@ -25,7 +25,7 @@ router.get('/leakage', (req, res) => {
   const { protectSummaryLeakage } = require('../../realSummaryTargeting/summaryLeakageProtection');
   res.json({ ok: true, ...protectSummaryLeakage(req.body?.summary || {}, req.body) });
 });
-router.get('/governance', (req, res) => res.json(facade.getRealSummaryTargetingReport(req.user, req.body));
+router.get('/governance', (req, res) => res.json(facade.getRealSummaryTargetingReport(req.user, req.body)));
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(facade.getRealSummaryTargetingReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));

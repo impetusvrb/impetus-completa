@@ -211,7 +211,8 @@ async function queryExecutiveAuditLogs(db, { sinceDays = 90 } = {}) {
   }
 }
 
-async function queryCeoChatMessages(db, { sinceDays = 90 } = {}) {
+async function queryCeoChatMessages(db, opts = {}) {
+  const { sinceDays = 90 } = opts;
   const r = await db.pool.query(
     `
     SELECT
@@ -229,10 +230,11 @@ async function queryCeoChatMessages(db, { sinceDays = 90 } = {}) {
     WHERE u.role = 'ceo'
       AND cm.deleted_at IS NULL
       AND cm.created_at >= NOW() - ($1 || ' days')::interval
+      AND ($2::uuid IS NULL OR u.company_id = $2::uuid)
     ORDER BY cm.created_at DESC
     LIMIT 100
     `,
-    [String(sinceDays)]
+    [String(sinceDays), opts?.company_id || null]
   );
 
   const modoExecutivo = await db.pool.query(

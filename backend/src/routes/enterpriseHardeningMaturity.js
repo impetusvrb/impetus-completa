@@ -21,7 +21,7 @@ router.post('/pack', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = hardening.enterpriseOperationalHardeningRuntime({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       hardening_context: body.hardening_context || body
     });
     res.json(pack);

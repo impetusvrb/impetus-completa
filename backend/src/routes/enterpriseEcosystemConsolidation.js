@@ -19,7 +19,7 @@ router.post('/consolidate', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = orchestrator.runEcosystemFinalConsolidation({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json(pack);
   } catch (e) {
@@ -31,7 +31,7 @@ router.get('/environment-decision', (req, res) => {
   try {
     const user = req.user;
     const pack = orchestrator.runEcosystemFinalConsolidation({
-      tenant_id: req.query.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       run_soak: req.query.run_soak !== 'false',
       soak_dry_run: req.query.soak_dry_run === 'true'
     });

@@ -25,7 +25,7 @@ router.get('/hierarchy', (req, res) => {
   const pack = facade.resolveGovernedIdentityForUser(req.user, req.body);
   res.json({ ok: true, hierarchy: pack.hierarchy, canonical_identity: pack.canonical_identity });
 });
-router.get('/governance', (req, res) => res.json(facade.getOperationalIdentityGovernanceReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));
+router.get('/governance', (req, res) => res.json(facade.getOperationalIdentityGovernanceReport(req.user, { tenant_id: req.query.tenant_id, ...req.body })));
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(facade.getOperationalIdentityGovernanceReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));

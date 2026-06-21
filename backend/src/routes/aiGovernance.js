@@ -79,7 +79,7 @@ router.get('/compliance/iso42001', requireAuth, requireHierarchy(2), async (req,
   res.set('Cache-Control', 'no-store');
   try {
     const gov = require('../services/aiGovernancePersistenceService');
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const report = await gov.getIso42001ReadinessReport(companyId);
     res.json(report);
   } catch (err) {

@@ -19,7 +19,7 @@ router.post('/behavior/event', express.json(), (req, res) => {
     const body = req.body || {};
     const row = orchestrator.recordOperationalEvent({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       user_id: body.user_id || user?.id
     });
     res.json({ ok: true, recorded: !!row });
@@ -31,7 +31,7 @@ router.post('/behavior/event', express.json(), (req, res) => {
 router.get('/behavior/summary', (req, res) => {
   try {
     const behavior = require('../runtime-validation/enterpriseOperationalBehaviorEngine');
-    const tenantId = req.user?.company_id || req.query.tenant_id;
+    const tenantId = req.user?.company_id;
     res.json({ ok: true, ...behavior.summarizeOperationalBehavior(tenantId) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message || 'internal_error' });
@@ -44,7 +44,7 @@ router.post('/pack', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = orchestrator.runEnterpriseValidationPack({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json(pack);
   } catch (e) {
@@ -65,7 +65,7 @@ router.get('/decision', (req, res) => {
   try {
     const user = req.user;
     const pack = orchestrator.runEnterpriseValidationPack({
-      tenant_id: req.query.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json({
       ok: true,

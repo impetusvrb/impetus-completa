@@ -349,7 +349,12 @@ function startRotationScheduler(intervalMs = 24 * 3600 * 1000) {
             SELECT id, company_id, 'kms_rotation_due', 'KMS Key Rotation Due',
                    'Data Encryption Key rotation is overdue. Contact DPO/Security team.',
                    'high', NOW()
-            FROM users WHERE hierarchy_level <= 1 LIMIT 5
+            FROM users
+            WHERE hierarchy_level <= 1
+              AND active = true
+              AND deleted_at IS NULL
+              AND company_id IS NOT NULL
+            LIMIT 5
           `);
         } catch { /* non-blocking */ }
       }

@@ -418,10 +418,9 @@ router.post('/',
         });
       }
 
-      // Verificar se email já existe
       const existingUser = await db.query(
-        'SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL',
-        [validatedData.email]
+        'SELECT id FROM users WHERE email = $1 AND company_id = $2 AND deleted_at IS NULL',
+        [validatedData.email, req.user.company_id]
       );
 
       if (existingUser.rows.length > 0) {
@@ -688,8 +687,8 @@ router.put('/:id',
       // Se está mudando email, verificar se já existe
       if (validatedData.email && validatedData.email !== existingUser.rows[0].email) {
         const emailExists = await db.query(
-          'SELECT id FROM users WHERE email = $1 AND id != $2 AND deleted_at IS NULL',
-          [validatedData.email, req.params.id]
+          'SELECT id FROM users WHERE email = $1 AND id != $2 AND company_id = $3 AND deleted_at IS NULL',
+          [validatedData.email, req.params.id, req.user.company_id]
         );
 
         if (emailExists.rows.length > 0) {

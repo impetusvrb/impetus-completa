@@ -50,9 +50,11 @@ async function resolveHierarchyScope(user) {
     };
   }
 
+  const companyId = user.company_id;
+
   // SUPERVISOR (4): equipe direta (subordinados com supervisor_id = user)
   if (level === HIERARCHY_SUPERVISOR) {
-    const subordinateIds = await getDirectSubordinateIds(userId);
+    const subordinateIds = await getDirectSubordinateIds(userId, companyId);
     return {
       scopeLevel: 'supervisor',
       managedDepartmentIds: departmentId ? [departmentId] : [],
@@ -68,11 +70,11 @@ async function resolveHierarchyScope(user) {
       return {
         scopeLevel: 'coordinator',
         managedDepartmentIds: [departmentId],
-        allowedUserIds: [userId, ...(await getDirectSubordinateIds(userId))],
+        allowedUserIds: [userId, ...(await getDirectSubordinateIds(userId, companyId))],
         isFullAccess: false
       };
     }
-    const allowedUserIds = await getUserIdsInDepartments(managedDeptIds);
+    const allowedUserIds = await getUserIdsInDepartments(managedDeptIds, companyId);
     return {
       scopeLevel: 'manager',
       managedDepartmentIds: managedDeptIds,
@@ -83,9 +85,9 @@ async function resolveHierarchyScope(user) {
 
   // COORDENADOR: seu departamento + subordinados diretos
   if (level === HIERARCHY_COORDENADOR) {
-    const subordinateIds = await getDirectSubordinateIds(userId);
+    const subordinateIds = await getDirectSubordinateIds(userId, companyId);
     const deptIds = departmentId ? [departmentId] : [];
-    const userIdsInDept = deptIds.length ? await getUserIdsInDepartments(deptIds) : [];
+    const userIdsInDept = deptIds.length ? await getUserIdsInDepartments(deptIds, companyId) : [];
     const allowedUserIds = [...new Set([userId, ...subordinateIds, ...userIdsInDept])];
     return {
       scopeLevel: 'coordinator',
@@ -103,12 +105,13 @@ async function resolveHierarchyScope(user) {
   };
 }
 
-async function getDirectSubordinateIds(supervisorId) {
+async function getDirectSubordinateIds(supervisorId, companyId) {
   try {
-    const r = await db.query(
-      'SELECT id FROM users WHERE supervisor_id = $1 AND deleted_at IS NULL',
-      [supervisorId]
-    );
+    const sql = companyId
+      ? 'SELECT id FROM users WHERE supervisor_id = $1 AND company_id = $2 AND deleted_at IS NULL'
+      : 'SELECT id FROM users WHERE supervisor_id = $1 AND deleted_at IS NULL';
+    const params = companyId ? [supervisorId, companyId] : [supervisorId];
+    const r = await db.query(sql, params);
     return r.rows.map((row) => row.id);
   } catch (err) {
     if (err.message?.includes('supervisor_id')) return [];
@@ -135,13 +138,14 @@ async function getManagedDepartmentIds(managerId) {
   }
 }
 
-async function getUserIdsInDepartments(departmentIds) {
+async function getUserIdsInDepartments(departmentIds, companyId) {
   if (!departmentIds || departmentIds.length === 0) return [];
   try {
-    const r = await db.query(
-      'SELECT id FROM users WHERE department_id = ANY($1) AND deleted_at IS NULL',
-      [departmentIds]
-    );
+    const sql = companyId
+      ? 'SELECT id FROM users WHERE department_id = ANY($1) AND company_id = $2 AND deleted_at IS NULL'
+      : 'SELECT id FROM users WHERE department_id = ANY($1) AND deleted_at IS NULL';
+    const params = companyId ? [departmentIds, companyId] : [departmentIds];
+    const r = await db.query(sql, params);
     return r.rows.map((row) => row.id);
   } catch (err) {
     console.warn('[hierarchicalFilter][user_ids_in_departments]', err?.message ?? err);

@@ -143,10 +143,12 @@ async function _emitViolationAlert(moduleId, action, stage, req) {
       violation_number: _violationCount,
     })]);
 
-    // Notify DPO team
-    const admins = await db.query(
-      `SELECT id, company_id FROM users WHERE hierarchy_level <= 1 AND active = true AND deleted_at IS NULL LIMIT 5`
-    );
+    // Notificar apenas admins do tenant corrente (se disponível no contexto)
+    const tenantId = req?.user?.company_id || req?.tenantId || null;
+    const adminQuery = tenantId
+      ? `SELECT id, company_id FROM users WHERE hierarchy_level <= 1 AND active = true AND deleted_at IS NULL AND company_id = $1 LIMIT 5`
+      : `SELECT id, company_id FROM users WHERE hierarchy_level <= 1 AND active = true AND deleted_at IS NULL AND company_id IS NOT NULL LIMIT 5`;
+    const admins = await db.query(adminQuery, tenantId ? [tenantId] : []);
 
     for (const admin of admins.rows) {
       await db.query(`

@@ -25,7 +25,7 @@ router.get('/blindness', (req, res) => {
   const { analyzeOperationalBlindness } = require('../../operationalLeakage/operationalBlindnessAnalyzer');
   res.json({ ok: true, ...analyzeOperationalBlindness(req.body?.delivery || {}, req.body?.canonical_identity || {}) });
 });
-router.get('/governance', (req, res) => res.json(facade.analyzeOperationalLeakageReport(req.user, req.body));
+router.get('/governance', (req, res) => res.json(facade.analyzeOperationalLeakageReport(req.user, req.body)));
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(facade.analyzeOperationalLeakageReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));

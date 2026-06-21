@@ -89,13 +89,13 @@ function generateExecutiveSessionToken() {
 /**
  * Renova sessão executiva (atualiza expires_at e last_activity)
  */
-async function renewExecutiveSession(userId) {
+async function renewExecutiveSession(userId, companyId) {
   const expiresAt = new Date(Date.now() + EXECUTIVE_SESSION_TTL_MS);
-  await db.query(`
-    UPDATE users
-    SET executive_session_expires_at = $1, executive_last_activity = now()
-    WHERE id = $2
-  `, [expiresAt, userId]);
+  const sql = companyId
+    ? `UPDATE users SET executive_session_expires_at = $1, executive_last_activity = now() WHERE id = $2 AND company_id = $3`
+    : `UPDATE users SET executive_session_expires_at = $1, executive_last_activity = now() WHERE id = $2`;
+  const params = companyId ? [expiresAt, userId, companyId] : [expiresAt, userId];
+  await db.query(sql, params);
 }
 
 /**
@@ -324,7 +324,7 @@ REGRAS:
     maxTokens: 600,
     invokeLlm: async () => {
       return (
-        (await ai.chatCompletion(prompt, { max_tokens: 600 }) ||
+        (await ai.chatCompletion(prompt, { max_tokens: 600 })) ||
           'Não foi possível processar a consulta no momento.'
       ).trim();
     },

@@ -33,7 +33,7 @@ router.get('/stability', (req, res) => {
   const { stabilizeMenuGovernance } = require('../../realMenuGovernance/menuGovernanceStability');
   res.json({ ok: true, ...stabilizeMenuGovernance(req.body?.visible_modules || [], req.body) });
 });
-router.get('/governance', (req, res) => res.json(facade.getRealMenuGovernanceReport(req.user, req.body));
+router.get('/governance', (req, res) => res.json(facade.getRealMenuGovernanceReport(req.user, req.body)));
 router.get('/report', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json(facade.getRealMenuGovernanceReport(req.user, { tenant_id: req.query.tenant_id, ...req.body }));

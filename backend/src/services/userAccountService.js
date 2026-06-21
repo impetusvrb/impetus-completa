@@ -196,14 +196,18 @@ async function clearAvatar(userId) {
   return { ok: true, profile: buildAccountPayload(row).profile };
 }
 
-async function changePassword(userId, current_password, new_password, confirm_password) {
+async function changePassword(userId, current_password, new_password, confirm_password, companyId) {
   if (!new_password || String(new_password).length < 8) {
     return { ok: false, error: 'A nova senha deve ter pelo menos 8 caracteres.' };
   }
   if (new_password !== confirm_password) {
     return { ok: false, error: 'Confirmação da nova senha não confere.' };
   }
-  const r = await db.query(`SELECT password_hash FROM users WHERE id = $1 AND active = true`, [userId]);
+  const selectSql = companyId
+    ? `SELECT password_hash FROM users WHERE id = $1 AND company_id = $2 AND active = true`
+    : `SELECT password_hash FROM users WHERE id = $1 AND active = true`;
+  const selectParams = companyId ? [userId, companyId] : [userId];
+  const r = await db.query(selectSql, selectParams);
   if (!r.rows[0]?.password_hash) {
     return { ok: false, error: 'Alteração de senha não disponível para este tipo de conta.' };
   }
@@ -211,7 +215,11 @@ async function changePassword(userId, current_password, new_password, confirm_pa
     return { ok: false, error: 'Senha atual incorreta.' };
   }
   const newHash = hashPassword(new_password);
-  await db.query(`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, [newHash, userId]);
+  const updateSql = companyId
+    ? `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2 AND company_id = $3`
+    : `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`;
+  const updateParams = companyId ? [newHash, userId, companyId] : [newHash, userId];
+  await db.query(updateSql, updateParams);
   return { ok: true };
 }
 

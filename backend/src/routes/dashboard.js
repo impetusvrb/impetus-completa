@@ -1994,12 +1994,13 @@ router.get('/v2/governance/score/:userId', requireAuth, _governanceGuard, async 
   try {
     const u = req.user || {};
     const targetId = req.params.userId;
+    if (!u.company_id) return res.status(403).json({ ok: false, error: 'tenant_required' });
     const r = await db.query(
       `SELECT id, company_id, role, job_title, functional_area, department,
               hierarchy_level, permissions, dashboard_profile
-       FROM users WHERE id = $1 AND ($2::uuid IS NULL OR company_id = $2)
+       FROM users WHERE id = $1 AND company_id = $2
        LIMIT 1`,
-      [targetId, u.company_id || null]
+      [targetId, u.company_id]
     );
     const target = r?.rows?.[0];
     if (!target) return res.status(404).json({ ok: false, error: 'user_not_found' });
@@ -2108,12 +2109,13 @@ router.get('/v2/modules/preview/:userId?', requireAuth, _contextualModulesGuard,
   try {
     const u = req.user;
     const targetId = req.params.userId || u.id;
+    if (!u.company_id) return res.status(403).json({ ok: false, error: 'tenant_required' });
     const r = await db.query(
       `SELECT id, company_id, role, job_title, functional_area, department,
               hierarchy_level, permissions, dashboard_profile
-       FROM users WHERE id = $1 AND ($2::uuid IS NULL OR company_id = $2)
+       FROM users WHERE id = $1 AND company_id = $2
        LIMIT 1`,
-      [targetId, u.company_id || null]
+      [targetId, u.company_id]
     );
     const target = r?.rows?.[0];
     if (!target) return res.status(404).json({ ok: false, error: 'user_not_found' });

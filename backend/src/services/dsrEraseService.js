@@ -65,7 +65,7 @@ const ERASURE_TARGETS = Object.freeze([
   { table: 'user_security_verification_codes', userColumn: 'user_id', method: 'delete', description: 'Códigos de verificação', companyScoped: false },
   { table: 'chat_push_subscriptions', userColumn: 'user_id', method: 'delete', description: 'Push subscriptions', companyScoped: false },
   { table: 'notifications', userColumn: 'user_id', method: 'delete', description: 'Notificações', companyScoped: true },
-  { table: 'voice_preferences', userColumn: 'user_id', method: 'delete', description: 'Preferências de voz', companyScoped: false },
+  { table: 'voice_preferences', userColumn: 'user_id', method: 'delete', description: 'Preferências de voz', companyScoped: true },
   { table: 'user_dashboard_preferences', userColumn: 'user_id', method: 'delete', description: 'Preferências dashboard', companyScoped: false },
   { table: 'manuia_notification_preferences', userColumn: 'user_id', method: 'delete', description: 'Preferências ManuIA', companyScoped: false },
   { table: 'manuia_mobile_devices', userColumn: 'user_id', method: 'delete', description: 'Dispositivos móveis', companyScoped: false },

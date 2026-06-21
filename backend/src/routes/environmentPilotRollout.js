@@ -24,7 +24,7 @@ router.post('/pack', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = pilot.environmentPilotRolloutRuntime({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       user: body.user || user,
       has_environment_intelligence: body.has_environment_intelligence !== false
     });
@@ -40,7 +40,7 @@ router.post('/validate', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = pilot.environmentPilotValidationRuntime({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       user: body.user || user
     });
     res.json(pack);

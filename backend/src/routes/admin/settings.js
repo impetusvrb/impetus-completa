@@ -532,7 +532,7 @@ router.post('/manuals',
         const contentText = await manualsService.extractTextFromFile(filePath);
         if (contentText && contentText.length > 50) {
           await manualsService.chunkAndEmbedManual(manualId, contentText);
-          await db.query('UPDATE manuals SET embedding_processed = true WHERE id = $1', [manualId]);
+          await db.query('UPDATE manuals SET embedding_processed = true WHERE id = $1 AND company_id = $2', [manualId, req.user.company_id]);
         }
       } catch (embErr) {
         console.warn('[ADMIN_UPLOAD_MANUAL] Embeddings não processados:', embErr.message);

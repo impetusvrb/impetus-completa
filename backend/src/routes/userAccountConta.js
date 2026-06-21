@@ -51,7 +51,8 @@ router.post('/account/password', async (req, res) => {
       req.user.id,
       current_password,
       new_password,
-      confirm_password
+      confirm_password,
+      req.user.company_id
     );
     if (!out.ok) return res.status(400).json(out);
     res.json(out);

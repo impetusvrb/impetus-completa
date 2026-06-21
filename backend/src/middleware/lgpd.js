@@ -423,11 +423,12 @@ async function anonymizeUserData(userId, opts = {}) {
     if (have.has('lgpd_consent')) {
       setParts.push(`lgpd_consent = false`);
     }
-    let sql = `UPDATE users SET ${setParts.join(', ')} WHERE id = $1`;
-    if (companyId) {
-      sql += ' AND company_id = $5';
-      params.push(companyId);
+    if (!companyId) {
+      console.error('[LGPD anonymize] company_id obrigatório para anonimização de utilizador');
+      return { ok: false, error: 'company_id obrigatório' };
     }
+    let sql = `UPDATE users SET ${setParts.join(', ')} WHERE id = $1 AND company_id = $5`;
+    params.push(companyId);
     await db.query(sql, params);
   } catch (err) {
     console.error('[LGPD anonymize UPDATE users]', err.message);

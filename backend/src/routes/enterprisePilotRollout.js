@@ -16,7 +16,7 @@ router.post('/prepare', express.json(), (req, res) => {
     res.json(
       orchestrator.runPilotRolloutPreparation({
         ...body,
-        tenant_id: body.tenant_id || user?.company_id
+        tenant_id: user?.company_id
       })
     );
   } catch (e) {
@@ -28,7 +28,7 @@ router.post('/metrics/event', express.json(), (req, res) => {
   try {
     const user = req.user;
     const body = req.body || {};
-    orchestrator.recordPilotMetric(body.tenant_id || user?.company_id, body);
+    orchestrator.recordPilotMetric(user?.company_id, body);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message || 'internal_error' });

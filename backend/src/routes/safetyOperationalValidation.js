@@ -15,7 +15,7 @@ router.post('/behavior/event', express.json(), (req, res) => {
     const body = req.body || {};
     const row = orchestrator.recordBehaviorEvent({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id,
+      tenant_id: user?.company_id,
       user_id: body.user_id || user?.id
     });
     res.json({ ok: true, recorded: !!row });
@@ -26,7 +26,7 @@ router.post('/behavior/event', express.json(), (req, res) => {
 
 router.get('/behavior/summary', (req, res) => {
   try {
-    const tenantId = req.user?.company_id || req.query.tenant_id;
+    const tenantId = req.user?.company_id;
     const summary = require('../domains/safety/analytics/safetyOperationalBehaviorAnalytics').summarizeBehavior(
       tenantId
     );
@@ -42,7 +42,7 @@ router.post('/pack', express.json(), (req, res) => {
     const body = req.body || {};
     const pack = orchestrator.runOperationalValidationPack({
       ...body,
-      tenant_id: body.tenant_id || user?.company_id
+      tenant_id: user?.company_id
     });
     res.json(pack);
   } catch (e) {
@@ -61,7 +61,7 @@ router.post('/pilot/scope', express.json(), (req, res) => {
 
 router.get('/pilot/scopes', (req, res) => {
   try {
-    const tenantId = req.user?.company_id || req.query.tenant_id;
+    const tenantId = req.user?.company_id;
     res.json({ ok: true, scopes: pilotGov.listPilotScopes(tenantId) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message || 'internal_error' });
