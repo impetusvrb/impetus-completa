@@ -274,9 +274,10 @@ router.post('/ai-anonymization/run', async (req, res) => {
       return res.status(503).json({ ok: false, error: 'AI Anonymization disabled', mode: svc.getAnonymizationMode() });
     }
 
-    const { user_id, company_id } = req.body || {};
+    const { user_id } = req.body || {};
+    const company_id = req.user?.company_id;
     if (!user_id || !company_id) {
-      return res.status(400).json({ ok: false, error: 'user_id and company_id required in body' });
+      return res.status(400).json({ ok: false, error: 'user_id obrigatório; company_id do token' });
     }
 
     const result = await svc.executeFullPipeline(user_id, company_id, {
@@ -546,7 +547,7 @@ router.get('/hallucination-detection', async (req, res) => {
 router.get('/hallucination-detection/review-queue', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'company_id required' });
     const queue = require('../../services/hallucinationReviewQueueService');
     const result = await queue.listReviewQueue(companyId, { limit: req.query.limit });
@@ -690,7 +691,7 @@ router.get('/federation', async (req, res) => {
 router.get('/federation/providers', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'company_id required' });
     const configSvc = require('../../federation/services/federationConfigService');
     const gov = require('../../federation/governance/federationGovernanceService');
@@ -707,7 +708,7 @@ router.get('/federation/providers', async (req, res) => {
 
 router.post('/federation/providers', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'company_id required' });
     const gov = require('../../federation/governance/federationGovernanceService');
     const access = gov.assertTenantAccess(companyId, req.user?.company_id);
@@ -724,7 +725,7 @@ router.post('/federation/providers', async (req, res) => {
 
 router.post('/federation/scim-token', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     if (!companyId) return res.status(400).json({ ok: false, error: 'company_id required' });
     const scim = require('../../federation/services/scimProvisioningService');
     const token = await scim.generateScimToken(companyId, req.body?.label);
@@ -751,7 +752,7 @@ router.get('/mfa', async (req, res) => {
 router.get('/mfa/policies', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const policySvc = require('../../mfa/services/mfaPolicyService');
     const policy = await policySvc.getPolicy(companyId);
     res.json({ ok: true, policy });
@@ -762,7 +763,7 @@ router.get('/mfa/policies', async (req, res) => {
 
 router.post('/mfa/policies', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const policySvc = require('../../mfa/services/mfaPolicyService');
     const policy = await policySvc.upsertPolicy(companyId, req.body || {});
     res.json({ ok: true, policy });
@@ -794,7 +795,7 @@ router.get('/mqtt-real', async (req, res) => {
 router.get('/mqtt-real/brokers', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const brokerSvc = require('../../industrial-mqtt/services/mqttBrokerConfigService');
     const config = await brokerSvc.getBrokerConfig(companyId);
     res.json({ ok: true, config });
@@ -805,7 +806,7 @@ router.get('/mqtt-real/brokers', async (req, res) => {
 
 router.post('/mqtt-real/brokers', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const brokerSvc = require('../../industrial-mqtt/services/mqttBrokerConfigService');
     const config = await brokerSvc.upsertBrokerConfig(companyId, req.body || {});
     res.json({ ok: true, config });
@@ -816,7 +817,7 @@ router.post('/mqtt-real/brokers', async (req, res) => {
 
 router.post('/mqtt-real/reconnect', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const runtime = require('../../industrial-mqtt/runtime/mqttRealClientRuntime');
     const r = await runtime.reconnect(companyId);
     res.json(r);
@@ -828,14 +829,15 @@ router.post('/mqtt-real/reconnect', async (req, res) => {
 router.get('/mqtt-real/audit', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id;
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'Tenant obrigatório' });
     const db = require('../../db');
     const r = await db.query(
       `SELECT trace_id, event, outcome, broker_url, metadata, created_at
        FROM mqtt_connection_audit
-       WHERE ($1::uuid IS NULL OR company_id = $1::uuid)
+       WHERE company_id = $1::uuid
        ORDER BY created_at DESC LIMIT $2`,
-      [companyId || null, Math.min(100, parseInt(req.query.limit || '40', 10))]
+      [companyId, Math.min(100, parseInt(req.query.limit || '40', 10))]
     );
     res.json({ ok: true, events: r.rows });
   } catch (err) {
@@ -866,7 +868,7 @@ router.get('/edge-runtime', async (req, res) => {
 router.get('/edge-runtime/queue', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const persistence = require('../../industrial-edge/services/edgeQueuePersistenceService');
     const mem = require('../../domains/environment/telemetry/environmentEdgeTelemetryRuntime');
     const dbStats = await persistence.getQueueStats(companyId);
@@ -882,7 +884,7 @@ router.get('/edge-runtime/queue', async (req, res) => {
 
 router.post('/edge-runtime/sync', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const runtime = require('../../industrial-edge/runtime/edgeRealSyncRuntime');
     const ingest = require('../../domains/environment/telemetry/environmentTelemetryIngestService');
     const r = await runtime.syncAllLayers(companyId, req.user?.id, ingest.ingestSingle);
@@ -941,7 +943,7 @@ router.get('/modbus-real', async (req, res) => {
 router.get('/modbus-real/devices', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const deviceSvc = require('../../industrial-modbus/services/modbusDeviceConfigService');
     const config = await deviceSvc.getDeviceConfig(companyId);
     res.json({ ok: true, config });
@@ -952,7 +954,7 @@ router.get('/modbus-real/devices', async (req, res) => {
 
 router.post('/modbus-real/devices', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const deviceSvc = require('../../industrial-modbus/services/modbusDeviceConfigService');
     const config = await deviceSvc.upsertDeviceConfig(companyId, req.body || {});
     res.json({ ok: true, config });
@@ -963,7 +965,7 @@ router.post('/modbus-real/devices', async (req, res) => {
 
 router.post('/modbus-real/reconnect', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const runtime = require('../../industrial-modbus/runtime/modbusRealPollRuntime');
     const r = await runtime.reconnect(companyId);
     res.json(r);
@@ -974,7 +976,7 @@ router.post('/modbus-real/reconnect', async (req, res) => {
 
 router.post('/modbus-real/poll', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const runtime = require('../../industrial-modbus/runtime/modbusRealPollRuntime');
     const r = await runtime.executePoll(companyId, req.body?.registers || null, req.body?.meta || {});
     res.json(r);
@@ -986,14 +988,15 @@ router.post('/modbus-real/poll', async (req, res) => {
 router.get('/modbus-real/audit', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id;
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'Tenant obrigatório' });
     const db = require('../../db');
     const r = await db.query(
       `SELECT trace_id, event, outcome, host, metadata, created_at
        FROM modbus_connection_audit
-       WHERE ($1::uuid IS NULL OR company_id = $1::uuid)
+       WHERE company_id = $1::uuid
        ORDER BY created_at DESC LIMIT $2`,
-      [companyId || null, Math.min(100, parseInt(req.query.limit || '40', 10))]
+      [companyId, Math.min(100, parseInt(req.query.limit || '40', 10))]
     );
     res.json({ ok: true, events: r.rows });
   } catch (err) {
@@ -1024,7 +1027,7 @@ router.get('/opcua-real', async (req, res) => {
 router.get('/opcua-real/servers', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const serverSvc = require('../../industrial-opcua/services/opcuaServerConfigService');
     const config = await serverSvc.getServerConfig(companyId);
     res.json({ ok: true, config });
@@ -1035,7 +1038,7 @@ router.get('/opcua-real/servers', async (req, res) => {
 
 router.post('/opcua-real/servers', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const serverSvc = require('../../industrial-opcua/services/opcuaServerConfigService');
     const config = await serverSvc.upsertServerConfig(companyId, req.body || {});
     res.json({ ok: true, config });
@@ -1046,7 +1049,7 @@ router.post('/opcua-real/servers', async (req, res) => {
 
 router.post('/opcua-real/reconnect', async (req, res) => {
   try {
-    const companyId = req.body?.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const runtime = require('../../industrial-opcua/runtime/opcuaRealClientRuntime');
     const r = await runtime.reconnect(companyId);
     res.json(r);
@@ -1058,14 +1061,15 @@ router.post('/opcua-real/reconnect', async (req, res) => {
 router.get('/opcua-real/audit', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id;
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'Tenant obrigatório' });
     const db = require('../../db');
     const r = await db.query(
       `SELECT trace_id, event, outcome, endpoint_url, metadata, created_at
        FROM opcua_connection_audit
-       WHERE ($1::uuid IS NULL OR company_id = $1::uuid)
+       WHERE company_id = $1::uuid
        ORDER BY created_at DESC LIMIT $2`,
-      [companyId || null, Math.min(100, parseInt(req.query.limit || '40', 10))]
+      [companyId, Math.min(100, parseInt(req.query.limit || '40', 10))]
     );
     res.json({ ok: true, events: r.rows });
   } catch (err) {
@@ -1135,7 +1139,7 @@ router.post('/tenant-rls/deactivate', async (req, res) => {
 router.get('/mfa/audit-events', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const db = require('../../db');
     const r = await db.query(
       `SELECT trace_id, event, outcome, method, created_at
@@ -1152,7 +1156,7 @@ router.get('/mfa/audit-events', async (req, res) => {
 router.get('/federation/login-traces', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-    const companyId = req.query.company_id || req.user?.company_id;
+    const companyId = req.user?.company_id;
     const db = require('../../db');
     const r = await db.query(
       `SELECT trace_id, protocol, event, outcome, created_at

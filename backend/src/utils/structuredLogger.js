@@ -1,43 +1,56 @@
+'use strict';
+
 /**
- * IMPETUS - Logger Estruturado
- * Em produção com LOG_FORMAT=json: saída JSON para ferramentas de log
- * Caso contrário: formato legível para desenvolvimento
+ * Structured Logger — JSON logging para produção.
+ * 
+ * Em produção emite JSON (fácil para Datadog, ELK, Loki).
+ * Em dev mantém formato legível (console padrão).
+ *
+ * Uso:
+ *   const log = require('./utils/structuredLogger');
+ *   log.info('boot_complete', { port: 4000, host: '127.0.0.1' });
+ *   log.warn('rls_skip', { table: 'users', reason: 'pilot_only' });
+ *   log.error('db_connection_failed', { host: 'localhost', error: err.message });
  */
-const useJson = process.env.LOG_FORMAT === 'json';
 
-function formatLevel(level) {
-  return level.toUpperCase();
-}
+const isProd = () => String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 
-function buildPayload(level, message, meta = {}) {
-  const base = {
-    timestamp: new Date().toISOString(),
-    level: formatLevel(level),
-    message: String(message),
-    ...meta
+function _emit(level, event, meta = {}) {
+  const entry = {
+    ts: new Date().toISOString(),
+    level,
+    event,
+    service: 'impetus-backend',
+    pid: process.pid,
+    ...meta,
   };
-  if (useJson) {
-    return JSON.stringify(base);
+
+  if (meta.error instanceof Error) {
+    entry.error = meta.error.message;
+    entry.stack = meta.error.stack;
   }
-  const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-  return `[${base.timestamp}] [${base.level}] ${message}${metaStr}`;
+
+  if (isProd()) {
+    const line = JSON.stringify(entry);
+    if (level === 'error') {
+      process.stderr.write(line + '\n');
+    } else {
+      process.stdout.write(line + '\n');
+    }
+  } else {
+    const fn = level === 'error' ? console.error
+      : level === 'warn' ? console.warn
+      : console.log;
+    fn(`[${level.toUpperCase()}] ${event}`, meta);
+  }
 }
 
-const logger = {
-  info(message, meta = {}) {
-    console.log(buildPayload('info', message, meta));
+module.exports = {
+  info: (event, meta) => _emit('info', event, meta),
+  warn: (event, meta) => _emit('warn', event, meta),
+  error: (event, meta) => _emit('error', event, meta),
+  debug: (event, meta) => {
+    if (process.env.LOG_LEVEL === 'debug') _emit('debug', event, meta);
   },
-  warn(message, meta = {}) {
-    console.warn(buildPayload('warn', message, meta));
-  },
-  error(message, meta = {}) {
-    console.error(buildPayload('error', message, meta));
-  },
-  debug(message, meta = {}) {
-    if (process.env.NODE_ENV !== 'production' || process.env.DEBUG) {
-      console.debug(buildPayload('debug', message, meta));
-    }
-  }
+  audit: (event, meta) => _emit('audit', event, { ...meta, _audit: true }),
 };
-
-module.exports = logger;

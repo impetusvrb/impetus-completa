@@ -11,15 +11,15 @@ const db = require('../../../db');
 const mes = require('../services/mesFoundationService');
 
 router.get('/health', async (req, res) => {
-  const companyId = req.user?.company_id || req.query.company_id;
-  if (!companyId) return res.status(400).json({ ok: false, error: 'company_id required' });
+  const companyId = req.user?.company_id;
+  if (!companyId) return res.status(403).json({ ok: false, error: 'Tenant obrigatório' });
   const result = await mes.getHealth(db, companyId);
   res.json(result);
 });
 
 router.post('/production-orders', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.createProductionOrder(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {
@@ -29,7 +29,7 @@ router.post('/production-orders', async (req, res) => {
 
 router.post('/executions', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.recordProductionExecution(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {
@@ -39,7 +39,7 @@ router.post('/executions', async (req, res) => {
 
 router.post('/downtime', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.recordDowntime(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {
@@ -49,7 +49,7 @@ router.post('/downtime', async (req, res) => {
 
 router.post('/scrap', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.recordScrap(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {
@@ -59,7 +59,7 @@ router.post('/scrap', async (req, res) => {
 
 router.post('/oee', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.recordOeeSnapshot(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {
@@ -69,7 +69,7 @@ router.post('/oee', async (req, res) => {
 
 router.post('/traceability', async (req, res) => {
   try {
-    const data = { ...req.body, company_id: req.user?.company_id || req.body.company_id };
+    const data = { ...req.body, company_id: req.user.company_id };
     const result = await mes.registerTraceability(db, data, { eventBus: req.app.get('eventBus') });
     res.status(result.ok ? 201 : 400).json(result);
   } catch (err) {

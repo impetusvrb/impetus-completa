@@ -1,94 +1,127 @@
 'use strict';
 
 /**
- * IMPETUS — Tenant Isolation Guard (Enterprise Hardening Bloco 2)
+ * Tenant Isolation Guard — camada de defesa em profundidade multi-tenant.
  *
- * Política canónica para extração de `company_id` em handlers que tocam
- * entidades multi-tenant.
+ * Inserir globalmente APÓS requireAuth:
+ *   app.use('/api', requireAuth, tenantIsolationGuard(), ...routes)
  *
- * Regras invioláveis:
- *   1. company_id é SEMPRE proveniente de `req.user.company_id`.
- *   2. body/query/params nunca sobrescrevem.
- *   3. se um body/query/param `company_id` for enviado e divergir do tenant
- *      autenticado, a request é REJEITADA (403) — não silenciada.
- *   4. helper assertSameTenant() para chamadas em serviços downstream.
- *
- * Aditivo e backward-compatible: handlers existentes continuam a funcionar.
- * Apenas oferecemos uma rede de segurança homogénea para os novos handlers
- * (e para guard explícito em endpoints sensíveis).
+ * Funcionalidades:
+ *   1. Rejeita requests sem company_id no token (exceto rotas whitelist).
+ *   2. Neutraliza company_id vindo de body/query/params — substitui pelo do token.
+ *   3. Injeta req.tenantId para uso unificado nos handlers.
+ *   4. Auditoria assíncrona de tentativas de tenant spoofing.
  */
 
-function getAuthenticatedCompanyId(req) {
-  return req && req.user && req.user.company_id != null
-    ? String(req.user.company_id)
-    : null;
+const WHITELIST_PREFIXES = Object.freeze([
+  '/api/auth/',
+  '/api/register',
+  '/api/webhooks/',
+  '/api/webhook',
+  '/health',
+  '/api/health',
+  '/api/system/health',
+  '/api/anam/public-config',
+  '/api/anam/session-token',
+  '/api/anam/prepare',
+]);
+
+const ADMIN_PORTAL_PREFIXES = Object.freeze([
+  '/api/admin-portal/',
+  '/api/impetus-admin/',
+]);
+
+function isWhitelisted(path) {
+  const p = String(path || '').split('?')[0].toLowerCase();
+  return WHITELIST_PREFIXES.some((w) => p.startsWith(w));
 }
 
-function getSubmittedCompanyId(req) {
-  const fromBody = req?.body && req.body.company_id != null ? String(req.body.company_id) : null;
-  const fromQuery = req?.query && req.query.company_id != null ? String(req.query.company_id) : null;
-  const fromParams = req?.params && req.params.company_id != null ? String(req.params.company_id) : null;
-  return fromBody || fromQuery || fromParams || null;
+function isAdminPortal(path) {
+  const p = String(path || '').split('?')[0].toLowerCase();
+  return ADMIN_PORTAL_PREFIXES.some((w) => p.startsWith(w));
 }
 
-/**
- * Middleware: garante presença de company_id autenticado e rejeita tentativas
- * de forging via body/query/params.
- */
-function tenantIsolationGuard(req, res, next) {
-  const auth = getAuthenticatedCompanyId(req);
-  if (!auth) {
-    return res.status(403).json({
-      ok: false,
-      error: 'TENANT_CONTEXT_MISSING',
-      code: 'TENANT_CONTEXT_MISSING'
-    });
-  }
-  const submitted = getSubmittedCompanyId(req);
-  if (submitted && submitted !== auth) {
-    try {
-      console.warn(
-        '[TENANT_ISOLATION_VIOLATION]',
-        JSON.stringify({
-          event: 'TENANT_ISOLATION_VIOLATION',
-          user_id: req.user?.id || null,
-          authenticated_company_id: auth,
-          submitted_company_id: submitted,
-          path: req.originalUrl || req.path,
-          at: new Date().toISOString()
-        })
-      );
-    } catch (_e) {
-      /* ignore */
+function logSpoofAttempt(req, source, clientValue) {
+  try {
+    const payload = {
+      event: 'TENANT_SPOOF_ATTEMPT',
+      ip: req.ip,
+      user_id: req.user?.id || null,
+      user_email: req.user?.email || null,
+      token_company_id: req.user?.company_id || null,
+      spoofed_company_id: clientValue,
+      source,
+      path: req.originalUrl || req.url,
+      method: req.method,
+      at: new Date().toISOString(),
+    };
+    console.warn(`[TENANT_SPOOF]`, JSON.stringify(payload));
+  } catch (_) { /* never break */ }
+}
+
+function sanitizeTenantFromInput(req) {
+  const tokenCid = req.user?.company_id;
+  const sources = [
+    { key: 'body', obj: req.body },
+    { key: 'query', obj: req.query },
+    { key: 'params', obj: req.params },
+  ];
+
+  for (const { key, obj } of sources) {
+    if (!obj || typeof obj !== 'object') continue;
+    for (const field of ['company_id', 'companyId', 'tenant_id', 'tenantId']) {
+      if (obj[field] !== undefined && obj[field] !== null) {
+        const clientVal = String(obj[field]);
+        if (tokenCid && clientVal !== String(tokenCid)) {
+          logSpoofAttempt(req, `${key}.${field}`, clientVal);
+        }
+        if (tokenCid) {
+          obj[field] = tokenCid;
+        }
+      }
     }
-    return res.status(403).json({
-      ok: false,
-      error: 'TENANT_MISMATCH',
-      code: 'TENANT_MISMATCH'
-    });
   }
-  req._tenantCompanyId = auth;
-  return next();
 }
 
 /**
- * Helper para serviços downstream. Lança caso o expected divirja do received.
+ * @param {{ strict?: boolean, auditLog?: boolean }} opts
+ *   strict: rejeita 403 se company_id ausente (default true)
+ *   auditLog: emite log de spoof (default true)
  */
-function assertSameTenant(expectedCompanyId, receivedCompanyId, context = 'unspecified') {
-  const e = expectedCompanyId != null ? String(expectedCompanyId) : null;
-  const r = receivedCompanyId != null ? String(receivedCompanyId) : null;
-  if (!e || !r || e !== r) {
-    const err = new Error(`TENANT_ASSERTION_FAILED: ${context}`);
-    err.code = 'TENANT_ASSERTION_FAILED';
-    err.expected = e;
-    err.received = r;
-    throw err;
-  }
-  return true;
+function tenantIsolationGuard(opts = {}) {
+  const strict = opts.strict !== false;
+  const auditLog = opts.auditLog !== false;
+
+  return function _tenantIsolationGuard(req, res, next) {
+    const path = req.originalUrl || req.url || '';
+
+    if (isWhitelisted(path)) return next();
+
+    if (!req.user) return next();
+
+    const cid = req.user.company_id;
+
+    if (isAdminPortal(path) && req.user.role === 'impetus_admin') {
+      req.tenantId = null;
+      return next();
+    }
+
+    if (!cid && strict) {
+      return res.status(403).json({
+        ok: false,
+        code: 'TENANT_MISSING',
+        error: 'Sessão sem empresa vinculada. Faça login novamente.',
+      });
+    }
+
+    req.tenantId = cid ? String(cid) : null;
+
+    if (auditLog) {
+      sanitizeTenantFromInput(req);
+    }
+
+    return next();
+  };
 }
 
-module.exports = {
-  tenantIsolationGuard,
-  assertSameTenant,
-  getAuthenticatedCompanyId
-};
+module.exports = { tenantIsolationGuard, sanitizeTenantFromInput, isWhitelisted };

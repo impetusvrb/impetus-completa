@@ -141,6 +141,14 @@ app.use((req, res, next) => {
   return urlEncDefault(req, res, next);
 });
 
+/** Input sanitization (XSS defense-in-depth) — após body parser, antes de routing. */
+try {
+  const { inputSanitizationMiddleware } = require('./middleware/inputSanitization');
+  app.use(inputSanitizationMiddleware);
+} catch (_e) {
+  console.warn('[server] inputSanitization não carregado:', _e?.message);
+}
+
 /** Rate limit por IP em /api (utilizadores autenticados são ignorados no limiter; webhooks excluídos). */
 app.use((req, res, next) => {
   const orig = String(req.originalUrl || req.url || '');
@@ -323,10 +331,27 @@ try {
   console.warn('[server] /uploads seguro não montado:', e?.message);
 }
 
+const { tenantIsolationGuard } = require('./middleware/tenantIsolationGuard');
+const { tenantRlsContext } = require('./middleware/tenantRlsMiddleware');
+const _tenantGuard = tenantIsolationGuard({ strict: true, auditLog: true });
+const _tenantRls = tenantRlsContext;
+
+const TENANT_GUARD_SKIP_PREFIXES = [
+  '/api/auth', '/api/register', '/api/webhook', '/api/webhooks',
+  '/api/health', '/api/anam',
+];
+
 function useRoute(mountPath, modulePath, ...middlewares) {
   try {
     const router = require(modulePath);
-    app.use(mountPath, ...middlewares, router);
+    const hasAuth = middlewares.includes(requireAuth);
+    const skipTenantGuard = TENANT_GUARD_SKIP_PREFIXES.some((p) => mountPath.startsWith(p));
+    const chain = [...middlewares];
+    if (hasAuth && !skipTenantGuard) {
+      const authIdx = chain.indexOf(requireAuth);
+      chain.splice(authIdx + 1, 0, _tenantGuard, _tenantRls);
+    }
+    app.use(mountPath, ...chain, router);
   } catch (e) {
     console.warn('[server] Rota não carregada:', mountPath, '-', e.message);
     if (mountPath === '/api/cognitive-council' || String(modulePath).includes('cognitiveCouncil')) {

@@ -462,6 +462,11 @@ function requireAuth(req, res, next) {
     } catch { /* non-blocking M1.19 */ }
     req.user = hydrated;
     req.session = { id: user.sessionId };
+    req.tenantId = hydrated.company_id ? String(hydrated.company_id) : null;
+    try {
+      const { sanitizeTenantFromInput } = require('./tenantIsolationGuard');
+      sanitizeTenantFromInput(req);
+    } catch { /* non-blocking */ }
     try {
       const tenantDb = require('../tenant-isolation/runtime/tenantDbContext');
       const rlsFlags = require('../tenant-isolation/config/tenantRlsFlags');

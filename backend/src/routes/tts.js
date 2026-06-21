@@ -10,8 +10,21 @@
  */
 const express = require('express');
 const voiceTts = require('../services/voiceTtsService');
+const { requireAuth } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
+
+const ttsRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { ok: false, error: 'Limite de TTS excedido. Aguarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id ? `tts:${req.user.id}` : req.ip,
+});
+
+router.use(requireAuth, ttsRateLimiter);
 
 let lastMp3Buf = null;
 let lastUpdatedAt = 0;

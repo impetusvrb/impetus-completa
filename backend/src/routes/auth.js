@@ -11,11 +11,12 @@ const roleVerification = require('../services/roleVerificationService');
 const dashboardProfileResolver = require('../services/dashboardProfileResolver');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { getPublicAppBaseUrl } = require('../utils/publicAppUrl');
+const lockout = require('../middleware/accountLockout');
 
 const router = express.Router();
 
 // LOGIN
-router.post('/login', async (req, res) => {
+router.post('/login', lockout.loginLockoutMiddleware, async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -37,7 +38,8 @@ router.post('/login', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Usuário não encontrado' });
+      lockout.recordFailure(email, req.ip);
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     const user = result.rows[0];
@@ -52,8 +54,14 @@ router.post('/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!validPassword) {
-      return res.status(401).json({ error: 'Senha inválida' });
+      const lk = lockout.recordFailure(email, req.ip);
+      if (lk.locked) {
+        lockout.persistLockoutEvent(db, email, req.ip, 'locked').catch(() => {});
+      }
+      return res.status(401).json({ error: 'Credenciais inválidas' });
     }
+
+    lockout.recordSuccess(email, req.ip);
 
     try {
       const mfaChallenge = require('../mfa/services/mfaChallengeService');
