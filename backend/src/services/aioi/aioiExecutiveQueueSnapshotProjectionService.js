@@ -103,7 +103,7 @@ async function projectExecutiveQueueSnapshot({ companyId, tenantKey, limit = DEF
     const idempotencyKey = `queue:${companyId}:${new Date().toISOString().slice(0, 16)}`;
     const resolvedTenantKey = tenantKey || String(companyId);
 
-    await client.query(
+    const ins = await client.query(
       `INSERT INTO aioi_executive_queue_snapshot (
          id, company_id, tenant_key, snapshot_version, generated_at,
          authority, source_table, item_count, items,
@@ -112,7 +112,9 @@ async function projectExecutiveQueueSnapshot({ companyId, tenantKey, limit = DEF
          $1::uuid, $2::uuid, $3, 1, now(),
          'aioi', 'industrial_operational_events', $4, $5::jsonb,
          $6, $7
-       )`,
+       )
+       ON CONFLICT (idempotency_key) DO NOTHING
+       RETURNING id`,
       [
         snapshotId,
         companyId,
@@ -125,6 +127,11 @@ async function projectExecutiveQueueSnapshot({ companyId, tenantKey, limit = DEF
     );
 
     await client.query('COMMIT');
+
+    // Snapshot já projetado nesta janela (mesma idempotency_key): skip benigno.
+    if (ins.rowCount === 0) {
+      return { ok: true, skipped: true, idempotent: true, item_count: items.length, items };
+    }
 
     console.info(`[${LAYER}] Snapshot gerado`, {
       snapshot_id: snapshotId,

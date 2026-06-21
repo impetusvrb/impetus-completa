@@ -58,6 +58,52 @@ async function persist(opts) {
   }
 }
 
+async function listForAdmin(companyId, opts = {}) {
+  if (!companyId) return { rows: [], total: 0 };
+  const limit = Math.min(100, Math.max(1, parseInt(String(opts.limit || 25), 10) || 25));
+  const offset = Math.max(0, parseInt(String(opts.offset || 0), 10) || 0);
+  const source = opts.source ? String(opts.source).slice(0, 32) : null;
+  const search = opts.search ? `%${String(opts.search).slice(0, 120)}%` : null;
+
+  try {
+    const where = ['company_id = $1::uuid'];
+    const params = [companyId];
+    if (source) { params.push(source); where.push(`source = $${params.length}`); }
+    if (search) {
+      params.push(search);
+      where.push(`(transcription ILIKE $${params.length} OR sender_name ILIKE $${params.length})`);
+    }
+    const whereSql = where.join(' AND ');
+
+    const countR = await db.query(
+      `SELECT COUNT(*)::int AS c FROM audio_logs WHERE ${whereSql}`,
+      params
+    );
+    const total = countR.rows?.[0]?.c ?? 0;
+
+    params.push(limit, offset);
+    const r = await db.query(
+      `
+      SELECT id, source, source_id, user_id, sender_name, media_url,
+             transcription, message_type, metadata, created_at
+      FROM audio_logs
+      WHERE ${whereSql}
+      ORDER BY created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+      `,
+      params
+    );
+    return { rows: r.rows || [], total };
+  } catch (err) {
+    if (err.message?.includes('does not exist')) {
+      console.warn('[AUDIO_LOGS] Tabela audio_logs nao existe. Execute a migration.');
+      return { rows: [], total: 0 };
+    }
+    console.warn('[AUDIO_LOGS] listForAdmin:', err.message);
+    return { rows: [], total: 0 };
+  }
+}
+
 async function getContextForAI(companyId, user, queryText, limit) {
   const lim = limit || 30;
   if (!canAccessAudioLogs(user)) return '';
@@ -91,7 +137,9 @@ async function getContextForAI(companyId, user, queryText, limit) {
 
 module.exports = {
   persist,
+  listForAdmin,
   getContextForAI,
   canAccessAudioLogs,
-  queryMentionsAudio
+  queryMentionsAudio,
+  ROLES_AUDITORIA
 };

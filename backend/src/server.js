@@ -467,6 +467,7 @@ useRoute('/api/admin/raw-materials', './routes/admin/rawMaterials', requireAuth)
 useRoute('/api/admin/logistics', './routes/admin/logistics', requireAuth);
 useRoute('/api/admin/time-clock', './routes/admin/timeClock');
 useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
+useRoute('/api/admin/audio-logs', './routes/admin/audioLogs', requireAuth);
 useRoute('/api/admin/nexus-wallet', './routes/admin/nexusWallet');
 useRoute('/api/nexus-ia', './routes/nexusIa');
 useRoute('/api/dashboard/chat/voice', './routes/chatVoice');
