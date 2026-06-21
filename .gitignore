@@ -29,6 +29,8 @@ backend/.env.edge-agent.*
 **/.env.bkp*
 **/.env.backup*
 **/.env.*.bak
+.env.bak*
+**/.env.bak*
 
 # Lab industrial OPC-UA (gerado localmente)
 backend/.opcua-lab-endpoint.txt
