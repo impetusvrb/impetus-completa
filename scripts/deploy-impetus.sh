@@ -9,6 +9,7 @@ SKIP_MIGRATE=0
 SKIP_BUILD=0
 BACKEND_ONLY=0
 FRONTEND_ONLY=0
+SKIP_DRIFT=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -16,8 +17,9 @@ for arg in "$@"; do
     --skip-build) SKIP_BUILD=1 ;;
     --backend-only) BACKEND_ONLY=1 ;;
     --frontend-only) FRONTEND_ONLY=1 ;;
+    --skip-drift) SKIP_DRIFT=1 ;;
     -h|--help)
-      echo "Uso: $0 [--skip-migrate] [--skip-build] [--backend-only] [--frontend-only]"
+      echo "Uso: $0 [--skip-migrate] [--skip-build] [--skip-drift] [--backend-only] [--frontend-only]"
       exit 0
       ;;
     *) echo "Opção desconhecida: $arg" >&2; exit 1 ;;
@@ -62,6 +64,13 @@ fi
 
 if command -v pm2 >/dev/null 2>&1; then
   pm2 list | grep -E 'impetus-(backend|frontend)' || true
+fi
+
+if [[ "${SKIP_DRIFT:-0}" -eq 0 ]]; then
+  log "CERT drift gate..."
+  bash "$ROOT/scripts/cert-drift-gate.sh"
+else
+  log "CERT drift ignorado (--skip-drift)"
 fi
 
 log "Deploy concluído."
