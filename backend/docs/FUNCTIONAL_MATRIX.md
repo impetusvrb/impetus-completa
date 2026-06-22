@@ -1,6 +1,6 @@
 # MATRIZ FUNCIONAL REAL — IMPETUS (geração automática)
 
-> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-21T22:19:21.307Z.
+> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-21T23:55:34.401Z.
 > **Read-only.** Status preliminares são ESTÁTICOS. `NAO_VALIDADO` = estrutura íntegra aguardando validação E2E (Parte 7 do manual). Nenhuma linha é VERDE sem evidência de execução.
 
 ## Resumo
