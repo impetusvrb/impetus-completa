@@ -1,10 +1,10 @@
 {
-  "inspection_date": "2026-06-21",
+  "inspection_date": "2026-06-22",
   "inspection_type": "cert_e2e_process",
-  "lot_number": "CERT-NC-77258269",
+  "lot_number": "CERT-NC-29902885",
   "result": "non_conforming",
   "defects_count": 3,
-  "defects_description": "[CERT-E2E cert-1782077258269] Desvio dimensional detectado em linha piloto.",
+  "defects_description": "[CERT-E2E cert-1782129902885] Desvio dimensional detectado em linha piloto.",
   "corrective_action": "[CERT-E2E] CAPA pendente — acção correctiva de contenção.",
   "_redacted": "PII-free cert payload"
 }

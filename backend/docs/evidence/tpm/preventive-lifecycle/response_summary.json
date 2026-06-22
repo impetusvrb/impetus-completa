@@ -4,9 +4,9 @@
     "ok": true,
     "is_maintenance": true,
     "summary": {
-      "frase_resumo": "Hoje você tem 6 ordem(ns) de serviço aberta(s).",
-      "os_abertas": 6,
-      "work_orders_open": 6,
+      "frase_resumo": "Hoje você tem 7 ordem(ns) de serviço aberta(s).",
+      "os_abertas": 7,
+      "work_orders_open": 7,
       "maquinas_atencao": 0,
       "preventivas_hoje": 0,
       "preventivas_vencidas": 0,

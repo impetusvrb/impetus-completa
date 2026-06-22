@@ -3,9 +3,9 @@
 > **Ciclo:** CERT-01.1  
 > **Data:** 2026-06-21  
 > **Metodologia:** `backend/docs/MANUAL_MATRIZ_FUNCIONAL_REAL.md` (fonte de verdade)  
-> **Selo alcançado:** **Parcial** — Parte 7.2 completa (10/10 cenários backend VERDE)
+> **Selo alcançado:** **Parcial avançado** — Parte 7.2 completa (10/10 backend) + UI industrial Quality/SST/TPM + CI drift activo
 
-O IMPETUS possui **inventário estático completo**, **10 cenários E2E Parte 7.2 certificados** e ferramentas reproduzíveis. Telas UI parciais permanecem AMARELO onde aplicável.
+O IMPETUS possui **inventário estático completo**, **10 cenários E2E Parte 7.2 certificados**, **UI ligada às APIs certificadas** (NCR/CAPA, SST incidentes, TPM preventivo) e **gate anti-drift** no servidor e GitHub Actions.
 
 | Dimensão | Estado |
 |----------|--------|
@@ -17,7 +17,7 @@ O IMPETUS possui **inventário estático completo**, **10 cenários E2E Parte 7.
 | E2E domínios (10 cenários Parte 7.2) | ✅ **10/10** |
 | Evidências versionadas | ✅ `backend/docs/evidence/*` |
 | Classificação cenários backend | ✅ 10× VERDE |
-| Selo Produção Enterprise | 🟡 Backend certificado; UI gaps documentados |
+| Selo Produção Enterprise | 🟡 Backend + UI piloto certificados; telemetria PLC pendente |
 
 ---
 
@@ -29,10 +29,10 @@ O IMPETUS possui **inventário estático completo**, **10 cenários E2E Parte 7.
 | 3 | Cadeias tela→BD rastreadas | 🟡 Parcial | Cruzamento path em `FUNCTIONAL_MATRIX.json`; botão→endpoint é v2 |
 | 4 | `FLAG_BASELINE_FROZEN.md` | ✅ | `backend/docs/FLAG_BASELINE_FROZEN.md` |
 | 5 | Varredura mocks | 🟡 | Sem `Math.random` em `components/charts/`; widgets com "indisponível" = estado vazio legítimo |
-| 6 | Toda linha classificada | 🟡 | 63 `NAO_VALIDADO`, 8 `AMARELO`, 1 `VERDE`, 10 cenários certificados |
-| 7 | 10 cenários E2E + 6 evidências | ✅ | 10/10 — ver `backend/docs/evidence/README.md` |
-| 8 | `FUNCTIONAL_MATRIX.json` + `.md` sync | ✅ | Regenerado 2026-06-21 |
-| 9 | Gate drift CI | 🟡 | Script pronto; integração CI pendente |
+| 6 | Toda linha classificada | 🟡 | 63 `NAO_VALIDADO`, 3 `AMARELO`, 6 `VERDE`, 10 cenários certificados |
+| 7 | 10 cenários E2E + evidências | ✅ | 10/10 — ver `backend/docs/evidence/README.md` |
+| 8 | `FUNCTIONAL_MATRIX.json` + `.md` sync | ✅ | Regenerado + overlay E2E 2026-06-22 |
+| 9 | Gate drift CI | ✅ | GitHub Actions `cert-drift.yml` + `scripts/cert-drift-gate.sh` (deploy + cron 06:00) |
 | 10 | Selo declarado | ❌ | — |
 
 ---
@@ -75,8 +75,8 @@ UNRESOLVED:         0
 Status (estático + certificação):
   NAO_VALIDADO:     63
   REDIRECT:         5
-  AMARELO:          8
-  VERDE (telas):    1  (Dashboard executivo)
+  AMARELO:          3
+  VERDE (telas):    6  (Quality, SST, Dashboard, …)
   Cenários VERDE:   10 (Parte 7.2 completa)
 ```
 
@@ -148,16 +148,16 @@ Status (estático + certificação):
 - **Persistência:** `operational_alerts` + `hr_alerts` (treinamento vencido)
 - **Notificação:** `SST_LIFECYCLE` via `sstNotificationService`
 - **Migration:** `operational_alerts_sst_tipo_alerta_migration.sql`
-- **Gap UI:** `SafetyOperationalWorkspace` view=incident — placeholder
+- **UI:** `SafetyIncidentPanel` em `/app/safety/operational?view=incident` — POST/GET events + resolver alerta (UUID)
 
-#### Quality NC→CAPA — detalhe (2026-06-21)
+#### Quality NC→CAPA — detalhe (2026-06-22)
 
 - **Script:** `node backend/scripts/audit/e2e_quality_nc_capa.js`
 - **5 passos HTTP:** inspeção NC → NCR instance → NCR transition (`quality.ncr.opened`) → CAPA instance → CAPA transition (`quality.capa.created`)
 - **Persistência:** `quality_inspections`, `impetus_quality_workflow_instance`, `impetus_quality_audit_chain`
 - **Isolamento:** Tenant B → HTTP 403, sem leak do registo NC
-- **Gap UI:** `NcrCapaPanel` (QualityGovernanceHub) permanece **INCOMPLETO** — KPIs stub; telas Quality → **AMARELO**
-- **Matriz:** `certifiedScenarios[0]` + `applyCertEvidenceToMatrix.js`
+- **UI:** `NcrCapaPanel` + formulário NC (`POST /quality-intelligence/inspections`) — KPIs via `nc-capa-summary`
+- **TPM piloto:** `DashboardMecanico` — `createPreventive` / `completePreventive`
 
 ---
 
@@ -165,11 +165,11 @@ Status (estático + certificação):
 
 | P | Problema | Classificação | Acção |
 |---|----------|---------------|-------|
-| P0 | 0 telas VERDE com evidência | Certificação bloqueada | Continuar Parte 7.2 (8 domínios restantes) |
-| P1 | 67 telas NAO_VALIDADO | Cobertura | E2E + reclassificação |
+| P1 | 63 telas NAO_VALIDADO | Cobertura | E2E + reclassificação progressiva |
 | P1 | Telemetria PLC sem leitura recente | AMARELO | Widgets "indisponível" no dashboard CEO |
-| P2 | Gate drift não no CI | Governança | Adicionar job `checkMatrixDrift --fail-on-drift` |
 | P2 | Rastreio botão→endpoint (v2) | Matriz | Extender `buildFunctionalMatrix.js` com parse por componente |
+| — | UI stub Quality/SST | ✅ Resolvido | NcrCapaPanel + SafetyIncidentPanel + TPM |
+| — | Gate drift CI | ✅ Resolvido | `.github/workflows/cert-drift.yml` + cron servidor |
 | — | `data_controller_email` inexistente | ✅ Corrigido | `roleVerificationService` + rate limit Nginx |
 
 ---
@@ -191,6 +191,10 @@ node backend/scripts/e2e_role_smoke.js
 
 # Runner completo Parte 7.2 (10 cenários)
 node backend/scripts/audit/e2e_cert_all.js
+
+# Gate drift (servidor)
+bash scripts/cert-drift-gate.sh
+npm run cert:drift   # em backend/
 ```
 
 ---
@@ -198,9 +202,10 @@ node backend/scripts/audit/e2e_cert_all.js
 ## 10. Próximo ciclo
 
 1. ~~Parte 7.2 — 10 cenários E2E~~ ✅
-2. Integrar `checkMatrixDrift.js` no CI
-3. Ligar UI stub (NcrCapaPanel, Safety incident, etc.) às APIs certificadas
-4. Selo **Pronto para Piloto** após validação UI + telemetria PLC real
+2. ~~Integrar `checkMatrixDrift.js` no CI~~ ✅
+3. ~~Ligar UI stub (NcrCapaPanel, Safety incident, TPM)~~ ✅
+4. Selo **Pronto para Piloto** — validação em campo + telemetria PLC real
+5. Reclassificar domínios ESG/ManuIA UI onde aplicável
 
 ---
 
@@ -208,12 +213,12 @@ node backend/scripts/audit/e2e_cert_all.js
 
 | Selo | Alcançado? |
 |------|------------|
-| Funcionalmente Certificado (backend) | 🟡 10/10 cenários |
-| Operacionalmente Certificado | 🟡 Pendente UI + telemetria |
-| Pronto para Piloto | 🟡 APIs prontas; FE parcial |
-| Pronto para Produção Enterprise | ❌ CI drift + UI completa |
+| Funcionalmente Certificado (backend) | ✅ 10/10 cenários |
+| Operacionalmente Certificado | 🟡 UI piloto ligada; telemetria PLC pendente |
+| Pronto para Piloto | 🟡 APIs + UI industrial core prontas |
+| Pronto para Produção Enterprise | 🟡 Cobertura matriz 63 NAO_VALIDADO |
 
-**Conclusão:** Parte 7.2 **concluída** — 10 cenários backend certificados com evidências. Próximo passo: CI drift + integração UI industrial.
+**Conclusão:** Parte 7.2 **concluída** — backend + UI piloto (Quality NC, SST, TPM) + CI drift. Próximo: piloto em campo e telemetria PLC.
 
 ---
 

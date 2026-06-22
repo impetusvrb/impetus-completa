@@ -5,9 +5,9 @@
     "enabled": false,
     "shadow_mode": true,
     "policies_loaded": 17,
-    "evaluations": 1,
-    "matches": 1,
+    "evaluations": 10,
+    "matches": 10,
     "unmatched": 0,
-    "shadow_decisions": 1
+    "shadow_decisions": 10
   }
 }

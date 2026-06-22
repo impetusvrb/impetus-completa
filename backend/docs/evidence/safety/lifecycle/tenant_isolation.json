@@ -2,6 +2,6 @@
   "tested": true,
   "ok": true,
   "other_status": 200,
-  "resolve_status": 400,
+  "resolve_status": 404,
   "leaked": []
 }

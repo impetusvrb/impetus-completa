@@ -1,1 +1,2052 @@
-{"generatedAt":"2026-06-21T22:19:20.948Z","methodology":"backend/docs/MANUAL_MATRIZ_FUNCIONAL_REAL.md","stats":{"screenCount":77,"endpointCount":1098,"mountCount":142,"referencedCount":621,"apiCallCount":791,"unresolvedCount":0,"statusDist":{"NAO_VALIDADO":63,"AMARELO":3,"REDIRECT":5,"VERDE":6,"SCENARIO_VERDE":10},"certifiedScenarioCount":10,"lastCertificationAt":"2026-06-21T22:19:20.997Z"},"rows":[{"module":"Core","screen":"Login","route":"/","profiles":["(sem guard explícito)"],"screenFile":"./pages/Login","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"static","evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"ForgotPassword","route":"/forgot-password","profiles":["(sem guard explícito)"],"screenFile":"./pages/ForgotPassword","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"static","evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"ResetPassword","route":"/reset-password","profiles":["(sem guard explícito)"],"screenFile":"./pages/ResetPassword","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"static","evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"SetupEmpresa","route":"/setup-empresa","profiles":["autenticado"],"screenFile":"./pages/SetupEmpresa","guards":["PrivateRoute"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"RoleVerificationPage","route":"/validacao-cargo","profiles":["autenticado"],"screenFile":"./pages/RoleVerificationPage","guards":["PrivateRoute"],"status":"AMARELO","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/dsr/data-subject-request/","notes":"Pedido do titular","lastValidatedAt":"2026-06-21","feature":"Pedido do titular"},{"module":"Core","screen":"Proposals","route":"/app/proacao","profiles":["autenticado"],"screenFile":"./pages/Proposals","guards":["PrivateRoute","SetupGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"ProposalDetail","route":"/app/proacao/:id","profiles":["autenticado"],"screenFile":"./pages/ProposalDetail","guards":["PrivateRoute","SetupGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Desconhecido","screen":"(redirect)","route":"/app","profiles":["autenticado"],"screenFile":null,"guards":["PrivateRoute","SetupGuard","Navigate","DashboardRouteEntry"],"status":"REDIRECT","isLayout":false,"loader":null,"evidence":null,"notes":"","lastValidatedAt":null},{"module":"Desconhecido","screen":"(redirect)","route":"/app/dashboard-vivo","profiles":["autenticado"],"screenFile":null,"guards":["PrivateRoute","SetupGuard","Navigate"],"status":"REDIRECT","isLayout":false,"loader":null,"evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"Dashboard","route":"/app/ceo","profiles":["autenticado"],"screenFile":"./pages/Dashboard","guards":["PrivateRoute","SetupGuard","Navigate"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/executive/dashboard-profile/","notes":"Dashboard executivo por perfil","lastValidatedAt":"2026-06-21","feature":"Dashboard executivo por perfil"},{"module":"Core","screen":"Operacional","route":"/app/operacional","profiles":["admin (strict)"],"screenFile":"./pages/Operacional","guards":["PrivateRoute","SetupGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"RegistroInteligente","route":"/app/registro-inteligente","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./pages/RegistroInteligente","guards":["PrivateRoute","SetupGuard","CEORouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"CadastrarComIA","route":"/app/cadastrar-com-ia","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./pages/CadastrarComIA","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Biblioteca","screen":"BibliotecaPage","route":"/app/biblioteca","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./features/biblioteca","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Chat/IA","screen":"AIChatPage","route":"/app/chatbot","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./features/aiChat/AIChatPage","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"InsightsPage","route":"/app/insights","profiles":["autenticado"],"screenFile":"./pages/InsightsPage","guards":["PrivateRoute","SetupGuard","Navigate"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Pulse","screen":"PulseRh","route":"/app/pulse-rh","profiles":["rh","hr_management"],"screenFile":"./pages/PulseRh","guards":["PrivateRoute","SetupGuard","PulseRhRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Pulse","screen":"PulseGestao","route":"/app/pulse-gestao","profiles":["diretor","gerente","coordenador","supervisor"],"screenFile":"./pages/PulseGestao","guards":["PrivateRoute","SetupGuard","RoleGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"OperationalIntelligencePanel","route":"/app/cerebro-operacional","profiles":["autenticado"],"screenFile":"./pages/OperationalIntelligencePanel","guards":["PrivateRoute","SetupGuard","Navigate"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"IndustrialOperationsCenter","route":"/app/centro-operacoes-industrial","profiles":["autenticado"],"screenFile":"./pages/IndustrialOperationsCenter","guards":["PrivateRoute","SetupGuard","Navigate"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"IndustrialOperationsCenter","route":"/app/monitored-points","profiles":["autenticado"],"screenFile":"./pages/IndustrialOperationsCenter","guards":["PrivateRoute","SetupGuard","Navigate"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"AlmoxarifadoInteligente","route":"/app/almoxarifado-inteligente","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./pages/AlmoxarifadoInteligente","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Logistics","screen":"LogisticaInteligente","route":"/app/logistica-inteligente","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./pages/LogisticaInteligente","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"ManuIA","screen":"ManuIA","route":"/app/manutencao/manuia","profiles":["autenticado"],"screenFile":"./pages/ManuIA","guards":["PrivateRoute","SetupGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"ManuIA","screen":"ManuIAExtensionApp","route":"/app/manutencao/manuia-app","profiles":["autenticado"],"screenFile":"./manuia-app/ManuIAExtensionApp","guards":["PrivateRoute","SetupGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"CentroPrevisaoOperacional","route":"/app/centro-previsao-operacional","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./pages/CentroPrevisaoOperacional","guards":["PrivateRoute","SetupGuard","CEORouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Custos/Billing","screen":"CentroCustosExecutivo","route":"/app/centro-custos-industriais","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./pages/CentroCustosExecutivo","guards":["PrivateRoute","SetupGuard","CEORouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"MapaVazamentoFinanceiro","route":"/app/mapa-vazamento-financeiro","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./pages/MapaVazamentoFinanceiro","guards":["PrivateRoute","SetupGuard","CEORouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Desconhecido","screen":"(redirect)","route":"/app/configuracoes","profiles":["(sem guard explícito)"],"screenFile":null,"guards":["Navigate"],"status":"REDIRECT","isLayout":false,"loader":null,"evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"CompanyAdminSettings","route":"/app/admin/conteudo-empresa","profiles":["admin"],"screenFile":"./pages/CompanyAdminSettings","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Desconhecido","screen":"(redirect)","route":"/proposals","profiles":["autenticado"],"screenFile":null,"guards":["PrivateRoute","SetupGuard","Navigate"],"status":"REDIRECT","isLayout":false,"loader":null,"evidence":null,"notes":"","lastValidatedAt":null},{"module":"Core","screen":"Diagnostic","route":"/diagnostic","profiles":["ceo","+demais (bloqueia colaborador simples)"],"screenFile":"./pages/Diagnostic","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminUsers","route":"/app/admin/users","profiles":["admin"],"screenFile":"./pages/AdminUsers","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"ImplementationGuide","route":"/app/admin/implantacao-guia","profiles":["admin (strict)"],"screenFile":"./pages/ImplementationGuide","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminDepartments","route":"/app/admin/departments","profiles":["admin"],"screenFile":"./pages/AdminDepartments","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminOperationalTeams","route":"/app/admin/equipes-operacionais","profiles":["admin"],"screenFile":"./pages/AdminOperationalTeams","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminStructural","route":"/app/admin/structural","profiles":["admin"],"screenFile":"./pages/AdminStructural","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminAuditLogs","route":"/app/admin/audit-logs","profiles":["admin (strict)"],"screenFile":"./pages/AdminAuditLogs","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminAiIncidents","route":"/app/admin/ai-incidents","profiles":["admin (strict)"],"screenFile":"./pages/AdminAiIncidents","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"CognitiveGovernanceDashboard","route":"/app/admin/cognitive-governance","profiles":["admin (strict)"],"screenFile":"./pages/admin/CognitiveGovernanceDashboard","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"ActionApprovalDashboard","route":"/app/admin/action-approvals","profiles":["admin (strict)"],"screenFile":"./components/actionRuntime/ActionApprovalDashboard","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"RolloutCenterHub","route":"/app/admin/rollout-center","profiles":["admin (strict)"],"screenFile":"./domains/admin/rollout-center/RolloutCenterHub","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"CertificationReadinessHub","route":"/app/admin/certification-readiness","profiles":["admin (strict)"],"screenFile":"./domains/admin/certification-readiness/CertificationReadinessHub","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"FinalConsolidationHub","route":"/app/admin/final-consolidation","profiles":["admin (strict)"],"screenFile":"./domains/admin/final-consolidation/FinalConsolidationHub","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminEquipmentLibrary","route":"/app/admin/equipment-library","profiles":["admin (strict)"],"screenFile":"./pages/AdminEquipmentLibrary","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","StrictAdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Custos/Billing","screen":"CentroCustosAdmin","route":"/app/admin/centro-custos","profiles":["admin"],"screenFile":"./pages/CentroCustosAdmin","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminAudioLogs","route":"/app/admin/audio-logs","profiles":["ceo","diretor"],"screenFile":"./pages/AdminAudioLogs","guards":["PrivateRoute","SetupGuard","DirectorOrCEORouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminIntegrations","route":"/app/admin/integrations","profiles":["admin"],"screenFile":"./pages/AdminIntegrations","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Custos/Billing","screen":"NexusIACustos","route":"/app/admin/nexusia-custos","profiles":["admin"],"screenFile":"./pages/NexusIACustos","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminHelpCenter","route":"/app/admin/help-center","profiles":["admin"],"screenFile":"./pages/AdminHelpCenter","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Admin","screen":"AdminWarehouse","route":"/app/admin/warehouse","profiles":["admin"],"screenFile":"./pages/AdminWarehouse","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Logistics","screen":"AdminLogistics","route":"/app/admin/logistics","profiles":["admin"],"screenFile":"./pages/AdminLogistics","guards":["PrivateRoute","SetupGuard","CEORouteGuard","ColaboradorRouteGuard","AdminRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"OrganizationalValidationPanel","route":"/app/validacao-organizacional","profiles":["internal_admin","diretor","gerente","coordenador","supervisor","ceo"],"screenFile":"./pages/OrganizationalValidationPanel","guards":["PrivateRoute","SetupGuard","RoleGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"SelectTeamMember","route":"/app/equipe-operacional","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./pages/SelectTeamMember","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"UserSettings","route":"/app/settings","profiles":["autenticado"],"screenFile":"./pages/UserSettings","guards":["PrivateRoute","SetupGuard","SettingsAccessGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Quality","screen":"QualityOperationalLayout","route":"/app/quality/operational","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./domains/quality/routes/QualityOperationalLayout.jsx","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard","FactoryTeamMemberGate","Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":true,"loader":"lazy","evidence":null,"notes":"layout com rotas filhas; exige membro de equipe operacional; lazy-loaded","lastValidatedAt":null},{"module":"Quality","screen":"QualityOperationalWorkspacePage","route":"/app/quality/operational","profiles":["(sem guard explícito)"],"screenFile":"./domains/quality/routes/QualityOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/quality/nc-create/","notes":"Parte 7.2: backend NC→CAPA VERDE; NcrCapaPanel com KPIs via nc-capa-summary — ver certifiedScenarios","lastValidatedAt":"2026-06-21","feature":"NC → CAPA (governance view)"},{"module":"Quality","screen":"QualityOperationalWorkspacePage","route":"/app/quality/operational/workspace","profiles":["(sem guard explícito)"],"screenFile":"./domains/quality/routes/QualityOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/quality/nc-create/","notes":"Parte 7.2: backend NC→CAPA VERDE; NcrCapaPanel com KPIs via nc-capa-summary — ver certifiedScenarios","lastValidatedAt":"2026-06-21","feature":"NC → CAPA (governance view)"},{"module":"Quality","screen":"QualityInspectionRuntimePage","route":"/app/quality/operational/inspection","profiles":["(sem guard explícito)"],"screenFile":"./domains/quality/routes/QualityInspectionRuntimePage.jsx","guards":["Suspense","PageLoader"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/quality/nc-create/","notes":"POST inspections comprovado em certifiedScenarios","lastValidatedAt":"2026-06-21","feature":"Inspeção operacional"},{"module":"Quality","screen":"QualityKioskRuntimePage","route":"/app/quality/operational/kiosk","profiles":["(sem guard explícito)"],"screenFile":"./domains/quality/routes/QualityKioskRuntimePage.jsx","guards":["Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"SST","screen":"SafetyOperationalLayout","route":"/app/safety/operational","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./domains/safety/routes/SafetyOperationalLayout.jsx","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard","FactoryTeamMemberGate","Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":true,"loader":"lazy","evidence":null,"notes":"layout com rotas filhas; exige membro de equipe operacional; lazy-loaded","lastValidatedAt":null},{"module":"SST","screen":"SafetyOperationalWorkspacePage","route":"/app/safety/operational","profiles":["(sem guard explícito)"],"screenFile":"./domains/safety/routes/SafetyOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/safety/lifecycle/","notes":"Parte 7.2: API SST lifecycle VERDE; SafetyIncidentPanel ligado — ver certifiedScenarios","lastValidatedAt":"2026-06-21","feature":"Incidente / near-miss / treinamento vencido"},{"module":"SST","screen":"SafetyOperationalWorkspacePage","route":"/app/safety/operational/workspace","profiles":["(sem guard explícito)"],"screenFile":"./domains/safety/routes/SafetyOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"VERDE","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/safety/lifecycle/","notes":"Parte 7.2: API SST lifecycle VERDE; SafetyIncidentPanel ligado — ver certifiedScenarios","lastValidatedAt":"2026-06-21","feature":"Incidente / near-miss / treinamento vencido"},{"module":"SST","screen":"SafetyFieldInspectionPage","route":"/app/safety/operational/inspection","profiles":["(sem guard explícito)"],"screenFile":"./domains/safety/routes/SafetyFieldInspectionPage.jsx","guards":["Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Logistics","screen":"LogisticsOperationalLayout","route":"/app/logistics/operational","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./domains/logistics/routes/LogisticsOperationalLayout.jsx","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard","FactoryTeamMemberGate","Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":true,"loader":"lazy","evidence":null,"notes":"layout com rotas filhas; exige membro de equipe operacional; lazy-loaded","lastValidatedAt":null},{"module":"Logistics","screen":"LogisticsOperationalWorkspacePage","route":"/app/logistics/operational","profiles":["(sem guard explícito)"],"screenFile":"./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Logistics","screen":"LogisticsOperationalWorkspacePage","route":"/app/logistics/operational/workspace","profiles":["(sem guard explícito)"],"screenFile":"./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"ESG","screen":"EnvironmentOperationalLayout","route":"/app/environment/operational","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./domains/environment/routes/EnvironmentOperationalLayout.jsx","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard","FactoryTeamMemberGate","Suspense","PageLoader"],"status":"NAO_VALIDADO","isLayout":true,"loader":"lazy","evidence":null,"notes":"layout com rotas filhas; exige membro de equipe operacional; lazy-loaded","lastValidatedAt":null},{"module":"ESG","screen":"EnvironmentOperationalWorkspacePage","route":"/app/environment/operational","profiles":["(sem guard explícito)"],"screenFile":"./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"AMARELO","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/esg/emission-waste-consumption/","notes":"Emissão / Resíduo / Consumo","lastValidatedAt":"2026-06-21","feature":"Emissão / Resíduo / Consumo"},{"module":"ESG","screen":"EnvironmentOperationalWorkspacePage","route":"/app/environment/operational/workspace","profiles":["(sem guard explícito)"],"screenFile":"./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx","guards":["Suspense","PageLoader"],"status":"AMARELO","isLayout":false,"loader":"lazy","evidence":"backend/docs/evidence/esg/emission-waste-consumption/","notes":"Emissão / Resíduo / Consumo","lastValidatedAt":"2026-06-21","feature":"Emissão / Resíduo / Consumo"},{"module":"Chat/IA","screen":"ChatPage","route":"/chat","profiles":["todos exceto colaborador-simples restrito"],"screenFile":"./pages/ChatPage","guards":["PrivateRoute","SetupGuard","ColaboradorRouteGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"AppMobile","route":"/m","profiles":["autenticado"],"screenFile":"./pages/AppMobile","guards":["PrivateRoute","SetupGuard"],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"LicenseExpired","route":"/license-expired","profiles":["(sem guard explícito)"],"screenFile":"./pages/LicenseExpired","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"SubscriptionExpired","route":"/subscription-expired","profiles":["(sem guard explícito)"],"screenFile":"./pages/SubscriptionExpired","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"Error404","route":"/404","profiles":["(sem guard explícito)"],"screenFile":"./pages/Error404","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Core","screen":"Error500","route":"/500","profiles":["(sem guard explícito)"],"screenFile":"./pages/Error500","guards":[],"status":"NAO_VALIDADO","isLayout":false,"loader":"lazy","evidence":null,"notes":"lazy-loaded","lastValidatedAt":null},{"module":"Desconhecido","screen":"(redirect)","route":"/*","profiles":["(sem guard explícito)"],"screenFile":null,"guards":["Navigate"],"status":"REDIRECT","isLayout":false,"loader":null,"evidence":null,"notes":"","lastValidatedAt":null}],"certifiedScenarios":[{"domain":"Quality","scenario":"NC → CAPA → Auditoria","status":"VERDE","evidence":"backend/docs/evidence/quality/nc-create/","lastValidatedAt":"2026-06-21","run_id":"cert-1782077258269","flows":[{"feature":"Registrar NC (inspeção não conforme)","endpoint":{"method":"POST","path":"/api/quality-intelligence/inspections"},"backendService":"services/qualityIntelligenceService.js","tables":["quality_inspections"],"status":"VERDE","profiles":["gerente","diretor","admin","ceo"]},{"feature":"Instanciar workflow NCR universal","endpoint":{"method":"POST","path":"/api/internal/quality-universal/workflows/instance"},"backendService":"domains/quality/workflows/qualityDynamicWorkflowEngine.js","tables":["impetus_quality_workflow_instance"],"status":"VERDE","profiles":["admin","enterprise-internal"]},{"feature":"Transição NCR submit → quality.ncr.opened","endpoint":{"method":"POST","path":"/api/internal/quality-universal/workflows/transition"},"backendService":"domains/quality/workflows/qualityDynamicWorkflowEngine.js","tables":["impetus_quality_audit_chain"],"status":"VERDE","profiles":["admin","enterprise-internal"]},{"feature":"Instanciar CAPA vinculada à NC","endpoint":{"method":"POST","path":"/api/internal/quality-universal/workflows/instance"},"backendService":"domains/quality/workflows/qualityDynamicWorkflowEngine.js","tables":["impetus_quality_workflow_instance"],"status":"VERDE","profiles":["admin","enterprise-internal"]},{"feature":"Transição CAPA submit → quality.capa.created","endpoint":{"method":"POST","path":"/api/internal/quality-universal/workflows/transition"},"backendService":"domains/quality/workflows/qualityDynamicWorkflowEngine.js","tables":["impetus_quality_audit_chain"],"status":"VERDE","profiles":["admin","enterprise-internal"]}],"tenantIsolation":{"tested":true,"ok":true,"other_status":403,"leaked":false},"uiGap":{"screen":"QualityGovernanceHub / NcrCapaPanel","route":"/app/quality/operational?view=ncr","status":"VERDE","notes":"KPIs hidratados via GET /api/quality-intelligence/nc-capa-summary"}},{"domain":"SST","scenario":"Incidente / Quase-acidente / Treinamento vencido","status":"VERDE","evidence":"backend/docs/evidence/safety/lifecycle/","lastValidatedAt":"2026-06-21","run_id":"cert-sst-1782078195593","flows":[{"feature":"Registrar incidente SST","endpoint":{"method":"POST","path":"/api/safety-operational/events"},"backendService":"services/operationalAlertsService.js","tables":["operational_alerts"],"status":"VERDE","profiles":["supervisor","gerente","diretor","admin"]},{"feature":"Registrar quase-acidente","endpoint":{"method":"POST","path":"/api/safety-operational/events"},"backendService":"services/operationalAlertsService.js","tables":["operational_alerts"],"status":"VERDE","profiles":["supervisor","gerente","diretor","admin"]},{"feature":"Treinamento vencido + alerta HR","endpoint":{"method":"POST","path":"/api/safety-operational/events"},"backendService":"services/operationalAlertsService.js","tables":["operational_alerts","hr_alerts"],"status":"VERDE","profiles":["supervisor","gerente","diretor","admin"]},{"feature":"Listar alertas (Notification Center / Cérebro Operacional)","endpoint":{"method":"GET","path":"/api/dashboard/operational-brain/alerts"},"backendService":"services/operationalAlertsService.js","tables":["operational_alerts"],"status":"VERDE","profiles":["autenticado tenant"]}],"tenantIsolation":{"tested":true,"ok":true,"other_status":200,"resolve_status":400,"leaked":[]},"uiGap":{"screen":"SafetyOperationalWorkspace (view=incident)","route":"/app/safety/operational?view=incident","status":"VERDE","notes":"SafetyIncidentPanel ligado a POST/GET /api/safety-operational/events"}},{"domain":"Executive","scenario":"Dashboard executivo por perfil","status":"VERDE","evidence":"backend/docs/evidence/executive/dashboard-profile/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Perfil + KPIs executivos","endpoint":{"method":"GET","path":"/api/dashboard/me"},"status":"VERDE"},{"feature":"KPIs tenant-scoped","endpoint":{"method":"GET","path":"/api/dashboard/kpis"},"status":"VERDE"}],"tenantIsolation":{"tested":true,"ok":true},"uiGap":null},{"domain":"ManuIA","scenario":"Diagnóstico → OS → Histórico","status":"VERDE","evidence":"backend/docs/evidence/manuia/diagnosis-workorder/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Concluir sessão + criar OS","endpoint":{"method":"POST","path":"/api/manutencao-ia/conclude-session"},"status":"VERDE","tables":["work_orders"]},{"feature":"Histórico sessões","endpoint":{"method":"GET","path":"/api/manutencao-ia/sessions"},"status":"VERDE"}],"tenantIsolation":null,"uiGap":null},{"domain":"ESG","scenario":"Emissão / Resíduo / Consumo","status":"VERDE","evidence":"backend/docs/evidence/esg/emission-waste-consumption/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Alerta emissão","endpoint":{"method":"POST","path":"/api/environment-operational/events"},"status":"VERDE"},{"feature":"Manifesto resíduo","endpoint":{"method":"POST","path":"/api/environment-operational/events"},"status":"VERDE"},{"feature":"Amostra água/consumo","endpoint":{"method":"POST","path":"/api/environment-operational/events"},"status":"VERDE"}],"tenantIsolation":null,"uiGap":null},{"domain":"TPM","scenario":"Plano preventivo → execução → indicador","status":"VERDE","evidence":"backend/docs/evidence/tpm/preventive-lifecycle/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Criar preventiva","endpoint":{"method":"POST","path":"/api/dashboard/maintenance/preventives"},"status":"VERDE","tables":["maintenance_preventives"]},{"feature":"Concluir preventiva","endpoint":{"method":"PATCH","path":"/api/dashboard/maintenance/preventives/:id"},"status":"VERDE"},{"feature":"Indicadores summary","endpoint":{"method":"GET","path":"/api/dashboard/maintenance/summary"},"status":"VERDE"}],"tenantIsolation":null,"uiGap":null},{"domain":"DSR/LGPD","scenario":"Pedido do titular","status":"VERDE","evidence":"backend/docs/evidence/dsr/data-subject-request/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Criar pedido LGPD","endpoint":{"method":"POST","path":"/api/lgpd/data-request"},"status":"VERDE","tables":["lgpd_data_requests"]},{"feature":"Processar pedido (DPO)","endpoint":{"method":"PATCH","path":"/api/lgpd/data-requests/:id"},"status":"VERDE"}],"tenantIsolation":{"tested":true,"ok":true,"other_status":200},"uiGap":null},{"domain":"Billing","scenario":"Webhook Asaas / subscrição","status":"VERDE","evidence":"backend/docs/evidence/billing/asaas-webhook/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Webhook PAYMENT_CONFIRMED","endpoint":{"method":"POST","path":"/api/webhooks/asaas"},"status":"VERDE","tables":["subscriptions","asaas_webhook_logs"]}],"tenantIsolation":null,"uiGap":null},{"domain":"Event Governance","scenario":"Evento → política → decisão","status":"VERDE","evidence":"backend/docs/evidence/governance/event-policy-decision/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Produtor SST","endpoint":{"method":"POST","path":"/api/safety-operational/events"},"status":"VERDE"},{"feature":"Audit status EG","endpoint":{"method":"GET","path":"/api/audit/event-governance/status"},"status":"VERDE"},{"feature":"Audit SST lifecycle","endpoint":{"method":"GET","path":"/api/audit/event-governance/sst"},"status":"VERDE"}],"tenantIsolation":null,"uiGap":null},{"domain":"AIOI","scenario":"Correlação → Insight → Escalonamento","status":"VERDE","evidence":"backend/docs/evidence/aioi/correlation-insight/","lastValidatedAt":"2026-06-21","run_id":"cert-p72-1782079418244","flows":[{"feature":"Eventos correlacionados (×3)","endpoint":{"method":"POST","path":"/api/safety-operational/events"},"status":"VERDE"},{"feature":"Audit AIOI","endpoint":{"method":"GET","path":"/api/audit/event-governance/aioi"},"status":"VERDE"}],"tenantIsolation":null,"uiGap":null}]}
+{
+  "generatedAt": "2026-06-21T22:19:20.948Z",
+  "methodology": "backend/docs/MANUAL_MATRIZ_FUNCIONAL_REAL.md",
+  "stats": {
+    "screenCount": 77,
+    "endpointCount": 1098,
+    "mountCount": 142,
+    "referencedCount": 621,
+    "apiCallCount": 791,
+    "unresolvedCount": 0,
+    "statusDist": {
+      "NAO_VALIDADO": 63,
+      "AMARELO": 3,
+      "REDIRECT": 5,
+      "VERDE": 6,
+      "SCENARIO_VERDE": 10
+    },
+    "certifiedScenarioCount": 10,
+    "lastCertificationAt": "2026-06-22T12:08:59.462Z"
+  },
+  "rows": [
+    {
+      "module": "Core",
+      "screen": "Login",
+      "route": "/",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/Login",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "static",
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "ForgotPassword",
+      "route": "/forgot-password",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/ForgotPassword",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "static",
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "ResetPassword",
+      "route": "/reset-password",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/ResetPassword",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "static",
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "SetupEmpresa",
+      "route": "/setup-empresa",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/SetupEmpresa",
+      "guards": [
+        "PrivateRoute"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "RoleVerificationPage",
+      "route": "/validacao-cargo",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/RoleVerificationPage",
+      "guards": [
+        "PrivateRoute"
+      ],
+      "status": "AMARELO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/dsr/data-subject-request/",
+      "notes": "Pedido do titular",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Pedido do titular"
+    },
+    {
+      "module": "Core",
+      "screen": "Proposals",
+      "route": "/app/proacao",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/Proposals",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "ProposalDetail",
+      "route": "/app/proacao/:id",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/ProposalDetail",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Desconhecido",
+      "screen": "(redirect)",
+      "route": "/app",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": null,
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate",
+        "DashboardRouteEntry"
+      ],
+      "status": "REDIRECT",
+      "isLayout": false,
+      "loader": null,
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Desconhecido",
+      "screen": "(redirect)",
+      "route": "/app/dashboard-vivo",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": null,
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "REDIRECT",
+      "isLayout": false,
+      "loader": null,
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "Dashboard",
+      "route": "/app/ceo",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/Dashboard",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/executive/dashboard-profile/",
+      "notes": "Dashboard executivo por perfil",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Dashboard executivo por perfil"
+    },
+    {
+      "module": "Core",
+      "screen": "Operacional",
+      "route": "/app/operacional",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/Operacional",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "RegistroInteligente",
+      "route": "/app/registro-inteligente",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./pages/RegistroInteligente",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "CadastrarComIA",
+      "route": "/app/cadastrar-com-ia",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./pages/CadastrarComIA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Biblioteca",
+      "screen": "BibliotecaPage",
+      "route": "/app/biblioteca",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./features/biblioteca",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Chat/IA",
+      "screen": "AIChatPage",
+      "route": "/app/chatbot",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./features/aiChat/AIChatPage",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "InsightsPage",
+      "route": "/app/insights",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/InsightsPage",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Pulse",
+      "screen": "PulseRh",
+      "route": "/app/pulse-rh",
+      "profiles": [
+        "rh",
+        "hr_management"
+      ],
+      "screenFile": "./pages/PulseRh",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "PulseRhRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Pulse",
+      "screen": "PulseGestao",
+      "route": "/app/pulse-gestao",
+      "profiles": [
+        "diretor",
+        "gerente",
+        "coordenador",
+        "supervisor"
+      ],
+      "screenFile": "./pages/PulseGestao",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "RoleGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "OperationalIntelligencePanel",
+      "route": "/app/cerebro-operacional",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/OperationalIntelligencePanel",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "IndustrialOperationsCenter",
+      "route": "/app/centro-operacoes-industrial",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/IndustrialOperationsCenter",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "IndustrialOperationsCenter",
+      "route": "/app/monitored-points",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/IndustrialOperationsCenter",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "AlmoxarifadoInteligente",
+      "route": "/app/almoxarifado-inteligente",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./pages/AlmoxarifadoInteligente",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Logistics",
+      "screen": "LogisticaInteligente",
+      "route": "/app/logistica-inteligente",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./pages/LogisticaInteligente",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "ManuIA",
+      "screen": "ManuIA",
+      "route": "/app/manutencao/manuia",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/ManuIA",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "ManuIA",
+      "screen": "ManuIAExtensionApp",
+      "route": "/app/manutencao/manuia-app",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./manuia-app/ManuIAExtensionApp",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "CentroPrevisaoOperacional",
+      "route": "/app/centro-previsao-operacional",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./pages/CentroPrevisaoOperacional",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Custos/Billing",
+      "screen": "CentroCustosExecutivo",
+      "route": "/app/centro-custos-industriais",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./pages/CentroCustosExecutivo",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "MapaVazamentoFinanceiro",
+      "route": "/app/mapa-vazamento-financeiro",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./pages/MapaVazamentoFinanceiro",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Desconhecido",
+      "screen": "(redirect)",
+      "route": "/app/configuracoes",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": null,
+      "guards": [
+        "Navigate"
+      ],
+      "status": "REDIRECT",
+      "isLayout": false,
+      "loader": null,
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "CompanyAdminSettings",
+      "route": "/app/admin/conteudo-empresa",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/CompanyAdminSettings",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Desconhecido",
+      "screen": "(redirect)",
+      "route": "/proposals",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": null,
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "Navigate"
+      ],
+      "status": "REDIRECT",
+      "isLayout": false,
+      "loader": null,
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "Diagnostic",
+      "route": "/diagnostic",
+      "profiles": [
+        "ceo",
+        "+demais (bloqueia colaborador simples)"
+      ],
+      "screenFile": "./pages/Diagnostic",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminUsers",
+      "route": "/app/admin/users",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminUsers",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "ImplementationGuide",
+      "route": "/app/admin/implantacao-guia",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/ImplementationGuide",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminDepartments",
+      "route": "/app/admin/departments",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminDepartments",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminOperationalTeams",
+      "route": "/app/admin/equipes-operacionais",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminOperationalTeams",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminStructural",
+      "route": "/app/admin/structural",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminStructural",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminAuditLogs",
+      "route": "/app/admin/audit-logs",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/AdminAuditLogs",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminAiIncidents",
+      "route": "/app/admin/ai-incidents",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/AdminAiIncidents",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "CognitiveGovernanceDashboard",
+      "route": "/app/admin/cognitive-governance",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/admin/CognitiveGovernanceDashboard",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "ActionApprovalDashboard",
+      "route": "/app/admin/action-approvals",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./components/actionRuntime/ActionApprovalDashboard",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "RolloutCenterHub",
+      "route": "/app/admin/rollout-center",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./domains/admin/rollout-center/RolloutCenterHub",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "CertificationReadinessHub",
+      "route": "/app/admin/certification-readiness",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./domains/admin/certification-readiness/CertificationReadinessHub",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "FinalConsolidationHub",
+      "route": "/app/admin/final-consolidation",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./domains/admin/final-consolidation/FinalConsolidationHub",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminEquipmentLibrary",
+      "route": "/app/admin/equipment-library",
+      "profiles": [
+        "admin (strict)"
+      ],
+      "screenFile": "./pages/AdminEquipmentLibrary",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "StrictAdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Custos/Billing",
+      "screen": "CentroCustosAdmin",
+      "route": "/app/admin/centro-custos",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/CentroCustosAdmin",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminAudioLogs",
+      "route": "/app/admin/audio-logs",
+      "profiles": [
+        "ceo",
+        "diretor"
+      ],
+      "screenFile": "./pages/AdminAudioLogs",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "DirectorOrCEORouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminIntegrations",
+      "route": "/app/admin/integrations",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminIntegrations",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Custos/Billing",
+      "screen": "NexusIACustos",
+      "route": "/app/admin/nexusia-custos",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/NexusIACustos",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminHelpCenter",
+      "route": "/app/admin/help-center",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminHelpCenter",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Admin",
+      "screen": "AdminWarehouse",
+      "route": "/app/admin/warehouse",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminWarehouse",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Logistics",
+      "screen": "AdminLogistics",
+      "route": "/app/admin/logistics",
+      "profiles": [
+        "admin"
+      ],
+      "screenFile": "./pages/AdminLogistics",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "CEORouteGuard",
+        "ColaboradorRouteGuard",
+        "AdminRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "OrganizationalValidationPanel",
+      "route": "/app/validacao-organizacional",
+      "profiles": [
+        "internal_admin",
+        "diretor",
+        "gerente",
+        "coordenador",
+        "supervisor",
+        "ceo"
+      ],
+      "screenFile": "./pages/OrganizationalValidationPanel",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "RoleGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "SelectTeamMember",
+      "route": "/app/equipe-operacional",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./pages/SelectTeamMember",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "UserSettings",
+      "route": "/app/settings",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/UserSettings",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "SettingsAccessGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Quality",
+      "screen": "QualityOperationalLayout",
+      "route": "/app/quality/operational",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./domains/quality/routes/QualityOperationalLayout.jsx",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": true,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Quality",
+      "screen": "QualityOperationalWorkspacePage",
+      "route": "/app/quality/operational",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/quality/routes/QualityOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "Parte 7.2: backend NC→CAPA VERDE; NcrCapaPanel com KPIs via nc-capa-summary — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "NC → CAPA (governance view)"
+    },
+    {
+      "module": "Quality",
+      "screen": "QualityOperationalWorkspacePage",
+      "route": "/app/quality/operational/workspace",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/quality/routes/QualityOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "Parte 7.2: backend NC→CAPA VERDE; NcrCapaPanel com KPIs via nc-capa-summary — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "NC → CAPA (governance view)"
+    },
+    {
+      "module": "Quality",
+      "screen": "QualityInspectionRuntimePage",
+      "route": "/app/quality/operational/inspection",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/quality/routes/QualityInspectionRuntimePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "notes": "POST inspections comprovado em certifiedScenarios",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Inspeção operacional"
+    },
+    {
+      "module": "Quality",
+      "screen": "QualityKioskRuntimePage",
+      "route": "/app/quality/operational/kiosk",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/quality/routes/QualityKioskRuntimePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "SST",
+      "screen": "SafetyOperationalLayout",
+      "route": "/app/safety/operational",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./domains/safety/routes/SafetyOperationalLayout.jsx",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": true,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "SST",
+      "screen": "SafetyOperationalWorkspacePage",
+      "route": "/app/safety/operational",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/safety/routes/SafetyOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "notes": "Parte 7.2: API SST lifecycle VERDE; SafetyIncidentPanel ligado — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Incidente / near-miss / treinamento vencido"
+    },
+    {
+      "module": "SST",
+      "screen": "SafetyOperationalWorkspacePage",
+      "route": "/app/safety/operational/workspace",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/safety/routes/SafetyOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "VERDE",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "notes": "Parte 7.2: API SST lifecycle VERDE; SafetyIncidentPanel ligado — ver certifiedScenarios",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Incidente / near-miss / treinamento vencido"
+    },
+    {
+      "module": "SST",
+      "screen": "SafetyFieldInspectionPage",
+      "route": "/app/safety/operational/inspection",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/safety/routes/SafetyFieldInspectionPage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Logistics",
+      "screen": "LogisticsOperationalLayout",
+      "route": "/app/logistics/operational",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalLayout.jsx",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": true,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Logistics",
+      "screen": "LogisticsOperationalWorkspacePage",
+      "route": "/app/logistics/operational",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Logistics",
+      "screen": "LogisticsOperationalWorkspacePage",
+      "route": "/app/logistics/operational/workspace",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "ESG",
+      "screen": "EnvironmentOperationalLayout",
+      "route": "/app/environment/operational",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalLayout.jsx",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard",
+        "FactoryTeamMemberGate",
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": true,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "ESG",
+      "screen": "EnvironmentOperationalWorkspacePage",
+      "route": "/app/environment/operational",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "AMARELO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "notes": "Emissão / Resíduo / Consumo",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Emissão / Resíduo / Consumo"
+    },
+    {
+      "module": "ESG",
+      "screen": "EnvironmentOperationalWorkspacePage",
+      "route": "/app/environment/operational/workspace",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx",
+      "guards": [
+        "Suspense",
+        "PageLoader"
+      ],
+      "status": "AMARELO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "notes": "Emissão / Resíduo / Consumo",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Emissão / Resíduo / Consumo"
+    },
+    {
+      "module": "Chat/IA",
+      "screen": "ChatPage",
+      "route": "/chat",
+      "profiles": [
+        "todos exceto colaborador-simples restrito"
+      ],
+      "screenFile": "./pages/ChatPage",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "ColaboradorRouteGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "AppMobile",
+      "route": "/m",
+      "profiles": [
+        "autenticado"
+      ],
+      "screenFile": "./pages/AppMobile",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard"
+      ],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "LicenseExpired",
+      "route": "/license-expired",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/LicenseExpired",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "SubscriptionExpired",
+      "route": "/subscription-expired",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/SubscriptionExpired",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "Error404",
+      "route": "/404",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/Error404",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Core",
+      "screen": "Error500",
+      "route": "/500",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": "./pages/Error500",
+      "guards": [],
+      "status": "NAO_VALIDADO",
+      "isLayout": false,
+      "loader": "lazy",
+      "evidence": null,
+      "notes": "lazy-loaded",
+      "lastValidatedAt": null
+    },
+    {
+      "module": "Desconhecido",
+      "screen": "(redirect)",
+      "route": "/*",
+      "profiles": [
+        "(sem guard explícito)"
+      ],
+      "screenFile": null,
+      "guards": [
+        "Navigate"
+      ],
+      "status": "REDIRECT",
+      "isLayout": false,
+      "loader": null,
+      "evidence": null,
+      "notes": "",
+      "lastValidatedAt": null
+    }
+  ],
+  "certifiedScenarios": [
+    {
+      "domain": "Quality",
+      "scenario": "NC → CAPA → Auditoria",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/quality/nc-create/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-1782129902885",
+      "flows": [
+        {
+          "feature": "Registrar NC (inspeção não conforme)",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/quality-intelligence/inspections"
+          },
+          "backendService": "services/qualityIntelligenceService.js",
+          "tables": [
+            "quality_inspections"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "gerente",
+            "diretor",
+            "admin",
+            "ceo"
+          ]
+        },
+        {
+          "feature": "Instanciar workflow NCR universal",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/instance"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_workflow_instance"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Transição NCR submit → quality.ncr.opened",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/transition"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_audit_chain"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Instanciar CAPA vinculada à NC",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/instance"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_workflow_instance"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        },
+        {
+          "feature": "Transição CAPA submit → quality.capa.created",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/internal/quality-universal/workflows/transition"
+          },
+          "backendService": "domains/quality/workflows/qualityDynamicWorkflowEngine.js",
+          "tables": [
+            "impetus_quality_audit_chain"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "admin",
+            "enterprise-internal"
+          ]
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 403,
+        "leaked": false
+      },
+      "uiGap": {
+        "screen": "QualityGovernanceHub / NcrCapaPanel",
+        "route": "/app/quality/operational?view=ncr",
+        "status": "VERDE",
+        "notes": "KPIs hidratados via GET /api/quality-intelligence/nc-capa-summary"
+      }
+    },
+    {
+      "domain": "SST",
+      "scenario": "Incidente / Quase-acidente / Treinamento vencido",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/safety/lifecycle/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-sst-1782129903781",
+      "flows": [
+        {
+          "feature": "Registrar incidente SST",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Registrar quase-acidente",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Treinamento vencido + alerta HR",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts",
+            "hr_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "supervisor",
+            "gerente",
+            "diretor",
+            "admin"
+          ]
+        },
+        {
+          "feature": "Listar alertas (Notification Center / Cérebro Operacional)",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/operational-brain/alerts"
+          },
+          "backendService": "services/operationalAlertsService.js",
+          "tables": [
+            "operational_alerts"
+          ],
+          "status": "VERDE",
+          "profiles": [
+            "autenticado tenant"
+          ]
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 200,
+        "resolve_status": 404,
+        "leaked": []
+      },
+      "uiGap": {
+        "screen": "SafetyOperationalWorkspace (view=incident)",
+        "route": "/app/safety/operational?view=incident",
+        "status": "VERDE",
+        "notes": "SafetyIncidentPanel ligado a POST/GET /api/safety-operational/events"
+      }
+    },
+    {
+      "domain": "Executive",
+      "scenario": "Dashboard executivo por perfil",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/executive/dashboard-profile/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Perfil + KPIs executivos",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/me"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "KPIs tenant-scoped",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/kpis"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true
+      },
+      "uiGap": null
+    },
+    {
+      "domain": "ManuIA",
+      "scenario": "Diagnóstico → OS → Histórico",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Concluir sessão + criar OS",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/manutencao-ia/conclude-session"
+          },
+          "status": "VERDE",
+          "tables": [
+            "work_orders"
+          ]
+        },
+        {
+          "feature": "Histórico sessões",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/manutencao-ia/sessions"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "ESG",
+      "scenario": "Emissão / Resíduo / Consumo",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Alerta emissão",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Manifesto resíduo",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Amostra água/consumo",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/environment-operational/events"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "TPM",
+      "scenario": "Plano preventivo → execução → indicador",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/tpm/preventive-lifecycle/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Criar preventiva",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/dashboard/maintenance/preventives"
+          },
+          "status": "VERDE",
+          "tables": [
+            "maintenance_preventives"
+          ]
+        },
+        {
+          "feature": "Concluir preventiva",
+          "endpoint": {
+            "method": "PATCH",
+            "path": "/api/dashboard/maintenance/preventives/:id"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Indicadores summary",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/maintenance/summary"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "DSR/LGPD",
+      "scenario": "Pedido do titular",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/dsr/data-subject-request/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Criar pedido LGPD",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/lgpd/data-request"
+          },
+          "status": "VERDE",
+          "tables": [
+            "lgpd_data_requests"
+          ]
+        },
+        {
+          "feature": "Processar pedido (DPO)",
+          "endpoint": {
+            "method": "PATCH",
+            "path": "/api/lgpd/data-requests/:id"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "other_status": 200
+      },
+      "uiGap": null
+    },
+    {
+      "domain": "Billing",
+      "scenario": "Webhook Asaas / subscrição",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/billing/asaas-webhook/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Webhook PAYMENT_CONFIRMED",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/webhooks/asaas"
+          },
+          "status": "VERDE",
+          "tables": [
+            "subscriptions",
+            "asaas_webhook_logs"
+          ]
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "Event Governance",
+      "scenario": "Evento → política → decisão",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/governance/event-policy-decision/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Produtor SST",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit status EG",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/status"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit SST lifecycle",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/sst"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    },
+    {
+      "domain": "AIOI",
+      "scenario": "Correlação → Insight → Escalonamento",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/aioi/correlation-insight/",
+      "lastValidatedAt": "2026-06-22",
+      "run_id": "cert-p72-1782129905070",
+      "flows": [
+        {
+          "feature": "Eventos correlacionados (×3)",
+          "endpoint": {
+            "method": "POST",
+            "path": "/api/safety-operational/events"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Audit AIOI",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/audit/event-governance/aioi"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": null,
+      "uiGap": null
+    }
+  ]
+}

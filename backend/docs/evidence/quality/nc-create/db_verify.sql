@@ -1,2 +1,2 @@
 -- NC inspection
-SELECT id, company_id, result, lot_number FROM quality_inspections WHERE id = 'ed13cf85-1258-4c07-877b-22ba8a2f1205';
+SELECT id, company_id, result, lot_number FROM quality_inspections WHERE id = 'ffae7203-fc9a-4066-bc26-fa9eb10fe1d0';

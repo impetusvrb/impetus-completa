@@ -1,6 +1,6 @@
 {
   "domain": "Executive",
-  "run_id": "cert-p72-1782079418244",
+  "run_id": "cert-p72-1782129905070",
   "steps": [
     {
       "step": "dashboard_me",
@@ -18,6 +18,6 @@
     "tested": true,
     "ok": true
   },
-  "finished_at": "2026-06-21T22:03:38.890Z",
+  "finished_at": "2026-06-22T12:05:07.307Z",
   "evidence": "backend/docs/evidence/executive/dashboard-profile/"
 }

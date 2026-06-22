@@ -4,15 +4,15 @@
     "ok": true,
     "enabled": false,
     "shadow_mode": true,
-    "events_observed": 4,
-    "correlations_detected": 7,
-    "insights_generated": 6,
-    "shadow_total": 6,
-    "shadow_matches": 6,
+    "events_observed": 7,
+    "correlations_detected": 14,
+    "insights_generated": 14,
+    "shadow_total": 14,
+    "shadow_matches": 14,
     "policy_id": "AIOI_INSIGHT",
     "feed": {
       "tenants": 1,
-      "events_buffered": 4
+      "events_buffered": 7
     },
     "catalog": {
       "policies": [

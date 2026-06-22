@@ -1,6 +1,6 @@
 {
   "domain": "Billing",
-  "run_id": "cert-p72-1782079418244",
+  "run_id": "cert-p72-1782129905070",
   "steps": [
     {
       "step": "webhook",
@@ -8,6 +8,6 @@
     }
   ],
   "ok": true,
-  "finished_at": "2026-06-21T22:03:39.986Z",
+  "finished_at": "2026-06-22T12:05:08.771Z",
   "evidence": "backend/docs/evidence/billing/asaas-webhook/"
 }

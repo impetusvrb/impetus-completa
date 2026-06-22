@@ -5,8 +5,8 @@
     "enabled": false,
     "registered_channels": 5,
     "ready_channels": 5,
-    "execution_plans": 1,
-    "channels_ready_total": 4,
+    "execution_plans": 10,
+    "channels_ready_total": 40,
     "channels_unavailable_total": 0,
     "capabilities": [
       {
