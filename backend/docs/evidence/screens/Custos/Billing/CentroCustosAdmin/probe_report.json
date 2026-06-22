@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/centro-custos",
+  "probes": [
+    "GET /api/costs/summary"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/costs/summary",
+      "status": 404,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.749Z"
+}

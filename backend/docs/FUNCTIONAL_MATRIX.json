@@ -9,14 +9,13 @@
     "apiCallCount": 791,
     "unresolvedCount": 0,
     "statusDist": {
-      "NAO_VALIDADO": 63,
-      "AMARELO": 3,
+      "AMARELO": 66,
       "REDIRECT": 5,
       "VERDE": 6,
       "SCENARIO_VERDE": 10
     },
     "certifiedScenarioCount": 10,
-    "lastCertificationAt": "2026-06-22T12:08:59.462Z"
+    "lastCertificationAt": "2026-06-22T12:48:48.741Z"
   },
   "rows": [
     {
@@ -28,12 +27,12 @@
       ],
       "screenFile": "./pages/Login",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "static",
       "evidence": null,
-      "notes": "",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -44,12 +43,12 @@
       ],
       "screenFile": "./pages/ForgotPassword",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "static",
       "evidence": null,
-      "notes": "",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -60,12 +59,12 @@
       ],
       "screenFile": "./pages/ResetPassword",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "static",
       "evidence": null,
-      "notes": "",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -78,12 +77,12 @@
       "guards": [
         "PrivateRoute"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -116,12 +115,12 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -135,12 +134,12 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Desconhecido",
@@ -217,12 +216,12 @@
         "SetupGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -238,12 +237,12 @@
         "SetupGuard",
         "CEORouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Core/RegistroInteligente/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -258,12 +257,12 @@
         "SetupGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Biblioteca",
@@ -273,19 +272,19 @@
         "ceo",
         "+demais (bloqueia colaborador simples)"
       ],
-      "screenFile": "./features/biblioteca",
+      "screenFile": "./features/biblioteca/BibliotecaPage",
       "guards": [
         "PrivateRoute",
         "SetupGuard",
         "CEORouteGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Biblioteca/BibliotecaPage/",
+      "notes": "IECP-01.4: componente em features/biblioteca/BibliotecaPage.jsx",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Chat/IA",
@@ -302,12 +301,12 @@
         "CEORouteGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Chat/IA/AIChatPage/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -322,12 +321,12 @@
         "SetupGuard",
         "Navigate"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Pulse",
@@ -343,12 +342,12 @@
         "SetupGuard",
         "PulseRhRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Pulse",
@@ -366,12 +365,12 @@
         "SetupGuard",
         "RoleGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -386,12 +385,12 @@
         "SetupGuard",
         "Navigate"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -406,12 +405,12 @@
         "SetupGuard",
         "Navigate"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -426,12 +425,12 @@
         "SetupGuard",
         "Navigate"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -446,12 +445,12 @@
         "SetupGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Logistics",
@@ -466,12 +465,12 @@
         "SetupGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "ManuIA",
@@ -485,12 +484,12 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "ManuIA",
@@ -504,12 +503,12 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -525,12 +524,12 @@
         "SetupGuard",
         "CEORouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Custos/Billing",
@@ -546,12 +545,12 @@
         "SetupGuard",
         "CEORouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -567,12 +566,12 @@
         "SetupGuard",
         "CEORouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Desconhecido",
@@ -607,12 +606,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Core/CompanyAdminSettings/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Desconhecido",
@@ -649,12 +648,12 @@
         "CEORouteGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -671,12 +670,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminUsers/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -693,12 +692,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Core/ImplementationGuide/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -715,12 +714,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminDepartments/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -737,12 +736,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminOperationalTeams/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -759,12 +758,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminStructural/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -781,12 +780,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminAuditLogs/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -803,12 +802,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminAiIncidents/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -825,12 +824,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/CognitiveGovernanceDashboard/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -847,12 +846,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Core/ActionApprovalDashboard/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -869,12 +868,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/RolloutCenterHub/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -891,12 +890,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/CertificationReadinessHub/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -913,12 +912,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/FinalConsolidationHub/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -935,12 +934,12 @@
         "ColaboradorRouteGuard",
         "StrictAdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminEquipmentLibrary/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Custos/Billing",
@@ -957,12 +956,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Custos/Billing/CentroCustosAdmin/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -978,12 +977,12 @@
         "SetupGuard",
         "DirectorOrCEORouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminAudioLogs/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -1000,12 +999,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminIntegrations/",
+      "notes": "IECP probe OK: 404",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Custos/Billing",
@@ -1022,12 +1021,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Custos/Billing/NexusIACustos/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -1044,12 +1043,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminHelpCenter/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Admin",
@@ -1066,12 +1065,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Admin/AdminWarehouse/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Logistics",
@@ -1088,12 +1087,12 @@
         "ColaboradorRouteGuard",
         "AdminRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Logistics/AdminLogistics/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1113,12 +1112,12 @@
         "SetupGuard",
         "RoleGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1133,12 +1132,12 @@
         "SetupGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1153,12 +1152,12 @@
         "SetupGuard",
         "SettingsAccessGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Quality",
@@ -1176,12 +1175,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": true,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Quality/QualityOperationalLayout/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Quality",
@@ -1255,12 +1254,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Quality/QualityKioskRuntimePage/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "SST",
@@ -1278,12 +1277,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": true,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/SST/SafetyOperationalLayout/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "SST",
@@ -1337,12 +1336,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/SST/SafetyFieldInspectionPage/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Logistics",
@@ -1360,12 +1359,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": true,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Logistics/LogisticsOperationalLayout/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Logistics",
@@ -1379,12 +1378,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Logistics/LogisticsOperationalWorkspacePage/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Logistics",
@@ -1398,12 +1397,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/Logistics/LogisticsOperationalWorkspacePage/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "ESG",
@@ -1421,12 +1420,12 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": true,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "layout com rotas filhas; exige membro de equipe operacional; lazy-loaded",
-      "lastValidatedAt": null
+      "evidence": "backend/docs/evidence/screens/ESG/EnvironmentOperationalLayout/",
+      "notes": "IECP probe OK: 401",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "ESG",
@@ -1481,12 +1480,12 @@
         "SetupGuard",
         "ColaboradorRouteGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1500,12 +1499,12 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1516,12 +1515,12 @@
       ],
       "screenFile": "./pages/LicenseExpired",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1532,12 +1531,12 @@
       ],
       "screenFile": "./pages/SubscriptionExpired",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1548,12 +1547,12 @@
       ],
       "screenFile": "./pages/Error404",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Core",
@@ -1564,12 +1563,12 @@
       ],
       "screenFile": "./pages/Error500",
       "guards": [],
-      "status": "NAO_VALIDADO",
+      "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
       "evidence": null,
-      "notes": "lazy-loaded",
-      "lastValidatedAt": null
+      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
+      "lastValidatedAt": "2026-06-22"
     },
     {
       "module": "Desconhecido",
@@ -1597,7 +1596,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/quality/nc-create/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-1782129902885",
+      "run_id": "cert-1782132391682",
       "flows": [
         {
           "feature": "Registrar NC (inspeção não conforme)",
@@ -1701,7 +1700,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/safety/lifecycle/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-sst-1782129903781",
+      "run_id": "cert-sst-1782132392867",
       "flows": [
         {
           "feature": "Registrar incidente SST",
@@ -1794,7 +1793,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/executive/dashboard-profile/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Perfil + KPIs executivos",
@@ -1825,7 +1824,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Concluir sessão + criar OS",
@@ -1856,7 +1855,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Alerta emissão",
@@ -1892,7 +1891,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/tpm/preventive-lifecycle/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Criar preventiva",
@@ -1931,7 +1930,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/dsr/data-subject-request/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Criar pedido LGPD",
@@ -1966,7 +1965,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/billing/asaas-webhook/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Webhook PAYMENT_CONFIRMED",
@@ -1990,7 +1989,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/governance/event-policy-decision/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Produtor SST",
@@ -2026,7 +2025,7 @@
       "status": "VERDE",
       "evidence": "backend/docs/evidence/aioi/correlation-insight/",
       "lastValidatedAt": "2026-06-22",
-      "run_id": "cert-p72-1782129905070",
+      "run_id": "cert-p72-1782132393771",
       "flows": [
         {
           "feature": "Eventos correlacionados (×3)",

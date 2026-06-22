@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/nexusia-custos",
+  "probes": [
+    "GET /api/admin/nexus-custos"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/admin/nexus-custos",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.777Z"
+}

@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/users",
+  "probes": [
+    "GET /api/admin/users?limit=5"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/admin/users?limit=5",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:40:40.209Z"
+}

@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/implantacao-guia",
+  "probes": [
+    "GET /api/dashboard/me"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/me",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.625Z"
+}

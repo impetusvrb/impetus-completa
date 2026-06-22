@@ -1,0 +1,15 @@
+{
+  "route": "/app/quality/operational",
+  "probes": [
+    "GET /api/quality-intelligence/nc-capa-summary"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/quality-intelligence/nc-capa-summary",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.816Z"
+}

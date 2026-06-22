@@ -31,6 +31,7 @@
     "cert:e2e": "node scripts/audit/e2e_cert_all.js",
     "cert:matrix": "node scripts/audit/applyCertEvidenceToMatrix.js",
     "cert:drift": "node scripts/audit/checkMatrixDrift.js --fail-on-drift",
+    "cert:classify-screens": "node scripts/audit/cert_classify_screens.js",
     "nexus-token-billing": "node scripts/nexusTokenMonthlyBilling.js",
     "seed": "node scripts/seed-initial.js",
     "seed:admin-portal": "node scripts/seed-admin-portal.js",

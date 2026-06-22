@@ -1,0 +1,15 @@
+{
+  "route": "/app/environment/operational",
+  "probes": [
+    "GET /api/environment-operational/health"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/environment-operational/health",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.884Z"
+}

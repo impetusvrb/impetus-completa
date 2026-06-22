@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/help-center",
+  "probes": [
+    "GET /api/admin/help-manual"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/admin/help-manual",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:40:40.293Z"
+}

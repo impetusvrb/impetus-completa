@@ -1,0 +1,25 @@
+---
+description: Congelamento arquitetural IECP — só FIX/CERT/SEC/OPS até CERT-04
+alwaysApply: true
+---
+
+# Congelamento Arquitetural (IECP / Fase 0)
+
+Durante o ciclo de certificação enterprise (**até CERT-04 concluída**):
+
+## Permitido
+- `FIX` — correção de bugs comprovados
+- `CERT` — evidências, matriz, scripts audit, classificação, E2E
+- `SEC` — hardening (JWT, UFW, sessão, rate limit)
+- `OPS` — deploy, PM2, nginx, backup, observabilidade
+
+## Proibido sem aprovação explícita
+- Novos módulos `FEAT` (EG-14+, novos runtimes, novas engines)
+- Reconstrução greenfield de domínios já existentes
+- Alterações fora da `FUNCTIONAL_MATRIX` sem rastreio
+
+## Fonte única
+Toda ligação tela→API→BD deve constar em `backend/docs/FUNCTIONAL_MATRIX.json`.
+
+## VERDE
+Exige 6 evidências (visual, API, BD, log, tenant, operacional) — nunca por análise estática isolada.

@@ -1,0 +1,15 @@
+{
+  "route": "/app/registro-inteligente",
+  "probes": [
+    "GET /api/intelligent-registration?limit=5"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/intelligent-registration?limit=5",
+      "status": 401,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:30:57.424Z"
+}

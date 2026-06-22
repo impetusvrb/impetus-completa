@@ -1,0 +1,15 @@
+{
+  "route": "/app/admin/structural",
+  "probes": [
+    "GET /api/admin/structural/tree"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/admin/structural/tree",
+      "status": 404,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-22T12:40:40.230Z"
+}
