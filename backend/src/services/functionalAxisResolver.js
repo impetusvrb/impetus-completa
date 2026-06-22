@@ -281,29 +281,39 @@ function resolveFunctionalArea(user) {
   return resolveFunctionalAxis(user).functional_area;
 }
 
+/**
+ * Mapa de módulos contextuais por eixo funcional.
+ * Retorna a lista de module_keys relevantes para cada eixo,
+ * usada pelo dashboardPersonalizationEngine para sugerir módulos prioritários.
+ */
+const AXIS_MODULE_MAP = Object.freeze({
+  executive:    ['dashboard', 'aioi', 'executive_portal', 'kpi_cards', 'insights_ia', 'alerts', 'reports', 'billing'],
+  finance:      ['billing', 'costs', 'kpi_cards', 'reports', 'insights_ia', 'dashboard'],
+  maintenance:  ['manuia', 'tpm', 'equipment', 'preventive', 'corrective', 'kpi_cards', 'alerts'],
+  quality:      ['quality', 'inspection', 'nc', 'capa', 'spc', 'governance', 'supplier', 'audit', 'kpi_cards'],
+  hr:           ['hr_intelligence', 'training', 'attendance', 'climate', 'kpi_cards', 'communication'],
+  safety:       ['sst', 'incidents', 'near_miss', 'risk', 'training', 'kpi_cards', 'alerts'],
+  environmental:['esg', 'environmental', 'sustainability', 'waste_management', 'energy_consumption',
+                 'water_consumption', 'emissions', 'environmental_compliance', 'kpi_cards'],
+  logistics:    ['logistics', 'warehouse', 'inventory', 'transportation', 'kpi_cards', 'reports'],
+  production:   ['dashboard', 'oee', 'production', 'planning', 'pcp', 'kpi_cards', 'alerts', 'manuia'],
+  operations:   ['dashboard', 'kpi_cards', 'alerts', 'reports', 'aioi', 'insights_ia'],
+  pcp:          ['planning', 'pcp', 'production', 'inventory', 'kpi_cards'],
+  laboratory:   ['quality', 'inspection', 'spc', 'reports', 'kpi_cards'],
+  admin:        ['admin', 'dashboard', 'billing', 'reports', 'settings'],
+  engineering:  ['manuia', 'tpm', 'equipment', 'quality', 'kpi_cards', 'reports'],
+  compliance:   ['governance', 'audit', 'lgpd', 'reports', 'quality', 'kpi_cards'],
+  legal:        ['lgpd', 'compliance', 'governance', 'reports'],
+  sustainability: ['esg', 'environmental', 'sustainability', 'waste_management', 'energy_consumption',
+                   'water_consumption', 'emissions', 'environmental_compliance', 'kpi_cards'],
+  utilities:    ['energy_consumption', 'water_consumption', 'environmental', 'kpi_cards'],
+  environmental_health_safety: ['sst', 'esg', 'incidents', 'risk', 'environmental_compliance', 'kpi_cards']
+});
+
 function getContextualModulesForAxis(functionalArea) {
+  if (!functionalArea) return [];
   const id = catalog.normKey(functionalArea);
-  const ENVIRONMENTAL_MODULES = [
-    'environmental',
-    'sustainability',
-    'utilities',
-    'waste_management',
-    'environmental_compliance',
-    'environmental_governance',
-    'esg',
-    'water_consumption',
-    'energy_consumption',
-    'environmental_incidents',
-    'environmental_telemetry',
-    'environmental_risks'
-  ];
-  if (['environmental', 'sustainability', 'esg', 'environmental_health_safety', 'utilities'].includes(id)) {
-    return ENVIRONMENTAL_MODULES;
-  }
-  if (id === 'quality') {
-    return ['quality', 'inspection', 'spc', 'governance', 'supplier'];
-  }
-  return [];
+  return AXIS_MODULE_MAP[id] || AXIS_MODULE_MAP[functionalArea] || [];
 }
 
 module.exports = {

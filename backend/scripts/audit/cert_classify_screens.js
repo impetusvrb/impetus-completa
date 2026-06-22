@@ -21,7 +21,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { httpJson, pickUser, createSession, cleanupSessions } = require('./_certE2eCommon');
+const { httpJson, pickUser, resolveSessionToken, cleanupSessions } = require('./_certE2eCommon');
 
 const REPO = path.resolve(__dirname, '..', '..', '..');
 const MATRIX_PATH = path.join(REPO, 'backend/docs/FUNCTIONAL_MATRIX.json');
@@ -38,31 +38,33 @@ const ROUTE_PROBES = {
   '/app/admin/users': ['GET /api/admin/users?limit=5'],
   '/app/admin/departments': ['GET /api/admin/departments'],
   '/app/admin/equipes-operacionais': ['GET /api/admin/operational-teams'],
-  '/app/admin/structural': ['GET /api/admin/structural/tree'],
-  '/app/admin/audit-logs': ['GET /api/admin/logs?limit=5'],
-  '/app/admin/ai-incidents': ['GET /api/admin/ai-incidents?limit=5'],
-  '/app/admin/cognitive-governance': ['GET /api/cognitive-governance/status'],
-  '/app/admin/rollout-center': ['GET /api/admin/runtime-flags/summary'],
-  '/app/admin/certification-readiness': ['GET /api/audit/pilot-readiness/summary'],
-  '/app/admin/final-consolidation': ['GET /api/audit/final-consolidation/summary'],
-  '/app/admin/equipment-library': ['GET /api/admin/equipment-library?limit=5'],
+  '/app/admin/structural': ['GET /api/admin/structural/sectors'],
+  '/app/admin/audit-logs': ['GET /api/admin/logs/audit?limit=5'],
+  '/app/admin/ai-incidents': ['GET /api/admin-portal/ai-incidents?limit=5'],
+  '/app/admin/cognitive-governance': ['GET /api/admin/learning/dashboard'],
+  '/app/admin/rollout-center': ['GET /api/rollout-center/flags/effective'],
+  '/app/admin/certification-readiness': ['GET /api/m1/pilot-readiness/status'],
+  '/app/admin/final-consolidation': ['GET /api/final-consolidation-audit/health'],
+  '/app/admin/equipment-library': ['GET /api/admin/equipment-library/health'],
   '/app/admin/audio-logs': ['GET /api/admin/audio-logs?limit=5'],
-  '/app/admin/integrations': ['GET /api/admin/integrations'],
+  '/app/admin/integrations': ['GET /api/integrations/mes-erp/connectors'],
   '/app/admin/help-center': ['GET /api/admin/help-manual'],
-  '/app/admin/warehouse': ['GET /api/admin/warehouse/summary'],
-  '/app/admin/logistics': ['GET /api/logistics-intelligence/dashboard'],
-  '/app/admin/conteudo-empresa': ['GET /api/admin/settings'],
+  '/app/admin/warehouse': ['GET /api/admin/warehouse/categories?limit=5'],
+  '/app/admin/logistics': ['GET /api/admin/logistics/intelligence/dashboard'],
+  '/app/admin/conteudo-empresa': ['GET /api/admin/settings/company'],
   '/app/admin/centro-custos': ['GET /api/costs/summary'],
   '/app/admin/nexusia-custos': ['GET /api/admin/nexus-custos'],
   '/app/chatbot': ['GET /api/dashboard/me'],
   '/app/dashboard': ['GET /api/dashboard/me', 'GET /api/dashboard/kpis'],
-  '/app/biblioteca': ['GET /api/admin/structural/documents?limit=5'],
+  '/app/biblioteca': ['GET /api/admin/structural/knowledge-documents?limit=5'],
   '/app/registro-inteligente': ['GET /api/intelligent-registration?limit=5'],
   '/app/diagnostic': ['GET /api/dashboard/maintenance/summary'],
-  '/app/manuia': ['GET /api/manutencao-ia/sessions?limit=5'],
+  '/app/manutencao/manuia': ['GET /api/manutencao-ia/sessions?limit=5', 'GET /api/manutencao-ia/health'],
+  '/app/manutencao/manuia-app': ['GET /api/manutencao-ia/app/dashboard'],
+  '/app/manuia': ['GET /api/manutencao-ia/sessions?limit=5', 'GET /api/manutencao-ia/health'],
   '/app/quality/operational': ['GET /api/quality-intelligence/nc-capa-summary'],
   '/app/safety/operational': ['GET /api/safety-operational/events/summary'],
-  '/app/environment/operational': ['GET /api/environment-operational/health'],
+  '/app/environment/operational': ['GET /api/environment-operational/health', 'GET /api/environment-operational/events/summary'],
   '/app/logistics/operational': ['GET /api/logistics-intelligence/dashboard'],
   '/app/lgpd/verificacao': ['GET /api/lgpd/data-requests?limit=5'],
   '/app/pulse/rh': ['GET /api/hr-intelligence/dashboard'],
@@ -71,6 +73,24 @@ const ROUTE_PROBES = {
   '/app/logistica': ['GET /api/logistics-intelligence/dashboard'],
   '/app/nexus-custos': ['GET /api/admin/nexus-custos'],
   '/app/proposals': ['GET /api/proposals?limit=5'],
+  '/app/proacao': ['GET /api/proacao?limit=5'],
+  '/app/operacional': ['GET /api/dashboard/me'],
+  '/app/cadastrar-com-ia': ['GET /api/dashboard/me'],
+  '/app/insights': ['GET /api/dashboard/me'],
+  '/app/cerebro-operacional': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
+  '/app/centro-operacoes-industrial': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
+  '/app/monitored-points': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
+  '/app/almoxarifado-inteligente': ['GET /api/warehouse-intelligence/dashboard'],
+  '/app/centro-previsao-operacional': ['GET /api/dashboard/forecast'],
+  '/validacao-cargo': ['GET /api/role-verification/status'],
+  '/app/validacao-organizacional': ['GET /api/organizational-validation/status'],
+  '/app/equipe-operacional': ['GET /api/dashboard/me'],
+  '/app/settings': ['GET /api/dashboard/me'],
+  '/m': ['GET /api/dashboard/me'],
+  '/license-expired': [],
+  '/subscription-expired': [],
+  '/404': [],
+  '/500': [],
   '/app/setup-empresa': ['GET /api/dashboard/me'],
   '/app/mobile': ['GET /api/dashboard/me'],
   '/app/role-verification': ['GET /api/role-verification/status'],
@@ -83,10 +103,10 @@ const ROUTE_PROBES = {
   '/app/centro-previsao': ['GET /api/dashboard/forecast'],
   '/app/centro-operacional': ['GET /api/dashboard/me'],
   '/app/industrial-operations': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
-  '/app/esg/operational': ['GET /api/environment-operational/health'],
+  '/app/esg/operational': ['GET /api/environment-operational/health', 'GET /api/environment-operational/events/summary'],
   '/app/executive/portal': ['GET /api/dashboard/me'],
   '/app/aioi/workspace': ['GET /api/aioi/health'],
-  '/app/certification-readiness': ['GET /api/audit/pilot-readiness/summary']
+  '/app/certification-readiness': ['GET /api/m1/pilot-readiness/status']
 };
 
 function guardToRole(guards = []) {
@@ -116,7 +136,7 @@ async function probeEndpoints(probes, token) {
     const p = parseProbe(spec);
     if (!p) continue;
     const apiPath = p.path.startsWith('/api') ? p.path + (p.query || '') : `/api${p.path}${p.query || ''}`;
-    const res = await httpJson(p.method, apiPath, token);
+    const res = await httpJson(p.method, apiPath, token, null, {}, 4000);
     results.push({ spec, status: res.status, ok: res.status >= 200 && res.status < 500 });
   }
   return results;
@@ -168,9 +188,11 @@ async function main() {
         continue;
       }
       if (moduleFilter && row.module !== moduleFilter) continue;
-      if (!all && !moduleFilter) continue;
-      if (!all && row.status !== 'NAO_VALIDADO' && row.status !== 'AMARELO') continue;
-      if (all && row.status === 'VERDE') continue;
+      if (!all && !moduleFilter) {
+        if (row.status !== 'NAO_VALIDADO') continue;
+      } else if (row.status === 'VERDE' || row.status === 'REDIRECT') {
+        continue;
+      }
 
       const inv = findInventoryRoute(feInv, row);
       let screenRel = inv?.screenFile?.replace(/^\.\//, '') || row.screenFile?.replace(/^\.\//, '');
@@ -199,13 +221,13 @@ async function main() {
       for (const role of roles) {
         const user = await pickUser([role]);
         if (user) {
-          token = await createSession(user.id, UA);
+          token = await resolveSessionToken(user.id, UA);
           if (token) break;
         }
       }
       if (!token) {
         const fallback = await pickUser(['admin', 'gerente', 'ceo', 'diretor']);
-        if (fallback) token = await createSession(fallback.id, UA);
+        if (fallback) token = await resolveSessionToken(fallback.id, UA);
       }
 
       const probeResults = await probeEndpoints(probes, token);

@@ -256,28 +256,51 @@ function patchExecutive(matrix, report) {
 }
 
 function patchManuia(matrix, report) {
+  const evidence = report.classification?.evidence || 'backend/docs/evidence/manuia/diagnosis-workorder/';
+  const validatedAt = (report.finished_at || new Date().toISOString()).slice(0, 10);
   patchFromConfig(matrix, report, {
     domain: 'ManuIA',
     scenario: 'Diagnóstico → OS → Histórico',
-    evidence: 'backend/docs/evidence/manuia/diagnosis-workorder/',
+    evidence,
     flows: [
       { feature: 'Concluir sessão + criar OS', endpoint: { method: 'POST', path: '/api/manutencao-ia/conclude-session' }, status: 'VERDE', tables: ['work_orders'] },
       { feature: 'Histórico sessões', endpoint: { method: 'GET', path: '/api/manutencao-ia/sessions' }, status: 'VERDE' }
+    ],
+    uiGap: {
+      screen: 'ManuIA / ManuiaOperationalKpiStrip',
+      route: '/app/manutencao/manuia',
+      status: 'VERDE',
+      notes: 'KPIs via getSessions, getMachines, getHealth no topo da página'
+    },
+    patchRows: [
+      { module: 'ManuIA', screen: 'ManuIA', statusOk: 'VERDE', feature: 'Diagnóstico → OS → KPIs operacionais' },
+      { module: 'ManuIA', screen: 'ManuIAExtensionApp', statusOk: 'AMARELO', feature: 'PWA extensão ManuIA' }
     ]
   });
 }
 
 function patchEsg(matrix, report) {
+  const evidence = report.classification?.evidence || 'backend/docs/evidence/esg/emission-waste-consumption/';
   patchFromConfig(matrix, report, {
     domain: 'ESG',
     scenario: 'Emissão / Resíduo / Consumo',
-    evidence: 'backend/docs/evidence/esg/emission-waste-consumption/',
+    evidence,
     flows: [
       { feature: 'Alerta emissão', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' },
       { feature: 'Manifesto resíduo', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' },
-      { feature: 'Amostra água/consumo', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' }
+      { feature: 'Amostra água/consumo', endpoint: { method: 'POST', path: '/api/environment-operational/events' }, status: 'VERDE' },
+      { feature: 'KPIs eventos ambientais', endpoint: { method: 'GET', path: '/api/environment-operational/events/summary' }, status: 'VERDE' }
     ],
-    patchRows: [{ module: 'ESG', screen: 'EnvironmentOperationalWorkspacePage', statusOk: 'AMARELO' }]
+    uiGap: {
+      screen: 'EnvironmentOperationalEventsPanel',
+      route: '/app/environment/operational?view=events',
+      status: 'VERDE',
+      notes: 'POST/GET environment-operational/events + summary ligados ao painel industrial'
+    },
+    patchRows: [
+      { module: 'ESG', screen: 'EnvironmentOperationalWorkspacePage', statusOk: 'VERDE', feature: 'Emissão / Resíduo / Consumo + painel eventos' },
+      { module: 'ESG', screen: 'EnvironmentOperationalLayout', statusOk: 'AMARELO', feature: 'Layout operacional ambiental' }
+    ]
   });
 }
 

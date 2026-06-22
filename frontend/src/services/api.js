@@ -1104,6 +1104,8 @@ export const safetyOperational = {
 export const environmentOperational = {
   health: () => api.get('/environment-operational/health'),
   publishEvent: (body) => api.post('/environment-operational/events', body),
+  listEvents: (params) => api.get('/environment-operational/events', { params }),
+  getEventsSummary: () => api.get('/environment-operational/events/summary'),
   summary: (area) => api.get(`/environment-operational/workspace/${area}/summary`),
   record: (area, body) => api.post(`/environment-operational/workspace/${area}/record`, body)
 };

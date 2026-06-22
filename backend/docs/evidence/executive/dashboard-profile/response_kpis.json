@@ -5,7 +5,7 @@
       {
         "id": "k1",
         "title": "Interações (semana)",
-        "value": 306,
+        "value": 432,
         "growth": 100,
         "color": "blue",
         "route": "/app/operacional",
@@ -81,7 +81,7 @@
           "removed": [],
           "governance_applied": false,
           "fallback_applied": false,
-          "timestamp": "2026-06-22T12:05:06.700Z"
+          "timestamp": "2026-06-22T12:46:36.274Z"
         }
       ],
       "executive_leakage": 0
@@ -91,7 +91,7 @@
         {
           "id": "k1",
           "title": "Interações (semana)",
-          "value": 306,
+          "value": 432,
           "growth": 100,
           "color": "blue",
           "route": "/app/operacional",
@@ -181,7 +181,7 @@
           {
             "id": "k1",
             "title": "Interações (semana)",
-            "value": 306,
+            "value": 432,
             "growth": 100,
             "color": "blue",
             "route": "/app/operacional",
@@ -283,8 +283,8 @@
             "KPI_operational_alignment": 1,
             "KPI_delivery_confidence": 0.965,
             "KPI_runtime_stability": 0.93,
-            "samples": 5,
-            "ts": "2026-06-22T12:05:06.692Z"
+            "samples": 1,
+            "ts": "2026-06-22T12:46:36.266Z"
           }
         },
         "telemetry": {
@@ -294,8 +294,8 @@
           "KPI_operational_alignment": 1,
           "KPI_delivery_confidence": 0.965,
           "KPI_runtime_stability": 0.93,
-          "samples": 5,
-          "ts": "2026-06-22T12:05:06.692Z"
+          "samples": 1,
+          "ts": "2026-06-22T12:46:36.266Z"
         },
         "flags": {
           "IMPETUS_KPI_GOVERNANCE_ROLLOUT": false,
@@ -380,8 +380,8 @@
           "hierarchy_integrity_score": 1,
           "semantic_relevance_score": 1,
           "operational_delivery_accuracy": 1,
-          "samples": 5,
-          "ts": "2026-06-22T12:05:06.694Z"
+          "samples": 1,
+          "ts": "2026-06-22T12:46:36.270Z"
         },
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
       },
@@ -446,13 +446,13 @@
         "global_auto_remediation": false,
         "invented_data_policy": "forbidden",
         "telemetry": {
-          "runtime_density_score": 0.8516,
-          "operational_density": 0.8458,
-          "contextual_richness": 0.8476,
-          "semantic_usefulness": 0.8612,
-          "insight_feeding_quality": 0.8612,
-          "samples": 24,
-          "ts": "2026-06-22T12:05:06.697Z"
+          "runtime_density_score": 0.9587,
+          "operational_density": 1,
+          "contextual_richness": 0.9175,
+          "semantic_usefulness": 0.9587,
+          "insight_feeding_quality": 0.9587,
+          "samples": 2,
+          "ts": "2026-06-22T12:46:36.271Z"
         },
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
       },

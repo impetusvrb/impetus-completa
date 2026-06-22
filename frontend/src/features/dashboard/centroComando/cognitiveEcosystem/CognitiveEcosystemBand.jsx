@@ -1,8 +1,22 @@
 /**
  * IMPETUS — Inteligência Organizacional Cognitiva Viva (nível presença global)
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useCognitivePulseContext } from './CognitivePulseContext';
+
+/** Detecta viewport mobile (≤ 768 px) de forma leve e reativa. */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return mobile;
+}
 import CognitiveCoreHub from './CognitiveCoreHub';
 import DigitalTwinPanel from './DigitalTwinPanel';
 import MultiAgentCouncil from './MultiAgentCouncil';
@@ -35,6 +49,10 @@ export default function CognitiveEcosystemBand({ onModeChange }) {
   const { pulse, loading } = useCognitivePulseContext();
   const [modeOverride, setModeOverride] = useState(null);
   const [feedTick, setFeedTick] = useState(0);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+  const isMobile = useIsMobile();
+
+  const toggleMobileSheet = useCallback(() => setMobileExpanded((v) => !v), []);
 
   const suggested = pulse?.operational_mode || 'normal';
   const activeMode = modeOverride || suggested;
@@ -64,6 +82,84 @@ export default function CognitiveEcosystemBand({ onModeChange }) {
   }
 
   if (!pulse?.ok) return null;
+
+  /* ── MOBILE: card compacto + bottom sheet ─────────────────────── */
+  if (isMobile) {
+    const core = pulse.cognitive_core || {};
+    const consciousness = pulse.consciousness || {};
+    const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return (
+      <>
+        <div className="cog-band cog-band--oi cog-band--mobile-compact" aria-label="IMPETUS Cognitive Core">
+          <div className="cog-band__scanner" aria-hidden />
+          <div className="cog-mobile-summary">
+            <div className="cog-mobile-summary__left">
+              <span className="cog-mobile-summary__orb" />
+              <div>
+                <p className="cog-mobile-summary__title">COGNITIVE CORE</p>
+                <p className="cog-mobile-summary__status">
+                  <span className="cog-mobile-summary__dot cog-mobile-summary__dot--green" />
+                  {consciousness.awareness_state || 'ATIVO'}
+                </p>
+              </div>
+            </div>
+            <div className="cog-mobile-summary__metrics">
+              <span className="cog-mobile-summary__metric">
+                <span className="cog-mobile-summary__metric-label">AWARE</span>
+                <span className="cog-mobile-summary__metric-val">{core.awareness_level_pct ?? '—'}%</span>
+              </span>
+              <span className="cog-mobile-summary__metric">
+                <span className="cog-mobile-summary__metric-label">CONF</span>
+                <span className="cog-mobile-summary__metric-val">{core.confidence_level ?? '—'}%</span>
+              </span>
+              <span className="cog-mobile-summary__metric">
+                <span className="cog-mobile-summary__metric-label">UPD</span>
+                <span className="cog-mobile-summary__metric-val">{now}</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              className="cog-mobile-summary__btn"
+              onClick={toggleMobileSheet}
+              aria-expanded={mobileExpanded}
+              aria-controls="cog-mobile-sheet"
+            >
+              {mobileExpanded ? 'Fechar' : 'Ver detalhes'}
+            </button>
+          </div>
+        </div>
+
+        {mobileExpanded && (
+          <div
+            id="cog-mobile-sheet"
+            className="cog-mobile-sheet"
+            role="dialog"
+            aria-label="Cognitive Core — Detalhes"
+          >
+            <div className="cog-mobile-sheet__overlay" onClick={toggleMobileSheet} aria-hidden />
+            <div className="cog-mobile-sheet__panel">
+              <div className="cog-mobile-sheet__drag" aria-hidden />
+              <div className="cog-mobile-sheet__header">
+                <span className="cog-mobile-sheet__title">COGNITIVE CORE — DETALHES</span>
+                <button
+                  type="button"
+                  className="cog-mobile-sheet__close"
+                  onClick={toggleMobileSheet}
+                  aria-label="Fechar"
+                >✕</button>
+              </div>
+              <div className="cog-mobile-sheet__body">
+                <CognitiveCoreHub core={pulse.cognitive_core} consciousness={pulse.consciousness} />
+                <WarRoomModeBar activeMode={modeOverride} suggestedMode={suggested} onSelect={handleMode} />
+                <AutonomousFocusBar focus={pulse.autonomous_focus} mode={activeMode} />
+                <BlackboxEngineBar blackbox={pulse.blackbox} />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   const execSummary = [
     ...(pulse.operational_narrative?.paragraphs || []).slice(0, 1),

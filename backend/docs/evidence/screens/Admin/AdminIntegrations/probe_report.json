@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/integrations",
   "probes": [
-    "GET /api/admin/integrations"
+    "GET /api/integrations/mes-erp/connectors"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/integrations",
-      "status": 404,
+      "spec": "GET /api/integrations/mes-erp/connectors",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:40:40.285Z"
+  "at": "2026-06-22T13:27:13.317Z"
 }

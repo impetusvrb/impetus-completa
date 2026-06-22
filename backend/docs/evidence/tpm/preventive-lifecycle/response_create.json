@@ -3,11 +3,11 @@
   "body": {
     "ok": true,
     "preventive": {
-      "id": "d5e2f166-15e5-41c4-b01e-f3e95c0853aa",
-      "title": "[CERT cert-p72-1782129905070] Lubrificação preventiva",
+      "id": "044628d4-0e27-4bdd-b827-4fc422e0ef21",
+      "title": "[CERT cert-p72-1782132393771] Lubrificação preventiva",
       "machine_name": "EQ-CERT-01",
       "status": "scheduled",
-      "scheduled_date": "2026-06-22T12:05:07.656Z"
+      "scheduled_date": "2026-06-22T12:46:37.085Z"
     }
   }
 }

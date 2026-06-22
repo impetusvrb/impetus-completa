@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/final-consolidation",
   "probes": [
-    "GET /api/audit/final-consolidation/summary"
+    "GET /api/final-consolidation-audit/health"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/audit/final-consolidation/summary",
-      "status": 404,
+      "spec": "GET /api/final-consolidation-audit/health",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:40:40.266Z"
+  "at": "2026-06-22T13:27:13.207Z"
 }

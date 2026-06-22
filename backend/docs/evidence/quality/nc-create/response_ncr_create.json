@@ -3,21 +3,21 @@
   "body": {
     "ok": true,
     "instance": {
-      "id": "80b3d582-c8ec-4c1e-9817-0f61013ee329",
+      "id": "e3d27c3e-ebea-4757-81de-06493d81ca0c",
       "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
       "workflow_def_id": "a1000000-0000-4000-8000-000000000001",
       "current_state": "opened",
       "context": {
         "origin": "cert_e2e",
         "severity": "major",
-        "lot_number": "CERT-NC-29902885",
-        "inspection_id": "ffae7203-fc9a-4066-bc26-fa9eb10fe1d0"
+        "lot_number": "CERT-NC-32391682",
+        "inspection_id": "ae622b38-3c6f-49b5-89fa-9ae3841615b2"
       },
-      "correlation_id": "0f618ca8-4ae5-4596-9bd6-c71d0cd65e30",
-      "trace_id": "0f618ca8-4ae5-4596-9bd6-c71d0cd65e30",
-      "idempotency_key": "cert:ncr:cert-1782129902885",
-      "created_at": "2026-06-22T12:05:03.166Z",
-      "updated_at": "2026-06-22T12:05:03.166Z"
+      "correlation_id": "8d57be5f-1799-46e6-9bc6-a1ff19b60440",
+      "trace_id": "8d57be5f-1799-46e6-9bc6-a1ff19b60440",
+      "idempotency_key": "cert:ncr:cert-1782132391682",
+      "created_at": "2026-06-22T12:46:32.302Z",
+      "updated_at": "2026-06-22T12:46:32.302Z"
     },
     "definition": {
       "id": "a1000000-0000-4000-8000-000000000001",

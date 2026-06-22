@@ -1,6 +1,6 @@
 # MATRIZ FUNCIONAL REAL — IMPETUS (geração automática)
 
-> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-21T23:55:34.401Z.
+> Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-06-22T12:44:20.967Z.
 > **Read-only.** Status preliminares são ESTÁTICOS. `NAO_VALIDADO` = estrutura íntegra aguardando validação E2E (Parte 7 do manual). Nenhuma linha é VERDE sem evidência de execução.
 
 ## Resumo
@@ -1266,7 +1266,6 @@
 - Preencher coluna **Flags** por endpoint com o estado efetivo (`dumpEffectiveFlags.js`).
 - Executar cenários **E2E** por domínio e anexar as 6 evidências.
 - Reclassificar `NAO_VALIDADO` → VERDE/AMARELO/MOCK/INCOMPLETO conforme execução.
-
 ## Cenários certificados (Parte 7.2 E2E)
 
 > Atualizado por `applyCertEvidenceToMatrix.js` — não sobrescrever com buildFunctionalMatrix.
@@ -1278,7 +1277,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/quality/nc-create/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-1782129902885 |
+| Run ID | cert-1782132391682 |
 | Isolamento tenant | OK (HTTP 403) |
 | Gap UI | QualityGovernanceHub / NcrCapaPanel → **VERDE** |
 
@@ -1297,7 +1296,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/safety/lifecycle/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-sst-1782129903781 |
+| Run ID | cert-sst-1782132392867 |
 | Isolamento tenant | OK (HTTP 200) |
 | Gap UI | SafetyOperationalWorkspace (view=incident) → **VERDE** |
 
@@ -1315,7 +1314,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/executive/dashboard-profile/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 | Isolamento tenant | OK (HTTP —) |
 
 | Fluxo | Endpoint | Status |
@@ -1330,7 +1329,8 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/manuia/diagnosis-workorder/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
+| Gap UI | ManuIA / ManuiaOperationalKpiStrip → **VERDE** |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|
@@ -1344,13 +1344,15 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/esg/emission-waste-consumption/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
+| Gap UI | EnvironmentOperationalEventsPanel → **VERDE** |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|
 | Alerta emissão | `POST /api/environment-operational/events` | VERDE |
 | Manifesto resíduo | `POST /api/environment-operational/events` | VERDE |
 | Amostra água/consumo | `POST /api/environment-operational/events` | VERDE |
+| KPIs eventos ambientais | `GET /api/environment-operational/events/summary` | VERDE |
 
 ### TPM: Plano preventivo → execução → indicador
 
@@ -1359,7 +1361,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/tpm/preventive-lifecycle/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|
@@ -1374,7 +1376,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/dsr/data-subject-request/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 | Isolamento tenant | OK (HTTP 200) |
 
 | Fluxo | Endpoint | Status |
@@ -1389,7 +1391,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/billing/asaas-webhook/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|
@@ -1402,7 +1404,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/governance/event-policy-decision/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|
@@ -1417,7 +1419,7 @@
 | Status | **VERDE** |
 | Evidência | `backend/docs/evidence/aioi/correlation-insight/` |
 | Validado em | 2026-06-22 |
-| Run ID | cert-p72-1782129905070 |
+| Run ID | cert-p72-1782132393771 |
 
 | Fluxo | Endpoint | Status |
 |-------|----------|--------|

@@ -1,2 +1,2 @@
 UI SafetyOperationalWorkspace incident view — placeholder; fluxo API comprovado.
-Run: cert-sst-1782129903781
+Run: cert-sst-1782132392867

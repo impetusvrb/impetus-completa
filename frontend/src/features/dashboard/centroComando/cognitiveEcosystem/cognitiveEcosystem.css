@@ -1709,3 +1709,210 @@
 .cc--mode-monitoramento_total {
   --cc-accent-glow: rgba(0, 212, 255, 0.12);
 }
+
+/* ── Mobile Compact Card (≤ 768px) ──────────────────────────── */
+
+.cog-band--mobile-compact {
+  padding: 0.65rem 0.85rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.cog-mobile-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
+}
+
+.cog-mobile-summary__left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.cog-mobile-summary__orb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  animation: cogBlink 1.8s infinite;
+  flex-shrink: 0;
+}
+
+.cog-mobile-summary__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 0;
+}
+
+.cog-mobile-summary__status {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-tertiary, var(--text3));
+  margin: 0.1rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cog-mobile-summary__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cog-mobile-summary__dot--green {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.cog-mobile-summary__metrics {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.cog-mobile-summary__metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.cog-mobile-summary__metric-label {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary, var(--text3));
+}
+
+.cog-mobile-summary__metric-val {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+.cog-mobile-summary__btn {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 3px;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.cog-mobile-summary__btn:hover,
+.cog-mobile-summary__btn[aria-expanded='true'] {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: var(--cyan);
+}
+
+/* Bottom Sheet */
+.cog-mobile-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cog-mobile-sheet__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 12, 20, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.cog-mobile-sheet__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 85vh;
+  background: var(--bg-panel, #0f1a28);
+  border-top: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cog-mobile-sheet__drag {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-default);
+  margin: 0.55rem auto 0;
+  flex-shrink: 0;
+}
+
+.cog-mobile-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.1));
+  flex-shrink: 0;
+}
+
+.cog-mobile-sheet__title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.cog-mobile-sheet__close {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-tertiary, var(--text3));
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  line-height: 1;
+}
+
+.cog-mobile-sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 0.85rem 1.5rem;
+  flex: 1;
+}
+
+/* Ajustes de densidade dentro do sheet mobile */
+.cog-mobile-sheet__body .cog-band__layout {
+  display: block;
+}
+
+.cog-mobile-sheet__body .cog-band__core-row,
+.cog-mobile-sheet__body .cog-band__intel-row,
+.cog-mobile-sheet__body .cog-band__executive-row,
+.cog-mobile-sheet__body .cog-band__neural-row {
+  grid-template-columns: 1fr;
+}
+
+/* Garantir tap targets mínimos 44px em mobile */
+@media (max-width: 768px) {
+  .cog-mobile-summary__btn {
+    min-height: 36px;
+    padding: 0.45rem 0.85rem;
+  }
+}

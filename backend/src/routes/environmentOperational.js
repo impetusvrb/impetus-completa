@@ -77,6 +77,101 @@ router.post('/workspace/:area/record', express.json(), async (req, res) => {
   }
 });
 
+/**
+ * Agregação bounded — evita full scan em outbox com milhões de linhas por domínio.
+ */
+async function queryEnvironmentEventSummary(companyId) {
+  const db = require('../db');
+  await db.query(`SET LOCAL statement_timeout = '4000'`);
+  const r = await db.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE event_name LIKE 'environment.emission%')::int AS emissions,
+       COUNT(*) FILTER (WHERE event_name LIKE 'environment.waste%')::int AS waste,
+       COUNT(*) FILTER (WHERE event_name LIKE 'environment.water%')::int AS water,
+       COUNT(*) FILTER (WHERE event_name LIKE 'environment.field%')::int AS field_events,
+       COUNT(*)::int AS total
+     FROM (
+       SELECT event_name
+       FROM industrial_event_outbox
+       WHERE company_id = $1::uuid AND domain = 'environment'
+         AND created_at > now() - interval '30 days'
+       ORDER BY created_at DESC
+       LIMIT 5000
+     ) recent`,
+    [companyId]
+  );
+  return r.rows[0] || { emissions: 0, waste: 0, water: 0, field_events: 0, total: 0 };
+}
+
+async function queryEnvironmentEventList(companyId, limit) {
+  const db = require('../db');
+  await db.query(`SET LOCAL statement_timeout = '4000'`);
+  const r = await db.query(
+    `SELECT id, event_name, correlation_id, envelope, created_at
+     FROM industrial_event_outbox
+     WHERE company_id = $1::uuid AND domain = 'environment'
+     ORDER BY created_at DESC LIMIT $2`,
+    [companyId, limit]
+  );
+  return r.rows || [];
+}
+
+/**
+ * GET /api/environment-operational/events/summary — KPIs eventos ambientais (outbox industrial)
+ */
+router.get('/events/summary', async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'company_required' });
+
+    const summary = await queryEnvironmentEventSummary(companyId);
+    res.json({ ok: true, summary, bounded: true, window_days: 30, sample_limit: 5000 });
+  } catch (err) {
+    if (err?.code === '42P01') {
+      return res.json({ ok: true, summary: { emissions: 0, waste: 0, water: 0, field_events: 0, total: 0 }, note: 'outbox_unavailable' });
+    }
+    if (err?.code === '57014') {
+      return res.json({
+        ok: true,
+        summary: { emissions: 0, waste: 0, water: 0, field_events: 0, total: 0 },
+        note: 'summary_timeout_bounded'
+      });
+    }
+    console.error('[environmentOperational summary]', err?.message || err);
+    res.status(500).json({ ok: false, error: err.message || 'internal_error' });
+  }
+});
+
+/**
+ * GET /api/environment-operational/events — eventos ambientais recentes
+ */
+router.get('/events', async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(403).json({ ok: false, error: 'company_required' });
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+    const rows = await queryEnvironmentEventList(companyId, limit);
+    const events = rows.map((row) => ({
+      id: row.id,
+      event_name: row.event_name,
+      correlation_id: row.correlation_id,
+      created_at: row.created_at,
+      payload: row.envelope?.payload || row.envelope?.metadata || {}
+    }));
+    res.json({ ok: true, events });
+  } catch (err) {
+    if (err?.code === '42P01') {
+      return res.json({ ok: true, events: [], note: 'outbox_unavailable' });
+    }
+    if (err?.code === '57014') {
+      return res.json({ ok: true, events: [], note: 'list_timeout' });
+    }
+    console.error('[environmentOperational list]', err?.message || err);
+    res.status(500).json({ ok: false, error: err.message || 'internal_error' });
+  }
+});
+
 router.post('/events', async (req, res) => {
   try {
     const user = req.user;

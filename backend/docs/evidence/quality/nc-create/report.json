@@ -1,6 +1,6 @@
 {
-  "run_id": "cert-1782129902885",
-  "started_at": "2026-06-22T12:05:02.886Z",
+  "run_id": "cert-1782132391682",
+  "started_at": "2026-06-22T12:46:31.683Z",
   "scenario": "Quality NC → CAPA",
   "steps": [
     {
@@ -55,5 +55,5 @@
     "other_status": 403,
     "leaked": false
   },
-  "finished_at": "2026-06-22T12:05:03.433Z"
+  "finished_at": "2026-06-22T12:46:32.536Z"
 }

@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/ai-incidents",
   "probes": [
-    "GET /api/admin/ai-incidents?limit=5"
+    "GET /api/admin-portal/ai-incidents?limit=5"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/ai-incidents?limit=5",
-      "status": 404,
+      "spec": "GET /api/admin-portal/ai-incidents?limit=5",
+      "status": 401,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:40:40.243Z"
+  "at": "2026-06-22T13:27:12.855Z"
 }

@@ -12,7 +12,7 @@ const { resolveDashboardProfile } = require('../../src/services/dashboardProfile
 const HOST = '127.0.0.1';
 const PORT = parseInt(process.env.PORT, 10) || 4000;
 
-function httpJson(method, apiPath, token, body, extraHeaders = {}) {
+function httpJson(method, apiPath, token, body, extraHeaders = {}, timeoutMs = 25000) {
   return new Promise((resolve) => {
     const payload = body ? JSON.stringify(body) : null;
     const req = http.request(
@@ -27,7 +27,7 @@ function httpJson(method, apiPath, token, body, extraHeaders = {}) {
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
           ...extraHeaders
         },
-        timeout: 25000
+        timeout: timeoutMs
       },
       (res) => {
         let b = '';
@@ -64,6 +64,14 @@ function writeEvidence(dir, name, data) {
 
 async function createSession(userId, userAgent) {
   return auth.createSession(userId, HOST, userAgent, 1);
+}
+
+/** Retorna bearer token (createSession devolve { token, expiresAt }). */
+async function resolveSessionToken(userId, userAgent) {
+  const sess = await createSession(userId, userAgent);
+  if (!sess) return null;
+  if (typeof sess === 'string') return sess;
+  return sess.token || null;
 }
 
 async function cleanupSessions(userAgent) {
@@ -149,6 +157,7 @@ module.exports = {
   evidenceDir,
   writeEvidence,
   createSession,
+  resolveSessionToken,
   cleanupSessions,
   pickUser,
   pickMaintenanceUser,

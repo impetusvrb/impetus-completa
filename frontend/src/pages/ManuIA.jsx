@@ -33,6 +33,7 @@ import {
   ImageIcon
 } from 'lucide-react';
 import './ManuIA.css';
+import ManuiaOperationalKpiStrip from '../features/manutencao-ia/ManuiaOperationalKpiStrip';
 import { isStrictAdminRole } from '../utils/roleUtils';
 
 function isStrictAdmin() {
@@ -75,6 +76,7 @@ export default function ManuIA({ embedded = false }) {
   const [concluding, setConcluding] = useState(false);
   const [machines, setMachines] = useState([]);
   const [emergencyEvents, setEmergencyEvents] = useState([]);
+  const [kpiRefresh, setKpiRefresh] = useState(0);
   /** UUID de manuia_machines vindo de Gestão de Ativos (?mid=) — liga Assistência ao Vivo e sessão */
   const [linkedMachineId, setLinkedMachineId] = useState(null);
   const inputRef = useRef(null);
@@ -100,6 +102,7 @@ export default function ManuIA({ embedded = false }) {
       ]);
       setMachines(mRes.data?.machines || []);
       setEmergencyEvents(eRes.data?.events || []);
+      setKpiRefresh((k) => k + 1);
       const items = recentRes.data?.items;
       setSuggestions(Array.isArray(items) ? items : []);
     } catch (e) {
@@ -294,6 +297,12 @@ export default function ManuIA({ embedded = false }) {
             </div>
           </div>
         </header>
+
+        <ManuiaOperationalKpiStrip
+          machinesCount={machines.length}
+          emergencyCount={emergencyEvents.length}
+          refreshKey={kpiRefresh}
+        />
 
         <div className="manuia-tabs">
           <button

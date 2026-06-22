@@ -9,13 +9,13 @@
     "apiCallCount": 791,
     "unresolvedCount": 0,
     "statusDist": {
-      "AMARELO": 66,
+      "AMARELO": 63,
       "REDIRECT": 5,
-      "VERDE": 6,
+      "VERDE": 9,
       "SCENARIO_VERDE": 10
     },
     "certifiedScenarioCount": 10,
-    "lastCertificationAt": "2026-06-22T12:48:48.741Z"
+    "lastCertificationAt": "2026-06-22T14:34:45.088Z"
   },
   "rows": [
     {
@@ -484,12 +484,13 @@
         "PrivateRoute",
         "SetupGuard"
       ],
-      "status": "AMARELO",
+      "status": "VERDE",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
-      "lastValidatedAt": "2026-06-22"
+      "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
+      "notes": "Diagnóstico → OS → Histórico",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Diagnóstico → OS → KPIs operacionais"
     },
     {
       "module": "ManuIA",
@@ -506,9 +507,10 @@
       "status": "AMARELO",
       "isLayout": false,
       "loader": "lazy",
-      "evidence": null,
-      "notes": "IECP-01.4: tela estática ou probes não mapeados — validar manualmente",
-      "lastValidatedAt": "2026-06-22"
+      "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
+      "notes": "Diagnóstico → OS → Histórico",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "PWA extensão ManuIA"
     },
     {
       "module": "Core",
@@ -674,7 +676,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminUsers/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -718,7 +720,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminDepartments/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -740,7 +742,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminOperationalTeams/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -762,7 +764,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminStructural/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -784,7 +786,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminAuditLogs/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -806,7 +808,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminAiIncidents/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 401",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -828,7 +830,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/CognitiveGovernanceDashboard/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 403",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -872,7 +874,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/RolloutCenterHub/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -894,7 +896,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/CertificationReadinessHub/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -916,7 +918,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/FinalConsolidationHub/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -981,7 +983,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminAudioLogs/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -1003,7 +1005,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminIntegrations/",
-      "notes": "IECP probe OK: 404",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -1047,7 +1049,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminHelpCenter/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -1069,7 +1071,7 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/Admin/AdminWarehouse/",
-      "notes": "IECP probe OK: 401",
+      "notes": "IECP probe OK: 200",
       "lastValidatedAt": "2026-06-22"
     },
     {
@@ -1424,8 +1426,9 @@
       "isLayout": true,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/screens/ESG/EnvironmentOperationalLayout/",
-      "notes": "IECP probe OK: 401",
-      "lastValidatedAt": "2026-06-22"
+      "notes": "IECP probe OK: 200/-1",
+      "lastValidatedAt": "2026-06-22",
+      "feature": "Layout operacional ambiental"
     },
     {
       "module": "ESG",
@@ -1439,13 +1442,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "AMARELO",
+      "status": "VERDE",
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
       "notes": "Emissão / Resíduo / Consumo",
       "lastValidatedAt": "2026-06-22",
-      "feature": "Emissão / Resíduo / Consumo"
+      "feature": "Emissão / Resíduo / Consumo + painel eventos"
     },
     {
       "module": "ESG",
@@ -1459,13 +1462,13 @@
         "Suspense",
         "PageLoader"
       ],
-      "status": "AMARELO",
+      "status": "VERDE",
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
       "notes": "Emissão / Resíduo / Consumo",
       "lastValidatedAt": "2026-06-22",
-      "feature": "Emissão / Resíduo / Consumo"
+      "feature": "Emissão / Resíduo / Consumo + painel eventos"
     },
     {
       "module": "Chat/IA",
@@ -1847,7 +1850,12 @@
         }
       ],
       "tenantIsolation": null,
-      "uiGap": null
+      "uiGap": {
+        "screen": "ManuIA / ManuiaOperationalKpiStrip",
+        "route": "/app/manutencao/manuia",
+        "status": "VERDE",
+        "notes": "KPIs via getSessions, getMachines, getHealth no topo da página"
+      }
     },
     {
       "domain": "ESG",
@@ -1880,10 +1888,23 @@
             "path": "/api/environment-operational/events"
           },
           "status": "VERDE"
+        },
+        {
+          "feature": "KPIs eventos ambientais",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/environment-operational/events/summary"
+          },
+          "status": "VERDE"
         }
       ],
       "tenantIsolation": null,
-      "uiGap": null
+      "uiGap": {
+        "screen": "EnvironmentOperationalEventsPanel",
+        "route": "/app/environment/operational?view=events",
+        "status": "VERDE",
+        "notes": "POST/GET environment-operational/events + summary ligados ao painel industrial"
+      }
     },
     {
       "domain": "TPM",

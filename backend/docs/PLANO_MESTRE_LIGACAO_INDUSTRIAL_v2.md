@@ -1,1052 +1,1060 @@
-# IMPETUS — PLANO MESTRE DE LIGAÇÃO INDUSTRIAL (v2.0)
+# IMPETUS — PLANO MESTRE DE LIGAÇÃO INDUSTRIAL v2.0
 
-> **Versão:** 2.0 — 2026-06-21  
-> **Classe:** `CERT` — documento de planejamento, sem alteração de código  
-> **Substitui:** Plano Mestre v1 (9 fases / 180 etapas — reprovado em auditoria)  
-> **Alinhado a:** `MANUAL_MATRIZ_FUNCIONAL_REAL.md`, `ENTERPRISE_HARDENING_REPORT.md`, `SECURITY_HARDENING_VPS.md`, roadmap CERT-01→04  
-> **Premissa fundamental:** o IMPETUS **não é um projeto greenfield**. É um produto industrial avançado (77 telas, 1.098 endpoints, EG-01→13, AIOI, Learning Layer) que precisa de **certificação e ligação validada**, não de reconstrução.
-
----
-
-## ESTADO DO PROJETO NA DATA DESTE PLANO
-
-| Métrica | Valor real | Fonte |
-|---------|------------|-------|
-| Telas mapeadas | 77 | `FUNCTIONAL_MATRIX.json` |
-| VERDE (E2E validado) | 6 | Matriz |
-| SCENARIO\_VERDE (fluxo validado) | 10 | Matriz |
-| AMARELO (parcial/flag) | 3 | Matriz |
-| NAO\_VALIDADO (pendente E2E) | 63 | Matriz |
-| Endpoints backend | 1.098 em 142 mounts | `BACKEND_INVENTORY.json` |
-| Endpoints chamados pelo FE | 621 | `BACKEND_INVENTORY.json` |
-| Variáveis no `.env` | 624 definidas de 1.446 únicas | Auditoria ENV |
-| `NODE_ENV` no PM2 | `development` | `ecosystem.config.js` |
-| `LISTEN_HOST` | ausente do `.env` | Auditoria ENV |
-| `ALLOWED_ORIGINS` | ausente do `.env` | Auditoria ENV |
-| `IMPETUS_RLS_MODE` | `on` | `.env` |
-| `IMPETUS_AIOI_ENABLED` | `true` | `.env` |
-| `EVENT_GOVERNANCE_*` (14 flags) | todas ausentes → default OFF | Auditoria ENV |
-| Refresh token / HttpOnly cookie | não implementado | Auditoria código |
-| CI/CD | inexistente | `.github/` vazio |
-| Nginx/UFW | scripts prontos, não ativados | `infra/` |
-| Observabilidade | Docker opcional, desconectada | `infra/observability/` |
+> **Documento:** Plano de execução oficial  
+> **Versão:** 2.0 — 2026-06-22  
+> **Gerado por:** Auditoria do Plano v1.0 contra `MANUAL_MATRIZ_FUNCIONAL_REAL.md`  
+> **Classe de mudança:** `CERT` (planejamento — não executa código)  
+> **Estado do produto:** Piloto Industrial Avançado (~7,8/10) — produto existente, não greenfield
 
 ---
 
-## PRINCÍPIOS INVIOLÁVEIS DESTE PLANO
+## Premissas (leia antes de executar qualquer etapa)
 
-1. **Congelamento ativo** — durante todo o ciclo, classes de mudança permitidas: `FIX`, `CERT`, `SEC`, `OPS`. Proibido: `FEAT`, EG-14+, novos runtimes, novas engines.  
-2. **Matriz como fonte de verdade** — nenhuma etapa de "correção" ou "ligação" começa sem rastreio na matriz.  
-3. **VERDE exige 6 evidências** — screenshot, payload, resposta API, linha no BD, log, prova de isolamento tenant.  
-4. **Ferramenta, não trabalho manual** — inventários e rastreios via `buildFunctionalMatrix.js` e scripts de auditoria.  
-5. **Gates entre fases** — nenhuma fase avança sem o gate da anterior fechado.  
-6. **Taxonomia obrigatória** — VERDE / AMARELO / MOCK / INCOMPLETO / DESABILITADO / NAO\_VALIDADO.
+1. **O IMPETUS já existe.** 173 módulos de backend, 356+ serviços, 77 telas mapeadas, 1.098 endpoints, EG-01→13 implementados. O objetivo é **certificar e ligar**, não construir do zero.
+2. **A Matriz Funcional é a única fonte de verdade.** Toda correção, ligação e validação parte dela. Nenhuma etapa é considerada concluída sem artefato rastreável.
+3. **Congelamento ativo.** Durante todo o ciclo CERT, são permitidas apenas mudanças de classe `FIX` (bug), `CERT` (evidência/auditoria), `SEC` (hardening), `OPS` (deploy/observabilidade). Classe `FEAT` (nova funcionalidade) está **proibida** até CERT-04 concluído.
+4. **VERDE exige evidência.** Nenhuma funcionalidade pode ser classificada como VERDE sem as 6 evidências obrigatórias: screenshot, payload, resposta API, linha no banco, log de execução, prova de isolamento multi-tenant.
+5. **Estado real hoje:**
+   - `NODE_ENV=development` no PM2 (risco crítico)
+   - `LISTEN_HOST` ausente (API pode expor em `0.0.0.0`)
+   - `ALLOWED_ORIGINS` ausente (CORS inseguro)
+   - `IMPETUS_RLS_MODE=on`, `IMPETUS_AIOI_ENABLED=true`, `IMPETUS_GOVERNANCE_LEARNING=shadow`
 
 ---
 
-## VISÃO GERAL DO CICLO
+## Visão geral do ciclo
 
 ```
-FASE 0  Congelamento Arquitetural         ─── imediato (1 dia)
-FASE 1  CERT-01 Certificação Funcional    ─── 14–22 dias
-FASE 2  CERT-02 Hardening de Produção     ─── 12–18 dias (paralela parcial)
-FASE 3  Correção Priorizada (FIX)         ─── 10–20 dias
-FASE 4  Validação E2E por Domínio         ─── 8–15 dias
-FASE 5  CERT-03 Infraestrutura Enterprise ─── 16–25 dias
-FASE 6  CERT-04 Piloto Industrial         ─── 30–60 dias
-FASE 7  Go-Live em Escala                 ─── ~5 dias + acompanhamento
+FASE 0  Congelamento         (1 dia)
+FASE 1  CERT-01 Diagnóstico  (10–15 dias)
+FASE 2  CERT-02 Segurança    (8–12 dias — inicia em paralelo à Fase 1)
+FASE 3  Correção FIX         (7–14 dias — deriva da Fase 1)
+FASE 4  Certificação E2E     (10–15 dias)
+FASE 5  CERT-03 Operações    (8–12 dias)
+FASE 6  CERT-04 Piloto       (30–60 dias calendário)
+FASE 7  Go-live em escala    (após CERT-04)
 ```
+
+**Gates obrigatórios** (nenhuma fase inicia sem o gate anterior fechado):
+
+| Gate | Critério |
+|------|---------|
+| G0→1 | Freeze documentado, classes de mudança acordadas |
+| G1→2 | 100% rotas rastreadas na matriz; FLAGS_BASELINE congelado |
+| G2→3 | P0 segurança ativo; `NODE_ENV=production` no PM2 |
+| G3→4 | Zero linhas VERMELHO bloqueadoras; 0 mocks em KPI/gráfico |
+| G4→5 | Cenários E2E dos 10 domínios com evidência completa |
+| G5→6 | CI/CD + backup/restore + observabilidade ativos |
+| G6→7 | 30–60 dias piloto estável; Learning graduado por dados |
 
 ---
 
 ## FASE 0 — CONGELAMENTO ARQUITETURAL
 
 **Duração:** 1 dia  
-**Objetivo:** parar a expansão para viabilizar a certificação. Sem congelamento, qualquer validação fica desatualizada antes de terminar.
+**Objetivo:** parar a expansão para permitir a estabilização. Sem isto, qualquer certificação fica obsoleta antes de terminar.  
+**Quem executa:** arquiteto / responsável técnico
 
-### Etapas
+### Etapa 0.1 — Declarar o freeze
 
-**0.1 Criar regra de congelamento no repositório**  
-- Criar `.cursor/rules/architecture-freeze.mdc` com `alwaysApply: true`.  
-- Conteúdo: proibido criar módulos `FEAT` (EG-14+, novos runtimes, novas engines, novas governanças) até `CERT-04` concluída.  
-- Classes permitidas: `FIX`, `CERT`, `SEC`, `OPS`.  
-- Qualquer exceção exige aprovação documentada do arquiteto-chefe.
+- Revisar e ativar a regra em `.cursor/rules/architecture-freeze.mdc` (já criada).
+- Comunicar formalmente: sem EG-14+, sem novos runtimes, sem novas engines até CERT-04.
+- Classes permitidas: `FIX`, `CERT`, `SEC`, `OPS`.
 
-**0.2 Registrar baseline de maturidade**  
-- Documentar o estado atual (tabela de Estado acima) em `backend/docs/BASELINE_MATURIDADE_v1.md`.  
-- Assinar como ponto de partida do ciclo de certificação.
+**Artefato de saída:** registro de freeze com data e assinatura do responsável.
 
-**0.3 Confirmar artefatos de auditoria existentes**  
-Verificar que os seguintes arquivos existem e estão atualizados:  
-- `backend/docs/FUNCTIONAL_MATRIX.json` — gerado por `buildFunctionalMatrix.js`  
-- `backend/docs/inventory/FRONTEND_INVENTORY.json`  
-- `backend/docs/inventory/BACKEND_INVENTORY.json`  
-- `backend/scripts/audit/buildFunctionalMatrix.js`  
+### Etapa 0.2 — Fotografar o estado de flags reais
 
-**Gate de saída da Fase 0:**  
-- [ ] Regra de congelamento ativa  
-- [ ] Baseline documentado e datado  
-- [ ] Artefatos de auditoria confirmados
+- Rodar `dumpEffectiveFlags.js` no servidor de produção (ou ler o `.env` real).
+- Gerar `backend/docs/FLAG_BASELINE_FROZEN.md` com: nome da flag, valor efetivo, default do `.env.example`, classe (ATIVA / DESATIVADA / SHADOW / PILOTO), módulo afetado.
+- **Não expor segredos** — apenas presença/ausência e comprimento dos valores sensíveis.
+
+**Artefato de saída:** `FLAG_BASELINE_FROZEN.md` versionado.
+
+**Definition of Done:** freeze ativo, `FLAG_BASELINE_FROZEN.md` no repositório, zero commits de classe `FEAT` aceitos.
 
 ---
 
-## FASE 1 — CERT-01: CERTIFICAÇÃO FUNCIONAL COMPLETA
+## FASE 1 — CERT-01: DIAGNÓSTICO COMPLETO
 
-**Duração:** 14–22 dias  
-**Objetivo:** transformar "o sistema parece funcionar" em "cada tela, endpoint e flag tem status conhecido e rastreável".
-
-> Esta fase é **100% read-only** — nenhum código de produção é alterado. É a fase de maior alavancagem: sem ela, todas as correções são cegas.
+**Duração:** 10–15 dias  
+**Objetivo:** transformar "sistema existente" em **mapa verificável** de tudo o que funciona, o que é parcial, o que é mock e o que está desabilitado.  
+**Quem executa:** engenheiro de qualidade / auditor técnico  
+**Entrada:** código-fonte, `.env` real, artefatos de inventário já gerados
 
 ---
 
-### CERT-01.1 — Completar inventário automatizado
+### Etapa 1.1 — Inventário automatizado frontend
 
-**Quem executa:** engenheiro ou IA com acesso ao código  
-**Ferramenta:** `backend/scripts/audit/buildFunctionalMatrix.js` (já existe)
+**O que fazer:**
+- Executar `node backend/scripts/audit/buildFunctionalMatrix.js`
+- Confirmar que todas as 77 rotas estão mapeadas com: tela, rota, guards de acesso, perfil, status preliminar.
+- Verificar rotas de domínios industriais aninhadas (`/app/quality/operational/*`, `/app/safety/operational/*`, `/app/environment/operational/*`, `/app/logistics/operational/*`).
+- Para cada tela: confirmar existência do arquivo do componente (`screenFileExists`).
 
-**1.1.1** Re-executar o gerador de matriz para capturar o estado mais recente:
+**Como executar:**
 ```bash
 node backend/scripts/audit/buildFunctionalMatrix.js
+# Inspecionar saída:
+cat backend/docs/FUNCTIONAL_MATRIX.md | head -60
 ```
-Validar saídas: `FUNCTIONAL_MATRIX.json`, `FRONTEND_INVENTORY.json`, `BACKEND_INVENTORY.json`.
 
-**1.1.2** Auditar rotas dos domínios que têm sub-roteadores próprios não totalmente cobertas pelo `App.jsx`:
-- `frontend/src/domains/quality/routes/`  
-- `frontend/src/domains/safety/routes/`  
-- `frontend/src/domains/logistics/routes/`  
-- `frontend/src/domains/environment/routes/`  
-- `frontend/src/modules/aioi/router/`  
+**O que NÃO fazer:** mapear manualmente botão a botão — isso é feito por rastreamento de código (Etapa 1.3).
 
-**1.1.3** Mapear telas definidas nos módulos especiais (não em `App.jsx`):
-- Portal AIOI: `modules/aioi/router/ExecutivePortalRoute.jsx` e providers aninhados  
-- ManuIA App: `manuia-app/ManuIAExtensionApp.jsx`  
-- Mobile: `pages/AppMobile.jsx`
-
-**1.1.4** Para cada tela `NAO_VALIDADO` (atualmente 63), rastrear a cadeia completa:
-```
-Tela → Handler → Service (frontend/src/services/api.js) → Endpoint → Guard → Serviço Backend → Tabela(s)
-```
-Registrar resultado como linha da matriz com campo `chainStatus: RESOLVED | UNRESOLVED`.
-
-**1.1.5** Implementar rastreio de nível 2 (tela → botão específico → endpoint):  
-Escrever `backend/scripts/audit/traceScreenChains.js` que, para cada arquivo de página em `frontend/src/pages/` e `frontend/src/domains/*/`, extrai via regex:
-- handlers `onClick`, `onSubmit`, `handle*`  
-- chamadas ao `api.js` correspondentes  
-Saída: `backend/docs/inventory/SCREEN_CHAINS.json`
-
-**Definition of Done:** 100% das 77 rotas com `chainStatus` preenchido; 0 `UNRESOLVED` crítico.
+**Artefato de saída:** `FUNCTIONAL_MATRIX.json` atualizado + `FRONTEND_INVENTORY.json`.
 
 ---
 
-### CERT-01.2 — Snapshot de flags reais (FLAG_BASELINE_FROZEN)
+### Etapa 1.2 — Inventário automatizado backend
 
-**Quem executa:** arquiteto ou responsável pelo servidor de produção
+**O que fazer:**
+- Confirmar os 1.098 endpoints nos 142 mounts.
+- Para cada endpoint: método HTTP, path completo, `auth` (sim/não), arquivo de rota, flags `process.env` referenciadas, serviços candidatos, tabelas candidatas.
+- Separar endpoints sem `requireAuth` (hoje: 324) — estes precisam de triagem manual: são públicos legítimos (login, OIDC/SAML, SCIM) ou exposição indevida?
 
-**1.2.1** Executar no servidor de produção:
+**Como executar:**
 ```bash
-node backend/scripts/audit/dumpEffectiveFlags.js
+node -e "
+  const b=require('./backend/docs/inventory/BACKEND_INVENTORY.json');
+  const noauth=b.endpoints.filter(e=>!e.auth);
+  console.log('Sem auth:', noauth.length);
+  noauth.forEach(e=>console.log(e.method, e.path, '::', e.module));
+" | head -60
 ```
-*(implementar se ainda não existir — lê `process.env` em runtime, redige segredos, emite tabela: flag | valor efetivo | default .env.example | classe | módulo afetado)*
 
-**1.2.2** Confirmar estado das 14 flags `EVENT_GOVERNANCE_*`:  
-Todas ausentes do `.env` → default `false` (comportamento esperado pré-piloto). Documentar explicitamente.
+**Triagem de auth:** para cada endpoint sem `requireAuth`, classificar como:
+- `PUB-OK` — público intencional (login, health, OIDC)
+- `PUB-RISCO` — deveria ter auth (investigar e corrigir na Fase 3)
+- `ESPECIALIZADO` — tem auth própria (SCIM bearer, webhook HMAC)
 
-**1.2.3** Confirmar flags de alto impacto:
-
-| Flag | Estado confirmado | Impacto operacional |
-|------|-------------------|---------------------|
-| `NODE_ENV` | `development` | Guards de rede bypassados |
-| `LISTEN_HOST` | ausente | Backend pode bindar 0.0.0.0 |
-| `ALLOWED_ORIGINS` | ausente | CORS inseguro |
-| `IMPETUS_RLS_MODE` | `on` | RLS ativo na BD |
-| `IMPETUS_AIOI_ENABLED` | `true` | AIOI ativo |
-| `IMPETUS_GOVERNANCE_LEARNING` | `shadow` | Learning observa, não age |
-| `EVENT_GOVERNANCE_LEARNING` | ausente (false) | EG learning OFF |
-
-**1.2.4** Persistir em `backend/docs/FLAG_BASELINE_FROZEN.md`.
-
-**Definition of Done:** arquivo existente, datado, assinado, com 100% das flags de governança mapeadas.
+**Artefato de saída:** `BACKEND_INVENTORY.json` com campo `authClassification` preenchido.
 
 ---
 
-### CERT-01.3 — Varredura de mocks e fallbacks artificiais
+### Etapa 1.3 — Rastreamento tela → API (cadeia completa)
 
-**Quem executa:** engenheiro com acesso ao código  
-**Referência:** Manual Parte 5
+**O que fazer:** para cada tela, traçar a cadeia:
 
-**1.3.1** Executar varredura de `Math.random()` fora de testes:
-```bash
-rg -n "Math\.random\(" frontend/src backend/src -g '!**/tests/**' -g '!**/*.test.*'
+```
+Tela → Handler (onClick/onSubmit) → Método em api.js → Endpoint backend → Guard → Serviço → Tabela(s)
 ```
 
-**1.3.2** Varredura de arrays/labels fixos em gráficos (proibidos pela regra `charts-real-data-industrial.mdc`):
+**Como executar (por tela):**
 ```bash
+# Passo 1: localizar chamadas de serviço na tela
+rg -n "onClick=|onSubmit=|handle[A-Z]\w+" frontend/src/pages/<Tela>.jsx
+
+# Passo 2: localizar o endpoint em api.js
+rg -n "<nomeDoMetodo>" frontend/src/services/api.js
+
+# Passo 3: localizar a rota no backend
+rg -n "<path-do-endpoint>" backend/src/routes backend/src/domains
+
+# Passo 4: localizar tabelas no serviço
+rg -n "db\.query|INSERT INTO|FROM |UPDATE " backend/src/services/<servico>.js
+```
+
+**Prioridade de rastreamento:** começar pelos 10 cenários de certificação (Etapa 1.5).
+
+**Artefato de saída:** colunas `endpoint`, `backendService`, `tables` preenchidas na matriz por domínio.
+
+---
+
+### Etapa 1.4 — Varredura de mocks e flags
+
+**O que fazer:**
+
+```bash
+# Mocks proibidos em KPI/gráfico (regra design system)
+rg -n "Math\.random\(" frontend/src backend/src \
+  -g '!**/tests/**' -g '!**/*.test.*'
+
+# Arrays/labels fixos de fallback
 rg -n "Set.*Out.*Nov|Jan.*Fev.*Mar|\[\s*\{[^}]*value:\s*\d" frontend/src
+
+# Placeholders e dados hardcoded
+rg -n "dummy|fakeData|hardcoded|TODO.*dado|FIXME.*dado" frontend/src -i
+
+# Flags de feature que controlam funcionalidades críticas
+rg -n "process\.env\.EVENT_GOVERNANCE" backend/src | sort -u
+rg -n "process\.env\.IMPETUS_AIOI" backend/src | sort -u
 ```
 
-**1.3.3** Varredura de fallbacks artificiais:
-```bash
-rg -n "mock|fakeData|dummy|sampleData|hardcoded|TODO.*dados|FIXME.*dados" frontend/src -i -g '!**/*.test.*'
-```
+**Classificação por item encontrado:**
+- `MOCK` — sempre simulado, nunca vai à BD
+- `PARCIAL` — dado real no happy path, fallback artificial no erro
+- `REAL` — 100% origem em serviço/BD
 
-**1.3.4** Varredura de cores hex soltas em gráficos (fora dos tokens):
-```bash
-rg -n "#[0-9a-fA-F]{6}" frontend/src/pages frontend/src/domains frontend/src/components/charts
-```
-
-**1.3.5** Para cada ocorrência encontrada, classificar a funcionalidade como MOCK / PARCIAL / REAL e registrar na matriz.
-
-**Definition of Done:** varredura concluída; toda ocorrência classificada; KPIs e gráficos marcados REAL ou MOCK com evidência.
+**Artefato de saída:** `backend/docs/audit/MOCK_AUDIT.md` com cada ocorrência classificada.
 
 ---
 
-### CERT-01.4 — Classificação completa da matriz
+### Etapa 1.5 — Pré-classificação por domínio (semáforo)
 
-**Referência:** Manual Parte 6 (árvore de decisão)
+**O que fazer:** para cada domínio, atribuir status preliminar baseado nas etapas 1.1–1.4:
 
-Para cada uma das 77 telas, aplicar a árvore de decisão:
+| Domínio | Cenário obrigatório | Status mínimo esperado |
+|---------|---------------------|------------------------|
+| Quality | NC → CAPA → Auditoria | Rastrear cadeia completa |
+| SST | Incidente / Quase-acidente / Treinamento vencido | Rastrear cadeia completa |
+| ESG | Emissão / Resíduo / Consumo | Rastrear cadeia completa |
+| ManuIA | Diagnóstico → OS → Histórico | Rastrear cadeia completa |
+| TPM | Plano preventivo → execução → indicador | Rastrear cadeia completa |
+| AIOI | Correlação → Insight → Escalonamento | Rastrear cadeia + flags |
+| Executive | Dashboard por perfil hierárquico | Rastrear cadeia + mocks |
+| Billing | Assinatura / webhook Asaas | Rastrear cadeia + `ASAAS_*` |
+| DSR/LGPD | Pedido de titular | Rastrear cadeia + worker |
+| Event Governance | Evento → política → decisão | Rastrear flags EG-01→13 |
 
-```
-Renderiza para algum perfil?
-  ├─ Não → DESABILITADO ou INCOMPLETO
-  └─ Sim
-      └─ Endpoints chamados existem e respondem?
-          ├─ Não → INCOMPLETO
-          └─ Sim
-              └─ Dados são reais (não mock)?
-                  ├─ Não → MOCK
-                  └─ Sim
-                      └─ Persiste + tenant OK + sem flag bloqueante + todas as ações OK?
-                          ├─ Não → AMARELO
-                          └─ Sim → VERDE (exige E2E, não automático)
-```
-
-**1.4.1** Priorizar as 63 telas `NAO_VALIDADO`:  
-- Identificar quais têm endpoints com `!auth` (324 sem `requireAuth` padrão) — validar se é intencional.  
-- Identificar quais telas dependem exclusivamente de flags desligadas → reclassificar para DESABILITADO.
-
-**1.4.2** Validar o status dos atuais 6 VERDE e 10 SCENARIO\_VERDE:  
-Confirmar que as 6 evidências obrigatórias existem. Se não, rebaixar para NAO\_VALIDADO.
-
-**1.4.3** Gerar relatório semáforo por módulo (entrada para a Fase 3):
-
-| Módulo | VERDE | AMARELO | INCOMPLETO | MOCK | DESABILITADO |
-|--------|-------|---------|------------|------|--------------|
-| Quality | | | | | |
-| SST | | | | | |
-| ESG | | | | | |
-| ManuIA | | | | | |
-| TPM | | | | | |
-| AIOI/Executive | | | | | |
-| Admin | | | | | |
-| Core | | | | | |
-| Billing/DSR | | | | | |
-
-**Definition of Done:** 100% das 77 telas com status final classificado; relatório semáforo publicado.
+**Artefato de saída:** `FUNCTIONAL_MATRIX.json` com todos os 77 registros classificados em VERDE / AMARELO / MOCK / INCOMPLETO / DESABILITADO.
 
 ---
 
-### CERT-01.5 — Implementar gate anti-drift
+### Etapa 1.6 — Relatório técnico de diagnóstico
 
-**Referência:** Manual Parte 9
+**O que fazer:** consolidar tudo em `backend/docs/CERT_01_DIAGNOSTIC_REPORT.md`:
+- Distribuição de status por domínio (tabela semáforo)
+- Lista de mocks encontrados em KPI/gráfico (prioridade alta)
+- Lista de endpoints `PUB-RISCO` (prioridade de segurança)
+- Lista de flags com estado real vs default
+- Dependências ausentes que bloqueiam o happy path de cada domínio
 
-**1.5.1** Escrever `backend/scripts/audit/checkMatrixDrift.js`:  
-- Lê `FUNCTIONAL_MATRIX.json` commitado  
-- Re-executa `buildFunctionalMatrix.js` internamente  
-- Compara: rota no código sem linha na matriz → `DRIFT: rota órfã`  
-- Compara: linha na matriz sem rota no código → `DRIFT: matriz obsoleta`  
-- Compara: `sourceHash` divergente → `DRIFT: tela mudou`  
-- Flag `--fail-on-drift`: exit code 1 se drift detectado
+**Gate G0→1:** este relatório é o documento de entrada para todas as fases seguintes.
 
-**1.5.2** Adicionar ao `package.json` do backend:
-```json
-"audit:matrix": "node backend/scripts/audit/buildFunctionalMatrix.js",
-"audit:drift":  "node backend/scripts/audit/checkMatrixDrift.js --fail-on-drift"
-```
-
-**Definition of Done:** `npm run audit:drift` passa no estado atual; qualquer divergência futura é detectável em < 30s.
-
-**GATE G1 — saída da Fase 1:**  
-- [ ] 100% das 77 rotas com cadeia rastreada  
-- [ ] `FLAG_BASELINE_FROZEN.md` publicado  
-- [ ] Varredura de mocks concluída  
-- [ ] 100% das telas classificadas na taxonomia  
-- [ ] `checkMatrixDrift.js` funcionando  
-- [ ] Relatório semáforo por módulo publicado
+**Definition of Done:** 100% das 77 rotas classificadas; zero `UNRESOLVED` nos 10 cenários obrigatórios; relatório revisado e aprovado.
 
 ---
 
-## FASE 2 — CERT-02: HARDENING DE PRODUÇÃO (início em paralelo com Fase 1)
+## FASE 2 — CERT-02: SEGURANÇA P0
 
-**Duração:** 12–18 dias  
-**Objetivo:** fechar os gaps de segurança que impedem qualquer demo ou piloto externo.  
-
-> Inicia **em paralelo** à Fase 1 (etapas 2.0 são read-only de preparação; execução real aguarda G1 para sessão enterprise).
+**Duração:** 8–12 dias  
+**Início:** em paralelo à Fase 1 (itens P0 não dependem da matriz completa)  
+**Objetivo:** fechar os bloqueadores críticos que impedem qualquer exposição externa  
+**Quem executa:** engenheiro de backend / SRE  
+**Entrada:** `ENTERPRISE_HARDENING_REPORT.md`, `SECURITY_HARDENING_VPS.md`
 
 ---
 
-### CERT-02.0 — Hardening P0 (bloqueadores absolutos de piloto externo)
+### Etapa 2.1 — Ativar modo produção no PM2
 
-Estes itens precedem qualquer demonstração a cliente. Scripts e configs já existem em `infra/` — o gap é de **ativação**, não de construção.
+**Por que:** hoje `NODE_ENV=development` no PM2 → CORS permissivo, guards internos bypassados, `LISTEN_HOST=0.0.0.0`.
 
-**2.0.1 Ativar PM2 em modo produção**  
+**Como executar:**
 ```bash
-pm2 start ecosystem.config.js --env production --update-env
-pm2 save
-```
-Validar: `NODE_ENV=production`, `LISTEN_HOST=127.0.0.1`.  
-Verificar: `ss -tlnp | grep -E ':3000|:4000'` → deve mostrar `127.0.0.1`, não `0.0.0.0`.
+# 1. Garantir que backend/.env tem as vars obrigatórias:
+LISTEN_HOST=127.0.0.1
+NODE_ENV=production
+ALLOWED_ORIGINS=https://app.seudominio.com
+IMPETUS_INTERNAL_NETWORK_DEV_BYPASS=false
+IMPETUS_INTERNAL_ROUTE_DENY_BY_DEFAULT=true
 
-**2.0.2 Instalar e ativar Nginx como reverse proxy**  
+# 2. Reiniciar com profile de produção:
+pm2 restart ecosystem.config.js --env production --update-env
+
+# 3. Verificar bind:
+ss -tlnp | grep -E ':3000|:4000'
+# DEVE mostrar 127.0.0.1:3000 e 127.0.0.1:4000 (não 0.0.0.0)
+```
+
+**Definition of Done:** `ss` mostra bind localhost; `curl http://IP_EXTERNO:4000/health` falha por timeout ou recusa.
+
+---
+
+### Etapa 2.2 — Nginx como reverse proxy
+
+**Por que:** backend nunca deve ser acessado diretamente. Toda request vem via Nginx (HTTPS).
+
+**Como executar:**
 ```bash
+# Arquivos já existem — só instalar e ativar:
 sudo cp infra/nginx/impetus-proxy.conf /etc/nginx/snippets/impetus-proxy.conf
 sudo cp infra/nginx/impetus-proxy-ws.conf /etc/nginx/snippets/impetus-proxy-ws.conf
 sudo cp infra/nginx/impetus.conf /etc/nginx/sites-available/impetus
+
+# Substituir domínio:
 sudo sed -i 's/SEU_DOMINIO/app.seudominio.com/g' /etc/nginx/sites-available/impetus
+
 sudo ln -sf /etc/nginx/sites-available/impetus /etc/nginx/sites-enabled/impetus
 sudo rm -f /etc/nginx/sites-enabled/default
+
 sudo bash infra/scripts/update-cloudflare-ips.sh
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-**2.0.3 SSL/TLS**  
+**SSL:** Certbot + Cloudflare (Full strict) ou Origin Certificate.
+
+**Definition of Done:** `https://app.seudominio.com` responde; headers de segurança presentes (`Strict-Transport-Security`, `X-Frame-Options`, `Content-Security-Policy`).
+
+---
+
+### Etapa 2.3 — UFW Cloudflare-only
+
+**Por que:** sem firewall, qualquer pessoa acessa a API pelo IP direto.
+
+**Como executar:**
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d app.seudominio.com
-```
-Ou: Origin Certificate Cloudflare (15 anos) no Nginx.  
-Configurar Cloudflare: DNS proxied, SSL/TLS → Full (strict), Always HTTPS.
+# Abrir sessão SSH de reserva antes (evitar lock-out)
+export ADMIN_SSH_IP="SEU_IP_FIXO"
+sudo -E bash /var/www/impetus-completa/infra/scripts/ufw-cloudflare-only.sh
 
-**2.0.4 Ativar UFW restrito a Cloudflare**  
+# Verificar:
+sudo ufw status verbose
+curl -m 5 http://IP_DA_VPS:4000/health  # deve FALHAR de fora
+```
+
+**Definition of Done:** acesso direto ao IP bloqueado; acesso via domínio/Cloudflare funciona.
+
+---
+
+### Etapa 2.4 — Rotacionar segredos críticos
+
+**Por que:** `JWT_SECRET` atual (62 ch) pode ter sido comprometido durante o período com portas abertas.
+
+**Como executar:**
 ```bash
-export ADMIN_SSH_IP="SEU_IP_FIXO_ADMIN"
-sudo -E bash infra/scripts/ufw-cloudflare-only.sh
-```
-Validar de máquina externa: `curl -m 5 http://IP_VPS:4000/health` → deve timeout.
+# Gerar novo secret forte:
+openssl rand -base64 48   # → novo JWT_SECRET
 
-**2.0.5 Rotacionar segredos no `.env`**  
+openssl rand -hex 32      # → novo HEALTH_DETAIL_KEY
+
+# Atualizar backend/.env:
+JWT_SECRET=<novo-valor>
+HEALTH_DETAIL_KEY=<novo-valor>
+
+# Reiniciar:
+pm2 restart impetus-backend --update-env
+```
+
+**Atenção:** rotacionar `JWT_SECRET` invalida JWTs ativos. Sessões DB-backed (`sessions.token`) sobrevivem. Avisar usuários antes se houver sessões ativas.
+
+**Definition of Done:** backend inicia sem erro; `/api/auth/login` retorna token válido com novo secret; logs sem `[AUTH] JWT_SECRET inseguro`.
+
+---
+
+### Etapa 2.5 — Implementar Refresh Token + HttpOnly Cookie + CSRF
+
+**Por que:** token em `localStorage` é vetor XSS. Etapa 65 do plano original pedia "validar refresh" — mas ele **ainda não existe**.
+
+**O que implementar (classe `SEC`):**
+
+1. **Refresh token:** gerar com `crypto.randomBytes(32)` (já existe `generateToken()` em `auth.js`). Persistir como `refresh_token_hash` (SHA-256) na tabela `sessions`. Adicionar campos `refresh_expires_at`, `rotated_from`.
+
+2. **Rotação com detecção de reuso:** `/api/auth/refresh` invalida o token antigo e emite par novo. Se um refresh já rotacionado for reapresentado → revogar toda a família + log de auditoria.
+
+3. **HttpOnly cookie:** cookie `impetus_refresh` — `HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh`. Access token continua via `Authorization: Bearer` durante transição.
+
+4. **CSRF guard:** `csrfGuard.js` middleware — double-submit token para mutações (`POST/PUT/PATCH/DELETE`). Webhooks (HMAC) isentos.
+
+5. **Migration do frontend:** `api.js` passa a usar `credentials: 'include'`; remover `localStorage.getItem('impetus_token')`. Rollout por flag `IMPETUS_COOKIE_AUTH`.
+
+**Definition of Done:** zero token em `localStorage`; refresh rotaciona; reuso detectado revoga família; suite `tests/security/sessionRotation.test.js` verde.
+
+---
+
+### Etapa 2.6 — RLS enforced (gradual)
+
+**Por que:** `IMPETUS_RLS_MODE=on` está definido no `.env` mas precisa ser validado tenant a tenant.
+
+**Como executar:**
 ```bash
-# Gerar JWT_SECRET forte (≥ 48 bytes)
-openssl rand -base64 48
-# Gerar HEALTH_DETAIL_KEY
-openssl rand -hex 32
-```
-Preencher no `backend/.env`:
-```env
-JWT_SECRET=<novo valor gerado>
-HEALTH_DETAIL_KEY=<novo valor gerado>
-ALLOWED_ORIGINS=https://app.seudominio.com
-LISTEN_HOST=127.0.0.1
-BASE_URL=https://app.seudominio.com
-FRONTEND_URL=https://app.seudominio.com
-IMPETUS_INTERNAL_NETWORK_DEV_BYPASS=false
-IMPETUS_INTERNAL_ROUTE_DENY_BY_DEFAULT=true
-IMPETUS_INTERNAL_ROUTE_ALLOW_LOCALHOST=true
-```
-> **Atenção:** rotacionar `JWT_SECRET` invalida JWTs ativos. Sessões DB-backed (`sessions.token`) sobrevivem. Executar em janela de baixo uso.
+# 1. Confirmar que policies existem nas 45 tabelas do registry
+# 2. Ativar RLS para 1 tenant de teste:
+#    (via tenantRlsGovernanceService.isActiveForTenant)
+# 3. Monitorar logs por 48h
+# 4. Expandir progressivamente
 
-**2.0.6 Reiniciar com novo env e validar**  
+# Teste de isolamento:
+# Usuário da empresa A NÃO deve ver dados da empresa B em nenhuma tabela
+```
+
+**Definition of Done:** teste cross-tenant falha em 0 tabelas do registry; RLS no nível da BD como defesa em profundidade.
+
+---
+
+### Etapa 2.7 — Triagem de endpoints sem auth (PUB-RISCO)
+
+**Por que:** 324 endpoints sem `requireAuth` detectados. Os `PUB-RISCO` precisam de correção.
+
+**Como executar:**
+- Para cada endpoint marcado `PUB-RISCO` na Etapa 1.2: adicionar o guard apropriado.
+- Mínimo: `requireAuth` + `requireCompanyId`.
+- Validar com testes regressivos.
+
+**Definition of Done:** zero endpoints `PUB-RISCO` na listagem; `BACKEND_INVENTORY.json` atualizado.
+
+**Gate G2→3:** P0 segurança ativo (Etapas 2.1–2.4 concluídas); PM2 em production; Nginx/UFW ativos.
+
+---
+
+## FASE 3 — CORREÇÃO FIX PRIORIZADA
+
+**Duração:** 7–14 dias  
+**Objetivo:** corrigir apenas o que **a matriz** identificou como INCOMPLETO, MOCK ou VERMELHO crítico. Sem criar arquitetura nova.  
+**Quem executa:** engenheiro full-stack  
+**Entrada:** `FUNCTIONAL_MATRIX.json` (saída da Fase 1)  
+**Regra:** toda correção é classe `FIX` — 1 linha da matriz = 1 ticket = 1 PR
+
+---
+
+### Etapa 3.1 — Eliminar mocks em KPI e gráficos
+
+**Por que:** violação da regra `charts-real-data-industrial.mdc` — `Math.random()` e arrays fixos são proibidos.
+
+**Para cada item `MOCK` na auditoria da Etapa 1.4:**
+1. Identificar o endpoint real que deveria alimentar o dado.
+2. Se o endpoint existe: conectar o componente ao serviço correto.
+3. Se o endpoint não existe: criar via `FIX` (endpoint mínimo, dado real da BD).
+4. Validar com Etapa 4.2 (E2E: o gráfico mostra dados da BD, não gerados).
+
+**Definition of Done:** varredura `Math.random()` retorna zero ocorrências em componentes de produção (excluindo testes).
+
+---
+
+### Etapa 3.2 — Corrigir fluxos INCOMPLETO
+
+**Para cada linha `INCOMPLETO` na matriz (endpoint 404/stub ou handler vazio):**
+1. Verificar se é ausência de implementação ou de rota.
+2. Implementar o mínimo funcional (classe `FIX`) — persistência real, guards corretos.
+3. Atualizar a linha da matriz para `AMARELO` (aguarda E2E completo).
+
+**Prioridade:** incompletos em domínios dos 10 cenários de certificação (Fase 4).
+
+---
+
+### Etapa 3.3 — Corrigir erros de compilação e build
+
+**O que fazer:**
 ```bash
-pm2 restart ecosystem.config.js --env production --update-env
-bash infra/scripts/post-deploy-healthcheck.sh
-```
-Verificar: `https://app.seudominio.com` responde; headers de segurança presentes.
+# Backend: verificar logs de erro
+pm2 logs impetus-backend --lines 200 | rg -i "error|fail|warn"
 
-**Definition of Done P0:**  
-- [ ] `NODE_ENV=production` em runtime  
-- [ ] Portas 3000/4000 acessíveis apenas via 127.0.0.1  
-- [ ] Nginx responde em 443 com SSL válido  
-- [ ] UFW ativo; IP direto bloqueado de fora  
-- [ ] `JWT_SECRET` ≥ 48 chars; `HEALTH_DETAIL_KEY` definida  
-- [ ] `ALLOWED_ORIGINS` e `BASE_URL` definidos
+# Frontend: build de produção
+cd frontend && npm run build 2>&1 | rg -i "error|warn" | head -30
 
----
-
-### CERT-02.1 — Sessão Enterprise: Refresh Token + HttpOnly Cookie + CSRF
-
-**Contexto:** o backend já tem tabela `sessions` com `token`, `expires_at`, `ip_address`, `user_agent`. A migração é **aditiva**, não uma reescrita.
-
-**2.1.1 Estender tabela `sessions`**  
-Criar migration em `backend/src/models/migrations/`:
-```sql
-ALTER TABLE sessions
-  ADD COLUMN IF NOT EXISTS refresh_token_hash VARCHAR(64),
-  ADD COLUMN IF NOT EXISTS refresh_expires_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS rotated_from_hash  VARCHAR(64);
-CREATE INDEX IF NOT EXISTS idx_sessions_refresh ON sessions(refresh_token_hash)
-  WHERE refresh_token_hash IS NOT NULL;
+# Verificar lints
+cd backend && npx eslint src/ --ext .js 2>&1 | rg "error" | head -20
 ```
 
-**2.1.2 Criar `backend/src/services/sessionTokenService.js`**  
-- `issueTokenPair(userId, sessionId)` → retorna `{accessToken (JWT 15min), refreshToken (opaco 256-bit)}`  
-- `rotateRefresh(oldRefreshToken)` → invalida o anterior, emite par novo  
-- `detectReuseAndRevoke(oldHash)` → se refresh já rotacionado é reapresentado, revogar toda a família + log  
-- `storeRefreshHash(sessionId, hash, expiresAt)`
-
-**2.1.3 Modificar `backend/src/routes/auth.js`**  
-- Login bem-sucedido: emitir access token em resposta JSON + refresh token em cookie:
-```javascript
-res.cookie('impetus_refresh', refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'Strict',
-  path: '/api/auth/refresh',
-  maxAge: 7 * 24 * 60 * 60 * 1000
-});
-```
-- Nova rota `POST /api/auth/refresh`: lê cookie, valida, detecta reuso, emite par novo.  
-- Logout: deletar cookie + invalidar refresh na BD.
-
-**2.1.4 Criar `backend/src/middleware/csrfGuard.js`**  
-Double-submit token para mutações (`POST/PUT/PATCH/DELETE`):  
-- Cookie legível `csrf_token` + header `X-CSRF-Token` obrigatório  
-- Endpoints de webhook (HMAC Stripe/Asaas) isentos via lista allowlist
-
-**2.1.5 Migrar frontend**  
-- Flag de rollout `IMPETUS_COOKIE_AUTH=true` no `.env`  
-- `frontend/src/services/api.js`: adicionar `credentials: 'include'`  
-- Remover leitura `localStorage.getItem('impetus_token')` (manter em paralelo durante rollout)  
-- Interceptor 401: tentar refresh transparente antes de redirecionar para login
-
-**2.1.6 Criar suites de teste**  
-`backend/src/tests/security/sessionRotation.test.js`:  
-- Emissão do par  
-- Rotação válida  
-- Detecção de reuso → revogação de família  
-- Cookie ausente → 401  
-- CSRF ausente em mutação → 403
-
-**Definition of Done 2.1:**  
-- [ ] Migration aplicada sem erro  
-- [ ] Login emite cookie httpOnly  
-- [ ] Refresh rotaciona; reuso revoga família  
-- [ ] CSRF bloqueia mutação sem header  
-- [ ] Suite de testes verde  
-- [ ] Zero token em `localStorage` com flag ativa
+**Definition of Done:** build do frontend sem erros; backend inicia sem warnings críticos; PM2 sem `max_restarts`.
 
 ---
 
-### CERT-02.2 — Configurar Rate Limit, Lockout e Variáveis ausentes
+### Etapa 3.4 — Corrigir erros de banco
 
-**2.2.1** Adicionar ao `.env` valores explícitos (hoje usam defaults hardcoded):
-```env
-LOCKOUT_MAX_ATTEMPTS=5
-LOCKOUT_WINDOW_MS=900000
-LOCKOUT_DURATION_MS=1800000
-RATE_LIMIT_API_PER_MIN=60
-RATE_LIMIT_HEAVY_PER_MIN=10
-RATE_LIMIT_USER_PER_MIN=120
-```
-
-**2.2.2** Ativar `LOG_LEVEL=info` e `LOG_FORMAT=json` para structured logging em produção.
-
-**2.2.3** Definir `TZ=America/Sao_Paulo` para timestamps consistentes.
-
-**Definition of Done 2.2:** nenhuma dessas variáveis dependendo de default hardcoded; valores documentados em `FLAG_BASELINE_FROZEN.md` atualizado.
-
----
-
-### CERT-02.3 — RLS: validar enforcement ativo
-
-**Contexto:** `IMPETUS_RLS_MODE=on` já está definido. Confirmar que enforcement real está funcionando.
-
-**2.3.1** Executar teste de cross-tenant:  
-Autenticar como usuário da Empresa A; tentar ler registro da Empresa B via endpoint de domínio.  
-Resultado esperado: 0 registros retornados (isolamento pela BD).
-
-**2.3.2** Se houver vazamento, acionar `tenantRlsGovernanceService` por tenant antes de escala.
-
-**Definition of Done 2.3:** teste de isolamento documentado com evidência (payload de req + resposta vazia confirmada).
-
-**GATE G2 — saída da Fase 2:**  
-- [ ] P0 de produção ativo (Nginx, UFW, NODE_ENV, secrets)  
-- [ ] Sessão enterprise com refresh + HttpOnly  
-- [ ] CSRF ativo  
-- [ ] Rate limit e lockout com valores explícitos  
-- [ ] Isolamento RLS validado por teste  
-- [ ] `HEALTH_DETAIL_KEY` definida  
-- [ ] `ALLOWED_ORIGINS` e `BASE_URL` definidos
-
----
-
-## FASE 3 — CORREÇÃO PRIORIZADA PELA MATRIZ (FIX)
-
-**Duração:** 10–20 dias  
-**Objetivo:** corrigir apenas o que a matriz classificou como INCOMPLETO ou MOCK, priorizando por severidade e por domínio do piloto.
-
-> **Regra de entrada:** sem o Gate G1 (matriz classificada), esta fase não começa. Sem a matriz, a correção é cega.
-
----
-
-### Estrutura de priorização
-
-| Prioridade | Critério | Ação |
-|------------|----------|------|
-| **P0** | Tela INCOMPLETO + fluxo crítico do piloto | Corrigir imediatamente |
-| **P1** | KPI/gráfico MOCK (viola regra de charts) | Substituir por dado real |
-| **P2** | Tela AMARELO por flag → ativar no piloto | Configurar flag |
-| **P3** | Tela AMARELO por limitação de edge case | Documentar; backlog pós-piloto |
-
----
-
-### CERT-03.1 — Corrigir INCOMPLETO por domínio
-
-Para cada tela marcada INCOMPLETO na matriz:
-
-**3.1.1** Identificar o ponto de quebra na cadeia:
-```
-Tela → Handler → api.js → Endpoint → Guard → Serviço → BD
-       ↑ stub?   ↑ 404?   ↑ sem auth? ↑ falha?  ↑ sem tabela?
-```
-
-**3.1.2** Criar o menor FIX possível. Critério: não adicionar funcionalidade nova; restaurar a cadeia existente.
-
-**3.1.3** Adicionar ao PR:
-- Link para linha da matriz corrigida
-- Evidência: `curl` ou screenshot antes → depois
-- Status atualizado na matriz: `INCOMPLETO → NAO_VALIDADO` (E2E ainda necessário)
-
-**3.1.4** Rodar `npm run audit:drift` no PR → bloquear merge se drift detectado.
-
----
-
-### CERT-03.2 — Eliminar mocks em KPIs e gráficos
-
-Para cada componente marcado MOCK na varredura da Fase 1:
-
-**3.2.1** Identificar o serviço de dados correto:
-- Gráficos: `chartDataUtils.js` + APIs `dashboard.getTrend`, `getProductionDemand`, `getPulseClimate`, `costs.getByOrigin`
-- KPIs: endpoint de domínio correspondente (Quality, SST, ESG, etc.)
-- Componente canônico: `ImpetusChart` / `ImpetusChartPanel`
-
-**3.2.2** Substituir dado simulado por chamada real.
-
-**3.2.3** Estado vazio (API sem dados): mensagem técnica em Share Tech Mono, **nunca** array fixo de fallback.
-
-**3.2.4** Validar que cores usam tokens (`--cyan`, `--green`, `--amber`, `--red`) — sem hex solto.
-
----
-
-### CERT-03.3 — Corrigir variáveis de ambiente ausentes críticas
-
-**3.3.1** `BASE_URL` → necessário para links em e-mails de reset de senha, MFA, convites.  
-**3.3.2** `SMTP_PASS` → email desabilitado silenciosamente; configurar ou documentar como desabilitado explicitamente.  
-**3.3.3** `VITE_API_URL` → garantir que build de produção usa `/api` relativo (Nginx faz proxy), não URL absoluta com porta.  
-**3.3.4** `DB_POOL_MAX` → definir explicitamente (default atual desconhecido para cada instalação).
-
----
-
-### CERT-03.4 — Corrigir rotas backend sem autenticação esperada
-
-Da auditoria: **324 endpoints sem `requireAuth` padrão**. Nem todos são falhas, mas precisam de triagem.
-
-**3.4.1** Criar planilha de triagem a partir de `BACKEND_INVENTORY.json`:
-- Endpoints de auth (login, reset, federation) → corretos sem auth  
-- Endpoints SCIM (bearer próprio) → corretos  
-- Endpoints internos (CIDR guard) → corretos se guard ativo  
-- Endpoints de domínio sem auth → **bug** a corrigir
-
-**3.4.2** Para cada endpoint de domínio sem auth confirmado como bug:
-```javascript
-router.get('/recurso', requireAuth, requireCompanyId, handler);
-```
-
-**Definition of Done Fase 3:**  
-- [ ] Todos os INCOMPLETO P0 corrigidos  
-- [ ] Todos os MOCK em KPI/gráfico eliminados  
-- [ ] Variáveis críticas ausentes definidas  
-- [ ] Triagem de auth: 0 endpoint de domínio sem requireAuth não-intencional  
-- [ ] `npm run audit:drift` verde  
-- [ ] Cada FIX com evidência de antes/depois
-
-**GATE G3:** relatório semáforo atualizado → domínios do piloto com ≥ 80% das telas NAO\_VALIDADO (aguardando E2E), 0 INCOMPLETO P0, 0 MOCK em KPI.
-
----
-
-## FASE 4 — VALIDAÇÃO E2E POR DOMÍNIO
-
-**Duração:** 8–15 dias  
-**Objetivo:** elevar telas de `NAO_VALIDADO` para `VERDE` ou `AMARELO` com evidência real. Esta é a prova de que o software funciona de fato.
-
----
-
-### Ambiente de validação
-
-**4.0.1** Preparar seed multi-tenant:
-- Empresa A + Empresa B (isolamento)
-- 1 usuário por nível hierárquico 0–5 por empresa
-- Dados mínimos por domínio (NCs, incidentes, lançamentos ESG, OS de manutenção)
-
-**4.0.2** Backend rodando com flags do piloto:
-```env
-EVENT_GOVERNANCE_AIOI=false    # Fase 4 valida sem EG primeiro
-IMPETUS_AIOI_ENABLED=true
-IMPETUS_GOVERNANCE_LEARNING=shadow
-```
-
----
-
-### Cenários E2E obrigatórios por domínio
-
-Para cada cenário: executar no browser → capturar as 6 evidências → classificar na matriz.
-
-**4.1 Quality — NC → CAPA → Auditoria**  
-- Criar NC com dados reais  
-- Vincular CAPA à NC  
-- Gerar registro de auditoria  
-- Verificar KPI de qualidade reflete evento  
-- Evidências: screenshot final + payload POST + response 201 + `SELECT * FROM quality_nonconformities WHERE id=X` + log auditoria + leitura como Tenant B retorna vazio
-
-**4.2 SST — Incidente / Quase-acidente / Treinamento vencido**  
-- Registrar incidente de segurança  
-- Confirmar notificação no Notification Center  
-- Verificar treinamento vencido dispara alerta  
-- 6 evidências por fluxo
-
-**4.3 ESG — Emissão / Resíduo / Consumo**  
-- Lançar emissão de carbono  
-- Confirmar agregação no painel ESG  
-- Validar gráfico usa dado real (não fallback)  
-- 6 evidências
-
-**4.4 ManuIA — Diagnóstico → OS → Histórico**  
-- Diagnóstico IA cria OS  
-- OS muda de estado (aberta → em andamento → concluída)  
-- Histórico recupera cadeia completa  
-- 6 evidências
-
-**4.5 TPM — Preventiva → execução → indicador**  
-- OS preventiva agendada  
-- Execução registrada  
-- MTBF/disponibilidade atualiza  
-- 6 evidências
-
-**4.6 AIOI — Correlação → Insight → Escalonamento**  
-- Evento correlacionado gera insight com `confidence`  
-- Insight escala para canal correto  
-- Registrar `recordOutcome` (aprendizagem shadow)  
-- 6 evidências
-
-**4.7 Executive — Dashboard executivo por perfil**  
-- Autenticar como CEO (nível 0) → KPIs da empresa  
-- Autenticar como Gerente (nível 2) → KPIs do seu escopo  
-- Confirmar isolamento: KPIs da Empresa A não visíveis para Empresa B  
-- 6 evidências
-
-**4.8 Billing/DSR**  
-- Verificar estado de assinatura reflete status Asaas (se configurado) ou degradação graciosa  
-- Pedido DSR/LGPD: criar → processar → trilha auditável  
-- 6 evidências
-
-**4.9 Admin — Controle de acesso por perfil**  
-- Testar guards: `StrictAdminRouteGuard` bloqueia colaborador  
-- `RequireHierarchy(2)` bloqueia nível 3+  
-- `sameCompanyOnly` bloqueia cross-tenant por parâmetro  
-- 6 evidências por guard validado
-
-**4.10 Chat / IA operacional**  
-- Chat com contexto do usuário (empresa, perfil, domínio)  
-- Resposta com `x-ai-trace-id` registrado  
-- Smart Panel gera insight com dado real  
-- 6 evidências
-
----
-
-### Homologação por perfil
-
-Para cada perfil do sistema (alinhado a `requireHierarchy`):
-
-| Perfil | Nível | Validar acesso a |
-|--------|-------|-----------------|
-| CEO | 0 | Todas as telas; execução e leitura completa |
-| Diretor | 1 | Telas de gestão; bloqueio de admin strict |
-| Gerente | 2 | Telas operacionais; bloqueio de admin |
-| Coordenador | 3 | Telas de área; bloqueio de gestão executiva |
-| Supervisor | 4 | Operacional; bloqueio de configurações |
-| Colaborador / Operador | 5 | Telas básicas; bloqueio de todas as gerenciais |
-
-**Definition of Done Fase 4:**  
-- [ ] 10 cenários E2E executados com 6 evidências cada  
-- [ ] Homologação por perfil 0–5 concluída  
-- [ ] 0 vazamento de cross-tenant em todos os cenários  
-- [ ] Domínios do piloto com happy-path VERDE  
-- [ ] Evidências em `backend/docs/evidence/<domínio>/<cenário>/`
-
-**GATE G4:** relatório semáforo final com domínios piloto todos VERDE no happy-path; AMARELO documentado com limitação conhecida.
-
----
-
-## FASE 5 — CERT-03: INFRAESTRUTURA ENTERPRISE
-
-**Duração:** 16–25 dias  
-**Objetivo:** conectar observabilidade, backup, CI/CD e migrations formais — sem isso não existe go-live seguro.
-
----
-
-### CERT-03.1 — Observabilidade real (não stack opcional)
-
-**5.1.1** Adicionar dependência `prom-client` ao backend:
+**O que verificar:**
 ```bash
-npm install prom-client
+# Migrations executadas?
+psql -U postgres -d impetus_db -c "SELECT version, name FROM schema_migrations ORDER BY version;"
+
+# Tabelas do registry com RLS policy?
+psql -U postgres -d impetus_db -c "
+  SELECT schemaname, tablename, rowsecurity
+  FROM pg_tables
+  WHERE tablename IN (SELECT table_name FROM tenant_rls_registry)
+  ORDER BY tablename;
+"
+
+# Índices de company_id criados?
+psql -U postgres -d impetus_db -c "
+  SELECT indexname, tablename FROM pg_indexes
+  WHERE indexname LIKE '%company_id%';
+" | wc -l
 ```
 
-**5.1.2** Criar `backend/src/middleware/metricsExporter.js`:
-- Histograma de latência HTTP por rota e método  
-- Contadores de erro 4xx / 5xx  
-- Gauge: sessões ativas, pool DB, fila AIOI  
-- Gauge: decisões Event Governance + `confidence` médio  
-- Exposição em `GET /metrics` (protegido por `HEALTH_DETAIL_KEY`)
-
-**5.1.3** Instrumentar `pg` com `opentelemetry-instrumentation-pg` para traces de query.
-
-**5.1.4** Subir stack de observabilidade:
-```bash
-docker compose -f infra/observability/docker-compose.yml up -d
-```
-Configurar Prometheus para scrape `http://127.0.0.1:4000/metrics`.
-
-**5.1.5** Criar dashboards Grafana versionados em `infra/observability/dashboards/`:
-- **SRE (método RED):** latência p50/p95/p99, taxa de erro, saturação  
-- **Industrial:** eventos por domínio por hora, insights AIOI por dia, decisões EG
-
-**5.1.6** Configurar alertas no Alertmanager:
-- Backend down > 30s  
-- Erro 5xx > 5% das requisições por 5min  
-- Latência p95 > 3s  
-- Pool DB < 2 conexões livres  
-- Fila AIOI acumulando (> threshold configurável)
-
-**5.1.7** Testar: forçar erro proposital → confirmar alerta disparado ponta a ponta.
+**Definition of Done:** todas as migrations do `rls_enterprise_expand.sql` e `hardening_indexes_constraints.sql` aplicadas; índices de `company_id` existentes.
 
 ---
 
-### CERT-03.2 — Backup e Disaster Recovery
+### Etapa 3.5 — Corrigir rotas, menus e navegação
 
-**5.2.1** Criar `infra/scripts/backup-postgres.sh`:
+**O que verificar:**
+- Rotas marcadas `REDIRECT` na matriz — são intencionais ou erros de configuração?
+- Guards que bloqueiam 100% dos perfis (DESABILITADO indevido).
+- Links de menu que apontam para rotas inexistentes.
+
+**Definition of Done:** navegação manual pelos 77 caminhos mapeados sem erro 404/500 no frontend.
+
+---
+
+### Etapa 3.6 — Corrigir integrações críticas para o piloto
+
+**Prioridade — definir antes de corrigir:**
+- **Billing (Asaas):** `ASAAS_API_KEY` ausente — necessário para piloto pago? Se sim, configurar `ASAAS_ENV=sandbox` + `ASAAS_API_KEY`.
+- **E-mail (SMTP):** `SMTP_PASS` vazio — e-mails de redefinição de senha não funcionam. Configurar senha correta.
+- **Webhook entrante:** `INCOMING_WEBHOOK_SECRET` ausente — configurar se usar webhook de terceiros.
+
+**Definition of Done:** cada integração necessária para o piloto testada com payload real e log confirmando recebimento/envio.
+
+---
+
+### Etapa 3.7 — Corrigir formulários e validações
+
+**Para cada formulário identificado na Etapa 1.3:**
+- Validação no frontend (campos obrigatórios, formato).
+- Validação no backend (Zod/validação manual antes de DB).
+- Mensagens de erro claras e sem user enumeration.
+
+**Definition of Done:** formulários críticos (NC, incidente SST, OS ManuIA, pedido DSR) submetem, validam e persistem sem erro.
+
+---
+
+### Etapa 3.8 — Corrigir relatórios e downloads
+
+**O que verificar:**
+- PDFs/exportações Excel que dependem de dados reais (não mock).
+- Relatórios de auditoria com `company_id` correto.
+- Downloads de arquivos via `secureStaticUploads`.
+
+**Definition of Done:** download de pelo menos 1 relatório por domínio principal funciona end-to-end.
+
+**Gate G3→4:** zero mocks em KPI/gráfico; zero endpoints `PUB-RISCO`; build sem erros; matriz atualizada com `FIX` aplicados.
+
+---
+
+## FASE 4 — CERTIFICAÇÃO E2E POR DOMÍNIO
+
+**Duração:** 10–15 dias  
+**Objetivo:** provar com evidência que cada domínio industrial funciona em condições reais  
+**Quem executa:** engenheiro de QA + responsável de domínio  
+**Entrada:** matriz com FIXes aplicados; ambiente com P0 de segurança ativo  
+**Regra mestre:** cada cenário exige **6 evidências** antes de ser marcado VERDE
+
+---
+
+### As 6 evidências obrigatórias (por cenário)
+
+| # | Evidência | Como coletar |
+|---|-----------|--------------|
+| 1 | **Screenshot** da tela no estado final | Browser (DevTools ou MCP) |
+| 2 | **Payload** enviado | DevTools → Network → Request body |
+| 3 | **Resposta da API** | DevTools → Network → Response (status + body) |
+| 4 | **Linha no banco** | `psql` query de verificação mostrando a linha gravada com `company_id` correto |
+| 5 | **Log de execução** | `pm2 logs impetus-backend --lines 50` após a ação |
+| 6 | **Prova de isolamento** | Mesma leitura autenticada como Tenant B retorna vazio ou 403 |
+
+**Pasta de evidências:** `backend/docs/evidence/<dominio>/<cenario>/`
+
+---
+
+### Etapa 4.1 — Certificação Quality
+
+**Cenário:** NC → CAPA → Auditoria de qualidade
+
+**Passos:**
+1. Autenticar como Supervisor (hierarquia 4) da empresa A.
+2. Criar uma NC via `/app/quality/operational/workspace`.
+3. Verificar persistência: `SELECT * FROM quality_nonconformities WHERE company_id = 'A' ORDER BY created_at DESC LIMIT 1;`
+4. Criar CAPA vinculada à NC.
+5. Gerar auditoria.
+6. Autenticar como empresa B → confirmar que a NC da empresa A **não aparece**.
+7. Verificar que KPI de qualidade no dashboard reflete a NC (dado real, não mock).
+
+**Coletar 6 evidências → salvar em** `backend/docs/evidence/quality/nc-capa-auditoria/`
+
+---
+
+### Etapa 4.2 — Certificação SST
+
+**Cenário A:** Registro de incidente  
+**Cenário B:** Quase-acidente  
+**Cenário C:** Treinamento vencido (verificar se alerta dispara no Notification Center)
+
+**Passos por cenário:** análogos ao Quality — criar, persistir, verificar isolamento, confirmar alerta se aplicável.
+
+**Evidências → `backend/docs/evidence/sst/`**
+
+---
+
+### Etapa 4.3 — Certificação ESG
+
+**Cenário:** Lançamento de emissão + visualização no painel ESG
+
+**Validação extra:** o gráfico de emissões usa dado real (não `Math.random`). Verificar via DevTools Network que o endpoint chamado é `/api/environment/*` e retorna dados da BD.
+
+**Evidências → `backend/docs/evidence/esg/`**
+
+---
+
+### Etapa 4.4 — Certificação ManuIA
+
+**Cenário:** Diagnóstico → criação de OS → histórico de manutenção
+
+**Validação extra:** a IA (Claude/OpenAI) participa do diagnóstico — verificar `x-ai-trace-id` no header de resposta.
+
+**Evidências → `backend/docs/evidence/manuia/`**
+
+---
+
+### Etapa 4.5 — Certificação TPM
+
+**Cenário:** Plano preventivo agendado → execução → atualização de indicador (MTBF/disponibilidade)
+
+**Evidências → `backend/docs/evidence/tpm/`**
+
+---
+
+### Etapa 4.6 — Certificação AIOI
+
+**Cenário:** Evento de domínio → correlação → insight com `confidence` → escalonamento
+
+**Pré-requisito:** `IMPETUS_AIOI_ENABLED=true` (já está), `IMPETUS_AIOI_QUEUE_ACTIVE=true`.  
+**Flags a verificar:** `EVENT_GOVERNANCE_AIOI` — se ausente no `.env`, default false; adicionar se necessário.
+
+**Evidências → `backend/docs/evidence/aioi/`**
+
+---
+
+### Etapa 4.7 — Certificação Executive (AIOI Portal)
+
+**Cenário:** Dashboard executivo por perfil CEO (hierarquia 0) e Diretor (hierarquia 1)
+
+**Validação extra:** KPIs hidratam da BD por `company_id`; sem mock; `ExecutiveAccessGuard` libera corretamente.
+
+**Evidências → `backend/docs/evidence/executive/`**
+
+---
+
+### Etapa 4.8 — Certificação Billing
+
+**Cenário:** Consulta de status de assinatura + webhook Asaas (se configurado)
+
+**Se `ASAAS_API_KEY` ausente:** certificar apenas o fluxo interno de status; marcar `AMARELO` com nota "aguarda configuração Asaas".
+
+**Evidências → `backend/docs/evidence/billing/`**
+
+---
+
+### Etapa 4.9 — Certificação DSR/LGPD
+
+**Cenário:** Pedido de titular (acesso/exclusão de dados)
+
+**Validação extra:** worker de retenção processa o pedido; trilha auditável em `audit_logs`.
+
+**Evidências → `backend/docs/evidence/dsr/`**
+
+---
+
+### Etapa 4.10 — Certificação Event Governance
+
+**Cenário:** Evento → política aplicada (EG-01→13) → decisão registrada com modo correto
+
+**Flags a verificar:**
+- `EVENT_GOVERNANCE_ENABLED` — se ausente, governança opera com default OFF
+- `IMPETUS_GOVERNANCE_LEARNING=shadow` — correto para piloto
+
+**Evidências → `backend/docs/evidence/event-governance/`**
+
+---
+
+### Etapa 4.11 — Homologação por perfil hierárquico
+
+**O que fazer:** para cada perfil (0=CEO → 5=Colaborador), verificar:
+- Rotas permitidas vs bloqueadas pelos guards
+- `requireHierarchy`, `RoleGuard`, `ColaboradorRouteGuard` funcionando
+- Redirecionamento correto quando acesso negado
+
+**Perfis a testar:**
+
+| Perfil | Nível | Telas críticas a testar |
+|--------|-------|-------------------------|
+| CEO | 0 | Dashboard executivo, centro de custos, todas as rotas admin |
+| Diretor | 1 | Quality, SST, ESG, Executive Portal |
+| Gerente | 2 | Dashboards operacionais, relatórios |
+| Coordenador | 3 | Quality workspace, SST workspace |
+| Supervisor | 4 | Registro de ocorrência, OS ManuIA |
+| Colaborador | 5 | Apenas `/app/equipe-operacional`, registro básico |
+| RH | — | `/app/pulse-rh` (PulseRhRouteGuard) |
+| Admin | — | Todas as rotas `/app/admin/*` |
+
+**Definition of Done:** cada perfil acessa o que deve e é bloqueado do que não deve; sem vazamento de dados cross-tenant.
+
+---
+
+### Etapa 4.12 — Atualização da matriz com status final
+
+**O que fazer:**
+- Para cada cenário certificado com 6 evidências: status = **VERDE**
+- Para cenários com limitação conhecida: **AMARELO** com nota
+- Atualizar `lastValidatedAt` em cada linha
+- Commitar `FUNCTIONAL_MATRIX.json` atualizado
+
+**Gate G4→5:** todos os 10 cenários com evidência completa; happy path de cada domínio VERDE; matriz commitada e sem drift.
+
+---
+
+## FASE 5 — CERT-03: OPERAÇÕES ENTERPRISE
+
+**Duração:** 8–12 dias  
+**Objetivo:** garantir que o sistema pode ser operado, monitorado e recuperado em produção  
+**Quem executa:** SRE / DevOps  
+**Entrada:** sistema funcionalmente certificado (Fase 4)
+
+---
+
+### Etapa 5.1 — Observabilidade: endpoint /metrics
+
+**O que implementar:**
+- Instalar `prom-client` no backend.
+- Expor `/metrics` (Prometheus scrape) com:
+  - Histograma de latência HTTP por rota
+  - Contadores 4xx/5xx por endpoint
+  - Gauge de sessões ativas
+  - Métricas de pool PostgreSQL
+  - Contador de insights AIOI por tenant
+
 ```bash
+npm install prom-client --save
+# Criar backend/src/middleware/metricsMiddleware.js
+# Adicionar rota /metrics em server.js (protegida por HEALTH_DETAIL_KEY)
+```
+
+---
+
+### Etapa 5.2 — Observabilidade: Prometheus + Grafana
+
+**O que fazer:**
+```bash
+cd infra/observability
+docker compose up -d prometheus grafana
+
+# Configurar Prometheus para scraping do backend:
+# prometheus/prometheus.yml já existe — verificar target
+```
+
+**Dashboards a criar** (JSON versionados em `infra/observability/dashboards/`):
+- Visão SRE: latência/erro/saturação (método RED)
+- Visão industrial: eventos por domínio, AIOI insights/dia
+
+---
+
+### Etapa 5.3 — Alertas reais
+
+**O que configurar:**
+- Erro 5xx > 5% em 5 minutos → alerta crítico
+- Latência p95 > 3s → alerta warning
+- Backend down → alerta imediato
+- Pool DB > 80% → alerta warning
+- PM2 restarts > 3 em 10 minutos → alerta crítico
+
+**Canal:** e-mail (`emailService.js` já existe) + webhook para Notification Center.
+
+---
+
+### Etapa 5.4 — Backup PostgreSQL automatizado
+
+**O que implementar:**
+```bash
+# Script: infra/scripts/backup-postgres.sh
 #!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR=/var/backups/impetus
-mkdir -p $BACKUP_DIR
-pg_dump -U $DB_USER -h $DB_HOST $DB_NAME | gzip > $BACKUP_DIR/impetus_${DATE}.sql.gz
-# Manter últimos 7 diários + 4 semanais
+DATE=$(date +%Y%m%d_%H%M%S)
+pg_dump -U postgres impetus_db | gzip > "$BACKUP_DIR/impetus_$DATE.sql.gz"
+# Manter últimos 7 dias, remover mais antigos
 find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
-# Upload S3/compatível (adicionar awscli ou rclone)
 ```
 
-**5.2.2** Agendar cron: `0 2 * * * /infra/scripts/backup-postgres.sh` (2h todo dia).
-
-**5.2.3** Executar **teste de restore** em ambiente isolado:
 ```bash
-createdb impetus_restore_test
-gunzip -c backup_mais_recente.sql.gz | psql -U postgres impetus_restore_test
-node backend/scripts/audit/buildFunctionalMatrix.js  # Smoke test sobre BD restaurado
-```
-Documentar RTO/RPO medidos.
-
-**5.2.4** Criar `backend/docs/DISASTER_RECOVERY_RUNBOOK.md`:
-- Cenário 1: Perda de BD → restore + tempo esperado  
-- Cenário 2: Crash do servidor → reiniciar PM2 + validar health  
-- Cenário 3: Build corrompido → rollback para release anterior  
-- Cenário 4: Rotate JWT_SECRET de emergência → janela de sessão + passos
-
-**5.2.5** Permissões seguras do `.env`:
-```bash
-chmod 600 backend/.env
-chown root:root backend/.env
+# Cron: executar diariamente às 3h
+echo "0 3 * * * root /var/www/impetus-completa/infra/scripts/backup-postgres.sh" \
+  | sudo tee /etc/cron.d/impetus-backup
 ```
 
 ---
 
-### CERT-03.3 — Migrations formais
+### Etapa 5.5 — Teste de restore (obrigatório)
 
-**5.3.1** Adotar `node-pg-migrate` ou `db-migrate`:
-```bash
-npm install node-pg-migrate --save-dev
-```
+**O que fazer:**
+1. Restaurar o backup mais recente em um banco temporário.
+2. Rodar smoke test E2E de Quality (Etapa 4.1) contra o banco restaurado.
+3. Medir e documentar RTO (Recovery Time Objective).
 
-**5.3.2** Criar baseline: snapshot do schema atual como migration inicial `0001_baseline.sql`.
-
-**5.3.3** Converter migrations ad-hoc existentes (`models/*.sql`, scripts de hardening) em migrations numeradas sequencialmente.
-
-**5.3.4** Adicionar ao `package.json`:
-```json
-"migrate:up":   "node-pg-migrate up",
-"migrate:down": "node-pg-migrate down",
-"migrate:status": "node-pg-migrate status"
-```
-
-**5.3.5** Garantir idempotência: `IF NOT EXISTS` em todos os `CREATE TABLE/INDEX`.
+**Definition of Done:** restore executado com sucesso; smoke test verde; `DISASTER_RECOVERY_RUNBOOK.md` criado com RTO medido.
 
 ---
 
-### CERT-03.4 — CI/CD com gates
+### Etapa 5.6 — CI/CD: pipeline GitHub Actions
 
-**5.4.1** Criar `.github/workflows/ci.yml` — gate de PR:
+**O que criar em `.github/workflows/`:**
+
+**`ci.yml`** (roda em todo PR):
 ```yaml
 jobs:
-  lint-test:
-    steps:
-      - npm ci
-      - npm run lint              # ESLint frontend + backend
-      - npm run test              # suites existentes
-      - npm run test:security     # enterpriseHardeningValidation.js (11/11 SEC)
-      - npm run audit:matrix      # buildFunctionalMatrix.js
-      - npm run audit:drift       # checkMatrixDrift.js --fail-on-drift
-      - npm run build             # Vite build frontend
+  test-gate:
+    - npm ci (backend + frontend)
+    - npx eslint src/
+    - node tests/enterpriseHardeningValidation.js  # 11/11 SEC
+    - npm run build (frontend)
+  
+  migration-gate:
+    - Postgres service container
+    - Aplicar migrations
+    - Verificar integridade do schema
+  
+  matrix-drift-gate:
+    - node backend/scripts/audit/buildFunctionalMatrix.js
+    - node backend/scripts/audit/checkMatrixDrift.js --fail-on-drift
 ```
 
-**5.4.2** Criar `.github/workflows/migration-gate.yml`:
-```yaml
-jobs:
-  migration-check:
-    services:
-      postgres:
-        image: postgres:15
-    steps:
-      - npm run migrate:up        # migrations sobre BD efêmero
-      - npm run migrate:status    # confirmar 0 pendentes
-```
-
-**5.4.3** Criar `.github/workflows/deploy.yml` — deploy manual/por tag:
+**`deploy.yml`** (manual/tag):
 ```yaml
 jobs:
   deploy:
-    steps:
-      - ssh VPS: git pull origin main
-      - ssh VPS: npm ci --prefix backend
-      - ssh VPS: npm run migrate:up --prefix backend
-      - ssh VPS: npm run build --prefix frontend
-      - ssh VPS: pm2 reload ecosystem.config.js --env production --update-env
-      - ssh VPS: bash infra/scripts/post-deploy-healthcheck.sh
-      # Se health falhar → rollback automático:
-      - on-failure: pm2 revert impetus-backend && pm2 revert impetus-frontend
+    - SSH no VPS
+    - git pull
+    - npm ci
+    - npm run build (frontend)
+    - Aplicar migrations
+    - pm2 reload ecosystem.config.js --env production --update-env
+    - bash infra/scripts/post-deploy-healthcheck.sh
+    # Se health falhar:
+    - git checkout anterior
+    - pm2 reload (rollback automático)
 ```
 
-**5.4.4** Log-rotate PM2:
-```bash
-pm2 install pm2-logrotate
-pm2 set pm2-logrotate:max_size 50M
-pm2 set pm2-logrotate:retain 7
-```
+**Definition of Done:** PR bloqueado por teste vermelho; deploy via pipeline; rollback automático provado quebrando o health de propósito.
 
-**Definition of Done Fase 5:**  
-- [ ] `/metrics` expõe dados reais; Grafana exibe tráfego  
-- [ ] Alerta de erro 5xx testado ponta a ponta  
-- [ ] Backup diário rodando; restore validado com RTO/RPO documentado  
-- [ ] Runbook de DR publicado  
-- [ ] Migrations em sistema formal; `migrate:status` = 0 pendentes  
-- [ ] CI: lint + test + SEC + drift gate verde no PR atual  
-- [ ] Deploy automatizado testado uma vez; rollback comprovado
+---
 
-**GATE G5:** todos os itens acima fechados; backup mais recente datado de ontem ou hoje.
+### Etapa 5.7 — Migrations formais
+
+**O que fazer:**
+- Adotar node-pg-migrate ou Knex para controle de versão de schema.
+- Criar migration baseline a partir do estado atual.
+- Toda migration nova é aditiva e versionada com timestamp.
+- `migration-gate.yml` roda no CI antes de qualquer merge.
+
+**Definition of Done:** `npm run migrate` idempotente; CI bloqueia PR com migration quebrada.
+
+**Gate G5→6:** `/metrics` respondendo; Grafana com dados reais; backup diário ativo; restore testado; CI/CD pipeline verde.
 
 ---
 
 ## FASE 6 — CERT-04: PILOTO INDUSTRIAL ASSISTIDO
 
-**Duração:** 30–60 dias de calendário  
-**Objetivo:** validar o IMPETUS com o primeiro cliente real, com monitoramento ativo, Learning em shadow e sem novas funcionalidades.
+**Duração:** 30–60 dias calendário  
+**Objetivo:** operar o IMPETUS com cliente real, coletar evidências de maturidade, graduar o Learning Layer  
+**Quem executa:** equipe técnica + responsável de implantação + cliente piloto  
+**Entrada:** sistema operacionalmente certificado (Fase 5)
 
 ---
 
-### CERT-04.1 — Ativação cognitiva controlada
+### Etapa 6.1 — Ativação cognitiva controlada
 
-**6.1.1** Atualizar `backend/.env` para o piloto:
-```env
-EVENT_GOVERNANCE_AIOI=true          # AIOI via EG ativo
-EVENT_GOVERNANCE_ENABLED=true       # Governança principal ativa
-EVENT_GOVERNANCE_QUALITY=true       # Domínio Quality via EG
-EVENT_GOVERNANCE_SST=true           # Domínio SST via EG
-EVENT_GOVERNANCE_MANUIA=true        # ManuIA via EG
-EVENT_GOVERNANCE_LEARNING=false     # Learning AINDA shadow (não age)
-IMPETUS_GOVERNANCE_LEARNING=shadow  # Confirmar shadow
-```
-
-**6.1.2** Reiniciar:
+**Flags a definir no `.env` do servidor:**
 ```bash
-pm2 restart ecosystem.config.js --env production --update-env
-bash infra/scripts/post-deploy-healthcheck.sh
+EVENT_GOVERNANCE_AIOI=true        # AIOI age sobre eventos
+EVENT_GOVERNANCE_LEARNING=false   # Learning observa, não aplica
+IMPETUS_GOVERNANCE_LEARNING=shadow  # já está correto
 ```
 
-**6.1.3** Atualizar `FLAG_BASELINE_FROZEN.md` com novo baseline do piloto.
+**O que NÃO fazer:** não ativar `EVENT_GOVERNANCE_LEARNING=true` ainda — isso só acontece após os critérios da Etapa 6.5.
+
+**Atualizar `FLAG_BASELINE_FROZEN.md`** com o novo estado.
 
 ---
 
-### CERT-04.2 — Operação assistida
+### Etapa 6.2 — Onboarding do primeiro cliente
 
-**6.2.1** Monitorar dashboards Grafana diariamente nas primeiras 2 semanas.
+**O que fazer:**
+1. Provisionar empresa no banco (criar `company_id`, usuários iniciais por perfil).
+2. Configurar hierarquia organizacional via `/app/admin/structural`.
+3. Configurar departamentos, cargos e perfis de dashboard.
+4. Verificar que `requireCompanyId` e RLS isolam corretamente os dados.
+5. Treinar usuários por perfil (Operador, Supervisor, Gerente, Diretor, CEO).
 
-**6.2.2** Registrar métricas semanais:
-
-| Métrica | Meta | Semana 1 | Semana 2 | … |
-|---------|------|---------|---------|---|
-| Uptime backend | ≥ 99% | | | |
-| Latência p95 | < 2s | | | |
-| Taxa de erro 5xx | < 1% | | | |
-| Insights AIOI/dia | > 0 | | | |
-| Confidence médio AIOI | > 0.7 | | | |
-| Falsos positivos AIOI | < 10% | | | |
-| NCs criadas | > 0 | | | |
-| Incidentes SST registrados | > 0 | | | |
-
-**6.2.3** Backlog de `FIX` durante piloto:
-- Incidentes abertos como issues com label `FIX`  
-- **Proibido** abrir issues `FEAT` durante piloto  
-- Priorização semanal pelo arquiteto-chefe
-
-**6.2.4** Treinamento dos usuários:
-- Operadores e Colaboradores (nível 4–5): registro de eventos, acesso mobile  
-- Supervisores e Coordenadores (nível 3–4): aprovações, relatórios  
-- Gestores e Diretores (nível 1–2): dashboards executivos, AIOI  
-- Admin (configurações): estrutura, usuários, departamentos
+**Artefato:** `backend/docs/pilot/PILOT_CLIENT_01_ONBOARDING.md` com registros da configuração.
 
 ---
 
-### CERT-04.3 — Critérios de graduação para Learning real
+### Etapa 6.3 — Operação monitorada diária
 
-Ativar `EVENT_GOVERNANCE_LEARNING=true` **somente quando**:
+**O que monitorar** (via Grafana + alertas):
+- Latência por rota (alerta se p95 > 3s)
+- Taxa de erro 5xx (alerta se > 1%)
+- Insights AIOI gerados por dia
+- Eventos de Event Governance processados por domínio
+- Uso de memória/CPU do backend
 
-- [ ] ≥ 30 dias de operação estável (sem incidente crítico aberto)  
-- [ ] ≥ 500 decisões AIOI registradas com outcome feedback  
-- [ ] Taxa de falso-positivo AIOI < 10%  
-- [ ] `confidence` médio das decisões > 0.70  
-- [ ] Arquiteto-chefe aprova por escrito
+**Frequência de revisão:** diária nas primeiras 2 semanas; semanal nas seguintes.
 
-Ativação progressiva:
-1. `shadow`: registra previsões sem agir (já é o estado atual)  
-2. `canary`: age em 10% dos casos, revisado por humano  
-3. `active`: autônomo com supervisão aleatória
+---
 
-```env
-# Só após critérios acima
-EVENT_GOVERNANCE_LEARNING=true
-```
+### Etapa 6.4 — Coleta de métricas de decisão AIOI
 
-**Definition of Done Fase 6:**  
-- [ ] Piloto ≥ 30 dias concluído  
-- [ ] Métricas dentro dos limiares durante a janela  
-- [ ] Todos os cenários E2E executados em produção real  
-- [ ] Relatório de piloto publicado com dados  
-- [ ] Decisão go/no-go documentada para Learning ativo
+**O que coletar** (via `governanceConfidenceService` + `aioiLearningService` já implementados):
+- Total de insights gerados
+- Taxa de aceitação pelo operador
+- Taxa de falsos positivos
+- `confidence` médio por domínio
+- Latência de escalonamento
 
-**GATE G6:** relatório de piloto aprovado pelo arquiteto-chefe e pelo cliente.
+**Destino:** `backend/docs/pilot/AIOI_METRICS_WEEK_01.md`, `AIOI_METRICS_WEEK_02.md`, etc.
+
+---
+
+### Etapa 6.5 — Critério de graduação para Learning Real
+
+**Ativar `EVENT_GOVERNANCE_LEARNING=true` SOMENTE quando:**
+- [ ] ≥ 30 dias de operação estável (zero incidente crítico aberto)
+- [ ] ≥ 500 decisões AIOI com feedback registrado
+- [ ] Taxa de falso-positivo < limiar acordado com cliente
+- [ ] `confidence` médio > piso definido
+- [ ] Revisão técnica aprovada
+
+**Ativação gradual:** shadow → canary (para 1 domínio) → ativo geral.
+
+---
+
+### Etapa 6.6 — Treinamento por perfil
+
+| Perfil | Conteúdo | Formato |
+|--------|----------|---------|
+| Operador | Registro de ocorrência, OS, equipe operacional | Hands-on 2h |
+| Supervisor | Dashboards, aprovações, escalonamentos | Hands-on 3h |
+| Gerente | KPIs, relatórios, centro de custos | Demonstração 2h |
+| Diretor | Executive Portal, AIOI insights | Demonstração 1h |
+| CEO | Dashboard executivo, indicadores globais | Demonstração 1h |
+| Admin | Configuração de usuários, estrutura, integrações | Técnico 4h |
+
+**Artefato:** material de treinamento em `backend/docs/training/` por perfil.
+
+---
+
+### Etapa 6.7 — Correções de piloto (FIX only)
+
+**Durante o piloto:** registrar toda dificuldade operacional como issue. Priorizar:
+- P0: impede uso (corrigir em 24h)
+- P1: degrada uso (corrigir em 72h)
+- P2: melhoria (backlog para pós-piloto)
+
+**Regra:** ainda não abrir `FEAT`. Todo ajuste é `FIX` ou `UX-FIX`.
+
+---
+
+### Etapa 6.8 — Emitir aceite técnico do piloto
+
+**Critério de aceite:**
+- Todos os 10 cenários E2E operando VERDE por ≥ 15 dias consecutivos
+- Nenhum incidente P0 nos últimos 7 dias
+- Relatório de métricas AIOI dentro do limiar
+- Backup testado durante o piloto (pelo menos 1 restore)
+- Aprovação do responsável técnico e do cliente
+
+**Artefato:** `backend/docs/PILOT_ACCEPTANCE_REPORT.md` com assinaturas.
+
+**Gate G6→7:** aceite técnico emitido; Learning graduado (ou cronograma acordado); CI/CD sem rollbacks não planejados no período.
 
 ---
 
 ## FASE 7 — GO-LIVE EM ESCALA
 
-**Duração:** ~5 dias de ativação + acompanhamento contínuo  
-**Pré-requisito:** Gates G1→G6 fechados; selos Manual 10.3 e 10.4 emitidos
+**Duração:** contínuo  
+**Objetivo:** expandir o IMPETUS para múltiplos clientes com processo estabelecido  
+**Entrada:** selos Manual 10.3 e 10.4 fechados
 
 ---
 
-### 7.1 Checklist pré-go-live (verificar tudo antes de abrir acesso em escala)
-
-| Item | Status obrigatório |
-|------|-------------------|
-| `FUNCTIONAL_MATRIX.json` — domínios em escala VERDE | Sim |
-| `FLAG_BASELINE_FROZEN.md` atualizado | Sim |
-| PM2 em `env_production` | Sim |
-| Nginx + SSL + UFW ativos | Sim |
-| JWT rotacionado; httpOnly ativo | Sim |
-| Backup diário validado ontem | Sim |
-| Grafana + alertas ativos | Sim |
-| Runbook de DR publicado | Sim |
-| CI/CD verde na branch main | Sim |
-| `EVENT_GOVERNANCE_LEARNING` graduar conforme critérios | Condicional |
-
----
-
-### 7.2 Publicação em escala
-
-**7.2.1** Executar deploy via pipeline:
-```bash
-git tag v1.0.0-golive && git push origin v1.0.0-golive
-# Pipeline deploy.yml executa automaticamente
-```
-
-**7.2.2** Validar em produção após deploy:
-```bash
-bash infra/scripts/post-deploy-healthcheck.sh
-curl -H "X-Health-Key: $HEALTH_DETAIL_KEY" https://app.dominio.com/api/system/health/deep
-```
-
-**7.2.3** Liberar acesso aos usuários em grupos (não todos de uma vez):
-1. Grupo alpha: equipe interna + power users do cliente  
-2. Grupo beta: gestores e supervisores  
-3. Grupo produção: todos os colaboradores
-
----
-
-### 7.3 Monitoramento pós go-live
-
-**7.3.1** Primeiras 48h: alertas monitorados manualmente.  
-**7.3.2** Semana 1: daily review de métricas Grafana.  
-**7.3.3** Mês 1: relatório semanal de adoção.
-
-Métricas de adoção:
-- DAU/MAU por módulo  
-- Taxa de conclusão de fluxos (NC aberta → fechada, OS criada → concluída)  
-- NPS dos usuários (pesquisa quinzenal)  
-- Tempo médio por tarefa
-
----
-
-### 7.4 Aceite técnico e implantação oficial
-
-**7.4.1** Emitir `backend/docs/ACEITE_TECNICO_GOLIVE.md` contendo:
-- Data de go-live  
-- Versão do sistema (`git describe --tags`)  
-- Lista de módulos em escala com status VERDE  
-- Métricas de estabilidade da semana 1  
-- Assinatura do arquiteto-chefe e do responsável cliente
-
-**7.4.2** Publicar selos de maturidade (Manual Parte 10):
-- ✅ 10.1 Funcionalmente Certificado  
-- ✅ 10.2 Operacionalmente Certificado  
-- ✅ 10.3 Pronto para Piloto  
-- ✅ 10.4 Produção Enterprise
-
----
-
-## RESUMO EXECUTIVO — FASES, GATES E PRAZOS
+### Etapa 7.1 — Checklist final de go-live (obrigatório)
 
 ```
-FASE 0  Congelamento          1 dia        Gate: regra ativa
-FASE 1  Certificação Funcional 14-22 dias  Gate G1: matriz 100% classificada
-FASE 2  Hardening Produção    12-18 dias   Gate G2: P0 ativo + sessão enterprise
-FASE 3  Correção FIX          10-20 dias   Gate G3: 0 INCOMPLETO P0, 0 MOCK KPI
-FASE 4  Validação E2E         8-15 dias    Gate G4: domínios piloto VERDE
-FASE 5  Infra Enterprise      16-25 dias   Gate G5: observ + backup + CI/CD
-FASE 6  Piloto Assistido      30-60 dias   Gate G6: piloto aprovado
-FASE 7  Go-Live Escala        ~5 dias      Selos Manual 10.3→10.4
-─────────────────────────────────────────────────────────────
-Total estimado (engenharia): 90-130 dias de trabalho
-Total calendário c/ piloto:  ~5-6 meses
+[ ] Matriz 100% rastreada; domínios piloto VERDE com evidência
+[ ] P0 segurança ativo (NODE_ENV=production, Nginx, UFW, secrets rotacionados)
+[ ] Token fora do localStorage (HttpOnly cookie)
+[ ] RLS enforced em todos os tenants
+[ ] Backup diário ativo e restore testado
+[ ] Observabilidade + alertas funcionando (Grafana + Alertmanager)
+[ ] CI/CD com rollback automático
+[ ] Drift gate no CI verde
+[ ] FLAG_BASELINE_FROZEN.md atualizado
+[ ] 30+ dias de piloto estável
+[ ] Aceite técnico emitido
+[ ] Runbook de DR documentado
 ```
 
 ---
 
-## RASTREABILIDADE: plano v1 → plano v2
+### Etapa 7.2 — Publicação e configuração multi-tenant
 
-| Etapas v1 | Destino v2 | Transformação |
-|-----------|-----------|---------------|
-| 1–11, 16–20 | Fase 1 | Automatizado via scripts |
-| 12–15 | Fase 1.1 (`traceScreenChains.js`) | Ferramenta, não manual |
-| 18 | Fase 1.2 (`dumpEffectiveFlags.js`) | Snapshot formal |
-| 21–40 | Fase 3 | Só FIX da matriz, com DoD |
-| 41–60 | Fase 3+4 | Validar cadeias, não "ligar tudo" |
-| 61–64, 66–70, 80 | Fase 4 | Manter; E2E com evidência |
-| 65 (validar refresh) | Fase 2.1 | **Implementar** + validar |
-| 71–79 (criar endpoints) | Fase 3.1 | Só FIX rastreado na matriz |
-| 81–100 (módulos novos) | Fase 4 (cenários E2E) | **Certificar**, não construir do zero |
-| 101–120 (IA completa) | Fase 6.1 (ativação controlada) | Flags piloto, não expansão |
-| 121–140 (segurança) | Fase 2.0 (antecipada) | P0 antes de demo externa |
-| 141–160 (homologação) | Fase 4 + 5.2 | Com 6 evidências obrigatórias |
-| 161–180 (go-live) | Fase 7 | Gates G1–G6 obrigatórios |
+- Processo de onboarding documentado (`PILOT_CLIENT_01_ONBOARDING.md` como template).
+- Scripts de provisionamento de empresa idempotentes.
+- Limites por tenant configurados (rate limit, pool, armazenamento).
 
 ---
 
-*Este plano é o documento de execução oficial do ciclo de certificação CERT-01→04 do IMPETUS Comunica IA.*  
-*Nenhuma etapa deve ser pulada. Nenhum gate deve ser declarado fechado sem evidência.*
+### Etapa 7.3 — Monitoramento contínuo
+
+- Grafana com alertas ativos.
+- On-call definido para P0.
+- Revisão semanal de métricas de adoção por cliente.
+- `FUNCTIONAL_MATRIX.json` rodando no CI — qualquer drift bloqueado.
+
+---
+
+### Etapa 7.4 — Reabertura da evolução arquitetural (pós-piloto)
+
+**Somente após gate G6→7:**
+- Revogar congelamento (`architecture-freeze.mdc`).
+- Iniciar EG-14 e próximas evoluções.
+- Refatorar monolitos (`server.js` ~2.580 linhas, `dashboard.js` ~2.800 linhas).
+- Containerização (Dockerfile da aplicação principal).
+- Curadoria dos ~1.000+ docs em `backend/docs/`.
+
+---
+
+## Resumo executivo (índice de etapas)
+
+| # | Etapa | Fase | Duração est. |
+|---|-------|------|--------------|
+| 0.1 | Declarar freeze | F0 | 0,5 dia |
+| 0.2 | Fotografar flags reais | F0 | 0,5 dia |
+| 1.1 | Inventário FE automatizado | F1 | 1 dia |
+| 1.2 | Inventário BE + triagem auth | F1 | 2 dias |
+| 1.3 | Rastreamento tela→API | F1 | 5–8 dias |
+| 1.4 | Varredura de mocks e flags | F1 | 1 dia |
+| 1.5 | Pré-classificação por domínio | F1 | 1 dia |
+| 1.6 | Relatório técnico CERT-01 | F1 | 1 dia |
+| 2.1 | PM2 modo produção | F2 | 0,5 dia |
+| 2.2 | Nginx reverse proxy + SSL | F2 | 1 dia |
+| 2.3 | UFW Cloudflare-only | F2 | 0,5 dia |
+| 2.4 | Rotacionar segredos | F2 | 0,5 dia |
+| 2.5 | Refresh token + HttpOnly + CSRF | F2 | 5–7 dias |
+| 2.6 | RLS enforced (gradual) | F2 | 3–4 dias |
+| 2.7 | Triagem endpoints sem auth | F2 | 1–2 dias |
+| 3.1 | Eliminar mocks em KPI | F3 | 2–3 dias |
+| 3.2 | Corrigir INCOMPLETO | F3 | 3–5 dias |
+| 3.3 | Erros compilação/build | F3 | 1 dia |
+| 3.4 | Erros de banco/migrations | F3 | 1 dia |
+| 3.5 | Rotas, menus, navegação | F3 | 1 dia |
+| 3.6 | Integrações críticas piloto | F3 | 1–2 dias |
+| 3.7 | Formulários e validações | F3 | 2 dias |
+| 3.8 | Relatórios e downloads | F3 | 1 dia |
+| 4.1–4.10 | Certificação E2E 10 domínios | F4 | 8–12 dias |
+| 4.11 | Homologação por perfil | F4 | 2 dias |
+| 4.12 | Atualizar matriz final | F4 | 1 dia |
+| 5.1 | Endpoint /metrics | F5 | 2 dias |
+| 5.2 | Prometheus + Grafana | F5 | 1 dia |
+| 5.3 | Alertas reais | F5 | 1 dia |
+| 5.4 | Backup PostgreSQL | F5 | 1 dia |
+| 5.5 | Teste de restore | F5 | 1 dia |
+| 5.6 | CI/CD GitHub Actions | F5 | 3–5 dias |
+| 5.7 | Migrations formais | F5 | 2–3 dias |
+| 6.1 | Ativação cognitiva controlada | F6 | 1 dia |
+| 6.2 | Onboarding cliente piloto | F6 | 2–3 dias |
+| 6.3 | Operação monitorada | F6 | 30–60 dias |
+| 6.4 | Métricas AIOI | F6 | contínuo |
+| 6.5 | Graduação Learning Layer | F6 | por critério |
+| 6.6 | Treinamento por perfil | F6 | 3–5 dias |
+| 6.7 | Correções FIX piloto | F6 | contínuo |
+| 6.8 | Aceite técnico | F6 | 1 dia |
+| 7.1 | Checklist go-live | F7 | 1 dia |
+| 7.2 | Multi-tenant em escala | F7 | contínuo |
+| 7.3 | Monitoramento contínuo | F7 | contínuo |
+| 7.4 | Reabertura evolução (EG-14+) | F7 | após piloto |
+
+**Total de engenharia (Fases 0–5):** ~60–100 dias de esforço  
+**Piloto (Fase 6):** 30–60 dias calendário  
+**Go-live contínuo (Fase 7):** operação permanente
+
+---
+
+*Plano gerado com base na auditoria do Plano v1.0, alinhado ao `MANUAL_MATRIZ_FUNCIONAL_REAL.md`, `ENTERPRISE_HARDENING_REPORT.md`, `SECURITY_HARDENING_VPS.md` e estado real do repositório em 2026-06-22.*

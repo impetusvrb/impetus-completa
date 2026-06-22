@@ -349,7 +349,7 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Botão consciência total */
+/* Botão consciência total — desktop: fixed; mobile: oculto (integrado no compact card) */
 .cog-awareness-trigger {
   position: fixed;
   z-index: 4;
@@ -375,6 +375,31 @@
 .cog-awareness-trigger:hover {
   border-color: var(--cyan);
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+/* Em mobile o badge fixed invade a navegação — ocultar */
+@media (max-width: 768px) {
+  .cog-awareness-trigger {
+    display: none;
+  }
+  /* Whispers não devem cobrir conteúdo em telas pequenas */
+  .cog-whispers {
+    top: auto;
+    bottom: 4.5rem;
+    right: 0.75rem;
+    max-width: 240px;
+  }
+  /* Global strip mais compacto em mobile */
+  .cog-global-strip {
+    padding: 0.25rem 0.65rem;
+    gap: 0.35rem;
+  }
+  .cog-global-strip__engines {
+    display: none; /* evitar overflow horizontal em 360px */
+  }
+  .cog-global-strip__meta {
+    font-size: 0.5rem;
+  }
 }
 
 .cog-awareness-trigger__dot {

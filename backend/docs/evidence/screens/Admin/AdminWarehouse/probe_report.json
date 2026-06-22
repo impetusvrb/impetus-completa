@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/warehouse",
   "probes": [
-    "GET /api/admin/warehouse/summary"
+    "GET /api/admin/warehouse/categories?limit=5"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/warehouse/summary",
-      "status": 401,
+      "spec": "GET /api/admin/warehouse/categories?limit=5",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:40:40.302Z"
+  "at": "2026-06-22T13:27:13.362Z"
 }

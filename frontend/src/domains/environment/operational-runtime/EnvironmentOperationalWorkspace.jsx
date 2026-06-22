@@ -27,8 +27,11 @@ const EcosystemCorrelationHub = lazy(() =>
 const EnterpriseHardeningHub = lazy(() =>
   import('../../../enterprise-hardening/EnterpriseHardeningHub.jsx')
 );
+const EnvironmentOperationalEventsPanel = lazy(() =>
+  import('./EnvironmentOperationalEventsPanel.jsx')
+);
 
-const OPERATIONAL_VIEWS = new Set(['water', 'effluent', 'emissions', 'waste', 'field', 'effluent-nc']);
+const OPERATIONAL_VIEWS = new Set(['water', 'effluent', 'emissions', 'waste', 'field', 'effluent-nc', 'events']);
 const GOVERNANCE_VIEWS = new Set([
   'esg',
   'compliance',
@@ -73,6 +76,7 @@ export function EnvironmentOperationalWorkspace() {
     emissions: { label: 'Emissões', enabled: isEnvironmentOperationalRuntimeEnabled() },
     waste: { label: 'Resíduos & MTR', enabled: isEnvironmentOperationalRuntimeEnabled() },
     field: { label: 'Campo', enabled: isEnvironmentOperationalRuntimeEnabled() },
+    events: { label: 'Eventos ambientais', enabled: isEnvironmentOperationalRuntimeEnabled() },
     esg: { label: 'ESG', enabled: isEnvironmentGovernanceVisibilityEnabled() },
     compliance: { label: 'Compliance', enabled: isEnvironmentGovernanceVisibilityEnabled() },
     carbon: { label: 'Carbono', enabled: isEnvironmentGovernanceVisibilityEnabled() },
@@ -139,6 +143,19 @@ export function EnvironmentOperationalWorkspace() {
       <Suspense fallback={<p style={{ color: 'var(--text-secondary)' }}>Carregando hardening…</p>}>
         <div {...uxShell}>
           <EnterpriseHardeningHub />
+        </div>
+      </Suspense>
+    );
+  }
+
+  if (view === 'events') {
+    return (
+      <Suspense fallback={<p style={{ color: 'var(--text-secondary)' }}>Carregando eventos…</p>}>
+        <div {...uxShell}>
+          <EnvironmentOperationalEventsPanel companyId={companyId} />
+          <Link to="/app/environment/operational" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', borderRadius: 4 }}>
+            Voltar ao hub
+          </Link>
         </div>
       </Suspense>
     );
@@ -227,6 +244,7 @@ function hubCard() {
         <Link to="/app/environment/operational?view=emissions" className="btn-ghost" style={{ borderRadius: 4 }}>Emissões</Link>
         <Link to="/app/environment/operational?view=waste" className="btn-ghost" style={{ borderRadius: 4 }}>Resíduos</Link>
         <Link to="/app/environment/operational?view=field" className="btn-ghost" style={{ borderRadius: 4 }}>Campo</Link>
+        <Link to="/app/environment/operational?view=events" className="btn-ghost" style={{ borderRadius: 4 }}>Eventos</Link>
         <Link to="/app/environment/operational?view=governance" className="btn-ghost" style={{ borderRadius: 4 }}>Governança</Link>
         <Link to="/app/environment/operational?view=telemetry" className="btn-ghost" style={{ borderRadius: 4 }}>Telemetria</Link>
         <Link to="/app/environment/operational?view=cognitive" className="btn-ghost" style={{ borderRadius: 4 }}>Cognitivo</Link>

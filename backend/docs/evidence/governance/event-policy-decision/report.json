@@ -1,6 +1,6 @@
 {
   "domain": "Event Governance",
-  "run_id": "cert-p72-1782129905070",
+  "run_id": "cert-p72-1782132393771",
   "steps": [
     {
       "step": "sst_producer",
@@ -21,6 +21,6 @@
     }
   ],
   "ok": true,
-  "finished_at": "2026-06-22T12:05:09.329Z",
+  "finished_at": "2026-06-22T12:46:38.846Z",
   "evidence": "backend/docs/evidence/governance/event-policy-decision/"
 }

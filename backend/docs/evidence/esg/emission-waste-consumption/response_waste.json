@@ -8,15 +8,15 @@
         "event_name": "environment.waste.manifest_created",
         "domain": "environment",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "correlation_id": "5df5473f-e32a-42b3-84a8-897b33892f06",
+        "correlation_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
         "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-        "trace_id": "5df5473f-e32a-42b3-84a8-897b33892f06",
+        "trace_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
         "workflow_id": null,
-        "idempotency_key": "environment_op:environment.waste.manifest_created:5df5473f-e32a-42b3-84a8-897b33892f06:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "idempotency_key": "environment_op:environment.waste.manifest_created:b1df6c1d-d7e4-4e06-9f81-472b1b60fd90:511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
         "payload": {
           "waste_class": "IIB",
-          "mtr_ref": "MTR-29905070"
+          "mtr_ref": "MTR-32393771"
         },
         "metadata": {
           "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
@@ -27,11 +27,11 @@
           "environment_shadow_mode": false,
           "environment_runtime_version": 1,
           "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-          "http_correlation_id": "imp-mqp64tbu-2u2vax0e"
+          "http_correlation_id": "imp-mqp7m65f-m6rwc2hn"
         },
-        "occurred_at": "2026-06-22T12:05:07.595Z",
+        "occurred_at": "2026-06-22T12:46:36.977Z",
         "schema_version": 1,
-        "event_id": "f2b7a5d1-128d-4ed7-b906-43c22f018cc0",
+        "event_id": "8f8136a7-1267-438a-9549-d49aeae960d4",
         "catalog": {
           "type": "environment.waste.manifest_created",
           "domain": "environment",
@@ -42,13 +42,13 @@
       },
       "outbox": {
         "ok": true,
-        "id": "f2b7a5d1-128d-4ed7-b906-43c22f018cc0",
+        "id": "8f8136a7-1267-438a-9549-d49aeae960d4",
         "persisted": true
       },
       "throttle": {
         "allowed": true,
         "observe_only": true,
-        "count": 76,
+        "count": 102,
         "limit": 2400
       }
     }

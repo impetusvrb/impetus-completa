@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/equipment-library",
   "probes": [
-    "GET /api/admin/equipment-library?limit=5"
+    "GET /api/admin/equipment-library"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/equipment-library?limit=5",
+      "spec": "GET /api/admin/equipment-library",
       "status": 404,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:40:40.272Z"
+  "at": "2026-06-22T13:27:13.222Z"
 }
