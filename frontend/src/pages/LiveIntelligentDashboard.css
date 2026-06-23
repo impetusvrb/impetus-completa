@@ -904,3 +904,33 @@
   max-width: 1200px;
   margin: 0 auto 1.25rem;
 }
+
+/* CERT-01.1 — Painel vivo responsivo (Operação em tempo real + Máquina do tempo) */
+@media (max-width: 767px) {
+  .live-dash-unified--exec {
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+
+  .live-dash-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .live-dash-timebar {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .live-dash-timebar-label {
+    width: 100%;
+    margin-bottom: 0.15rem;
+  }
+
+  .live-dash-dt {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}

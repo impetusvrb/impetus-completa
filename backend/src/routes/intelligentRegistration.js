@@ -53,7 +53,9 @@ router.post('/', ...protected, requireFactoryOperationalMember, apiByUserLimiter
     }
 
     const text = typeof req.body?.text === 'string' ? req.body.text : '';
-    const shift_name = req.body?.shift_name;
+    const shiftRaw = req.body?.shift_name;
+    const shift_name =
+      typeof shiftRaw === 'string' && shiftRaw.trim() ? shiftRaw.trim() : null;
 
     let finalText = text.trim();
     let attachmentMeta = null;

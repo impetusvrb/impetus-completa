@@ -5,6 +5,7 @@
 const db = require('../db');
 const ai = require('./ai');
 const documentContext = require('./documentContext');
+const { serializeJsonbParam } = require('../utils/jsonbParam');
 
 const CATEGORIAS = ['operacional', 'producao', 'manutencao', 'qualidade', 'seguranca', 'melhoria', 'comunicacao', 'gestao', 'rotina', 'pendencia_critica', 'observacao_relevante'];
 const PRIORIDADES = ['normal', 'atencao', 'urgente', 'critico'];
@@ -188,6 +189,28 @@ Responda APENAS com um JSON válido (sem markdown, sem texto extra), no formato:
   };
 }
 
+/** Parâmetros JSONB serializados para INSERT (node-pg + colunas jsonb). */
+function buildRegistrationJsonbParams(processed) {
+  const meta =
+    processed.ai_metadata && typeof processed.ai_metadata === 'object' && !Array.isArray(processed.ai_metadata)
+      ? processed.ai_metadata
+      : {};
+  return {
+    subcategories: serializeJsonbParam(processed.subcategories, []),
+    activities_detected: serializeJsonbParam(processed.activities_detected, []),
+    problems_detected: serializeJsonbParam(processed.problems_detected, []),
+    pendencies_detected: serializeJsonbParam(processed.pendencies_detected, []),
+    suggestions_detected: serializeJsonbParam(processed.suggestions_detected, []),
+    ai_metadata: serializeJsonbParam(meta, {})
+  };
+}
+
+function normalizeOptionalShiftName(shiftName) {
+  if (shiftName == null) return null;
+  const s = String(shiftName).trim();
+  return s || null;
+}
+
 /**
  * Cria registro inteligente (texto + processamento IA + persistência)
  */
@@ -216,7 +239,8 @@ async function createRegistration(
     }
   }
 
-  const metaJson = JSON.stringify(processed.ai_metadata && Object.keys(processed.ai_metadata).length ? processed.ai_metadata : {});
+  const jsonb = buildRegistrationJsonbParams(processed);
+  const shift = normalizeOptionalShiftName(shiftName);
 
   let r;
   try {
@@ -230,7 +254,7 @@ async function createRegistration(
         activities_detected, problems_detected, pendencies_detected, suggestions_detected,
         shift_name, ai_metadata, operational_team_member_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb, $22)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20, $21::jsonb, $22)
       RETURNING *
     `,
       [
@@ -239,7 +263,7 @@ async function createRegistration(
         originalText.trim(),
         processed.summary,
         processed.main_category,
-        processed.subcategories,
+        jsonb.subcategories,
         processed.priority,
         processed.needs_followup,
         processed.needs_escalation,
@@ -249,12 +273,12 @@ async function createRegistration(
         processed.machine_identified,
         processed.process_identified,
         processed.product_identified,
-        processed.activities_detected,
-        processed.problems_detected,
-        processed.pendencies_detected,
-        processed.suggestions_detected,
-        shiftName,
-        metaJson,
+        jsonb.activities_detected,
+        jsonb.problems_detected,
+        jsonb.pendencies_detected,
+        jsonb.suggestions_detected,
+        shift,
+        jsonb.ai_metadata,
         operationalTeamMemberId || null
       ]
     );
@@ -270,7 +294,7 @@ async function createRegistration(
         activities_detected, problems_detected, pendencies_detected, suggestions_detected,
         shift_name, ai_metadata
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20, $21::jsonb)
       RETURNING *
     `,
         [
@@ -279,7 +303,7 @@ async function createRegistration(
           originalText.trim(),
           processed.summary,
           processed.main_category,
-          processed.subcategories,
+          jsonb.subcategories,
           processed.priority,
           processed.needs_followup,
           processed.needs_escalation,
@@ -289,12 +313,12 @@ async function createRegistration(
           processed.machine_identified,
           processed.process_identified,
           processed.product_identified,
-          processed.activities_detected,
-          processed.problems_detected,
-          processed.pendencies_detected,
-          processed.suggestions_detected,
-          shiftName,
-          metaJson
+          jsonb.activities_detected,
+          jsonb.problems_detected,
+          jsonb.pendencies_detected,
+          jsonb.suggestions_detected,
+          shift,
+          jsonb.ai_metadata
         ]
       );
     } else if (isMissingAiMetadataColumnError(e)) {
@@ -314,7 +338,7 @@ async function createRegistration(
           activities_detected, problems_detected, pendencies_detected, suggestions_detected,
           shift_name
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20)
         RETURNING *
       `,
         [
@@ -323,7 +347,7 @@ async function createRegistration(
           originalText.trim(),
           processed.summary,
           processed.main_category,
-          processed.subcategories,
+          jsonb.subcategories,
           processed.priority,
           processed.needs_followup,
           processed.needs_escalation,
@@ -333,11 +357,11 @@ async function createRegistration(
           processed.machine_identified,
           processed.process_identified,
           processed.product_identified,
-          processed.activities_detected,
-          processed.problems_detected,
-          processed.pendencies_detected,
-          processed.suggestions_detected,
-          shiftName
+          jsonb.activities_detected,
+          jsonb.problems_detected,
+          jsonb.pendencies_detected,
+          jsonb.suggestions_detected,
+          shift
         ]
       );
     } else {
@@ -429,5 +453,7 @@ module.exports = {
   createRegistration,
   listMyRegistrations,
   listForLeadership,
-  normalizeIntelligentRegistrationRow
+  normalizeIntelligentRegistrationRow,
+  buildRegistrationJsonbParams,
+  normalizeOptionalShiftName
 };

@@ -1,24 +1,15 @@
 /**
  * Detecção leve de wake word via Web Speech API (sem custo de API).
- * O Chrome encerra a sessão com frequência (onend); não limitar reinícios com maxRetries
- * ou a escuta morre após poucos segundos.
+ * Matching estrito: apenas «ok/okay impetus» (ver wakeWordMatch.js).
  */
+import { logWakeRecognition, matchesWakePhrase } from './wakeWordMatch';
+
 export class WakeWordDetector {
   constructor(onDetected) {
     this.onDetected = onDetected;
     this.recognition = null;
     this.isRunning = false;
     this.restartTimer = null;
-  }
-
-  static norm(x) {
-    return String(x || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/,/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
   }
 
   start() {
@@ -56,36 +47,19 @@ export class WakeWordDetector {
         for (let i = 0; i < event.results.length; i++) {
           combined += `${event.results[i][0]?.transcript || ''} `;
         }
-        const t = WakeWordDetector.norm(combined);
-        const wakeWords = [
-          'ok impetus',
-          'okay impetus',
-          'oi impetus',
-          'ola impetus',
-          'olá impetus',
-          'hey impetus',
-          'ei impetus',
-          'ok impetis',
-          'ok impetos',
-          'ok impets',
-          'ok empetus',
-          'ok em petus',
-          'ok im petus',
-          'impetus',
-          'hi impetus',
-          'oque impetus',
-          'ou impetus',
-          'o impetus'
-        ];
-        const detected = wakeWords.some((w) => t.includes(w));
-        if (detected) {
+        const matched = matchesWakePhrase(combined);
+        logWakeRecognition(combined, matched);
+        if (matched) {
           if (this.restartTimer) {
             clearTimeout(this.restartTimer);
             this.restartTimer = null;
           }
           this.isRunning = false;
           try {
-            this.recognition.stop();
+            this.recognition?.abort?.();
+          } catch (_) {}
+          try {
+            this.recognition?.stop();
           } catch (_) {}
           this.recognition = null;
           this.onDetected?.();

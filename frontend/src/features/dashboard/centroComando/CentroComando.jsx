@@ -47,7 +47,9 @@ import CentroComandoCommandHeader from './CentroComandoCommandHeader';
 import CentroComandoHeroKpis from './CentroComandoHeroKpis';
 import { CognitivePulseProvider } from './cognitiveEcosystem/CognitivePulseContext';
 import CognitivePresenceShell from './cognitiveEcosystem/CognitivePresenceShell';
-import CognitiveEcosystemBand from './cognitiveEcosystem/CognitiveEcosystemBand';
+import CognitiveCollapsibleSection from './cognitiveEcosystem/CognitiveCollapsibleSection';
+import CognitiveMobileStripSlot from './cognitiveEcosystem/CognitiveMobileStripSlot';
+import CognitiveDesktopStripSlot from './cognitiveEcosystem/CognitiveDesktopStripSlot';
 import { CognitiveOmniHeader } from './cognitiveEcosystem/CognitiveOmniPresence';
 import AdaptiveOperationalShell from './cognitiveEcosystem/AdaptiveOperationalShell';
 import CognitiveLiveTicker from './cognitiveEcosystem/CognitiveLiveTicker';
@@ -113,7 +115,6 @@ export default function CentroComando() {
 
   const [liveSurface, setLiveSurface] = useState(null);
   const [warRoomMode, setWarRoomMode] = useState('normal');
-  const [cognitiveExpanded, setCognitiveExpanded] = useState(false);
   const layoutTrackSig = useRef('');
 
   // DashboardContextAdapter: prefere engine_v2 → personalizado → LayoutPorCargo (fallback).
@@ -254,6 +255,9 @@ export default function CentroComando() {
           </ModuleErrorBoundary>
         )}
 
+        <CognitiveMobileStripSlot />
+        <CognitiveDesktopStripSlot />
+
         <CentroComandoCommandHeader
           user={user}
           titulo={titulo}
@@ -325,26 +329,7 @@ export default function CentroComando() {
         </div>
         </AdaptiveOperationalShell>
 
-        <div className="cc__cognitive-collapsible">
-          <button
-            type="button"
-            className="cc__cognitive-toggle"
-            onClick={() => setCognitiveExpanded((v) => !v)}
-            aria-expanded={cognitiveExpanded}
-          >
-            <span className="cc__cognitive-toggle-label">
-              {cognitiveExpanded ? '▼' : '▶'} Ecossistema cognitivo vivo
-            </span>
-            <span className="cc__cognitive-toggle-hint">
-              {cognitiveExpanded ? 'recolher camada avançada' : 'expandir radar, timeline e presença organizacional'}
-            </span>
-          </button>
-          {cognitiveExpanded && (
-            <ModuleErrorBoundary moduleName="Ecossistema cognitivo">
-              <CognitiveEcosystemBand onModeChange={setWarRoomMode} />
-            </ModuleErrorBoundary>
-          )}
-        </div>
+        <CognitiveCollapsibleSection onModeChange={setWarRoomMode} />
 
         {!hrDashboard && <CognitiveLiveTicker />}
       </div>

@@ -15,6 +15,7 @@ import ImpetusVoiceOverlay from '../components/ImpetusVoiceOverlay';
 import ImpetusFloatButton from '../components/ImpetusFloatButton';
 import { useRealtimePresenceBridge } from '../realtimePresence/useRealtimePresenceBridge';
 import { useAnamAvatar } from '../hooks/useAnamAvatar';
+import { isTransientOperationalMessage } from '../components/voiceOverlayStatusUtils';
 import { VOICE_SESSION_CLOSE_EVENT } from './voiceSessionCloseIntent';
 import { useNotification } from '../context/NotificationContext';
 import {
@@ -24,8 +25,30 @@ import {
 import { executePanelVoiceMeta, executePanelVoiceMetaWithMeta } from '../features/smartPanel/panelVoiceMetaExecutor';
 import { registerPanelMetaDirectHandler } from '../features/smartPanel/smartPanelEvents';
 import { markVoiceUserInitiated } from '../utils/defaultAppEntry';
+import {
+  beginWakeCooldown,
+  isInWakeCooldown,
+  scheduleWakeWordAfterCooldown
+} from './voiceWakeCooldown';
 
 export default function ImpetusVoiceProvider({ children }) {
+  const wakeRestartTimerRef = useRef(null);
+
+  const clearScheduledWakeRestart = useCallback(() => {
+    if (wakeRestartTimerRef.current) {
+      clearTimeout(wakeRestartTimerRef.current);
+      wakeRestartTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleWakeRestart = useCallback(
+    (startFn, extraDelayMs = 0) => {
+      clearScheduledWakeRestart();
+      wakeRestartTimerRef.current = scheduleWakeWordAfterCooldown(startFn, extraDelayMs);
+    },
+    [clearScheduledWakeRestart]
+  );
+
   const notify = useNotification();
   const location = useLocation();
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -118,7 +141,8 @@ export default function ImpetusVoiceProvider({ children }) {
     setAlertsEnabled,
     setVoicePrefs,
     startWakeWord,
-    stopWakeWord
+    stopWakeWord,
+    forceCleanupAudioSession
   } = useVoiceEngine({
     chatRound,
     onSensitiveBlock
@@ -164,22 +188,47 @@ export default function ImpetusVoiceProvider({ children }) {
   });
 
   const anamActive = overlayOpen && voiceEnabled;
+  const anamMetaRef = useRef({ status: 'idle', configured: null });
+
   const onAnamError = useCallback((msg) => {
-    setAnamAlert(String(msg || 'Avatar Anam indisponível.'));
+    const text = String(msg || '').trim();
+    if (!text || isTransientOperationalMessage(text)) {
+      setAnamAlert(null);
+      return;
+    }
+    const { status: st, configured: cfg } = anamMetaRef.current;
+    if (st === 'unconfigured' || cfg === false) {
+      setAnamAlert(null);
+      return;
+    }
+    setAnamAlert(text || 'Avatar Anam indisponível.');
   }, []);
   const onAnamReady = useCallback(() => {
     setAnamAlert(null);
+  }, []);
+  const retryAnamConnection = useCallback(() => {
+    setAnamAlert(null);
+    setOverlayOpen(false);
+    window.setTimeout(() => setOverlayOpen(true), 320);
   }, []);
   const {
     slotRef: anamSlotRef,
     enabled: anamEnabled,
     streaming: anamStreaming,
-    status: anamStatus
+    status: anamStatus,
+    configured: anamConfigured
   } = useAnamAvatar({
     active: anamActive,
     onError: onAnamError,
     onReady: onAnamReady
   });
+
+  useEffect(() => {
+    anamMetaRef.current = { status: anamStatus, configured: anamConfigured };
+  }, [anamStatus, anamConfigured]);
+
+  const anamAuditDisabled =
+    typeof window !== 'undefined' && sessionStorage.getItem('impetus-anam-audit-disabled') === '1';
 
   useEffect(() => {
     if (!overlayOpen) setAnamAlert(null);
@@ -236,37 +285,45 @@ export default function ImpetusVoiceProvider({ children }) {
   useEffect(() => {
     if (!voiceEnabled || !wakePhraseAvailable) {
       stopWakeWordRef.current();
+      clearScheduledWakeRestart();
       return;
+    }
+    if (isInWakeCooldown()) {
+      scheduleWakeRestart(() => startWakeWordRef.current(), 0);
+      return () => clearScheduledWakeRestart();
     }
     const t = setTimeout(() => startWakeWordRef.current(), 500);
     return () => {
       clearTimeout(t);
       stopWakeWordRef.current();
+      clearScheduledWakeRestart();
     };
-  }, [voiceEnabled, wakePhraseAvailable]);
+  }, [voiceEnabled, wakePhraseAvailable, scheduleWakeRestart, clearScheduledWakeRestart]);
 
-  // Wake word volta após sair do contínuo
+  // Wake word volta após sair do contínuo — cooldown P0 (4s) evita loop mobile
   const prevContinuousRef = useRef(false);
   useEffect(() => {
     if (!voiceEnabled || !wakePhraseAvailable) return;
     if (prevContinuousRef.current && !voiceState.isContinuous) {
-      const t = setTimeout(() => startWakeWordRef.current(), 800);
+      scheduleWakeRestart(() => startWakeWordRef.current(), 0);
       prevContinuousRef.current = voiceState.isContinuous;
-      return () => clearTimeout(t);
+      return () => clearScheduledWakeRestart();
     }
     prevContinuousRef.current = voiceState.isContinuous;
-  }, [voiceEnabled, wakePhraseAvailable, voiceState.isContinuous]);
+  }, [voiceEnabled, wakePhraseAvailable, voiceState.isContinuous, scheduleWakeRestart, clearScheduledWakeRestart]);
 
-  // Ao voltar ao separador, o browser costuma parar o SpeechRecognition — religa o wake se não estiver em modo contínuo.
+  // Ao voltar ao separador, o browser costuma parar o SpeechRecognition — religa após cooldown.
   useEffect(() => {
     if (!voiceEnabled || !wakePhraseAvailable) return;
     let t = null;
     const onVis = () => {
       if (document.hidden) return;
       if (voiceStateRef.current.isContinuous) return;
+      if (isInWakeCooldown()) return;
       if (t) clearTimeout(t);
       t = setTimeout(() => {
         t = null;
+        if (isInWakeCooldown()) return;
         try {
           startWakeWordRef.current();
         } catch (_) {}
@@ -340,8 +397,7 @@ export default function ImpetusVoiceProvider({ children }) {
               }
             }
           );
-          // quando falar alerta, deixa “presença” visível
-          setOverlayOpen(true);
+          // P0-3: alertas por voz não abrem overlay nem iniciam ANAM
         }
       } catch (_) {}
     };
@@ -362,8 +418,16 @@ export default function ImpetusVoiceProvider({ children }) {
   }, [voiceState.isContinuous, voiceEnabled]);
 
   const closeLiveSession = useCallback(() => {
+    clearScheduledWakeRestart();
+    try {
+      stopWakeWordRef.current?.();
+    } catch (_) {}
+    beginWakeCooldown();
     try {
       stopSpeaking();
+    } catch (_) {}
+    try {
+      forceCleanupAudioSession();
     } catch (_) {}
     try {
       if (voiceStateRef.current.isContinuous) {
@@ -375,7 +439,8 @@ export default function ImpetusVoiceProvider({ children }) {
     } catch (_) {}
     setOverlayOpen(false);
     void import('../services/anamSessionSingleton').then((m) => m.stopAnamStreamNow?.()).catch(() => {});
-  }, [engineToggleVoice, stopSpeaking, stopVoiceCapture]);
+    scheduleWakeRestart(() => startWakeWordRef.current(), 0);
+  }, [engineToggleVoice, forceCleanupAudioSession, scheduleWakeRestart, stopSpeaking, stopVoiceCapture]);
 
   /** Após login: não manter overlay Anam/Realtime aberto — utilizador entra no dashboard ou IA texto. */
   useEffect(() => {
@@ -504,14 +569,16 @@ export default function ImpetusVoiceProvider({ children }) {
         bargeInFlash={voiceState.bargeInFlash}
         realtimeMode={voiceState.isRealtimeMode}
         anamSlotRef={anamSlotRef}
-        anamStreaming={anamStreaming}
-        anamEnabled={anamEnabled}
-        anamAlert={anamAlert}
-        anamStatus={anamStatus}
+        anamStreaming={anamAuditDisabled ? false : anamStreaming}
+        anamEnabled={anamAuditDisabled ? false : anamEnabled}
+        anamConfigured={anamAuditDisabled ? false : anamConfigured}
+        anamAlert={anamAuditDisabled ? null : anamAlert}
+        anamStatus={anamAuditDisabled ? 'unconfigured' : anamStatus}
         presenceExpression={presenceBridge.enabled ? presenceBridge.expressionLabel : null}
         presencePerceptionState={presenceBridge.enabled ? presenceBridge.perception?.perception_state : null}
         presenceAkoolReady={presenceBridge.enabled ? presenceBridge.akoolConfigured : false}
         onClose={closeLiveSession}
+        onRetryConnection={retryAnamConnection}
       />
       <ImpetusFloatButton
         visible={false}

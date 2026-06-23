@@ -15,7 +15,10 @@ export default function VoiceAvatarExternalSlot({
   children = null,
   /** idle | checking | connecting | streaming | unconfigured | error */
   anamStatus = 'idle',
-  anamStreaming = false
+  anamStreaming = false,
+  /** MOBILE-ANAM-004 — módulo desativado por configuração */
+  anamModuleDisabled = false,
+  anamDisabledLabel = 'Módulo não habilitado'
 }) {
   const [hasVideo, setHasVideo] = useState(false);
 
@@ -33,8 +36,17 @@ export default function VoiceAvatarExternalSlot({
     return () => clearInterval(iv);
   }, [slotRef, anamStreaming, anamStatus]);
 
+  const showDisabledOverlay = anamModuleDisabled;
   const showPlaceholder =
-    !children && !hasVideo && !anamStreaming && anamStatus !== 'streaming';
+    showDisabledOverlay ||
+    (!children && !hasVideo && !anamStreaming && anamStatus !== 'streaming');
+
+  const mountClassName = [
+    'voice-avatar-external-slot__mount',
+    showDisabledOverlay ? 'voice-avatar-external-slot__mount--disabled' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const stateClass =
     state === 'listening' || state === 'speaking' || state === 'processing'
@@ -43,15 +55,21 @@ export default function VoiceAvatarExternalSlot({
 
   return (
     <div
-      className={`voice-avatar-external-slot voice-avatar-external-slot--${stateClass}`}
+      className={`voice-avatar-external-slot voice-avatar-external-slot--${stateClass}${
+        showDisabledOverlay ? ' voice-avatar-external-slot--disabled' : ''
+      }`}
       style={{ width: size, height: size }}
     >
       <div
         ref={slotRef}
         id={slotId}
-        className="voice-avatar-external-slot__mount"
+        className={mountClassName}
         data-anam-mount="true"
-        aria-label="Área do avatar Anam em tempo real"
+        aria-label={
+          showDisabledOverlay
+            ? 'ANAM — módulo não habilitado'
+            : 'Área do avatar Anam em tempo real'
+        }
       >
         {/* Sempre no DOM — o SDK Anam exige getElementById(impetus-anam-shared-video) */}
         <video
@@ -64,14 +82,26 @@ export default function VoiceAvatarExternalSlot({
         <audio id="impetus-anam-shared-audio" className="sr-only" aria-hidden tabIndex={-1} />
         {children}
         {showPlaceholder && (
-          <span className="voice-avatar-external-slot__placeholder" aria-hidden="true">
-            {anamStatus === 'connecting'
-              ? 'A ligar Anam…'
-              : anamStatus === 'unconfigured'
-                ? 'Anam — falta API key'
-                : anamStatus === 'error'
-                  ? 'Anam — erro'
-                  : 'Avatar Anam'}
+          <span
+            className={`voice-avatar-external-slot__placeholder${
+              anamModuleDisabled ? ' voice-avatar-external-slot__placeholder--disabled' : ''
+            }`}
+            aria-hidden="true"
+          >
+            {anamModuleDisabled ? (
+              <>
+                <span className="voice-avatar-external-slot__placeholder-title">ANAM</span>
+                <span className="voice-avatar-external-slot__placeholder-sub">{anamDisabledLabel}</span>
+              </>
+            ) : anamStatus === 'connecting' ? (
+              'A ligar Anam…'
+            ) : anamStatus === 'unconfigured' ? (
+              'Anam — falta API key'
+            ) : anamStatus === 'error' ? (
+              'Anam — erro'
+            ) : (
+              'Avatar Anam'
+            )}
           </span>
         )}
       </div>

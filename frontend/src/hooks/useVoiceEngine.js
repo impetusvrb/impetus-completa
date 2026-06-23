@@ -9,6 +9,7 @@ import {
   buildImpetusRealtimeSessionUpdate
 } from '../services/openaiRealtimeVoiceSession';
 import { WakeWordDetector } from '../services/wakeWordDetector';
+import { isInWakeCooldown, scheduleWakeWordAfterCooldown } from '../voice/voiceWakeCooldown';
 import {
   pickThinkingPhrase,
   pickListeningPhrase,
@@ -739,6 +740,7 @@ export function useVoiceEngine(options = {}) {
   const bargeInDetectedRef = useRef(false);
   const ttsAbortControllerRef = useRef(null);
   const bargeMonitorCleanupRef = useRef(null);
+  const ttsLipSyncRafRef = useRef(null);
   const bargeInFlashTimeoutRef = useRef(null);
   const lastHeardTextRef = useRef('');
   const lastHeardAtRef = useRef(0);
@@ -841,6 +843,34 @@ export function useVoiceEngine(options = {}) {
     setVoiceState((s) => ({ ...s, currentTranscript: t }));
   }, []);
 
+  const releaseBargeMonitor = useCallback(() => {
+    try {
+      bargeMonitorCleanupRef.current?.();
+    } catch (_) {}
+    bargeMonitorCleanupRef.current = null;
+  }, []);
+
+  const cancelTtsLipSyncRaf = useCallback(() => {
+    if (ttsLipSyncRafRef.current) {
+      cancelAnimationFrame(ttsLipSyncRafRef.current);
+      ttsLipSyncRafRef.current = null;
+    }
+  }, []);
+
+  const forceCleanupAudioSession = useCallback(() => {
+    releaseBargeMonitor();
+    cancelTtsLipSyncRaf();
+    try {
+      sourceRef.current?.stop();
+    } catch (_) {}
+    sourceRef.current = null;
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state !== 'closed') {
+      ctx.close().catch(() => {});
+    }
+    audioCtxRef.current = null;
+  }, [cancelTtsLipSyncRaf, releaseBargeMonitor]);
+
   const stopSpeaking = useCallback(() => {
     speakAbortedRef.current = true;
     if (isVoiceRealtimeEnabled()) {
@@ -868,6 +898,8 @@ export function useVoiceEngine(options = {}) {
       clearTimeout(bargeInFlashTimeoutRef.current);
       bargeInFlashTimeoutRef.current = null;
     }
+    releaseBargeMonitor();
+    cancelTtsLipSyncRaf();
     resetVideoLipSync();
     didPollAbortRef.current?.abort();
     didPollAbortRef.current = null;
@@ -883,7 +915,7 @@ export function useVoiceEngine(options = {}) {
       didAvatarVideoUrl: null,
       didAvatarReplay: false
     }));
-  }, [resetVideoLipSync]);
+  }, [cancelTtsLipSyncRaf, releaseBargeMonitor, resetVideoLipSync]);
 
   const startTypingLoop = useCallback(() => {
     if (typingTimerRef.current) return;
@@ -1080,9 +1112,11 @@ export function useVoiceEngine(options = {}) {
         setTtsUi((u) => ({ ...u, mouthState: next }));
       }
       raf = requestAnimationFrame(updateMouth);
+      ttsLipSyncRafRef.current = raf;
     };
     setTtsUi((u) => ({ ...u, mouthState: 'open' }));
     raf = requestAnimationFrame(updateMouth);
+    ttsLipSyncRafRef.current = raf;
 
     // Barge-in em produção: monitora energia do microfone durante o TTS.
     bargeInDetectedRef.current = false;
@@ -1119,6 +1153,7 @@ export function useVoiceEngine(options = {}) {
     return new Promise((resolve) => {
       src.onended = () => {
         if (raf) cancelAnimationFrame(raf);
+        ttsLipSyncRafRef.current = null;
         try { stopBargeMonitor?.(); } catch (_) {}
         try {
           bargeMonitorCleanupRef.current?.();
@@ -1978,6 +2013,7 @@ export function useVoiceEngine(options = {}) {
   }, []);
 
   const startWakeWord = useCallback(() => {
+    if (isInWakeCooldown()) return;
     /* Nunca escutar «Ok Impetus» em paralelo ao modo contínuo / Realtime — causa 2 fluxos de áudio e trava o microfone. */
     if (continuousRef.current) return;
     if (wakeRef.current) return;
@@ -2004,8 +2040,8 @@ export function useVoiceEngine(options = {}) {
         } catch (_) {
           /* toggleVoice já trata permissão de microfone */
         } finally {
-          if (!continuousRef.current) {
-            setTimeout(() => {
+          if (!continuousRef.current && !isInWakeCooldown()) {
+            scheduleWakeWordAfterCooldown(() => {
               try {
                 startWakeWordRef.current?.();
               } catch (_) {}
@@ -2066,6 +2102,7 @@ export function useVoiceEngine(options = {}) {
     return () => {
       continuousRef.current = false;
       stopSpeaking();
+      forceCleanupAudioSession();
       if (isVoiceRealtimeEnabled()) {
         try {
           realtimeSessionRef.current?.disconnect();
@@ -2082,7 +2119,7 @@ export function useVoiceEngine(options = {}) {
       wakeRef.current?.stop();
       if (badgeTimer.current) clearTimeout(badgeTimer.current);
     };
-  }, [stopSpeaking]);
+  }, [forceCleanupAudioSession, stopSpeaking]);
 
   return {
     voiceState,
@@ -2100,6 +2137,7 @@ export function useVoiceEngine(options = {}) {
     startWakeWord,
     stopWakeWord,
     stopVoiceCapture,
-    speakNaturalReply
+    speakNaturalReply,
+    forceCleanupAudioSession
   };
 }

@@ -167,6 +167,12 @@ export function useSmartPanel({ enabled = true, voiceMode = false } = {}) {
   const [error, setError] = useState(null);
   const [contextLoading, setContextLoading] = useState(true);
   const busyRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window.dispatchEvent(new CustomEvent('impetus-smart-panel-loading', { detail: { loading } }));
+    return undefined;
+  }, [loading]);
   const pendingRef = useRef(null);
   const currentOutputRef = useRef(null);
 

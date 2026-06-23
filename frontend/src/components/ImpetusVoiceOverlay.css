@@ -222,6 +222,102 @@
   margin-top: auto;
 }
 
+/* MOBILE-ANAM-003 — status compacto (mobile only via media query abaixo) */
+.impetus-voice-overlay__command-compact {
+  display: none;
+}
+
+.impetus-voice-overlay__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-height: 40px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 170, 255, 0.28);
+  background: rgba(8, 18, 34, 0.92);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: rgba(0, 212, 255, 0.92);
+}
+
+.impetus-voice-overlay__status-pill--inactive {
+  border-color: rgba(120, 140, 160, 0.28);
+  background: rgba(8, 14, 22, 0.88);
+  color: rgba(160, 180, 200, 0.82);
+}
+
+.impetus-voice-overlay__status-dot--inactive {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: rgba(160, 180, 200, 0.75);
+}
+
+.impetus-voice-overlay__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan, #00d4ff);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.55);
+  flex-shrink: 0;
+}
+
+.impetus-voice-overlay__status-pill--connecting .impetus-voice-overlay__status-dot {
+  animation: impetus-pulse 1.2s ease-in-out infinite;
+}
+
+.impetus-voice-overlay__status-pill--listening .impetus-voice-overlay__status-dot,
+.impetus-voice-overlay__status-pill--connected .impetus-voice-overlay__status-dot {
+  background: var(--green, #00ff88);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.55);
+}
+
+.impetus-voice-overlay__status-pill--processing .impetus-voice-overlay__status-dot,
+.impetus-voice-overlay__status-pill--speaking .impetus-voice-overlay__status-dot {
+  background: var(--amber, #ffaa00);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.45);
+}
+
+.impetus-voice-overlay__status-error-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.impetus-voice-overlay__status-error {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #ffb4a8;
+  background: rgba(180, 40, 40, 0.18);
+  border: 1px solid rgba(255, 120, 100, 0.28);
+}
+
+.impetus-voice-overlay__status-retry {
+  align-self: flex-start;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--cyan, #00d4ff);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 .impetus-voice-overlay__alert {
   margin: 0 0 10px;
   padding: 8px 10px;
@@ -738,5 +834,190 @@
 
   .impetus-voice-overlay__left {
     min-height: 620px;
+  }
+}
+
+/*
+ * MOBILE-ANAM-001 + MOBILE-ANAM-002 — Centralização e hierarquia visual (≤767px)
+ * ANAM-001: avatar sem overflow, centrado.
+ * ANAM-002: topbar compacto, avatar dominante, distribuição proporcional.
+ * Tablet (768–1023) e desktop permanecem com regras anteriores.
+ */
+@media (max-width: 767px) {
+  /* ── Container e painel ── */
+  .impetus-voice-overlay {
+    padding: 8px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .impetus-voice-overlay__panel {
+    padding: 8px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* ── Topbar: de ~76px para ~40px (ANAM-002) ── */
+  .impetus-voice-overlay__topbar {
+    padding: 2px 2px 5px;
+    margin-bottom: 5px;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .impetus-voice-overlay__brand-wrap {
+    gap: 6px;
+    align-items: baseline;
+  }
+
+  .impetus-voice-overlay__brand {
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+  }
+
+  .impetus-voice-overlay__headline {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    opacity: 0.82;
+  }
+
+  .impetus-voice-overlay__close {
+    padding: 5px 9px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── Grid → flex coluna com proporções (ANAM-002) ── */
+  .impetus-voice-overlay__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* ── Seção esquerda: avatar + controles — protagonista ── */
+  .impetus-voice-overlay__left {
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: stretch;
+    padding: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Avatar: cresce para preencher o espaço liberado (ANAM-002) ── */
+  .impetus-voice-overlay__avatar {
+    --anam-avatar-size: min(calc(100vw - 3rem), 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 0;
+    min-height: 0;
+    margin-inline: auto;
+    padding: 0.4rem 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    isolation: isolate;
+  }
+
+  .impetus-voice-overlay__avatar-trigger {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-inline: auto;
+    max-width: 100%;
+    flex-shrink: 0;
+  }
+
+  .impetus-voice-overlay__avatar-trigger .voice-avatar-external-slot {
+    width: var(--anam-avatar-size) !important;
+    height: var(--anam-avatar-size) !important;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .impetus-voice-overlay__avatar-decor {
+    width: calc(var(--anam-avatar-size) * 1.15);
+    height: calc(var(--anam-avatar-size) * 1.15);
+    max-width: calc(100vw - 2.5rem);
+    max-height: calc(100vw - 2.5rem);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .impetus-voice-overlay__avatar-ring {
+    width: calc(var(--anam-avatar-size) * 1.08);
+    height: calc(var(--anam-avatar-size) * 1.08);
+    max-width: calc(100vw - 2.75rem);
+    max-height: calc(100vw - 2.75rem);
+    margin-left: 0;
+    margin-top: 0;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    animation: impetus-ring-breathe-mobile 2.8s ease-in-out infinite;
+  }
+
+  /* ── Command card: fixo na base do left, não expande ── */
+  .impetus-voice-overlay__command-card {
+    flex: 0 0 auto;
+    margin-top: 6px;
+    padding: 6px 8px;
+  }
+
+  /* MOBILE-ANAM-003 — status pill compacto; legado oculto */
+  .impetus-voice-overlay__command-legacy {
+    display: none;
+  }
+
+  .impetus-voice-overlay__command-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 36px;
+    max-height: 72px;
+  }
+
+  /* ── Seção direita: painel de respostas — complementar ── */
+  .impetus-voice-overlay__right {
+    flex: 0 0 auto;
+    min-height: 0;
+    max-height: 38vh;
+    overflow: hidden;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+}
+
+@keyframes impetus-ring-breathe-mobile {
+  0%,
+  100% {
+    transform: translate(-50%, calc(-50% - 7px)) scale(1);
+    opacity: 0.9;
+    box-shadow:
+      0 0 24px rgba(30, 144, 255, 0.28),
+      0 0 48px rgba(30, 144, 255, 0.12),
+      inset 0 0 36px rgba(30, 144, 255, 0.14);
+  }
+  50% {
+    transform: translate(-50%, calc(-50% - 7px)) scale(1.035);
+    opacity: 1;
+    box-shadow:
+      0 0 36px rgba(30, 144, 255, 0.42),
+      0 0 64px rgba(30, 144, 255, 0.2),
+      inset 0 0 44px rgba(30, 144, 255, 0.2);
   }
 }

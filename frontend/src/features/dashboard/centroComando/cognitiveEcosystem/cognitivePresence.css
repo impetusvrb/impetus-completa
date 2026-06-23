@@ -110,20 +110,94 @@
   opacity: 0.35;
 }
 
-/* Faixa global Cognitive Core */
-.cog-global-strip {
+/* Sticky apenas na faixa tablet expandida — evita cobrir controles no desktop */
+.cog-global-strip--tablet {
   position: sticky;
   top: 0;
   z-index: 5;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
+}
+
+.cog-global-strip--compact,
+.cog-global-strip--desktop-summary {
+  position: static;
+  z-index: auto;
+}
+
+/* Base comum da faixa */
+.cog-global-strip {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
   padding: 0.35rem 0.75rem;
   margin-bottom: 0.5rem;
   background: rgba(7, 12, 20, 0.88);
   border-bottom: 1px solid rgba(0, 212, 255, 0.2);
   backdrop-filter: blur(10px);
+}
+
+/* Layout desktop em 3 faixas — tablet (UI-DESKTOP-003) */
+.cog-global-strip--tablet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Desktop resumido — card compacto, sem sticky (UI-DESKTOP-004) */
+.cog-global-strip--desktop-summary {
+  position: static;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  margin: 0 0 0.65rem;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.cog-global-strip--desktop-summary .cog-mobile-summary {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(7, 12, 20, 0.85);
+  min-height: 0;
+  max-height: none;
+}
+
+.cog-global-strip__engines-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(0, 212, 255, 0.14);
+  border-radius: 4px;
+  background: rgba(7, 12, 20, 0.72);
+  animation: cogWhisperIn 0.35s ease-out;
+}
+
+.cog-global-strip__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  min-width: 0;
+}
+
+.cog-global-strip__row--head {
+  flex-wrap: nowrap;
+}
+
+.cog-global-strip__row--engines {
+  width: 100%;
+}
+
+.cog-global-strip__row--foot {
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem 0.75rem;
 }
 
 .cog-global-strip__brand {
@@ -143,19 +217,37 @@
   animation: cogBlink 1.8s infinite;
 }
 
-.cog-global-strip__engines {
-  display: flex;
-  flex-wrap: wrap;
+.cog-global-strip__row--engines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
   gap: 0.35rem;
-  flex: 1;
+  width: 100%;
 }
 
 .cog-global-strip__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
   font-family: var(--font-mono);
   font-size: 0.55rem;
   letter-spacing: 0.3px;
   color: var(--text-tertiary, var(--text3));
   text-transform: uppercase;
+  line-height: 1.25;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  padding: 0.22rem 0.38rem;
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  border-radius: 3px;
+  background: rgba(7, 12, 20, 0.45);
+}
+
+.cog-global-strip__chip-label {
+  font-size: 0.5rem;
+  letter-spacing: 0.8px;
+  color: var(--text-tertiary, var(--text3));
 }
 
 .cog-global-strip__chip strong {
@@ -172,6 +264,130 @@
   font-family: var(--font-mono);
   font-size: 0.55rem;
   color: var(--text-tertiary, var(--text3));
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+
+.cog-global-strip__awareness-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.28);
+  border-radius: 4px;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cog-global-strip__awareness-btn:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+}
+
+.cog-global-strip--compact {
+  position: static;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  margin: 0 0 0.65rem;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+}
+
+.cog-global-strip--compact .cog-mobile-summary {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(7, 12, 20, 0.85);
+}
+
+/* ── Desktop responsivo (UI-DESKTOP-003) — não afeta mobile (--compact) ── */
+
+/* Notebook compacto ≤1366px — apenas tablet expandido */
+@media (min-width: 768px) and (max-width: 1366px) {
+  .cog-global-strip--tablet {
+    padding: 0.45rem 0.65rem;
+    gap: 0.35rem;
+  }
+
+  .cog-global-strip__row--engines {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .cog-global-strip__row--foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cog-global-strip__awareness-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Notebook 1280–1600px — duas linhas visuais (engines + foot separados) */
+@media (min-width: 768px) and (max-width: 1600px) {
+  .cog-global-strip--tablet .cog-global-strip__row--foot {
+    border-top: 1px solid rgba(0, 212, 255, 0.08);
+    padding-top: 0.35rem;
+  }
+}
+
+/* Desktop largo >1600px — linha única */
+@media (min-width: 1601px) {
+  .cog-global-strip--tablet {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .cog-global-strip__row--head {
+    flex: 0 0 auto;
+  }
+
+  .cog-global-strip__row--engines {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1 1 320px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .cog-global-strip__row--foot {
+    flex: 0 0 auto;
+    width: auto;
+    border-top: none;
+    padding-top: 0;
+    justify-content: flex-end;
+    gap: 0.65rem;
+  }
+
+  .cog-global-strip__chip {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.2rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .cog-global-strip__chip-label::after {
+    content: ':';
+  }
+
+  .cog-global-strip__meta {
+    white-space: nowrap;
+  }
 }
 
 .cog-whispers--multi {
@@ -349,56 +565,81 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Botão consciência total — desktop: fixed; mobile: oculto (integrado no compact card) */
+/*
+ * UI-DESKTOP-005 — Desktop (≥1024px): sussurros cognitivos em fluxo documental.
+ * Causa raiz: .cog-whispers position:fixed (top/right) cobria o botão Atualizar
+ * (.live-dash-actions em LiveDashboardUnifiedPanel).
+ * Tablet/mobile mantêm posicionamento anterior.
+ */
+@media (min-width: 1024px) {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers {
+    position: static;
+    z-index: auto;
+    top: auto;
+    right: auto;
+    left: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 1.125rem;
+    padding: 0 1.25rem;
+    pointer-events: none;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers.cog-whispers--multi {
+    top: auto;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers__item {
+    display: block;
+    width: fit-content;
+    max-width: min(100%, 560px);
+  }
+
+  /* Respiro estrutural: faixa cognitiva → header operacional (Atualizar) */
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec {
+    padding-top: 0;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-header {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-actions {
+    position: relative;
+    z-index: auto;
+    flex-shrink: 0;
+  }
+}
+
+/* Botão consciência total — legado fixed (substituído por faixa inline CERT-01.1) */
 .cog-awareness-trigger {
-  position: fixed;
-  z-index: 4;
-  bottom: 1.5rem;
-  left: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--cyan);
-  background: rgba(7, 12, 20, 0.88);
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  border-radius: 4px;
-  padding: 0.45rem 0.7rem;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: border-color 0.25s, box-shadow 0.25s;
+  display: none;
 }
 
-.cog-awareness-trigger:hover {
-  border-color: var(--cyan);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
-}
+/* Em mobile a faixa compacta substitui o badge fixed */
+@media (max-width: 767px) {
+  .cog-global-strip:not(.cog-global-strip--compact) {
+    position: static;
+    z-index: auto;
+    padding: 0.25rem 0.65rem;
+    gap: 0.35rem;
+  }
 
-/* Em mobile o badge fixed invade a navegação — ocultar */
-@media (max-width: 768px) {
-  .cog-awareness-trigger {
+  .cog-global-strip__row--engines {
     display: none;
   }
-  /* Whispers não devem cobrir conteúdo em telas pequenas */
+
+  .cog-global-strip__meta {
+    font-size: 0.5rem;
+  }
+
   .cog-whispers {
     top: auto;
     bottom: 4.5rem;
     right: 0.75rem;
     max-width: 240px;
-  }
-  /* Global strip mais compacto em mobile */
-  .cog-global-strip {
-    padding: 0.25rem 0.65rem;
-    gap: 0.35rem;
-  }
-  .cog-global-strip__engines {
-    display: none; /* evitar overflow horizontal em 360px */
-  }
-  .cog-global-strip__meta {
-    font-size: 0.5rem;
   }
 }
 
