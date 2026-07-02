@@ -197,7 +197,24 @@ Seja conciso e acionável. Máximo 600 palavras.`;
   const body = docContext ? `${prompt}\n\n${docContext}` : prompt;
   const fullPrompt = `${IMPETUS_IA_SYSTEM_PROMPT_FULL}\n\n---\n\n${body}`;
 
-  return await ai.chatCompletion(fullPrompt, { max_tokens: 1000 });
+  const raw = await ai.chatCompletion(fullPrompt, {
+    max_tokens: 1000,
+    user: opts.user || null,
+    channel: 'smart_summary_generation',
+    metadata: { skipIngress: true },
+    billing: opts.companyId ? { companyId: opts.companyId, userId: opts.userId } : undefined
+  });
+  return sanitizeGeneratedSummary(raw);
+}
+
+/** Evita expor negações RBAC do gateway como texto de resumo no chat/dashboard. */
+function sanitizeGeneratedSummary(text) {
+  const s = String(text || '').trim();
+  if (!s) return s;
+  if (/^FALLBACK:/i.test(s)) return null;
+  if (/não possui permissão VIEW_/i.test(s)) return null;
+  if (/Pedido bloqueado pela política de segurança IMPETUS/i.test(s)) return null;
+  return s;
 }
 
 /**
@@ -222,7 +239,7 @@ async function buildSmartSummary(userId, userName, companyId, user = null) {
 
       const ctx = user ? userContext.buildUserContext(user) : null;
 
-      const summary = await generateSummary({
+      let summary = await generateSummary({
         userName: userName || 'Usuário',
         userId,
         companyId,
@@ -234,6 +251,11 @@ async function buildSmartSummary(userId, userName, companyId, user = null) {
         userCtx: ctx,
         user,
       });
+      if (!summary) {
+        summary = isWeekly
+          ? `**Resumo semanal**\n\nNão há dados suficientes para um relatório completo neste momento. Consulte o dashboard operacional para indicadores do seu turno.`
+          : `**Resumo do dia**\n\nNão há dados suficientes para um relatório completo neste momento. Consulte o dashboard operacional para indicadores do seu turno.`;
+      }
 
       const traceId = uuidv4();
       aiAnalytics.enqueueAiTrace({

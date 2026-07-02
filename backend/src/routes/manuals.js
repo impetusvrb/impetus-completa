@@ -7,9 +7,11 @@ const db = require('../db');
 const manualsService = require('../services/manuals');
 const { requireAuth, requireCompanyId } = require('../middleware/auth');
 
+const uploadPaths = require('../config/uploadPaths');
+
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../uploads');
+    const uploadDir = uploadPaths.root();
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);

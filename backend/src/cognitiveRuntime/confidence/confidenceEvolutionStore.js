@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../../data/confidence-evolution');
+const { dataSubdir } = require('../../config/impetusHome');
+const DATA_DIR = dataSubdir('confidence-evolution');
 
 function load(tenantId) {
   try {

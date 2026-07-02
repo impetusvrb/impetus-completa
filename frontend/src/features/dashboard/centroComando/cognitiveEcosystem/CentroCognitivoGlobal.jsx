@@ -13,9 +13,14 @@ function MetricCell({ label, value, accent, pulse, numeric }) {
   );
 }
 
-export default function CentroCognitivoGlobal({ centro, status }) {
+export default function CentroCognitivoGlobal({ centro, status, dataState }) {
   if (!centro) return null;
-  const active = status === 'ANALISANDO' || status === 'ANALYZING';
+  const awaiting =
+    dataState === 'empty' ||
+    dataState === 'tenant_empty' ||
+    status === 'AGUARDANDO_DADOS' ||
+    centro.global_efficiency_pct == null;
+  const active = !awaiting && (status === 'ANALISANDO' || status === 'ANALYZING');
 
   return (
     <section className="cog-nucleus" aria-label="Centro Cognitivo IMPETUS">
@@ -24,10 +29,15 @@ export default function CentroCognitivoGlobal({ centro, status }) {
           <span className="cog-nucleus__dot" aria-hidden />
           <h2 className="cog-nucleus__title">CENTRO COGNITIVO IMPETUS</h2>
           <span className={`cog-nucleus__status cog-nucleus__status--${active ? 'live' : 'warn'}`}>
-            {status || 'SINCRONIZANDO'}
+            {awaiting ? 'AGUARDANDO DADOS' : status || 'SINCRONIZANDO'}
           </span>
         </div>
-        <p className="cog-nucleus__sub">Cérebro operacional · consciência organizacional · monitoramento contínuo</p>
+        <p className="cog-nucleus__sub">
+          {awaiting
+            ? 'Sem telemetria ou ordens operacionais — cadastre equipamentos e produção na Base Estrutural'
+            : 'Cérebro operacional · consciência organizacional · monitoramento contínuo'}
+        </p>
+        {!awaiting && (
         <div className="cog-nucleus__deltas">
           <span className="cog-nucleus__delta cog-nucleus__delta--up">
             Produtividade {(centro.productivity_delta_pct > 0 ? '+' : '') + (centro.productivity_delta_pct ?? 1.2)}%
@@ -37,7 +47,11 @@ export default function CentroCognitivoGlobal({ centro, status }) {
           </span>
           <span className="cog-nucleus__delta">Risco Δ {centro.risk_delta > 0 ? '+' : ''}{centro.risk_delta?.toFixed?.(1) ?? centro.risk_delta}</span>
         </div>
+        )}
       </header>
+      {awaiting ? (
+        <p className="cog-nucleus__empty">Nenhum KPI operacional disponível — estado honesto (sem simulação).</p>
+      ) : (
       <div className="cog-nucleus__grid">
         <MetricCell
           label="Eficiência global"
@@ -62,6 +76,7 @@ export default function CentroCognitivoGlobal({ centro, status }) {
           accent="amber"
         />
       </div>
+      )}
     </section>
   );
 }

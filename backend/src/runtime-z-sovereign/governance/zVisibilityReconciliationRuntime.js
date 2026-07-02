@@ -130,14 +130,23 @@ function reconcileVisibility(input = {}) {
 
         const govComplete = module_access_governance?.structural_complete === true;
         const govBypass = module_access_governance?.executive_structural_bypass === true;
+        const govAuthoritative =
+          module_access_governance?.engine === 'moduleAccessGovernanceEngine' ||
+          module_access_governance?.cadastro_fiel === true;
 
-        if (govComplete || govBypass) {
+        if ((govComplete || govBypass) && !govAuthoritative) {
           governedSet.add(expectedKey);
           addedModules.push(expectedKey);
           trace.steps.push({
             step: 'additive_reconciliation',
             module: expectedKey,
             reason: govComplete ? 'structural_complete_domain_match' : 'executive_bypass_domain_match'
+          });
+        } else if (govAuthoritative) {
+          trace.steps.push({
+            step: 'reconciliation_skipped',
+            module: expectedKey,
+            reason: 'module_access_governance_authoritative'
           });
         } else {
           trace.steps.push({

@@ -1,0 +1,27 @@
+{
+  "certification": "CERT-ENTERPRISE-PROVISIONING-01",
+  "status": "CERTIFICADO",
+  "type": "documental",
+  "executed_at": "2026-07-01T00:00:00.000Z",
+  "code_changes": false,
+  "artifacts": [
+    "docs/CERT-ENTERPRISE-PROVISIONING-01.md",
+    "docs/enterprise/MANUAL-PROVISIONAMENTO.md",
+    "docs/enterprise/CHECKLIST-PROVISIONAMENTO.md",
+    "docs/enterprise/VM-SPECIFICATION.md",
+    "docs/enterprise/HANDOFF-INFRASTRUCTURE.md"
+  ],
+  "operational_sequence": [
+    "ENV-QUALIFICATION (requisitos)",
+    "PROVISIONING-01 (spec oficial)",
+    "STAGING-01 (VM provisionada e validada)",
+    "ROLLBACK-01 (re-exec)",
+    "VALIDATION-01 (re-exec)",
+    "GO-LIVE"
+  ],
+  "pending": [
+    "Provisionar VM conforme HANDOFF-INFRASTRUCTURE.md",
+    "Preencher inventário em provisioning-01/",
+    "Executar staging-provisioning até APROVADA"
+  ]
+}

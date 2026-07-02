@@ -1,0 +1,15 @@
+{
+  "route": "/app/centro-previsao-operacional",
+  "probes": [
+    "GET /api/dashboard/forecasting/health"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/forecasting/health",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-26T01:52:10.014Z"
+}

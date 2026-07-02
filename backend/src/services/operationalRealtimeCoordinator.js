@@ -1,6 +1,6 @@
 const db = require('../db');
 const geminiService = require('./geminiService');
-const unifiedMessaging = require('./unifiedMessagingService');
+const chatOperationalGovernance = require('./governanceAdapters/chatOperationalGovernanceAdapter');
 const { filterUsersByAccess } = require('./roleAccessPolicy');
 
 const REMINDER_ADVANCE_MIN = parseInt(process.env.IMPETUS_TASK_REMINDER_ADVANCE_MIN || '70', 10);
@@ -97,13 +97,40 @@ async function saveTaskWatchers(taskId, users = []) {
   }
 }
 
-async function notifyUsers(companyId, users, message) {
-  for (const user of users) {
-    try {
-      await unifiedMessaging.sendToUser(companyId, user.id, message, { type: 'operational_event' });
-    } catch (err) {
-      console.warn('[OPER_REALTIME] notify:', err?.message);
+async function notifyUsers(companyId, users, message, routing = {}) {
+  try {
+    const result = await chatOperationalGovernance.dispatchChatRealtimeNotification(companyId, {
+      users,
+      message,
+      routing,
+      eventType: routing.event_type || 'operational_event',
+      severity: routing.severity || 'medium',
+      type: 'operational_event'
+    });
+
+    if (result.skipped) {
+      console.warn('[OPER_REALTIME] notify skipped:', result.reason);
+      return { notified: 0, mode: 'skipped' };
     }
+
+    if (result.mode === 'governance') {
+      return {
+        notified: result.distribution?.executed || 0,
+        mode: 'governance',
+        policyId: result.policyId
+      };
+    }
+
+    const legacy = result.legacy || {};
+    const notified = Array.isArray(legacy.results)
+      ? legacy.results.filter((r) => r.ok).length
+      : legacy.ok
+        ? users.length
+        : 0;
+    return { notified, mode: result.mode || 'shadow', policyId: result.policyId };
+  } catch (err) {
+    console.warn('[OPER_REALTIME] notify:', err?.message);
+    return { notified: 0, mode: 'error', error: err?.message };
   }
 }
 
@@ -134,7 +161,7 @@ async function processChatMessage(payload = {}) {
   const targets = await findUsersByRoles(companyId, notifyRoles);
   const allowedTargets = filterUsersByAccess(senderUser, targets);
   const message = `[IMPETUS IA] Evento: ${routing.event_type} | Severidade: ${routing.severity}\n${String(content).slice(0, 300)}`;
-  await notifyUsers(companyId, allowedTargets, message);
+  await notifyUsers(companyId, allowedTargets, message, routing);
 
   let taskId = null;
   if (routing.should_create_task) {

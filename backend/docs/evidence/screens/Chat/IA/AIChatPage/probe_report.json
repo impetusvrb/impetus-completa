@@ -6,10 +6,10 @@
   "probeResults": [
     {
       "spec": "GET /api/dashboard/me",
-      "status": 401,
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.454Z"
+  "at": "2026-06-25T19:35:08.470Z"
 }

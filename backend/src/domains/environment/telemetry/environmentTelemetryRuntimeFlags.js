@@ -104,7 +104,8 @@ function getTelemetryRuntimeFlagSnapshot() {
     sample_ratio: getEnvironmentTelemetrySampleRatio(),
     batch_max: getEnvironmentTelemetryBatchMax(),
     primary_table: getEnvironmentTelemetryPrimaryPersistence(),
-    edge_buffer_max: getEnvironmentTelemetryEdgeBufferMax()
+    edge_buffer_max: getEnvironmentTelemetryEdgeBufferMax(),
+    outbox_validation: require('./environmentTelemetryOutboxMode').getOutboxModeSnapshot()
   };
 }
 

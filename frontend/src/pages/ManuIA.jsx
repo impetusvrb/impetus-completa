@@ -1,5 +1,6 @@
 /**
  * IMPETUS - ManuIA - Manutenção assistida por IA
+ * UX baseline congelada: frontend/docs/MANUIA_UX_BASELINE.md (MANUIA-UX-BASELINE-001)
  * Pesquisa e renderização de qualquer equipamento por texto
  * Abas: Pesquisa por texto | Assistência Técnica ao Vivo (câmera + IA + dossiê)
  * Fluxo: Pesquisa → IA → Render 3D → Diagnóstico guiado → Concluir sessão
@@ -15,6 +16,7 @@ import LiveTechnicalAssistanceModule from '../modules/live-assistance/LiveTechni
 import AssetManagementModule from '../modules/asset-management/AssetManagementModule';
 import TechnicalLibraryInteligenteModule from '../features/technical-library/TechnicalLibraryInteligenteModule';
 import TechnicalFieldAnalysisModule from '../features/technical-library/TechnicalFieldAnalysisModule';
+import DigitalTwinAppliedModule from '../modules/digital-twin/DigitalTwinAppliedModule';
 import {
   Wrench,
   Search,
@@ -34,7 +36,29 @@ import {
 } from 'lucide-react';
 import './ManuIA.css';
 import ManuiaOperationalKpiStrip from '../features/manutencao-ia/ManuiaOperationalKpiStrip';
+import ManuiaActionCenter from '../features/manutencao-ia/ManuiaActionCenter';
 import { isStrictAdminRole } from '../utils/roleUtils';
+
+function useIsMobileNav() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const fn = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  }, []);
+  return isMobile;
+}
+
+const MODULE_TABS = [
+  { id: 'search', icon: Search, label: 'Pesquisa', labelDesktop: 'Pesquisa por texto' },
+  { id: 'vision3d', icon: Camera, label: 'Assistência Técnica ao Vivo' },
+  { id: 'asset-management', icon: TrendingUp, label: 'Gestão de Ativos' },
+  { id: 'field-analysis', icon: ImageIcon, label: 'Análise Foto/Vídeo' },
+  { id: 'digital-twin', icon: Cpu, label: 'Gêmeo Digital' }
+];
 
 function isStrictAdmin() {
   try {
@@ -56,6 +80,7 @@ const SYMPTOM_CHIPS = [
 
 export default function ManuIA({ embedded = false }) {
   const navigate = useNavigate();
+  const isMobileNav = useIsMobileNav();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('search');
   const [equipmentQuery, setEquipmentQuery] = useState('');
@@ -83,6 +108,8 @@ export default function ManuIA({ embedded = false }) {
   const suggestionsRef = useRef(null);
   const linkedMachineIdRef = useRef(null);
   const sessionIdRef = useRef(null);
+  const searchSectionRef = useRef(null);
+  const [uploadTrigger, setUploadTrigger] = useState(0);
 
   const onSpeechResult = useCallback((text) => {
     setEquipmentQuery((q) => (text ? text.trim() : q));
@@ -281,11 +308,48 @@ export default function ManuIA({ embedded = false }) {
     setShowOSModal(true);
   }, []);
 
+  const goSearch = useCallback(() => {
+    setActiveTab('search');
+    window.setTimeout(() => searchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  }, []);
+
+  const goLive = useCallback(() => {
+    setActiveTab('vision3d');
+  }, []);
+
+  const goUpload = useCallback(() => {
+    setActiveTab('vision3d');
+    window.setTimeout(() => setUploadTrigger((n) => n + 1), 120);
+  }, []);
+
+  const handleQrSearch = useCallback(
+    (code) => {
+      setEquipmentQuery(code);
+      setActiveTab('search');
+      window.setTimeout(() => handleSearch(code), 100);
+    },
+    [handleSearch]
+  );
+
+  const moduleTabs = isStrictAdmin()
+    ? [
+        ...MODULE_TABS,
+        {
+          id: 'technical-library',
+          icon: Library,
+          label: 'Biblioteca técnica inteligente',
+          labelDesktop: 'Biblioteca técnica inteligente'
+        }
+      ]
+    : MODULE_TABS;
+
+  const isPrimaryTab = activeTab === 'search' || activeTab === 'vision3d';
+
   const explodeFactor = viewMode === 'exploded' ? 0.6 : 0;
 
   const body = (
     <>
-      <div className="manuia">
+      <div className={`manuia${embedded ? ' manuia--embedded' : ''}`}>
         <header className="manuia-header">
           <div className="manuia-header__left">
             <div className="manuia-header__icon">
@@ -298,55 +362,72 @@ export default function ManuIA({ embedded = false }) {
           </div>
         </header>
 
+        <ManuiaActionCenter
+          activeMode={isPrimaryTab ? activeTab : null}
+          onSearch={goSearch}
+          onLiveAssistance={goLive}
+          onUploadImage={goUpload}
+          onQrCodeSubmit={handleQrSearch}
+        />
+
         <ManuiaOperationalKpiStrip
           machinesCount={machines.length}
           emergencyCount={emergencyEvents.length}
           refreshKey={kpiRefresh}
         />
 
-        <div className="manuia-tabs">
+        {isMobileNav ? (
+          <nav className="manuia-tools-stack" aria-label="Ferramentas ManuIA">
+            {MODULE_TABS.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                className={`manuia-tools-stack__item${activeTab === id ? ' manuia-tools-stack__item--active' : ''}`}
+                onClick={() => {
+                  if (id === 'search') goSearch();
+                  else if (id === 'vision3d') goLive();
+                  else setActiveTab(id);
+                }}
+              >
+                <Icon size={18} strokeWidth={1.75} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <div className="manuia-tabs" role="tablist" aria-label="Ferramentas ManuIA">
+            {moduleTabs.map(({ id, icon: Icon, label, labelDesktop }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === id}
+                className={`manuia-tab ${activeTab === id ? 'manuia-tab--active' : ''}`}
+                onClick={() => setActiveTab(id)}
+              >
+                <Icon size={18} /> {labelDesktop || label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!isPrimaryTab && (
           <button
             type="button"
-            className={`manuia-tab ${activeTab === 'search' ? 'manuia-tab--active' : ''}`}
+            className="manuia-back-primary manuia-back-primary--mobile"
             onClick={() => setActiveTab('search')}
           >
-            <Search size={18} /> Pesquisa por texto
+            ← Voltar ao início
           </button>
-          <button
-            type="button"
-            className={`manuia-tab ${activeTab === 'vision3d' ? 'manuia-tab--active' : ''}`}
-            onClick={() => setActiveTab('vision3d')}
-          >
-            <Camera size={18} /> Assistência Técnica ao Vivo
-          </button>
-          <button
-            type="button"
-            className={`manuia-tab ${activeTab === 'asset-management' ? 'manuia-tab--active' : ''}`}
-            onClick={() => setActiveTab('asset-management')}
-          >
-            <TrendingUp size={18} /> Gestão de Ativos
-          </button>
-          <button
-            type="button"
-            className={`manuia-tab ${activeTab === 'field-analysis' ? 'manuia-tab--active' : ''}`}
-            onClick={() => setActiveTab('field-analysis')}
-          >
-            <ImageIcon size={18} /> Análise foto/vídeo
-          </button>
-          {isStrictAdmin() && (
-            <button
-              type="button"
-              className={`manuia-tab ${activeTab === 'technical-library' ? 'manuia-tab--active' : ''}`}
-              onClick={() => setActiveTab('technical-library')}
-            >
-              <Library size={18} /> Biblioteca técnica inteligente
-            </button>
-          )}
-        </div>
+        )}
 
         {activeTab === 'technical-library' && isStrictAdmin() ? (
           <section className="manuia-block manuia-block--technical-library">
             <TechnicalLibraryInteligenteModule onBack={() => setActiveTab('search')} />
+          </section>
+        ) : activeTab === 'digital-twin' ? (
+          <section className="manuia-block manuia-block--digital-twin">
+            <DigitalTwinAppliedModule />
           </section>
         ) : activeTab === 'field-analysis' ? (
           <section className="manuia-block manuia-block--field-analysis">
@@ -366,22 +447,25 @@ export default function ManuIA({ embedded = false }) {
           </section>
         ) : activeTab === 'vision3d' ? (
           <section className="manuia-block manuia-block--vision3d">
-            <h2 className="manuia-live-assistance-title">Assistência Técnica ao Vivo</h2>
-            <p className="manuia-block__desc" style={{ marginBottom: 16 }}>
+            <h2 className="manuia-live-assistance-title manuia-live-assistance-title--desktop">Assistência Técnica ao Vivo</h2>
+            <p className="manuia-block__desc manuia-block__desc--desktop" style={{ marginBottom: 16 }}>
               Copiloto com câmera, voz e dossiê técnico: identificação assistida, biblioteca 3D/manuais e orientação passo a passo.
             </p>
             <LiveTechnicalAssistanceModule
               machineId={research?.machine_id || linkedMachineId}
               machineName={research?.equipment?.name}
+              uploadTrigger={uploadTrigger}
               onDiagnosisComplete={(result) => setDiagnosisData({ visionResult: result })}
               onGenerateOS={handleVisionOS}
             />
           </section>
         ) : (
           <>
-        <section className="manuia-block manuia-block--search">
-          <h2><Search size={20} /> Pesquisar equipamento</h2>
-          <p className="manuia-block__desc">
+        <section className="manuia-block manuia-block--search" ref={searchSectionRef} aria-label="Pesquisa de equipamento">
+          <h2 className="manuia-block__title manuia-block__title--desktop">
+            <Search size={20} /> Pesquisar equipamento
+          </h2>
+          <p className="manuia-block__desc manuia-block__desc--desktop-only">
             Digite ou fale o equipamento que vai manter. A IA pesquisa e renderiza o modelo em 3D.
           </p>
           <div className="manuia-search-wrap">
@@ -543,17 +627,22 @@ export default function ManuIA({ embedded = false }) {
           </section>
         )}
 
-        <section className="manuia-block">
-          <h2><ClipboardList size={20} /> Atalhos</h2>
-          <div className="manuia-shortcuts">
-            <button type="button" className="manuia-shortcut" onClick={() => navigate('/diagnostic')}>
-              <ClipboardList size={16} /> Diagnosticar Falha
-            </button>
-            <button type="button" className="manuia-shortcut" onClick={() => navigate('/app/chatbot', { state: { initialMessage: 'Mostre minhas ordens de serviço abertas.' } })}>
-              <Wrench size={16} /> Minhas OS
-            </button>
-          </div>
-        </section>
+          </>
+        )}
+
+        {isPrimaryTab && (
+          <>
+            <section className="manuia-block manuia-block--shortcuts">
+              <h2 className="manuia-block__title--compact"><ClipboardList size={18} /> Atalhos</h2>
+              <div className="manuia-shortcuts">
+                <button type="button" className="manuia-shortcut" onClick={() => navigate('/diagnostic')}>
+                  <ClipboardList size={16} /> Diagnosticar Falha
+                </button>
+                <button type="button" className="manuia-shortcut" onClick={() => navigate('/app/chatbot', { state: { initialMessage: 'Mostre minhas ordens de serviço abertas.' } })}>
+                  <Wrench size={16} /> Minhas OS
+                </button>
+              </div>
+            </section>
           </>
         )}
       </div>

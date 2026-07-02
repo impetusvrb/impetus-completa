@@ -16,6 +16,7 @@ import {
   Sparkles, ArrowUpRight, ArrowDownRight, Building2, Eye, EyeOff
 } from 'lucide-react';
 import './ExecutiveDashboard.css';
+import { syncPresentationContext, fetchPresentationContext } from '../../conversationContext/presentationContextClient';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -90,6 +91,19 @@ export default function ExecutiveDashboard() {
     const interval = setInterval(() => setCurrentTime(formatTime()), 30000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    void fetchPresentationContext().then((ctx) => {
+      if (ctx?.enabled === true) setModoApresentacao(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    void syncPresentationContext({
+      enabled: modoApresentacao,
+      presentation_level: 'executive'
+    });
+  }, [modoApresentacao]);
 
   const user = (() => { try { return JSON.parse(localStorage.getItem('impetus_user') || '{}'); } catch { return {}; } })();
   const userName = user?.name?.split(' ')[0] || 'Executivo';

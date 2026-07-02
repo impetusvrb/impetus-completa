@@ -6,7 +6,7 @@
 .manuia {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 10px;
 }
 
 .manuia-loading {
@@ -37,38 +37,383 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .manuia-header__left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .manuia-header__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, rgba(30, 144, 255, 0.2), rgba(30, 144, 255, 0.05));
-  border: 1px solid rgba(30, 144, 255, 0.3);
-  border-radius: var(--radius-lg);
-  color: var(--accent-primary, #1E90FF);
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.04));
+  border: 1px solid rgba(0, 212, 255, 0.28);
+  border-radius: 6px;
+  color: var(--cyan, #00d4ff);
+  flex-shrink: 0;
 }
 
 .manuia-header__left h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .manuia-header__left p {
-  margin: 4px 0 0 0;
-  font-size: 0.9rem;
+  margin: 2px 0 0 0;
+  font-size: 0.82rem;
   color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* UX-MANUIA-001/002 — Centro de Ação + Runtime */
+.manuia-action-center {
+  margin: 0;
+}
+
+.manuia-action-center__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.manuia-action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  min-height: 76px;
+  height: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.18));
+  background: var(--bg-panel, rgba(15, 26, 40, 0.85));
+  color: var(--text-primary, #e8eef5);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.manuia-action-tile:active {
+  transform: scale(0.98);
+  background: rgba(17, 29, 46, 0.98);
+}
+
+.manuia-action-tile:hover {
+  border-color: rgba(0, 212, 255, 0.45);
+  background: rgba(17, 29, 46, 0.95);
+}
+
+.manuia-action-tile--active {
+  border-color: rgba(0, 212, 255, 0.55);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(0, 212, 255, 0.15);
+}
+
+.manuia-action-tile svg {
+  color: var(--cyan, #00d4ff);
+  flex-shrink: 0;
+}
+
+.manuia-action-tile--live {
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.manuia-action-tile--live svg {
+  color: var(--green, #00ff88);
+}
+
+.manuia-action-tile--live.manuia-action-tile--active {
+  border-color: rgba(0, 255, 136, 0.55);
+  background: rgba(0, 255, 136, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 136, 0.12);
+}
+
+.manuia-action-tile__title {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.manuia-action-tile__hint {
+  font-size: 0.68rem;
+  color: var(--text-tertiary, #6b7f94);
+  line-height: 1.25;
+}
+
+.manuia-action-qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(4, 8, 14, 0.75);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+.manuia-action-qr {
+  width: 100%;
+  max-width: 420px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary, #0d1520);
+}
+
+.manuia-action-qr__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.manuia-action-qr__head h3 {
+  margin: 0;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.manuia-action-qr__close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.manuia-action-qr__hint {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.manuia-action-qr__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary, #070c14);
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.manuia-action-qr__submit {
+  width: 100%;
+}
+
+.manuia-runtime-panel {
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+  border-radius: 4px;
+  background: rgba(10, 18, 28, 0.55);
+  overflow: hidden;
+}
+
+.manuia-runtime-panel__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.manuia-runtime-panel__status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber, #ffaa00);
+  flex-shrink: 0;
+}
+
+.manuia-runtime-panel__status--online {
+  background: var(--green, #00ff88);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.45);
+}
+
+.manuia-runtime-panel__title {
+  color: var(--cyan, #00d4ff);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.manuia-runtime-panel__summary {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-tertiary);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.manuia-runtime-panel__chev {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.manuia-runtime-panel__body {
+  padding: 0 10px 8px;
+}
+
+.manuia-runtime-panel__loading {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
+.manuia-runtime-panel__kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.manuia-back-primary--mobile {
+  display: none;
+}
+
+/* UX-MANUIA-002A/002B — lista vertical de ferramentas (mobile, render condicional) */
+.manuia-tools-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.manuia-tools-stack__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.18));
+  border-radius: 6px;
+  background: var(--bg-panel, rgba(15, 26, 40, 0.85));
+  color: var(--text-primary, #e8eef5);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+.manuia-tools-stack__item svg {
+  flex-shrink: 0;
+  color: var(--cyan, #00d4ff);
+}
+
+.manuia-tools-stack__item span {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.manuia-tools-stack__item:active {
+  transform: scale(0.99);
+  background: rgba(17, 29, 46, 0.98);
+}
+
+.manuia-tools-stack__item--active {
+  border-color: rgba(0, 212, 255, 0.5);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(0, 212, 255, 0.12);
+}
+
+.manuia-block__title--desktop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: var(--text-primary);
+}
+
+.manuia-block__title--compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+}
+
+.manuia-block__desc--desktop-only {
+  display: block;
+}
+
+.manuia-live-assistance-title--desktop,
+.manuia-block__desc--desktop {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .manuia {
+    gap: 16px;
+  }
+
+  .manuia-header__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .manuia-header__left h1 {
+    font-size: 1.5rem;
+    text-transform: none;
+  }
+
+  .manuia-action-center__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .manuia-action-tile {
+    min-height: 88px;
+    padding: 12px 14px;
+  }
 }
 
 .manuia-tabs {
@@ -146,8 +491,12 @@
   background: linear-gradient(145deg, #162A3A, #1B3447);
   border: none;
   box-shadow: 0 0 0 1px #243848;
-  border-radius: var(--radius-lg);
-  padding: 20px;
+  border-radius: 6px;
+  padding: 14px;
+}
+
+.manuia-block--shortcuts {
+  padding: 12px 14px;
 }
 
 .manuia-block--alert {
@@ -366,7 +715,7 @@
 
 /* ETAPA 1 — Campo de pesquisa central */
 .manuia-block--search {
-  padding: 24px;
+  padding: 12px 14px;
 }
 
 .manuia-search-wrap {
@@ -376,14 +725,14 @@
 .manuia-search-inner {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .manuia-search-input {
   width: 100%;
-  min-height: 56px;
-  padding: 14px 18px;
-  font-size: 1rem;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
   color: var(--text-primary);
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -540,7 +889,7 @@
 .manuia-two-col {
   display: grid;
   grid-template-columns: 1fr 360px;
-  gap: 24px;
+  gap: 14px;
 }
 
 @media (max-width: 1024px) {
@@ -833,4 +1182,186 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+/* UX-MANUIA-002 — Ferramentas avançadas (mobile) */
+.manuia-advanced-tools {
+  border: 1px dashed var(--border-subtle, rgba(0, 212, 255, 0.2));
+  border-radius: 4px;
+  background: rgba(10, 18, 28, 0.4);
+  overflow: hidden;
+}
+
+.manuia-advanced-tools__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.manuia-advanced-tools__chev--open {
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.manuia-advanced-tools__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+
+.manuia-advanced-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.manuia-advanced-tool:active {
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.manuia-advanced-tool--active {
+  border-color: rgba(0, 212, 255, 0.4);
+  color: var(--cyan);
+}
+
+.manuia-advanced-tool svg {
+  flex-shrink: 0;
+  color: var(--cyan);
+}
+
+.manuia-back-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+/* ── ManuIA Campo / mobile embedded ── */
+.manuia--embedded {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.manuia--embedded .manuia-header {
+  padding: 0 4px;
+}
+
+.manuia--embedded .manuia-header__left h1 {
+  font-size: 1.15rem;
+}
+
+.manuia--embedded .manuia-header__left p {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.manuia--embedded .manuia-block--asset-management,
+.manuia--embedded .manuia-block--vision3d,
+.manuia--embedded .manuia-block--digital-twin,
+.manuia--embedded .manuia-block--field-analysis {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .manuia {
+    gap: 8px;
+  }
+
+  .manuia-header__left p {
+    display: none;
+  }
+
+  .manuia-block__title--desktop,
+  .manuia-block__desc--desktop-only {
+    display: none;
+  }
+
+  .manuia-live-assistance-title--desktop,
+  .manuia-block__desc--desktop {
+    display: none;
+  }
+
+  .manuia-block--vision3d {
+    min-height: 0;
+    padding: 0;
+  }
+
+  .manuia-block {
+    padding: 12px;
+  }
+
+  .manuia-block--asset-management {
+    overflow-x: hidden;
+  }
+
+  .manuia-block--vision3d .manuia-live-assistance-title {
+    font-size: 1rem;
+    padding: 12px 10px 6px;
+  }
+
+  .manuia-event-item strong {
+    min-width: 0;
+  }
+
+  .manuia-back-primary--mobile {
+    display: inline-flex;
+  }
+
+  .manuia-shortcuts {
+    gap: 8px;
+  }
+
+  .manuia-shortcut {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .manuia-block--search {
+    padding: 20px;
+  }
+
+  .manuia-block {
+    padding: 20px;
+    border-radius: var(--radius-lg);
+  }
 }

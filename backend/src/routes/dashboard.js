@@ -351,6 +351,7 @@ router.get('/visibility', requireAuth, async (req, res) => {
 });
 
 router.get('/me', requireAuth, async (req, res) => {
+  const perfStart = Date.now();
   try {
     let user = req.user;
     let structuralProfile = null;
@@ -372,19 +373,26 @@ router.get('/me', requireAuth, async (req, res) => {
     let allowedModules = dashboardAccessService.getAllowedModules(user);
     let _moduleAccessGovernanceBlock = null;
     let _moduleAccessContextBlock = null;
-    try {
-      const moduleGov = require('../services/moduleAccessGovernanceEngine');
-      if (moduleGov.isEnabled()) {
-        const govOut = await moduleGov.resolveForUser(user, allowedModules);
-        allowedModules = govOut.visible_modules;
-        _moduleAccessGovernanceBlock = govOut.module_access_governance;
-        _moduleAccessContextBlock = govOut.module_access_context;
-      }
-    } catch (govErr) {
-      console.warn('[MODULE_ACCESS_GOVERNANCE]', govErr?.message ?? govErr);
-    }
+    const moduleGov = require('../services/moduleAccessGovernanceEngine');
     const hierarchyLevel = user.hierarchy_level ?? userContext.buildUserContext(user)?.hierarchy_level ?? 5;
-    const scope = await hierarchicalFilter.resolveHierarchyScope(user);
+    const [govOut, scope] = await Promise.all([
+      (async () => {
+        try {
+          if (moduleGov.isEnabled()) {
+            return await moduleGov.resolveForUser(user, allowedModules);
+          }
+        } catch (govErr) {
+          console.warn('[MODULE_ACCESS_GOVERNANCE]', govErr?.message ?? govErr);
+        }
+        return null;
+      })(),
+      hierarchicalFilter.resolveHierarchyScope(user)
+    ]);
+    if (govOut) {
+      allowedModules = govOut.visible_modules;
+      _moduleAccessGovernanceBlock = govOut.module_access_governance;
+      _moduleAccessContextBlock = govOut.module_access_context;
+    }
 
     const [sections, kpisRaw, personalization] = await Promise.all([
       dashboardVisibility.getVisibilityForUser(hierarchyLevel, user.company_id),
@@ -1522,6 +1530,10 @@ router.get('/me', requireAuth, async (req, res) => {
     } catch (obsErr) {
       console.warn('[IDENTITY_OBSERVABILITY]', obsErr?.message ?? obsErr);
     }
+
+    try {
+      require('../observability/requestPerfMetrics').record('dashboard_me', Date.now() - perfStart);
+    } catch (_) { /* ignore */ }
 
     res.json({
       ...legacyResponse,
@@ -4124,6 +4136,126 @@ router.post('/chat', requireAuth, async (req, res) => {
   }
 });
 
+const path = require('path');
+const fs = require('fs');
+const {
+  createUploadMiddleware,
+  handleUploadError
+} = require('../middleware/impetusUploadMiddleware');
+const uploadObservability = require('../services/uploadObservabilityService');
+
+const dashboardChatUpload = createUploadMiddleware({
+  module: 'dashboard_chat',
+  destination: path.join(__dirname, '../../uploads/chat-multimodal'),
+  allowedGroups: ['image', 'document', 'audio']
+});
+
+/**
+ * POST /dashboard/chat/upload-file
+ * Pré-processa anexo para o chat multimodal (documento → fileContext; imagem → base64).
+ */
+router.post(
+  '/chat/upload-file',
+  requireAuth,
+  dashboardChatUpload.single,
+  handleUploadError('dashboard_chat'),
+  async (req, res) => {
+    const u = req.user;
+    const moduleName = 'dashboard_chat';
+
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'Arquivo obrigatório.', code: 'FILE_MISSING' });
+    }
+    if (!u?.company_id) {
+      return res.status(403).json({ ok: false, error: 'Empresa não identificada.' });
+    }
+
+    uploadObservability.logUploadStart({ module: moduleName, user: u, file: req.file });
+
+    try {
+      const multimodalChatService = require('../services/multimodalChatService');
+      const processed = await multimodalChatService.processUploadedFile(
+        req.file.path,
+        req.file.originalname,
+        u.company_id,
+        { module: moduleName, user: u }
+      );
+
+      if (processed.type === 'image') {
+        const imagePath = processed.filePath || req.file.path;
+        const buf = fs.readFileSync(imagePath);
+        const imageBase64 = buf.toString('base64');
+        uploadObservability.logUploadSuccess({
+          module: moduleName,
+          user: u,
+          file: req.file,
+          extra: { result_type: 'image' }
+        });
+        return res.json({
+          ok: true,
+          type: 'image',
+          imageBase64,
+          fileContext: null
+        });
+      }
+
+      const fileContext = {
+        originalName: processed.originalName || req.file.originalname,
+        extractedText: processed.extractedText || '',
+        type: processed.type || 'document',
+        extractionOk: processed.extractionOk !== false,
+        extractor: processed.extractor || null,
+        extractionError: processed.extractionError || null
+      };
+
+      if (!fileContext.extractionOk) {
+        uploadObservability.logUploadFailure({
+          module: moduleName,
+          user: u,
+          file: req.file,
+          code: 'EXTRACTION_FAILED',
+          message: fileContext.extractionError
+        });
+        return res.status(422).json({
+          ok: false,
+          error:
+            fileContext.extractionError ||
+            'Não foi possível extrair conteúdo deste arquivo. Formato não suportado ou arquivo corrompido.',
+          code: 'EXTRACTION_FAILED',
+          fileContext
+        });
+      }
+
+      uploadObservability.logUploadSuccess({
+        module: moduleName,
+        user: u,
+        file: req.file,
+        extra: { result_type: 'document', text_len: fileContext.extractedText.length }
+      });
+
+      return res.json({
+        ok: true,
+        type: 'document',
+        fileContext
+      });
+    } catch (err) {
+      uploadObservability.logUploadFailure({
+        module: moduleName,
+        user: u,
+        file: req.file,
+        code: err?.code || 'PROCESS_FAILED',
+        message: err?.message
+      });
+      console.error('[DASHBOARD_CHAT_UPLOAD_FILE]', err);
+      return res.status(500).json({
+        ok: false,
+        error: 'Não foi possível processar o arquivo. Tente outro formato ou um ficheiro menor.',
+        code: 'PROCESS_FAILED'
+      });
+    }
+  }
+);
+
 /**
  * POST /dashboard/chat-multimodal
  * Texto + imagem (base64) + contexto de ficheiro; mesma política de reclamação que /dashboard/chat.
@@ -4203,6 +4335,14 @@ router.post('/chat-multimodal', requireAuth, async (req, res) => {
       userName,
       user: u
     });
+
+    if (rawOut && typeof rawOut === 'object' && rawOut.ok === false) {
+      return res.status(422).json({
+        ok: false,
+        error: rawOut.error || rawOut.reply || 'Falha ao processar documento anexado.',
+        code: rawOut.code || 'EXTRACTION_FAILED'
+      });
+    }
 
     let text = '';
     if (typeof rawOut === 'string') text = rawOut;

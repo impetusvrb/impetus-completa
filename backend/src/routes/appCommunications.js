@@ -16,7 +16,8 @@ const notificationCenter = require('../services/notificationCenterService');
 const notificationFederation = require('../services/notificationFederationService');
 const db = require('../db');
 
-const UPLOAD_DIR = path.join(__dirname, '../../..', 'uploads', 'app-communications');
+const uploadPaths = require('../config/uploadPaths');
+const UPLOAD_DIR = uploadPaths.appCommunications();
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const MAX_FILE_MB = parseInt(process.env.APP_COMM_MAX_FILE_MB || '25', 10) * 1024 * 1024;

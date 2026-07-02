@@ -92,8 +92,39 @@ async function _emitDriftDetected({ companyId, userId, sample, driftEval, correl
   );
 }
 
-async function _emitSampleIngested({ companyId, userId, ingestResult, metricKey, correlationId, metadata }) {
+async function _emitSampleIngested({
+  companyId,
+  userId,
+  ingestResult,
+  metricKey,
+  correlationId,
+  metadata,
+  validationCtx
+}) {
   if (!telemetryFlags.isEnvironmentTelemetryBackboneEventsEnabled()) return;
+
+  const outboxMode = require('./environmentTelemetryOutboxMode');
+  const validation = require('./validation/environmentTelemetryOutboxValidationService');
+
+  validation.recordSampleIngress({ company_id: companyId, metric_key: metricKey });
+  validation.recordTimeseriesWrite({
+    company_id: companyId,
+    table: ingestResult.table,
+    row_id: ingestResult.id
+  });
+
+  const decision = outboxMode.evaluateOutboxPublish({ metadata, validationCtx });
+
+  if (decision.shadow_simulated) {
+    validation.recordShadowWouldSuppress(decision);
+  }
+
+  if (!decision.publish) {
+    validation.recordSuppressed({ ...decision, company_id: companyId });
+    return;
+  }
+
+  validation.recordPublished({ company_id: companyId });
   await publishEnvironmentIndustrialEvent(
     {
       event_name: 'environment.telemetry.sample_ingested',
@@ -220,7 +251,12 @@ async function ingestSingle(companyId, userId, body, opts = {}) {
         ingestResult,
         metricKey: coerced.sample.metric_key,
         correlationId,
-        metadata: coerced.metadata
+        metadata: coerced.metadata,
+        validationCtx: {
+          range_breached: rangeEval.breached === true,
+          anomaly_score: anomalyScore,
+          critical: false
+        }
       });
     }
   } catch {

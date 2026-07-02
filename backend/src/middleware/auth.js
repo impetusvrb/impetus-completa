@@ -12,6 +12,26 @@ const { logAction } = require('./audit');
 const { AUTH, ERRORS } = require('../constants/messages');
 const { isAllowPartialEnv } = require('../config/configValidator');
 
+/** Pool PostgreSQL esgotado ou indisponível — não confundir com sessão inválida (401). */
+function isDbUnavailableError(err) {
+  if (!err) return false;
+  const msg = String(err.message || '');
+  return (
+    msg.includes('timeout exceeded when trying to connect') ||
+    err.code === 'ECONNREFUSED' ||
+    err.code === 'ENOTFOUND' ||
+    err.code === '53300' ||
+    err.code === '57P03'
+  );
+}
+
+function throwIfDbUnavailable(err) {
+  if (!isDbUnavailableError(err)) return;
+  const outage = new Error('DATABASE_UNAVAILABLE');
+  outage.code = 'SERVICE_UNAVAILABLE';
+  throw outage;
+}
+
 /**
  * JWT_SECRET — Enterprise Hardening Bloco 6 (A4):
  *   • Produção: secret real OBRIGATÓRIO; ausência aborta processo.
@@ -124,15 +144,8 @@ async function validateSession(token) {
 
     const session = result.rows[0];
 
-    // Atualizar last_activity
-    await db.query(`
-      UPDATE sessions SET last_activity = now() WHERE id = $1
-    `, [session.session_id]);
-
-    // Atualizar last_seen do usuário
-    await db.query(`
-      UPDATE users SET last_seen = now() WHERE id = $1
-    `, [session.user_id]);
+    const { touchSessionActivityAsync } = require('./sessionActivityThrottle');
+    touchSessionActivityAsync(session.session_id, session.user_id);
 
     const sessionUser = applyCanonicalHierarchy({
       id: session.id,
@@ -175,6 +188,7 @@ async function validateSession(token) {
     return sessionUser;
   } catch (err) {
     console.error('[VALIDATE_SESSION_ERROR]', err.message);
+    throwIfDbUnavailable(err);
     return null;
   }
 }
@@ -263,7 +277,8 @@ async function validateJWTAndLoadUser(token) {
       department_resolved_name: u.department_resolved_name || null,
       company_role_dashboard_hint: u.company_role_dashboard_hint || null
     });
-  } catch {
+  } catch (err) {
+    throwIfDbUnavailable(err);
     return null;
   }
 }
@@ -477,6 +492,14 @@ function requireAuth(req, res, next) {
     } catch { /* non-blocking */ }
     next();
   }).catch(err => {
+    if (err?.code === 'SERVICE_UNAVAILABLE' || isDbUnavailableError(err)) {
+      console.error('[AUTH_MIDDLEWARE_ERROR] HTTP_503 SERVICE_UNAVAILABLE', err.message);
+      return res.status(503).json({
+        ok: false,
+        error: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.',
+        code: 'SERVICE_UNAVAILABLE'
+      });
+    }
     console.error('[AUTH_MIDDLEWARE_ERROR]', err.message);
     res.status(500).json({
       ok: false,

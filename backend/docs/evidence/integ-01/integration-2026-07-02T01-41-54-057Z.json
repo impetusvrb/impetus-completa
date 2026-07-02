@@ -1,0 +1,64 @@
+{
+  "certification": "INTEG-01",
+  "executedAt": "2026-07-02T01:41:53.900Z",
+  "parts": {},
+  "ncs": [
+    {
+      "id": "NC-INT-002",
+      "severity": "Média",
+      "message": "Event Backbone cognitivo opera sem integração directa ao Event Governance",
+      "part": "backbone",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-001",
+      "severity": "Média",
+      "message": "Cognitive Controller não integra directamente com Event Governance v1",
+      "part": "cognitive",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-006",
+      "severity": "Média",
+      "message": "Pulse Cognitive mantém governança interna paralela ao Event Governance v1",
+      "part": "cognitive",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-004",
+      "severity": "Média",
+      "message": "operationalActionExecutor envia via unifiedMessaging sem governance adapter (CHAT_OPERATIONAL não wired)",
+      "part": "bypass",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-005",
+      "severity": "Baixa",
+      "message": "Políticas CHAT_OPERATIONAL e NC_BRIDGE_MIRROR sem adapter dedicado activo",
+      "part": "bypass",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-003",
+      "severity": "Baixa",
+      "message": "Frontend não consome APIs /api/audit/event-governance/*",
+      "part": "frontend",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-007",
+      "severity": "Baixa",
+      "message": "Todos os adapters em shadow por defeito — migração activa requer flags EVENT_GOVERNANCE_* por domínio",
+      "part": "integration",
+      "status": "OPEN"
+    }
+  ],
+  "latency_ms": 9.79,
+  "decision": "CERTIFICADO COM RESSALVAS",
+  "summary": {
+    "passed": 29,
+    "failed": 0,
+    "ncs": 7,
+    "blocking": 0
+  }
+}

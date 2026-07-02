@@ -76,6 +76,8 @@ export default function NexusIACustos() {
     return 'tokens';
   });
   const [walletData, setWalletData] = useState(null);
+  const [billingEngine, setBillingEngine] = useState(null);
+  const [billingLedger, setBillingLedger] = useState([]);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletErr, setWalletErr] = useState('');
   const [thresholdInput, setThresholdInput] = useState('');
@@ -111,13 +113,21 @@ export default function NexusIACustos() {
     setWalletLoading(true);
     setWalletErr('');
     try {
-      const r = await nexusWallet.getDashboard({ ledger_limit: 60 });
-      setWalletData(r.data);
-      const th = r.data?.wallet?.low_balance_threshold_credits;
+      const [dash, engine, ledger] = await Promise.all([
+        nexusWallet.getDashboard({ ledger_limit: 60 }),
+        nexusWallet.getBillingEngineDashboard().catch(() => null),
+        nexusWallet.getBillingLedger({ limit: 80 }).catch(() => null)
+      ]);
+      setWalletData(dash.data);
+      setBillingEngine(engine?.data?.ok ? engine.data : null);
+      setBillingLedger(ledger?.data?.entries || []);
+      const th = dash.data?.wallet?.low_balance_threshold_credits;
       if (th != null) setThresholdInput(String(th));
     } catch (e) {
       setWalletErr(e?.apiMessage || e?.response?.data?.error || e?.message || 'Erro ao carregar carteira.');
       setWalletData(null);
+      setBillingEngine(null);
+      setBillingLedger([]);
     } finally {
       setWalletLoading(false);
     }
@@ -386,8 +396,25 @@ export default function NexusIACustos() {
                 <div className="nexus-custos-cards">
                   <div className="nexus-custos-card nexus-custos-card--highlight">
                     <span className="nexus-custos-card-label">Saldo (créditos internos)</span>
-                    <strong>{formatCredits(walletData.wallet?.balance_credits)}</strong>
+                    <strong>{formatCredits(billingEngine?.balance_credits ?? walletData.wallet?.balance_credits)}</strong>
+                    {billingEngine?.wallet_id && (
+                      <span className="nexus-wallet-hint" style={{ display: 'block', marginTop: 6, fontSize: 11 }}>
+                        Wallet ID: <code>{billingEngine.wallet_id}</code>
+                      </span>
+                    )}
                   </div>
+                  {billingEngine && (
+                    <>
+                      <div className="nexus-custos-card">
+                        <span className="nexus-custos-card-label">Consumo hoje (engine)</span>
+                        <strong>{formatCredits(billingEngine.consumption_today?.credits)}</strong>
+                      </div>
+                      <div className="nexus-custos-card">
+                        <span className="nexus-custos-card-label">Consumo mês (engine)</span>
+                        <strong>{formatCredits(billingEngine.consumption_month?.credits)}</strong>
+                      </div>
+                    </>
+                  )}
                   <div className="nexus-custos-card">
                     <span className="nexus-custos-card-label">Créditos por R$ 1,00 (recarga)</span>
                     <strong>{formatCredits(walletData.wallet?.credits_per_brl)}</strong>
@@ -533,6 +560,45 @@ export default function NexusIACustos() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                )}
+
+                {billingEngine && billingLedger.length > 0 && (
+                  <>
+                    <h2 className="nexus-wallet-h2">Extrato financeiro (Billing Ledger)</h2>
+                    <p className="nexus-wallet-hint">
+                      Registo append-only — cada débito e recarga da sua empresa, isolado por carteira.
+                    </p>
+                    <div className="nexus-wallet-table-wrap">
+                      <table className="nexus-wallet-table data-table">
+                        <thead>
+                          <tr>
+                            <th>Data</th>
+                            <th>Serviço</th>
+                            <th>Modelo</th>
+                            <th>Créditos</th>
+                            <th>Saldo depois</th>
+                            <th>Request ID</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {billingLedger.map((row) => (
+                            <tr key={row.id}>
+                              <td>{row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : '—'}</td>
+                              <td>{row.service || '—'}</td>
+                              <td className="muted">{row.model || row.provider || '—'}</td>
+                              <td>{formatCredits(row.credits_charged)}</td>
+                              <td>{formatCredits(row.balance_after)}</td>
+                              <td className="muted" style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}>
+                                {row.request_id ? String(row.request_id).slice(0, 12) : '—'}
+                              </td>
+                              <td>{row.status || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
 
                 <h2 className="nexus-wallet-h2">Tabela final de IA (função e custo)</h2>

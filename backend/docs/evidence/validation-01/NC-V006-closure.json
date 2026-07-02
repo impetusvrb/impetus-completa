@@ -1,0 +1,19 @@
+{
+  "nc_id": "NC-V006",
+  "status": "ENCERRADA",
+  "closed_at": "2026-07-01T00:31:02.924Z",
+  "corrective_cert": "CERT-ENTERPRISE-BACKUP-01",
+  "root_cause": "sha256File used fs.readFileSync — Node.js rejects files >2 GiB",
+  "fix": "Streaming SHA-256 with 64 MiB chunks in backup-lib.js",
+  "tests": {
+    "test_backup_enterprise": "3 OK, 0 FAIL",
+    "sparse_file_gt_2gb": "PASS",
+    "production_backup_repair": "backups/backup_20260701_000949"
+  },
+  "evidence": {
+    "database_dump_size_bytes": 2404426188,
+    "manifest_created_at": "2026-07-01T00:31:02.924Z",
+    "validate_manifest": "PASS strict",
+    "restore_dry_run": "PASS"
+  }
+}

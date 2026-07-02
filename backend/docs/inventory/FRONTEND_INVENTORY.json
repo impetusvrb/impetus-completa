@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T12:44:20.954Z",
+  "generatedAt": "2026-06-26T16:40:12.790Z",
   "source": "frontend/src/App.jsx",
   "importCount": 96,
   "guardNames": [
@@ -30,7 +30,7 @@
       "route": "/",
       "screen": "Login",
       "screenFile": "./pages/Login",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [],
       "allowedRoles": null,
@@ -157,7 +157,7 @@
       "route": "/app/ceo",
       "screen": "Dashboard",
       "screenFile": "./pages/Dashboard",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -173,7 +173,7 @@
       "route": "/app/operacional",
       "screen": "Operacional",
       "screenFile": "./pages/Operacional",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -189,7 +189,7 @@
       "route": "/app/registro-inteligente",
       "screen": "RegistroInteligente",
       "screenFile": "./pages/RegistroInteligente",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -388,7 +388,7 @@
       "route": "/app/manutencao/manuia",
       "screen": "ManuIA",
       "screenFile": "./pages/ManuIA",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "ManuIA",
       "guards": [
         "PrivateRoute",
@@ -480,7 +480,7 @@
       "route": "/app/admin/conteudo-empresa",
       "screen": "CompanyAdminSettings",
       "screenFile": "./pages/CompanyAdminSettings",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -531,7 +531,7 @@
       "route": "/app/admin/users",
       "screen": "AdminUsers",
       "screenFile": "./pages/AdminUsers",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -549,7 +549,7 @@
       "route": "/app/admin/implantacao-guia",
       "screen": "ImplementationGuide",
       "screenFile": "./pages/ImplementationGuide",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -603,7 +603,7 @@
       "route": "/app/admin/structural",
       "screen": "AdminStructural",
       "screenFile": "./pages/AdminStructural",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -693,7 +693,7 @@
       "route": "/app/admin/rollout-center",
       "screen": "RolloutCenterHub",
       "screenFile": "./domains/admin/rollout-center/RolloutCenterHub",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -783,7 +783,7 @@
       "route": "/app/admin/audio-logs",
       "screen": "AdminAudioLogs",
       "screenFile": "./pages/AdminAudioLogs",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -817,7 +817,7 @@
       "route": "/app/admin/nexusia-custos",
       "screen": "NexusIACustos",
       "screenFile": "./pages/NexusIACustos",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Custos/Billing",
       "guards": [
         "PrivateRoute",
@@ -835,7 +835,7 @@
       "route": "/app/admin/help-center",
       "screen": "AdminHelpCenter",
       "screenFile": "./pages/AdminHelpCenter",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -1072,7 +1072,7 @@
       "route": "/app/safety/operational/inspection",
       "screen": "SafetyFieldInspectionPage",
       "screenFile": "./domains/safety/routes/SafetyFieldInspectionPage.jsx",
-      "screenFileExists": true,
+      "screenFileExists": false,
       "module": "SST",
       "guards": [
         "Suspense",

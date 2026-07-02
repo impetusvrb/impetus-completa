@@ -2,6 +2,34 @@
   "status": 200,
   "body": {
     "ok": true,
-    "sessions": []
+    "sessions": [
+      {
+        "id": "437d4cac-b166-40a1-aa4e-c00b10b58dbf",
+        "machine_id": null,
+        "work_order_id": null,
+        "session_type": "diagnostic",
+        "started_at": "2026-06-24T14:35:20.630Z",
+        "ended_at": null,
+        "summary": null
+      },
+      {
+        "id": "56cc70f3-390f-4dbb-995f-39f444458d6e",
+        "machine_id": null,
+        "work_order_id": null,
+        "session_type": "diagnostic",
+        "started_at": "2026-06-23T15:51:51.123Z",
+        "ended_at": null,
+        "summary": null
+      },
+      {
+        "id": "725f42a0-d199-4f0b-91d2-b6d846a0cff9",
+        "machine_id": null,
+        "work_order_id": null,
+        "session_type": "diagnostic",
+        "started_at": "2026-06-23T15:47:13.715Z",
+        "ended_at": null,
+        "summary": null
+      }
+    ]
   }
 }

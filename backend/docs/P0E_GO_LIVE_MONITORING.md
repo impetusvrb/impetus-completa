@@ -1,6 +1,6 @@
 # P0E — Go-Live Monitoring
 
-**Gerado:** 2026-06-15T15:31:37.285Z  
+**Gerado:** 2026-06-26T16:39:55.377Z  
 **Modo:** READ ONLY · OBSERVATIONAL ONLY
 
 ## Veredicto
@@ -19,13 +19,13 @@
 ```json
 {
   "go_live_detected": true,
-  "activation_timestamp": "2026-06-12T04:21:34.295Z",
+  "activation_timestamp": "2026-06-25T14:22:01.487Z",
   "pipeline_activated": true,
-  "workers_active": true,
+  "workers_active": false,
   "pipeline_active": true,
-  "first_ioe_at": "2026-06-12T04:21:34.295Z",
-  "first_outbox_delivery_at": "2026-06-12T15:55:10.247Z",
-  "recent_ioe_last_hour": 0,
+  "first_ioe_at": "2026-06-25T14:22:01.487Z",
+  "first_outbox_delivery_at": null,
+  "recent_ioe_last_hour": 5,
   "reason": null,
   "boot_evidence": {
     "event_pipeline_boot_ok": true,
@@ -33,14 +33,10 @@
     "continuous_worker_boot_active": true
   },
   "live_runtime": {
-    "api_reachable": true,
-    "continuous_worker_enabled": true,
-    "continuous_worker_running": true,
-    "worker_status": "RUNNING",
-    "run_count": 15,
-    "last_run_at": "2026-06-15T15:31:23.553Z",
-    "outbox_pending": 0,
-    "outbox_failed": 0
+    "api_reachable": false,
+    "error": "connect ECONNREFUSED 127.0.0.1:4000",
+    "continuous_worker_running": false,
+    "outbox_worker_running": null
   }
 }
 ```

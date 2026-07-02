@@ -1,0 +1,15 @@
+{
+  "route": "/m",
+  "probes": [
+    "GET /api/dashboard/me"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/me",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-25T19:38:10.375Z"
+}

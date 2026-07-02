@@ -1,15 +1,18 @@
 /**
  * Chat Impetus — Multimodal; voz centralizada em useVoiceEngine (sem SpeechSynthesis).
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import CognitiveCompactPresence from '../dashboard/centroComando/cognitiveEcosystem/CognitiveCompactPresence';
+import { CognitivePulseProvider } from '../dashboard/centroComando/cognitiveEcosystem/CognitivePulseContext';
 import { Send, User, Mic, Paperclip, Image, Camera, X } from 'lucide-react';
 import { dashboard } from '../../services/api';
 import { useActivityLog } from '../../hooks/useActivityLog';
 import { useImpetusVoice } from '../../voice/ImpetusVoiceContext';
 import impetusIaAvatar from '../../assets/impetus-ia-avatar.png';
 import SystemInfluenceCard from '../../components/SystemInfluenceCard';
+import { validateFileForModule, formatUploadError, UPLOAD_MODULES } from '../../services/uploadService';
 import './AIChatPage.css';
 
 export default function AIChatPage() {
@@ -17,7 +20,7 @@ export default function AIChatPage() {
   const initialFromState = location.state?.initialMessage || '';
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState(initialFromState);
-  const [loading, setLoading] = useState(true);
+  const [chatStarted, setChatStarted] = useState(false);
   const [sending, setSending] = useState(false);
   const [sensitiveModal, setSensitiveModal] = useState(false);
   const [pendingMessage, setPendingMessage] = useState(null);
@@ -71,49 +74,22 @@ export default function AIChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    const loadSummary = async () => {
-      try {
-        setLoading(true);
-        const r = await dashboard.getSmartSummary();
-        const userName = JSON.parse(localStorage.getItem('impetus_user') || '{}').name || 'Usuário';
-        if (r.data?.ok && r.data?.summary) {
-          const greeting = `${userName}, segue seu resumo:\n\n`;
-          setMessages([
-            {
-              id: 'ai-summary',
-              role: 'assistant',
-              content: greeting + r.data.summary
-            }
-          ]);
-        } else {
-          setMessages([
-            {
-              id: 'ai-greeting',
-              role: 'assistant',
-              content: `Olá, ${userName}! Não há resumo disponível no momento. Em que posso ajudar?`
-            }
-          ]);
-        }
-        log('view', 'ai_chat', null, { loaded_summary: true });
-      } catch (e) {
-        setMessages([
-          {
-            id: 'ai-error',
-            role: 'assistant',
-            content: 'Resumo temporariamente indisponível. Em que posso ajudar?'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSummary();
+  const userName = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('impetus_user') || '{}').name || 'Usuário';
+    } catch {
+      return 'Usuário';
+    }
   }, []);
 
   useEffect(() => {
+    log('view', 'ai_chat', null, { workspace: 'cognitive_chat_split' });
+  }, [log]);
+
+  useEffect(() => {
+    if (!chatStarted || messages.length === 0) return;
     scrollToBottom();
-  }, [messages]);
+  }, [messages, chatStarted]);
 
   const hasMultimodalContent = pendingImage || pendingFileContext;
   const canSend = (input.trim() || hasMultimodalContent) && !sending;
@@ -150,6 +126,7 @@ export default function AIChatPage() {
   const runChatRequest = useCallback(
     async (textForApi, historyBeforeUser, multimodalPayload) => {
       setSending(true);
+      setChatStarted(true);
       if (voiceState.isContinuous) stopSpeaking();
       try {
         let r;
@@ -190,14 +167,18 @@ export default function AIChatPage() {
         }
         const errMsg =
           e.apiMessage || e.response?.data?.fallback || e.response?.data?.error;
+        const errCode = e.response?.data?.code;
         setMessages((m) => [
           ...m,
           {
             id: Date.now() + 1,
             role: 'assistant',
             content:
-              errMsg ||
-              'Parece que houve um problema de conexão. Verifique sua rede e tente novamente.'
+              errCode === 'EXTRACTION_FAILED'
+                ? errMsg ||
+                  'Não foi possível extrair conteúdo deste arquivo. Formato não suportado ou arquivo corrompido.'
+                : errMsg ||
+                  'Parece que houve um problema de conexão. Verifique sua rede e tente novamente.'
           }
         ]);
       } finally {
@@ -334,6 +315,12 @@ export default function AIChatPage() {
     const file = e.target?.files?.[0];
     if (!file) return;
     setUploadError('');
+    const validation = validateFileForModule(file, UPLOAD_MODULES.DASHBOARD_CHAT);
+    if (!validation.ok) {
+      setUploadError(validation.message);
+      e.target.value = '';
+      return;
+    }
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -341,10 +328,19 @@ export default function AIChatPage() {
       if (r.data?.type === 'image') {
         setPendingImage(r.data.imageBase64);
       } else if (r.data?.fileContext) {
-        setPendingFileContext(r.data.fileContext);
+        const fc = r.data.fileContext;
+        if (fc.extractionOk === false) {
+          setUploadError(
+            fc.extractionError ||
+              'Não foi possível extrair conteúdo deste arquivo. Formato não suportado ou arquivo corrompido.'
+          );
+          setPendingFileContext(null);
+        } else {
+          setPendingFileContext(fc);
+        }
       }
     } catch (err) {
-      setUploadError(err?.response?.data?.error || 'Erro ao enviar arquivo');
+      setUploadError(formatUploadError(err));
     }
     e.target.value = '';
   };
@@ -412,6 +408,14 @@ export default function AIChatPage() {
 
   return (
     <Layout>
+      <div className="ia-workspace">
+        <aside className="ia-workspace__cognitive" aria-label="Dashboard cognitivo">
+          <CognitivePulseProvider>
+            <CognitiveCompactPresence />
+          </CognitivePulseProvider>
+        </aside>
+
+        <section className="ia-workspace__conversation" aria-label="Conversa com Impetus IA">
       <div className="ai-chat-page">
         <header className="ai-chat-header">
           <button
@@ -453,10 +457,13 @@ export default function AIChatPage() {
         {wakeToast && <div className="ai-chat-wake-toast">{wakeToast}</div>}
 
         <div className="ai-chat-messages">
-          {loading ? (
-            <div className="ai-chat-loading">
-              <div className="ai-chat-spinner" />
-              <p>Carregando seu resumo...</p>
+          {messages.length === 0 && !sending ? (
+            <div className="ai-chat-empty">
+              <p className="ai-chat-empty__greeting">Olá, {userName}!</p>
+              <p className="ai-chat-empty__hint">
+                O painel cognitivo à esquerda mostra o contexto operacional do seu cargo.
+                Envie uma pergunta quando precisar — não carregamos mensagens automáticas aqui.
+              </p>
             </div>
           ) : (
             messages.map((msg) => (
@@ -514,7 +521,7 @@ export default function AIChatPage() {
           <input
             type="file"
             ref={fileInputRef}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.webp,.gif,.heic,.mp3,.wav,.ogg,.m4a,.aac"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
           />
@@ -534,7 +541,14 @@ export default function AIChatPage() {
         {(pendingImage || pendingFileContext) && (
           <div className="ai-chat-pending">
             {pendingImage && <span>📷 Imagem anexada</span>}
-            {pendingFileContext && <span>📎 {pendingFileContext.originalName}</span>}
+            {pendingFileContext && (
+              <span>
+                📎 {pendingFileContext.originalName}
+                {pendingFileContext.extractedText
+                  ? ` (${pendingFileContext.extractedText.length} caracteres extraídos)`
+                  : ''}
+              </span>
+            )}
             <button
               type="button"
               className="ai-chat-pending-clear"
@@ -686,6 +700,8 @@ export default function AIChatPage() {
             </div>
           </div>
         )}
+      </div>
+        </section>
       </div>
     </Layout>
   );

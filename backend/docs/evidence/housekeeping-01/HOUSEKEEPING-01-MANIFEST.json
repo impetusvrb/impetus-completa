@@ -1,0 +1,17 @@
+{
+  "certification": "CERT-ENTERPRISE-HOUSEKEEPING-01",
+  "status": "CERTIFICADO",
+  "executed_at": "2026-07-01T00:00:00.000Z",
+  "code_changes": false,
+  "nc_v001_decision": "IMPETUS_ADMIN_JWT_SECRET dispensado no perfil Enterprise (ADR-020)",
+  "backlog": ["BL-E01", "BL-E02", "BL-E03"],
+  "artifacts_created": [
+    "docs/CERT-ONPREM-FORENSICS-01.md",
+    "docs/adrs/ADR-020-enterprise-admin-jwt-optional.md",
+    "docs/CERT-ENTERPRISE-HOUSEKEEPING-01.md",
+    "docs/CERTIFICATIONS-INDEX.md",
+    "docs/adrs/INDEX.md"
+  ],
+  "artifacts_modified": ["docs/FUNCTIONAL_MATRIX.md"],
+  "engineering_v1_closed": true
+}

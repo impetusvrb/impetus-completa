@@ -21,7 +21,8 @@ function cid(req) {
   return req.user.company_id;
 }
 
-const uploadRoot = path.join(__dirname, '../../../../uploads/equipment-library');
+const uploadPaths = require('../config/uploadPaths');
+const uploadRoot = uploadPaths.join('equipment-library');
 
 function ensureUploadDir(companyId) {
   const dir = path.join(uploadRoot, String(companyId));

@@ -1,0 +1,15 @@
+{
+  "route": "/app/operacional",
+  "probes": [
+    "GET /api/dashboard/me"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/me",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-26T01:52:09.822Z"
+}

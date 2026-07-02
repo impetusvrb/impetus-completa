@@ -1,0 +1,590 @@
+{
+  "certification": "EVENT-GOVERNANCE-20",
+  "version": "v1",
+  "executedAt": "2026-07-02T01:17:18.972Z",
+  "parts": {
+    "architecture": {
+      "passed": 12,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P1 — Event Backbone (eventGovernanceService) presente",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — Pipeline integra camadas até EG-17 (não EG-18/19)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — Camadas consultivas desacopladas do matching",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core eventGovernanceService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core eventGovernanceExecutionService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceLearningService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceOperationalMemoryService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceExplainabilityService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceIntelligenceService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governancePolicyOptimizationService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceExecutiveInsightsService.js",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — serviço core governanceKnowledgeBaseService.js",
+          "status": "PASS"
+        }
+      ]
+    },
+    "regression": {
+      "passed": 0,
+      "failed": 1,
+      "checks": [
+        {
+          "label": "P2 — regressão 21/21 suites",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        }
+      ]
+    },
+    "feature_flags": {
+      "passed": 7,
+      "failed": 7,
+      "checks": [
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_LEARNING registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_LEARNING default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_MEMORY registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_MEMORY default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_EXPLAINABILITY registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_EXPLAINABILITY default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_INTELLIGENCE registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_INTELLIGENCE default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_POLICY_OPTIMIZATION registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_POLICY_OPTIMIZATION default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_EXECUTIVE_INSIGHTS registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_EXECUTIVE_INSIGHTS default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        },
+        {
+          "label": "P3 — flag EVENT_GOVERNANCE_KNOWLEDGE_BASE registada",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — EVENT_GOVERNANCE_KNOWLEDGE_BASE default OFF",
+          "status": "FAIL",
+          "error": "assert.strictEqual is not a function"
+        }
+      ]
+    },
+    "apis": {
+      "passed": 22,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P4 — rota audit /event-governance/status",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/execution",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/executors",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/operational-alerts",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/ai-proactive",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/tpm",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/executive",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/billing",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/dsr",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/manuia",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/quality",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/sst",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/esg",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/aioi",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/learning",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/memory",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/explainability",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/intelligence",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/policy-optimization",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/executive-insights",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — rota audit /event-governance/knowledge-base",
+          "status": "PASS"
+        },
+        {
+          "label": "P4 — DTOs públicos inalterados (governanceDecisionDto)",
+          "status": "PASS"
+        }
+      ]
+    },
+    "observability": {
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P5 — métrica event_governance_learning_events",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_memory_hits",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_explainability_generated",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_intelligence_runs",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_optimization_runs",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_executive_reports_generated",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — métrica event_governance_knowledge_queries",
+          "status": "PASS"
+        }
+      ]
+    },
+    "performance": {
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P6 — latência evaluatePrepareAndExecute (flags OFF)",
+          "status": "PASS"
+        }
+      ]
+    },
+    "documentation": {
+      "passed": 32,
+      "failed": 1,
+      "checks": [
+        {
+          "label": "P7 — EVENT_GOVERNANCE_01_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_02_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_03_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_04_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_05_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_06_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_07_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_08_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_09_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_10_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_11_REPORT.md",
+          "status": "FAIL",
+          "error": "assertion failed"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_12_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_13_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_14_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_15_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_16_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_17_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_18_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_19_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — relatório certificação placeholder reservado",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_09_DSR_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_10_MANUIA_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_11A_QUALITY_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_11B_SST_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_11C_ESG_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_12_AIOI_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_13_LEARNING_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_14_MEMORY_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_15_EXPLAINABILITY_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_16_INTELLIGENCE_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_17_POLICY_OPTIMIZATION_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_18_EXECUTIVE_INSIGHTS_AUDIT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — EVENT_GOVERNANCE_19_KNOWLEDGE_BASE_AUDIT.md",
+          "status": "PASS"
+        }
+      ]
+    },
+    "architecture_review": {
+      "passed": 3,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P8 — Knowledge Base não importa pipeline de execução",
+          "status": "PASS"
+        },
+        {
+          "label": "P8 — Executive Insights não altera catálogo de políticas",
+          "status": "PASS"
+        },
+        {
+          "label": "P8 — sem serviços órfãos EG-18/19",
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "regression": {
+    "suites": 21,
+    "passed": 21,
+    "failed": 0,
+    "details": [
+      {
+        "file": "EVENT_GOVERNANCE_01.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_02.test.js",
+        "status": "PASS",
+        "tests": 16
+      },
+      {
+        "file": "EVENT_GOVERNANCE_03.test.js",
+        "status": "PASS",
+        "tests": 14
+      },
+      {
+        "file": "EVENT_GOVERNANCE_04_OPERATIONAL.test.js",
+        "status": "PASS",
+        "tests": 15,
+        "note": "timeout pós-conclusão"
+      },
+      {
+        "file": "EVENT_GOVERNANCE_05_AI_PROACTIVE.test.js",
+        "status": "PASS",
+        "tests": 15,
+        "note": "timeout pós-conclusão"
+      },
+      {
+        "file": "EVENT_GOVERNANCE_06_TPM.test.js",
+        "status": "PASS",
+        "tests": 15,
+        "note": "timeout pós-conclusão"
+      },
+      {
+        "file": "EVENT_GOVERNANCE_07_EXECUTIVE.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_08_BILLING.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_09_DSR.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_10_MANUIA.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_11A_QUALITY.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_11B_SST.test.js",
+        "status": "PASS",
+        "tests": 15,
+        "note": "timeout pós-conclusão"
+      },
+      {
+        "file": "EVENT_GOVERNANCE_11C_ESG.test.js",
+        "status": "PASS",
+        "tests": 15,
+        "note": "timeout pós-conclusão"
+      },
+      {
+        "file": "EVENT_GOVERNANCE_12_AIOI.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_13_LEARNING.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_14_MEMORY.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_15_EXPLAINABILITY.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_16_INTELLIGENCE.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_17_POLICY_OPTIMIZATION.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_18_EXECUTIVE_INSIGHTS.test.js",
+        "status": "PASS",
+        "tests": 15
+      },
+      {
+        "file": "EVENT_GOVERNANCE_19_KNOWLEDGE_BASE.test.js",
+        "status": "PASS",
+        "tests": 15
+      }
+    ],
+    "source": "regression-cache.json"
+  },
+  "ncs": [
+    {
+      "id": "NC-EG-001",
+      "severity": "Baixa",
+      "message": "Algumas suites EG não encerram processo Node após conclusão (requer timeout externo)",
+      "part": "regression",
+      "status": "OPEN"
+    }
+  ],
+  "performance": {
+    "evaluatePrepareAndExecute_ms_flags_off": 8.73
+  },
+  "decision": "NÃO CERTIFICADO",
+  "criteria": {
+    "architecture_preserved": true,
+    "event_backbone_preserved": true,
+    "governance_preserved": true,
+    "learning_preserved": true,
+    "memory_preserved": true,
+    "explainability_preserved": true,
+    "intelligence_preserved": true,
+    "policy_optimization_preserved": true,
+    "executive_insights_preserved": true,
+    "knowledge_base_preserved": true,
+    "feature_flags_validated": false,
+    "apis_unchanged": true,
+    "documentation_complete": false,
+    "tests_passing": false
+  },
+  "summary": {
+    "passed": 84,
+    "failed": 9,
+    "regressionPassed": 21,
+    "regressionFailed": 0,
+    "ncs": 1
+  }
+}

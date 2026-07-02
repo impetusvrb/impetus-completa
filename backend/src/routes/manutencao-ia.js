@@ -524,4 +524,10 @@ router.get('/health', manuiaGuard, (req, res) => {
 /** App de extensão ManuIA (PWA / mobile): preferências, inbox, plantão, decisão de alerta */
 router.use('/app', require('./manuiaApp'));
 
+/** Gêmeo Digital Aplicado — módulo desacoplado de diagnóstico industrial com Gemini */
+const dtEnabled = process.env.ENABLE_DIGITAL_TWIN !== 'false';
+if (dtEnabled) {
+  router.use('/digital-twin', require('./digitalTwinApplied'));
+}
+
 module.exports = router;

@@ -11,7 +11,12 @@
  * - VITE_REALTIME_INTERRUPT_RESPONSE
  * - VITE_REALTIME_RESPONSE_DELAY_MS (pausa extra antes de criar resposta — simula «pensar»)
  * - VITE_REALTIME_VOICE_DEBUG=true
+ *
+ * CERT-VOICE-01: parâmetros de VAD/pausas vêm do Conversation Context Engine (perfil por interação).
+ * VITE_REALTIME_MEETING permanece apenas como fallback legado de build.
  */
+import { mapProfileToRealtimeTransport } from '../conversationContext/conversationContextClient';
+
 const REALTIME_PATH = import.meta.env.VITE_REALTIME_WS_PATH || '/impetus-realtime';
 const OUTPUT_SAMPLE_RATE = 24000;
 
@@ -59,10 +64,15 @@ function clampVoiceSpeed(s) {
   return Math.min(1.5, Math.max(0.25, s));
 }
 
-/** Quando true, o cliente envia `response.create` após `responseDelayMs` em `speech_stopped` (pausa natural). */
-function shouldDeferResponseCreateToClient() {
-  if (isRealtimeMeetingMode()) return false;
-  return getRealtimeVoiceRuntimeConfig().responseDelayMs > 0;
+/** Quando true, o cliente envia `response.create` após pausa em `speech_stopped`. */
+function shouldDeferResponseCreateToClient(transportProfile = null) {
+  const tp = transportProfile || mapProfileToRealtimeTransport(null);
+  if (tp.defer_response_create === false) return false;
+  const delayMs =
+    tp.response_delay_ms != null
+      ? tp.response_delay_ms
+      : getRealtimeVoiceRuntimeConfig().responseDelayMs;
+  return delayMs > 0;
 }
 
 function voiceDebugLog(...args) {
@@ -70,6 +80,7 @@ function voiceDebugLog(...args) {
   console.debug('[impetus-realtime-voice]', ...args);
 }
 
+/** @deprecated CERT-VOICE-01 — fallback legado; preferir conversation_profile do servidor */
 function isRealtimeMeetingMode() {
   const v = String(import.meta.env.VITE_REALTIME_MEETING || '').trim().toLowerCase();
   return v === 'true' || v === '1';
@@ -142,69 +153,80 @@ const PT_BR_HARD_LOCK =
 
 const BASE_INSTRUCTIONS = `${VOICE_ASSISTANT_CORE_PT}\n\n${IMPETUS_DATA_GOVERNANCE_PT}\n\n${PT_BR_HARD_LOCK}`;
 
-const MEETING_INSTRUCTIONS =
-  `${VOICE_ASSISTANT_CORE_PT}\n\n${IMPETUS_DATA_GOVERNANCE_PT}\n\n` +
-  'Modo reunião: no máximo uma frase curta por turno; tom ainda mais calmo.\n\n' +
-  PT_BR_HARD_LOCK;
-
 /**
- * Monta o session.update inicial (VAD + instruções). `envInstructions` sobrescreve o texto se não vazio.
- * `serverContextAppend` — texto do GET /dashboard/voice-realtime-context (dados + acesso).
+ * Monta o session.update inicial (VAD + instruções).
+ * @param {string} envInstructions
+ * @param {string} serverContextAppend texto do GET /dashboard/voice-realtime-context
+ * @param {object|null} conversationContext resposta conversation_context / resolveConversationContext
  */
-export function buildImpetusRealtimeSessionUpdate(envInstructions = '', serverContextAppend = '') {
-  const meeting = isRealtimeMeetingMode();
+export function buildImpetusRealtimeSessionUpdate(
+  envInstructions = '',
+  serverContextAppend = '',
+  conversationContext = null
+) {
+  const transport = mapProfileToRealtimeTransport(conversationContext);
   const cfg = getRealtimeVoiceRuntimeConfig();
   const instr = String(envInstructions || '').trim();
-  let instructions = instr || (meeting ? MEETING_INSTRUCTIONS : BASE_INSTRUCTIONS);
+  let instructions = instr || BASE_INSTRUCTIONS;
   const server = String(serverContextAppend || '').trim();
   if (server) {
     instructions = `${instructions}\n\n--- CONTEXTO IMPETUS (servidor: dados reais e limites de acesso) ---\n\n${server}`;
   }
 
-  /* Mais silêncio após o utilizador = menos resposta precoce; reunião ainda mais paciente. */
-  const silenceMs = meeting ? 1020 : 920;
-  const threshold = meeting ? 0.53 : 0.52;
-  const prefixPaddingMs = meeting ? 520 : 480;
-  const deferCreate = shouldDeferResponseCreateToClient();
+  const silenceMs = transport.silence_ms ?? 920;
+  const threshold = transport.threshold ?? 0.52;
+  const prefixPaddingMs = transport.prefix_padding_ms ?? 480;
+  const deferCreate = shouldDeferResponseCreateToClient(transport);
+  const speech = transport.speech_profile || {};
+  const speed = clampVoiceSpeed(
+    speech.speed != null ? speech.speed : cfg.voiceSpeed
+  );
+  const maxTokens = Math.max(
+    16,
+    speech.max_response_tokens != null ? speech.max_response_tokens : cfg.maxResponseTokens
+  );
 
   voiceDebugLog('session.update build', {
-    speed: cfg.voiceSpeed,
+    profile_id: transport.profile_id,
+    speed,
     maxSpeechMs: cfg.maxSpeechMs,
-    maxResponseTokens: cfg.maxResponseTokens,
+    maxResponseTokens: maxTokens,
     interruptResponse: cfg.interruptResponse,
-    responseDelayMs: cfg.responseDelayMs,
+    responseDelayMs: transport.response_delay_ms ?? cfg.responseDelayMs,
     deferResponseCreate: deferCreate,
     silenceMs,
     threshold,
-    prefixPaddingMs
+    prefixPaddingMs,
+    legacy_meeting_flag: isRealtimeMeetingMode()
   });
   const turnDetection = {
     type: 'server_vad',
     threshold,
     prefix_padding_ms: prefixPaddingMs,
     silence_duration_ms: silenceMs,
-    /* Se deferCreate: pausa = VITE_REALTIME_RESPONSE_DELAY_MS antes de response.create (cliente). */
     create_response: !deferCreate,
     interrupt_response: cfg.interruptResponse
   };
 
-  return {
+  const sessionUpdate = {
     type: 'session.update',
     session: {
       instructions,
       input_audio_format: 'pcm16',
       output_audio_format: 'pcm16',
-      speed: cfg.voiceSpeed,
-      max_response_output_tokens: cfg.maxResponseTokens,
-      // Transcrição do microfone em português — reduz confusão com espanhol no pipeline.
+      speed,
+      max_response_output_tokens: maxTokens,
       input_audio_transcription: {
         model: 'whisper-1',
         language: 'pt',
         prompt: 'Português do Brasil. Operador industrial. Não transcrever em espanhol.'
       },
       turn_detection: turnDetection
-    }
+    },
+    _impetus_transport_profile: transport
   };
+
+  return sessionUpdate;
 }
 
 /** @deprecated use buildImpetusRealtimeSessionUpdate — mantido para imports antigos */
@@ -358,6 +380,12 @@ export class OpenaiRealtimeVoiceSession {
     this._maxSpeechGraceMs = 1400;
     /** `response.create` diferido após speech_stopped (pausa antes da IA falar). */
     this._pendingResponseTimer = null;
+    /** CERT-VOICE-01 — perfil de transporte (VAD/pausas) definido pelo Conversation Context Engine */
+    this.transportProfile = mapProfileToRealtimeTransport(null);
+  }
+
+  setTransportProfile(profileOrContext) {
+    this.transportProfile = mapProfileToRealtimeTransport(profileOrContext);
   }
 
   getPhase() {
@@ -420,8 +448,11 @@ export class OpenaiRealtimeVoiceSession {
   /** Agenda resposta após o utilizador calar (só com deferResponseCreate + delay > 0). */
   _scheduleResponseCreateAfterUserSilence() {
     this._clearPendingResponseTimer();
-    if (!shouldDeferResponseCreateToClient()) return;
-    const delayMs = getRealtimeVoiceRuntimeConfig().responseDelayMs;
+    if (!shouldDeferResponseCreateToClient(this.transportProfile)) return;
+    const delayMs =
+      this.transportProfile?.response_delay_ms != null
+        ? this.transportProfile.response_delay_ms
+        : getRealtimeVoiceRuntimeConfig().responseDelayMs;
     if (delayMs <= 0) return;
     this._pendingResponseTimer = setTimeout(() => {
       this._pendingResponseTimer = null;
@@ -534,9 +565,9 @@ export class OpenaiRealtimeVoiceSession {
    */
   _scheduleMicUnsuppress() {
     this._clearUnsuppressTimer();
-    const meeting = isRealtimeMeetingMode();
-    const postDoneMs = meeting ? 650 : 500;
-    const clearTailMs = meeting ? 280 : 200;
+    const tp = this.transportProfile || mapProfileToRealtimeTransport(null);
+    const postDoneMs = tp.post_done_ms ?? 500;
+    const clearTailMs = tp.clear_tail_ms ?? 200;
 
     const armTimeouts = () => {
       this._unsuppressTimer = setTimeout(() => {
@@ -579,7 +610,8 @@ export class OpenaiRealtimeVoiceSession {
 
   /** Ajuste fino de VAD no servidor conforme ruído ambiente (uma vez por sessão). */
   _maybeSendAdaptiveVad() {
-    if (!this.connected || isRealtimeMeetingMode()) return;
+    const tp = this.transportProfile || {};
+    if (!this.connected || tp.adaptive_vad === false) return;
     const n = this._ambientNoiseEma;
     let silence = 700;
     let threshold = 0.48;
@@ -591,7 +623,7 @@ export class OpenaiRealtimeVoiceSession {
       threshold = 0.46;
     }
     const ir = getRealtimeVoiceRuntimeConfig().interruptResponse;
-    const defer = shouldDeferResponseCreateToClient();
+    const defer = shouldDeferResponseCreateToClient(this.transportProfile);
     try {
       this.send({
         type: 'session.update',
@@ -633,6 +665,10 @@ export class OpenaiRealtimeVoiceSession {
         sessionUpdate ||
           buildImpetusRealtimeSessionUpdate(String(import.meta.env.VITE_REALTIME_INSTRUCTIONS || ''), '');
 
+    if (sessionPayload?._impetus_transport_profile) {
+      this.setTransportProfile(sessionPayload._impetus_transport_profile);
+    }
+
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(url);
       this.ws = ws;
@@ -647,8 +683,12 @@ export class OpenaiRealtimeVoiceSession {
       ws.onopen = () => {
         if (!skipSession) {
           try {
-            ws.send(JSON.stringify(sessionPayload));
-            console.info('[impetus-realtime-voice] connected; session.update sent', getRealtimeVoiceRuntimeConfig());
+            const { _impetus_transport_profile: _tp, ...wirePayload } = sessionPayload;
+            ws.send(JSON.stringify(wirePayload));
+            console.info('[impetus-realtime-voice] connected; session.update sent', {
+              ...getRealtimeVoiceRuntimeConfig(),
+              profile_id: this.transportProfile?.profile_id
+            });
           } catch (e) {
             finish(e);
             return;
@@ -788,6 +828,12 @@ export class OpenaiRealtimeVoiceSession {
 
   send(obj) {
     if (!this.connected) throw new Error('WebSocket fechado');
+    if (obj && typeof obj === 'object' && obj._impetus_transport_profile) {
+      this.setTransportProfile(obj._impetus_transport_profile);
+      const { _impetus_transport_profile: _tp, ...wirePayload } = obj;
+      this.ws.send(JSON.stringify(wirePayload));
+      return;
+    }
     this.ws.send(typeof obj === 'string' ? obj : JSON.stringify(obj));
   }
 

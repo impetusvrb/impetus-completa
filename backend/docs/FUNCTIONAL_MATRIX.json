@@ -1,21 +1,21 @@
 {
-  "generatedAt": "2026-06-21T22:19:20.948Z",
+  "generatedAt": "2026-07-01T20:30:00.000Z",
   "methodology": "backend/docs/MANUAL_MATRIZ_FUNCIONAL_REAL.md",
   "stats": {
     "screenCount": 77,
-    "endpointCount": 1098,
+    "endpointCount": 1099,
     "mountCount": 142,
-    "referencedCount": 621,
-    "apiCallCount": 791,
+    "referencedCount": 622,
+    "apiCallCount": 793,
     "unresolvedCount": 0,
     "statusDist": {
-      "AMARELO": 63,
+      "AMARELO": 62,
       "REDIRECT": 5,
-      "VERDE": 9,
-      "SCENARIO_VERDE": 10
+      "VERDE": 10,
+      "SCENARIO_VERDE": 11
     },
-    "certifiedScenarioCount": 10,
-    "lastCertificationAt": "2026-06-22T14:34:45.088Z"
+    "certifiedScenarioCount": 11,
+    "lastCertificationAt": "2026-07-01T20:30:00.000Z"
   },
   "rows": [
     {
@@ -272,7 +272,7 @@
         "ceo",
         "+demais (bloqueia colaborador simples)"
       ],
-      "screenFile": "./features/biblioteca/BibliotecaPage",
+      "screenFile": "./features/biblioteca",
       "guards": [
         "PrivateRoute",
         "SetupGuard",
@@ -488,8 +488,8 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
-      "notes": "Diagnóstico → OS → Histórico",
-      "lastValidatedAt": "2026-06-22",
+      "notes": "Diagnóstico → OS → Histórico | UX-MANUIA-001: redesign mobile UX (Centro de Ação, runtime recolhível, live progressivo) — sem alteração de API",
+      "lastValidatedAt": "2026-06-23",
       "feature": "Diagnóstico → OS → KPIs operacionais"
     },
     {
@@ -508,8 +508,8 @@
       "isLayout": false,
       "loader": "lazy",
       "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/",
-      "notes": "Diagnóstico → OS → Histórico",
-      "lastValidatedAt": "2026-06-22",
+      "notes": "Diagnóstico → OS → Histórico | UX-MANUIA-001: redesign mobile UX (Centro de Ação, runtime recolhível, live progressivo) — sem alteração de API",
+      "lastValidatedAt": "2026-06-23",
       "feature": "PWA extensão ManuIA"
     },
     {
@@ -1425,8 +1425,8 @@
       "status": "AMARELO",
       "isLayout": true,
       "loader": "lazy",
-      "evidence": "backend/docs/evidence/screens/ESG/EnvironmentOperationalLayout/",
-      "notes": "IECP probe OK: 200/-1",
+      "evidence": "backend/docs/evidence/esg/emission-waste-consumption/",
+      "notes": "Emissão / Resíduo / Consumo",
       "lastValidatedAt": "2026-06-22",
       "feature": "Layout operacional ambiental"
     },
@@ -1819,130 +1819,7 @@
         "tested": true,
         "ok": true
       },
-      "uiGap": {
-        "items": [
-          {
-            "id": "UI-MOBILE-001",
-            "screen": "Dashboard Executivo Mobile",
-            "route": "/app/centro-comando",
-            "statusPrevious": "PARCIAL",
-            "status": "VALIDADO",
-            "notes": "Cognitive Core compacto + bottom sheet; conteúdo operacional visível",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_UI_MOBILE_COGNITIVE_CORE.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "UI-CROSSVIEW-002",
-            "screen": "Dashboard Executivo",
-            "route": "/app/centro-comando",
-            "statusPrevious": "EM_AUDITORIA",
-            "status": "VALIDADO",
-            "notes": "Mesmos dados Desktop/Tablet/Mobile; Consciência Total via faixa inline",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_UI_MOBILE_COGNITIVE_CORE.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "UI-DESKTOP-003",
-            "screen": "Dashboard Executivo Desktop/Notebook",
-            "route": "/app/centro-comando",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Faixa Cognitive Core em 3 linhas adaptativas; grid de chips ≤1366px; linha única >1600px",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_UI_DESKTOP_COGNITIVE_CORE.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "UI-DESKTOP-004",
-            "screen": "Dashboard Executivo Desktop",
-            "route": "/app/centro-comando",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Card compacto pós-painel operacional; engines sob demanda; sticky removido; tablet/mobile inalterados",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_UI_DESKTOP_004_COGNITIVE_CORE.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "UI-DESKTOP-005",
-            "screen": "Dashboard Executivo Desktop",
-            "route": "/app/centro-comando",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Sussurros cognitivos em fluxo documental; botão Atualizar totalmente visível e clicável",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_UI_DESKTOP_005_ELEMENTO_OCULTO.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "MOBILE-ANAM-001",
-            "screen": "ANAM / Painel de Voz Mobile",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Avatar e órbitas dimensionados à viewport; centralização flex; sem clipping lateral",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_MOBILE_ANAM_001_CENTER_ALIGNMENT.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "MOBILE-ANAM-002",
-            "screen": "ANAM / Painel de Voz Mobile",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Topbar compacto (~40px); avatar flex crescente; left flex:1; right max-height 38vh; distribuição 10/35/55",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_MOBILE_ANAM_002_LAYOUT_REBALANCE.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "MOBILE-ANAM-003",
-            "screen": "ANAM / Painel de Voz Mobile",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Status pill compacto; erros reais apenas; mensagens transitórias filtradas; retry sem card permanente",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-1_MOBILE_ANAM_003_COMPACT_STATUS.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "MOBILE-ANAM-004",
-            "screen": "ANAM / Painel de Voz Mobile",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Separação DISABLED vs ERROR; flags estruturadas; avatar «Módulo não habilitado»; pill ○ Inativa; erro real «Falha de conexão» + Reconectar",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-2_MOBILE_ANAM_004_STATE_SEPARATION.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "MOBILE-ANAM-004A",
-            "screen": "ANAM / Painel de Voz Mobile",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Auditoria DISABLED; DISABLED>ERROR; avatar placeholder visível; env prod enabled=true (ERROR é falha WebRTC real)",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-3_MOBILE_ANAM_DISABLED_AUDIT.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "ANAM-P0-WAKEWORD-AUDIO-CLEANUP",
-            "screen": "Voz / Wake Word + Sessão ANAM",
-            "route": "/app",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Wake word estrita ok/okay impetus; cooldown 4s pós-close; cleanup barge/RAF/AudioContext; alertas sem overlay",
-            "evidence": "backend/docs/evidence/cert01/CERT-01-4_ANAM_WAKEWORD_AUDIO_CLEANUP.md",
-            "lastValidatedAt": "2026-06-22"
-          },
-          {
-            "id": "REGISTRO-INTELIGENTE-JSONB-FIX",
-            "screen": "Registro Inteligente",
-            "route": "/app/registro-inteligente",
-            "statusPrevious": "ABERTO",
-            "status": "VALIDADO",
-            "notes": "Correção serialização jsonb; POST /api/intelligent-registration persiste sem invalid input syntax for type json",
-            "evidence": "backend/docs/evidence/cert01/CERT-REGISTRO_INTELIGENTE_JSONB_FIX.md",
-            "lastValidatedAt": "2026-06-22"
-          }
-        ]
-      }
+      "uiGap": null
     },
     {
       "domain": "ManuIA",
@@ -2190,6 +2067,76 @@
       ],
       "tenantIsolation": null,
       "uiGap": null
+    },
+    {
+      "domain": "Executive Governance",
+      "scenario": "Executive Baseline Pack — Modo 2 diretoria",
+      "status": "VERDE",
+      "evidence": "backend/docs/evidence/executive/CERT-EXECUTIVE-BASELINE-001.md",
+      "lastValidatedAt": "2026-07-01",
+      "run_id": "cert-executive-baseline-20260701",
+      "flows": [
+        {
+          "feature": "Baseline aplicado a diretor Modo 2",
+          "endpoint": {
+            "method": "GET",
+            "path": "/api/dashboard/me"
+          },
+          "status": "VERDE",
+          "profiles": [
+            "diretor",
+            "ceo"
+          ]
+        },
+        {
+          "feature": "IA + Biblioteca sem tokens manuais",
+          "endpoint": {
+            "method": "internal",
+            "path": "executiveBaselinePack.mergeExecutiveBaselineIntoAuthorizedKeys"
+          },
+          "status": "VERDE"
+        },
+        {
+          "feature": "Gerente/coordenador não recebem baseline",
+          "endpoint": {
+            "method": "internal",
+            "path": "executiveBaselinePack.isExecutiveBaselineEligible"
+          },
+          "status": "VERDE",
+          "profiles": [
+            "gerente",
+            "coordenador",
+            "supervisor"
+          ]
+        },
+        {
+          "feature": "Domain isolation pós-baseline",
+          "endpoint": {
+            "method": "internal",
+            "path": "domainIsolationGuard.filterModules"
+          },
+          "status": "VERDE"
+        }
+      ],
+      "tenantIsolation": {
+        "tested": true,
+        "ok": true,
+        "notes": "finance axis blocks manuia with baseline applied"
+      },
+      "uiGap": null
     }
-  ]
+  ],
+  "lastUxManuia001": "2026-06-23",
+  "executiveBaselineGovernance": {
+    "component": "backend/src/services/executiveBaselinePack.js",
+    "pack": [
+      "ai",
+      "biblioteca",
+      "audit",
+      "operational",
+      "anomaly_detection"
+    ],
+    "eligibility": "role in {ceo,diretor} AND hierarchy_level <= 1 AND structural_complete",
+    "certifiedAt": "2026-07-01"
+  }
 }

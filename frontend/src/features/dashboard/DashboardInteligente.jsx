@@ -91,8 +91,10 @@ export default function DashboardInteligente({ embed = false }) {
   const kpisPending = kpisLoading && kpis.length === 0 && !kpisError;
   const KPI_ICONS = { message: MessageSquare, brain: Brain, map: MapPin, trending: TrendingUp, alert: AlertTriangle, target: Target, users: Users, activity: Activity, zap: Zap };
 
-  const smartSummary = useSmartSummary(true);
-  useEffect(() => { smartSummary.fetchAndShow(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const smartSummary = useSmartSummary(!embed);
+  useEffect(() => {
+    if (!embed) smartSummary.fetchAndShow();
+  }, [embed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const areaLabel =
     dashboardPayload?.profile_label ||

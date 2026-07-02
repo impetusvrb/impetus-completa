@@ -1,0 +1,15 @@
+{
+  "route": "/app/logistica-inteligente",
+  "probes": [
+    "GET /api/logistics-intelligence/dashboard"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/logistics-intelligence/dashboard",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:27:46.703Z"
+}

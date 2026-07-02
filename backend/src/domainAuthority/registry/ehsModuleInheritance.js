@@ -59,7 +59,7 @@ const MODULE_INHERITANCE_CATALOG = Object.freeze({
   capa_quality: { level: INHERITANCE.EXCLUSIVE, owner_axis: 'quality' },
 
   manuia: { level: INHERITANCE.EXCLUSIVE, owner_axis: 'maintenance' },
-  hr_intelligence: { level: INHERITANCE.EXCLUSIVE, owner_axis: 'hr' }
+  hr_intelligence: { level: INHERITANCE.EXCLUSIVE, owner_axis: 'hr', shared_with: ['executive', 'governance'] }
 });
 
 const SAFETY_DENIED_MANIFEST_PREFIXES = Object.freeze([

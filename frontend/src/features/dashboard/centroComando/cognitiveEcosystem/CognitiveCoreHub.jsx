@@ -20,7 +20,9 @@ export default function CognitiveCoreHub({ core, consciousness }) {
           <h2 className="cog-core-hub__title">{core.name}</h2>
           <p className="cog-core-hub__codename">{core.codename} · v{core.version}</p>
         </div>
-        <span className="cog-core-hub__awareness">{core.awareness_level_pct}% awareness</span>
+        <span className="cog-core-hub__awareness">
+          {core.awareness_level_pct != null ? `${core.awareness_level_pct}% awareness` : 'AWAITING DATA'}
+        </span>
       </header>
       <p className="cog-core-hub__consciousness">
         <span className="cog-core-hub__consciousness-tag">{consciousness?.awareness_state || 'ATIVO'}</span>

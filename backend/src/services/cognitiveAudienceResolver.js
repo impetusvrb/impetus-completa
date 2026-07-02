@@ -93,12 +93,33 @@ function resolveCognitiveAudienceFromStructural(enrichedUser = {}, orgCtx = {}, 
   const axisRaw = String(sp.eixo_primario || '').replace(/^eixo_/, '');
   const mapped = AXIS_TO_AUDIENCE[axisRaw];
 
+  const isDomainDirectorProfile =
+    p.includes('hr') ||
+    p.includes('financial') ||
+    p.includes('finance') ||
+    p.includes('industrial') ||
+    p.includes('operations') ||
+    p.includes('environment') ||
+    hint === 'hr' ||
+    hint === 'quality' ||
+    hint === 'qualidade' ||
+    hint === 'maintenance' ||
+    hint === 'finance' ||
+    mapped === 'hr' ||
+    mapped === 'finance' ||
+    mapped === 'quality' ||
+    mapped === 'maintenance' ||
+    mapped === 'environmental' ||
+    mapped === 'operations' ||
+    mapped === 'production';
+
   const isExecutive =
-    role === 'ceo' ||
-    hint === 'executive' ||
-    mapped === 'executive' ||
-    p.includes('ceo_executive') ||
-    (p.includes('director') && !p.includes('quality') && !p.includes('maintenance'));
+    !isDomainDirectorProfile &&
+    (role === 'ceo' ||
+      hint === 'executive' ||
+      mapped === 'executive' ||
+      p.includes('ceo_executive') ||
+      (p.includes('director') && !p.includes('quality') && !p.includes('maintenance')));
 
   if (isExecutive) {
     audience = {

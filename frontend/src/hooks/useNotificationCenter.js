@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { appCommunications } from '../services/api';
 import { getSocket } from '../chat-module/hooks/useChatSocket';
+import { useDashboardBoot } from '../runtimeBoot/DashboardBootContext';
 
 export const UNIFIED_CATEGORIES = [
   { id: 'todas', label: 'Todas' },
@@ -28,6 +29,7 @@ function mapPayloadToItem(payload) {
 }
 
 export function useNotificationCenter() {
+  const { phase } = useDashboardBoot();
   const [items, setItems] = useState([]);
   const [unifiedItems, setUnifiedItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -98,11 +100,17 @@ export function useNotificationCenter() {
 
   useEffect(() => {
     mountedRef.current = true;
+    if (phase < 2) {
+      setLoading(false);
+      return () => {
+        mountedRef.current = false;
+      };
+    }
     refreshDefault();
     return () => {
       mountedRef.current = false;
     };
-  }, [refreshDefault]);
+  }, [refreshDefault, phase]);
 
   useEffect(() => {
     if (feedMode === 'unified') {

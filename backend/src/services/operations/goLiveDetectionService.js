@@ -10,8 +10,13 @@ const checkpoint = require('../audit/ioeContinuousIngestionCheckpointService');
 const LAYER = 'P0E_GO_LIVE_DETECTION';
 
 async function _query(db, sql, params = []) {
-  const query = db.query ? db.query.bind(db) : db.pool.query.bind(db.pool);
-  return (await query(sql, params)).rows;
+  const client = await db.pool.connect();
+  try {
+    await client.query(`SELECT set_config('app.bypass_rls', 'true', true)`);
+    return (await client.query(sql, params)).rows;
+  } finally {
+    client.release();
+  }
 }
 
 function _getWorkerStatusSafe() {

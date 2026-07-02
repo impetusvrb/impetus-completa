@@ -5,8 +5,8 @@ const path = require('path');
 const phaseG = require('../explainability/config/phaseGFeatureFlags');
 const { logPhaseG } = require('../explainability/phaseGLogger');
 
-const AUDIT_DIR = process.env.IMPETUS_GOVERNANCE_AUDIT_DIR ||
-  path.join(__dirname, '..', '..', 'data', 'governance-audit');
+const { dataSubdir } = require('../config/impetusHome');
+const AUDIT_DIR = process.env.IMPETUS_GOVERNANCE_AUDIT_DIR || dataSubdir('governance-audit');
 const AUDIT_FILE = path.join(AUDIT_DIR, 'cognitive-governance-audit.jsonl');
 
 const _memoryFeed = [];

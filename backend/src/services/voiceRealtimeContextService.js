@@ -9,6 +9,7 @@ const dashboardComposerService = require('./dashboardComposerService');
 const structuralAIGovernance = require('./structuralAIGovernanceService');
 const softwareOperationalSnapshotService = require('./softwareOperationalSnapshotService');
 const chatContextBridge = require('../runtimeUnification/bridge/chatContextBridge');
+const conversationContextEngine = require('../conversationContext/conversationContextEngine');
 
 const MAX_KPI_LINES = 14;
 const MAX_INSTRUCTION_CHARS = 14000;
@@ -18,13 +19,14 @@ Após acordo, confirme execução no painel (ex.: «gerando a telemetria no pain
 
 /**
  * @param {object} user req.user (sessão IMPETUS)
- * @param {{ queryText?: string }} [opts]
- * @returns {Promise<{ ok: true, instructions_append: string, fetched_at: string, intent?: string }>}
+ * @param {{ queryText?: string, channel?: string, forceOperationalSnapshot?: boolean, modoApresentacao?: boolean, presentationRequested?: boolean, presentationLevel?: string, executiveBoardroomActive?: boolean, previousProfileId?: string }} [opts]
+ * @returns {Promise<{ ok: true, instructions_append: string, fetched_at: string, intent?: string, conversation_context?: object }>}
  */
 async function buildVoiceRealtimeContext(user, opts = {}) {
   const queryText = String(opts.queryText || '').trim();
   const channel = String(opts.channel || 'voice_realtime').trim() || 'voice_realtime';
   const forceOperationalSnapshot = opts.forceOperationalSnapshot === true || channel === 'anam_voice';
+  const previousProfileId = String(opts.previousProfileId || '').trim() || null;
   const gov = await structuralAIGovernance.buildAIGovernancePackage(user, {
     channel,
     queryText
@@ -131,6 +133,25 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
     console.warn('[voiceRealtimeContext] truth appendix', e?.message || e);
   }
 
+  let conversationContext = null;
+  try {
+    conversationContext = await conversationContextEngine.resolveConversationContext(user, {
+      queryText,
+      channel,
+      modoApresentacao: opts.modoApresentacao === true,
+      presentationRequested: opts.presentationRequested,
+      presentationLevel: opts.presentationLevel,
+      executiveBoardroomActive: opts.executiveBoardroomActive === true,
+      previousProfileId
+    });
+  } catch (e) {
+    console.warn('[voiceRealtimeContext] conversation context', e?.message || e);
+  }
+
+  const conversationBlock = conversationContext?.prompt_append
+    ? `\n\n${conversationContext.prompt_append}`
+    : '';
+
   const instructions_append = [
     gov.system_append,
     '',
@@ -139,7 +160,8 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
     injectOperational
       ? 'Tens acesso aos dados acima nesta sessão. Não peças ao utilizador "onde clicar" para ver KPIs do snapshot. Se faltar um detalhe específico, diz que não está neste extracto e oferece aprofundar no módulo certo do IMPETUS.'
       : 'Mantém a identidade do utilizador (Base Estrutural) mas responde em modo educativo sem inventar dados do tenant.',
-    truthAppendix ? `\n${truthAppendix}` : ''
+    truthAppendix ? `\n${truthAppendix}` : '',
+    conversationBlock
   ].join('\n');
 
   const trimmed =
@@ -152,7 +174,20 @@ async function buildVoiceRealtimeContext(user, opts = {}) {
     instructions_append: trimmed,
     fetched_at: new Date().toISOString(),
     intent: gov.intent,
-    structural_complete: gov.structural_complete
+    structural_complete: gov.structural_complete,
+    conversation_context: conversationContext
+      ? {
+          context_type: conversationContext.context_type,
+          subcontext: conversationContext.subcontext,
+          profile_id: conversationContext.profile_id,
+          conversation_profile: conversationContext.conversation_profile,
+          confidence: conversationContext.confidence,
+          signals: conversationContext.signals,
+          engine_enabled: conversationContext.engine_enabled,
+          presentation_context: conversationContext.presentation_context || null,
+          executive_conversation_domain: conversationContext.executive_conversation_domain || null
+        }
+      : null
   };
 }
 

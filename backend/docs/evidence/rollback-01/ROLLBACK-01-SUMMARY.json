@@ -1,0 +1,62 @@
+{
+  "certification": "CERT-ENTERPRISE-ROLLBACK-01",
+  "executed_at": "2026-07-01T00:48:59.392Z",
+  "decision": "REPROVADA",
+  "go_live_dr_ready": false,
+  "summary": {
+    "procedure_validated": true,
+    "physical_restore_completed": false,
+    "blocker": "environment_disk_full"
+  },
+  "passed": {
+    "audit_restore_scripts": true,
+    "validateManifest_strict": true,
+    "restore_dry_run": true,
+    "config_env_checksum": true,
+    "production_health_unchanged": true,
+    "verify_enterprise_post": true,
+    "health_enterprise_post": true
+  },
+  "failed": {
+    "pg_restore_isolated_db": "No space left on device",
+    "tar_extract_sandbox": "No space left on device"
+  },
+  "environment": {
+    "disk_root": "97G used / 97G total (100%, ~99M avail)",
+    "backup_size": "2.3G",
+    "minimum_free_recommended": "≥10GB for full DR test on this host"
+  },
+  "metrics": {
+    "baseline": { "companies": 3, "users": 43, "health_ok": true },
+    "validateManifest_ms": 2181,
+    "rpo_backup_age_hours": 0.3,
+    "rto_pg_restore_sec": null
+  },
+  "non_conformities": [
+    {
+      "id": "NC-R001",
+      "severity": "Alta",
+      "description": "pg_restore falhou — disco 100% cheio",
+      "impact": "Restore físico não comprovado neste host",
+      "evidence": "ERROR: could not extend file — No space left on device (industrial_event_outbox COPY)",
+      "corrective": "Re-executar ROLLBACK-01 em host/VM com espaço ≥10GB livre; ou libertar disco"
+    },
+    {
+      "id": "NC-R002",
+      "severity": "Alta",
+      "description": "Extract tar.gz falhou — disco 100% cheio",
+      "impact": "Restore uploads/data/licenses não comprovado",
+      "evidence": "tar: Cannot mkdir: No space left on device",
+      "corrective": "Idem NC-R001"
+    },
+    {
+      "id": "NC-R003",
+      "severity": "Média",
+      "description": "Restore in-place produção não executado",
+      "impact": "Procedimento end-to-end produção não evidenciado",
+      "evidence": "Skip intencional — evitar sobrescrita em host operacional",
+      "corrective": "Staging VM com IMPETUS_HOME dedicado"
+    }
+  ],
+  "full_report": "rollback-validation-2026-07-01T00-48-59-392Z.json"
+}

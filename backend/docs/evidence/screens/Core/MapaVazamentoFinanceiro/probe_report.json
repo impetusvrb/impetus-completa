@@ -1,0 +1,15 @@
+{
+  "route": "/app/mapa-vazamento-financeiro",
+  "probes": [
+    "GET /api/dashboard/financial-leakage/map"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/financial-leakage/map",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:30:19.327Z"
+}

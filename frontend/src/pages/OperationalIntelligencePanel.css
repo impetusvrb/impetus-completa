@@ -82,6 +82,17 @@
   background: #f9fafb;
 }
 
+.oie-error {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(255, 170, 0, 0.35);
+  border-radius: 4px;
+  background: rgba(255, 170, 0, 0.08);
+  color: var(--amber, #ffaa00);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+}
+
 .oie-loading,
 .oie-empty {
   text-align: center;

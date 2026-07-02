@@ -7,7 +7,7 @@ import { dashboard } from '../../../services/api';
 import { Send, Brain } from 'lucide-react';
 
 const DEFAULT_EXAMPLES =
-  'Ex.: "Qual setor gera mais custo hoje?" ou "Qual máquina tem maior risco nas próximas 24h?"';
+  'Ex.: "Qual máquina tem maior risco nas próximas 24h?" ou "Quais OS estão atrasadas no meu setor?"';
 
 export default function WidgetPergunteIA({ title = 'Cérebro Operacional', exampleHints = [] }) {
   const [pergunta, setPergunta] = useState('');

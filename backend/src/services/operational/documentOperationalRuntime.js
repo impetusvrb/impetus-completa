@@ -24,19 +24,6 @@ const db = require('../../db');
 const ENABLED = process.env.DOCUMENT_RUNTIME_ENABLED !== 'false';
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, '../../../uploads'));
 
-let _pdfParse = null;
-let _mammoth = null;
-
-function _loadPdfParse() {
-  if (!_pdfParse) { try { _pdfParse = require('pdf-parse'); } catch (_) {} }
-  return _pdfParse;
-}
-
-function _loadMammoth() {
-  if (!_mammoth) { try { _mammoth = require('mammoth'); } catch (_) {} }
-  return _mammoth;
-}
-
 /**
  * Extrai texto de um arquivo pelo caminho.
  */
@@ -49,27 +36,14 @@ async function extractText(filePath) {
   if (!fs.existsSync(absPath)) return { ok: false, text: '', reason: 'file_not_found' };
 
   try {
-    if (ext === '.pdf') {
-      const parser = _loadPdfParse();
-      if (!parser) return { ok: false, text: '', reason: 'pdf-parse_not_available' };
-      const data = fs.readFileSync(absPath);
-      const parsed = await parser(data);
-      return { ok: true, text: (parsed.text || '').trim(), pages: parsed.numpages || 0 };
+    const documentTextExtractor = require('../documentTextExtractorService');
+    const result = await documentTextExtractor.extractFromPath(absPath, path.basename(absPath), {
+      module: 'document_runtime'
+    });
+    if (!result.ok) {
+      return { ok: false, text: '', reason: result.error || 'extraction_failed' };
     }
-
-    if (ext === '.docx' || ext === '.doc') {
-      const mammoth = _loadMammoth();
-      if (!mammoth) return { ok: false, text: '', reason: 'mammoth_not_available' };
-      const result = await mammoth.extractRawText({ path: absPath });
-      return { ok: true, text: (result.value || '').trim() };
-    }
-
-    if (ext === '.txt' || ext === '.md' || ext === '.csv') {
-      const text = fs.readFileSync(absPath, 'utf8');
-      return { ok: true, text: text.trim() };
-    }
-
-    return { ok: false, text: '', reason: `unsupported_extension: ${ext}` };
+    return { ok: true, text: result.text, extractor: result.extractor };
   } catch (err) {
     console.warn('[DOC_RUNTIME] extractText:', err.message);
     return { ok: false, text: '', reason: err.message };

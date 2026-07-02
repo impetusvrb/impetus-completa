@@ -6,10 +6,10 @@
   "probeResults": [
     {
       "spec": "GET /api/admin/nexus-custos",
-      "status": 401,
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.777Z"
+  "at": "2026-06-26T01:56:08.435Z"
 }

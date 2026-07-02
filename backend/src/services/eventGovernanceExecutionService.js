@@ -317,9 +317,10 @@ async function evaluatePrepareAndExecute(event) {
   });
   const result = { evaluation, execution, execResult };
 
+  let aioiResult = null;
   try {
     const aioiIntegration = require('./aioiGovernanceIntegrationService');
-    await aioiIntegration.onGovernedEvent(event, result);
+    aioiResult = await aioiIntegration.onGovernedEvent(event, result);
   } catch (err) {
     console.warn('[eventGovernanceExecution][aioi_integration]', err?.message ?? err);
   }
@@ -329,6 +330,40 @@ async function evaluatePrepareAndExecute(event) {
     await learningIntegration.onGovernanceExecution(event, result);
   } catch (err) {
     console.warn('[eventGovernanceExecution][learning_integration]', err?.message ?? err);
+  }
+
+  try {
+    const memoryIntegration = require('./governanceMemoryIntegrationService');
+    memoryIntegration.registerFromExecution(event, result);
+  } catch (err) {
+    console.warn('[eventGovernanceExecution][memory_integration]', err?.message ?? err);
+  }
+
+  try {
+    const explainability = require('./governanceExplainabilityService');
+    explainability.enrichResult(event, result, { aioiResult });
+  } catch (err) {
+    console.warn('[eventGovernanceExecution][explainability]', err?.message ?? err);
+  }
+
+  try {
+    const intelligence = require('./governanceIntelligenceService');
+    intelligence.recordPipelineSnapshot(event, result);
+    if (intelligence.isIntelligenceEnabled()) {
+      intelligence.runIntelligenceCycle(event.companyId);
+    }
+  } catch (err) {
+    console.warn('[eventGovernanceExecution][intelligence]', err?.message ?? err);
+  }
+
+  try {
+    const policyOpt = require('./governancePolicyOptimizationService');
+    policyOpt.recordPolicyObservation(event, result);
+    if (policyOpt.isPolicyOptimizationEnabled()) {
+      policyOpt.runOptimizationCycle(event.companyId);
+    }
+  } catch (err) {
+    console.warn('[eventGovernanceExecution][policy_optimization]', err?.message ?? err);
   }
 
   return result;

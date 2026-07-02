@@ -4,6 +4,7 @@
  */
 import { AnamEvent, MessageRole } from '@anam-ai/js-sdk';
 import { dashboard } from './api';
+import { buildVoiceRealtimeParams } from '../conversationContext/presentationContextClient';
 import {
   dispatchAnamPanelCommit,
   dispatchAnamPanelVoiceCommand,
@@ -105,13 +106,19 @@ function pushPanelContextToClient(client) {
 async function injectOperationalVoiceContext(client, hint = '') {
   if (!client?.addContext) return;
   try {
-    const params = hint ? { hint: String(hint).slice(0, 200) } : {};
+    const params = buildVoiceRealtimeParams(hint);
     const r = await dashboard.getVoiceRealtimeContext(params);
     const append = String(r.data?.instructions_append || r?.instructions_append || '').trim();
+    const cc = r.data?.conversation_context;
     if (append) {
       client.addContext(
         `[ATUALIZAÇÃO DADOS IMPETUS ${new Date().toISOString()}]\n${append}`.slice(0, 6500)
       );
+    }
+    if (cc?.profile_id) {
+      try {
+        sessionStorage.setItem('impetus_last_conversation_profile_id', cc.profile_id);
+      } catch (_) {}
     }
   } catch (e) {
     console.warn('[anam] voice context refresh', e?.message || e);

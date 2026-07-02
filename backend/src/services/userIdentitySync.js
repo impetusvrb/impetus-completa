@@ -139,6 +139,16 @@ async function syncHierarchyFromCompanyRole(args) {
   }
 
   try {
+    if (companyId) {
+      require('./pulseCognitive/ecosystemHooks').ecosystemHooks.hierarchyChanged(companyId, userId, {
+        before: currentLevel,
+        after: cr,
+        reason: opts.reason
+      });
+    }
+  } catch (_) {}
+
+  try {
     // eslint-disable-next-line no-console
     console.log('[IDENTITY_SYNC]', {
       user_id: userId,

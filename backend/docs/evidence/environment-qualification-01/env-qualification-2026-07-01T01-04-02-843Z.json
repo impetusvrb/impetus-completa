@@ -1,0 +1,413 @@
+{
+  "certification": "CERT-ENTERPRISE-ENV-QUALIFICATION-01",
+  "title": "Qualificação do Ambiente de Homologação Enterprise",
+  "executed_at": "2026-07-01T01:04:02.843Z",
+  "hostname": "srv1422313",
+  "status": "CONCLUIDA",
+  "approval": "REPROVADA",
+  "qualified_for_validation": false,
+  "parts": {
+    "PARTE_1": {
+      "checks": [
+        {
+          "name": "SO identificado",
+          "status": "PASS",
+          "detail": "Ubuntu 22.04.5 LTS"
+        },
+        {
+          "name": "CPU cores",
+          "status": "PASS",
+          "detail": "2 cores"
+        },
+        {
+          "name": "Memória total",
+          "status": "PASS",
+          "detail": "7937 MB (mín 4096 MB)"
+        },
+        {
+          "name": "Disco / (root)",
+          "status": "FAIL",
+          "detail": "0.09 GB livres (100%)"
+        },
+        {
+          "name": "Disco IMPETUS root",
+          "status": "FAIL",
+          "detail": "0.09 GB livres em /var/www/impetus-completa/backend"
+        },
+        {
+          "name": "node versão",
+          "status": "PASS",
+          "detail": "v20.20.0"
+        },
+        {
+          "name": "npm versão",
+          "status": "PASS",
+          "detail": "10.8.2"
+        },
+        {
+          "name": "openssl versão",
+          "status": "PASS",
+          "detail": "Invalid command '--version'; type \"help\" for a list."
+        },
+        {
+          "name": "pm2 versão",
+          "status": "PASS",
+          "detail": "6.0.14"
+        },
+        {
+          "name": "docker versão",
+          "status": "SKIP",
+          "detail": "não encontrado"
+        },
+        {
+          "name": "docker_compose versão",
+          "status": "SKIP",
+          "detail": "não encontrado"
+        },
+        {
+          "name": "psql versão",
+          "status": "PASS",
+          "detail": "psql (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)"
+        },
+        {
+          "name": "pg_restore versão",
+          "status": "PASS",
+          "detail": "pg_restore (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)"
+        },
+        {
+          "name": "nginx versão",
+          "status": "PASS",
+          "detail": "nginx: invalid option: \"-\""
+        },
+        {
+          "name": "git versão",
+          "status": "PASS",
+          "detail": "git version 2.34.1"
+        }
+      ]
+    },
+    "PARTE_2": {
+      "checks": [
+        {
+          "name": "Disco preferencial ≥20 GB",
+          "status": "FAIL",
+          "detail": "0.09 GB (preferencial 20 GB)"
+        },
+        {
+          "name": "RAM disponível",
+          "status": "PASS",
+          "detail": "5388 MB livres"
+        },
+        {
+          "name": "Docker funcional",
+          "status": "FAIL",
+          "detail": "engine ausente"
+        },
+        {
+          "name": "PM2 funcional",
+          "status": "PASS"
+        },
+        {
+          "name": "PostgreSQL operacional",
+          "status": "PASS",
+          "detail": "127.0.0.1:5432/impetus_db"
+        },
+        {
+          "name": "dir config/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend (write=true)"
+        },
+        {
+          "name": "dir uploads/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/uploads (write=true)"
+        },
+        {
+          "name": "dir logs/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/logs (write=true)"
+        },
+        {
+          "name": "dir data/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/data (write=true)"
+        },
+        {
+          "name": "dir database/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/database (write=true)"
+        },
+        {
+          "name": "dir backups/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/backups (write=true)"
+        },
+        {
+          "name": "dir runtime/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/runtime (write=true)"
+        },
+        {
+          "name": "dir licenses/",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/licenses (write=true)"
+        }
+      ]
+    },
+    "PARTE_3": {
+      "checks": [
+        {
+          "name": "CRUD EVIDENCE sandbox",
+          "status": "PASS",
+          "detail": "ok"
+        },
+        {
+          "name": "CRUD backups/",
+          "status": "PASS",
+          "detail": "ok"
+        },
+        {
+          "name": "CRUD temp/",
+          "status": "PASS",
+          "detail": "ok"
+        }
+      ]
+    },
+    "PARTE_4": {
+      "checks": [
+        {
+          "name": "Espaço DR (backup+restore+temp)",
+          "status": "FAIL",
+          "detail": "requer ~6.23 GB, disponível ~0.09 GB (backup ref 2.24 GB)"
+        }
+      ]
+    },
+    "PARTE_5": {
+      "checks": [
+        {
+          "name": "Docker qualification",
+          "status": "BLOCKED",
+          "detail": "engine ausente"
+        }
+      ]
+    },
+    "PARTE_6": {
+      "checks": [
+        {
+          "name": "pm2 jlist",
+          "status": "PASS",
+          "detail": "9 processo(s)"
+        },
+        {
+          "name": "impetus-backend",
+          "status": "PASS",
+          "detail": "online"
+        },
+        {
+          "name": "impetus-frontend",
+          "status": "PASS",
+          "detail": "online"
+        },
+        {
+          "name": "backend restarts",
+          "status": "PASS",
+          "detail": "509"
+        },
+        {
+          "name": "ecosystem.config.js",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/ecosystem.config.js"
+        },
+        {
+          "name": "PM2 logs configurados",
+          "status": "PASS",
+          "detail": "│ error log path    │ /root/.pm2/logs/impetus-backend-error.log       │"
+        }
+      ]
+    },
+    "PARTE_7": {
+      "checks": [
+        {
+          "name": "Utilizador execução",
+          "status": "PASS",
+          "detail": "root"
+        },
+        {
+          "name": "DATABASE_URL definida",
+          "status": "PASS"
+        },
+        {
+          "name": "JWT_SECRET definida",
+          "status": "PASS"
+        },
+        {
+          "name": "IMPETUS_ADMIN_JWT_SECRET",
+          "status": "FAIL"
+        },
+        {
+          "name": "Firewall (ufw)",
+          "status": "PASS",
+          "detail": "Status: active |  | To                         Action      From"
+        },
+        {
+          "name": "Portas críticas",
+          "status": "PASS",
+          "detail": "LISTEN 0      511          0.0.0.0:443        0.0.0.0:*    users:((\"nginx\",pid=3884859,fd=13),(\"nginx\",pid=3884858,fd=13),(\"nginx\",pid=3575186,fd=13))"
+        },
+        {
+          "name": "Certificados TLS",
+          "status": "PASS",
+          "detail": "/var/www/impetus-completa/backend/certificates"
+        }
+      ]
+    },
+    "PARTE_8": {
+      "checks": [
+        {
+          "name": "Inventário host",
+          "status": "PASS"
+        },
+        {
+          "name": "Utilização disco/memória",
+          "status": "PASS"
+        },
+        {
+          "name": "Relatório conformidade",
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "inventory": {
+    "os": {
+      "platform": "linux",
+      "release": "5.15.0-174-generic",
+      "arch": "x64",
+      "distro": "Ubuntu 22.04.5 LTS"
+    },
+    "cpu": {
+      "cores": 2,
+      "model": "AMD EPYC 9354P 32-Core Processor"
+    },
+    "memory": {
+      "total_mb": 7937,
+      "free_mb": 5388
+    },
+    "node": "v20.20.0",
+    "versions": {
+      "node": "v20.20.0",
+      "npm": "10.8.2",
+      "openssl": "Invalid command '--version'; type \"help\" for a list.",
+      "pm2": "6.0.14",
+      "docker": null,
+      "docker_compose": null,
+      "psql": "psql (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)",
+      "pg_restore": "pg_restore (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)",
+      "nginx": "nginx: invalid option: \"-\"",
+      "git": "git version 2.34.1"
+    },
+    "layout": {
+      "enterprise": false,
+      "impetus_home": null,
+      "config_dir": "/var/www/impetus-completa/backend",
+      "env_file": "/var/www/impetus-completa/backend/.env",
+      "uploads_dir": "/var/www/impetus-completa/backend/uploads",
+      "data_dir": "/var/www/impetus-completa/backend/data",
+      "backups_dir": "/var/www/impetus-completa/backend/backups",
+      "upload_candidates": [
+        "/var/www/impetus-completa/backend/uploads",
+        "/var/www/impetus-completa/uploads"
+      ],
+      "cognitive_subdirs": [
+        "operational-context",
+        "confidence-evolution",
+        "inference-validation",
+        "runtime-stability",
+        "governance-learning",
+        "governance-audit",
+        "cognitive-os-memory",
+        "operational-validation"
+      ]
+    },
+    "user": {
+      "uid": 0,
+      "gid": 0,
+      "username": "root"
+    }
+  },
+  "resources": {
+    "disk": {
+      "root": {
+        "mount": "/",
+        "total_gb": 96.73,
+        "used_gb": 96.62,
+        "avail_gb": 0.09,
+        "use_percent": "100%"
+      },
+      "impetus_root": {
+        "mount": "/var/www/impetus-completa/backend",
+        "total_gb": 96.73,
+        "used_gb": 96.62,
+        "avail_gb": 0.09,
+        "use_percent": "100%"
+      }
+    }
+  },
+  "dr_capacity": {
+    "largest_backup_gb": 2.24,
+    "required_for_full_dr_gb": 6.23,
+    "available_gb": 0.09,
+    "breakdown": {
+      "backup": 2.24,
+      "restore_duplicate": 2.24,
+      "temp_gb": 1,
+      "wal_buffer_gb": 0.5,
+      "logs_buffer_gb": 0.25
+    },
+    "sufficient": false
+  },
+  "non_conformities": [
+    {
+      "id": "NC-EQ001",
+      "severity": "Alta",
+      "part": "PARTE_2",
+      "description": "Espaço livre em disco insuficiente (0.09 GB < 10 GB)",
+      "impact": "ROLLBACK-01 e VALIDATION-01 Parte 6/8 bloqueadas (falsas reprovações)",
+      "evidence": "df /: 0.09 GB avail, 100%",
+      "related_certification": "CERT-ENTERPRISE-ROLLBACK-01"
+    },
+    {
+      "id": "NC-EQ002",
+      "severity": "Alta",
+      "part": "PARTE_2",
+      "description": "Docker Engine indisponível",
+      "impact": "VALIDATION-01 Partes 3–4 bloqueadas",
+      "evidence": "which docker → not found",
+      "related_certification": "CERT-ONPREM-VALIDATION-01"
+    },
+    {
+      "id": "NC-EQ003",
+      "severity": "Alta",
+      "part": "PARTE_4",
+      "description": "Capacidade DR insuficiente (disp. 0.09 GB < req. 6.23 GB)",
+      "impact": "ROLLBACK-01 restore físico impossível neste host",
+      "evidence": "{\"largest_backup_gb\":2.24,\"required_for_full_dr_gb\":6.23,\"available_gb\":0.09,\"breakdown\":{\"backup\":2.24,\"restore_duplicate\":2.24,\"temp_gb\":1,\"wal_buffer_gb\":0.5,\"logs_buffer_gb\":0.25},\"sufficient\":false}",
+      "related_certification": "CERT-ENTERPRISE-ROLLBACK-01"
+    },
+    {
+      "id": "NC-EQ004",
+      "severity": "Média",
+      "part": "PARTE_7",
+      "description": "Homologação executada como root",
+      "impact": "Desvio INFRA-01 (user dedicado impetus recomendado)",
+      "evidence": "uid=0",
+      "related_certification": "CERT-ONPREM-INFRA-01"
+    }
+  ],
+  "summary": {
+    "passed": 40,
+    "failed": 6,
+    "skipped": 2,
+    "blocked": 1
+  }
+}

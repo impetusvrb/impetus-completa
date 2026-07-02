@@ -1,0 +1,375 @@
+.pulse-cog-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.pulse-cog-page__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pulse-cog-page__cert {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin: 0 0 6px 0;
+}
+
+.pulse-cog-page__head h1 {
+  font-size: 1.4rem;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pulse-cog-page__sub {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+.pulse-cog-page__actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.pulse-cog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.pulse-cog-tabs__btn {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.pulse-cog-tabs__btn--active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.pulse-cog-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.pulse-cog-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pulse-cog-timeline li {
+  display: grid;
+  grid-template-columns: 160px 100px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.88rem;
+}
+
+.pulse-cog-timeline__ts {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
+.pulse-cog-timeline__kind {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: var(--cyan);
+}
+
+.pulse-cog-signals-json {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: auto;
+  max-height: 360px;
+  margin: 0;
+}
+
+.pulse-cog-list__meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.pulse-cog-hitl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pulse-cog-hitl-actions .btn-sm {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+}
+
+.pulse-cog-banner {
+  padding: 12px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.pulse-cog-banner--warn {
+  background: rgba(255, 170, 0, 0.08);
+  border: 1px solid var(--amber);
+  color: var(--text-primary);
+}
+
+.pulse-cog-governance {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--cyan);
+}
+
+.pulse-cog-governance__tag {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: var(--cyan);
+}
+
+.pulse-cog-governance p {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.pulse-cog-loading {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+}
+
+.pulse-cog-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pulse-cog-kpi {
+  padding: 16px;
+}
+
+.pulse-cog-kpi__label {
+  display: block;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.pulse-cog-kpi__value {
+  display: block;
+  font-size: 1.75rem;
+  color: var(--cyan);
+  line-height: 1.1;
+}
+
+.pulse-cog-kpi__value--state {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pulse-cog-kpi__meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.pulse-cog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pulse-cog-chart-card {
+  padding: 16px;
+}
+
+.pulse-cog-section-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-accent);
+  margin: 0 0 12px 0;
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+}
+
+.pulse-cog-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pulse-cog-panel {
+  padding: 16px;
+  min-height: 220px;
+}
+
+.pulse-cog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pulse-cog-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.pulse-cog-list__scope {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.pulse-cog-list__state {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.pulse-cog-list__conf {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.pulse-cog-badge {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.pulse-cog-badge--info {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.pulse-cog-badge--watch {
+  background: rgba(255, 170, 0, 0.12);
+  color: var(--amber);
+  border: 1px solid rgba(255, 170, 0, 0.35);
+}
+
+.pulse-cog-badge--elevated {
+  background: rgba(255, 107, 0, 0.12);
+  color: var(--orange);
+  border: 1px solid rgba(255, 107, 0, 0.35);
+}
+
+.pulse-cog-badge--critical {
+  background: rgba(255, 64, 64, 0.12);
+  color: var(--red);
+  border: 1px solid rgba(255, 64, 64, 0.35);
+}
+
+.pulse-cog-insights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pulse-cog-insights li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pulse-cog-insights strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.pulse-cog-insights p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.pulse-cog-empty {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+.pulse-cog-dims {
+  padding: 16px;
+}
+
+.pulse-cog-dims-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.pulse-cog-dim {
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.pulse-cog-dim__label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pulse-cog-dim__value {
+  display: block;
+  font-size: 1.35rem;
+  color: var(--cyan);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  margin: 4px 0;
+}
+
+.pulse-cog-dim__weight {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+}

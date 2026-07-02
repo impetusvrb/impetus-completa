@@ -67,7 +67,7 @@ function _shouldBypassFilter(user) {
   const role = String(user.role || '').toLowerCase();
   const perms = Array.isArray(user.permissions) ? user.permissions : [];
   if (perms.includes('*')) return true;
-  if (role === 'admin' || role === 'internal_admin' || role === 'ceo') return true;
+  if (role === 'admin' || role === 'internal_admin' || role === 'ceo' || role === 'diretor') return true;
   return false;
 }
 

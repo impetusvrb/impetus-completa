@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-06-26T16:39:54.415Z",
+  "phase": "CERT-04",
+  "pilot_started_at": "2026-06-25T16:08:48.545Z",
+  "pilot_end_min": "2026-06-28T16:08:48.546Z",
+  "closed_at": null,
+  "verdict": "PILOT_WINDOW_OPEN",
+  "gates": {
+    "pilot_window_elapsed": false,
+    "drift_gate": true,
+    "matrix_72_verde": true,
+    "e2e_scenarios_verde": true,
+    "p0e_go_live": true,
+    "p0e_first_72h_stable": true
+  },
+  "matrix_stats": {
+    "screenCount": 77,
+    "endpointCount": 1098,
+    "mountCount": 142,
+    "referencedCount": 621,
+    "apiCallCount": 791,
+    "unresolvedCount": 0,
+    "statusDist": {
+      "VERDE": 72,
+      "REDIRECT": 5
+    },
+    "certifiedScenarioCount": 10,
+    "lastCertificationAt": "2026-06-26T15:28:19.875Z"
+  },
+  "signoff_required": null
+}

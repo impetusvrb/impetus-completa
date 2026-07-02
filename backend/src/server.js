@@ -2,9 +2,13 @@
  * Ponto de entrada alternativo (árvore `backend/` na raiz do repo).
  * O PM2 neste servidor usa: impetus_complete/backend/src/server.js
  */
-require('dotenv').config();
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
+require('./config/loadEnv').loadImpetusEnv();
+try {
+  require('./config/impetusHome').ensureEnterpriseDirs();
+} catch (_e) {
+  /* never break boot */
+}
 
 try {
   require('child_process').execSync(`node "${path.join(__dirname, '../scripts/fix-opcua-hexy-cjs.js')}"`, {
@@ -166,6 +170,15 @@ try {
   /* never break boot */
 }
 
+// ─── Pulse Cognitivo — HTTP bridge (CERT-PULSE-03, fire-and-forget) ─────────
+// Flag: IMPETUS_PULSE_COGNITIVE=off desativa hooks/middleware.
+try {
+  const { pulseCognitiveEcosystemMiddleware } = require('./services/pulseCognitive/ecosystemMiddleware');
+  app.use(pulseCognitiveEcosystemMiddleware);
+} catch (_e) {
+  /* never break boot */
+}
+
 // ─── Runtime State Enforcement (Observability vs Execution) ──────────────────
 // Flag: IMPETUS_RUNTIME_STATE_ENFORCEMENT=off|audit|enforce (default off)
 // Protege contra side effects acidentais de módulos classificados como observability/enrich/assistive.
@@ -275,6 +288,22 @@ app.get('/api/system/frontend-build', (_req, res) => {
  *   • Comportamento aditivo: callers existentes que enviem X-Health-Key
  *     continuam a obter o payload completo (zero quebra).
  */
+app.get('/api/system/boot-metrics', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const db = require('./db');
+    const perf = require('./observability/requestPerfMetrics');
+    res.json({
+      ok: true,
+      pool: db.getPoolStats(),
+      request_perf: perf.snapshot(),
+      session_activity_throttle_ms: require('./middleware/sessionActivityThrottle').THROTTLE_MS
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'boot-metrics unavailable' });
+  }
+});
+
 app.get('/api/system/health/deep', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   try {
@@ -323,12 +352,28 @@ app.get('/api/system/health/deep', async (req, res) => {
   }
 });
 
-const uploadsPublicPath = path.join(__dirname, '../../uploads');
+const { uploadsDir, ensureEnterpriseDirs } = require('./config/impetusHome');
+const uploadsPublicPath = uploadsDir();
 try {
+  ensureEnterpriseDirs();
   fs.mkdirSync(uploadsPublicPath, { recursive: true });
   app.use('/uploads', secureStaticUploads);
 } catch (e) {
   console.warn('[server] /uploads seguro não montado:', e?.message);
+}
+
+try {
+  const { licenseApiMiddleware } = require('./middleware/licenseEnforcement');
+  app.use(licenseApiMiddleware);
+} catch (e) {
+  console.warn('[server] Middleware licença não montado:', e?.message);
+}
+
+try {
+  const systemLicense = require('./routes/systemLicense');
+  app.use('/api/system/license', systemLicense);
+} catch (e) {
+  console.warn('[server] Rotas /api/system/license não montadas:', e?.message);
 }
 
 const { tenantIsolationGuard } = require('./middleware/tenantIsolationGuard');
@@ -469,6 +514,7 @@ useRoute('/api/admin/time-clock', './routes/admin/timeClock');
 useRoute('/api/admin/nexus-custos', './routes/admin/nexusCustos');
 useRoute('/api/admin/audio-logs', './routes/admin/audioLogs', requireAuth);
 useRoute('/api/admin/nexus-wallet', './routes/admin/nexusWallet');
+useRoute('/api/admin-portal/billing-gateways', './routes/admin/billingGateways');
 useRoute('/api/nexus-ia', './routes/nexusIa');
 useRoute('/api/dashboard/chat/voice', './routes/chatVoice');
 useRoute('/api/realtime-presence', './routes/realtimePresence', requireAuth);
@@ -745,6 +791,7 @@ useRoute(
 );
 useRoute('/api/hr-intelligence', './routes/hrIntelligence');
 useRoute('/api/pulse', './routes/pulse', requireAuth);
+useRoute('/api/pulse/cognitive', './routes/pulseCognitive', requireAuth);
 useRoute('/api/cognitive-council', './routes/cognitiveCouncil', requireAuth, apiByUserLimiter);
 useRoute('/api/raw-material-lots', './routes/rawMaterialLots');
 useRoute('/api/operational-anomalies', './routes/operationalAnomalies');
@@ -1670,6 +1717,30 @@ if (String(process.env.SYSTEM_METRICS_CRON_ENABLED || 'true').toLowerCase() !== 
   }
 }
 
+let pulseCampaignSchedulerIntervalId = null;
+if (String(process.env.IMPETUS_PULSE_SCHEDULER || 'on').toLowerCase() !== 'off') {
+  try {
+    const { runDueCampaigns } = require('./services/pulseCognitive/pulseCampaignScheduler');
+    const rawPulseMs = parseInt(process.env.IMPETUS_PULSE_SCHEDULER_INTERVAL_MS || '300000', 10);
+    const pulseIntervalMs = Number.isFinite(rawPulseMs)
+      ? Math.min(3600000, Math.max(60000, rawPulseMs))
+      : 300000;
+    pulseCampaignSchedulerIntervalId = setInterval(() => {
+      runDueCampaigns().catch((err) => {
+        console.warn('[PULSE_SCHEDULER]', err?.message || err);
+      });
+    }, pulseIntervalMs);
+    setTimeout(() => {
+      runDueCampaigns().catch(() => {});
+    }, 45000);
+    console.info(
+      `[PULSE_SCHEDULER] Campanhas Pulse a cada ${pulseIntervalMs}ms (1.ª após ~45s, IMPETUS_PULSE_SCHEDULER=off para desligar)`
+    );
+  } catch (e) {
+    console.warn('[PULSE_SCHEDULER] Cron não iniciado:', e?.message);
+  }
+}
+
 /**
  * Cérebro operacional: checker periódico (paridade impetus_complete/server.js).
  * Ativo quando OPERATIONAL_BRAIN_ENABLED ≠ false e o cron não está explicitamente desligado.
@@ -1801,6 +1872,42 @@ if (String(process.env.DATA_LIFECYCLE_CRON_ENABLED || 'true').toLowerCase() !== 
     }, 8000);
   } catch (e) {
     console.warn('[INDUSTRIAL_EVENT_BACKBONE_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── CERT-EVENT-RETENTION-01 — scheduler de lifecycle (shadow por defeito) ─────
+{
+  try {
+    const retentionSched = require('./eventPipeline/retention/eventRetentionScheduler');
+    setTimeout(() => {
+      const started = retentionSched.startRetentionScheduler();
+      console.info(
+        `[EVENT_RETENTION_SCHEDULER_BOOT] ${JSON.stringify({
+          event: 'EVENT_RETENTION_SCHEDULER_BOOT',
+          ...started
+        })}`
+      );
+    }, 9000);
+  } catch (e) {
+    console.warn('[EVENT_RETENTION_SCHEDULER_BOOT] Não iniciado:', e?.message);
+  }
+}
+
+// ─── CERT-OUTBOX-VALIDATION-01 — validação progressiva sample_ingested ─────────
+{
+  try {
+    const outboxVal = require('./domains/environment/telemetry/validation/environmentTelemetryOutboxValidationScheduler');
+    setTimeout(() => {
+      const started = outboxVal.startValidationScheduler();
+      console.info(
+        `[TELEMETRY_OUTBOX_VALIDATION_BOOT] ${JSON.stringify({
+          event: 'TELEMETRY_OUTBOX_VALIDATION_BOOT',
+          ...started
+        })}`
+      );
+    }, 9500);
+  } catch (e) {
+    console.warn('[TELEMETRY_OUTBOX_VALIDATION_BOOT] Não iniciado:', e?.message);
   }
 }
 

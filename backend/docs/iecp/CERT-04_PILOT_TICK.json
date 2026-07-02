@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-06-26T16:39:42.682Z",
+  "snapshot": {
+    "at": "2026-06-26T16:39:42.682Z",
+    "phase": "tick",
+    "matrix_stats": {
+      "screenCount": 77,
+      "endpointCount": 1098,
+      "mountCount": 142,
+      "referencedCount": 621,
+      "apiCallCount": 791,
+      "unresolvedCount": 0,
+      "statusDist": {
+        "VERDE": 72,
+        "REDIRECT": 5
+      },
+      "certifiedScenarioCount": 10,
+      "lastCertificationAt": "2026-06-26T15:28:19.875Z"
+    },
+    "drift_ok": true,
+    "e2e_ok": null,
+    "p0e": {
+      "go_live_detected": true,
+      "first_72h_stable": true
+    },
+    "evidence": {
+      "domains_ok": 10,
+      "domains_total": 10,
+      "missing": []
+    },
+    "hours_elapsed": "24.52",
+    "hours_until_min_end": "47.48"
+  }
+}

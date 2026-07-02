@@ -55,25 +55,25 @@ import { useNotificationCenter, UNIFIED_CATEGORIES } from '../hooks/useNotificat
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
-import { useVisibleModules } from '../hooks/useVisibleModules';
+import { useVisibleModules, clearMenuStabilityCache } from '../hooks/useVisibleModules';
 import { applySidebarGovernanceAdapter } from '../runtimeGovernance/sidebarGovernanceAdapter.js';
 import { shouldBlockPublicationMerge } from '../runtimeGovernance/sidebarLeakageProtection.js';
 import { shouldSkipLegacyPipeline } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
 import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
-import { fetchQualityPublicationContext } from '../domains/quality/navigation/qualityDomainPublicationRuntime.js';
 import { safeMergeSafetyPublicationIntoMenu } from '../domains/safety/navigation/safetyMenuPublicationEngine.js';
-import { fetchSafetyPublicationContext } from '../domains/safety/navigation/safetyDomainPublicationRuntime.js';
 import { safeMergeLogisticsPublicationIntoMenu } from '../domains/logistics/navigation/logisticsMenuPublicationEngine.js';
-import { fetchLogisticsPublicationContext } from '../domains/logistics/navigation/logisticsDomainPublicationRuntime.js';
 import { safeMergeEnvironmentPublicationIntoMenu } from '../domains/environment/navigation/environmentMenuPublicationEngine.js';
-import { fetchEnvironmentPublicationContext } from '../domains/environment/navigation/environmentDomainPublicationRuntime.js';
+import { fetchNavigationPublicationContextsStaggered } from '../runtimeBoot/fetchNavigationPublicationContexts.js';
+import { useDashboardBoot } from '../runtimeBoot/DashboardBootContext';
 import {
   dedupeSidebarMenuItems,
   isSidebarMenuItemActive,
   sidebarNavItemKey
 } from '../utils/sidebarNavHelpers.js';
 import { prefetchRoute } from '../utils/prefetchRoutes';
+import { CognitivePulseProvider } from '../features/dashboard/centroComando/cognitiveEcosystem/CognitivePulseContext';
+import CognitiveCompactPresence from '../features/dashboard/centroComando/cognitiveEcosystem/CognitiveCompactPresence';
 import {
   resolveMenuRole,
   isMaintenanceProfile,
@@ -90,6 +90,7 @@ import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
 import { useImpetusPulseSupervisor } from '../features/pulse/useImpetusPulseSupervisor';
 import { useImpetusVoice } from '../voice/ImpetusVoiceContext';
 import chatSidebarIcon from '../assets/chat-sidebar-icon.png';
+import HeaderPopover from './HeaderPopover';
 import './Layout.css';
 
 const IA_FACE_VIDEO = '/ia-face-1.mp4';
@@ -124,6 +125,7 @@ const USER_SETTINGS_FOCUS_NAV = [
 
 export default function Layout({ children }) {
   const { openOverlay, voiceEnabled: voiceUiEnabled, wakePhraseIssue } = useImpetusVoice();
+  const { phase: bootPhase } = useDashboardBoot();
   const [wakeHttpBannerDismissed, setWakeHttpBannerDismissed] = useState(() => {
     try {
       return sessionStorage.getItem('impetus_wake_http_dismiss') === '1';
@@ -161,8 +163,13 @@ export default function Layout({ children }) {
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   });
   const headerDropdownRef = useRef(null);
+  const notifBtnRef = useRef(null);
+  const profileBtnRef = useRef(null);
+  const helpBtnRef = useRef(null);
 
   const pathNormRoot = (location.pathname || '').replace(/\/+$/, '') || '/';
+  const isFullCognitiveDashboard = pathNormRoot === '/app';
+  const isIAWorkspace = pathNormRoot === '/app/chatbot';
   const isUserSettingsFocus = pathNormRoot === '/app/settings';
   const [settingsNavHash, setSettingsNavHash] = useState('us-perfil');
 
@@ -216,15 +223,32 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (headerDropdownRef.current && !headerDropdownRef.current.contains(e.target)) {
+      if (headerDropdownRef.current?.contains(e.target)) return;
+      if (e.target?.closest?.('.header-popover')) return;
+      setShowNotifications(false);
+      setShowProfile(false);
+      setShowHelp(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showNotifications && !showProfile && !showHelp) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
         setShowNotifications(false);
         setShowProfile(false);
         setShowHelp(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showNotifications, showProfile, showHelp]);
 
   const closeSidebarAfterNav = useCallback(() => {
     if (window.matchMedia(MQ_NAV_DRAWER).matches) {
@@ -233,12 +257,13 @@ export default function Layout({ children }) {
   }, []);
 
   useEffect(() => {
+    if (bootPhase < 2) return;
     companies.getMe().then((r) => {
       if (r?.data?.company?.subscription_status === 'overdue') {
         setSubscriptionOverdue(true);
       }
     }).catch(() => {});
-  }, []);
+  }, [bootPhase]);
   
   // Pegar dados do usuário do localStorage (JSON inválido não pode derrubar o layout inteiro)
   const userStr = localStorage.getItem('impetus_user');
@@ -255,15 +280,11 @@ export default function Layout({ children }) {
   const role = resolveMenuRole(user);
   const dashboardProfile = String(user?.dashboard_profile || '').toLowerCase();
   const functionalArea = String(user?.functional_area || user?.area || '').toLowerCase();
-  const canAccessIndustrialCoreModules =
-    role === 'ceo' ||
-    (role === 'diretor' && (
-      dashboardProfile === 'director_industrial' ||
-      dashboardProfile === 'director_operations' ||
-      functionalArea.includes('industrial') ||
-      functionalArea.includes('operations') ||
-      functionalArea.includes('operacoes')
-    ));
+  const enableCognitivePulse =
+    typeof localStorage !== 'undefined' &&
+    !!localStorage.getItem('impetus_token') &&
+    !isStrictAdminRole(user);
+  const showCompactCognitive = enableCognitivePulse && !isFullCognitiveDashboard && !isIAWorkspace;
   const INDUSTRIAL_CORE_PATHS = new Set([
     '/app/centro-operacoes-industrial',
     '/app/cerebro-operacional',
@@ -279,38 +300,41 @@ export default function Layout({ children }) {
     contextualMeta,
     dashboardMePayload
   } = useVisibleModules();
+  const visibleIndustrialSet = new Set(visibleModules || []);
+  /** Mapa Industrial / centros operacionais — CEO e diretores com `operational` no servidor. */
+  const canAccessIndustrialCoreModules =
+    visibleIndustrialSet.has('operational') &&
+    (role === 'ceo' || role === 'diretor');
   const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
   const [safetyPublicationServerCtx, setSafetyPublicationServerCtx] = useState(null);
   const [logisticsPublicationServerCtx, setLogisticsPublicationServerCtx] = useState(null);
   const [environmentPublicationServerCtx, setEnvironmentPublicationServerCtx] = useState(null);
 
   useEffect(() => {
-    if (modulesLoading) return undefined;
+    if (modulesLoading || bootPhase < 2) return undefined;
     let alive = true;
     (async () => {
-      const [qCtx, sCtx, lCtx, eCtx] = await Promise.all([
-        fetchQualityPublicationContext(),
-        fetchSafetyPublicationContext(),
-        fetchLogisticsPublicationContext(),
-        fetchEnvironmentPublicationContext()
-      ]);
+      const { quality, safety, logistics, environment } = await fetchNavigationPublicationContextsStaggered();
       if (alive) {
-        setQualityPublicationServerCtx(qCtx);
-        setSafetyPublicationServerCtx(sCtx);
-        setLogisticsPublicationServerCtx(lCtx);
-        setEnvironmentPublicationServerCtx(eCtx);
+        setQualityPublicationServerCtx(quality);
+        setSafetyPublicationServerCtx(safety);
+        setLogisticsPublicationServerCtx(logistics);
+        setEnvironmentPublicationServerCtx(environment);
       }
     })();
     return () => {
       alive = false;
     };
-  }, [modulesLoading]);
+  }, [modulesLoading, bootPhase]);
 
   const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
   const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
 
   const rawPath = location.pathname || '/';
   const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
+  const isManuiaRoute =
+    normalizedPath.startsWith('/app/manutencao/manuia') ||
+    normalizedPath.startsWith('/app/manutencao/manuia-app');
   const allowManuiaByMaintenance =
     maintenanceProfile &&
     (normalizedPath.startsWith('/app/manutencao/manuia') || normalizedPath.startsWith('/app/manutencao/manuia-app'));
@@ -363,7 +387,7 @@ export default function Layout({ children }) {
 
   /** Industrial / operacional — filtrado por visible_modules (operational) */
   const MENU_BLOCO_INDUSTRIAL = [
-    { path: '/app/centro-operacoes-industrial', icon: Building2, label: 'Centro de Operações' },
+    { path: '/app/centro-operacoes-industrial', icon: Building2, label: 'Mapa Industrial' },
     { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro operacional' },
     { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' }
   ];
@@ -459,6 +483,7 @@ export default function Layout({ children }) {
     rh: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/app/pulse-rh', icon: Activity, label: 'Impetus Pulse (RH)' },
+      { path: '/app/pulse-cognitive-rh', icon: Activity, label: 'Pulse Cognitivo (RH)' },
       { path: '/app/proacao', icon: Target, label: 'Pró-Ação' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
@@ -470,6 +495,9 @@ export default function Layout({ children }) {
     // abaixo — evita duplicar com o mesmo bloco no array estático.
     ceo: [
       { path: '/app', icon: LayoutDashboard, label: 'Dashboard · IA integrada' },
+      { path: '/app/centro-operacoes-industrial', icon: Building2, label: 'Mapa Industrial' },
+      { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro operacional' },
+      { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' },
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
       { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
       { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
@@ -490,10 +518,13 @@ export default function Layout({ children }) {
     baseMenuItems = MENUS[role] || MENU_COLABORADOR_OPERACIONAL;
   }
 
+  const visibleSet = new Set(visibleModules || []);
+
   /** RH explícito, perfil hr_management ou liderança com setor/cargo de RH (dashboard_profile por vezes não vem no token). */
   if (
     shouldOfferPulseRhMenu(user) &&
     !isAdministrativePortalOnlyUser(user) &&
+    (visibleSet.has('hr_intelligence') || visibleSet.has('operational')) &&
     !baseMenuItems.some((item) => item.path === '/app/pulse-rh')
   ) {
     const cloned = [...baseMenuItems];
@@ -504,11 +535,23 @@ export default function Layout({ children }) {
       icon: Activity,
       label: 'Impetus Pulse (RH)'
     });
+    if (!cloned.some((item) => item.path === '/app/pulse-cognitive-rh')) {
+      cloned.splice(insertAt + 1, 0, {
+        path: '/app/pulse-cognitive-rh',
+        icon: Activity,
+        label: 'Pulse Cognitivo (RH)'
+      });
+    }
     baseMenuItems = cloned;
   }
 
-  // Regra: manutenção (supervisor e técnicos do depto de manutenção) sempre vê ManuIA e ManuIA Campo.
-  if (maintenanceProfile && !maintenanceTechnicianMenu && !isAdministrativePortalOnlyUser(user)) {
+  // Regra: manutenção — só injecta ManuIA se o servidor autorizou o módulo.
+  if (
+    maintenanceProfile &&
+    visibleSet.has('manuia') &&
+    !maintenanceTechnicianMenu &&
+    !isAdministrativePortalOnlyUser(user)
+  ) {
     const cloned = [...baseMenuItems];
     const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
     const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
@@ -517,8 +560,8 @@ export default function Layout({ children }) {
     baseMenuItems = cloned;
   }
 
-  // CEO, diretor industrial/operações: bloco industrial uma vez, logo após o Dashboard.
-  if (canAccessIndustrialCoreModules) {
+  // Diretor industrial/operações: bloco industrial após Dashboard (CEO já tem menu curado fixo).
+  if (canAccessIndustrialCoreModules && role !== 'ceo') {
     const cloned = [...baseMenuItems];
     const existing = new Set(cloned.map((item) => (item.path || '').replace(/\/+$/, '') || '/'));
     const missingIndustrial = MENU_BLOCO_INDUSTRIAL.filter((item) => {
@@ -639,6 +682,7 @@ export default function Layout({ children }) {
     }
     menuItems = menuItems.filter((item) => {
       const p = (item.path || '').replace(/\/+$/, '') || '/';
+      if (role === 'ceo') return true;
       if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
       return canAccessIndustrialCoreModules;
     });
@@ -677,7 +721,7 @@ export default function Layout({ children }) {
     } catch {
       menuItems = baseMenuItems.slice();
     }
-    if (canAccessIndustrialCoreModules) {
+    if (canAccessIndustrialCoreModules && role !== 'ceo') {
       const existing = new Set((menuItems || []).map((i) => (i.path || '').replace(/\/+$/, '') || '/'));
       for (const item of MENU_BLOCO_INDUSTRIAL) {
         const p = (item.path || '').replace(/\/+$/, '') || '/';
@@ -704,6 +748,7 @@ export default function Layout({ children }) {
     }
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
+    clearMenuStabilityCache();
     try {
       const { stopAnamStreamNow } = await import('../services/anamSessionSingleton');
       await stopAnamStreamNow();
@@ -743,7 +788,7 @@ export default function Layout({ children }) {
     setWakeHttpBannerDismissed(true);
   };
 
-  return (
+  const layoutTree = (
     <div className={`layout${showWakeHttpBanner ? ' layout--wake-hint' : ''}`}>
       {isNarrowViewport && sidebarOpen && (
         <button
@@ -951,6 +996,7 @@ export default function Layout({ children }) {
             )}
             <div className="header-dropdown-wrapper">
               <button
+                ref={notifBtnRef}
                 className={`icon-btn header-icon-btn ${showNotifications ? 'active' : ''} ${notificationCount > 0 ? 'has-alert' : ''}`}
                 title="Notificações"
                 onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); setShowHelp(false); }}
@@ -961,43 +1007,51 @@ export default function Layout({ children }) {
                   <span className="notification-badge">{notificationCount}</span>
                 )}
               </button>
-              {showNotifications && (
-                <div className="header-dropdown header-dropdown--notifications">
-                  <h4 className="header-dropdown__title">Notificações</h4>
-                  <div className="header-dropdown__feed-tabs" role="tablist" aria-label="Modo de feed">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={feedMode === 'default'}
-                      className={`header-dropdown__feed-tab${feedMode === 'default' ? ' header-dropdown__feed-tab--active' : ''}`}
-                      onClick={() => setFeedMode('default')}
-                    >
-                      Centro
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={feedMode === 'unified'}
-                      className={`header-dropdown__feed-tab${feedMode === 'unified' ? ' header-dropdown__feed-tab--active' : ''}`}
-                      onClick={() => setFeedMode('unified')}
-                    >
-                      Unified Feed
-                    </button>
-                  </div>
-                  {feedMode === 'unified' && (
-                    <div className="header-dropdown__filter-row" role="group" aria-label="Filtros">
-                      {UNIFIED_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          className={`header-dropdown__filter-chip${categoryFilter === cat.id ? ' header-dropdown__filter-chip--active' : ''}`}
-                          onClick={() => setCategoryFilter(cat.id)}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
+              <HeaderPopover
+                open={showNotifications}
+                anchorRef={notifBtnRef}
+                title="Notificações"
+                className="header-dropdown--notifications"
+                aria-label="Notificações"
+                header={(
+                  <>
+                    <div className="header-dropdown__feed-tabs" role="tablist" aria-label="Modo de feed">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={feedMode === 'default'}
+                        className={`header-dropdown__feed-tab${feedMode === 'default' ? ' header-dropdown__feed-tab--active' : ''}`}
+                        onClick={() => setFeedMode('default')}
+                      >
+                        Centro
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={feedMode === 'unified'}
+                        className={`header-dropdown__feed-tab${feedMode === 'unified' ? ' header-dropdown__feed-tab--active' : ''}`}
+                        onClick={() => setFeedMode('unified')}
+                      >
+                        Unified Feed
+                      </button>
                     </div>
-                  )}
+                    {feedMode === 'unified' && (
+                      <div className="header-dropdown__filter-row" role="group" aria-label="Filtros">
+                        {UNIFIED_CATEGORIES.map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            className={`header-dropdown__filter-chip${categoryFilter === cat.id ? ' header-dropdown__filter-chip--active' : ''}`}
+                            onClick={() => setCategoryFilter(cat.id)}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              >
                   {notificationsLoading && notificationItems.length === 0 ? (
                     <div className="header-dropdown__empty">
                       <span className="header-dropdown__hint">Carregando…</span>
@@ -1062,12 +1116,12 @@ export default function Layout({ children }) {
                       })}
                     </ul>
                   )}
-                </div>
-              )}
+              </HeaderPopover>
             </div>
 
             <div className="header-dropdown-wrapper">
               <button
+                ref={profileBtnRef}
                 className={`icon-btn header-icon-btn ${showProfile ? 'active' : ''}`}
                 title="Perfil"
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); setShowHelp(false); }}
@@ -1075,9 +1129,12 @@ export default function Layout({ children }) {
               >
                 <User size={20} />
               </button>
-              {showProfile && (
-                <div className="header-dropdown">
-                  <h4 className="header-dropdown__title">Meu perfil</h4>
+              <HeaderPopover
+                open={showProfile}
+                anchorRef={profileBtnRef}
+                title="Meu perfil"
+                aria-label="Meu perfil"
+              >
                   <div className="header-dropdown__profile">
                     <div className="header-dropdown__profile-avatar">
                       <User size={24} />
@@ -1095,12 +1152,12 @@ export default function Layout({ children }) {
                   >
                     <Settings size={16} /> Configurações
                   </Link>
-                </div>
-              )}
+              </HeaderPopover>
             </div>
 
             <div className="header-dropdown-wrapper">
               <button
+                ref={helpBtnRef}
                 className={`icon-btn header-icon-btn ${showHelp ? 'active' : ''}`}
                 title="Ajuda"
                 onClick={() => { setShowHelp(!showHelp); setShowNotifications(false); setShowProfile(false); }}
@@ -1108,9 +1165,12 @@ export default function Layout({ children }) {
               >
                 <HelpCircle size={20} />
               </button>
-              {showHelp && (
-                <div className="header-dropdown">
-                  <h4 className="header-dropdown__title">Ajuda e suporte</h4>
+              <HeaderPopover
+                open={showHelp}
+                anchorRef={helpBtnRef}
+                title="Ajuda e suporte"
+                aria-label="Ajuda e suporte"
+              >
                   <Link
                     to="/app/chatbot"
                     className="header-dropdown__link"
@@ -1132,8 +1192,7 @@ export default function Layout({ children }) {
                   >
                     <ExternalLink size={16} /> Documentação
                   </Link>
-                </div>
-              )}
+              </HeaderPopover>
             </div>
 
             <button 
@@ -1174,7 +1233,10 @@ export default function Layout({ children }) {
         )}
 
         {/* Content */}
-        <main className="content">
+        <main className={`content ${isIAWorkspace ? 'content--ia-workspace' : ''}`}>
+          {showCompactCognitive && (
+            <CognitiveCompactPresence variant={isManuiaRoute ? 'manuia' : 'default'} />
+          )}
           {children}
         </main>
       </div>
@@ -1197,4 +1259,7 @@ export default function Layout({ children }) {
       />
     </div>
   );
+
+  if (!enableCognitivePulse) return layoutTree;
+  return <CognitivePulseProvider>{layoutTree}</CognitivePulseProvider>;
 }

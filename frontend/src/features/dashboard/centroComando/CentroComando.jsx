@@ -5,8 +5,9 @@
  */
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Layout from '../../../components/Layout';
-import { getLayoutPorCargoFromUser } from './LayoutPorCargo';
 import { dashboard } from '../../../services/api';
+import { useDashboardBoot } from '../../../runtimeBoot/DashboardBootContext';
+import { getLayoutPorCargoFromUser } from './LayoutPorCargo';
 import useDashboardContext from '../contextAdapter/useDashboardContext';
 import WidgetKpiCards from './WidgetKpiCards';
 import WidgetResumoExecutivo from './WidgetResumoExecutivo';
@@ -123,16 +124,20 @@ export default function CentroComando() {
     legacyLayoutFn: getLayoutPorCargoFromUser
   });
   const mePayload = dashboardRaw?.me;
+  const { phase: bootPhase } = useDashboardBoot();
 
   useEffect(() => {
+    if (bootPhase < 2) return undefined;
     dashboard.getLiveSurface()
       .then((r) => {
         if (r?.data?.ok && r?.data?.surface) setLiveSurface(r.data.surface);
       })
       .catch(() => {});
-  }, []);
+    return undefined;
+  }, [bootPhase]);
 
   useEffect(() => {
+    if (bootPhase < 2) return undefined;
     const token = localStorage.getItem('impetus_token');
     if (!token) return undefined;
 
@@ -155,7 +160,7 @@ export default function CentroComando() {
     return () => {
       sse.close();
     };
-  }, []);
+  }, [bootPhase]);
 
   const widgets = useMemo(() => (Array.isArray(dashboardCtx?.widgets) ? dashboardCtx.widgets : []), [dashboardCtx]);
 

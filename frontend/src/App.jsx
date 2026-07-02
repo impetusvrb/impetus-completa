@@ -56,6 +56,7 @@ const Error404 = lazy(() => import('./pages/Error404'));
 const Error500 = lazy(() => import('./pages/Error500'));
 const InsightsPage = lazy(() => import('./pages/InsightsPage'));
 const PulseRh = lazy(() => import('./pages/PulseRh'));
+const PulseCognitiveRh = lazy(() => import('./pages/PulseCognitiveRh'));
 const PulseGestao = lazy(() => import('./pages/PulseGestao'));
 const OperationalIntelligencePanel = lazy(() => import('./pages/OperationalIntelligencePanel'));
 const IndustrialOperationsCenter = lazy(() => import('./pages/IndustrialOperationsCenter'));
@@ -603,6 +604,9 @@ export default function App() {
         } />
         <Route path="/app/pulse-rh" element={
           <PrivateRoute><SetupGuard><PulseRhRouteGuard><PulseRh /></PulseRhRouteGuard></SetupGuard></PrivateRoute>
+        } />
+        <Route path="/app/pulse-cognitive-rh" element={
+          <PrivateRoute><SetupGuard><PulseRhRouteGuard><PulseCognitiveRh /></PulseRhRouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/pulse-gestao" element={
           <PrivateRoute><SetupGuard><RoleGuard allowedRoles={['diretor','gerente','coordenador','supervisor']}><PulseGestao /></RoleGuard></SetupGuard></PrivateRoute>

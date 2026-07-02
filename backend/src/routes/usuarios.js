@@ -11,8 +11,10 @@ router.use(requireAuth);
 
 router.use('/conta', userAccountConta);
 
+const uploadPaths = require('../config/uploadPaths');
+
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
+  destination: (_req, _file, cb) => cb(null, uploadPaths.chat()),
   filename: (_req, file, cb) => cb(null, `avatar-${uuidv4()}${path.extname(file.originalname || '.jpg')}`)
 });
 

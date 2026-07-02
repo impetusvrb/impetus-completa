@@ -464,6 +464,23 @@ const CONTEXTUAL_MODULE_CATALOG = Object.freeze([
     fallback_behavior: 'soft_hide'
   },
   {
+    module_id: 'pulse_cognitive_rh',
+    menu_key: 'operational',
+    paths: ['/app/pulse-cognitive-rh'],
+    category: 'hr',
+    label: 'Pulse Cognitivo RH',
+    description: 'CERT-PULSE-02 — sensor cognitivo organizacional contínuo.',
+    required_capabilities: ['view:hr'],
+    compatible_axes: ['eixo_humano'],
+    compatible_functions: ['decisao_estrategica', 'analise', 'supervisao', 'governanca'],
+    compatible_levels: { min: 1, max: 5 },
+    compatible_areas: ['hr'],
+    lgpd_scope: 'high',
+    criticality: 0.88,
+    dependencies: ['pulse_rh'],
+    fallback_behavior: 'soft_hide'
+  },
+  {
     module_id: 'pulse_gestao',
     menu_key: 'operational',
     paths: ['/app/pulse-gestao'],
@@ -562,7 +579,7 @@ const CANONICAL_MENU_KEYS = Object.freeze([
 /** Lista de critical_for: para função+área, quais module_ids são críticos. */
 const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
   decisao_estrategica: {
-    finance: ['financial_intelligence', 'losses_map', 'cost_center', 'centro_previsao_operacional', 'cerebro_operacional', 'insights'],
+    finance: ['financial_intelligence', 'losses_map', 'cost_center', 'centro_previsao_operacional', 'cerebro_operacional', 'insights', 'anomaly_detection', 'audit'],
     operations: ['cerebro_operacional', 'centro_operacoes_industrial', 'insights', 'losses_map'],
     industrial: ['cerebro_operacional', 'centro_operacoes_industrial', 'manuia', 'insights'],
     production: ['centro_operacoes_industrial', 'quality_intelligence', 'insights'],
@@ -623,6 +640,27 @@ const CRITICAL_BY_FUNCTION_AREA = Object.freeze({
 
 /** Lista de proibidos por função+área (LGPD/policy). */
 const FORBIDDEN_BY_FUNCTION_AREA = Object.freeze({
+  decisao_estrategica: {
+    executive: [
+      'manuia',
+      'quality_intelligence',
+      'safety_intelligence',
+      'environment_intelligence',
+      'logistics_intelligence',
+      'raw_material_lots'
+    ],
+    finance: ['manuia', 'quality_intelligence', 'safety_intelligence', 'environment_intelligence', 'logistics_intelligence']
+  },
+  governanca: {
+    executive: [
+      'manuia',
+      'quality_intelligence',
+      'safety_intelligence',
+      'environment_intelligence',
+      'logistics_intelligence',
+      'raw_material_lots'
+    ]
+  },
   execucao: {
     finance: ['admin', 'audit'],
     operations: ['admin'],

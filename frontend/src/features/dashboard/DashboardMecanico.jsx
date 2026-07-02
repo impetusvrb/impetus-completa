@@ -6,7 +6,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import CognitivePresenceShell from './centroComando/cognitiveEcosystem/CognitivePresenceShell';
+import CognitiveCollapsibleSection from './centroComando/cognitiveEcosystem/CognitiveCollapsibleSection';
 import { dashboard, intelligentRegistration } from '../../services/api';
+import { useDashboardBoot } from '../../runtimeBoot/DashboardBootContext';
 import { useNotification } from '../../context/NotificationContext';
 import {
   Wrench, ClipboardList, AlertTriangle, Clock, CheckCircle2, Package, Phone, Repeat,
@@ -44,6 +47,7 @@ function formatDt(iso) {
 
 export default function DashboardMecanico() {
   const navigate = useNavigate();
+  const { phase: bootPhase } = useDashboardBoot();
   const notify = useNotification();
   const sessionUser = useMemo(() => {
     try {
@@ -93,28 +97,31 @@ export default function DashboardMecanico() {
   }, []);
 
   useEffect(() => {
+    if (bootPhase < 3) {
+      setLoading(false);
+      return undefined;
+    }
     let cancelled = false;
+    setLoading(true);
     async function load() {
       try {
-        const [
-          summaryRes,
-          cardsRes,
-          tasksRes,
-          machinesRes,
-          interventionsRes,
-          boardRes,
-          failuresRes
-        ] = await Promise.all([
+        const [summaryRes, cardsRes, tasksRes] = await Promise.all([
           dashboard.maintenance.getSummary().catch(() => ({ data: { is_maintenance: false } })),
           dashboard.maintenance.getCards().catch(() => ({ data: { is_maintenance: false } })),
-          dashboard.maintenance.getMyTasks().catch(() => ({ data: { tasks: [] } })),
+          dashboard.maintenance.getMyTasks().catch(() => ({ data: { tasks: [] } }))
+        ]);
+        if (cancelled) return;
+        await new Promise((r) => setTimeout(r, 120));
+        const [machinesRes, interventionsRes, boardRes] = await Promise.all([
           dashboard.maintenance.getMachinesAttention().catch(() => ({ data: { machines: [] } })),
           dashboard.maintenance.getInterventions().catch(() => ({ data: { interventions: [] } })),
           dashboard.maintenance.getPreventivesBoard().catch(() => ({
             data: { preventives_today: [], preventives_overdue: [], preventives_completed_today: [] }
-          })),
-          dashboard.maintenance.getRecurringFailures().catch(() => ({ data: { failures: [] } }))
+          }))
         ]);
+        if (cancelled) return;
+        await new Promise((r) => setTimeout(r, 120));
+        const failuresRes = await dashboard.maintenance.getRecurringFailures().catch(() => ({ data: { failures: [] } }));
         if (cancelled) return;
         const maint = summaryRes.data?.is_maintenance ?? false;
         setIsMaintenance(maint);
@@ -139,7 +146,7 @@ export default function DashboardMecanico() {
     }
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [bootPhase]);
 
   const handleTechShortcut = (id) => {
     const prompts = {
@@ -249,6 +256,7 @@ export default function DashboardMecanico() {
 
   return (
     <Layout>
+      <CognitivePresenceShell>
       <div className="dashboard-mecanico">
         {isExecutiveLeadershipRole(sessionUser) && <LiveDashboardUnifiedPanel variant="light" />}
         {isMaintenance && (
@@ -644,12 +652,14 @@ export default function DashboardMecanico() {
         )}
 
         {/* Dashboard embutido: só cargo real supervisor+ (user.role). Perfil tipo supervisor_maintenance em colaborador NÃO conta — evita resolveMenuRole enganar. */}
-        {canUseTaskOrchestrationUser(sessionUser) && (
+        {canUseTaskOrchestrationUser(sessionUser) && !isExecutiveLeadershipRole(sessionUser) && (
         <div className="dashboard-mecanico__base">
           <DashboardInteligente embed />
         </div>
         )}
       </div>
+      <CognitiveCollapsibleSection />
+      </CognitivePresenceShell>
     </Layout>
   );
 }

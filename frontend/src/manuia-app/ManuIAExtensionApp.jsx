@@ -360,7 +360,7 @@ export default function ManuIAExtensionApp() {
         )}
 
         {view === VIEWS.tools && (
-          <div className="manuia-app--embedded" style={{ margin: '-14px -16px 0' }}>
+          <div className="manuia-app--embedded">
             <Suspense
               fallback={
                 <p style={{ padding: 24, color: '#8b9aab' }}>

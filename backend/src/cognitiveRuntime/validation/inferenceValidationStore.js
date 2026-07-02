@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../../data/inference-validation');
+const { dataSubdir } = require('../../config/impetusHome');
+const DATA_DIR = dataSubdir('inference-validation');
 
 function loadInferences(tenantId) {
   try {

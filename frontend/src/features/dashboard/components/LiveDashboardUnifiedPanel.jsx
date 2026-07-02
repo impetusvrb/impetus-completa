@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { liveDashboard } from '../../../services/api';
+import { useDashboardBoot } from '../../../runtimeBoot/DashboardBootContext';
 import { isStrictAdminRole } from '../../../utils/roleUtils';
 import { Zap, Clock, RefreshCw, History, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import '../../../pages/LiveIntelligentDashboard.css';
@@ -21,6 +22,25 @@ function groupPlanItems(items) {
     g[k].push(it);
   }
   return g;
+}
+
+function formatLiveDashboardError(err) {
+  if (!err) return 'Erro de rede';
+  if (err.apiMessage) return err.apiMessage;
+  const status = err.response?.status;
+  const bodyError = err.response?.data?.error;
+  if (bodyError) return bodyError;
+  if (status === 503) {
+    return 'Serviço temporariamente indisponível (servidor sobrecarregado ou em reinício). Use «Atualizar» em alguns segundos.';
+  }
+  if (status === 502 || status === 504) {
+    return 'Tempo esgotado na ligação ao servidor. Tente novamente.';
+  }
+  const msg = String(err.message || '');
+  if (/status code 503/i.test(msg)) {
+    return 'Serviço temporariamente indisponível. Aguarde e clique em «Atualizar».';
+  }
+  return msg || 'Erro de rede';
 }
 
 /** Resumo com blocos (\\n\\n) e **negrito** simples — alinhado ao motor executivo do backend. */
@@ -48,6 +68,7 @@ function FormattedIntelligentSummary({ text }) {
 }
 
 export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = false }) {
+  const { phase } = useDashboardBoot();
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -95,7 +116,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       setLive(data);
       setHistorical(null);
     } catch (e) {
-      setErr(e.response?.data?.error || e.message || 'Erro de rede');
+      setErr(formatLiveDashboardError(e));
       setLive(null);
     } finally {
       setLoading(false);
@@ -112,12 +133,20 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
   }, []);
 
   useEffect(() => {
-    if (hidden) return undefined;
+    if (hidden || phase < 2) {
+      if (phase < 2) setLoading(false);
+      return undefined;
+    }
     loadLive();
-    loadSnapshotsList();
+    const snapTimer = setTimeout(() => {
+      loadSnapshotsList();
+    }, 400);
     const id = setInterval(loadLive, 20000);
-    return () => clearInterval(id);
-  }, [hidden, loadLive, loadSnapshotsList]);
+    return () => {
+      clearTimeout(snapTimer);
+      clearInterval(id);
+    };
+  }, [hidden, phase, loadLive, loadSnapshotsList]);
 
   const goNow = () => {
     setHistorical(null);
@@ -139,7 +168,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       }
       setHistorical(data.snapshot);
     } catch (e) {
-      setErr(e.response?.data?.error || e.message);
+      setErr(formatLiveDashboardError(e));
     }
   };
 
@@ -167,7 +196,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       await loadLive();
       await loadSnapshotsList();
     } catch (e) {
-      setErr(e.response?.data?.error || e.message);
+      setErr(formatLiveDashboardError(e));
     } finally {
       setExecBusy(false);
     }

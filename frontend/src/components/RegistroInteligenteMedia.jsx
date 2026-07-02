@@ -3,6 +3,7 @@
  */
 import React, { useRef, useState } from 'react';
 import { Paperclip, Camera, Mic, MicOff, X, File, Image } from 'lucide-react';
+import { validateFileForModule, UPLOAD_MODULES } from '../services/uploadService';
 import './RegistroInteligenteMedia.css';
 
 const ACCEPT =
@@ -28,6 +29,14 @@ export default function RegistroInteligenteMedia({
 
   const onPick = (e) => {
     const f = e.target.files?.[0] || null;
+    if (f) {
+      const validation = validateFileForModule(f, UPLOAD_MODULES.REGISTRO_INTELIGENTE);
+      if (!validation.ok) {
+        alert(validation.message);
+        e.target.value = '';
+        return;
+      }
+    }
     onFileChange(f);
     e.target.value = '';
   };

@@ -25,7 +25,7 @@
 
 'use strict';
 
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('../src/config/loadEnv').loadImpetusEnv();
 
 const fs = require('fs');
 const path = require('path');
@@ -47,6 +47,7 @@ const MIGRATIONS_ORDER = [
   'structural_knowledge_documents_context_migration.sql',
   'nexus_token_billing_migration.sql',
   'nexus_credit_wallet_migration.sql',
+  'nexus_billing_engine_v4_migration.sql',
   'dashboard_intelligence_migration.sql',
   'lacunas_ind4_migration.sql',
   'industrial_intelligence_extended_migration.sql',

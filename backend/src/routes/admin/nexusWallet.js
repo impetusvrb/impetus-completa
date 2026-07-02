@@ -23,6 +23,47 @@ function requireCompanyAdmin(req, res, next) {
 
 const chain = [requireAuth, requireCompanyAdmin];
 
+router.get('/billing-engine/dashboard', ...chain, async (req, res) => {
+  try {
+    const billingEngine = require('../../services/nexusBillingEngine');
+    if (!billingEngine.isEnabled()) {
+      return res.status(503).json({
+        ok: false,
+        code: 'BILLING_ENGINE_OFF',
+        error: 'Nexus Billing Engine v4 desactivado. Defina NEXUS_BILLING_ENGINE_V4=true no backend.'
+      });
+    }
+    const companyId = req.user.company_id;
+    const userId = req.user.id;
+    const data = await billingEngine.getCompanyDashboard(companyId, userId);
+    if (!data.ok) return res.status(400).json(data);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/billing-ledger', ...chain, async (req, res) => {
+  try {
+    const companyId = req.user.company_id;
+    if (!companyId) return res.status(400).json({ ok: false, error: 'Empresa não associada.' });
+    const limit = Math.min(500, Math.max(10, parseInt(req.query.limit, 10) || 60));
+    const db = require('../../db');
+    const r = await db.query(
+      `SELECT id, service, provider, model, credits_charged, price_brl, balance_before, balance_after,
+              request_id, trace_id, status, created_at
+       FROM billing_ledger WHERE company_id = $1 ORDER BY created_at DESC LIMIT $2`,
+      [companyId, limit]
+    );
+    res.json({ ok: true, entries: r.rows });
+  } catch (err) {
+    if (String(err.message).includes('billing_ledger')) {
+      return res.status(503).json({ ok: false, error: 'Migração billing_ledger pendente.' });
+    }
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 router.get('/', ...chain, async (req, res) => {
   try {
     const companyId = req.user.company_id;

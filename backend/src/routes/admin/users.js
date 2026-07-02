@@ -72,6 +72,40 @@ function inferFunctionalAreaFromArea(area) {
   return functionalAreaCatalog.resolveIdFromText(area);
 }
 
+/** Mapeia erros PostgreSQL para respostas amigáveis (sem expor detalhes técnicos). */
+function mapCreateUserDbError(err) {
+  if (!err || !err.code) return null;
+  if (err.code === '23505') {
+    const target = String(err.constraint || err.detail || '').toLowerCase();
+    if (target.includes('email')) {
+      return { status: 409, error: 'Email já cadastrado', code: 'EMAIL_ALREADY_EXISTS' };
+    }
+    return { status: 409, error: 'Registro duplicado — verifique email ou cargo', code: 'DUPLICATE_ENTRY' };
+  }
+  if (err.code === '23503') {
+    return { status: 400, error: 'Cargo, departamento ou empresa inválido', code: 'FOREIGN_KEY_VIOLATION' };
+  }
+  if (err.code === '23514') {
+    return { status: 400, error: 'Dados fora dos limites permitidos', code: 'CHECK_VIOLATION' };
+  }
+  if (err.code === '22P02') {
+    return { status: 400, error: 'Formato de identificador inválido', code: 'INVALID_UUID' };
+  }
+  return null;
+}
+
+function logCreateUserError(err, context = {}) {
+  console.error('[CREATE_USER_ERROR]', {
+    message: err?.message,
+    stack: err?.stack,
+    code: err?.code,
+    detail: err?.detail,
+    constraint: err?.constraint,
+    table: err?.table,
+    ...context
+  });
+}
+
 const areaSchema = z.union([
   z.enum(AREA_OPTIONS),
   z.preprocess(v => (typeof v === 'string' ? v.trim() : v), z.string().min(2, 'Área customizada deve ter entre 2 e 80 caracteres').max(80))
@@ -358,6 +392,12 @@ router.post('/',
   }),
   async (req, res) => {
     try {
+      console.info('[CREATE_USER_REQUEST]', {
+        email: req.body?.email,
+        company_role_id: req.body?.company_role_id || req.body?.structural_role_id,
+        company_id: req.user?.company_id
+      });
+
       if (!req.user.company_id) {
         return res.status(400).json({
           ok: false,
@@ -379,7 +419,7 @@ router.post('/',
         });
       }
 
-      const companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, rawRoleId);
+      let companyRoleId = await assertStructuralRoleForCompany(req.user.company_id, rawRoleId);
       if (!companyRoleId) {
         return res.status(400).json({
           ok: false,
@@ -577,17 +617,26 @@ router.post('/',
 
     } catch (err) {
       if (err instanceof z.ZodError) {
+        const firstMsg = err.errors?.[0]?.message;
         return res.status(400).json({
           ok: false,
-          error: 'Dados inválidos',
+          error: firstMsg || 'Dados inválidos',
+          code: 'VALIDATION_ERROR',
           details: err.errors
         });
       }
 
-      console.error('[ADMIN_CREATE_USER_ERROR]', err);
+      const mapped = mapCreateUserDbError(err);
+      if (mapped) {
+        logCreateUserError(err, { mapped: mapped.code, company_id: req.user?.company_id });
+        return res.status(mapped.status).json({ ok: false, error: mapped.error, code: mapped.code });
+      }
+
+      logCreateUserError(err, { company_id: req.user?.company_id, email: req.body?.email });
       res.status(500).json({
         ok: false,
-        error: 'Erro ao criar usuário'
+        error: 'Não foi possível criar o usuário. Tente novamente ou contacte o suporte.',
+        code: 'CREATE_USER_FAILED'
       });
     }
 });
@@ -871,6 +920,33 @@ router.put('/:id',
           console.warn('[admin/users][tenant_admin_revoke]', e.message);
         }
       }
+
+      try {
+        const { ecosystemHooks } = require('../../services/pulseCognitive/ecosystemHooks');
+        const cid = req.user.company_id;
+        const uid = req.params.id;
+        if (
+          Object.prototype.hasOwnProperty.call(validatedData, 'role') ||
+          Object.prototype.hasOwnProperty.call(validatedData, 'company_role_id')
+        ) {
+          ecosystemHooks.roleChanged(cid, uid, {
+            updated_fields: Object.keys(validatedData).filter((k) =>
+              ['role', 'company_role_id', 'hierarchy_level'].includes(k)
+            )
+          });
+        }
+        if (
+          Object.prototype.hasOwnProperty.call(validatedData, 'department') ||
+          Object.prototype.hasOwnProperty.call(validatedData, 'area') ||
+          Object.prototype.hasOwnProperty.call(validatedData, 'functional_area')
+        ) {
+          ecosystemHooks.sectorChanged(cid, uid, {
+            updated_fields: Object.keys(validatedData).filter((k) =>
+              ['department', 'area', 'functional_area'].includes(k)
+            )
+          });
+        }
+      } catch (_) {}
 
       res.json({
         ok: true,

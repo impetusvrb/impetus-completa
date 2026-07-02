@@ -1,0 +1,25 @@
+{
+  "snapshot_at": "2026-07-01T00:00:00.000Z",
+  "certification": "CERT-ENTERPRISE-GOLIVE-01",
+  "note": "Snapshot inicial — actualizar antes da decisão final",
+  "summary": {
+    "critica": { "open": 0, "closed": 0 },
+    "alta": { "open": 8, "closed": 1, "infra_host_prod_only": 6 },
+    "media": { "open": 2, "closed": 0 },
+    "baixa": { "open": 1, "closed": 0 }
+  },
+  "items": [
+    { "id": "NC-V001", "severity": "Média", "origin": "VALIDATION-01", "status": "open", "blocks_golive": false },
+    { "id": "NC-V002", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_staging" },
+    { "id": "NC-V003", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_staging" },
+    { "id": "NC-V004", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_staging" },
+    { "id": "NC-V005", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_staging" },
+    { "id": "NC-V006", "severity": "Alta", "origin": "BACKUP-01", "status": "closed", "blocks_golive": false },
+    { "id": "NC-V007", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "n/a_staging_clean" },
+    { "id": "NC-V008", "severity": "Média", "origin": "VALIDATION-01", "status": "open", "blocks_golive": false, "resolve": "staging_impetus_home" },
+    { "id": "NC-V009", "severity": "Baixa", "origin": "VALIDATION-01", "status": "open", "blocks_golive": false },
+    { "id": "NC-V010", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_validation" },
+    { "id": "NC-V011", "severity": "Alta", "origin": "ROLLBACK-01", "status": "open", "blocks_golive": true, "resolve": "reexec_rollback_staging" },
+    { "id": "NC-V012", "severity": "Alta", "origin": "VALIDATION-01", "status": "open", "blocks_golive": true, "resolve": "reexec_validation" }
+  ]
+}

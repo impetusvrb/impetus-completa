@@ -1,0 +1,31 @@
+{
+  "validatedAt": "2026-06-20T00:00:00.000Z",
+  "suites": 21,
+  "passed": 21,
+  "failed": 0,
+  "totalTestsApprox": 315,
+  "method": "full suite run with timeout 90s per file",
+  "details": [
+    { "file": "EVENT_GOVERNANCE_01.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_02.test.js", "status": "PASS", "tests": 16 },
+    { "file": "EVENT_GOVERNANCE_03.test.js", "status": "PASS", "tests": 14 },
+    { "file": "EVENT_GOVERNANCE_04_OPERATIONAL.test.js", "status": "PASS", "tests": 15, "note": "timeout pós-conclusão" },
+    { "file": "EVENT_GOVERNANCE_05_AI_PROACTIVE.test.js", "status": "PASS", "tests": 15, "note": "timeout pós-conclusão" },
+    { "file": "EVENT_GOVERNANCE_06_TPM.test.js", "status": "PASS", "tests": 15, "note": "timeout pós-conclusão" },
+    { "file": "EVENT_GOVERNANCE_07_EXECUTIVE.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_08_BILLING.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_09_DSR.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_10_MANUIA.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_11A_QUALITY.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_11B_SST.test.js", "status": "PASS", "tests": 15, "note": "timeout pós-conclusão" },
+    { "file": "EVENT_GOVERNANCE_11C_ESG.test.js", "status": "PASS", "tests": 15, "note": "timeout pós-conclusão" },
+    { "file": "EVENT_GOVERNANCE_12_AIOI.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_13_LEARNING.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_14_MEMORY.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_15_EXPLAINABILITY.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_16_INTELLIGENCE.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_17_POLICY_OPTIMIZATION.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_18_EXECUTIVE_INSIGHTS.test.js", "status": "PASS", "tests": 15 },
+    { "file": "EVENT_GOVERNANCE_19_KNOWLEDGE_BASE.test.js", "status": "PASS", "tests": 15 }
+  ]
+}

@@ -1,0 +1,255 @@
+{
+  "certification": "CERT-ONPREM-VALIDATION-01",
+  "execution_id": "VALIDATION-EXEC-2026-07-01",
+  "executed_at": "2026-07-01T00:20:00.000Z",
+  "environment": {
+    "host": "srv1422313 (ambiente operacional existente — NÃO VM limpa dedicada)",
+    "layout": "legacy",
+    "impetus_home": null,
+    "pm2_backend_restarts": 509,
+    "pm2_backend_uptime_at_sample": "3h",
+    "docker_available": false,
+    "companies": 3,
+    "users": 43
+  },
+  "decision": {
+    "status": "NÃO HOMOLOGADA",
+    "go_live_authorized": false,
+    "justification": "Existem NCs de severidade Alta bloqueantes: homologação Docker não executada (NC-V002/V004/V005), instalação PM2 limpa em VM dedicada não executada (NC-V003), cadeia backup/restore comprometida para BD >2GB (NC-V006), update A→B e rollback completos não executados (NC-V010/V011), regressão cognitiva E2E não executada (NC-V012)."
+  },
+  "parts": {
+    "PARTE_1": {
+      "status": "PASS",
+      "evidence": {
+        "cert_docs": "ARCHITECTURE, INFRA, DATA, LICENSE, CONTAINER — todos presentes",
+        "adrs_count": 19,
+        "matriz_container": "docker/MATRIZ-CONFORMIDADE-CONTAINER.md presente"
+      }
+    },
+    "PARTE_2": {
+      "status": "PARCIAL",
+      "blocked_reason": "Instalação limpa VM dedicada não executada neste host",
+      "executed": {
+        "verify-enterprise.js": "PASS",
+        "test:license-enterprise": "PASS (10/10)",
+        "GET /health": "PASS HTTP 200",
+        "GET /api/system/health/deep": "PASS ready:true issues:[]",
+        "frontend :3000": "PASS HTTP 200",
+        "health-enterprise.js": "PASS",
+        "migrate --status": "PASS 119 applied",
+        "license-admin status": "PASS state:disabled operational:true",
+        "persistence_marker_after_pm2_restart": "PASS validation-1782864568"
+      },
+      "not_executed": [
+        "bootstrap BD vazia",
+        "instalação via install-enterprise.sh em host limpo",
+        "validação ANAM (AKOOL não configurado)",
+        "validação Gêmeo Digital E2E browser"
+      ]
+    },
+    "PARTE_3": {
+      "status": "BLOCKED",
+      "reason": "Docker engine indisponível (which docker → not found)",
+      "executed": {
+        "docker-compose.yml syntax": "PASS (python yaml)"
+      }
+    },
+    "PARTE_4": {
+      "status": "BLOCKED",
+      "reason": "Depende Parte 3 Docker"
+    },
+    "PARTE_5": {
+      "status": "PARCIAL",
+      "executed": {
+        "uploads_marker_survives_pm2_restart": "PASS",
+        "data_subdirs_verify": "PASS (8 cognitive subdirs)",
+        "config_env_exists": "PASS backend/.env"
+      },
+      "not_executed": [
+        "IMPETUS_HOME layout enterprise em ambiente limpo",
+        "3 ciclos restart Docker"
+      ]
+    },
+    "PARTE_6": {
+      "status": "FAIL",
+      "executed": {
+        "backup-enterprise.js": "PARCIAL — pg_dump 2.4GB criado; manifest.json FALHOU",
+        "restore --dry-run": "FAIL — manifest ausente"
+      },
+      "backup_dir": "backups/backup_20260701_000949",
+      "backup_error": "File size (2404426188) is greater than 2 GiB",
+      "artefacts_present": ["database.dump", "uploads.tar.gz", "cognitive_data.tar.gz", "config.env", "licenses.tar.gz"]
+    },
+    "PARTE_7": {
+      "status": "PARCIAL",
+      "executed": {
+        "migrate --dry-run": "PASS 5 pending, 119 skip",
+        "pm2_restart_post_marker": "PASS dados preservados",
+        "companies_users_count_stable": "PASS 3/43"
+      },
+      "not_executed": [
+        "Deploy Versão A → Versão B distintas",
+        "Ambiente isolado com dados sintéticos reais"
+      ]
+    },
+    "PARTE_8": {
+      "status": "NOT_EXECUTED",
+      "reason": "Restore bloqueado por NC-V006 (manifest ausente)"
+    },
+    "PARTE_9": {
+      "status": "PARCIAL",
+      "executed": {
+        "pulse_endpoint_auth": "PASS 401 sem JWT",
+        "deep_health_ready": "PASS",
+        "pm2_logs_aioi_worker": "cycle_started observado"
+      },
+      "not_executed": [
+        "E2E Controller, CCE, Event Backbone ingest, Gêmeo Digital, Executive, Workflow com JWT válido"
+      ]
+    },
+    "PARTE_10": {
+      "status": "PARCIAL",
+      "executed": {
+        "helmet_headers": "PASS CSP, X-Frame-Options, X-Content-Type-Options",
+        "jwt_protected_route": "PASS /api/pulse/cognitive → 401",
+        "invalid_jwt": "PASS 401",
+        "cors_preflight": "PASS OPTIONS 200"
+      },
+      "not_executed": ["HTTPS TLS validation", "rate limit nginx load test", "RBAC role matrix E2E"]
+    },
+    "PARTE_11": {
+      "status": "PASS",
+      "metrics": {
+        "health_p95_seconds": 1.86,
+        "health_samples_seconds": [1.657, 1.717, 1.589, 1.859, 1.476],
+        "pg_dump_duration_approx_seconds": 494,
+        "database_dump_size_bytes": 2404426188,
+        "pm2_backend_restarts_total": 509
+      }
+    }
+  },
+  "summary": {
+    "parts_pass": 2,
+    "parts_partial": 5,
+    "parts_fail": 1,
+    "parts_blocked": 2,
+    "parts_not_executed": 1
+  },
+  "non_conformities": [
+    {
+      "id": "NC-V001",
+      "severity": "Média",
+      "part": "PARTE_2/7",
+      "description": "IMPETUS_ADMIN_JWT_SECRET ausente — update-precheck.js falha configValidator",
+      "impact": "Precheck update bloqueado; variável SaaS admin em perfil Enterprise (ADR-003)",
+      "evidence": "update-precheck.js exit 1",
+      "corrective_cert": "CERT-ENTERPRISE-CONFIG-01 (proposta)"
+    },
+    {
+      "id": "NC-V002",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Docker engine indisponível neste host",
+      "impact": "Homologação Docker Enterprise impossível",
+      "evidence": "which docker → not found",
+      "corrective_cert": "Executar Parte 3 em host com Docker (homologação infra)"
+    },
+    {
+      "id": "NC-V003",
+      "severity": "Alta",
+      "part": "PARTE_2",
+      "description": "Instalação PM2 limpa não executada em VM/host dedicado",
+      "impact": "Bootstrap/migrations em ambiente zero não evidenciado",
+      "evidence": "Host operacional com 3 empresas, 43 users pré-existentes",
+      "corrective_cert": "Re-executar Parte 2 em VM limpa"
+    },
+    {
+      "id": "NC-V004",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Instalação Docker limpa não executada",
+      "impact": "Compose, PM2 Runtime container, volumes não homologados",
+      "evidence": "NC-V002",
+      "corrective_cert": "Re-executar Parte 3 após NC-V002"
+    },
+    {
+      "id": "NC-V005",
+      "severity": "Alta",
+      "part": "PARTE_4",
+      "description": "Equivalência funcional PM2 × Docker não verificada",
+      "impact": "Dois modos de distribuição não comparados",
+      "evidence": "Parte 3 bloqueada",
+      "corrective_cert": "Re-executar Parte 4 após Partes 2 e 3 completas"
+    },
+    {
+      "id": "NC-V006",
+      "severity": "Alta",
+      "part": "PARTE_6/8",
+      "description": "backup-enterprise.js falha manifest SHA-256 para database.dump >2 GiB",
+      "impact": "Restore enterprise impossível; DR comprometido para BD produção",
+      "evidence": "backup_20260701_000949: dump 2.4GB, ERRO File size greater than 2 GiB, manifest.json ausente",
+      "corrective_cert": "CERT-ENTERPRISE-BACKUP-01 (proposta — streaming hash ou manifest parcial)"
+    },
+    {
+      "id": "NC-V007",
+      "severity": "Alta",
+      "part": "PARTE_11",
+      "description": "PM2 impetus-backend com 509 restarts acumulados",
+      "impact": "Estabilidade operacional questionável; RTO/RPO em cenário real",
+      "evidence": "pm2 describe impetus-backend restarts:509",
+      "corrective_cert": "Investigação operacional (fora scope correção automática VALIDATION)"
+    },
+    {
+      "id": "NC-V008",
+      "severity": "Média",
+      "part": "PARTE_2/5",
+      "description": "Ambiente homologado usa layout legacy (sem IMPETUS_HOME)",
+      "impact": "Não evidencia path canónico Enterprise /opt/impetus",
+      "evidence": "health-enterprise layout: legacy",
+      "corrective_cert": "Re-executar Parte 2 com IMPETUS_HOME=/opt/impetus"
+    },
+    {
+      "id": "NC-V009",
+      "severity": "Baixa",
+      "part": "PARTE_2",
+      "description": "ANAM/AKOOL não configurado",
+      "impact": "Módulo ANAM não homologado neste ambiente",
+      "evidence": "health integrations akool: down",
+      "corrective_cert": "Homologação opcional com ANAM_API_KEY"
+    },
+    {
+      "id": "NC-V010",
+      "severity": "Alta",
+      "part": "PARTE_7",
+      "description": "Update A→B com versões distintas não simulado",
+      "impact": "Ciclo upgrade Enterprise não evidenciado",
+      "evidence": "Apenas migrate dry-run e pm2 restart mesma versão",
+      "corrective_cert": "Re-executar Parte 7 com tag/release A e B"
+    },
+    {
+      "id": "NC-V011",
+      "severity": "Alta",
+      "part": "PARTE_8",
+      "description": "Rollback completo não executado",
+      "impact": "RTO/RPO não medido; restore não validado",
+      "evidence": "restore --dry-run falhou por NC-V006",
+      "corrective_cert": "Re-executar Parte 8 após NC-V006"
+    },
+    {
+      "id": "NC-V012",
+      "severity": "Alta",
+      "part": "PARTE_9",
+      "description": "Regressão cognitiva E2E incompleta",
+      "impact": "Pulse/Controller/CCE/Event Backbone/Gêmeo não validados com JWT",
+      "evidence": "Apenas 401 pulse + deep health + logs parciais",
+      "corrective_cert": "Re-executar Parte 9 com credenciais teste e checklist MANUAL-HOMOLOGACAO §9"
+    }
+  ],
+  "nc_summary": {
+    "critica": 0,
+    "alta": 8,
+    "media": 2,
+    "baixa": 1,
+    "total": 12
+  }
+}

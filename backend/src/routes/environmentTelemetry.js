@@ -35,7 +35,15 @@ router.get('/health', async (req, res) => {
 });
 
 router.use((req, res, next) => {
-  if (req.path === '/health' || req.path === '/validation/run') return next();
+  if (
+    req.path === '/health' ||
+    req.path === '/validation/run' ||
+    req.path === '/validation/outbox' ||
+    req.path === '/validation/outbox/projections' ||
+    req.path === '/validation/outbox/comparison'
+  ) {
+    return next();
+  }
   if (!flags.isEnvironmentTelemetryRuntimeEnabled()) {
     return res.status(503).json({ ok: false, code: 'ENVIRONMENT_TELEMETRY_OFF' });
   }
@@ -183,6 +191,32 @@ router.post('/connectors/reconnect', requireTechnicalRuntimeAccess('environment_
 
 router.get('/validation/run', (req, res) => {
   res.json(validation.runFullTelemetryValidation());
+});
+
+// CERT-OUTBOX-VALIDATION-01 — relatórios de validação outbox (aditivo)
+router.get('/validation/outbox', (req, res) => {
+  const outboxValidation = require('../domains/environment/telemetry/validation/environmentTelemetryOutboxValidationService');
+  const outboxMode = require('../domains/environment/telemetry/environmentTelemetryOutboxMode');
+  res.json({
+    ok: true,
+    cert: 'CERT-OUTBOX-VALIDATION-01',
+    mode: outboxMode.getOutboxModeSnapshot(),
+    report: outboxValidation.getExplainabilityReport()
+  });
+});
+
+router.get('/validation/outbox/projections', (req, res) => {
+  const outboxValidation = require('../domains/environment/telemetry/validation/environmentTelemetryOutboxValidationService');
+  res.json({
+    ok: true,
+    projections: outboxValidation.getImpactProjections(),
+    safety: outboxValidation.getSafetyCriteria()
+  });
+});
+
+router.post('/validation/outbox/comparison', (req, res) => {
+  const outboxValidation = require('../domains/environment/telemetry/validation/environmentTelemetryOutboxValidationService');
+  res.json({ ok: true, comparison: outboxValidation.runComparisonCheck() });
 });
 
 module.exports = router;

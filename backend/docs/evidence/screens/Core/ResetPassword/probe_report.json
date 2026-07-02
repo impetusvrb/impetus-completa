@@ -1,0 +1,15 @@
+{
+  "route": "/reset-password",
+  "probes": [
+    "GET /api/health"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/health",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:30:19.256Z"
+}

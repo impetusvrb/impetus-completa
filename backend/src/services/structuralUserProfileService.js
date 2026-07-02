@@ -174,6 +174,7 @@ async function enrichUserForDashboardAsync(user) {
                 u.dashboard_profile, u.company_role_id, u.hierarchy_level, u.area,
                 u.department_id,
                 cr.name AS company_role_name, cr.dashboard_functional_hint,
+                cr.hierarchy_level AS company_role_hierarchy_level,
                 d.name AS department_resolved_name
          FROM users u
          LEFT JOIN company_roles cr ON cr.id = u.company_role_id AND cr.company_id = u.company_id
@@ -212,6 +213,9 @@ async function enrichUserForDashboardAsync(user) {
     merged.structural_profile.structural_complete =
       !!(merged.company_role_id && companyRoleRow.department_id && companyRoleRow.sector_id);
   }
+
+  const hierarchyResolver = require('./hierarchyResolver');
+  merged = hierarchyResolver.applyCanonicalHierarchy(merged);
 
   return merged;
 }

@@ -184,7 +184,10 @@ router.post('/hr/trigger', requireAuth, requireRhManagementAccess, jsonBody, asy
     const companyId = req.user.company_id;
     if (!companyId) return res.status(403).json({ ok: false, error: 'Empresa não identificada' });
     const result = await pulseService.triggerCampaignForUsers(companyId, req.body?.user_ids, {
-      all_eligible: !!req.body?.all_eligible
+      all_eligible: !!req.body?.all_eligible,
+      all_factory_operators: !!req.body?.all_factory_operators,
+      operational_team_member_ids: req.body?.operational_team_member_ids,
+      target_roles: req.body?.target_roles
     });
     res.json({ ok: true, ...result });
   } catch (e) {

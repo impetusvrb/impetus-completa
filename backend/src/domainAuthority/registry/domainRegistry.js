@@ -143,12 +143,11 @@ const DOMAIN_DEFINITIONS = Object.freeze({
       'finance_management',
       'director_financial'
     ],
-    allowed_modules: [...UNIVERSAL_MODULES, 'audit'],
+    allowed_modules: [...UNIVERSAL_MODULES, 'audit', 'anomaly_detection'],
     denied_modules: [
       'manuia',
       'quality_intelligence',
       'environment_intelligence',
-      'anomaly_detection',
       'raw_material_lots'
     ],
     denied_pipelines: ['industrial_telemetry', 'plc_telemetry', 'opcua', 'mqtt_sensors', 'quality_spc'],
@@ -422,8 +421,17 @@ const DOMAIN_DEFINITIONS = Object.freeze({
   executive: {
     axis: 'executive',
     profiles: ['ceo_executive', 'director_unassigned', 'director_operations', 'director_industrial'],
-    allowed_modules: [...UNIVERSAL_MODULES, 'audit'],
-    denied_modules: [],
+    allowed_modules: [...UNIVERSAL_MODULES, 'audit', 'anomaly_detection', 'hr_intelligence', 'biblioteca'],
+    denied_modules: [
+      'proaction',
+      'manuia',
+      'quality_intelligence',
+      'safety_intelligence',
+      'environment_intelligence',
+      'logistics_intelligence',
+      'raw_material_lots',
+      'financial_intelligence'
+    ],
     denied_pipelines: [],
     allowed_pipelines: ['executive_summary'],
     dashboards: ['executive'],

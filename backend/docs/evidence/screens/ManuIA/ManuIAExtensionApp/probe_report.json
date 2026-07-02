@@ -1,0 +1,15 @@
+{
+  "route": "/app/manutencao/manuia-app",
+  "probes": [
+    "GET /api/manutencao-ia/app/dashboard"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/manutencao-ia/app/dashboard",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-25T16:08:50.854Z"
+}

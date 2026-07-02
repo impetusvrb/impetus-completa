@@ -356,6 +356,30 @@ Esta ordem está alinhada com o resultado do `enterprise-industrial-modules-impa
 
 ---
 
+## 11.1 Outbox Telemetry Validation — trilha de certificações (2026-06-30)
+
+```
+Event Backbone
+        ↓
+FORENSICS ✓          (CERT-OUTBOX-FORENSICS-01)
+DEPENDENCY ✓         (CERT-OUTBOX-DEPENDENCY-01)
+VALIDATION ✓         (CERT-OUTBOX-VALIDATION-01 — implementado)
+VALIDAÇÃO OPERACIONAL ← etapa atual (modos shadow / selective / disabled)
+REMEDIATION          (CERT-OUTBOX-REMEDIATION-01 — condicional, não iniciada)
+```
+
+| Certificação | Situação |
+|--------------|----------|
+| CERT-OUTBOX-FORENSICS-01 | Concluído |
+| CERT-OUTBOX-DEPENDENCY-01 | Concluído |
+| CERT-OUTBOX-VALIDATION-01 | Implementado — aguardando validação operacional |
+| CERT-OUTBOX-REMEDIATION-01 | Não iniciada (condicionada à validação) |
+| CERT-EVENT-RETENTION-01 | Implementado |
+
+Documentação de governança: `backend/docs/CERT-OUTBOX-STATUS-01.md`
+
+---
+
 ## 11. Conclusão operacional
 
 Este roadmap entrega o que o plano mestre promete: **um caminho enterprise sustentável**, sem big-bang, sem regressões, sem dívida cognitiva escondida. Cada Wave é independente o suficiente para parar e reavaliar; cada flag é reversível; cada migration é aditiva. Em 6–8 meses, o Impetus terá o **runtime industrial real** que os módulos exigem — e somente então o desenvolvimento de Qualidade, Logística, Ambiental e SST começa em terreno firme.

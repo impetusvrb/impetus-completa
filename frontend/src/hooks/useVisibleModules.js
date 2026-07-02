@@ -4,6 +4,8 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { dashboard } from '../services/api';
+import { fetchDashboardMeShared } from '../runtimeBoot/dashboardMeSharedStore';
+import { notifyDashboardWave1Ready } from '../runtimeBoot/DashboardBootContext';
 import {
   isMaintenanceProfile,
   userHasSystemAdministrationCapability,
@@ -17,6 +19,13 @@ import { readCanonicalVisibleModules } from '../runtimeGovernance/canonicalVisib
 import { getContextualModulesMode } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 import { filterVisibleModulesByStructuralProfile } from '../utils/structuralModuleFilter.js';
 import { applyReconciliationToVisibleModules } from '../runtimeGovernance/visibilitySovereigntyGuard.js';
+import {
+  readMenuStabilityCache,
+  writeMenuStabilityCache,
+  clearMenuStabilityCache
+} from '../utils/menuStabilityCache.js';
+
+export { clearMenuStabilityCache };
 
 /**
  * Paths de acesso universal seguro — explicitamente liberados para TODOS os usuários.
@@ -37,6 +46,33 @@ const UNIVERSAL_SAFE_ACCESS_PATHS = Object.freeze(new Set([
  */
 const CEO_DENIED_PATHS = Object.freeze(new Set(['/app/proacao']));
 
+/** Menu CEO fixo — não depende de flicker da API / visible_modules. */
+const CEO_STABLE_MENU_PATHS = Object.freeze(
+  new Set([
+    '/app',
+    '/app/dashboard-vivo',
+    '/app/centro-operacoes-industrial',
+    '/app/cerebro-operacional',
+    '/app/insights',
+    '/app/centro-previsao-operacional',
+    '/app/centro-custos-industriais',
+    '/app/mapa-vazamento-financeiro',
+    '/app/cadastrar-com-ia',
+    '/app/biblioteca',
+    '/app/registro-inteligente',
+    '/app/validacao-organizacional',
+    '/app/chatbot',
+    '/chat',
+    '/app/settings'
+  ])
+);
+
+function _isCeoStableMenuPath(path) {
+  if (!_isCeoUser()) return false;
+  const p = String(path || '').replace(/\/+$/, '').split('?')[0] || '/';
+  return CEO_STABLE_MENU_PATHS.has(p);
+}
+
 function _isCeoUser() {
   try {
     const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -48,10 +84,20 @@ function _isCeoUser() {
   }
 }
 
+/** CEO: Pró-Ação oculto (síntese executiva, não tático). Demais perfis mantêm acesso universal. */
+function _isCeoProactionDenied() {
+  try {
+    const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    return String(u.role || '').toLowerCase() === 'ceo';
+  } catch {
+    return false;
+  }
+}
+
 /** Retorna true para os 3 paths universais e para sub-paths de PróAção (exceto CEO). */
 function isUniversalSafeAccessPath(p) {
-  if (CEO_DENIED_PATHS.has(p) && _isCeoUser()) return false;
-  if (p.startsWith('/app/proacao/') && _isCeoUser()) return false;
+  if (CEO_DENIED_PATHS.has(p) && _isCeoProactionDenied()) return false;
+  if (p.startsWith('/app/proacao/') && _isCeoProactionDenied()) return false;
   if (UNIVERSAL_SAFE_ACCESS_PATHS.has(p)) return true;
   if (p.startsWith('/app/proacao/')) return true;
   return false;
@@ -75,6 +121,7 @@ const PATH_TO_MODULE = {
   '/app/centro-custos-industriais': 'operational',
   '/app/mapa-vazamento-financeiro': 'operational',
   '/app/pulse-rh': 'operational',
+  '/app/pulse-cognitive-rh': 'operational',
   '/app/pulse-gestao': 'operational',
   '/app/manutencao/manuia': 'manuia',
   '/app/manutencao/manuia-app': 'manuia',
@@ -101,6 +148,7 @@ const STANDALONE_OPERATIONAL_PATHS = new Set([
   '/app/cerebro-operacional',
   '/app/centro-operacoes-industrial',
   '/app/pulse-rh',
+  '/app/pulse-cognitive-rh',
   '/app/pulse-gestao'
 ]);
 const STANDALONE_MANUIA_PATHS = new Set([
@@ -154,6 +202,7 @@ function standaloneOperationalPathAllowed(path, user, visibleSet) {
   const p = (path || '').replace(/\/+$/, '') || '/';
   if (visibleSet.has('operational')) return true;
   if (p === '/app/pulse-rh' && shouldOfferPulseRhMenu(user)) return true;
+  if (p === '/app/pulse-cognitive-rh' && shouldOfferPulseRhMenu(user)) return true;
   if (p === '/app/pulse-gestao' && isExecutiveLeadershipRole(user)) return true;
   return false;
 }
@@ -172,11 +221,29 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
 
   const terminalSet = opts._terminalVisibleModules;
   const effectiveModules = Array.isArray(terminalSet) && terminalSet.length > 0 ? terminalSet : visibleModules;
+  const cachedModules = opts._cachedModules;
 
   if (!effectiveModules || effectiveModules.length === 0) {
     const uEmpty = readStoredUser();
+    if (Array.isArray(cachedModules) && cachedModules.length > 0) {
+      const set = new Set(cachedModules);
+      const adminPortal = isAdministrativePortalOnlyUser(uEmpty);
+      const sysAdmin =
+        userHasSystemAdministrationCapability(uEmpty) ||
+        uEmpty.is_tenant_admin === true;
+      return menuItems.filter((item) => {
+        const p = (item.path || '').replace(/\/+$/, '') || '';
+        if (isUniversalSafeAccessPath(p)) return true;
+        if (item.path === '/app' || item.path === '/app/dashboard-vivo') return true;
+        const mod = getModuleForPath(item.path);
+        if (!mod) return isStrictAdminRole(uEmpty);
+        if (mod === 'admin' && sysAdmin) return true;
+        if (adminPortal && mod === 'operational') return OPERATIONAL_MODULE_ADMIN_EXEMPT_PATHS.has(p);
+        return set.has(mod);
+      });
+    }
     if (userMayBypassEmptyModules(uEmpty)) return menuItems;
-    if (opts.loading) return menuItems;
+    if (opts.loading) return [];
     return [];
   }
   const set = new Set(effectiveModules);
@@ -189,8 +256,8 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
     const p = (item.path || '').replace(/\/+$/, '') || '';
 
     // Acesso universal seguro: os 3 módulos explícitos sempre visíveis no menu.
-    // Não altera o deny-by-default do restante do sistema.
     if (isUniversalSafeAccessPath(p)) return true;
+    if (_isCeoStableMenuPath(p)) return true;
 
     if (adminPortal) {
       if (STANDALONE_OPERATIONAL_PATHS.has(p)) {
@@ -281,9 +348,16 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
   // Acesso universal seguro: os 3 módulos sempre acessíveis independentemente de visible_modules.
   // Não afeta orchestration, telemetry nem dashboards operacionais.
   if (isUniversalSafeAccessPath(norm)) return true;
+  if (_isCeoStableMenuPath(norm)) return true;
 
   if (!visibleModules?.length) {
-    if (opts.loading) return false;
+    if (opts.loading) {
+      const cached = readMenuStabilityCache();
+      if (cached.length) {
+        return canAccessPath(path, cached, contextualPathSet, { loading: false });
+      }
+      return _isCeoStableMenuPath(norm);
+    }
     if (isUniversalSafeAccessPath(norm)) return true;
     if (userMayBypassEmptyModules(u)) return true;
     return norm === '/app' || norm === '/app/dashboard-vivo';
@@ -326,9 +400,10 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
 }
 
 export function useVisibleModules() {
-  const [visibleModules, setVisibleModules] = useState([]);
+  const cachedOnMount = readMenuStabilityCache();
+  const [visibleModules, setVisibleModules] = useState(() => cachedOnMount);
   const [maintenanceFromProfile, setMaintenanceFromProfile] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => cachedOnMount.length === 0);
   // Phase 8 — contextual modules entregues pelo backend (mode != 'off').
   // Em produção (mode = 'off') este array fica vazio → fallback total ao legacy.
   const [contextualModules, setContextualModules] = useState([]);
@@ -338,6 +413,7 @@ export function useVisibleModules() {
   // Enterprise Hardening Bloco 8 (M10): cancela fetch obsoleto quando o
   // componente desmonta antes da resposta chegar — evita setState órfão.
   const fetchAbortRef = useRef(null);
+  const lastGoodModulesRef = useRef(cachedOnMount.length > 0 ? cachedOnMount : []);
   const fetchModules = useCallback(async () => {
     try {
       try {
@@ -351,7 +427,7 @@ export function useVisibleModules() {
         fetchAbortRef.current = null;
       }
       const signal = fetchAbortRef.current ? fetchAbortRef.current.signal : undefined;
-      const r = await dashboard.getMe({ signal });
+      const r = await fetchDashboardMeShared({ signal });
       // Alinhar localStorage ao perfil resolvido no servidor (evita menu sem Pulse RH após mudança de cargo/área).
       try {
         const raw = localStorage.getItem('impetus_user');
@@ -418,7 +494,8 @@ export function useVisibleModules() {
         gov &&
         Array.isArray(mods) &&
         gov.denied_count > 0 &&
-        gov.executive_structural_bypass !== true
+        gov.executive_structural_bypass !== true &&
+        !isExecutiveLeadershipRole(readStoredUser())
       ) {
         // Em bypass executivo, os "denied" são artefactos do cadastro estrutural
         // incompleto — a liderança recebe o conjunto completo, não os filtramos.
@@ -431,9 +508,18 @@ export function useVisibleModules() {
       if (mods.includes('ai') && !mods.includes('chat')) {
         mods = [...mods, 'chat'];
       }
-      // Enterprise Hardening — aplica reconciliação de visibilidade do backend
-      mods = applyReconciliationToVisibleModules(mods, r?.data);
+      // Enterprise Hardening — reconciliação só quando governança modular não é autoritária
+      if (gov?.engine !== 'moduleAccessGovernanceEngine') {
+        mods = applyReconciliationToVisibleModules(mods, r?.data);
+      }
       setVisibleModules(mods);
+      lastGoodModulesRef.current = mods;
+      try {
+        const uid = readStoredUser()?.id;
+        if (uid) writeMenuStabilityCache(mods, uid);
+      } catch {
+        /* ignore */
+      }
       const profileCode = String(r?.data?.profile_code || '').toLowerCase();
       const functionalArea = String(r?.data?.user_context?.functional_area || '').toLowerCase();
       const isMaint =
@@ -471,13 +557,29 @@ export function useVisibleModules() {
       if (err && (err.name === 'AbortError' || err.code === 'ERR_CANCELED')) {
         return;
       }
-      setVisibleModules([]);
+      const status = err?.response?.status ?? err?.status;
+      if (status === 401 || status === 403) {
+        setVisibleModules([]);
+        lastGoodModulesRef.current = [];
+        clearMenuStabilityCache();
+      } else if (lastGoodModulesRef.current.length > 0) {
+        setVisibleModules(lastGoodModulesRef.current);
+      } else {
+        const cached = readMenuStabilityCache();
+        if (cached.length > 0) {
+          setVisibleModules(cached);
+          lastGoodModulesRef.current = cached;
+        } else {
+          setVisibleModules([]);
+        }
+      }
       setMaintenanceFromProfile(false);
       setContextualModules([]);
       setContextualMeta(null);
       setDashboardMePayload(null);
     } finally {
       setLoading(false);
+      notifyDashboardWave1Ready();
     }
   }, []);
 
@@ -516,7 +618,12 @@ export function useVisibleModules() {
     visibleModules,
     maintenanceFromProfile,
     loading,
-    filterMenu: (items, _unused, opts) => filterMenuByModules(items, visibleModules, { loading, ...opts }),
+    filterMenu: (items, _unused, opts) =>
+      filterMenuByModules(items, visibleModules, {
+        loading,
+        _cachedModules: cachedOnMount.length ? cachedOnMount : lastGoodModulesRef.current,
+        ...opts
+      }),
     canAccessPath: (path) => canAccessPath(path, visibleModules, contextualPathSet, { loading }),
     refetch: fetchModules,
     // Phase 8 — campos aditivos: consumidores antigos continuam a ignorá-los.

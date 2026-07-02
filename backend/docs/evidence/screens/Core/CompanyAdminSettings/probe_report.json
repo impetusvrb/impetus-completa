@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/conteudo-empresa",
   "probes": [
-    "GET /api/admin/settings"
+    "GET /api/admin/settings/company"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/settings",
-      "status": 404,
+      "spec": "GET /api/admin/settings/company",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.592Z"
+  "at": "2026-06-24T15:27:46.848Z"
 }

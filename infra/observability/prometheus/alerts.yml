@@ -51,3 +51,21 @@ groups:
           severity: critical
         annotations:
           summary: "Componente runtime unhealthy"
+
+      - alert: ImpetusDiskUsageWarning
+        expr: impetus_disk_used_percent >= 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disco VPS >= 80%"
+          description: "Monitorar crescimento de logs, backups e PostgreSQL (industrial_event_outbox)."
+
+      - alert: ImpetusDiskUsageCritical
+        expr: impetus_disk_used_percent >= 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disco VPS >= 90% — ação preventiva urgente"
+          description: "Risco de indisponibilidade por esgotamento de disco."

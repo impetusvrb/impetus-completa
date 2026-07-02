@@ -566,13 +566,13 @@
 }
 
 /*
- * UI-DESKTOP-005 — Desktop (≥1024px): sussurros cognitivos em fluxo documental.
- * Causa raiz: .cog-whispers position:fixed (top/right) cobria o botão Atualizar
- * (.live-dash-actions em LiveDashboardUnifiedPanel).
- * Tablet/mobile mantêm posicionamento anterior.
+ * UI-DESKTOP-005 / UX-COGNITIVE-001 — Desktop e tablet (≥768px): sussurros em fluxo documental.
+ * Causa raiz: .cog-whispers position:fixed cobria painel vivo e controles do dashboard.
+ * Mobile mantém badge fixo discreto no canto inferior.
  */
-@media (min-width: 1024px) {
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers {
+@media (min-width: 768px) {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-whispers {
     position: static;
     z-index: auto;
     top: auto;
@@ -586,27 +586,32 @@
     pointer-events: none;
   }
 
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers.cog-whispers--multi {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers.cog-whispers--multi,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-whispers.cog-whispers--multi {
     top: auto;
   }
 
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers__item {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers__item,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-whispers__item {
     display: block;
     width: fit-content;
     max-width: min(100%, 560px);
   }
 
   /* Respiro estrutural: faixa cognitiva → header operacional (Atualizar) */
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-presence-content .live-dash-unified--exec {
     padding-top: 0;
   }
 
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-header {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-header,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-presence-content .live-dash-unified--exec .live-dash-header {
     margin-top: 0;
     margin-bottom: 1rem;
   }
 
-  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-actions {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-actions,
+  .cog-presence-root[data-viewport-tier='tablet'] .cog-presence-content .live-dash-unified--exec .live-dash-actions {
     position: relative;
     z-index: auto;
     flex-shrink: 0;

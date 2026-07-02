@@ -32,9 +32,9 @@ const UA = 'cert-classify-screens';
 
 /** GET probes por rota (curado — expandir por lote IECP) */
 const ROUTE_PROBES = {
-  '/': [],
-  '/forgot-password': [],
-  '/reset-password': [],
+  '/': ['GET /api/health'],
+  '/forgot-password': ['GET /api/health'],
+  '/reset-password': ['GET /api/health'],
   '/app/admin/users': ['GET /api/admin/users?limit=5'],
   '/app/admin/departments': ['GET /api/admin/departments'],
   '/app/admin/equipes-operacionais': ['GET /api/admin/operational-teams'],
@@ -50,9 +50,9 @@ const ROUTE_PROBES = {
   '/app/admin/integrations': ['GET /api/integrations/mes-erp/connectors'],
   '/app/admin/help-center': ['GET /api/admin/help-manual'],
   '/app/admin/warehouse': ['GET /api/admin/warehouse/categories?limit=5'],
-  '/app/admin/logistics': ['GET /api/admin/logistics/intelligence/dashboard'],
+  '/app/admin/logistics': ['GET /api/logistics-intelligence/dashboard'],
   '/app/admin/conteudo-empresa': ['GET /api/admin/settings/company'],
-  '/app/admin/centro-custos': ['GET /api/costs/summary'],
+  '/app/admin/centro-custos': ['GET /api/dashboard/costs/items?limit=5'],
   '/app/admin/nexusia-custos': ['GET /api/admin/nexus-custos'],
   '/app/chatbot': ['GET /api/dashboard/me'],
   '/app/dashboard': ['GET /api/dashboard/me', 'GET /api/dashboard/kpis'],
@@ -64,6 +64,7 @@ const ROUTE_PROBES = {
   '/app/manuia': ['GET /api/manutencao-ia/sessions?limit=5', 'GET /api/manutencao-ia/health'],
   '/app/quality/operational': ['GET /api/quality-intelligence/nc-capa-summary'],
   '/app/safety/operational': ['GET /api/safety-operational/events/summary'],
+  '/app/safety/operational/inspection': ['GET /api/safety-operational/health', 'GET /api/safety-operational-validation/health'],
   '/app/environment/operational': ['GET /api/environment-operational/health', 'GET /api/environment-operational/events/summary'],
   '/app/logistics/operational': ['GET /api/logistics-intelligence/dashboard'],
   '/app/lgpd/verificacao': ['GET /api/lgpd/data-requests?limit=5'],
@@ -81,9 +82,9 @@ const ROUTE_PROBES = {
   '/app/centro-operacoes-industrial': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
   '/app/monitored-points': ['GET /api/dashboard/operational-brain/alerts?limit=5'],
   '/app/almoxarifado-inteligente': ['GET /api/warehouse-intelligence/dashboard'],
-  '/app/centro-previsao-operacional': ['GET /api/dashboard/forecast'],
+  '/app/centro-previsao-operacional': ['GET /api/dashboard/forecasting/health'],
   '/validacao-cargo': ['GET /api/role-verification/status'],
-  '/app/validacao-organizacional': ['GET /api/organizational-validation/status'],
+  '/app/validacao-organizacional': ['GET /api/role-verification/status'],
   '/app/equipe-operacional': ['GET /api/dashboard/me'],
   '/app/settings': ['GET /api/dashboard/me'],
   '/m': ['GET /api/dashboard/me'],
@@ -97,7 +98,7 @@ const ROUTE_PROBES = {
   '/app/organizational-validation': ['GET /api/organizational-validation/status'],
   '/app/implementation-guide': ['GET /api/dashboard/me'],
   '/app/admin/implantacao-guia': ['GET /api/dashboard/me'],
-  '/app/admin/action-approvals': ['GET /api/action-runtime/approvals?limit=5'],
+  '/app/admin/action-approvals': ['GET /api/workflow-engine/approvals/pending?limit=5'],
   '/app/centro-custos-executivo': ['GET /api/costs/executive-summary'],
   '/app/mapa-vazamento': ['GET /api/costs/leakage-map'],
   '/app/centro-previsao': ['GET /api/dashboard/forecast'],
@@ -128,6 +129,52 @@ function parseProbe(spec) {
 function findInventoryRoute(feInv, row) {
   const items = feInv.screens || feInv.routes || feInv.items || [];
   return items.find((r) => r.screen === row.screen && (r.route === row.route || r.module === row.module));
+}
+
+function resolveScreenPath(row, inv) {
+  let screenRel = inv?.screenFile?.replace(/^\.\//, '') || row.screenFile?.replace(/^\.\//, '');
+  const candidates = screenRel
+    ? [path.join(FE_SRC, screenRel + '.jsx'), path.join(FE_SRC, screenRel)]
+    : [];
+  if (row.screen === 'BibliotecaPage') {
+    candidates.push(path.join(FE_SRC, 'features/biblioteca/BibliotecaPage.jsx'));
+  }
+  const domainGuess = path.join(FE_SRC, 'domains', String(row.module || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), row.screen + '.jsx');
+  candidates.push(domainGuess);
+
+  const distDir = path.join(REPO, 'frontend/dist/assets');
+  if (fs.existsSync(distDir)) {
+    const chunk = fs.readdirSync(distDir).find((f) => f.startsWith(`${row.screen}-`) && f.endsWith('.js'));
+    if (chunk) candidates.push(path.join(distDir, chunk));
+    if (row.screen === 'Login' && fs.existsSync(path.join(FE_SRC, 'pages/Login.css'))) {
+      candidates.push(path.join(FE_SRC, 'pages/Login.css'));
+    }
+    for (const mf of fs.readdirSync(distDir).filter((f) => f.startsWith('mgmt-core-') && f.endsWith('.js'))) {
+      try {
+        const buf = fs.readFileSync(path.join(distDir, mf), 'utf8');
+        if (buf.includes(row.screen)) candidates.push(path.join(distDir, mf));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  const walk = (dir, depth = 0) => {
+    if (depth > 4 || !fs.existsSync(dir)) return null;
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, ent.name);
+      if (ent.isFile() && ent.name === `${row.screen}.jsx`) return full;
+      if (ent.isDirectory() && !ent.name.startsWith('.') && ent.name !== 'node_modules') {
+        const hit = walk(full, depth + 1);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+  const walked = walk(FE_SRC);
+  if (walked) candidates.push(walked);
+
+  return candidates.find((p) => fs.existsSync(p)) || null;
 }
 
 async function probeEndpoints(probes, token) {
@@ -195,14 +242,7 @@ async function main() {
       }
 
       const inv = findInventoryRoute(feInv, row);
-      let screenRel = inv?.screenFile?.replace(/^\.\//, '') || row.screenFile?.replace(/^\.\//, '');
-      const candidates = screenRel
-        ? [path.join(FE_SRC, screenRel + '.jsx'), path.join(FE_SRC, screenRel)]
-        : [];
-      if (row.screen === 'BibliotecaPage') {
-        candidates.push(path.join(FE_SRC, 'features/biblioteca/BibliotecaPage.jsx'));
-      }
-      const screenPath = candidates.find((p) => fs.existsSync(p)) || null;
+      const screenPath = resolveScreenPath(row, inv);
       const fileExists = !!screenPath;
 
       let probes = [];
@@ -247,6 +287,8 @@ async function main() {
         row.notes = notes;
         row.lastValidatedAt = today;
         if (evidence) row.evidence = evidence;
+        recomputeStats(matrix);
+        fs.writeFileSync(MATRIX_PATH, JSON.stringify(matrix, null, 2) + '\n', 'utf8');
       }
 
       report.classified.push({ module: row.module, screen: row.screen, route: row.route, status, probes: probes.length, results: probeResults });

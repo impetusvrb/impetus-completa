@@ -5,6 +5,10 @@
  */
 
 import axios from 'axios';
+import {
+  trackBootRequestStart,
+  trackBootRequestEnd
+} from '../runtimeBoot/dashboardBootMetrics.js';
 
 /**
  * Base da API. O Express monta rotas em /api/... — se VITE_API_URL for absoluto sem /api
@@ -36,6 +40,8 @@ const api = axios.create({
 // Interceptor para adicionar token em todas as requisições
 api.interceptors.request.use(
   (config) => {
+    trackBootRequestStart();
+    config.__bootTracked = true;
     const token = localStorage.getItem('impetus_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -51,6 +57,9 @@ api.interceptors.request.use(
 // Guardar trace da última resposta do assistente (reporte de incidente / caixa-preta)
 api.interceptors.response.use(
   (response) => {
+    if (response.config?.__bootTracked) {
+      trackBootRequestEnd(response.status);
+    }
     try {
       const url = String(response.config?.url || '');
       const method = String(response.config?.method || '').toLowerCase();
@@ -98,6 +107,9 @@ api.interceptors.response.use(
 );
 
 function handleFinalError(error) {
+  if (error.config?.__bootTracked) {
+    trackBootRequestEnd(error.response?.status || 0);
+  }
   const urlPath = error.config?.url || '';
 
   // 401 em Pró-Ação/login não deve derrubar toda a sessão do usuário.
@@ -130,10 +142,23 @@ function handleFinalError(error) {
     if (typeof window !== 'undefined' && !window.location.pathname.includes('/validacao-cargo')) {
       window.location.href = '/validacao-cargo';
     }
+  } else if (error.response?.status === 503) {
+    error.apiMessage =
+      error.response?.data?.error ||
+      (error.response?.data?.code === 'ANAM_API_ERROR'
+        ? 'Serviço de avatar Anam indisponível (chave API inválida ou expirada no servidor).'
+        : 'Serviço temporariamente indisponível. Aguarde alguns segundos e tente novamente.');
+  } else if (error.response?.status === 502 || error.response?.status === 504) {
+    error.apiMessage = 'Servidor ou proxy indisponível no momento. Tente novamente em instantes.';
   } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     error.apiMessage = 'Tempo esgotado. Verifique sua conexão e tente novamente.';
   } else if (error.code === 'ERR_NETWORK') {
     error.apiMessage = 'Sem conexão. Verifique sua internet.';
+  } else if (error.response?.status === 413) {
+    error.apiMessage =
+      error.response?.data?.error || 'O arquivo excede o tamanho máximo permitido.';
+  } else if (error.response?.status === 415) {
+    error.apiMessage = error.response?.data?.error || 'Formato de arquivo não suportado.';
   } else if (error.response?.data?.error) {
     error.apiMessage = error.response.data.error;
   } else {
@@ -181,6 +206,8 @@ export const nexusIA = {
 /** NexusIA — carteira de créditos, recargas (Stripe), taxas por serviço */
 export const nexusWallet = {
   getDashboard: (params) => api.get('/admin/nexus-wallet', { params }),
+  getBillingEngineDashboard: () => api.get('/admin/nexus-wallet/billing-engine/dashboard'),
+  getBillingLedger: (params) => api.get('/admin/nexus-wallet/billing-ledger', { params }),
   updateSettings: (data) => api.patch('/admin/nexus-wallet/settings', data),
   checkoutStripe: (data) => api.post('/admin/nexus-wallet/checkout/stripe', data),
   checkoutPagSeguro: (data) => api.post('/admin/nexus-wallet/checkout/pagseguro', data),
@@ -631,6 +658,20 @@ export const pulse = {
   mgmtAggregates: (params) => api.get('/pulse/mgmt/aggregates', { params })
 };
 
+/** Pulse Cognitivo Organizacional (CERT-PULSE-02+) — /api/pulse/cognitive */
+export const pulseCognitive = {
+  hrDashboard: (params) => api.get('/pulse/cognitive/hr/dashboard', { params }),
+  hrExecutive: (params) => api.get('/pulse/cognitive/hr/executive', { params }),
+  hrTimeline: (params) => api.get('/pulse/cognitive/hr/timeline', { params }),
+  hrCrossDomain: () => api.get('/pulse/cognitive/hr/cross-domain'),
+  hrReconcile: () => api.post('/pulse/cognitive/hr/reconcile', {}),
+  hrCalibrationReliability: () => api.get('/pulse/cognitive/hr/calibration/reliability'),
+  hrCalibrationInsights: (params) => api.get('/pulse/cognitive/hr/calibration/insights', { params }),
+  hrCalibrationValidateInsight: (insightId, body) =>
+    api.post(`/pulse/cognitive/hr/calibration/insights/${insightId}/validate`, body),
+  hrMemoryConsult: (params) => api.get('/pulse/cognitive/hr/memory/consult', { params })
+};
+
 // ============================================================================
 // MANUIA - Manutenção assistida por IA (perfis de manutenção)
 // ============================================================================
@@ -657,6 +698,20 @@ export const manutencaoIa = {
   liveAnalyzeFrame: (body) => api.post('/manutencao-ia/live-assistance/analyze-frame', body),
   liveChat: (body) => api.post('/manutencao-ia/live-assistance/chat', body),
   liveSaveSession: (body) => api.post('/manutencao-ia/live-assistance/save-session', body)
+};
+
+/** Gêmeo Digital Aplicado — diagnóstico industrial com Gemini */
+export const digitalTwin = {
+  getDashboard: () => api.get('/manutencao-ia/digital-twin/dashboard'),
+  diagnose: (body) => api.post('/manutencao-ia/digital-twin/diagnose', body),
+  listDiagnostics: (params) => api.get('/manutencao-ia/digital-twin/diagnostics', { params }),
+  getDiagnostic: (id) => api.get(`/manutencao-ia/digital-twin/diagnostics/${id}`),
+  resolveDiagnostic: (id, body) => api.post(`/manutencao-ia/digital-twin/diagnostics/${id}/resolve`, body),
+  trendAnalysis: (body) => api.post('/manutencao-ia/digital-twin/trend-analysis', body),
+  imageDiagnostic: (body) => api.post('/manutencao-ia/digital-twin/image-diagnostic', body),
+  getMemory: (params) => api.get('/manutencao-ia/digital-twin/memory', { params }),
+  getMemoryStats: () => api.get('/manutencao-ia/digital-twin/memory/stats'),
+  getHealth: () => api.get('/manutencao-ia/digital-twin/health')
 };
 
 /** ManuIA App de extensão (PWA / mobile) — preferências, inbox, OS, dashboard */

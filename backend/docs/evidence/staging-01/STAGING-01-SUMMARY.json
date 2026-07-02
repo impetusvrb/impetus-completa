@@ -1,0 +1,40 @@
+{
+  "certification": "CERT-ENTERPRISE-STAGING-01",
+  "executed_at": "2026-07-01T01:15:01.134Z",
+  "hostname": "srv1422313",
+  "staging_home": "/opt/impetus",
+  "decision": "REPROVADA",
+  "staging_ready": false,
+  "disk_avail_gb": null,
+  "docker": false,
+  "pm2": true,
+  "postgresql_clean": false,
+  "impetus_user": false,
+  "non_conformities_count": 19,
+  "alta_blockers": [
+    "NC-ST001",
+    "NC-ST002",
+    "NC-ST003",
+    "NC-ST004",
+    "NC-ST005",
+    "NC-ST006",
+    "NC-ST007",
+    "NC-ST008",
+    "NC-ST009",
+    "NC-ST010",
+    "NC-ST011",
+    "NC-ST012",
+    "NC-ST013",
+    "NC-ST014",
+    "NC-ST015",
+    "NC-ST016",
+    "NC-ST017",
+    "NC-ST018",
+    "NC-ST019"
+  ],
+  "full_report": "staging-provisioning-2026-07-01T01-15-01-134Z.json",
+  "next_steps": [
+    "Provisionar VM conforme MANUAL-STAGING.md",
+    "Re-executar enterprise:staging-provisioning"
+  ]
+}

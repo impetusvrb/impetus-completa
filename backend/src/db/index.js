@@ -3,7 +3,7 @@
  * IMPETUS - Pool de conexões PostgreSQL
  * Configuração explícita para evitar esgotamento em picos de uso.
  */
-require('dotenv').config({ path: require('path').join(__dirname, '../../.env'), override: true });
+require('../config/loadEnv').loadImpetusEnv();
 
 const { Pool } = require('pg');
 
@@ -34,6 +34,10 @@ const pool = databaseUrl
 pool.on('error', (err) => console.error('[DB] Pool error:', err.message));
 
 async function query(text, params) {
+  const stats = { totalCount: pool.totalCount, idleCount: pool.idleCount, waitingCount: pool.waitingCount };
+  if (stats.waitingCount >= 3) {
+    console.warn('[DB][POOL_PRESSURE]', JSON.stringify({ event: 'DATABASE_POOL_WAIT', ...stats }));
+  }
   try {
     const flags = require('../tenant-isolation/config/tenantRlsFlags');
     const gov = require('../tenant-isolation/governance/tenantRlsGovernanceService');

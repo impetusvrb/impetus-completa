@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { dashboard } from '../../../../services/api';
+import { useDashboardBoot } from '../../../../runtimeBoot/DashboardBootContext';
 
 const POLL_MS = 8000;
 
 export default function useCognitivePulse() {
+  const { phase } = useDashboardBoot();
   const [pulse, setPulse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,10 +27,11 @@ export default function useCognitivePulse() {
   }, []);
 
   useEffect(() => {
+    if (phase < 2) return undefined;
     refresh();
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
-  }, [refresh]);
+  }, [refresh, phase]);
 
   return { pulse, loading, error, refresh };
 }

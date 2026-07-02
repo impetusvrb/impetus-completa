@@ -1,0 +1,317 @@
+{
+  "capturedAt": "2026-07-02T02:11:46.836Z",
+  "health": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "status": "ok",
+      "service": "impetus-backend",
+      "voz": {
+        "openai": true,
+        "google_credentials_ok": false,
+        "tts_available": true
+      },
+      "integrations": {
+        "schema_version": "ai_integrations_health_v1",
+        "probed_at": "2026-07-02T02:11:46.123Z",
+        "cache_ttl_ms": 45000,
+        "openai": {
+          "status": "up",
+          "configured": true
+        },
+        "anthropic": {
+          "status": "up",
+          "configured": true
+        },
+        "google_vertex": {
+          "status": "up",
+          "configured": true
+        },
+        "akool": {
+          "status": "down",
+          "configured": false,
+          "detail": "AKOOL_API_KEY ausente"
+        },
+        "from_cache": false
+      }
+    },
+    "ms": 1820,
+    "raw": "{\"success\":true,\"status\":\"ok\",\"service\":\"impetus-backend\",\"voz\":{\"openai\":true,\"google_credentials_ok\":false,\"tts_available\":true},\"integrations\":{\"schema_version\":\"ai_integrations_health_v1\",\"probed_at\":\"2026-07-02T02:11:46.123Z\",\"cache_ttl_ms\":45000,\"openai\":{\"status\":\"up\",\"configured\":true},\"anthropic\":{\"status\":\"up\",\"configured\":true},\"google_vertex\":{\"status\":\"up\",\"configured\":true},\"akool\":{\"status\":\"down\",\"configured\":false,\"detail\":\"AKOOL_API_KEY ausente\"},\"from_cache\":false}}"
+  },
+  "deepHealth": {
+    "status": 200,
+    "json": {
+      "ready": true,
+      "issues": []
+    },
+    "ms": 5,
+    "raw": "{\"ready\":true,\"issues\":[]}"
+  },
+  "pm2": {
+    "name": "impetus-backend",
+    "status": "online",
+    "restarts": 510,
+    "uptime": 1782937516998
+  },
+  "flags": {
+    "EVENT_GOVERNANCE_AIOI": "false",
+    "EVENT_GOVERNANCE_LEARNING": "false",
+    "EVENT_GOVERNANCE_MEMORY": "false",
+    "EVENT_GOVERNANCE_EXPLAINABILITY": "false",
+    "EVENT_GOVERNANCE_INTELLIGENCE": "false",
+    "EVENT_GOVERNANCE_POLICY_OPTIMIZATION": "false",
+    "EVENT_GOVERNANCE_EXECUTIVE_INSIGHTS": "false",
+    "EVENT_GOVERNANCE_KNOWLEDGE_BASE": "false",
+    "EVENT_GOVERNANCE_ENABLED": "false",
+    "EVENT_GOVERNANCE_EXECUTION_ENABLED": "false",
+    "EVENT_GOVERNANCE_OPERATIONAL_ALERTS": "false",
+    "EVENT_GOVERNANCE_AI_PROACTIVE": "false",
+    "EVENT_GOVERNANCE_TPM": "false",
+    "EVENT_GOVERNANCE_EXECUTIVE": "false",
+    "EVENT_GOVERNANCE_BILLING": "false",
+    "EVENT_GOVERNANCE_DSR": "false",
+    "EVENT_GOVERNANCE_MANUIA": "false",
+    "EVENT_GOVERNANCE_QUALITY": "false",
+    "EVENT_GOVERNANCE_SST": "false",
+    "EVENT_GOVERNANCE_ESG": "false"
+  },
+  "metrics": {
+    "total_requests": 0,
+    "ai_responses_generated": 0,
+    "ai_responses_blocked": 0,
+    "policy_violations_count": 0,
+    "compliance_incidents_count": 0,
+    "errors_count": 0,
+    "billing_notification_email_day3_attempt": 0,
+    "billing_notification_email_day3_success": 0,
+    "billing_notification_app_day5_attempt": 0,
+    "billing_notification_app_day5_success": 0,
+    "billing_notification_nc_day7_attempt": 0,
+    "billing_notification_nc_day7_success": 0,
+    "notification_federation_queries": 0,
+    "notification_federation_results": 0,
+    "notification_federation_latency_ms": 0,
+    "event_governance_evaluations": 0,
+    "event_governance_policy_matches": 0,
+    "event_governance_unmatched": 0,
+    "event_governance_shadow_decisions": 0,
+    "event_governance_execution_plans": 0,
+    "event_governance_channels_ready": 0,
+    "event_governance_channels_unavailable": 0,
+    "event_governance_execution_attempts": 0,
+    "event_governance_execution_success": 0,
+    "event_governance_execution_failures": 0,
+    "event_governance_execution_latency_ms": 0,
+    "event_governance_operational_events": 0,
+    "event_governance_operational_migrated": 0,
+    "event_governance_operational_shadow_total": 0,
+    "event_governance_operational_shadow_match": 0,
+    "event_governance_operational_shadow_divergence": 0,
+    "event_governance_ai_events": 0,
+    "event_governance_ai_migrated": 0,
+    "event_governance_ai_shadow_total": 0,
+    "event_governance_ai_shadow_match": 0,
+    "event_governance_ai_shadow_divergence": 0,
+    "event_governance_tpm_events": 0,
+    "event_governance_tpm_migrated": 0,
+    "event_governance_tpm_shadow_total": 0,
+    "event_governance_tpm_shadow_match": 0,
+    "event_governance_tpm_shadow_divergence": 0,
+    "event_governance_executive_events": 0,
+    "event_governance_executive_migrated": 0,
+    "event_governance_executive_shadow_total": 0,
+    "event_governance_executive_shadow_match": 0,
+    "event_governance_executive_shadow_divergence": 0,
+    "event_governance_billing_events": 0,
+    "event_governance_billing_migrated": 0,
+    "event_governance_billing_shadow_total": 0,
+    "event_governance_billing_shadow_match": 0,
+    "event_governance_billing_shadow_divergence": 0,
+    "event_governance_dsr_events": 0,
+    "event_governance_dsr_migrated": 0,
+    "event_governance_dsr_shadow_total": 0,
+    "event_governance_dsr_shadow_match": 0,
+    "event_governance_dsr_shadow_divergence": 0,
+    "event_governance_manuia_events": 0,
+    "event_governance_manuia_migrated": 0,
+    "event_governance_manuia_shadow_total": 0,
+    "event_governance_manuia_shadow_match": 0,
+    "event_governance_manuia_shadow_divergence": 0,
+    "event_governance_quality_events": 0,
+    "event_governance_quality_migrated": 0,
+    "event_governance_quality_shadow_total": 0,
+    "event_governance_quality_shadow_match": 0,
+    "event_governance_quality_shadow_divergence": 0,
+    "event_governance_sst_events": 0,
+    "event_governance_sst_migrated": 0,
+    "event_governance_sst_shadow_total": 0,
+    "event_governance_sst_shadow_match": 0,
+    "event_governance_sst_shadow_divergence": 0,
+    "event_governance_esg_events": 0,
+    "event_governance_esg_migrated": 0,
+    "event_governance_esg_shadow_total": 0,
+    "event_governance_esg_shadow_match": 0,
+    "event_governance_esg_shadow_divergence": 0,
+    "event_governance_aioi_events": 0,
+    "event_governance_aioi_correlations": 0,
+    "event_governance_aioi_insights": 0,
+    "event_governance_aioi_shadow_total": 0,
+    "event_governance_aioi_shadow_match": 0,
+    "event_governance_learning_events": 0,
+    "event_governance_learning_success": 0,
+    "event_governance_learning_false_positive": 0,
+    "event_governance_confidence_updates": 0,
+    "event_governance_learning_shadow_total": 0,
+    "event_governance_memory_lookups": 0,
+    "event_governance_memory_hits": 0,
+    "event_governance_memory_misses": 0,
+    "event_governance_memory_stored": 0,
+    "event_governance_memory_patterns": 0,
+    "event_governance_memory_score_computed": 0,
+    "event_governance_explainability_hits": 0,
+    "event_governance_explainability_generated": 0,
+    "event_governance_explainability_errors": 0,
+    "event_governance_explainability_avg_score": 0,
+    "event_governance_intelligence_runs": 0,
+    "event_governance_recommendations_generated": 0,
+    "event_governance_health_score": 0,
+    "event_governance_trend_detections": 0,
+    "event_governance_intelligence_errors": 0,
+    "event_governance_optimization_runs": 0,
+    "event_governance_policy_conflicts_detected": 0,
+    "event_governance_optimization_recommendations": 0,
+    "event_governance_policy_effectiveness_score": 0,
+    "event_governance_optimization_errors": 0,
+    "event_governance_executive_reports_generated": 0,
+    "event_governance_executive_dashboard_requests": 0,
+    "event_governance_executive_kpis_calculated": 0,
+    "event_governance_executive_summary_generated": 0,
+    "event_governance_executive_errors": 0,
+    "event_governance_knowledge_queries": 0,
+    "event_governance_knowledge_reports_generated": 0,
+    "event_governance_knowledge_index_updates": 0,
+    "event_governance_knowledge_statistics_generated": 0,
+    "event_governance_knowledge_errors": 0,
+    "average_response_time": 0,
+    "by_tenant": {}
+  },
+  "services": {
+    "aioi": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "shadow_mode": true,
+        "events_observed": 0,
+        "correlations_detected": 0,
+        "insights_generated": 0,
+        "shadow_total": 0,
+        "shadow_matches": 0,
+        "policy_id": "AIOI_INSIGHT"
+      }
+    },
+    "learning": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "shadow_mode": true,
+        "records_buffered": 0,
+        "shadow_observations": 0,
+        "learning_events": 0,
+        "learning_success": 0,
+        "learning_false_positive": 0,
+        "shadow_total": 0
+      }
+    },
+    "memory": {
+      "enabled": false,
+      "audit": {
+        "enabled": false
+      }
+    },
+    "explainability": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "explainability_hits": 0,
+        "explainability_generated": 0,
+        "explainability_errors": 0,
+        "average_explainability_score": 0,
+        "traces_buffered": 0,
+        "recent_traces": []
+      }
+    },
+    "intelligence": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "intelligence_runs": 0,
+        "recommendations_generated": 0,
+        "governance_health_score": 0.5,
+        "trend_detections": 0,
+        "intelligence_errors": 0,
+        "snapshots_buffered": 0,
+        "open_recommendations": [],
+        "analytics_summary": {
+          "sampleSize": 0,
+          "decisionStability": null,
+          "falsePositiveRate": null,
+          "recurrenceRate": null,
+          "confidenceTrend": null,
+          "memoryScoreTrend": null,
+          "explainabilityScoreTrend": null,
+          "averageResolutionTimeMs": null,
+          "severityDistribution": {},
+          "policyDistribution": {},
+          "observability": {
+            "learning_false_positive": 0,
+            "memory_hits": 0,
+            "explainability_generated": 0
+          }
+        },
+        "last_report_at": null
+      }
+    },
+    "policy_optimization": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "optimization_runs": 0,
+        "policy_conflicts_detected": 0,
+        "optimization_recommendations": 0,
+        "policy_effectiveness_score": null,
+        "optimization_errors": 0,
+        "open_recommendations": [],
+        "conflicts": [],
+        "usage_records_buffered": 0
+      }
+    },
+    "executive_insights": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "executive_reports_generated": 0,
+        "executive_dashboard_requests": 0,
+        "executive_kpis_calculated": 0,
+        "executive_summary_generated": 0,
+        "executive_errors": 0,
+        "last_report_at": null,
+        "report_history": [],
+        "executive_kpis": null
+      }
+    },
+    "knowledge_base": {
+      "enabled": false,
+      "audit": {
+        "enabled": false,
+        "knowledge_queries": 0,
+        "knowledge_reports_generated": 0,
+        "knowledge_index_updates": 0,
+        "knowledge_statistics_generated": 0,
+        "knowledge_errors": 0,
+        "last_index_at": null,
+        "indexed_companies": 0,
+        "total_index_entries": 0
+      }
+    }
+  }
+}

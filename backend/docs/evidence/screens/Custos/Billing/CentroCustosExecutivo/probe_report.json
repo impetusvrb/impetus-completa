@@ -1,0 +1,15 @@
+{
+  "route": "/app/centro-custos-industriais",
+  "probes": [
+    "GET /api/dashboard/costs/executive-summary"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/dashboard/costs/executive-summary",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:27:46.822Z"
+}

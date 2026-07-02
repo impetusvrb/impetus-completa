@@ -271,8 +271,13 @@ async function fetchExecutiveData(companyId) {
 
 /**
  * Processa consulta estratégica do CEO via IA
+ * @param {string} companyId
+ * @param {number|string} userId
+ * @param {string} query
+ * @param {boolean} modoApresentacao — legado; preferir presentationContext
+ * @param {object|null} [presentationContext] — CERT-VOICE-02
  */
-async function processExecutiveQuery(companyId, userId, query, modoApresentacao = false) {
+async function processExecutiveQuery(companyId, userId, query, modoApresentacao = false, presentationContext = null) {
   const rawData = await cached(
     'executive:data',
     () => fetchExecutiveData(companyId),
@@ -280,14 +285,47 @@ async function processExecutiveQuery(companyId, userId, query, modoApresentacao 
     2 * 60 * 1000
   );
 
-  const dataContext = JSON.stringify({
-    ...rawData,
-    modoApresentacao: !!modoApresentacao
-  }, null, 2);
+  let presentation = presentationContext;
+  if (!presentation) {
+    try {
+      const { resolveExecutivePresentationContext } = require('../conversationContext/executivePresentationContext');
+      const { rows: userRows } = await db.query(
+        'SELECT id, name, email, role, company_id, dashboard_profile, hierarchy_level FROM users WHERE id = $1 LIMIT 1',
+        [userId]
+      );
+      const u = userRows[0] || { id: userId, company_id: companyId };
+      presentation = resolveExecutivePresentationContext(u, {
+        modoApresentacao: !!modoApresentacao,
+        presentationRequested: modoApresentacao ? true : undefined
+      });
+    } catch (_) {
+      presentation = modoApresentacao ? { enabled: true, presentation_level: 'executive' } : { enabled: false };
+    }
+  }
 
-  const presentationNote = modoApresentacao
-    ? '\nMODO APRESENTAÇÃO ATIVO: Oculte valores financeiros detalhados. Mostre apenas KPIs consolidados. Nunca exponha dados sensíveis.'
-    : '';
+  const dataContext = JSON.stringify(
+    {
+      ...rawData,
+      modoApresentacao: !!modoApresentacao || presentation?.enabled === true,
+      presentation_context: presentation
+    },
+    null,
+    2
+  );
+
+  let presentationNote = '';
+  if (presentation?.enabled) {
+    try {
+      const { buildPresentationPromptBlock } = require('../conversationContext/executivePresentationContext');
+      presentationNote = `\n${buildPresentationPromptBlock(presentation)}`;
+    } catch (_) {
+      presentationNote =
+        '\nMODO APRESENTAÇÃO ATIVO: Oculte valores financeiros detalhados. Mostre apenas KPIs consolidados. Nunca exponha dados sensíveis.';
+    }
+  } else if (modoApresentacao) {
+    presentationNote =
+      '\nMODO APRESENTAÇÃO ATIVO: Oculte valores financeiros detalhados. Mostre apenas KPIs consolidados. Nunca exponha dados sensíveis.';
+  }
 
   const prompt = `${IMPETUS_IA_SYSTEM_PROMPT_FULL}
 
@@ -304,6 +342,7 @@ PERGUNTA DO CEO: "${query}"
 REGRAS:
 - NÃO retorne dados brutos. Consolide e analise.
 - Responda em linguagem executiva: objetivo, estratégico, acionável.
+- Em contexto de apresentação: prefira sínteses, gráficos sugeridos e KPIs agregados em vez de listas extensas.
 - Inclua sugestões quando relevante (ex: "Sugestão: revisão preventiva em 72h").
 - Se não houver dados suficientes, informe e sugira o que verificar.
 - Máximo 3-5 parágrafos curtos.
@@ -335,6 +374,51 @@ REGRAS:
   }
 
   return pipelineResult.text || pipelineResult.reply || 'Não foi possível processar a consulta no momento.';
+}
+
+/**
+ * CERT-VOICE-02 — Consulta executiva para utilizador autenticado (dashboard executivo).
+ * @param {object} user req.user
+ * @param {string} query
+ * @param {{ modoApresentacao?: boolean, presentationContext?: object }} [opts]
+ */
+async function processExecutiveQueryForUser(user, query, opts = {}) {
+  const { isExecutiveUser } = require('../conversationContext/executiveConversationContext');
+  if (!user?.company_id) {
+    return { ok: false, error: 'Empresa não identificada.' };
+  }
+  if (!isExecutiveUser(user) && String(user.role || '').toLowerCase() !== 'ceo') {
+    return { ok: false, error: 'Consulta executiva disponível apenas para perfis executivos.' };
+  }
+  const q = String(query || '').trim();
+  if (!q || q.length < 3) {
+    return { ok: false, error: 'Consulta muito curta.' };
+  }
+
+  let presentationContext = opts.presentationContext || null;
+  if (!presentationContext) {
+    const { resolveExecutivePresentationContext } = require('../conversationContext/executivePresentationContext');
+    presentationContext = resolveExecutivePresentationContext(user, {
+      modoApresentacao: opts.modoApresentacao === true,
+      presentationRequested: opts.modoApresentacao === true ? true : undefined,
+      queryText: q,
+      channel: 'executive_query'
+    });
+  }
+
+  const response = await processExecutiveQuery(
+    user.company_id,
+    user.id,
+    q,
+    opts.modoApresentacao === true || presentationContext?.enabled === true,
+    presentationContext
+  );
+
+  return {
+    ok: true,
+    response,
+    presentation_context: presentationContext
+  };
 }
 
 /**
@@ -524,5 +608,7 @@ module.exports = {
   renewExecutiveSession,
   computeDocumentHash,
   VERIFICATION_REQUEST,
-  BLOCKED_RESPONSE
+  BLOCKED_RESPONSE,
+  processExecutiveQuery,
+  processExecutiveQueryForUser
 };

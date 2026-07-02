@@ -18,7 +18,8 @@ const { buildIndex } = require('./zContextualMemoryIndex');
  */
 
 const _store = new Map();
-const _DATA_DIR = path.join(__dirname, '..', '..', '..', 'data', 'cognitive-os-memory');
+const { dataSubdir } = require('../../config/impetusHome');
+const _DATA_DIR = dataSubdir('cognitive-os-memory');
 
 function _safeMkdir() {
   if (!flags.isPersistenceEnabled()) return;

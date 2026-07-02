@@ -546,17 +546,14 @@
   color: #3AA0FF;
 }
 
+/* Posicionamento via HeaderPopover (portal) — UI-GLOBAL-OVERLAY-001 */
 .header-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
   min-width: 280px;
   background: var(--bg-primary);
   border: 1px solid var(--gray-200);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 12px 0;
-  z-index: 200;
 }
 
 .header-dropdown__title {
@@ -631,8 +628,6 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 12px;
-  max-height: 72px;
-  overflow-y: auto;
 }
 
 .header-dropdown__filter-chip {
@@ -666,8 +661,6 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 360px;
-  overflow-y: auto;
 }
 
 .header-dropdown__notif-item {
@@ -815,6 +808,15 @@
   box-sizing: border-box;
   background: linear-gradient(165deg, rgba(11, 31, 54, 0.35) 0%, transparent 42%),
     linear-gradient(180deg, var(--impetus-bg-root) 0%, var(--impetus-bg-deep) 100%);
+}
+
+/* Impetus IA — workspace com dashboard + chat em colunas (sem scroll competindo) */
+.content--ia-workspace {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  padding: 16px 20px;
 }
 
 /* Backdrop do drawer de navegação */

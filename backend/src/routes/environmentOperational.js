@@ -100,6 +100,30 @@ async function queryEnvironmentEventSummary(companyId) {
      ) recent`,
     [companyId]
   );
+  try {
+    const monitor = require('../domains/environment/telemetry/validation/environmentTelemetryOutboxValidationService');
+    const sub = await db.query(
+      `SELECT COUNT(*)::int AS c FROM (
+         SELECT event_name FROM industrial_event_outbox
+         WHERE company_id = $1::uuid AND event_name = 'environment.telemetry.sample_ingested'
+         AND created_at > now() - interval '30 days'
+         ORDER BY created_at DESC LIMIT 5000
+       ) s`,
+      [companyId]
+    );
+    if ((sub.rows?.[0]?.c || 0) > 0) {
+      monitor.recordConsumerAccess({
+        module: 'environment_operational_ui',
+        service: 'queryEnvironmentEventSummary',
+        endpoint: 'GET /api/environment-operational/events/summary',
+        company_id: companyId,
+        event_name: 'environment.telemetry.sample_ingested',
+        context: { bounded_sample: sub.rows[0].c }
+      });
+    }
+  } catch (_e) {
+    /* monitor aditivo — nunca bloqueia */
+  }
   return r.rows[0] || { emissions: 0, waste: 0, water: 0, field_events: 0, total: 0 };
 }
 
@@ -113,7 +137,24 @@ async function queryEnvironmentEventList(companyId, limit) {
      ORDER BY created_at DESC LIMIT $2`,
     [companyId, limit]
   );
-  return r.rows || [];
+  const rows = r.rows || [];
+  try {
+    const sampleHits = rows.filter((row) => row.event_name === 'environment.telemetry.sample_ingested');
+    if (sampleHits.length > 0) {
+      const monitor = require('../domains/environment/telemetry/validation/environmentTelemetryOutboxValidationService');
+      monitor.recordConsumerAccess({
+        module: 'environment_operational_ui',
+        service: 'queryEnvironmentEventList',
+        endpoint: 'GET /api/environment-operational/events',
+        company_id: companyId,
+        event_name: 'environment.telemetry.sample_ingested',
+        context: { rows_matched: sampleHits.length, limit }
+      });
+    }
+  } catch (_e) {
+    /* monitor aditivo */
+  }
+  return rows;
 }
 
 /**

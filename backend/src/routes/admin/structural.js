@@ -50,6 +50,18 @@ function asPgTextArrayForUpdate(v) {
   return asPgTextArray(v);
 }
 
+function logCreatePositionError(err, context = {}) {
+  console.error('[CREATE_POSITION_ERROR]', {
+    message: err?.message,
+    stack: err?.stack,
+    code: err?.code,
+    detail: err?.detail,
+    constraint: err?.constraint,
+    table: err?.table,
+    ...context
+  });
+}
+
 // ============================================================================
 // 1. DADOS DA EMPRESA
 // ============================================================================
@@ -418,8 +430,15 @@ router.post('/roles/preview-modules', ...adminMw, async (req, res) => {
 router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', entityType: 'structural', severity: 'info' }), async (req, res) => {
   try {
     const cid = getCompanyId(req);
+    console.info('[CREATE_POSITION_REQUEST]', {
+      name: req.body?.name,
+      hierarchy_level: req.body?.hierarchy_level,
+      department_id: req.body?.department_id,
+      sector_id: req.body?.sector_id,
+      company_id: cid
+    });
     if (!cid) {
-      return sendFail(res, 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.', 400);
+      return sendFail(res, 'Empresa não identificada para o usuário. Associe o usuário a uma empresa.', 400, { code: 'NO_COMPANY' });
     }
     const validation = await orgIdentity.validateRolePayload(cid, req.body, { strictStructural: true });
     if (!validation.ok) {
@@ -444,7 +463,7 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
         can_view_other_departments, max_scope_limit
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,
-        $24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42
+        $24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41
       ) RETURNING *
     `, [
       cid, n.name, internalCode, n.description, n.hierarchy_level, n.work_area,
@@ -466,17 +485,20 @@ router.post('/roles', ...adminMw, auditMiddleware({ action: 'role_created', enti
     const enriched = await orgIdentity.loadEnrichedRole(cid, r.rows[0].id);
     sendSuccess(res, enriched || r.rows[0], 201);
   } catch (err) {
-    console.error('[STRUCTURAL_ROLE_CREATE]', err);
+    logCreatePositionError(err, { company_id: getCompanyId(req), name: req.body?.name });
     if (err.code === '23503') {
-      return sendFail(res, 'Referência estrutural inválida (departamento, setor ou superior).', 400);
+      return sendFail(res, 'Referência estrutural inválida (departamento, setor ou superior).', 400, { code: 'FOREIGN_KEY_VIOLATION' });
     }
     if (err.code === '23505') {
-      return sendFail(res, 'Código interno do cargo já existe.', 409);
+      return sendFail(res, 'Código interno do cargo já existe.', 409, { code: 'DUPLICATE_INTERNAL_CODE' });
     }
     if (err.code === '42703') {
-      return sendFail(res, 'Execute a migração organizational_identity_engine no servidor.', 500);
+      return sendFail(res, 'Execute a migração organizational_identity_engine no servidor.', 500, { code: 'SCHEMA_MISMATCH' });
     }
-    sendFail(res, 'Erro ao criar cargo', 500);
+    if (err.code === '42601') {
+      return sendFail(res, 'Erro interno ao persistir cargo. Contacte o suporte.', 500, { code: 'SQL_SYNTAX_ERROR' });
+    }
+    sendFail(res, 'Não foi possível criar o cargo. Tente novamente ou contacte o suporte.', 500, { code: 'CREATE_POSITION_FAILED' });
   }
 });
 

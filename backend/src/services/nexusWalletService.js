@@ -254,6 +254,55 @@ async function completeStripeTopUp(sessionId, paymentIntentId) {
   const perBrl = Number(wallet?.credits_per_brl || 1000);
   const creditsStr = (amountBrl * perBrl).toFixed(6);
 
+  const billingEngine = require('./nexusBillingEngine');
+  if (billingEngine.isEnabled()) {
+    const adminR = await db.query(
+      `SELECT id FROM users WHERE company_id = $1 AND role = 'admin' AND active = true AND deleted_at IS NULL LIMIT 1`,
+      [companyId]
+    );
+    const userId = session.metadata?.user_id || adminR.rows[0]?.id;
+    if (!userId) return { ok: false, error: 'missing_admin_user' };
+
+    const result = await billingEngine.creditTopUp(
+      { companyId, userId, requestId: `stripe-${sessionId}` },
+      { credits: creditsStr, amountBrl, gateway: 'stripe', refExternal: String(sessionId) }
+    );
+    if (!result.ok && !result.idempotent) return result;
+
+    await db.query(
+      `UPDATE nexus_wallet_topups SET status = 'completed', completed_at = now(), amount_brl = $2, credits_to_credit = $3::numeric
+       WHERE stripe_checkout_session_id = $1 AND status = 'pending'`,
+      [sessionId, amountBrl, creditsStr]
+    );
+    await db.query(
+      `INSERT INTO nexus_wallet_topups (
+        company_id, provider, amount_brl, credits_to_credit, stripe_checkout_session_id, status, completed_at
+      ) VALUES ($1, 'stripe', $2, $3, $4, 'completed', now())
+      ON CONFLICT DO NOTHING`,
+      [companyId, amountBrl, creditsStr, sessionId]
+    );
+    await db.query(
+      `INSERT INTO nexus_wallet_ledger (
+        company_id, entry_type, credits_delta, balance_after, ref_external, meta
+      ) SELECT $1, 'topup_stripe', $2, $3, $4, $5
+       WHERE NOT EXISTS (
+         SELECT 1 FROM nexus_wallet_ledger WHERE ref_external = $4 AND entry_type = 'topup_stripe'
+       )`,
+      [
+        companyId,
+        creditsStr,
+        result.balance_after ?? Number(wallet?.balance_credits || 0) + Number(creditsStr),
+        String(sessionId),
+        JSON.stringify({
+          payment_intent: paymentIntentId || session.payment_intent,
+          amount_brl: amountBrl,
+          billing_ledger_id: result.ledger_id
+        })
+      ]
+    );
+    return { ok: true, companyId, credits: Number(creditsStr), engine: true };
+  }
+
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');

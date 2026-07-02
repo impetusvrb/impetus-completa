@@ -176,10 +176,11 @@ export function getLayoutPorCargo(role = '', department = '', dashboardProfile =
       { id: WIDGET_IDS.CENTRO_CUSTOS,           label: 'Centro de Custos',       position: pos(4, 0, 2) },
       { id: WIDGET_IDS.PERFORMANCE,             label: 'Centro de Performance',  position: pos(4, 2, 2) },
       { id: WIDGET_IDS.CENTRO_PREVISAO,         label: 'Previsão 30 dias',       position: pos(5, 0, 2) },
-      { id: WIDGET_IDS.ALERTAS,                 label: 'Alertas',                position: pos(5, 2, 1) },
-      { id: WIDGET_IDS.PERGUNTE_IA,             label: 'Cérebro Operacional',    position: pos(6, 0, 1) },
-      { id: WIDGET_IDS.RELATORIO_IA,            label: 'Relatório IA',           position: pos(6, 1, 2) },
-      { id: WIDGET_IDS.INSIGHTS_IA,             label: 'Insights IA',            position: pos(6, 0, 2) }
+      { id: WIDGET_IDS.DIAGRAMA_INDUSTRIAL,    label: 'Mapa Industrial',        position: pos(5, 2, 2) },
+      { id: WIDGET_IDS.ALERTAS,                 label: 'Alertas',                position: pos(6, 0, 1) },
+      { id: WIDGET_IDS.PERGUNTE_IA,             label: 'Cérebro Operacional',    position: pos(6, 1, 1) },
+      { id: WIDGET_IDS.RELATORIO_IA,            label: 'Relatório IA',           position: pos(6, 2, 2) },
+      { id: WIDGET_IDS.INSIGHTS_IA,             label: 'Insights IA',            position: pos(7, 0, 2) }
     ];
   }
 

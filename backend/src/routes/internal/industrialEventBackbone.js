@@ -112,4 +112,110 @@ router.post(
   })
 );
 
+// ─── CERT-EVENT-RETENTION-01 — rotas aditivas de lifecycle / retenção ────────
+router.get(
+  '/retention/policies',
+  _safe(async (_req, res) => {
+    const engine = require('../../eventPipeline/retention/eventRetentionEngine');
+    const policies = await engine.loadPolicies();
+    const catalog = require('../../eventPipeline/retention/eventBackboneCategoryRegistry');
+    res.json({ ok: true, policies, categories: catalog.getCategoryCatalog() });
+  })
+);
+
+router.get(
+  '/retention/diagnostics',
+  _safe(async (_req, res) => {
+    const engine = require('../../eventPipeline/retention/eventRetentionEngine');
+    const scheduler = require('../../eventPipeline/retention/eventRetentionScheduler');
+    const diagnostics = await engine.getRetentionDiagnostics();
+    res.json({ ok: true, ...diagnostics, scheduler: scheduler.getSchedulerStatus() });
+  })
+);
+
+router.get(
+  '/retention/archive/query',
+  _safe(async (req, res) => {
+    const archive = require('../../eventPipeline/retention/eventArchiveService');
+    const result = await archive.queryArchivedEvents({
+      limit: req.query.limit,
+      company_id: req.user?.company_id || req.query.company_id,
+      lifecycle_state: req.query.lifecycle_state,
+      category: req.query.category,
+      event_name: req.query.event_name,
+      since: req.query.since
+    });
+    res.json(result);
+  })
+);
+
+router.get(
+  '/retention/archive/:id/explain',
+  _safe(async (req, res) => {
+    const explain = require('../../eventPipeline/retention/eventRetentionExplainability');
+    const result = await explain.explainArchivedEvent(req.params.id);
+    res.status(result.ok ? 200 : 404).json(result);
+  })
+);
+
+router.get(
+  '/retention/archive/:id/integrity',
+  _safe(async (req, res) => {
+    const archive = require('../../eventPipeline/retention/eventArchiveService');
+    const result = await archive.validateIntegrity(req.params.id);
+    res.status(result.ok ? 200 : 404).json(result);
+  })
+);
+
+router.post(
+  '/retention/run',
+  _safe(async (req, res) => {
+    const engine = require('../../eventPipeline/retention/eventRetentionEngine');
+    const result = await engine.runRetentionCycle({
+      archive_batch_size: req.body?.archive_batch_size,
+      company_id: req.user?.company_id || req.body?.company_id,
+      delivered_days: req.body?.delivered_days,
+      compress: req.body?.compress
+    });
+    res.json(result);
+  })
+);
+
+router.post(
+  '/retention/archive/run',
+  _safe(async (req, res) => {
+    const archive = require('../../eventPipeline/retention/eventArchiveService');
+    const result = await archive.archiveWithLifecycle({
+      batch_size: req.body?.batch_size,
+      company_id: req.user?.company_id || req.body?.company_id,
+      delivered_days: req.body?.delivered_days
+    });
+    res.json(result);
+  })
+);
+
+router.post(
+  '/retention/archive/:id/restore',
+  _safe(async (req, res) => {
+    const archive = require('../../eventPipeline/retention/eventArchiveService');
+    const observability = require('../../services/observabilityService');
+    observability.incrementMetric('event_restore_requests');
+    const result = await archive.restoreArchiveMetadata(req.params.id, {
+      dry_run: req.body?.dry_run !== false
+    });
+    res.status(result.ok ? 200 : 404).json(result);
+  })
+);
+
+router.post(
+  '/retention/compress',
+  _safe(async (req, res) => {
+    const archive = require('../../eventPipeline/retention/eventArchiveService');
+    const result = await archive.compressArchivedBatch({
+      batch_size: req.body?.batch_size
+    });
+    res.json(result);
+  })
+);
+
 module.exports = router;

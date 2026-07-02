@@ -8,7 +8,13 @@ function computeOperationalMaturity(ctx = {}) {
   const governance = ctx.controlled_activation?.readiness?.readiness_ok ? 0.88 : 0.72;
   const stabilization = ctx.runtime_stabilization ? 0.85 : 0.78;
   const enrichment = ctx.runtime_enrichment?.consolidated_signals?.density?.runtime_density_score ?? 0.75;
-  const rollout = ctx.controlled_activation?.rollout_health ?? 0.8;
+  const rolloutRaw = ctx.controlled_activation?.rollout_health;
+  const rollout =
+    typeof rolloutRaw === 'number' && Number.isFinite(rolloutRaw)
+      ? rolloutRaw
+      : typeof rolloutRaw === 'object' && rolloutRaw != null && Number.isFinite(Number(rolloutRaw.score))
+        ? Number(rolloutRaw.score)
+        : 0.8;
 
   const operational_maturity = Number(((usefulness + enrichment) / 2).toFixed(4));
   const governance_maturity = Number(governance.toFixed(4));

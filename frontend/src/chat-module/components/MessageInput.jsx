@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Send, Paperclip, Mic, MicOff, X, File, Image } from 'lucide-react';
 import chatApi from '../services/chatApi';
+import { validateFileForModule, formatUploadError, UPLOAD_MODULES } from '../../services/uploadService';
 export default function MessageInput({conversationId, onSend, onTyping, onStopTyping, disabled}){
   const [text,setText]=useState('');
   const [recording,setRecording]=useState(false);
@@ -11,7 +12,22 @@ export default function MessageInput({conversationId, onSend, onTyping, onStopTy
   function onKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } }
   function send(){ const c=text.trim(); if(!c||disabled) return; setText(''); onStopTyping&&onStopTyping(); onSend&&onSend({type:'text',content:c}); }
   function onFile(e){ const f=e.target.files&&e.target.files[0]; if(f){ setPreview(f); e.target.value=''; } }
-  async function sendFile(){ if(!preview||uploading) return; setUploading(true); try{ await chatApi.uploadFile(conversationId,preview); setPreview(null); }catch(e){ console.error(e); }finally{ setUploading(false); } }
+  async function sendFile(){
+    if(!preview||uploading) return;
+    const validation = validateFileForModule(preview, UPLOAD_MODULES.CHAT_INTERNAL);
+    if (!validation.ok) {
+      window.alert(validation.message);
+      return;
+    }
+    setUploading(true);
+    try{
+      await chatApi.uploadFile(conversationId,preview);
+      setPreview(null);
+    }catch(e){
+      console.error(e);
+      window.alert(formatUploadError(e));
+    }finally{ setUploading(false); }
+  }
   async function toggleRec(){
     if(recording){ mediaRef.current&&mediaRef.current.stop(); setRecording(false); return; }
     try{

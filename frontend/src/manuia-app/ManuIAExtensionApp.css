@@ -9,6 +9,9 @@
   background: linear-gradient(180deg, #0a0e14 0%, #0d1118 100%);
   color: #e8edf4;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0));
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .manuia-app__top {
@@ -45,7 +48,10 @@
   flex: 1;
   padding: 14px 16px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .manuia-app__nav {
@@ -183,6 +189,14 @@
   padding-top: 0;
 }
 
+.manuia-app--embedded {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 @keyframes manuia-app-spin {
   to {
     transform: rotate(360deg);
@@ -317,4 +331,65 @@
 .manuia-app--light .manuia-app__payload-preview {
   background: #f0f3f7;
   color: #334;
+}
+
+@media (max-width: 480px) {
+  .manuia-app__top {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .manuia-app__brand h1 {
+    font-size: 1rem;
+  }
+
+  .manuia-app__brand span {
+    font-size: 0.68rem;
+  }
+
+  .manuia-app__top > div:last-child {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .manuia-app__btn {
+    font-size: 0.8rem;
+    padding: 0 10px;
+  }
+
+  .manuia-app__card-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .manuia-app__stat {
+    padding: 10px;
+  }
+
+  .manuia-app__stat strong {
+    font-size: 1.25rem;
+  }
+
+  .manuia-app__drawer-actions {
+    flex-direction: column;
+  }
+
+  .manuia-app__drawer-actions .manuia-app__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .manuia-app__card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manuia-app__nav button {
+    font-size: 0.6rem;
+    padding: 6px 2px;
+  }
 }

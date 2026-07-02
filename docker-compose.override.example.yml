@@ -1,0 +1,43 @@
+# Serviços opcionais — copiar para docker-compose.override.yml
+# CERT-ONPREM-CONTAINER-01
+#
+# cp docker-compose.override.example.yml docker-compose.override.yml
+
+services:
+  # Observabilidade (stack existente em infra/observability/)
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    profiles: [observability]
+    restart: unless-stopped
+    volumes:
+      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - impetus-internal
+      - impetus-obs
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    profiles: [observability]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - impetus-obs
+    depends_on:
+      - prometheus
+
+  # Lipsync Wav2Lip — permanece opcional via PM2/host (sem imagem oficial nesta certificação)
+  # Ver ecosystem.lipsync.config.cjs
+
+networks:
+  impetus-obs:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:

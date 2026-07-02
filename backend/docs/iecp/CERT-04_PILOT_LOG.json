@@ -1,0 +1,212 @@
+{
+  "pilot_started_at": "2026-06-25T16:08:48.545Z",
+  "pilot_end_min": "2026-06-28T16:08:48.546Z",
+  "snapshots": [
+    {
+      "at": "2026-06-25T16:08:48.545Z",
+      "phase": "day0",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "INCOMPLETO": 11,
+          "AMARELO": 51,
+          "REDIRECT": 5,
+          "VERDE": 10
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-25T16:08:34.357Z"
+      },
+      "p0e": {
+        "go_live_detected": false,
+        "activation_timestamp": null,
+        "pipeline_activated": false,
+        "workers_active": false,
+        "pipeline_active": false,
+        "first_ioe_at": "2026-06-25T14:22:01.487Z",
+        "first_outbox_delivery_at": null,
+        "recent_ioe_last_hour": 1,
+        "reason": "PIPELINE_ENABLED_AWAITING_FIRST_IOE",
+        "boot_evidence": {
+          "event_pipeline_boot_ok": false,
+          "outbox_worker_boot_active": false,
+          "continuous_worker_boot_active": false
+        },
+        "live_runtime": {
+          "api_reachable": false,
+          "error": "HTTP 401",
+          "continuous_worker_running": false,
+          "outbox_worker_running": null
+        }
+      },
+      "drift_ok": false,
+      "pm2": "[{\"name\":\"lipsync-api\",\"pm2_env\":{\"prev_restart_delay\":0,\"pm_id\":1,\"unstable_restarts\":0,\"restart_time\":1,\"created_at\":1779657428161,\"axm_dynamic\":{},\"axm_options\":{},\"axm_monitor\":{},\"axm_actions\":[],\"pm_uptime\":1779657429087,\"status\":\"online\",\"unique_id\":\"87ad504b-a6da-48c1-9f97-7b387b8394de\",\"SHELL\":\"/bin/bash\",\"PWD\":\"/var/www/impetus-completa/backend\",\"LOGNAME\":\"root\",\"XDG_SESSION_TYPE\":\"tty\",\"MOTD_SHOWN\":\"pam\",\"HOME\":\"/root\",\"LANG\":\"C.UTF-8\",\"LS_COLORS\":\"\",\"VIRTUAL_ENV\":\"/var/www/impetus-co"
+    },
+    {
+      "at": "2026-06-26T02:19:11.496Z",
+      "phase": "tick+e2e",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "VERDE": 69,
+          "AMARELO": 3,
+          "REDIRECT": 5,
+          "SCENARIO_VERDE": 10
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-26T02:19:18.391Z"
+      },
+      "drift_ok": true,
+      "e2e_ok": false,
+      "p0e": {
+        "go_live_detected": true,
+        "first_72h_stable": true
+      },
+      "evidence": {
+        "domains_ok": 10,
+        "domains_total": 10,
+        "missing": []
+      },
+      "hours_elapsed": "10.18",
+      "hours_until_min_end": "61.82"
+    },
+    {
+      "at": "2026-06-26T02:27:05.818Z",
+      "phase": "tick",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "VERDE": 72,
+          "REDIRECT": 5
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-26T02:19:39.495Z"
+      },
+      "drift_ok": true,
+      "e2e_ok": null,
+      "p0e": {
+        "go_live_detected": false,
+        "first_72h_stable": false
+      },
+      "evidence": {
+        "domains_ok": 10,
+        "domains_total": 10,
+        "missing": []
+      },
+      "hours_elapsed": "10.31",
+      "hours_until_min_end": "61.69"
+    },
+    {
+      "at": "2026-06-26T15:16:18.254Z",
+      "phase": "tick",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "VERDE": 72,
+          "REDIRECT": 5
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-26T02:19:39.495Z"
+      },
+      "drift_ok": true,
+      "e2e_ok": null,
+      "p0e": {
+        "go_live_detected": true,
+        "first_72h_stable": true
+      },
+      "evidence": {
+        "domains_ok": 10,
+        "domains_total": 10,
+        "missing": []
+      },
+      "hours_elapsed": "23.13",
+      "hours_until_min_end": "48.87"
+    },
+    {
+      "at": "2026-06-26T15:28:11.221Z",
+      "phase": "tick+e2e",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "VERDE": 69,
+          "AMARELO": 3,
+          "REDIRECT": 5,
+          "SCENARIO_VERDE": 10
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-26T15:28:19.875Z"
+      },
+      "drift_ok": true,
+      "e2e_ok": false,
+      "p0e": {
+        "go_live_detected": true,
+        "first_72h_stable": true
+      },
+      "evidence": {
+        "domains_ok": 10,
+        "domains_total": 10,
+        "missing": []
+      },
+      "hours_elapsed": "23.33",
+      "hours_until_min_end": "48.67"
+    },
+    {
+      "at": "2026-06-26T16:39:42.682Z",
+      "phase": "tick",
+      "matrix_stats": {
+        "screenCount": 77,
+        "endpointCount": 1098,
+        "mountCount": 142,
+        "referencedCount": 621,
+        "apiCallCount": 791,
+        "unresolvedCount": 0,
+        "statusDist": {
+          "VERDE": 72,
+          "REDIRECT": 5
+        },
+        "certifiedScenarioCount": 10,
+        "lastCertificationAt": "2026-06-26T15:28:19.875Z"
+      },
+      "drift_ok": true,
+      "e2e_ok": null,
+      "p0e": {
+        "go_live_detected": true,
+        "first_72h_stable": true
+      },
+      "evidence": {
+        "domains_ok": 10,
+        "domains_total": 10,
+        "missing": []
+      },
+      "hours_elapsed": "24.52",
+      "hours_until_min_end": "47.48"
+    }
+  ],
+  "last_tick_at": "2026-06-26T16:39:42.682Z",
+  "closed_at": null,
+  "verdict": "PILOT_WINDOW_OPEN"
+}

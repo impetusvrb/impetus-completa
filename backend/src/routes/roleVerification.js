@@ -12,12 +12,9 @@ const { requireCompanyActive } = require('../middleware/multiTenant');
 const roleVerification = require('../services/roleVerificationService');
 const db = require('../db');
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads/role-verification');
-try {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-} catch (err) {
-  console.warn('[routes/roleVerification][mkdir_uploads]', err?.message ?? err);
-}
+const uploadPaths = require('../config/uploadPaths');
+
+const UPLOAD_DIR = uploadPaths.roleVerification();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),

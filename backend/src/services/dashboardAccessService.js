@@ -105,12 +105,16 @@ function getAllowedModules(user) {
     return merged;
   }
   const leadershipRoles = new Set(['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor']);
+  const hasStrategicLeadership =
+    userPerms.includes('*') ||
+    userPerms.includes('VIEW_STRATEGIC') ||
+    userPerms.includes('VIEW_FINANCIAL');
   // Compatibilidade: se permissions não vierem populadas para liderança,
   // não “derruba” módulos do menu (mantém comportamento histórico via visible_modules do perfil).
-  if (leadershipRoles.has(role) && userPerms.length === 0) {
+  if (leadershipRoles.has(role) && (userPerms.length === 0 || hasStrategicLeadership)) {
     let leaderMerged = [...new Set([...withBaselineModules(profileModules), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
     leaderMerged = applyStructuralModuleFilter(user, leaderMerged).modules;
-    return _applyCeoExclusions(leaderMerged, role);
+    return _applyCeoExclusions(leaderMerged, role, user);
   }
 
   const perms = new Set([
@@ -130,7 +134,7 @@ function getAllowedModules(user) {
   // telemetry, dashboards operacionais ou qualquer outro módulo.
   let merged = [...new Set([...withBaselineModules(filtered), ...UNIVERSAL_SAFE_ACCESS_MODULES])];
   merged = applyStructuralModuleFilter(user, merged).modules;
-  return _applyCeoExclusions(merged, role);
+  return _applyCeoExclusions(merged, role, user);
 }
 
 /**
@@ -199,9 +203,9 @@ function getEffectivePermissions(user) {
  * @param {string} role
  * @returns {string[]}
  */
-function _applyCeoExclusions(modules, role) {
+function _applyCeoExclusions(modules, role, user) {
   if (role !== 'ceo') return modules;
-  return modules.filter(m => !CEO_DENIED_MODULES.has(m));
+  return modules.filter((m) => !CEO_DENIED_MODULES.has(m));
 }
 
 module.exports = {

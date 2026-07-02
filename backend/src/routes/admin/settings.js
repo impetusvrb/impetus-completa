@@ -16,10 +16,12 @@ const companyPolicyUpload = require('../../services/companyPolicyUploadService')
 const dashboardVisibility = require('../../services/dashboardVisibility');
 const { isValidUUID } = require('../../utils/security');
 
+const uploadPaths = require('../../config/uploadPaths');
+
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../uploads');
+    const uploadDir = uploadPaths.root();
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);

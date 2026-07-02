@@ -1,15 +1,21 @@
 {
   "route": "/app/safety/operational/inspection",
   "probes": [
-    "GET /api/safety-operational/events/summary"
+    "GET /api/safety-operational/health",
+    "GET /api/safety-operational-validation/health"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/safety-operational/events/summary",
-      "status": 401,
+      "spec": "GET /api/safety-operational/health",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "spec": "GET /api/safety-operational-validation/health",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.836Z"
+  "at": "2026-06-26T01:58:08.535Z"
 }

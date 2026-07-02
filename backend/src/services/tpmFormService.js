@@ -118,6 +118,11 @@ async function persistTpmIncidentFromData(companyId, d, meta = {}) {
 
   const incident = r.rows[0];
 
+  try {
+    const uid = meta.userId || (operatorPhone && String(operatorPhone).startsWith('web:') ? String(operatorPhone).slice(4) : null);
+    if (uid && uid !== 'anonymous') require('./pulseCognitive/ecosystemHooks').ecosystemHooks.tpmRecorded(companyId, uid, { incident_id: incident.id });
+  } catch (_) {}
+
   if (shiftNumber && incidentDate) {
     try {
       await db.query(
@@ -200,8 +205,12 @@ async function createIncidentFromWeb(companyId, body, userId) {
   };
   const incident = await persistTpmIncidentFromData(companyId, d, {
     communicationId: null,
-    operatorPhone: userId ? `web:${userId}` : 'web:anonymous'
+    operatorPhone: userId ? `web:${userId}` : 'web:anonymous',
+    userId
   });
+  try {
+    if (userId) require('./pulseCognitive/ecosystemHooks').ecosystemHooks.tpmRecorded(companyId, userId, { incident_id: incident?.id });
+  } catch (_) {}
   try {
     const tpmNotifications = require('./tpmNotifications');
     if (tpmNotifications?.notifyTpmIncident) {

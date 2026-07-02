@@ -1,0 +1,15 @@
+{
+  "route": "/app/almoxarifado-inteligente",
+  "probes": [
+    "GET /api/warehouse-intelligence/dashboard"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/warehouse-intelligence/dashboard",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-25T19:38:08.865Z"
+}

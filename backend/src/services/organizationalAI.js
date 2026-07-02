@@ -4,6 +4,7 @@
  * 100% baseado na comunicação via WhatsApp
  */
 
+const chatOperationalGovernance = require('./governanceAdapters/chatOperationalGovernanceAdapter');
 const db = require('../db');
 const ai = require('./ai');
 const communicationEscalation = require('./communicationEscalation');
@@ -230,16 +231,41 @@ async function notifyRecipients(companyId, message, escalationTargets, context =
     .map(u => String(u.whatsapp_number || u.phone || '').replace(/\D/g, ''))
     .filter(p => p.length >= 10);
 
-  const sent = [];
-  for (const phone of [...new Set(phones)].slice(0, 10)) {
-    try {
-      await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
-      sent.push(phone);
-    } catch (e) {
-      console.warn('[ORG_AI] notify:', phone, e.message);
+  const uniquePhones = [...new Set(phones)].slice(0, 10);
+  if (!uniquePhones.length) return [];
+
+  const severity = context.severity || 'high';
+  const eventType = context.eventType || 'ai_proactive';
+
+  try {
+    const result = await chatOperationalGovernance.dispatchOrganizationalEscalation(companyId, {
+      message,
+      phones: uniquePhones,
+      escalationTargets,
+      severity,
+      eventType,
+      type: 'organizational_escalation'
+    });
+
+    if (result.mode === 'governance') {
+      return result.distribution?.success ? uniquePhones : [];
     }
+
+    if (result.legacy?.sent) return result.legacy.sent;
+    return result.legacy?.ok ? uniquePhones : [];
+  } catch (e) {
+    console.warn('[ORG_AI] notify via adapter failed, legacy fallback:', e.message);
+    const sent = [];
+    for (const phone of uniquePhones) {
+      try {
+        await require('./appImpetusService').sendMessage(companyId, phone, message, { originatedFrom: 'org_ai' });
+        sent.push(phone);
+      } catch (err) {
+        console.warn('[ORG_AI] notify:', phone, err.message);
+      }
+    }
+    return sent;
   }
-  return sent;
 }
 
 /**
@@ -313,7 +339,10 @@ async function processMessage(companyId, opts) {
   if (targets.includes('coordenação') || targets.includes('gerência') || targets.includes('direção')) {
     const notifyMsg = `[IMPETUS] Evento registrado: ${eventType}\nOrigem: ${sender || senderPhone}\n${extractedData.machine_name ? `Máquina: ${extractedData.machine_name}` : ''}${extractedData.part_code ? `\nPeça: ${extractedData.part_code}` : ''}\n\nMensagem: ${text.slice(0, 150)}...`;
     try {
-      const sent = await notifyRecipients(companyId, notifyMsg, targets);
+      const sent = await notifyRecipients(companyId, notifyMsg, targets, {
+        severity: escalation.severity,
+        eventType
+      });
       await db.query(
         'UPDATE operational_events SET escalation_sent_at = now() WHERE id = $1',
         [ev.id]

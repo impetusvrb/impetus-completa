@@ -101,6 +101,26 @@ const FORBIDDEN_EVENT_PREDICTION_CLAIM_RE =
 
 const NUMERIC_CLAIM_RE = /\b\d+([.,]\d+)?\s*%|\b\d{1,3}([.,]\d{3})+\b|\b\d+([.,]\d+)?\s*(ton|t\/h|un\/h|pe[cç]as|litros?|kg)\b/i;
 
+const CONVERSATIONAL_TURN_RE =
+  /^(bom\s+dia|boa\s+tarde|boa\s+noite|ol[aá]|oi|hey|hello|hi|e\s+a[ií]|tudo\s+bem)\b/i;
+
+/**
+ * Turnos sociais / identidade — não devem passar por enforcement operacional pesado.
+ * Perguntas operacionais explícitas continuam sujeitas ao truth layer.
+ */
+function isConversationalTurn(queryText) {
+  const t = String(queryText || '').trim();
+  if (!t) return false;
+  if (OPERATIONAL_CLAIM_RE.test(t) || NUMERIC_CLAIM_RE.test(t)) return false;
+  if (CONVERSATIONAL_TURN_RE.test(t)) return true;
+  if (
+    /^(quem\s+[eé]\s+voc|o\s+que\s+voc|como\s+voc|qual\s+seu\s+nome)/i.test(t)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const PERCENT_RE = /\b\d+([.,]\d+)?\s*%/g;
 const PLAIN_NUM_RE = /\b\d+([.,]\d+)?\b/g;
 
@@ -843,6 +863,19 @@ async function enforceTextResponse(text, opts = {}) {
       text: answer,
       enforced: true,
       skipped: 'non_operational_turn',
+      mode,
+      evidence_binding: buildEvidenceBinding(
+        { company_id: user?.company_id, domain_checks: [], has_any_data: false },
+        opts.channel
+      )
+    };
+  }
+
+  if (isConversationalTurn(opts.queryText)) {
+    return {
+      text: answer,
+      enforced: true,
+      skipped: 'conversational_turn',
       mode,
       evidence_binding: buildEvidenceBinding(
         { company_id: user?.company_id, domain_checks: [], has_any_data: false },
@@ -1691,6 +1724,7 @@ module.exports = {
   detectForbiddenPriorityPredictionClaims,
   classifyPrioritySupportedClaims,
   enforceTextResponse,
+  isConversationalTurn,
   shadowAssessTextResponse,
   guardPanelVisualizationPayload,
   guardClaudePanelPayload,

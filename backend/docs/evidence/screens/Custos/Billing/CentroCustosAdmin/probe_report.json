@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/centro-custos",
   "probes": [
-    "GET /api/costs/summary"
+    "GET /api/dashboard/costs/items?limit=5"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/costs/summary",
-      "status": 404,
+      "spec": "GET /api/dashboard/costs/items?limit=5",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.749Z"
+  "at": "2026-06-25T19:51:47.500Z"
 }

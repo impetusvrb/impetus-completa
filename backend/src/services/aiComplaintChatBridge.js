@@ -39,6 +39,15 @@ function isOperationalQuery(message = '') {
   ].some((term) => text.includes(term));
 }
 
+/** Saudações e identidade — não são reclamações de qualidade. */
+function isConversationalQuery(message = '') {
+  const text = String(message || '').trim().toLowerCase();
+  if (!text) return false;
+  if (/^(bom\s+dia|boa\s+tarde|boa\s+noite|ol[aá]|oi|hey|hello|hi)\b/.test(text)) return true;
+  if (/^(quem\s+[eé]\s+voc|o\s+que\s+voc|como\s+voc|qual\s+seu\s+nome)/.test(text)) return true;
+  return false;
+}
+
 async function withProcessingTransparency(user, base) {
   let processing_transparency = null;
   try {
@@ -78,6 +87,10 @@ async function respondIfQualityComplaint({
 
   const text = String(message || '').trim();
   if (!text) return false;
+
+  if (isConversationalQuery(text)) {
+    return false;
+  }
 
   try {
     const isOperational = isOperationalQuery(text);

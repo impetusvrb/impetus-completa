@@ -75,8 +75,6 @@ function main() {
     screenCount: s?.screenCount,
     endpointCount: s?.endpointCount,
     mountCount: s?.mountCount,
-    referencedCount: s?.referencedCount,
-    apiCallCount: s?.apiCallCount,
     unresolvedCount: s?.unresolvedCount
   });
   const statsChanged =

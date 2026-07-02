@@ -391,4 +391,176 @@ router.get('/event-governance/learning', requireAuth, requireTenantAdminRole, (r
   }
 });
 
+/**
+ * GET /api/audit/event-governance/memory
+ * Estado read-only memória operacional governada (EVENT-GOVERNANCE-14).
+ */
+router.get('/event-governance/memory', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const memoryIntegration = require('../services/governanceMemoryIntegrationService');
+    const memoryScore = require('../services/governanceMemoryScoreService');
+    res.json({
+      ok: true,
+      ...memoryIntegration.getAuditStatus(),
+      memory_score: memoryScore.DEFAULT_MEMORY_SCORE
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de memory governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/explainability
+ * Estado read-only Explainable Governance (EVENT-GOVERNANCE-15).
+ */
+router.get('/event-governance/explainability', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const explainability = require('../services/governanceExplainabilityService');
+    res.json({ ok: true, ...explainability.getAuditStatus() });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de explainability governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/intelligence
+ * Estado read-only Governance Intelligence (EVENT-GOVERNANCE-16).
+ */
+router.get('/event-governance/intelligence', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const intelligence = require('../services/governanceIntelligenceService');
+    const companyId = req.query.companyId || req.user?.company_id || null;
+    const report = intelligence.isIntelligenceEnabled()
+      ? intelligence.buildImprovementReport(companyId)
+      : null;
+    res.json({
+      ok: true,
+      ...intelligence.getAuditStatus(),
+      improvement_report: report
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de intelligence governance'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/policy-optimization
+ * Estado read-only Policy Optimization Advisory (EVENT-GOVERNANCE-17).
+ */
+router.get('/event-governance/policy-optimization', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const policyOpt = require('../services/governancePolicyOptimizationService');
+    const companyId = req.query.companyId || req.user?.company_id || null;
+    const report = policyOpt.isPolicyOptimizationEnabled()
+      ? policyOpt.buildOptimizationReport(companyId)
+      : null;
+    res.json({
+      ok: true,
+      ...policyOpt.getAuditStatus(),
+      optimization_report: report
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status de policy optimization'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/executive-insights
+ * Estado read-only Executive Governance Insights (EVENT-GOVERNANCE-18).
+ */
+router.get('/event-governance/executive-insights', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const executive = require('../services/governanceExecutiveInsightsService');
+    const companyId = req.query.companyId || req.user?.company_id || null;
+    const result = executive.isExecutiveInsightsEnabled()
+      ? executive.generateExecutiveReport(companyId)
+      : null;
+    res.json({
+      ok: true,
+      ...executive.getAuditStatus(),
+      executive_report: result?.report || null
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter executive governance insights'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/event-governance/knowledge-base
+ * Estado read-only Governance Knowledge Base (EVENT-GOVERNANCE-19).
+ */
+router.get('/event-governance/knowledge-base', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const knowledge = require('../services/governanceKnowledgeBaseService');
+    const companyId = req.query.companyId || req.user?.company_id || null;
+    const type = req.query.type || null;
+    const policyId = req.query.policyId || null;
+    const q = req.query.q || null;
+
+    let knowledgeReport = null;
+    let queryResult = null;
+
+    if (knowledge.isKnowledgeBaseEnabled()) {
+      knowledgeReport = knowledge.generateKnowledgeReport(companyId);
+      if (type || policyId || q) {
+        queryResult = knowledge.queryKnowledge({ companyId, type, policyId, q });
+      }
+    }
+
+    res.json({
+      ok: true,
+      ...knowledge.getAuditStatus(),
+      knowledge_report: knowledgeReport?.report || null,
+      query_result: queryResult
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter governance knowledge base'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/eco-convergence/status
+ * Estado read-only ECO-03 — flags, observabilidade e adapters bypass.
+ */
+router.get('/eco-convergence/status', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const ecoFlags = require('../services/ecoConvergenceFlags');
+    const chatOperational = require('../services/governanceAdapters/chatOperationalGovernanceAdapter');
+    const ncBridgeMirror = require('../services/governanceAdapters/ncBridgeMirrorGovernanceAdapter');
+
+    res.json({
+      ok: true,
+      phase: 'ECO-03',
+      ...ecoFlags.getAuditStatus(),
+      adapters: {
+        chat_operational: chatOperational.getAuditStatus(),
+        nc_bridge_mirror: ncBridgeMirror.getAuditStatus()
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter status ECO convergência'
+    });
+  }
+});
+
 module.exports = router;

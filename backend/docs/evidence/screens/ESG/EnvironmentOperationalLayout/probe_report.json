@@ -12,10 +12,10 @@
     },
     {
       "spec": "GET /api/environment-operational/events/summary",
-      "status": -1,
-      "ok": false
+      "status": 200,
+      "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T14:34:45.081Z"
+  "at": "2026-06-25T16:08:52.300Z"
 }

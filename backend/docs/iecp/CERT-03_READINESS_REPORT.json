@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-06-26T16:40:12.869Z",
+  "phase": "CERT-03",
+  "readiness": "READY",
+  "score": "9/9",
+  "checks": {
+    "runtime_pm2": true,
+    "runtime_node_env_prod": true,
+    "health_backend": true,
+    "health_frontend": true,
+    "drift_gate": true,
+    "observability_stack_files": true,
+    "backup_snapshot": true,
+    "matrix_green": true,
+    "p0e_go_live": true
+  },
+  "pm2": {
+    "impetus-backend": {
+      "online": true,
+      "node_env": "production",
+      "uptime_s": 14
+    },
+    "impetus-frontend": {
+      "online": true,
+      "node_env": "production",
+      "uptime_s": 96844
+    }
+  },
+  "health": {
+    "backend": {
+      "ok": true,
+      "status": 200,
+      "body": "{\"success\":true,\"status\":\"ok\",\"service\":\"impetus-backend\",\"voz\":{\"openai\":true,\"google_credentials_ok\":false,\"tts_available\":true},\"integrations\":{\"schema_version\":\"ai_integrations_health_v1\",\"probed_at\":\"2026-06-26T16:40:10.920Z\",\"cache_ttl_ms\":45000,\"openai\":{\"status\":\"up\",\"configured\":true},\"anth"
+    },
+    "frontend": {
+      "ok": true,
+      "status": 200,
+      "body": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n    <meta http-equiv=\"Pragma\" content=\"no-cache\" />\n    <link r"
+    }
+  },
+  "matrix": {
+    "screenCount": 77,
+    "endpointCount": 1098,
+    "statusDist": {
+      "VERDE": 72,
+      "REDIRECT": 5
+    },
+    "matrix_green": true
+  },
+  "evidence": {
+    "drift_command_ok": true,
+    "backup_snapshot_ok": true,
+    "observability_files": {
+      "compose": "/var/www/impetus-completa/infra/observability/docker-compose.yml",
+      "prometheus": "/var/www/impetus-completa/infra/observability/prometheus/prometheus.yml",
+      "grafana_dashboards": "/var/www/impetus-completa/infra/observability/grafana/provisioning/dashboards/dashboards.yml"
+    },
+    "p0e_go_live": true
+  },
+  "next_steps": [
+    "Subir stack observability com docker compose em infra/observability",
+    "Aplicar token interno em Prometheus para /api/internal/observability/metrics",
+    "Executar drill de restore DB em ambiente controlado e anexar evidência",
+    "Iniciar janela CERT-04 (72h) com evidências por domínio"
+  ]
+}

@@ -1,11 +1,11 @@
 {
   "domain": "ManuIA",
-  "run_id": "cert-p72-1782132393771",
+  "run_id": "cert-p72-1782487694792",
   "steps": [
     {
       "step": "conclude_session",
       "status": 200,
-      "wo": "f329fdc0-b220-4e00-a884-75dd4d203c56",
+      "wo": "84896c17-24d5-4ebc-a91d-811b9e3f793a",
       "user": "colaborador"
     },
     {
@@ -14,6 +14,6 @@
     }
   ],
   "ok": true,
-  "finished_at": "2026-06-22T12:46:36.869Z",
+  "finished_at": "2026-06-26T15:28:17.289Z",
   "evidence": "backend/docs/evidence/manuia/diagnosis-workorder/"
 }

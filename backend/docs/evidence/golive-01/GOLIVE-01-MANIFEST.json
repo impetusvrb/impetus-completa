@@ -1,0 +1,26 @@
+{
+  "certification": "CERT-ENTERPRISE-GOLIVE-01",
+  "status": "PREPARADA",
+  "go_live_authorized": false,
+  "prepared_at": "2026-07-01T00:00:00.000Z",
+  "code_changes": false,
+  "artifacts": [
+    "docs/CERT-ENTERPRISE-GOLIVE-01.md",
+    "docs/enterprise/MANUAL-GOLIVE-ENTERPRISE.md",
+    "docs/enterprise/CHECKLIST-GOLIVE.md",
+    "docs/enterprise/GO-LIVE-DECISION-RECORD.md"
+  ],
+  "remaining_phases": [
+    { "phase": 1, "cert": "STAGING-01", "type": "operacional", "status": "pending" },
+    { "phase": 2, "cert": "ROLLBACK-01", "type": "homologacao", "status": "pending_reexec" },
+    { "phase": 3, "cert": "VALIDATION-01", "type": "homologacao", "status": "pending_reexec" },
+    { "phase": 4, "cert": "GOLIVE-01", "type": "liberacao", "status": "structure_ready" }
+  ],
+  "nc_summary_snapshot": {
+    "source": "VALIDATION-01 + infra host produção",
+    "alta_open": 8,
+    "media_open": 2,
+    "baixa_open": 1,
+    "encerradas": ["NC-V006"]
+  }
+}

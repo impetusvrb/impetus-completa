@@ -150,6 +150,8 @@ export default function AdminUsers() {
         whatsapp_number: formData.whatsapp_number?.trim() || undefined
       };
 
+      console.log('CREATE_USER_PAYLOAD', payload);
+
       await adminUsers.create(payload);
       
       setShowCreateModal(false);
@@ -159,11 +161,16 @@ export default function AdminUsers() {
       if (error.response?.data?.details) {
         const errors = {};
         error.response.data.details.forEach(err => {
-          errors[err.path[0]] = err.message;
+          const field = err.path?.[0];
+          if (field) errors[field] = err.message;
         });
         setFormErrors(errors);
+        const firstDetail = error.response.data.details[0]?.message;
+        if (firstDetail) {
+          notify.error(firstDetail);
+        }
       } else {
-        notify.error(error.apiMessage || error.response?.data?.error || error.message || 'Erro ao criar usuário');
+        notify.error(resolveUserMutationError(error, 'criar'));
       }
     } finally {
       setSaving(false);
@@ -205,7 +212,7 @@ export default function AdminUsers() {
         });
         setFormErrors(errors);
       } else {
-        notify.error(error.apiMessage || error.response?.data?.error || error.message || 'Erro ao atualizar usuário');
+        notify.error(resolveUserMutationError(error, 'atualizar'));
       }
     } finally {
       setSaving(false);
@@ -779,6 +786,27 @@ function UserForm({
 }
 
 // Funções auxiliares
+const USER_ERROR_CODE_MESSAGES = {
+  EMAIL_ALREADY_EXISTS: 'Email já cadastrado nesta empresa.',
+  INVALID_STRUCTURAL_ROLE: 'Cargo inexistente ou inativo na Base Estrutural.',
+  STRUCTURAL_ROLE_REQUIRED: 'Selecione o cargo formal na Base Estrutural.',
+  NO_COMPANY: 'Sua conta não está vinculada a uma empresa.',
+  CEO_WHATSAPP_REQUIRED: 'CEO deve ter WhatsApp cadastrado.',
+  VALIDATION_ERROR: null,
+  FOREIGN_KEY_VIOLATION: 'Cargo, departamento ou empresa inválido.',
+  DUPLICATE_ENTRY: 'Registro duplicado — verifique email ou cargo.',
+  CREATE_USER_FAILED: 'Não foi possível criar o usuário. Tente novamente.',
+};
+
+function resolveUserMutationError(error, action = 'processar') {
+  const data = error.response?.data;
+  const code = data?.code;
+  if (code && USER_ERROR_CODE_MESSAGES[code]) {
+    return USER_ERROR_CODE_MESSAGES[code];
+  }
+  return error.apiMessage || data?.error || error.message || `Erro ao ${action} usuário`;
+}
+
 function getRoleLabel(role) {
   const roles = {
     ceo: 'CEO',

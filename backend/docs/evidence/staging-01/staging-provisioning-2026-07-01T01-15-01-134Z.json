@@ -1,0 +1,523 @@
+{
+  "certification": "CERT-ENTERPRISE-STAGING-01",
+  "title": "Provisionamento do Ambiente Oficial de Homologação Enterprise",
+  "executed_at": "2026-07-01T01:15:01.134Z",
+  "hostname": "srv1422313",
+  "staging_home": "/opt/impetus",
+  "staging_user": "impetus",
+  "vm_specification": {
+    "os": "Ubuntu Server 22.04 LTS ou superior",
+    "cpu": {
+      "minimum": 2,
+      "recommended": 4
+    },
+    "ram_gb": {
+      "minimum": 8,
+      "recommended": 16
+    },
+    "disk_gb": {
+      "minimum": 40,
+      "recommended": 80,
+      "type": "SSD"
+    },
+    "free_before_homologation_gb": 20
+  },
+  "status": "CONCLUIDA",
+  "approval": "REPROVADA",
+  "staging_ready": false,
+  "parts": {
+    "PARTE_1": {
+      "checks": [
+        {
+          "name": "Especificação documentada",
+          "status": "PASS",
+          "detail": "{\"os\":\"Ubuntu Server 22.04 LTS ou superior\",\"cpu\":{\"minimum\":2,\"recommended\":4},\"ram_gb\":{\"minimum\":8,\"recommended\":16},\"disk_gb\":{\"minimum\":40,\"recommended\":80,\"type\":\"SSD\"},\"free_before_homologation_gb\":20}"
+        },
+        {
+          "name": "SO Ubuntu 22.04+",
+          "status": "PASS",
+          "detail": "Ubuntu 22.04.5 LTS"
+        },
+        {
+          "name": "CPU vCPUs",
+          "status": "PASS",
+          "detail": "2 (mín 2, rec 4)"
+        },
+        {
+          "name": "RAM",
+          "status": "FAIL",
+          "detail": "7.75 GB (mín 8, rec 16)"
+        },
+        {
+          "name": "Disco total",
+          "status": "PASS",
+          "detail": "96.73 GB (mín 40, rec 80)"
+        },
+        {
+          "name": "Espaço livre ≥20 GB",
+          "status": "FAIL",
+          "detail": "NaN GB livres"
+        }
+      ]
+    },
+    "PARTE_2": {
+      "checks": [
+        {
+          "name": "Node.js LTS",
+          "status": "PASS",
+          "detail": "v20.20.0"
+        },
+        {
+          "name": "PM2",
+          "status": "PASS",
+          "detail": "6.0.14"
+        },
+        {
+          "name": "PostgreSQL 14+",
+          "status": "PASS",
+          "detail": "psql (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)"
+        },
+        {
+          "name": "Docker Engine",
+          "status": "FAIL",
+          "detail": "ausente"
+        },
+        {
+          "name": "Docker Compose",
+          "status": "FAIL",
+          "detail": "ausente"
+        },
+        {
+          "name": "OpenSSL",
+          "status": "PASS",
+          "detail": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)"
+        },
+        {
+          "name": "Git",
+          "status": "PASS",
+          "detail": "git version 2.34.1"
+        }
+      ]
+    },
+    "PARTE_3": {
+      "checks": [
+        {
+          "name": "/opt/impetus existe",
+          "status": "FAIL",
+          "detail": "provisionar conforme MANUAL-STAGING.md"
+        },
+        {
+          "name": "config/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/config"
+        },
+        {
+          "name": "uploads/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/uploads"
+        },
+        {
+          "name": "logs/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/logs"
+        },
+        {
+          "name": "database/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/database"
+        },
+        {
+          "name": "data/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/data"
+        },
+        {
+          "name": "runtime/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/runtime"
+        },
+        {
+          "name": "temp/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/temp"
+        },
+        {
+          "name": "backups/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/backups"
+        },
+        {
+          "name": "certificates/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/certificates"
+        },
+        {
+          "name": "licenses/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/licenses"
+        },
+        {
+          "name": "monitoring/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/monitoring"
+        },
+        {
+          "name": "scripts/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/scripts"
+        },
+        {
+          "name": "app/",
+          "status": "FAIL",
+          "detail": "/opt/impetus/app"
+        }
+      ]
+    },
+    "PARTE_4": {
+      "checks": [
+        {
+          "name": "Utilizador impetus",
+          "status": "FAIL"
+        },
+        {
+          "name": "Execução não-root",
+          "status": "FAIL",
+          "detail": "root"
+        }
+      ]
+    },
+    "PARTE_5": {
+      "checks": [
+        {
+          "name": "Docker qualification",
+          "status": "BLOCKED",
+          "detail": "engine ausente"
+        }
+      ]
+    },
+    "PARTE_6": {
+      "checks": [
+        {
+          "name": "PostgreSQL conectável",
+          "status": "PASS",
+          "detail": "14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)"
+        },
+        {
+          "name": "encoding",
+          "status": "PASS",
+          "detail": "UTF8"
+        },
+        {
+          "name": "locale",
+          "status": "PASS",
+          "detail": "C.UTF-8"
+        },
+        {
+          "name": "Ambiente limpo (sem dados produção)",
+          "status": "FAIL",
+          "detail": "companies=5, users=46 (impetus_db)"
+        }
+      ]
+    },
+    "PARTE_7": {
+      "checks": [
+        {
+          "name": "pm2 ping",
+          "status": "PASS"
+        },
+        {
+          "name": "ecosystem.config.js",
+          "status": "PASS"
+        },
+        {
+          "name": "pm2 processos staging",
+          "status": "WARN",
+          "detail": "9 app(s) — staging idealmente vazio antes de homologação"
+        }
+      ]
+    },
+    "PARTE_8": {
+      "checks": [
+        {
+          "name": "Portas críticas",
+          "status": "PASS",
+          "detail": "LISTEN 0      511          0.0.0.0:443        0.0.0.0:*    users:((\"nginx\",pid=3884859,fd=13),(\"nginx\",pid=3884858,fd=13),(\"nginx\",pid=3575186,fd=13)) | LISTEN 0      511          "
+        },
+        {
+          "name": "Firewall",
+          "status": "PASS",
+          "detail": "Status: active"
+        },
+        {
+          "name": "DNS/hostname",
+          "status": "PASS",
+          "detail": "srv1422313.hstgr.cloud"
+        },
+        {
+          "name": "Certificados TLS",
+          "status": "PASS",
+          "detail": "/etc/letsencrypt"
+        }
+      ]
+    },
+    "PARTE_9": {
+      "checks": [
+        {
+          "name": "Capacidade DR staging",
+          "status": "FAIL",
+          "detail": "req ~6.75 GB, disp ~NaN GB"
+        }
+      ]
+    },
+    "PARTE_10": {
+      "checks": [
+        {
+          "name": "Inventário VM",
+          "status": "PASS"
+        },
+        {
+          "name": "Relatório conformidade",
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "inventory": {
+    "os": {
+      "platform": "linux",
+      "release": "5.15.0-174-generic",
+      "distro": "Ubuntu 22.04.5 LTS",
+      "ubuntu_major": 22
+    },
+    "cpu": {
+      "cores": 2,
+      "model": "AMD EPYC 9354P 32-Core Processor"
+    },
+    "memory": {
+      "total_mb": 7937,
+      "total_gb": 7.75,
+      "free_mb": 5713
+    },
+    "disk": {
+      "root": {
+        "mount": "/",
+        "total_gb": 96.73,
+        "used_gb": 96.61,
+        "avail_gb": 0.11,
+        "use_percent": "100%"
+      },
+      "staging_home": {
+        "mount": "/opt/impetus",
+        "total_gb": null,
+        "used_gb": null,
+        "avail_gb": null,
+        "use_percent": ""
+      }
+    },
+    "versions": {
+      "node": "v20.20.0",
+      "npm": "10.8.2",
+      "pm2": "6.0.14",
+      "docker": null,
+      "docker_compose": null,
+      "psql": "psql (PostgreSQL) 14.23 (Ubuntu 14.23-0ubuntu0.22.04.1)",
+      "openssl": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)",
+      "git": "git version 2.34.1",
+      "nginx": "nginx version: nginx/1.18.0 (Ubuntu)"
+    },
+    "current_user": "root",
+    "staging_home_exists": false
+  },
+  "dr_capacity": {
+    "reference_backup_gb": 2.5,
+    "required_gb": 6.75,
+    "available_gb": null,
+    "sufficient": false,
+    "breakdown": {
+      "backup": 2.5,
+      "restore": 2.5,
+      "temp": 1,
+      "wal": 0.5,
+      "logs": 0.25
+    }
+  },
+  "non_conformities": [
+    {
+      "id": "NC-ST001",
+      "severity": "Alta",
+      "part": "PARTE_2",
+      "description": "Docker Engine indisponível",
+      "impact": "VALIDATION Partes 3–4 bloqueadas",
+      "evidence": "not found",
+      "related_certification": "CERT-ONPREM-VALIDATION-01"
+    },
+    {
+      "id": "NC-ST002",
+      "severity": "Alta",
+      "part": "PARTE_2",
+      "description": "Docker Compose indisponível",
+      "impact": "VALIDATION Partes 3–4 bloqueadas",
+      "evidence": "not found",
+      "related_certification": "CERT-ONPREM-VALIDATION-01"
+    },
+    {
+      "id": "NC-ST003",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "IMPETUS_HOME /opt/impetus não existe",
+      "impact": "Layout Enterprise não provisionado",
+      "evidence": "/opt/impetus",
+      "related_certification": "CERT-ONPREM-INFRA-01"
+    },
+    {
+      "id": "NC-ST004",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório config/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/config",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST005",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório uploads/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/uploads",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST006",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório logs/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/logs",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST007",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório database/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/database",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST008",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório data/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/data",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST009",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório runtime/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/runtime",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST010",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório temp/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/temp",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST011",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório backups/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/backups",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST012",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório certificates/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/certificates",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST013",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório licenses/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/licenses",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST014",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório monitoring/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/monitoring",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST015",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório scripts/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/scripts",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST016",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Diretório app/ ausente ou sem escrita",
+      "impact": "Persistência staging incompleta",
+      "evidence": "/opt/impetus/app",
+      "related_certification": "CERT-ONPREM-DATA-01"
+    },
+    {
+      "id": "NC-ST017",
+      "severity": "Alta",
+      "part": "PARTE_4",
+      "description": "Utilizador impetus não existe",
+      "impact": "Serviços não podem correr como user dedicado",
+      "evidence": "id impetus",
+      "related_certification": "CERT-ONPREM-INFRA-01"
+    },
+    {
+      "id": "NC-ST018",
+      "severity": "Alta",
+      "part": "PARTE_4",
+      "description": "Certificação executada como root",
+      "impact": "Staging deve usar user impetus",
+      "evidence": "uid=0",
+      "related_certification": "CERT-ONPREM-INFRA-01"
+    },
+    {
+      "id": "NC-ST019",
+      "severity": "Alta",
+      "part": "PARTE_6",
+      "description": "PostgreSQL contém dados de produção ou pré-populados",
+      "impact": "Staging deve ser ambiente limpo dedicado",
+      "evidence": "companies=5, users=46",
+      "related_certification": "CERT-ONPREM-VALIDATION-01"
+    }
+  ],
+  "summary": {
+    "passed": 20,
+    "failed": 23,
+    "skipped": 0,
+    "blocked": 1
+  }
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pulse } from '../../services/api';
+import { useDashboardBoot } from '../../runtimeBoot/DashboardBootContext';
 
 const POLL_MS = 180000;
 const DISMISS_KEY = 'impetus_pulse_dismiss_id';
@@ -8,6 +9,7 @@ const DISMISS_KEY = 'impetus_pulse_dismiss_id';
  * Gatilho ocasional: consulta /pulse/me/prompt em intervalo (sem item de menu fixo).
  */
 export function useImpetusPulse() {
+  const { phase } = useDashboardBoot();
   const [promptOpen, setPromptOpen] = useState(false);
   const [evaluation, setEvaluation] = useState(null);
   const [motivation, setMotivation] = useState(null);
@@ -63,13 +65,14 @@ export function useImpetusPulse() {
   }, []);
 
   useEffect(() => {
+    if (phase < 3) return undefined;
     poll();
     loadMotivation();
     timer.current = setInterval(poll, POLL_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [poll, loadMotivation]);
+  }, [poll, loadMotivation, phase]);
 
   const closePrompt = () => {
     if (evaluation?.id) sessionStorage.setItem(DISMISS_KEY, evaluation.id);

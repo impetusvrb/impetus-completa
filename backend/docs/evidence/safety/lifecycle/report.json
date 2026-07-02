@@ -1,6 +1,6 @@
 {
-  "run_id": "cert-sst-1782132392867",
-  "started_at": "2026-06-22T12:46:32.868Z",
+  "run_id": "cert-sst-1782487694091",
+  "started_at": "2026-06-26T15:28:14.091Z",
   "scenario": "SST Incidente / Quase-acidente / Treinamento vencido",
   "steps": [
     {
@@ -11,29 +11,29 @@
     {
       "step": "post_incident",
       "status": 200,
-      "event_id": "a998f588-4c31-4b83-aa65-d7ec01cd2871"
+      "event_id": "eca2057b-a7cd-4f7c-b535-8bb6576df396"
     },
     {
       "step": "post_near_miss",
       "status": 200,
-      "event_id": "ba08c7c1-dc46-4974-9538-c85e949cf6c1"
+      "event_id": "b6fb7d30-55fb-4d57-a2ad-ff45b81272cb"
     },
     {
       "step": "post_training_expired",
       "status": 200,
-      "event_id": "4ee7fbd7-2f93-4752-943e-fed408022773"
+      "event_id": "b3f4eec9-5eec-49b2-9e0f-c0ddc112fb64"
     },
     {
       "step": "list_alerts",
       "status": 200,
-      "count": 25
+      "count": 30
     }
   ],
   "ok": true,
   "alert_ids": [
-    "a998f588-4c31-4b83-aa65-d7ec01cd2871",
-    "ba08c7c1-dc46-4974-9538-c85e949cf6c1",
-    "4ee7fbd7-2f93-4752-943e-fed408022773"
+    "eca2057b-a7cd-4f7c-b535-8bb6576df396",
+    "b6fb7d30-55fb-4d57-a2ad-ff45b81272cb",
+    "b3f4eec9-5eec-49b2-9e0f-c0ddc112fb64"
   ],
   "users": {
     "actor": {
@@ -63,7 +63,7 @@
     "resolve_status": 404,
     "leaked": []
   },
-  "finished_at": "2026-06-22T12:46:33.458Z",
+  "finished_at": "2026-06-26T15:28:14.561Z",
   "classification": {
     "POST /api/safety-operational/events": "VERDE",
     "GET /api/dashboard/operational-brain/alerts": "VERDE",

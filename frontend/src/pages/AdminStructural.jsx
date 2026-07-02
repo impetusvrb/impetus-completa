@@ -41,6 +41,24 @@ import {
 } from './adminStructural/StructuralForms';
 import './AdminStructural.css';
 
+const STRUCTURAL_ERROR_CODE_MESSAGES = {
+  NO_COMPANY: 'Sua conta não está vinculada a uma empresa.',
+  FOREIGN_KEY_VIOLATION: 'Departamento, setor ou cargo superior inválido.',
+  DUPLICATE_INTERNAL_CODE: 'Código interno do cargo já existe.',
+  CREATE_POSITION_FAILED: 'Não foi possível criar o cargo. Tente novamente.',
+  SCHEMA_MISMATCH: 'Configuração do servidor incompleta. Contacte o suporte.',
+};
+
+function resolveStructuralMutationError(error, module, entityLabel) {
+  const data = error.response?.data;
+  const code = data?.code;
+  if (module === 'roles' && code && STRUCTURAL_ERROR_CODE_MESSAGES[code]) {
+    return STRUCTURAL_ERROR_CODE_MESSAGES[code];
+  }
+  const fallback = module === 'roles' ? 'Erro ao criar cargo' : `Erro ao salvar ${entityLabel || 'registro'}`;
+  return error.apiMessage || data?.error || error.message || fallback;
+}
+
 const MODULES = [
   { id: 'company-data', label: 'Dados da Empresa', icon: Building2 },
   { id: 'roles', label: 'Identidade Organizacional (Cargos)', icon: Briefcase },
@@ -689,6 +707,9 @@ function CrudModule({
     try {
       setSaving(true);
       setFormErrors({});
+      if (module === 'roles' && !editing) {
+        console.log('CREATE_POSITION_PAYLOAD', payload);
+      }
       if (editing) {
         await api.update(editing.id, payload);
         notify.success(`${entityLabel} atualizado!`);
@@ -711,7 +732,7 @@ function CrudModule({
         setFormErrors(errMap);
         notify.error(msgs.filter(Boolean).join(' · ') || e.apiMessage || 'Dados do cargo inválidos');
       } else {
-        notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao salvar');
+        notify.error(resolveStructuralMutationError(e, module, entityLabel));
       }
     } finally {
       setSaving(false);

@@ -28,6 +28,16 @@ import {
 import ManuIAUnityViewer from '../../components/manu-ia/ManuIAUnityViewer';
 import { manutencaoIa } from '../../services/api';
 import useSpeechRecognition from '../../hooks/useSpeechRecognition';
+import LiveSessionStatus from './LiveSessionStatus';
+import {
+  attachStreamToVideo,
+  enumerateVideoDevices,
+  isGetUserMediaSupported,
+  isSecureMediaContext,
+  mapMediaError,
+  requestCameraStream,
+  stopMediaStream
+} from '../../utils/cameraMediaUtils';
 import styles from './LiveTechnicalAssistance.module.css';
 
 const UI_STATUS = {
@@ -64,6 +74,7 @@ function statusLabel(s) {
 export default function LiveTechnicalAssistanceModule({
   machineId,
   machineName,
+  uploadTrigger = 0,
   onDiagnosisComplete,
   onGenerateOS
 }) {
@@ -71,20 +82,25 @@ export default function LiveTechnicalAssistanceModule({
   const canvasRef = useRef(null);
   const loopRef = useRef(null);
   const sessionIdRef = useRef(null);
+  const streamRef = useRef(null);
+  const uploadFileRef = useRef(null);
 
   const [assistanceOn, setAssistanceOn] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [paused, setPaused] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const [frozenDataUrl, setFrozenDataUrl] = useState(null);
   const [intervalSec, setIntervalSec] = useState(2.5);
   const [devices, setDevices] = useState([]);
   const [deviceIndex, setDeviceIndex] = useState(0);
-  const [stream, setStream] = useState(null);
+  const [facingMode, setFacingMode] = useState('environment');
+  const [cameraCanRetry, setCameraCanRetry] = useState(false);
 
   const [uiStatus, setUiStatus] = useState(UI_STATUS.idle);
   const [dossier, setDossier] = useState(null);
   const [detection, setDetection] = useState(null);
   const [error, setError] = useState(null);
+  const [actionNotice, setActionNotice] = useState(null);
 
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -98,10 +114,16 @@ export default function LiveTechnicalAssistanceModule({
   }, []);
   const {
     isListening,
+    error: speechError,
     supported: speechSupported,
     start: startMic,
     stop: stopMic
   } = useSpeechRecognition({ lang: 'pt-BR', onResult: onSpeechResult });
+
+  const showNotice = useCallback((text, tone = 'info') => {
+    setActionNotice({ text, tone });
+    window.setTimeout(() => setActionNotice(null), 5000);
+  }, []);
 
   const speak = useCallback(
     (text) => {
@@ -118,71 +140,126 @@ export default function LiveTechnicalAssistanceModule({
     [muteAiVoice]
   );
 
+  const refreshCameraList = useCallback(async () => {
+    try {
+      const vids = await enumerateVideoDevices();
+      setDevices(vids);
+      return vids;
+    } catch (e) {
+      console.warn('[MANUIA_LIVE_CAMERA_ENUM]', e?.message);
+      setDevices([]);
+      return [];
+    }
+  }, []);
+
   const stopCamera = useCallback(() => {
     if (loopRef.current) {
       clearInterval(loopRef.current);
       loopRef.current = null;
     }
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      setStream(null);
-    }
+    stopMediaStream(streamRef.current);
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
     setAssistanceOn(false);
     setUiStatus(UI_STATUS.idle);
-  }, [stream]);
-
-  const enumerateCameras = useCallback(async () => {
-    try {
-      const list = await navigator.mediaDevices.enumerateDevices();
-      const vids = list.filter((d) => d.kind === 'videoinput');
-      setDevices(vids);
-    } catch {
-      setDevices([]);
-    }
   }, []);
 
-  useEffect(() => {
-    enumerateCameras();
-  }, [enumerateCameras]);
+  const applyCameraStream = useCallback(
+    async (s) => {
+      stopMediaStream(streamRef.current);
+      streamRef.current = s;
+      if (videoRef.current) await attachStreamToVideo(videoRef.current, s);
+      setAssistanceOn(true);
+      setUiStatus(UI_STATUS.live);
+      setCameraCanRetry(false);
+      await refreshCameraList();
+    },
+    [refreshCameraList]
+  );
+
+  const ensureLiveSession = useCallback(async () => {
+    if (sessionIdRef.current) return;
+    try {
+      const cr = await manutencaoIa.createSession({
+        machine_id: machineId || null,
+        session_type: 'guidance'
+      });
+      const sid = cr.data?.session?.id;
+      if (sid) sessionIdRef.current = sid;
+    } catch (e) {
+      console.warn('[MANUIA_LIVE_SESSION]', e?.response?.data?.error || e?.message);
+      showNotice('Sessão ManuIA não criada — análise segue sem histórico persistido.', 'warn');
+    }
+  }, [machineId, showNotice]);
 
   const startCamera = useCallback(async () => {
     setError(null);
+    setActionNotice(null);
     setUiStatus(UI_STATUS.starting);
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
+
+    if (!isGetUserMediaSupported()) {
+      const mapped = mapMediaError({ name: 'NotSupportedError' });
+      setError(mapped.message);
+      setCameraCanRetry(false);
+      setUiStatus(UI_STATUS.error);
+      return;
     }
-    const constraints = {
-      video: devices.length
-        ? { deviceId: { exact: devices[deviceIndex]?.deviceId } }
-        : { facingMode: 'environment' },
-      audio: false
-    };
+    if (!isSecureMediaContext()) {
+      const mapped = mapMediaError({ name: 'SecurityError' });
+      setError(mapped.message);
+      setCameraCanRetry(false);
+      setUiStatus(UI_STATUS.error);
+      return;
+    }
+
+    stopMediaStream(streamRef.current);
+    streamRef.current = null;
+
+    const preferredId = devices[deviceIndex]?.deviceId;
     try {
-      const s = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(s);
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        await videoRef.current.play();
-      }
-      setAssistanceOn(true);
-      setUiStatus(UI_STATUS.live);
-      if (!sessionIdRef.current) {
+      const s = await requestCameraStream({
+        deviceId: preferredId,
+        facingMode,
+        audio: false
+      });
+      await applyCameraStream(s);
+      await ensureLiveSession();
+    } catch (e) {
+      const mapped = mapMediaError(e);
+      console.warn(`[MANUIA_LIVE_CAMERA] ${mapped.logLabel}`, e?.name, e?.message);
+      if (mapped.code === 'constraint' || mapped.code === 'unknown') {
         try {
-          const cr = await manutencaoIa.createSession({
-            machine_id: machineId || null,
-            session_type: 'guidance'
-          });
-          const sid = cr.data?.session?.id;
-          if (sid) sessionIdRef.current = sid;
-        } catch {
-          /* sessão opcional */
+          const altFacing = facingMode === 'environment' ? 'user' : 'environment';
+          const s2 = await requestCameraStream({ facingMode: altFacing, audio: false });
+          setFacingMode(altFacing);
+          await applyCameraStream(s2);
+          await ensureLiveSession();
+          showNotice('Câmera iniciada com lente alternativa.', 'info');
+          return;
+        } catch (e2) {
+          const mapped2 = mapMediaError(e2);
+          setError(mapped2.message);
+          setCameraCanRetry(mapped2.canRetry);
+          setUiStatus(UI_STATUS.error);
+          return;
         }
       }
-    } catch (e) {
-      setError(e?.message || 'Não foi possível acessar a câmera');
+      setError(mapped.message);
+      setCameraCanRetry(mapped.canRetry);
       setUiStatus(UI_STATUS.error);
     }
-  }, [stream, devices, deviceIndex, machineId]);
+  }, [devices, deviceIndex, facingMode, applyCameraStream, ensureLiveSession, showNotice]);
+
+  useEffect(() => {
+    return () => {
+      stopMediaStream(streamRef.current);
+      streamRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (uploadTrigger > 0) uploadFileRef.current?.click();
+  }, [uploadTrigger]);
 
   const captureFrameBase64 = useCallback(() => {
     const v = videoRef.current;
@@ -196,11 +273,81 @@ export default function LiveTechnicalAssistanceModule({
     return dataUrl.replace(/^data:image\/jpeg;base64,/, '');
   }, []);
 
-  const runAnalyze = useCallback(async () => {
-    if (paused) return;
-    let b64 = frozen ? (frozenDataUrl || '').replace(/^data:image\/[a-z]+;base64,/, '') : captureFrameBase64();
-    if (!b64 || b64.length < 80) return;
+  const processUploadFile = useCallback(
+    async (f) => {
+      if (!f) return;
+      if (f.type.startsWith('video/')) {
+        showNotice('Vídeo recebido: extraia um frame (captura de tela) ou envie foto JPEG/PNG.', 'warn');
+        return;
+      }
+      if (!f.type.startsWith('image/')) {
+        showNotice('Formato não suportado. Use JPEG, PNG ou WebP.', 'warn');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result;
+        const b64 = String(dataUrl).split(',')[1] || '';
+        setFrozen(true);
+        setFrozenDataUrl(dataUrl);
+        setUiStatus(UI_STATUS.analyzing);
+        setError(null);
+        try {
+          if (!sessionIdRef.current) await ensureLiveSession();
+          const r = await manutencaoIa.liveAnalyzeFrame({
+            imageBase64: b64,
+            machineId: machineId || null,
+            sessionId: sessionIdRef.current || null
+          });
+          if (r.data?.ok) {
+            setDetection(r.data.detection);
+            setDossier(r.data.dossier);
+            setUiStatus(UI_STATUS.ready);
+            showNotice('Imagem enviada e analisada.', 'success');
+          } else {
+            throw new Error(r.data?.error || 'Falha na análise');
+          }
+        } catch (err) {
+          const msg = err?.response?.data?.error || err?.message || 'Erro no upload';
+          console.warn('[MANUIA_LIVE_UPLOAD]', msg);
+          setError(msg);
+          setUiStatus(UI_STATUS.error);
+        }
+      };
+      reader.onerror = () => {
+        setError('Não foi possível ler o arquivo selecionado.');
+        showNotice('Falha ao ler o arquivo.', 'warn');
+      };
+      reader.readAsDataURL(f);
+    },
+    [machineId, ensureLiveSession, showNotice]
+  );
 
+  const handleUploadFile = useCallback(
+    (e) => {
+      const f = e.target.files?.[0];
+      e.target.value = '';
+      processUploadFile(f);
+    },
+    [processUploadFile]
+  );
+
+  const runAnalyze = useCallback(async () => {
+    if (paused) {
+      showNotice('Análise pausada — retome para capturar frames.', 'warn');
+      return;
+    }
+    let b64 = frozen ? (frozenDataUrl || '').replace(/^data:image\/[a-z]+;base64,/, '') : captureFrameBase64();
+    if (!b64 || b64.length < 80) {
+      const msg = assistanceOn
+        ? 'Aguarde o preview da câmera carregar ou congele um frame antes de analisar.'
+        : 'Inicie a câmera ou envie uma imagem por Upload.';
+      setError(msg);
+      showNotice(msg, 'warn');
+      return;
+    }
+
+    setError(null);
     setUiStatus(UI_STATUS.analyzing);
     try {
       const r = await manutencaoIa.liveAnalyzeFrame({
@@ -231,10 +378,12 @@ export default function LiveTechnicalAssistanceModule({
       const summary = data.dossier?.technical_summary || d.technical_summary;
       if (summary) speak(summary);
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'Erro na análise');
+      const errMsg = e?.response?.data?.error || e?.message || 'Erro na análise';
+      console.warn('[MANUIA_LIVE_ANALYZE]', errMsg);
+      setError(errMsg);
       setUiStatus(UI_STATUS.error);
     }
-  }, [paused, frozen, frozenDataUrl, captureFrameBase64, machineId, onDiagnosisComplete, speak]);
+  }, [paused, frozen, frozenDataUrl, captureFrameBase64, machineId, onDiagnosisComplete, speak, assistanceOn, showNotice]);
 
   useEffect(() => {
     if (!assistanceOn || paused || frozen) {
@@ -263,38 +412,52 @@ export default function LiveTechnicalAssistanceModule({
   const toggleFreeze = () => {
     if (!frozen) {
       const b64 = captureFrameBase64();
-      if (b64) {
-        setFrozenDataUrl(`data:image/jpeg;base64,${b64}`);
+      if (!b64) {
+        showNotice('Não há frame da câmera para congelar. Aguarde o preview ou use Upload.', 'warn');
+        return;
       }
+      setFrozenDataUrl(`data:image/jpeg;base64,${b64}`);
       setFrozen(true);
+      showNotice('Frame congelado — análise usa esta imagem.', 'info');
     } else {
       setFrozen(false);
       setFrozenDataUrl(null);
+      showNotice('Frame liberado — voltando ao fluxo ao vivo.', 'info');
     }
   };
 
-  const switchCamera = () => {
-    if (devices.length < 2) return;
-    const next = (deviceIndex + 1) % devices.length;
-    const devId = devices[next]?.deviceId;
-    if (!devId) return;
-    setDeviceIndex(next);
-    setTimeout(() => {
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-      navigator.mediaDevices
-        .getUserMedia({
-          video: { deviceId: { exact: devId } },
-          audio: false
-        })
-        .then((s) => {
-          setStream(s);
-          if (videoRef.current) {
-            videoRef.current.srcObject = s;
-            videoRef.current.play();
-          }
-        })
-        .catch((err) => setError(err?.message));
-    }, 50);
+  const switchCamera = async () => {
+    if (!assistanceOn) return;
+    setError(null);
+    const vids = await refreshCameraList();
+    if (vids.length >= 2) {
+      const next = (deviceIndex + 1) % vids.length;
+      const devId = vids[next]?.deviceId;
+      setDeviceIndex(next);
+      try {
+        stopMediaStream(streamRef.current);
+        const s = await requestCameraStream({ deviceId: devId, facingMode, audio: false });
+        await applyCameraStream(s);
+        showNotice(`Câmera: ${vids[next]?.label || `dispositivo ${next + 1}`}`, 'info');
+        return;
+      } catch (e) {
+        const mapped = mapMediaError(e);
+        console.warn('[MANUIA_LIVE_SWITCH]', mapped.logLabel, e?.message);
+        setError(mapped.message);
+      }
+    }
+    const nextFacing = facingMode === 'environment' ? 'user' : 'environment';
+    try {
+      stopMediaStream(streamRef.current);
+      const s = await requestCameraStream({ facingMode: nextFacing, audio: false });
+      setFacingMode(nextFacing);
+      await applyCameraStream(s);
+      showNotice(nextFacing === 'user' ? 'Câmera frontal ativa' : 'Câmera traseira ativa', 'info');
+    } catch (e) {
+      const mapped = mapMediaError(e);
+      console.warn('[MANUIA_LIVE_SWITCH_FACING]', mapped.logLabel, e?.message);
+      setError(mapped.message);
+    }
   };
 
   const sendChat = async (text) => {
@@ -321,24 +484,42 @@ export default function LiveTechnicalAssistanceModule({
   };
 
   const saveSession = async () => {
-    if (!sessionIdRef.current || !dossier) return;
+    if (!dossier) {
+      showNotice('Execute uma análise antes de salvar a sessão.', 'warn');
+      return;
+    }
+    if (!sessionIdRef.current) {
+      await ensureLiveSession();
+    }
+    if (!sessionIdRef.current) {
+      showNotice('Sessão indisponível — não foi possível salvar no histórico.', 'warn');
+      return;
+    }
     try {
-      await manutencaoIa.liveSaveSession({
+      const r = await manutencaoIa.liveSaveSession({
         sessionId: sessionIdRef.current,
         dossier,
         summaryText: dossier?.technical_summary || null
       });
+      if (!r.data?.ok) throw new Error(r.data?.error || 'Falha ao salvar');
       setMessages((m) => [
         ...m,
         { role: 'assistant', content: 'Sessão salva no histórico ManuIA.' }
       ]);
-    } catch {
-      /* ignore */
+      showNotice('Análise salva no histórico ManuIA.', 'success');
+    } catch (e) {
+      const err = e?.response?.data?.error || e?.message || 'Erro ao salvar sessão';
+      console.warn('[MANUIA_LIVE_SAVE]', err);
+      setError(err);
+      showNotice(err, 'warn');
     }
   };
 
   const openOs = () => {
-    if (!dossier && !detection) return;
+    if (!dossier && !detection) {
+      showNotice('Execute uma análise com peça detectada antes de gerar OS.', 'warn');
+      return;
+    }
     onGenerateOS?.({
       equipment: dossier?.probable_machine || dossier?.research?.equipment?.name || machineName || 'Peça em campo',
       manufacturer: dossier?.probable_brand || dossier?.research?.equipment?.manufacturer || '',
@@ -348,6 +529,9 @@ export default function LiveTechnicalAssistanceModule({
       machineId,
       machineName
     });
+    if (!onGenerateOS) {
+      showNotice('Modal de OS indisponível neste contexto.', 'warn');
+    }
   };
 
   const research = dossier?.research || null;
@@ -357,128 +541,137 @@ export default function LiveTechnicalAssistanceModule({
   const currentGuidance = nextActions[guidanceStep];
   const nextGuidance = nextActions[guidanceStep + 1];
 
+  const errorIsCamera =
+    !!error &&
+    (uiStatus === UI_STATUS.error || cameraCanRetry || /câmera|camera|permissão/i.test(String(error)));
+
   return (
     <div className={styles.root}>
-      <div className={styles.toolbar}>
+      <input
+        ref={uploadFileRef}
+        type="file"
+        accept="image/*"
+        className={styles.hiddenFile}
+        aria-hidden
+        tabIndex={-1}
+        onChange={handleUploadFile}
+      />
+
+      <div className={styles.primaryAction}>
         <button
           type="button"
-          className={`${styles.btn} ${styles.btnPrimary}`}
+          className={`${styles.btn} ${styles.btnPrimary} ${styles.btnHero}`}
           onClick={assistanceOn ? stopCamera : startLiveAssistance}
         >
           {assistanceOn ? (
             <>
-              <VideoOff size={18} /> Encerrar assistência
+              <VideoOff size={20} /> Encerrar assistência
             </>
           ) : (
             <>
-              <Video size={18} /> Iniciar assistência ao vivo
+              <Video size={20} /> Iniciar assistência ao vivo
             </>
           )}
         </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${assistanceOn && !paused ? styles.btnActive : ''}`}
-          disabled={!assistanceOn}
-          onClick={() => setPaused((p) => !p)}
-        >
-          {paused ? <Play size={18} /> : <Pause size={18} />}
-          {paused ? 'Retomar análise' : 'Pausar análise'}
-        </button>
-        <button type="button" className={styles.btn} disabled={!assistanceOn} onClick={toggleFreeze}>
-          <Snowflake size={18} />
-          {frozen ? 'Descongelar' : 'Congelar frame'}
-        </button>
-        <button type="button" className={styles.btn} disabled={!assistanceOn || devices.length < 2} onClick={switchCamera}>
-          <RefreshCw size={18} /> Trocar câmera
-        </button>
-        <label className={styles.btn} style={{ cursor: 'pointer' }}>
-          <Camera size={18} /> Upload
-          <input
-            type="file"
-            accept="image/*,video/*"
-            className={styles.hiddenFile}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              if (f.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = async () => {
-                  const dataUrl = reader.result;
-                  const b64 = String(dataUrl).split(',')[1] || '';
-                  setFrozen(true);
-                  setFrozenDataUrl(dataUrl);
-                  setUiStatus(UI_STATUS.analyzing);
-                  try {
-                    const r = await manutencaoIa.liveAnalyzeFrame({
-                      imageBase64: b64,
-                      machineId: machineId || null,
-                      sessionId: sessionIdRef.current || null
-                    });
-                    if (r.data?.ok) {
-                      setDetection(r.data.detection);
-                      setDossier(r.data.dossier);
-                      setUiStatus(UI_STATUS.ready);
-                    }
-                  } catch (err) {
-                    setError(err?.message);
-                    setUiStatus(UI_STATUS.error);
-                  }
-                };
-                reader.readAsDataURL(f);
-              }
-            }}
-          />
-        </label>
-        <span style={{ fontSize: '0.8rem', color: '#8b9aab' }}>Intervalo (s)</span>
-        <input
-          type="number"
-          className={styles.inputInterval}
-          min={1.2}
-          max={15}
-          step={0.5}
-          value={intervalSec}
-          onChange={(e) => setIntervalSec(parseFloat(e.target.value) || 2.5)}
-        />
-        <button
-          type="button"
-          className={`${styles.btn} ${isListening ? styles.micListening : ''}`}
-          disabled={!speechSupported}
-          onClick={() => (isListening ? stopMic() : startMic())}
-        >
-          {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-          Microfone
-        </button>
-        <button type="button" className={styles.btn} onClick={() => setMuteAiVoice((m) => !m)}>
-          {muteAiVoice ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          {muteAiVoice ? 'Voz IA off' : 'Voz IA on'}
-        </button>
-      </div>
-
-      <div
-        className={`${styles.statusBar} ${
-          uiStatus === UI_STATUS.analyzing ? styles.statusAnalyzing : ''
-        } ${uiStatus === UI_STATUS.ready || uiStatus === UI_STATUS.part_detected ? styles.statusReady : ''} ${
-          uiStatus === UI_STATUS.error ? styles.statusError : ''
-        }`}
-      >
-        <span className={styles.statusDot} />
-        <strong>{statusLabel(uiStatus)}</strong>
-        {machineName && (
-          <span style={{ opacity: 0.85 }}>
-            · Ativo: <em>{machineName}</em>
-          </span>
+        {!assistanceOn && (
+          <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => uploadFileRef.current?.click()}>
+            <Camera size={18} /> Enviar foto sem câmera
+          </button>
         )}
       </div>
 
-      {error && (
-        <p style={{ color: '#f87171', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AlertTriangle size={16} /> {error}
+      <LiveSessionStatus
+        uiStatus={uiStatus}
+        statusLabel={statusLabel(uiStatus)}
+        machineName={machineName}
+        error={error}
+        errorType={errorIsCamera ? 'camera' : 'generic'}
+        cameraCanRetry={cameraCanRetry}
+        assistanceOn={assistanceOn}
+        speechError={speechError}
+        onRetry={startLiveAssistance}
+        onSwitchCamera={switchCamera}
+      />
+
+      {actionNotice && (
+        <p className={`${styles.noticeBanner} ${styles[`noticeBanner--${actionNotice.tone}`]}`}>
+          {actionNotice.text}
         </p>
+      )}
+
+      {assistanceOn && (
+        <div className={styles.toolbar}>
+          <div className={styles.toolbarRow}>
+            <button
+              type="button"
+              className={`${styles.btn} ${assistanceOn && !paused ? styles.btnActive : ''}`}
+              onClick={() => setPaused((p) => !p)}
+            >
+              {paused ? <Play size={18} /> : <Pause size={18} />}
+              {paused ? 'Retomar' : 'Pausar'}
+            </button>
+            <button type="button" className={styles.btn} onClick={toggleFreeze}>
+              <Snowflake size={18} />
+              {frozen ? 'Descongelar' : 'Congelar'}
+            </button>
+            <button type="button" className={styles.btn} onClick={switchCamera}>
+              <RefreshCw size={18} /> Câmera
+            </button>
+            {speechSupported && (
+              <button
+                type="button"
+                className={`${styles.btn} ${isListening ? styles.micListening : ''}`}
+                onClick={() => (isListening ? stopMic() : startMic())}
+              >
+                {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                Mic
+              </button>
+            )}
+            <button type="button" className={styles.btn} onClick={() => setShowAdvanced((v) => !v)}>
+              {showAdvanced ? 'Menos' : 'Mais'}
+            </button>
+          </div>
+          {showAdvanced && (
+            <div className={styles.toolbarAdvanced}>
+              <label className={styles.btn} style={{ cursor: 'pointer' }}>
+                <Camera size={18} /> Upload
+                <input type="file" accept="image/*" className={styles.hiddenFile} onChange={handleUploadFile} />
+              </label>
+              <span className={styles.toolbarLabel}>Intervalo (s)</span>
+              <input
+                type="number"
+                className={styles.inputInterval}
+                min={1.2}
+                max={15}
+                step={0.5}
+                value={intervalSec}
+                onChange={(e) => setIntervalSec(parseFloat(e.target.value) || 2.5)}
+              />
+              <button type="button" className={styles.btn} onClick={() => setMuteAiVoice((m) => !m)}>
+                {muteAiVoice ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                {muteAiVoice ? 'Voz off' : 'Voz IA'}
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       <div className={styles.grid}>
         <div className={styles.cameraCol}>
-          <div className={styles.videoWrap}>
+          <div
+            className={`${styles.videoWrap} ${
+              assistanceOn || frozenDataUrl ? styles.videoWrapActive : styles.videoWrapCompact
+            }`}
+          >
+            {!assistanceOn && !frozenDataUrl && (
+              <div className={styles.videoPlaceholder}>
+                <div className={styles.videoPlaceholderIcon}>
+                  <Camera size={32} strokeWidth={1.5} />
+                </div>
+                <strong>Câmera pronta</strong>
+                <span>Toque em «Iniciar assistência ao vivo» ou envie uma foto.</span>
+              </div>
+            )}
             <video
               ref={videoRef}
               className={frozen ? styles.videoHidden : styles.video}
@@ -501,7 +694,7 @@ export default function LiveTechnicalAssistanceModule({
         </div>
 
         <div className={styles.sideCol}>
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.panelCopilot}`}>
             <h3>
               <Wrench size={18} /> Copiloto técnico
             </h3>
@@ -534,7 +727,7 @@ export default function LiveTechnicalAssistanceModule({
             </div>
           </div>
 
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.panelResult}`}>
             <h3>Resultado técnico</h3>
             <dl className={styles.kv}>
               <dt>Nome técnico</dt>
@@ -579,7 +772,7 @@ export default function LiveTechnicalAssistanceModule({
             <p style={{ marginTop: 10, fontSize: '0.82rem' }}>{dossier?.technical_summary || detection?.technical_summary || ''}</p>
           </div>
 
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.panelSources}`}>
             <h3>
               <BookOpen size={18} /> Fontes encontradas
             </h3>
@@ -617,7 +810,7 @@ export default function LiveTechnicalAssistanceModule({
             </div>
           </div>
 
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.panelActions}`}>
             <h3>Ações rápidas</h3>
             <div className={styles.actionsGrid}>
               <button type="button" className={styles.btn} disabled={!has3d} onClick={() => setUnityOpen(true)}>
@@ -659,7 +852,7 @@ export default function LiveTechnicalAssistanceModule({
             </div>
           </div>
 
-          <div className={styles.panel}>
+          <div className={`${styles.panel} ${styles.panelGuidance}`}>
             <h3>Orientação</h3>
             <div className={styles.guidanceStep}>
               <strong>Etapa atual</strong>

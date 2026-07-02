@@ -249,6 +249,17 @@ async function submitSelfEvaluation(companyId, userId, evaluationId, body, billi
     ]
   );
 
+  try {
+    const cognitiveHooks = require('./pulseCognitive/hooks');
+    cognitiveHooks.onPulseSelfEvaluationCompleted(companyId, userId, null, {
+      evaluation_id: evaluationId,
+      status: nextStatus,
+      scores
+    });
+  } catch (_) {
+    /* CERT-PULSE-02 aditivo — falha silenciosa */
+  }
+
   return { ok: true, status: nextStatus, ai_feedback_message: feedback, motivation_pill: pill };
 }
 
@@ -419,6 +430,17 @@ async function submitSelfEvaluationForTeamMember(companyId, teamMemberId, evalua
     ]
   );
 
+  try {
+    const cognitiveHooks = require('./pulseCognitive/hooks');
+    cognitiveHooks.onPulseSelfEvaluationCompleted(companyId, null, teamMemberId, {
+      evaluation_id: evaluationId,
+      status: nextStatus,
+      scores
+    });
+  } catch (_) {
+    /* CERT-PULSE-02 aditivo */
+  }
+
   return { ok: true, status: nextStatus, ai_feedback_message: feedback, motivation_pill: pill };
 }
 
@@ -446,6 +468,13 @@ async function submitSupervisorPerception(companyId, supervisorId, evaluationId,
   `,
     [t, evaluationId]
   );
+
+  try {
+    const cognitiveHooks = require('./pulseCognitive/hooks');
+    cognitiveHooks.onPulseSupervisorPerceptionCompleted(companyId, supervisorId, evaluationId);
+  } catch (_) {
+    /* CERT-PULSE-02 aditivo */
+  }
 
   return { ok: true };
 }
@@ -971,7 +1000,7 @@ async function createCampaign(companyId, body, createdBy) {
       body.title || 'Campanha Pulse',
       body.frequency || 'monthly',
       body.target_roles || ['operador', 'colaborador', 'supervisor', 'coordenador', 'gerente'],
-      body.next_run_at || null,
+      body.next_run_at || new Date().toISOString(),
       createdBy || null
     ]
   );

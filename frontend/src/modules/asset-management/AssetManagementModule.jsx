@@ -25,6 +25,12 @@ function readStoredUser() {
 
 export default function AssetManagementModule({ departmentId: departmentIdProp, onNavigateToMachine }) {
   const [user, setUser] = useState(readStoredUser);
+  const [actionFeedback, setActionFeedback] = useState(null);
+
+  const flashFeedback = useCallback((text, tone = 'info') => {
+    setActionFeedback({ text, tone });
+    window.setTimeout(() => setActionFeedback(null), 5000);
+  }, []);
 
   useEffect(() => {
     const sync = () => setUser(readStoredUser());
@@ -55,10 +61,17 @@ export default function AssetManagementModule({ departmentId: departmentIdProp, 
 
   const handleSimulate = useCallback(
     async (twinId) => {
-      await assetApi.simulateFailure(twinId);
-      reload();
+      try {
+        const r = await assetApi.simulateFailure(twinId);
+        const msg = r.data?.message || 'Simulação registrada.';
+        flashFeedback(msg, 'success');
+        reload();
+      } catch (e) {
+        const err = e?.response?.data?.error || e?.message || 'Falha na simulação';
+        flashFeedback(err, 'error');
+      }
     },
-    [reload]
+    [reload, flashFeedback]
   );
 
   const handleApproveOrder = useCallback(
@@ -79,10 +92,18 @@ export default function AssetManagementModule({ departmentId: departmentIdProp, 
 
   const handleCreatePurchaseOrder = useCallback(
     async (payload) => {
-      await assetApi.createPurchaseOrder(payload);
-      reload();
+      try {
+        const r = await assetApi.createPurchaseOrder(payload);
+        const id = r.data?.id;
+        flashFeedback(id ? `Pedido ${id} registrado.` : 'Pedido de compra enviado.', 'success');
+        reload();
+      } catch (e) {
+        const err = e?.response?.data?.error || e?.message || 'Falha no pedido de compra';
+        flashFeedback(err, 'error');
+        throw e;
+      }
     },
-    [reload]
+    [reload, flashFeedback]
   );
 
   const handleReassignOrder = useCallback(
@@ -175,6 +196,23 @@ export default function AssetManagementModule({ departmentId: departmentIdProp, 
           }}
         >
           {error}
+        </div>
+      )}
+      {actionFeedback && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 8,
+            borderRadius: 4,
+            fontSize: '0.85rem',
+            fontFamily: "'Share Tech Mono', monospace",
+            color: actionFeedback.tone === 'error' ? '#f87171' : '#00ff88',
+            border: `1px solid ${actionFeedback.tone === 'error' ? 'rgba(248,113,113,0.4)' : 'rgba(0,255,136,0.35)'}`,
+            background:
+              actionFeedback.tone === 'error' ? 'rgba(248,113,113,0.08)' : 'rgba(0,255,136,0.06)'
+          }}
+        >
+          {actionFeedback.text}
         </div>
       )}
     </div>

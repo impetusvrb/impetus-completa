@@ -31,8 +31,11 @@ export default function OperationalIntelligencePanel() {
   const [mapaOpen, setMapaOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('resumo');
 
+  const [loadError, setLoadError] = useState(null);
+
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [sumRes, insightsRes, alertsRes, timelineRes] = await Promise.all([
         dashboard.operationalBrain.getSummary(),
@@ -46,6 +49,7 @@ export default function OperationalIntelligencePanel() {
         setAlerts(sumRes.data.alertas || alertsRes?.data?.alerts || []);
         setTimeline(sumRes.data.timeline || timelineRes?.data?.timeline || []);
       } else {
+        setSummary({ producao: {}, manutencao: {}, gestao: {} });
         setInsights(insightsRes?.data?.insights || []);
         setAlerts(alertsRes?.data?.alerts || []);
         setTimeline(timelineRes?.data?.timeline || []);
@@ -56,6 +60,13 @@ export default function OperationalIntelligencePanel() {
       }
     } catch (e) {
       console.warn('Operational panel load:', e);
+      const status = e?.response?.status;
+      setLoadError(
+        status === 503
+          ? 'Servidor temporariamente indisponível. Tente Atualizar em alguns segundos.'
+          : e?.response?.data?.error || e?.message || 'Não foi possível carregar os dados operacionais.'
+      );
+      setSummary((prev) => prev || { producao: {}, manutencao: {}, gestao: {} });
     } finally {
       setLoading(false);
     }
@@ -107,6 +118,12 @@ export default function OperationalIntelligencePanel() {
             Atualizar
           </button>
         </header>
+
+        {loadError && (
+          <div className="oie-error" role="alert">
+            {loadError}
+          </div>
+        )}
 
         {loading && !summary ? (
           <div className="oie-loading">Carregando...</div>

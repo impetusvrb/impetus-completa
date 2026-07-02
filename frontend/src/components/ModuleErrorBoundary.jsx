@@ -31,11 +31,17 @@ class ErrorBoundaryInner extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const msg = this.state.error?.message || String(this.state.error || '');
       return (
         <div className="module-error-boundary">
           <AlertTriangle size={32} />
           <h3>Erro em {this.props.moduleName}</h3>
           <p>Não foi possível carregar este conteúdo.</p>
+          {msg && (
+            <p className="module-error-boundary__detail" style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '0.78rem', color: 'var(--amber, #ffaa00)', wordBreak: 'break-word' }}>
+              {msg}
+            </p>
+          )}
           <button type="button" className="module-error-boundary__btn" onClick={this.handleRetry}>
             <RefreshCw size={16} /> Tentar novamente
           </button>

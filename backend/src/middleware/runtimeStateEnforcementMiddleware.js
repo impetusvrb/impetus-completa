@@ -39,6 +39,10 @@ const ROUTE_MODULE_MAP = Object.freeze([
   ['/api/auth/login', 'auth.login'],
   ['/api/auth/register', 'auth.login'],
   ['/api/lgpd', 'lgpd.anonymize'],
+  // Prefixos específicos ANTES de /api/cognitive — evita capturar cognitive-council (EXECUTION).
+  ['/api/cognitive-council', 'cognitive.council'],
+  ['/api/cognitive-activation', 'cognitive.pulse'],
+  ['/api/cognitive-registry', 'governance.audit'],
   ['/api/cognitive', 'cognitive.envelope'],
   ['/api/integrations', 'integrations.edge_ingest'],
 ]);
@@ -167,4 +171,10 @@ function getEnforcementStats() {
   return { ..._stats, mode: _getMode(), violations_total: _violationCount, alerts_this_hour: _alertsThisWindow };
 }
 
-module.exports = { runtimeStateEnforcementMiddleware, getEnforcementStats };
+module.exports = {
+  runtimeStateEnforcementMiddleware,
+  getEnforcementStats,
+  /** @internal — testes de regressão de mapeamento rota→módulo */
+  _resolveModuleForPath: _resolveModule,
+  ROUTE_MODULE_MAP
+};

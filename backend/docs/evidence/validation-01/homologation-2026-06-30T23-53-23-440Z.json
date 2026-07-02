@@ -1,0 +1,193 @@
+{
+  "certification": "CERT-ONPREM-VALIDATION-01",
+  "title": "Homologação Oficial Enterprise",
+  "executed_at": "2026-06-30T23:53:23.440Z",
+  "status": "EM_HOMOLOGACAO",
+  "parts": {
+    "PARTE_1": {
+      "checks": [
+        {
+          "name": "ecosystem.config.js (PM2 host)",
+          "status": "PASS"
+        },
+        {
+          "name": "certificação ARCHITECTURE-01",
+          "status": "PASS",
+          "detail": "backend/docs/CERT-ONPREM-ARCHITECTURE-01.md"
+        },
+        {
+          "name": "certificação INFRA-01",
+          "status": "PASS",
+          "detail": "backend/docs/CERT-ONPREM-INFRA-01.md"
+        },
+        {
+          "name": "certificação DATA-01",
+          "status": "PASS",
+          "detail": "backend/docs/CERT-ONPREM-DATA-01.md"
+        },
+        {
+          "name": "certificação LICENSE-01",
+          "status": "PASS",
+          "detail": "backend/docs/CERT-LICENSE-01.md"
+        },
+        {
+          "name": "certificação CONTAINER-01",
+          "status": "PASS",
+          "detail": "backend/docs/CERT-ONPREM-CONTAINER-01.md"
+        },
+        {
+          "name": "certificação MATRIZ-CONTAINER",
+          "status": "PASS",
+          "detail": "docker/MATRIZ-CONFORMIDADE-CONTAINER.md"
+        },
+        {
+          "name": "ADRs (19≥19)",
+          "status": "PASS"
+        }
+      ]
+    },
+    "PARTE_2": {
+      "checks": [
+        {
+          "name": "verify-enterprise.js",
+          "status": "PASS"
+        },
+        {
+          "name": "license enterprise tests",
+          "status": "PASS"
+        },
+        {
+          "name": "GET /health",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "update-precheck.js",
+          "status": "FAIL",
+          "detail": "=== update-precheck ===\n[update-precheck] OK: env file\n[update-precheck] OK: migration status\n[update-precheck] OK: writable /var/www/impetus-completa/backend/uploads\n[update-precheck] OK: writable /v"
+        },
+        {
+          "name": "instalação limpa PM2 (VM dedicada)",
+          "status": "SKIP",
+          "detail": "Executar conforme MANUAL-HOMOLOGACAO.md §2"
+        }
+      ]
+    },
+    "PARTE_3": {
+      "checks": [
+        {
+          "name": "Docker engine",
+          "status": "BLOCKED"
+        },
+        {
+          "name": "docker-compose.yml syntax",
+          "status": "PASS"
+        },
+        {
+          "name": "instalação limpa Docker",
+          "status": "BLOCKED",
+          "detail": "Ambiente limpo dedicado"
+        }
+      ]
+    },
+    "PARTE_4": {
+      "checks": [
+        {
+          "name": "Compatibilidade PM2 × Docker",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §4"
+        }
+      ]
+    },
+    "PARTE_5": {
+      "checks": [
+        {
+          "name": "Persistência multi-restart",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §5"
+        }
+      ]
+    },
+    "PARTE_6": {
+      "checks": [
+        {
+          "name": "Backup + restore limpo",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §6"
+        }
+      ]
+    },
+    "PARTE_7": {
+      "checks": [
+        {
+          "name": "Update A→B",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §7"
+        }
+      ]
+    },
+    "PARTE_8": {
+      "checks": [
+        {
+          "name": "Rollback pós-falha",
+          "status": "SKIP",
+          "detail": "MANUAL-ROLLBACK.md"
+        }
+      ]
+    },
+    "PARTE_9": {
+      "checks": [
+        {
+          "name": "Regressão cognitiva E2E",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §9"
+        }
+      ]
+    },
+    "PARTE_10": {
+      "checks": [
+        {
+          "name": "Segurança operacional",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §10"
+        }
+      ]
+    },
+    "PARTE_11": {
+      "checks": [
+        {
+          "name": "Performance básica (medição)",
+          "status": "SKIP",
+          "detail": "MANUAL-HOMOLOGACAO.md §11"
+        }
+      ]
+    }
+  },
+  "non_conformities": [
+    {
+      "id": "NC-V001",
+      "severity": "Média",
+      "part": "PARTE_2",
+      "description": "IMPETUS_ADMIN_JWT_SECRET ausente no .env",
+      "impact": "Precheck update falha; revisar configValidator vs perfil Enterprise (ADR-003)",
+      "evidence": "update-precheck.js"
+    },
+    {
+      "id": "NC-V002",
+      "severity": "Alta",
+      "part": "PARTE_3",
+      "description": "Docker engine indisponível",
+      "impact": "Homologação Docker bloqueada",
+      "evidence": "which docker"
+    }
+  ],
+  "summary": {
+    "passed": 12,
+    "failed": 1,
+    "skipped": 9,
+    "blocked": 2
+  },
+  "approval": "PENDENTE",
+  "go_live_ready": false,
+  "verdict": "Enterprise NÃO homologada — evidências manuais e/ou NCs pendentes"
+}

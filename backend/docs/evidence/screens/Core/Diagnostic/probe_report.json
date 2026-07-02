@@ -1,0 +1,15 @@
+{
+  "route": "/diagnostic",
+  "probes": [
+    "GET /api/manutencao-ia/health"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/manutencao-ia/health",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:27:46.863Z"
+}

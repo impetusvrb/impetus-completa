@@ -17,7 +17,9 @@ const geminiService = require('../services/geminiService');
 const mediaProcessor = require('../services/mediaProcessorService');
 const ai = require('../services/ai');
 
-const UPLOAD_DIR = path.join(__dirname, '../../../../uploads/cadastrar-ia');
+const uploadPaths = require('../config/uploadPaths');
+
+const UPLOAD_DIR = uploadPaths.cadastrarIa();
 const MAX_FILE_MB = 15;
 const ALLOWED_EXT = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.mp3', '.m4a', '.wav'];
 

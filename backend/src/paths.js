@@ -1,15 +1,12 @@
 /**
- * Caminhos de upload — ficheiros podem estar em backend/uploads ou na raiz do repo /uploads.
+ * Caminhos de upload — primary IMPETUS_HOME + candidatos legado (compatibilidade retroativa).
+ * CERT-ONPREM-DATA-01
  */
 const path = require('path');
 const fs = require('fs');
+const { uploadCandidateDirs } = require('./config/impetusHome');
 
-const SRC_DIR = __dirname;
-
-const UPLOAD_CANDIDATE_DIRS = [
-  path.join(SRC_DIR, '..', 'uploads'),
-  path.join(SRC_DIR, '..', '..', 'uploads')
-];
+const UPLOAD_CANDIDATE_DIRS = uploadCandidateDirs();
 
 function existingUploadRoots() {
   return UPLOAD_CANDIDATE_DIRS.filter((d) => {
@@ -45,5 +42,5 @@ function resolveUploadFile(relativePath) {
 module.exports = {
   UPLOAD_CANDIDATE_DIRS,
   existingUploadRoots,
-  resolveUploadFile
+  resolveUploadFile,
 };

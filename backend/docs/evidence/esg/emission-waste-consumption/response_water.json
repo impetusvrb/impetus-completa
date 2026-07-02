@@ -8,11 +8,11 @@
         "event_name": "environment.water.sample_collected",
         "domain": "environment",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "correlation_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+        "correlation_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
         "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-        "trace_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+        "trace_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
         "workflow_id": null,
-        "idempotency_key": "environment_op:environment.water.sample_collected:b1df6c1d-d7e4-4e06-9f81-472b1b60fd90:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "idempotency_key": "environment_op:environment.water.sample_collected:b85c604c-4608-44f1-9db8-91bb49c4cf65:511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
         "payload": {
           "meter_id": "ETA-1",
@@ -27,11 +27,11 @@
           "environment_shadow_mode": false,
           "environment_runtime_version": 1,
           "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-          "http_correlation_id": "imp-mqp7m663-22066oqx"
+          "http_correlation_id": "imp-mqv35hrk-029glnyi"
         },
-        "occurred_at": "2026-06-22T12:46:37.015Z",
+        "occurred_at": "2026-06-26T15:28:17.486Z",
         "schema_version": 1,
-        "event_id": "0772ccdd-0ab6-4c2e-aa47-28c7c7cec973",
+        "event_id": "9e20b1c6-8cca-4927-bb90-422305ba2195",
         "catalog": {
           "type": "environment.water.sample_collected",
           "domain": "environment",
@@ -42,13 +42,13 @@
       },
       "outbox": {
         "ok": true,
-        "id": "0772ccdd-0ab6-4c2e-aa47-28c7c7cec973",
+        "id": "9e20b1c6-8cca-4927-bb90-422305ba2195",
         "persisted": true
       },
       "throttle": {
         "allowed": true,
         "observe_only": true,
-        "count": 103,
+        "count": 67,
         "limit": 2400
       }
     }

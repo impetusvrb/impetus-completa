@@ -33,11 +33,21 @@ export default function DashboardChatWidget({ compact = false, greetingSummary =
         const userName = JSON.parse(localStorage.getItem('impetus_user') || '{}').name || 'Usuário';
         const r = await dashboard.getSmartSummary();
         if (r.data?.ok && r.data?.summary) {
-          setMessages([{
-            id: 'ai-greet',
-            role: 'assistant',
-            content: `${userName},\n\n${r.data.summary}`
-          }]);
+          const summary = String(r.data.summary);
+          const isDenial = /não possui permissão VIEW_/i.test(summary);
+          if (isDenial) {
+            setMessages([{
+              id: 'ai-greet',
+              role: 'assistant',
+              content: `Olá, ${userName}! Em que posso ajudar?`
+            }]);
+          } else {
+            setMessages([{
+              id: 'ai-greet',
+              role: 'assistant',
+              content: `${userName},\n\n${summary}`
+            }]);
+          }
         } else {
           setMessages([{
             id: 'ai-greet',

@@ -67,7 +67,7 @@ const FUNCTIONAL_HINT_TO_MENU_KEYS = Object.freeze({
   environmental_health_safety: ['safety_intelligence', 'environment_intelligence'],
   logistics: ['logistics_intelligence', 'operational'],
   safety: ['safety_intelligence', 'operational'],
-  executive: ['operational', 'audit', 'anomaly_detection', 'hr_intelligence', 'financial_intelligence'],
+  executive: ['operational', 'audit', 'anomaly_detection', 'hr_intelligence', 'financial_intelligence', 'biblioteca', 'ai', 'chat', 'proaction'],
   governance: ['audit', 'anomaly_detection', 'operational'],
   admin: ['admin', 'audit']
 });
@@ -158,8 +158,11 @@ function _expandToken(token) {
   const direct = STRUCTURAL_TOKEN_TO_MENU_KEYS[t];
   if (direct) return direct;
   const partial = [];
-  for (const [key, mods] of Object.entries(STRUCTURAL_TOKEN_TO_MENU_KEYS)) {
-    if (t.includes(key) || key.includes(t)) partial.push(...mods);
+  if (t.length <= 24) {
+    for (const [key, mods] of Object.entries(STRUCTURAL_TOKEN_TO_MENU_KEYS)) {
+      if (key.length < 3) continue;
+      if (t.includes(key) || key.includes(t)) partial.push(...mods);
+    }
   }
   const fromPt = _expandPortugueseCadastroText(token);
   return [...new Set([...partial, ...fromPt])];

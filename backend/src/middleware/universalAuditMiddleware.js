@@ -46,6 +46,7 @@ const P0_ALLOWLIST = new Set([
   'DELETE /api/user/account/sessions',
   'POST /api/user/account/sessions/revoke-others',
   'POST /api/dashboard/chat',
+  'POST /api/dashboard/chat/upload-file',
   'POST /api/dashboard/chat-multimodal',
   'POST /api/dashboard/panel-command',
   'POST /api/dashboard/claude-panel',

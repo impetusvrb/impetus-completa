@@ -53,10 +53,47 @@ function defaultPrecoToken(planType) {
  * @param {number} quantidade
  * @param {string} [unidade]
  */
-function registrarUsoSafe(companyId, userId, servico, quantidade, unidade = 'tokens') {
+function registrarUsoSafe(companyId, userId, servico, quantidade, unidade = 'tokens', meta = {}) {
   if (!ENABLED || !companyId) return;
   const q = Number(quantidade);
   if (!Number.isFinite(q) || q <= 0) return;
+
+  const billingMeta = {
+    ...meta,
+    requestId: meta.requestId || meta.request_id || require('crypto').randomUUID()
+  };
+
+  const billingEngine = require('./nexusBillingEngine');
+  if (billingEngine.isEnabled()) {
+    setImmediate(() => {
+      billingEngine
+        .chargeConsumption(
+          {
+            companyId,
+            userId,
+            requestId: billingMeta.requestId,
+            traceId: billingMeta.traceId || billingMeta.requestId,
+            sessionId: billingMeta.sessionId || billingMeta.session_id,
+            conversationId: billingMeta.conversationId || billingMeta.conversation_id,
+            departmentId: billingMeta.departmentId || billingMeta.department_id,
+            ip: billingMeta.ip,
+            userAgent: billingMeta.userAgent || billingMeta.user_agent
+          },
+          {
+            servico,
+            quantidade: q,
+            unidade,
+            provider: billingMeta.provider || 'openai',
+            model: billingMeta.model,
+            inputTokens: billingMeta.inputTokens ?? billingMeta.input_tokens ?? q,
+            outputTokens: billingMeta.outputTokens ?? billingMeta.output_tokens ?? 0,
+            operation: billingMeta.operation || 'completion'
+          }
+        )
+        .catch((err) => console.warn('[NEXUS_BILLING_ENGINE] charge:', err?.message || err));
+    });
+    return;
+  }
 
   const unit = CUSTO_REAL_POR_UNIDADE[servico] ?? CUSTO_REAL_POR_UNIDADE.outro;
   const custo = unit * q;

@@ -6,8 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import CognitivePresenceShell from './centroComando/cognitiveEcosystem/CognitivePresenceShell';
+import CognitiveCollapsibleSection from './centroComando/cognitiveEcosystem/CognitiveCollapsibleSection';
 import { CadastrarComIAWidget } from './widgets';
 import { dashboard } from '../../services/api';
+import { useDashboardBoot } from '../../runtimeBoot/DashboardBootContext';
 import {
   Activity, AlertTriangle, CheckCircle2, Clock, Package, Target,
   Cpu, ClipboardCheck, ChevronRight, Zap, Shield, MessageSquare, Bot
@@ -41,6 +44,7 @@ function fmtMetric(value, suffix = '') {
 
 export default function DashboardOperador() {
   const navigate = useNavigate();
+  const { phase: bootPhase } = useDashboardBoot();
   const [loading, setLoading] = useState(true);
   const [machines, setMachines] = useState([]);
   const [events, setEvents] = useState([]);
@@ -50,13 +54,18 @@ export default function DashboardOperador() {
   const [data, setData] = useState(EMPTY_PRODUCTION);
 
   useEffect(() => {
+    if (bootPhase < 3) {
+      setLoading(false);
+      return undefined;
+    }
     let cancelled = false;
+    setLoading(true);
     async function load() {
       try {
-        const [statusRes, machinesRes] = await Promise.all([
-          dashboard.industrial?.getStatus?.().catch(() => ({ data: {} })),
-          dashboard.industrial?.getMachines?.().catch(() => ({ data: { machines: [] } }))
-        ]);
+        const statusRes = await dashboard.industrial?.getStatus?.().catch(() => ({ data: {} }));
+        if (cancelled) return;
+        await new Promise((r) => setTimeout(r, 100));
+        const machinesRes = await dashboard.industrial?.getMachines?.().catch(() => ({ data: { machines: [] } }));
         if (cancelled) return;
         const st = statusRes?.data ?? {};
         const machineList = st.profiles || machinesRes?.data?.machines || [];
@@ -104,7 +113,7 @@ export default function DashboardOperador() {
     }
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [bootPhase]);
 
   const statusClass = data.machineStatus === 'running' ? 'green' : data.machineStatus === 'setup' || data.machineStatus === 'maintenance' ? 'amber' : 'red';
   const percentMeta = data.metaTurno > 0 ? Math.min(100, Math.round((data.realizado / data.metaTurno) * 100)) : 0;
@@ -122,6 +131,7 @@ export default function DashboardOperador() {
 
   return (
     <Layout>
+      <CognitivePresenceShell>
       <div className="dop">
         <header className="dop__header">
           <h1 className="dop__title">Dashboard do Operador</h1>
@@ -253,6 +263,7 @@ export default function DashboardOperador() {
           </section>
 
           {/* 7. OP Atual */}
+          {data.opAtual && (
           <section className="cc-widget dop-widget" style={{ gridColumn: 'span 2' }}>
             <div className="cc-kpi__header">
               <ClipboardCheck size={20} />
@@ -260,16 +271,17 @@ export default function DashboardOperador() {
             </div>
             <div className="dop-op-card">
               <div className="dop-op-main">
-                <span className="dop-op-numero">{data.opAtual.numero}</span>
-                <span className="dop-op-produto">{data.opAtual.produto}</span>
-                <span className="dop-op-qtd">Qtd: {data.opAtual.quantidade}</span>
+                <span className="dop-op-numero">{data.opAtual.numero ?? '—'}</span>
+                <span className="dop-op-produto">{data.opAtual.produto ?? '—'}</span>
+                <span className="dop-op-qtd">Qtd: {data.opAtual.quantidade ?? '—'}</span>
               </div>
               <div className="dop-op-tempo">
                 <Clock size={16} />
-                <span>Tempo restante: {data.tempoRestante}</span>
+                <span>Tempo restante: {data.tempoRestante ?? '—'}</span>
               </div>
             </div>
           </section>
+          )}
 
           {/* 8. Alertas Visuais (quebra, temperatura, manutenção, qualidade) */}
           <section className="cc-widget dop-widget">
@@ -291,17 +303,19 @@ export default function DashboardOperador() {
           </section>
 
           {/* 9. Próxima Tarefa */}
+          {data.proximaOP && (
           <section className="cc-widget dop-widget">
             <div className="cc-kpi__header">
               <ChevronRight size={20} />
               <span>Próxima Tarefa</span>
             </div>
             <div className="dop-proxima-op">
-              <span className="dop-proxima-numero">{data.proximaOP.numero}</span>
-              <span className="dop-proxima-produto">{data.proximaOP.produto}</span>
-              <span className="dop-proxima-qtd">{data.proximaOP.quantidade} un.</span>
+              <span className="dop-proxima-numero">{data.proximaOP.numero ?? '—'}</span>
+              <span className="dop-proxima-produto">{data.proximaOP.produto ?? '—'}</span>
+              <span className="dop-proxima-qtd">{data.proximaOP.quantidade ?? '—'} un.</span>
             </div>
           </section>
+          )}
 
           {/* 10. Cadastrar com IA */}
           <CadastrarComIAWidget widgetClass="dop-widget" btnClass="dop-btn" />
@@ -359,6 +373,8 @@ export default function DashboardOperador() {
           </button>
         </div>
       </div>
+      <CognitiveCollapsibleSection />
+      </CognitivePresenceShell>
     </Layout>
   );
 }

@@ -5,7 +5,7 @@
       {
         "id": "k1",
         "title": "Interações (semana)",
-        "value": 432,
+        "value": 1340,
         "growth": 100,
         "color": "blue",
         "route": "/app/operacional",
@@ -81,7 +81,7 @@
           "removed": [],
           "governance_applied": false,
           "fallback_applied": false,
-          "timestamp": "2026-06-22T12:46:36.274Z"
+          "timestamp": "2026-06-26T15:28:16.678Z"
         }
       ],
       "executive_leakage": 0
@@ -91,7 +91,7 @@
         {
           "id": "k1",
           "title": "Interações (semana)",
-          "value": 432,
+          "value": 1340,
           "growth": 100,
           "color": "blue",
           "route": "/app/operacional",
@@ -181,7 +181,7 @@
           {
             "id": "k1",
             "title": "Interações (semana)",
-            "value": 432,
+            "value": 1340,
             "growth": 100,
             "color": "blue",
             "route": "/app/operacional",
@@ -284,7 +284,7 @@
             "KPI_delivery_confidence": 0.965,
             "KPI_runtime_stability": 0.93,
             "samples": 1,
-            "ts": "2026-06-22T12:46:36.266Z"
+            "ts": "2026-06-26T15:28:16.670Z"
           }
         },
         "telemetry": {
@@ -295,7 +295,7 @@
           "KPI_delivery_confidence": 0.965,
           "KPI_runtime_stability": 0.93,
           "samples": 1,
-          "ts": "2026-06-22T12:46:36.266Z"
+          "ts": "2026-06-26T15:28:16.670Z"
         },
         "flags": {
           "IMPETUS_KPI_GOVERNANCE_ROLLOUT": false,
@@ -381,7 +381,7 @@
           "semantic_relevance_score": 1,
           "operational_delivery_accuracy": 1,
           "samples": 1,
-          "ts": "2026-06-22T12:46:36.270Z"
+          "ts": "2026-06-26T15:28:16.675Z"
         },
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
       },
@@ -452,7 +452,7 @@
           "semantic_usefulness": 0.9587,
           "insight_feeding_quality": 0.9587,
           "samples": 2,
-          "ts": "2026-06-22T12:46:36.271Z"
+          "ts": "2026-06-26T15:28:16.676Z"
         },
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
       },

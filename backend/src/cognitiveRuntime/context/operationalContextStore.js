@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../../data/operational-context');
+const { dataSubdir } = require('../../config/impetusHome');
+const DATA_DIR = dataSubdir('operational-context');
 
 function _tenantFile(tenantId) {
   const safe = String(tenantId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');

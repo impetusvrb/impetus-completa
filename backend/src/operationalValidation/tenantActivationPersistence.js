@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { logPhaseZ17 } = require('./phaseZ17Logger');
 
-const STORE_DIR = path.join(__dirname, '../../data/operational-validation');
+const { dataSubdir } = require('../config/impetusHome');
+const STORE_DIR = dataSubdir('operational-validation');
 const STORE_FILE = path.join(STORE_DIR, 'pilot-activations.json');
 
 function _defaultStore() {

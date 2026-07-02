@@ -1,6 +1,6 @@
 # P0E — Operational Go-Live Report
 
-**Gerado:** 2026-06-15T15:31:37.285Z
+**Gerado:** 2026-06-26T16:39:55.377Z
 
 ---
 
@@ -19,11 +19,11 @@
 ```json
 {
   "activation_status": "LIVE",
-  "activation_timestamp": "2026-06-12T04:21:34.295Z",
-  "runtime_uptime_hours": 0.1,
-  "ioe_per_hour": 548.2,
-  "deliveries_per_hour": 548.1,
-  "active_tenants": 3,
+  "activation_timestamp": "2026-06-25T14:22:01.487Z",
+  "runtime_uptime_hours": 0,
+  "ioe_per_hour": 0.7,
+  "deliveries_per_hour": 0,
+  "active_tenants": 1,
   "backlog": 0,
   "pm2_health": "OK",
   "acceptance_status": "ACCEPTED"
@@ -34,22 +34,22 @@
 
 ```json
 {
-  "timestamp": "2026-06-15T15:31:37.285Z",
+  "timestamp": "2026-06-26T16:39:55.377Z",
   "activation": {
     "go_live_detected": true,
-    "activation_timestamp": "2026-06-12T04:21:34.295Z",
-    "first_ioe_at": "2026-06-12T04:21:34.295Z",
-    "first_delivery_at": "2026-06-12T15:55:10.247Z"
+    "activation_timestamp": "2026-06-25T14:22:01.487Z",
+    "first_ioe_at": "2026-06-25T14:22:01.487Z",
+    "first_delivery_at": null
   },
   "first_24h": {
     "first_24h_stable": true,
-    "ioe_per_hour": 548.2,
-    "deliveries_per_hour": 548.1
+    "ioe_per_hour": 0.7,
+    "deliveries_per_hour": 0
   },
   "first_72h": {
     "first_72h_stable": true,
-    "throughput_ioe_per_hour": 182.7,
-    "active_tenants": 3
+    "throughput_ioe_per_hour": 0.2,
+    "active_tenants": 1
   },
   "acceptance": {
     "production_accepted": true,
@@ -58,11 +58,11 @@
   },
   "summary": {
     "activation_status": "LIVE",
-    "activation_timestamp": "2026-06-12T04:21:34.295Z",
-    "runtime_uptime_hours": 0.1,
-    "ioe_per_hour": 548.2,
-    "deliveries_per_hour": 548.1,
-    "active_tenants": 3,
+    "activation_timestamp": "2026-06-25T14:22:01.487Z",
+    "runtime_uptime_hours": 0,
+    "ioe_per_hour": 0.7,
+    "deliveries_per_hour": 0,
+    "active_tenants": 1,
     "backlog": 0,
     "pm2_health": "OK",
     "acceptance_status": "ACCEPTED"

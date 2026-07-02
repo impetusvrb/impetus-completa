@@ -1,0 +1,19 @@
+{
+  "certification": "CERT-ENTERPRISE-ENV-QUALIFICATION-01",
+  "executed_at": "2026-07-01T01:04:02.843Z",
+  "hostname": "srv1422313",
+  "decision": "REPROVADA",
+  "qualified_for_validation": false,
+  "disk_avail_gb": 0.09,
+  "dr_required_gb": 6.23,
+  "docker": false,
+  "pm2": true,
+  "postgresql": true,
+  "non_conformities_count": 4,
+  "alta_blockers": [
+    "NC-EQ001",
+    "NC-EQ002",
+    "NC-EQ003"
+  ],
+  "full_report": "env-qualification-2026-07-01T01-04-02-843Z.json"
+}

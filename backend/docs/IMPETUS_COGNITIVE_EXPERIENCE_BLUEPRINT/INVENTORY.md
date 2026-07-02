@@ -1,0 +1,431 @@
+# INVENTORY — ICEB (geração automática)
+
+> Gerado em `2026-06-27T18:15:15.158Z` por `buildBlueprintInventory.js`
+
+## Resumo
+
+| Artefacto | Quantidade |
+|-----------|------------|
+| Engines / Facades / Orchestrators | **335** |
+| Ficheiros em `routes/` | **293** |
+| Migrações SQL (models + migrations) | **114** |
+| Módulos contextual (`moduleRegistry`) | **27** |
+| Perfis dashboard (`dashboardProfiles`) | **23** |
+| Telas: **77** · Endpoints: **1098** |
+
+## Engines / Facades (amostra 80)
+
+- `src/actionRuntime/orchestration/actionRuntimeOrchestrator.js`
+- `src/ai/cognitiveOrchestrator.js`
+- `src/ai/vertexCentralOrchestrator.js`
+- `src/canonicalModuleGovernance/moduleGovernanceFacade.js`
+- `src/certificationReadiness/engine/gapAnalysisEngine.js`
+- `src/certificationReadiness/facade/certificationReadinessFacade.js`
+- `src/chatAlignment/chatContextualAlignmentEngine.js`
+- `src/chatAlignment/chatNarrativeIntegrityEngine.js`
+- `src/chatAlignment/chatOperationalConfidenceEngine.js`
+- `src/chatAlignment/chatRuntimeAlignmentFacade.js`
+- `src/chatAlignment/operationalGuidanceQualityEngine.js`
+- `src/cognitiveBudget/summarizationEngine.js`
+- `src/cognitiveConvergence/cognitiveConvergenceFacade.js`
+- `src/cognitiveConvergence/governedAiOrchestrator.js`
+- `src/cognitiveConvergence/unifiedCognitiveContextEngine.js`
+- `src/cognitiveOperations/cognitiveOperationsFacade.js`
+- `src/cognitiveOperations/cognitiveStabilityEngine.js`
+- `src/cognitiveOperations/dynamicConfidenceEngine.js`
+- `src/cognitiveOperations/enterpriseCognitiveOperationsEngine.js`
+- `src/cognitiveOperations/governanceCalibrationEngine.js`
+- `src/cognitiveRuntime/adaptive/adaptiveOrchestrationFacade.js`
+- `src/cognitiveRuntime/adaptive/convergence/enterpriseAlignmentOrchestrator.js`
+- `src/cognitiveRuntime/adaptive/orchestration/adaptiveCognitiveOrchestrator.js`
+- `src/cognitiveRuntime/adaptive/recommendation/orchestrationRecommendationEngine.js`
+- `src/cognitiveRuntime/c3/cognitiveC3Facade.js`
+- `src/cognitiveRuntime/c4/certification/runtimeDeliveryCertificationEngine.js`
+- `src/cognitiveRuntime/c4/cognitiveC4Facade.js`
+- `src/cognitiveRuntime/c4/productionAuthorityEscalationEngine.js`
+- `src/cognitiveRuntime/c4/truth/operationalTruthValidationEngine.js`
+- `src/cognitiveRuntime/c5/cognitiveC5Facade.js`
+- `src/cognitiveRuntime/c6/cognitiveC6Facade.js`
+- `src/cognitiveRuntime/composition/contextualCompositionEngine.js`
+- `src/cognitiveRuntime/confidence/realConfidenceEngine.js`
+- `src/cognitiveRuntime/consolidation/reporting/cognitiveAuthorityConsolidationFacade.js`
+- `src/cognitiveRuntime/context/causalCorrelationEngine.js`
+- `src/cognitiveRuntime/context/operationalContextEngine.js`
+- `src/cognitiveRuntime/convergence/reporting/cognitiveConvergenceFacade.js`
+- `src/cognitiveRuntime/domainFoundation/orchestration/cognitiveOrchestrationEngine.js`
+- `src/cognitiveRuntime/domains/environmental/bridge/environmentalNarrativeEngine.js`
+- `src/cognitiveRuntime/domains/environmental/compliance/regulatoryComplianceEngine.js`
+- `src/cognitiveRuntime/domains/environmental/liveValidation/environmentalLiveValidationFacade.js`
+- `src/cognitiveRuntime/domains/executive/liveValidation/executiveLiveValidationFacade.js`
+- `src/cognitiveRuntime/domains/executive/narrative/strategicNarrativeEngine.js`
+- `src/cognitiveRuntime/domains/executive/strategic/enterpriseHealthEngine.js`
+- `src/cognitiveRuntime/domains/maintenance/liveValidation/maintenanceLiveValidationFacade.js`
+- `src/cognitiveRuntime/domains/production/bridge/productionNarrativeEngine.js`
+- `src/cognitiveRuntime/domains/production/liveValidation/productionLiveValidationFacade.js`
+- `src/cognitiveRuntime/domains/production/telemetry/bottleneckAnalysisEngine.js`
+- `src/cognitiveRuntime/domains/production/telemetry/productionOeeContextEngine.js`
+- `src/cognitiveRuntime/domains/production/telemetry/throughputVarianceEngine.js`
+- `src/cognitiveRuntime/drift/runtimeDriftDetectionEngine.js`
+- `src/cognitiveRuntime/economics/economicPressureIndexEngine.js`
+- `src/cognitiveRuntime/economics/operationalEconomicImpactEngine.js`
+- `src/cognitiveRuntime/facade/cognitiveRuntimeFacade.js`
+- `src/cognitiveRuntime/integrity/runtimeIntegrityEngine.js`
+- `src/cognitiveRuntime/learning/convergence/crossDomainLearningEngine.js`
+- `src/cognitiveRuntime/learning/governanceLearningFacade.js`
+- `src/cognitiveRuntime/learning/recommendations/governanceRecommendationEngine.js`
+- `src/cognitiveRuntime/pressure/cognitivePressureEngine.js`
+- `src/cognitiveRuntime/productionGraph/productionOperationalGraphEngine.js`
+- `src/cognitiveRuntime/renderPromotion/quality/qualityRenderPromotionEngine.js`
+- `src/cognitiveRuntime/renderPromotion/safety/safetyRenderPromotionEngine.js`
+- `src/cognitiveRuntime/stability/runtimeStabilityCertificationEngine.js`
+- `src/cognitiveRuntime/utility/cognitiveTrustIndexEngine.js`
+- `src/cognitiveRuntime/utility/cognitiveUtilityValidationEngine.js`
+- `src/cognitiveRuntime/utility/operatorFeedbackCorrelationEngine.js`
+- `src/cognitiveRuntime/validation/inferenceTruthEngine.js`
+- `src/contextualActivation/contextualActivationFacade.js`
+- `src/contextualDeliveryStabilization/contextualDeliveryStabilizationFacade.js`
+- `src/contextualDeliveryStabilization/enterpriseContextualTargetingEngine.js`
+- `src/contextualDeliveryStabilization/hierarchyStabilizationEngine.js`
+- `src/contextualEnforcement/contextualEnforcementFacade.js`
+- `src/contextualModules/moduleOrchestrator.js`
+- `src/controlledActivation/activationStabilizationEngine.js`
+- `src/controlledActivation/controlledActivationFacade.js`
+- `src/controlledActivation/productionActivationOrchestrator.js`
+- `src/dashboardDensity/dashboardDensityFacade.js`
+- `src/dashboardEngineV2/composition/compositionEngine.js`
+- `src/dashboardEngineV2/governance/contextRiskEngine.js`
+- `src/dashboardEngineV2/governance/governanceFacade.js`
+
+
+*… e mais 255 ficheiros. Ver Volume IV.*
+
+
+## Rotas backend (ficheiros)
+
+- `src/routes/actionRuntime.js`
+- `src/routes/admin/aiAudit.js`
+- `src/routes/admin/aiPolicies.js`
+- `src/routes/admin/audioLogs.js`
+- `src/routes/admin/departments.js`
+- `src/routes/admin/equipmentLibrary.js`
+- `src/routes/admin/helpManual.js`
+- `src/routes/admin/incidents.js`
+- `src/routes/admin/logistics.js`
+- `src/routes/admin/logs.js`
+- `src/routes/admin/nexusCustos.js`
+- `src/routes/admin/nexusWallet.js`
+- `src/routes/admin/operationalTeams.js`
+- `src/routes/admin/operationalTeamsMetrics.js`
+- `src/routes/admin/rawMaterials.js`
+- `src/routes/admin/runtimeFlags.js`
+- `src/routes/admin/settings.js`
+- `src/routes/admin/structural.js`
+- `src/routes/admin/tenantAdmins.js`
+- `src/routes/admin/timeClock.js`
+- `src/routes/admin/users.js`
+- `src/routes/admin/warehouse.js`
+- `src/routes/adminLearning.js`
+- `src/routes/adminPortalGovernance.js`
+- `src/routes/adoptionProgressTrackerRoutes.js`
+- `src/routes/aiGovernance.js`
+- `src/routes/aioi/aioiArchiveRoutes.js`
+- `src/routes/aioi/aioiAssuranceRoutes.js`
+- `src/routes/aioi/aioiAuthorizationRoutes.js`
+- `src/routes/aioi/aioiBaselineRoutes.js`
+- `src/routes/aioi/aioiCockpitRoutes.js`
+- `src/routes/aioi/aioiComplianceRoutes.js`
+- `src/routes/aioi/aioiExecutiveCockpitViewModelRoutes.js`
+- `src/routes/aioi/aioiGovernanceRoutes.js`
+- `src/routes/aioi/aioiOperationsRoutes.js`
+- `src/routes/aioi/aioiProductionRoutes.js`
+- `src/routes/aioi/aioiQueueRoutes.js`
+- `src/routes/aioi/aioiRecoveryRoutes.js`
+- `src/routes/aioi/aioiReleaseRoutes.js`
+- `src/routes/aioi/aioiRuntimeRoutes.js`
+- `src/routes/aioi/aioiScaleRoutes.js`
+- `src/routes/alerts.js`
+- `src/routes/anam.js`
+- `src/routes/appCommunications.js`
+- `src/routes/app_impetus.js`
+- `src/routes/assetManagement.js`
+- `src/routes/audit.js`
+- `src/routes/audit/truthClosureRoutes.js`
+- `src/routes/auth.js`
+- `src/routes/authMfa.js`
+- `src/routes/cadastrarComIA.js`
+- `src/routes/centralIndustryAI.js`
+- `src/routes/certificationReadiness.js`
+- `src/routes/chat.js`
+- `src/routes/chatMetrics.js`
+- `src/routes/chatVoice.js`
+- `src/routes/cognitiveActivation.js`
+- `src/routes/cognitiveCouncil.js`
+- `src/routes/cognitiveRegistry.js`
+- `src/routes/communications.js`
+- `src/routes/companies.js`
+- `src/routes/dashboard.js`
+- `src/routes/dashboardMaintenance.js`
+- `src/routes/dashboardOperationalBrain.js`
+- `src/routes/deprecationGovernance.js`
+- `src/routes/diag_report.js`
+- `src/routes/diagnostic.js`
+- `src/routes/did.js`
+- `src/routes/digitalTwinApplied.js`
+- `src/routes/domainGovernanceGate.js`
+- `src/routes/ecosystemCorrelation.js`
+- `src/routes/enterpriseEcosystemConsolidation.js`
+- `src/routes/enterpriseHardeningMaturity.js`
+- `src/routes/enterpriseLocale.js`
+- `src/routes/enterprisePilotRollout.js`
+- `src/routes/enterpriseRuntimeValidation.js`
+- `src/routes/enterpriseShadowStabilization.js`
+- `src/routes/environmentActivation.js`
+- `src/routes/environmentCognitive.js`
+- `src/routes/environmentExecutive.js`
+- `src/routes/environmentGovernance.js`
+- `src/routes/environmentNavigation.js`
+- `src/routes/environmentOperational.js`
+- `src/routes/environmentOperationalValidation.js`
+- `src/routes/environmentPilotRollout.js`
+- `src/routes/environmentTelemetry.js`
+- `src/routes/f49/f49CeoRoutes.js`
+- `src/routes/f49/f49GeminiRoutes.js`
+- `src/routes/factoryTeam.js`
+- `src/routes/federation.js`
+- `src/routes/federationScim.js`
+- `src/routes/feedback.js`
+- `src/routes/finalConsolidationAudit.js`
+- `src/routes/hrIntelligence.js`
+- `src/routes/impetusAdmin/auth.js`
+- `src/routes/impetusAdmin/companies.js`
+- `src/routes/impetusAdmin/dashboard.js`
+- `src/routes/impetusAdmin/incidents.js`
+- `src/routes/impetusAdmin/index.js`
+- `src/routes/impetusAdmin/logs.js`
+- `src/routes/impetusAdmin/supportRecovery.js`
+- `src/routes/impetusAdmin/users.js`
+- `src/routes/integrations.js`
+- `src/routes/intelligentRegistration.js`
+- `src/routes/internal/adaptiveOrchestration.js`
+- `src/routes/internal/boundedDomains.js`
+- `src/routes/internal/chatAlignment.js`
+- `src/routes/internal/cognitiveBudget.js`
+- `src/routes/internal/cognitiveConvergence.js`
+- `src/routes/internal/cognitiveFatigue.js`
+- `src/routes/internal/cognitiveGovernanceBootstrap.js`
+- `src/routes/internal/cognitiveGovernanceFinalReview.js`
+- `src/routes/internal/cognitiveGovernancePhaseG.js`
+- `src/routes/internal/cognitiveGovernancePhaseH.js`
+- `src/routes/internal/cognitiveGovernancePhaseI.js`
+- `src/routes/internal/cognitiveGovernancePhaseJ.js`
+- `src/routes/internal/cognitiveGovernanceProductionRollout.js`
+- `src/routes/internal/cognitiveOperations.js`
+- `src/routes/internal/contextualActivation.js`
+- `src/routes/internal/contextualDeliveryStabilization.js`
+- `src/routes/internal/contextualEnforcement.js`
+- `src/routes/internal/controlledActivation.js`
+- `src/routes/internal/convergenceLearning.js`
+- `src/routes/internal/dashboardDensity.js`
+- `src/routes/internal/dashboardStabilization.js`
+- `src/routes/internal/decisionReliability.js`
+- `src/routes/internal/deliveryQuality.js`
+- `src/routes/internal/enterpriseConsolidation.js`
+- `src/routes/internal/enterpriseObservability.js`
+- `src/routes/internal/environmentalCognitiveTest.js`
+- `src/routes/internal/environmentalGovernance.js`
+- `src/routes/internal/environmentalLiveValidation.js`
+- `src/routes/internal/environmentalRuntimeHealth.js`
+- `src/routes/internal/environmentalValidation.js`
+- `src/routes/internal/governance.js`
+- `src/routes/internal/governanceLearning.js`
+- `src/routes/internal/industrialEventBackbone.js`
+- `src/routes/internal/industrialGovernance.js`
+- `src/routes/internal/industrialRuntimeHealth.js`
+- `src/routes/internal/industrialStorage.js`
+- `src/routes/internal/kpiBlindness.js`
+- `src/routes/internal/kpiConvergence.js`
+- `src/routes/internal/kpiDashboardStabilization.js`
+- `src/routes/internal/kpiGovernanceHealth.js`
+- `src/routes/internal/kpiPilotObservability.js`
+- `src/routes/internal/kpiPreparation.js`
+- `src/routes/internal/kpiRollout.js`
+- `src/routes/internal/kpiRuntimeEnforcement.js`
+- `src/routes/internal/kpiRuntimeStability.js`
+- `src/routes/internal/kpiSafety.js`
+- `src/routes/internal/kpiStabilization.js`
+- `src/routes/internal/kpiVisibility.js`
+- `src/routes/internal/learningPatterns.js`
+- `src/routes/internal/menuGovernance.js`
+- `src/routes/internal/operationalIdentity.js`
+- `src/routes/internal/operationalIdentityGovernance.js`
+- `src/routes/internal/operationalLeakage.js`
+- `src/routes/internal/operationalRuntime.js`
+- `src/routes/internal/operationalValidation.js`
+- `src/routes/internal/orchestrationHealth.js`
+- `src/routes/internal/pilotMaturity.js`
+- `src/routes/internal/pilotObservability.js`
+- `src/routes/internal/pilotTenantHealth.js`
+- `src/routes/internal/pilotTenants.js`
+- `src/routes/internal/productionDeployment.js`
+- `src/routes/internal/productionRuntimeActivation.js`
+- `src/routes/internal/productionValidation.js`
+- `src/routes/internal/qualityUniversalRuntime.js`
+- `src/routes/internal/realKpiTargeting.js`
+- `src/routes/internal/realMenuGovernance.js`
+- `src/routes/internal/realSummaryTargeting.js`
+- `src/routes/internal/realTenantEnforcement.js`
+- `src/routes/internal/regulatoryGovernance.js`
+- `src/routes/internal/runtimeCalibration.js`
+- `src/routes/internal/runtimeConsistency.js`
+- `src/routes/internal/runtimeConsolidation.js`
+- `src/routes/internal/runtimeDeliveryAudit.js`
+- `src/routes/internal/runtimeEnrichment.js`
+- `src/routes/internal/runtimeExpansionObservability.js`
+- `src/routes/internal/runtimeGovernanceConsolidation.js`
+- `src/routes/internal/runtimeObservation.js`
+- `src/routes/internal/runtimeObservationConsolidation.js`
+- `src/routes/internal/runtimePrecision.js`
+- `src/routes/internal/runtimeScalingReadiness.js`
+- `src/routes/internal/runtimeStabilization.js`
+- `src/routes/internal/runtimeSustainability.js`
+- `src/routes/internal/runtimeTuning.js`
+- `src/routes/internal/sales.js`
+- `src/routes/internal/semanticRuntimeAlignment.js`
+- `src/routes/internal/shadowRoutes.js`
+- `src/routes/internal/sidebarGovernance.js`
+- `src/routes/internal/summaryBlindness.js`
+- `src/routes/internal/summaryConvergence.js`
+- `src/routes/internal/summaryDeliveryQuality.js`
+- `src/routes/internal/summaryGovernanceHealth.js`
+- `src/routes/internal/summaryRollout.js`
+- `src/routes/internal/summaryRuntimeActivation.js`
+- `src/routes/internal/summaryRuntimeObservability.js`
+- `src/routes/internal/telemetryGovernance.js`
+- `src/routes/internal/tenantExpansionScaling.js`
+- `src/routes/internal/tenantGovernanceMaturity.js`
+- `src/routes/internal/tenantProfiling.js`
+- `src/routes/internal/tenantRls.js`
+- `src/routes/internal/tenantRollout.js`
+- `src/routes/internal/terminalGovernance.js`
+- `src/routes/internal/underdeliveryProtection.js`
+- `src/routes/internal/unifiedHealth.js`
+- `src/routes/internal/unifiedMetrics.js`
+- `src/routes/internal/usefulnessLearning.js`
+- `src/routes/internal/usefulnessRuntime.js`
+- `src/routes/internal/vectorHealth.js`
+- `src/routes/internalChat.js`
+- `src/routes/lgpd.js`
+- `src/routes/liveDashboard.js`
+- `src/routes/logisticsActivation.js`
+- `src/routes/logisticsIntelligence.js`
+- `src/routes/logisticsNavigation.js`
+- `src/routes/logisticsOperationalValidation.js`
+- `src/routes/m1CriticalRemediationRoutes.js`
+- `src/routes/m1EnterprisePromotionRoutes.js`
+- `src/routes/m1EnterpriseRemainingRoutes.js`
+- `src/routes/m1FoodBasePilotRoutes.js`
+- `src/routes/m1FoodBaseReadinessRoutes.js`
+- `src/routes/m1GovernanceRoutes.js`
+- `src/routes/m1OperationalAdoptionEnablementRoutes.js`
+- `src/routes/m1OperationalRoadmapRoutes.js`
+- `src/routes/m1PilotAdoptionClosureRoutes.js`
+- `src/routes/m1PilotAdoptionRoutes.js`
+- `src/routes/m1PilotClosureRoutes.js`
+- `src/routes/m1PilotExecutionRoutes.js`
+- `src/routes/m1PilotOperationRoutes.js`
+- `src/routes/m1PilotReadinessRoutes.js`
+- `src/routes/m1PlatformClosureRoutes.js`
+- `src/routes/m1ValidationRoutes.js`
+- `src/routes/manuals.js`
+- `src/routes/manuiaApp.js`
+- `src/routes/manuiaDisabledFallback.js`
+- `src/routes/manutencao-ia.js`
+- `src/routes/mediaFile.js`
+- `src/routes/nexusIa.js`
+- `src/routes/onboarding.js`
+- `src/routes/operational.js`
+- `src/routes/operationalAnomalies.js`
+- `src/routes/operations/activeContinuousOperationRoutes.js`
+- `src/routes/operations/continuousOperationObservationRoutes.js`
+- `src/routes/operations/continuousOperationRoutes.js`
+- `src/routes/operations/goLiveMonitoringRoutes.js`
+- `src/routes/operations/runtimeStabilizationRoutes.js`
+- `src/routes/plcAlerts.js`
+- `src/routes/proacao.js`
+- `src/routes/pulse.js`
+- `src/routes/qualityActivation.js`
+- `src/routes/qualityCognitive.js`
+- `src/routes/qualityGovernance.js`
+- `src/routes/qualityIntelligence.js`
+- `src/routes/qualityNavigation.js`
+- `src/routes/qualityOperational.js`
+- `src/routes/qualityRollout.js`
+- `src/routes/qualityTelemetry.js`
+- `src/routes/rawMaterialLots.js`
+- `src/routes/realtimePresence.js`
+- `src/routes/roleVerification.js`
+- `src/routes/rolloutCenter.js`
+- `src/routes/runtimeUnification.js`
+- `src/routes/runtimeZCognitiveOs.js`
+- `src/routes/runtimeZMaturation.js`
+- `src/routes/runtimeZOperationalNervousSystem.js`
+- `src/routes/runtimeZSovereign.js`
+- `src/routes/runtimeZSz5.js`
+- `src/routes/safetyActivation.js`
+- `src/routes/safetyCognitive.js`
+- `src/routes/safetyGovernance.js`
+- `src/routes/safetyNavigation.js`
+- `src/routes/safetyOperational.js`
+- `src/routes/safetyOperationalValidation.js`
+- `src/routes/safetyRollout.js`
+- `src/routes/safetyTelemetry.js`
+- `src/routes/setupCompany.js`
+- `src/routes/subscription.js`
+- `src/routes/tasks.js`
+- `src/routes/technicalLibrary.js`
+- `src/routes/tpm.js`
+- `src/routes/tts.js`
+- `src/routes/userAccountConta.js`
+- `src/routes/userIdentification.js`
+- `src/routes/usuarios.js`
+- `src/routes/vision.js`
+- `src/routes/voz.js`
+- `src/routes/warehouseIntelligence.js`
+- `src/routes/webhook.js`
+- `src/routes/webhooks/asaas.js`
+- `src/routes/webhooks/stripeNexusWallet.js`
+- `src/routes/workflowEngine.js`
+
+## Módulos registry (menu_key)
+
+- `dashboard` → menu `dashboard` · Dashboard
+- `settings` → menu `settings` · Configurações
+- `biblioteca` → menu `biblioteca` · Biblioteca
+- `ai` → menu `ai` · Assistente IA
+- `chat` → menu `chat` · Chat
+- `operational` → menu `operational` · Operacional
+- `proaction` → menu `proaction` · Pró-Ação
+- `registro_inteligente` → menu `registro_inteligente` · Registro Inteligente
+- `cadastrar_com_ia` → menu `cadastrar_com_ia` · Cadastrar com IA
+- `financial_intelligence` → menu `operational` · Inteligência Financeira
+- `cost_center` → menu `operational` · Centro de Custos
+- `losses_map` → menu `operational` · Mapa de Vazamentos
+- `cerebro_operacional` → menu `operational` · Cérebro Operacional
+- `centro_operacoes_industrial` → menu `operational` · Centro de Operações Industrial
+- `centro_previsao_operacional` → menu `operational` · Centro de Previsão Operacional
+- `insights` → menu `operational` · Insights Operacionais
+- `manuia` → menu `manuia` · ManuIA
+- `quality_intelligence` → menu `quality_intelligence` · Inteligência de Qualidade
+- `safety_intelligence` → menu `safety_intelligence` · Inteligência de Segurança
+- `environment_intelligence` → menu `environment_intelligence` · Inteligência Ambiental
+- `raw_material_lots` → menu `raw_material_lots` · Lotes de Matéria-Prima
+- `hr_intelligence` → menu `hr_intelligence` · Inteligência de Pessoas
+- `pulse_rh` → menu `operational` · Pulse RH
+- `pulse_gestao` → menu `operational` · Pulse Gestão
+- `audit` → menu `audit` · Auditoria
+- `anomaly_detection` → menu `anomaly_detection` · Detecção de Anomalias
+- `admin` → menu `admin` · Administração
+
+---
+
+*Regenerar: `node backend/scripts/audit/buildBlueprintInventory.js`*

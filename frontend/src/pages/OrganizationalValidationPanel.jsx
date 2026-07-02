@@ -92,7 +92,11 @@ export default function OrganizationalValidationPanel() {
       }
       if (pendingRes?.data?.requests) setPendingApprovals(pendingRes.data.requests);
     } catch (e) {
-      const msg = e.response?.data?.error || e.message || 'Erro de rede ao carregar o painel';
+      const status = e?.response?.status;
+      const msg =
+        status === 503
+          ? 'Servidor temporariamente indisponível. Aguarde alguns segundos e clique em Atualizar.'
+          : e.response?.data?.error || e.message || 'Erro de rede ao carregar o painel';
       console.warn('Panel load:', e);
       setLoadError(msg);
       notify.error(msg);

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pulse } from '../../services/api';
+import { useDashboardBoot } from '../../runtimeBoot/DashboardBootContext';
 
 const POLL_MS = 120000;
 
 export function useImpetusPulseSupervisor() {
+  const { phase } = useDashboardBoot();
   const [pending, setPending] = useState([]);
   const timer = useRef(null);
 
@@ -17,12 +19,13 @@ export function useImpetusPulseSupervisor() {
   }, []);
 
   useEffect(() => {
+    if (phase < 3) return undefined;
     poll();
     timer.current = setInterval(poll, POLL_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [poll]);
+  }, [poll, phase]);
 
   return { pending, refresh: poll };
 }

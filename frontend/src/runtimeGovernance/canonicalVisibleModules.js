@@ -8,6 +8,10 @@ export function readCanonicalVisibleModules(dashboardMePayload) {
   const legacy = Array.isArray(dashboardMePayload?.visible_modules)
     ? dashboardMePayload.visible_modules.slice()
     : [];
+  const gov = dashboardMePayload?.module_access_governance;
+  if (gov?.engine === 'moduleAccessGovernanceEngine' && legacy.length) {
+    return legacy;
+  }
   if (isTerminalGovernanceLocked(dashboardMePayload)) {
     const fin = getFinalVisibleModules(dashboardMePayload);
     return fin.length ? fin : legacy;

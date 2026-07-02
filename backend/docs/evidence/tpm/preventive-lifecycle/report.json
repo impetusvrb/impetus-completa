@@ -1,11 +1,11 @@
 {
   "domain": "TPM",
-  "run_id": "cert-p72-1782132393771",
+  "run_id": "cert-p72-1782487694792",
   "steps": [
     {
       "step": "create_preventive",
       "status": 201,
-      "id": "044628d4-0e27-4bdd-b827-4fc422e0ef21"
+      "id": "a022f1d5-f00e-4cfa-8b5f-8ea044c50bc5"
     },
     {
       "step": "complete_preventive",
@@ -17,6 +17,6 @@
     }
   ],
   "ok": true,
-  "finished_at": "2026-06-22T12:46:37.210Z",
+  "finished_at": "2026-06-26T15:28:17.630Z",
   "evidence": "backend/docs/evidence/tpm/preventive-lifecycle/"
 }

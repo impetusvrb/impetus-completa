@@ -1,10 +1,15 @@
 /**
- * Enriquecimento cognitivo vivo — evita estados vazios, oscilação inteligente, feed denso.
- * Usado em DEV e produção quando dados reais são escassos.
+ * Enriquecimento cognitivo vivo — oscilação e feed denso quando dados reais são escassos.
+ * Instalação industrial: desligado por defeito (IMPETUS_COGNITIVE_LIVING_ENRICHMENT=false).
  */
 'use strict';
 
 const db = require('../db');
+
+/** Só activa enrichment sintético se explicitamente pedido (nunca por defeito em prod limpa). */
+function isLivingEnrichmentEnabled() {
+  return String(process.env.IMPETUS_COGNITIVE_LIVING_ENRICHMENT || '').toLowerCase() === 'true';
+}
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -410,6 +415,7 @@ function enrichTimeline(timeline, seed, audience = null) {
 }
 
 module.exports = {
+  isLivingEnrichmentEnabled,
   livingSeed,
   seededFloat,
   applyLivingOscillation,

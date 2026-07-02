@@ -9,16 +9,16 @@
           "event_name": "environment.emission.alert_triggered",
           "domain": "environment",
           "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "correlation_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "correlation_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-          "trace_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "trace_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "workflow_id": null,
-          "idempotency_key": "environment_op:environment.emission.alert_triggered:b1df6c1d-d7e4-4e06-9f81-472b1b60fd90:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "idempotency_key": "environment_op:environment.emission.alert_triggered:b85c604c-4608-44f1-9db8-91bb49c4cf65:511f4819-fc48-479e-b11e-49ba4fb9c81b",
           "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
           "payload": {
             "stack_id": "CH-01",
             "pm": 45,
-            "cert_run": "cert-p72-1782132393771"
+            "cert_run": "cert-p72-1782487694792"
           },
           "metadata": {
             "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
@@ -29,11 +29,11 @@
             "environment_shadow_mode": false,
             "environment_runtime_version": 1,
             "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-            "http_correlation_id": "imp-mqp7m644-j5wbgyma"
+            "http_correlation_id": "imp-mqv35hoa-brv4okix"
           },
-          "occurred_at": "2026-06-22T12:46:36.935Z",
+          "occurred_at": "2026-06-26T15:28:17.356Z",
           "schema_version": 1,
-          "event_id": "92aec2e9-3fbe-4430-859d-c5727d1880cc",
+          "event_id": "adefe3da-45ef-4dfe-8e9d-5562eb0d38d4",
           "catalog": {
             "type": "environment.emission.alert_triggered",
             "domain": "environment",
@@ -44,13 +44,13 @@
         },
         "outbox": {
           "ok": true,
-          "id": "92aec2e9-3fbe-4430-859d-c5727d1880cc",
+          "id": "adefe3da-45ef-4dfe-8e9d-5562eb0d38d4",
           "persisted": true
         },
         "throttle": {
           "allowed": true,
           "observe_only": true,
-          "count": 101,
+          "count": 65,
           "limit": 2400
         }
       }
@@ -66,15 +66,15 @@
           "event_name": "environment.waste.manifest_created",
           "domain": "environment",
           "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "correlation_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "correlation_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-          "trace_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "trace_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "workflow_id": null,
-          "idempotency_key": "environment_op:environment.waste.manifest_created:b1df6c1d-d7e4-4e06-9f81-472b1b60fd90:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "idempotency_key": "environment_op:environment.waste.manifest_created:b85c604c-4608-44f1-9db8-91bb49c4cf65:511f4819-fc48-479e-b11e-49ba4fb9c81b",
           "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
           "payload": {
             "waste_class": "IIB",
-            "mtr_ref": "MTR-32393771"
+            "mtr_ref": "MTR-87694792"
           },
           "metadata": {
             "actor_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
@@ -85,11 +85,11 @@
             "environment_shadow_mode": false,
             "environment_runtime_version": 1,
             "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-            "http_correlation_id": "imp-mqp7m65f-m6rwc2hn"
+            "http_correlation_id": "imp-mqv35hp3-an5pxvn1"
           },
-          "occurred_at": "2026-06-22T12:46:36.977Z",
+          "occurred_at": "2026-06-26T15:28:17.408Z",
           "schema_version": 1,
-          "event_id": "8f8136a7-1267-438a-9549-d49aeae960d4",
+          "event_id": "4451e186-4d51-4831-a0fd-08a6cf842ee3",
           "catalog": {
             "type": "environment.waste.manifest_created",
             "domain": "environment",
@@ -100,13 +100,13 @@
         },
         "outbox": {
           "ok": true,
-          "id": "8f8136a7-1267-438a-9549-d49aeae960d4",
+          "id": "4451e186-4d51-4831-a0fd-08a6cf842ee3",
           "persisted": true
         },
         "throttle": {
           "allowed": true,
           "observe_only": true,
-          "count": 102,
+          "count": 66,
           "limit": 2400
         }
       }
@@ -122,11 +122,11 @@
           "event_name": "environment.water.sample_collected",
           "domain": "environment",
           "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "correlation_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "correlation_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "causation_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-          "trace_id": "b1df6c1d-d7e4-4e06-9f81-472b1b60fd90",
+          "trace_id": "b85c604c-4608-44f1-9db8-91bb49c4cf65",
           "workflow_id": null,
-          "idempotency_key": "environment_op:environment.water.sample_collected:b1df6c1d-d7e4-4e06-9f81-472b1b60fd90:511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "idempotency_key": "environment_op:environment.water.sample_collected:b85c604c-4608-44f1-9db8-91bb49c4cf65:511f4819-fc48-479e-b11e-49ba4fb9c81b",
           "partition_key": "511f4819-fc48-479e-b11e-49ba4fb9c81b:2026-06",
           "payload": {
             "meter_id": "ETA-1",
@@ -141,11 +141,11 @@
             "environment_shadow_mode": false,
             "environment_runtime_version": 1,
             "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
-            "http_correlation_id": "imp-mqp7m663-22066oqx"
+            "http_correlation_id": "imp-mqv35hrk-029glnyi"
           },
-          "occurred_at": "2026-06-22T12:46:37.015Z",
+          "occurred_at": "2026-06-26T15:28:17.486Z",
           "schema_version": 1,
-          "event_id": "0772ccdd-0ab6-4c2e-aa47-28c7c7cec973",
+          "event_id": "9e20b1c6-8cca-4927-bb90-422305ba2195",
           "catalog": {
             "type": "environment.water.sample_collected",
             "domain": "environment",
@@ -156,13 +156,13 @@
         },
         "outbox": {
           "ok": true,
-          "id": "0772ccdd-0ab6-4c2e-aa47-28c7c7cec973",
+          "id": "9e20b1c6-8cca-4927-bb90-422305ba2195",
           "persisted": true
         },
         "throttle": {
           "allowed": true,
           "observe_only": true,
-          "count": 103,
+          "count": 67,
           "limit": 2400
         }
       }

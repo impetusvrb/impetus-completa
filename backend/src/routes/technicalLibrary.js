@@ -18,7 +18,8 @@ const router = express.Router();
 const companyUser = [requireAuth, requireCompanyId];
 const adminCompany = [requireAuth, requireTenantAdminRole, requireCompanyId];
 
-const baseUpload = path.join(__dirname, '../../../uploads/technical-library');
+const uploadPaths = require('../config/uploadPaths');
+const baseUpload = uploadPaths.technicalLibrary();
 
 const fieldMulter = fieldCtrl.createFieldMulter(baseUpload);
 const uploadFieldMedia = fieldMulter.fields([

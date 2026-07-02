@@ -130,6 +130,14 @@ async function createProposal(payload){
       console.warn('[proacao][record_lot_usage]', err?.message ?? err);
     });
   }
+  try {
+    require('./pulseCognitive/ecosystemHooks').ecosystemHooks.proacaoSubmitted(
+      payload.company_id,
+      payload.reporter_id || null,
+      payload.operational_team_member_id || null,
+      { proposal_id: proposal.id, status: proposal.status }
+    );
+  } catch (_) {}
   return proposal;
 }
 

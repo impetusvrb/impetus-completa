@@ -131,8 +131,15 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Stock */
-.tableWrap { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.tableWrap { overflow-x: auto; max-width: 100%; }
+.tableWrapDesktop {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.stockCardList {
+  display: none;
+}
+.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 0; }
 .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
 .table th { color: var(--text-secondary); font-weight: 600; }
 .table td { color: var(--text-primary); }
@@ -146,6 +153,100 @@
 .poRow { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
 .poInput { width: 80px; padding: 8px; font-size: 0.9rem; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--radius-sm); color: var(--text-primary); }
 .poObs label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+
+/* Stock — cards mobile (sem scroll horizontal) */
+.stockCard {
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.stockCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.stockCardCode {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.stockCardName {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.stockCardMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.stockCardMeta div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.stockCardMeta dt {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.stockCardMeta dd {
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.stockCardMetaFull {
+  grid-column: 1 / -1;
+}
+.stockCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 767px) {
+  .module {
+    padding: 12px;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  .tableWrapDesktop {
+    display: none;
+  }
+  .stockCardList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 100%;
+  }
+  .kpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .twinGrid,
+  .orderGrid {
+    grid-template-columns: 1fr;
+  }
+  .panelHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 
 .formGroup { margin-bottom: 16px; }
 .formGroup label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }

@@ -20,6 +20,8 @@
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { dashboard } from '../../../services/api';
+import { fetchDashboardMeShared } from '../../../runtimeBoot/dashboardMeSharedStore';
+import { useDashboardBoot } from '../../../runtimeBoot/DashboardBootContext';
 import { buildDashboardContext, SOURCE } from './dashboardContextAdapter';
 import { enrichContextWithAdaptiveOrchestration } from '../../../cognitiveRuntime/adaptive/adaptiveOrchestrationRuntime';
 import { enrichContextWithGovernanceLearning } from '../../../cognitiveRuntime/learning/governanceLearningRuntime';
@@ -41,39 +43,75 @@ function _readUserFromStorage() {
  */
 export default function useDashboardContext(options) {
   const legacyLayoutFn = options && options.legacyLayoutFn;
+  const { phase } = useDashboardBoot();
   const [meData, setMeData] = useState(null);
   const [personalizadoData, setPersonalizadoData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const lastSourceRef = useRef(null);
+  const meLoadedRef = useRef(false);
+
+  const fetchMe = useCallback(async () => {
+    try {
+      const r = await fetchDashboardMeShared();
+      const me = r?.data || null;
+      setMeData(me);
+      return me;
+    } catch (err) {
+      if (typeof console !== 'undefined') console.warn('[useDashboardContext] /dashboard/me falhou:', err?.message || err);
+      return null;
+    }
+  }, []);
+
+  const fetchPersonalizado = useCallback(async () => {
+    try {
+      const r2 = await dashboard.getPersonalizado();
+      const perso = r2?.data?.ok ? r2.data : null;
+      setPersonalizadoData(perso);
+      return perso;
+    } catch (err) {
+      if (typeof console !== 'undefined') console.warn('[useDashboardContext] /dashboard/personalizado falhou:', err?.message || err);
+      return null;
+    }
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-    let me = null;
-    let perso = null;
-    try {
-      const r = await dashboard.getMe();
-      me = r?.data || null;
-    } catch (err) {
-      // Não-fatal: seguimos para personalizado e fallback
-      if (typeof console !== 'undefined') console.warn('[useDashboardContext] /dashboard/me falhou:', err?.message || err);
-    }
-    try {
-      const r2 = await dashboard.getPersonalizado();
-      perso = r2?.data?.ok ? r2.data : null;
-    } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[useDashboardContext] /dashboard/personalizado falhou:', err?.message || err);
-    }
-    setMeData(me);
-    setPersonalizadoData(perso);
+    const me = await fetchMe();
+    const perso = phase >= 2 ? await fetchPersonalizado() : null;
     setLoading(false);
     if (!me && !perso) setError(new Error('No dashboard data available'));
-  }, []);
+  }, [fetchMe, fetchPersonalizado, phase]);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    if (meLoadedRef.current) return undefined;
+    meLoadedRef.current = true;
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const me = await fetchMe();
+      if (!alive) return;
+      if (!me) setError(new Error('No dashboard data available'));
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [fetchMe]);
+
+  useEffect(() => {
+    if (phase < 2) return undefined;
+    let alive = true;
+    (async () => {
+      await fetchPersonalizado();
+      if (!alive) return;
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [phase, fetchPersonalizado]);
 
   // useMemo garante estabilidade referencial: buildDashboardContext só é
   // recalculado quando meData / personalizadoData mudam (ambos são state),

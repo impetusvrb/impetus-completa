@@ -21,6 +21,7 @@ const orgIdentity = require('./organizationalIdentityEngine');
 const tenantAdminPortalScope = require('./tenantAdminPortalScope');
 const functionalAreaCatalog = require('../config/functionalAreaCatalog');
 const cadastroResolver = require('./structuralCadastroModuleResolver');
+const executiveBaselinePack = require('./executiveBaselinePack');
 
 const MSG_INCOMPLETE =
   'Módulo indisponível por ausência de configuração estrutural.';
@@ -74,6 +75,7 @@ const FUNCTIONAL_AREA_TO_MENU_KEYS = Object.freeze({
   quality: ['quality_intelligence', 'operational'],
   production: ['operational'],
   operations: ['operational'],
+  executive: ['operational', 'audit', 'anomaly_detection', 'hr_intelligence', 'financial_intelligence', 'biblioteca'],
   admin: ['admin', 'audit'],
   environmental: ['environment_intelligence'],
   sustainability: ['environment_intelligence'],
@@ -118,7 +120,6 @@ function _normalizeRoleForBypass(role) {
   return _ROLE_NORMALIZATION_MAP[role] || role;
 }
 
-/** CEO / direção: menu completo mesmo com cadastro estrutural incompleto (aviso no dashboard, não menu vazio). */
 function isExecutiveStructuralBypass(ctx) {
   if (!ctx) return false;
   const rawRole = String(ctx.role || '').toLowerCase();
@@ -128,11 +129,11 @@ function isExecutiveStructuralBypass(ctx) {
   const hl = Number(ctx.hierarchy_level);
   if (Number.isFinite(hl) && hl <= 2) return true;
   const prof = String(ctx.dashboard_profile || '').toLowerCase();
-  if (prof.includes('ceo') || prof.includes('director') || prof.includes('diretor')) return true;
+  if (prof === 'ceo_executive' || prof.includes('ceo') || prof.includes('director') || prof.includes('diretor')) return true;
   return false;
 }
 
-const EXECUTIVE_MENU_FALLBACK = Object.freeze([
+const EXECUTIVE_CORE_MENU_KEYS = Object.freeze([
   'dashboard',
   'operational',
   'chat',
@@ -141,17 +142,74 @@ const EXECUTIVE_MENU_FALLBACK = Object.freeze([
   'registro_inteligente',
   'cadastrar_com_ia',
   'settings',
+  'hr_intelligence',
+  'anomaly_detection',
+  'audit'
+]);
+
+/** Domínios exclusivos — nunca injectar via fallback executivo (só pelo cargo/área). */
+const DOMAIN_EXCLUSIVE_MENU_KEYS = Object.freeze([
   'manuia',
   'quality_intelligence',
   'safety_intelligence',
   'environment_intelligence',
   'logistics_intelligence',
-  'hr_intelligence',
-  'anomaly_detection',
-  'audit',
-  'proaction',
-  'admin'
+  'raw_material_lots',
+  'financial_intelligence'
 ]);
+
+/** Módulos negados por role (deny-only; não afecta outros perfis). */
+const ROLE_DENIED_MENU_KEYS = Object.freeze({
+  ceo: ['proaction']
+});
+
+function _applyRoleDeniedModules(modules, ctx) {
+  const role = String(ctx?.role || '').toLowerCase();
+  const denied = ROLE_DENIED_MENU_KEYS[role];
+  if (!denied?.length) return modules;
+  const denySet = new Set(denied);
+  return modules.filter((k) => !denySet.has(k));
+}
+
+function _resolveDomainAxis(ctx) {
+  try {
+    const domainRegistry = require('../domainAuthority/registry/domainRegistry');
+    const catalog = require('../config/functionalAreaCatalog');
+    const raw =
+      ctx?.functional_area ||
+      ctx?.organizational_context?.area_funcional ||
+      ctx?.structural_role?.dashboard_functional_hint ||
+      null;
+    const norm = catalog.normKey ? catalog.normKey(raw) : String(raw || '').toLowerCase();
+    if (catalog.isKnownId && catalog.isKnownId(norm)) return norm;
+    return domainRegistry.normalizeAxis(norm) || norm || null;
+  } catch (_) {
+    return ctx?.functional_area || null;
+  }
+}
+
+/**
+ * Filtra menu_keys finais pelo domínio funcional (todos os utilizadores).
+ */
+function _applyDomainPolicies(modules, ctx) {
+  let list = Array.isArray(modules) ? modules.filter(Boolean) : [];
+  try {
+    const da = require('../domainAuthority');
+    if (!da.isDomainAuthorityEnabled()) return list;
+    const axis = _resolveDomainAxis(ctx);
+    if (!axis) return list;
+    const meta = { user_id: ctx.user_id, profile_code: ctx.dashboard_profile };
+    const iso = da.domainIsolationGuard.filterModules(list, axis, meta);
+    list = iso.modules;
+    if (da.moduleInheritanceGuard.isEnabled()) {
+      const inh = da.moduleInheritanceGuard.filterModulesWithInheritance(list, axis, meta);
+      list = inh.modules;
+    }
+  } catch (_) {
+    /* never break delivery */
+  }
+  return list;
+}
 
 function getModuleType(mod) {
   if (!mod) return 'contextual';
@@ -183,8 +241,11 @@ function _expandToken(token) {
   if (!t) return [];
   const direct = STRUCTURAL_TOKEN_TO_MENU_KEYS[t];
   if (direct) return direct;
+  // Textos longos em hidden_themes são descrição humana — não disparar match parcial (ex.: "externas ao RH").
+  if (t.length > 24) return [];
   const partial = [];
   for (const [key, mods] of Object.entries(STRUCTURAL_TOKEN_TO_MENU_KEYS)) {
+    if (key.length < 3) continue;
     if (t.includes(key) || key.includes(t)) partial.push(...mods);
   }
   return [...new Set(partial)];
@@ -257,6 +318,20 @@ async function buildModuleAccessContext(user) {
     structural_role: structuralRole
   });
 
+  const hierarchyLevel =
+    enrichedUser.hierarchy_level ?? structuralRole?.hierarchy_level ?? 5;
+
+  const executiveBaselineResult = executiveBaselinePack.mergeExecutiveBaselineIntoAuthorizedKeys(
+    authorizedFromStructure,
+    {
+      structural_complete: structuralComplete,
+      role: enrichedUser.role,
+      hierarchy_level: hierarchyLevel,
+      user_id: enrichedUser.id,
+      dashboard_profile: enrichedUser.dashboard_profile
+    }
+  );
+
   const hiddenThemes = new Set(
     (Array.isArray(structuralRole?.hidden_themes) ? structuralRole.hidden_themes : [])
       .map(_normToken)
@@ -270,7 +345,7 @@ async function buildModuleAccessContext(user) {
     nome: enrichedUser.name,
     email: enrichedUser.email,
     role: enrichedUser.role,
-    hierarchy_level: enrichedUser.hierarchy_level ?? structuralRole?.hierarchy_level ?? 5,
+    hierarchy_level: hierarchyLevel,
     company_role_id: enrichedUser.company_role_id || null,
     functional_area: functionalArea,
     department_id: structuralRole?.department_id || enrichedUser.department_id || null,
@@ -279,7 +354,15 @@ async function buildModuleAccessContext(user) {
     structural_role: structuralRole,
     structural_complete: structuralComplete,
     cadastro_completeness: cadastroCheck,
-    authorized_menu_keys: [...authorizedFromStructure],
+    authorized_menu_keys: [...executiveBaselineResult.keys],
+    executive_baseline: {
+      applied: executiveBaselineResult.applied,
+      baseline_modules: executiveBaselineResult.baseline_modules,
+      modules_added: executiveBaselineResult.added || [],
+      skipped_reason: executiveBaselineResult.applied ? null : executiveBaselineResult.reason || null,
+      authorized_menu_keys_before: executiveBaselineResult.before,
+      authorized_menu_keys_after: executiveBaselineResult.after
+    },
     hidden_themes: [...hiddenThemes],
     recommended_permissions: structuralRole?.recommended_permissions || [],
     issues: [
@@ -430,22 +513,41 @@ function resolveGovernedVisibleModules(accessContext, legacyCandidates = []) {
 
   if (allowed.has('ai') && !allowed.has('chat')) allowed.add('chat');
 
-  if (!ctx.structural_complete && isExecutiveStructuralBypass(ctx)) {
-    for (const key of candidates) {
+  const execBypass = isExecutiveStructuralBypass(ctx);
+  if (execBypass) {
+    // Só restaura módulos já autorizados pelo cadastro ou núcleo executivo (cadastro incompleto).
+    for (const key of ctx.authorized_menu_keys || []) {
       if (key) allowed.add(key);
     }
-    for (const key of EXECUTIVE_MENU_FALLBACK) {
-      allowed.add(key);
+    const hintAxis = _resolveDomainAxis(ctx);
+    const hintKeys = hintAxis && FUNCTIONAL_AREA_TO_MENU_KEYS[hintAxis]
+      ? FUNCTIONAL_AREA_TO_MENU_KEYS[hintAxis]
+      : [];
+    for (const key of hintKeys) {
+      if (!key || DOMAIN_EXCLUSIVE_MENU_KEYS.includes(key)) continue;
+      const v = validateModuleAccess(ctx, key);
+      if (v.allowed || !ctx.structural_complete) allowed.add(key);
+    }
+    if (!ctx.structural_complete) {
+      for (const key of EXECUTIVE_CORE_MENU_KEYS) {
+        allowed.add(key);
+      }
     }
   }
 
+  let visible = _applyDomainPolicies([...allowed], ctx);
+  visible = _applyRoleDeniedModules(visible, ctx);
+
+  const finalDenied = execBypass
+    ? denied.filter((d) => !visible.includes(d.menu_key))
+    : denied;
+
   return {
-    visible_modules: [...allowed],
-    denied,
+    visible_modules: visible,
+    denied: finalDenied,
     validations,
     structural_complete: ctx.structural_complete === true,
-    executive_structural_bypass:
-      !ctx.structural_complete && isExecutiveStructuralBypass(ctx),
+    executive_structural_bypass: execBypass,
     universal_modules: [...universal],
     authorized_structural: ctx.authorized_menu_keys || [],
     governance_message: !ctx.structural_complete
@@ -504,6 +606,8 @@ async function resolveForUser(user, legacyCandidates = []) {
       denied_count: out.denied.length,
       allowed_count: out.visible_modules.length,
       executive_structural_bypass: out.executive_structural_bypass === true,
+      executive_baseline_applied: ctx.executive_baseline?.applied === true,
+      executive_baseline: ctx.executive_baseline || null,
       cadastro_fiel: true,
       cadastro_completeness: ctx.cadastro_completeness || null
     },
@@ -522,5 +626,7 @@ module.exports = {
   resolveForUser,
   MSG_INCOMPLETE,
   MSG_INCOMPATIBLE,
-  getUniversalMenuKeys
+  getUniversalMenuKeys,
+  isExecutiveStructuralBypass,
+  executiveBaselinePack
 };

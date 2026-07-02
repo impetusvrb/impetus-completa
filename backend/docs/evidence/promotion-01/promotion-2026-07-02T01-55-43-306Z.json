@@ -1,0 +1,12 @@
+{
+  "certification": "PROMOTION-01",
+  "executedAt": "2026-07-02T01:55:43.296Z",
+  "ncs": [],
+  "decision": "READY COM RESSALVAS",
+  "summary": {
+    "passed": 25,
+    "failed": 0,
+    "group_a_ready": 8,
+    "group_b_not_eligible": 3
+  }
+}

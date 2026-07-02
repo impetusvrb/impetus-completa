@@ -245,7 +245,7 @@ function kpiToCards(kpis) {
   });
 }
 
-async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
+async function hydrate(user, plan, queryText = '', preloadedBundle = null, presentationContext = null) {
   const scope = await hierarchicalFilter.resolveHierarchyScope(user).catch(() => null);
   const datasets = filterDatasets(user, plan.datasets);
   if (!datasets.length) {
@@ -464,7 +464,7 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
     has_snapshot_evidence: hasSnapshotEvidence
   };
 
-  const panelPayload = {
+  let panelPayload = {
     permissionGranted: true,
     denialReason: null,
     type,
@@ -507,6 +507,13 @@ async function hydrate(user, plan, queryText = '', preloadedBundle = null) {
       iaDepth: dashboardAccessService.getIADataDepth(user)
     }
   };
+
+  if (presentationContext?.enabled) {
+    try {
+      const { applyPresentationPanelHints } = require('../conversationContext/executivePresentationContext');
+      panelPayload = applyPresentationPanelHints(panelPayload, presentationContext);
+    } catch (_) {}
+  }
 
   return truthEnforcement.guardPanelVisualizationPayload(panelPayload, availability);
 }
@@ -584,8 +591,17 @@ async function runPanelInterpreter(messages, billing) {
  * @param {object} user — req.user
  * @param {string} rawInput
  */
-async function processPanelCommand(user, rawInput) {
+async function processPanelCommand(user, rawInput, opts = {}) {
   const cmd = String(rawInput || '').trim();
+  let presentationContext = opts.presentationContext || null;
+  if (!presentationContext) {
+    try {
+      const { getStoredPresentation } = require('../conversationContext/executivePresentationContext');
+      presentationContext = getStoredPresentation(user);
+    } catch (_) {
+      presentationContext = null;
+    }
+  }
   const ctx = userContext.buildUserContext(user);
   const modules = dashboardAccessService.getAllowedModules(user);
   const perms = dashboardAccessService.getEffectivePermissions(user);
@@ -636,7 +652,7 @@ async function processPanelCommand(user, rawInput) {
       plan.datasets = [...new Set([...plan.datasets, 'chat'])];
       if (plan.type === 'mixed' || plan.type === 'chart') plan.type = 'table';
     }
-    return hydrate(user, plan, cmd, softwareBundle);
+    return hydrate(user, plan, cmd, softwareBundle, presentationContext);
   }
 
   const parsed = parseAiJson(content) || {};
@@ -661,7 +677,15 @@ async function processPanelCommand(user, rawInput) {
     };
   }
 
-  return hydrate(user, plan, cmd, softwareBundle);
+  let finalPlan = plan;
+  if (presentationContext?.enabled) {
+    try {
+      const { applyPresentationPanelHints } = require('../conversationContext/executivePresentationContext');
+      finalPlan = applyPresentationPanelHints(plan, presentationContext);
+    } catch (_) {}
+  }
+
+  return hydrate(user, finalPlan, cmd, softwareBundle, presentationContext);
 }
 
 module.exports = {

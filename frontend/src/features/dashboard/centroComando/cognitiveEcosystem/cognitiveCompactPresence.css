@@ -1,0 +1,160 @@
+.cog-compact-presence {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.18));
+  border-radius: 4px;
+  background: var(--bg-panel, rgba(15, 26, 40, 0.92));
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #8fa3b8);
+}
+
+.cog-compact-presence__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cog-compact-presence__brand {
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.cog-compact-presence__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green, #00ff88);
+  box-shadow: 0 0 8px var(--glow-green, rgba(0, 255, 136, 0.5));
+  animation: blink 1.8s ease-in-out infinite;
+}
+
+.cog-compact-presence__mode {
+  margin-left: auto;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+}
+
+.cog-compact-presence__mode--critical,
+.cog-compact-presence__mode--war_room {
+  border-color: var(--red, #ff4040);
+  color: var(--red);
+}
+
+.cog-compact-presence__identity {
+  margin: 0.45rem 0 0;
+  color: var(--text-primary, #e8f0f8);
+}
+
+.cog-compact-presence__summary {
+  margin: 0.35rem 0 0;
+  line-height: 1.45;
+}
+
+.cog-compact-presence__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--cyan);
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+
+.cog-compact-presence__pulse--idle {
+  background: var(--amber, #ffaa00);
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.35);
+  animation: none;
+}
+
+.cog-compact-presence__state {
+  margin-left: 0.25rem;
+}
+
+/* UX-MANUIA-001/002 — banner compacto em rotas ManuIA */
+.cog-compact-presence--manuia {
+  margin: 0 0 0.35rem;
+  padding: 0;
+  border-radius: 4px;
+}
+
+.cog-compact-presence__head--manuia {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.55rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cog-compact-presence--manuia .cog-compact-presence__brand {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+.cog-compact-presence__manuia-data {
+  color: var(--green, #00ff88);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.cog-compact-presence__link--manuia {
+  margin-top: 0;
+  margin-left: auto;
+  font-size: 0.55rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cog-compact-presence__manuia-detail {
+  margin-top: 0;
+  padding: 0.35rem 0.55rem 0.45rem;
+  border-top: 1px solid var(--border-subtle, rgba(0, 212, 255, 0.12));
+}
+
+@media (max-width: 767px) {
+  .cog-compact-presence--manuia {
+    margin: 0 0 0.25rem;
+  }
+
+  .cog-compact-presence__head--manuia {
+    padding: 0.3rem 0.5rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .cog-compact-presence--manuia .cog-compact-presence__brand {
+    font-size: 0.58rem;
+  }
+
+  .cog-compact-presence__manuia-data {
+    display: none;
+  }
+
+  .cog-compact-presence__link--manuia {
+    font-size: 0.52rem;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  .cog-compact-presence__manuia-detail .cog-compact-presence__summary {
+    font-size: 0.65rem;
+    margin-top: 0.25rem;
+  }
+}

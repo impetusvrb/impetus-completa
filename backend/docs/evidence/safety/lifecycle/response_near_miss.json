@@ -3,16 +3,16 @@
   "body": {
     "ok": true,
     "event": {
-      "id": "ba08c7c1-dc46-4974-9538-c85e949cf6c1",
+      "id": "b6fb7d30-55fb-4d57-a2ad-ff45b81272cb",
       "kind": "near_miss",
       "tipo_alerta": "sst_near_miss",
       "lifecycle_phase": "SST_NEAR_MISS"
     },
     "alert": {
-      "id": "ba08c7c1-dc46-4974-9538-c85e949cf6c1",
+      "id": "b6fb7d30-55fb-4d57-a2ad-ff45b81272cb",
       "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
       "tipo_alerta": "sst_near_miss",
-      "titulo": "[CERT cert-sst-1782132392867] Quase-acidente — empilhadeira",
+      "titulo": "[CERT cert-sst-1782487694091] Quase-acidente — empilhadeira",
       "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
       "severidade": "media",
       "equipamento": null,
@@ -21,15 +21,15 @@
       "evento_origem_id": null,
       "metadata": {
         "kind": "near_miss",
-        "cert_run": "cert-sst-1782132392867",
+        "cert_run": "cert-sst-1782487694091",
         "location": "Pátio logístico",
         "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-        "correlation_id": "6875f01a-f7a5-4f23-870d-4e57106564a5"
+        "correlation_id": "ecf3d77b-ea2f-4f3d-a911-fbd4a658de57"
       },
       "resolvido": false,
       "resolvido_por": null,
       "resolvido_em": null,
-      "created_at": "2026-06-22T12:46:33.234Z",
+      "created_at": "2026-06-26T15:28:14.398Z",
       "source": "safety_operational"
     }
   }

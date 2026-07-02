@@ -114,6 +114,7 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
   }
   let mode = 'off';
   let directiveDetail = null;
+  const governanceAuthoritative = opts?.governanceAuthoritative === true;
 
   // Defaults seguros
   let resultVisible = legacy.slice();
@@ -162,8 +163,14 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
       mode = directive2.mode;
       directiveDetail = directive2;
 
-      // Em modo shadow: visibleModules permanece legacy
-      if (mode === 'shadow') {
+      // Com governança modular activa, enrich/replace não alteram visible_modules —
+      // só metadados contextual_modules (evita dupla autoridade no menu).
+      if (governanceAuthoritative && mode !== 'off' && mode !== 'shadow') {
+        resultVisible = legacy.slice();
+        resultContextual = orchestrated.contextual_modules.slice();
+        directiveDetail = { ...directiveDetail, governance_shadow: true };
+        mode = mode === 'replace' ? 'shadow_replace_governance' : 'shadow_enrich_governance';
+      } else if (mode === 'shadow') {
         resultVisible = legacy.slice();
         resultContextual = orchestrated.contextual_modules.slice();
       } else if (mode === 'enrich') {
@@ -254,17 +261,28 @@ function enhanceVisibleModulesWithContext(legacyVisibleModules, user, opts) {
     });
   }
 
-  // Fase C — Domain Authority: isolamento formal de menu_keys (additive)
+  // Fase C — Domain Authority: isolamento formal de menu_keys (todos os utilizadores)
   let domainIsolationMeta = null;
   try {
     const da = require('../domainAuthority');
     if (da.isDomainAuthorityEnabled() && identity?.area) {
-      const isolated = da.domainIsolationGuard.filterModules(resultVisible, identity.area, {
-        user_id: safeUser.id,
-        profile_code: safeUser.dashboard_profile
-      });
+      const meta = { user_id: safeUser.id, profile_code: safeUser.dashboard_profile };
+      const isolated = da.domainIsolationGuard.filterModules(resultVisible, identity.area, meta);
       if (isolated.blocked.length > 0) domainIsolationMeta = { blocked: isolated.blocked };
       resultVisible = isolated.modules;
+      if (da.moduleInheritanceGuard.isEnabled()) {
+        const inh = da.moduleInheritanceGuard.filterModulesWithInheritance(resultVisible, identity.area, meta);
+        if (inh.blocked?.length) {
+          domainIsolationMeta = domainIsolationMeta || { blocked: [] };
+          domainIsolationMeta.blocked = domainIsolationMeta.blocked.concat(inh.blocked);
+        }
+        resultVisible = inh.modules;
+      }
+      const visibleSet = new Set(resultVisible);
+      resultContextual = (resultContextual || []).filter((m) => {
+        const key = m?.menu_key || m?.module_id;
+        return key && visibleSet.has(key);
+      });
     }
   } catch (_) {
     /* never break legacy flow */

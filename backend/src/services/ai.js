@@ -4,6 +4,7 @@
  * Inclui: classify, processIncomingMessage (scaffold original)
  */
 const OpenAI = require('openai');
+const crypto = require('crypto');
 const documentContext = require('./documentContext');
 const incomingProcessor = require('./incomingMessageProcessor');
 let billingTokenService;
@@ -22,8 +23,58 @@ try {
 const WALLET_FALLBACK_MSG =
   'FALLBACK: Créditos Nexus IA insuficientes ou consumo em pausa. Peça ao administrador para recarregar a carteira (Nexus IA).';
 
-async function nexusWalletPrecheck(billing, servico, estimatedUnits) {
+function buildBillingMeta(opts = {}, usage = {}) {
+  const meta = opts.billingMeta && typeof opts.billingMeta === 'object' ? opts.billingMeta : {};
+  return {
+    requestId: meta.requestId || meta.request_id || crypto.randomUUID(),
+    traceId: meta.traceId || meta.trace_id || opts.traceId || null,
+    sessionId: meta.sessionId || meta.session_id || opts.sessionId || null,
+    conversationId: meta.conversationId || meta.conversation_id || opts.conversationId || null,
+    departmentId: meta.departmentId || meta.department_id || null,
+    ip: meta.ip || null,
+    userAgent: meta.userAgent || meta.user_agent || null,
+    provider: meta.provider || 'openai',
+    model: opts.model || meta.model || null,
+    inputTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.inputTokens,
+    outputTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.outputTokens,
+    operation: meta.operation || 'completion'
+  };
+}
+
+function registerAiUsage(opts, servico, quantidade, extra = {}) {
+  if (!opts.billing?.companyId || !quantidade) return;
+  billingTokenService.registrarUsoSafe(
+    opts.billing.companyId,
+    opts.billing.userId,
+    servico,
+    quantidade,
+    extra.unidade || 'tokens',
+    buildBillingMeta(opts, extra)
+  );
+}
+
+async function nexusWalletPrecheck(billing, servico, estimatedUnits, opts = {}) {
   if (!billing?.companyId) return null;
+  try {
+    const billingEngine = require('./nexusBillingEngine');
+    if (billingEngine.isEnabled() && billing.userId) {
+      const auth = await billingEngine.authorizeConsumption(
+        {
+          companyId: billing.companyId,
+          userId: billing.userId,
+          requestId: opts.requestId || crypto.randomUUID(),
+          traceId: opts.traceId,
+          sessionId: opts.sessionId,
+          conversationId: opts.conversationId
+        },
+        { servico, quantidade: estimatedUnits }
+      );
+      if (!auth.ok && !auth.skipped) return WALLET_FALLBACK_MSG;
+      return null;
+    }
+  } catch (_) {
+    /* fallback legacy */
+  }
   const r = await nexusWalletService.canConsumeEstimate(billing.companyId, servico, estimatedUnits);
   if (r.skipped || r.ok) return null;
   return WALLET_FALLBACK_MSG;
@@ -78,7 +129,11 @@ async function chatCompletion(prompt, opts = {}) {
     const content = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
-      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+      registerAiUsage(opts, 'chat', usage, {
+        input_tokens: res.usage?.prompt_tokens,
+        output_tokens: res.usage?.completion_tokens,
+        model: opts.model || 'gpt-4o-mini'
+      });
     }
     return content;
   } catch (err) {
@@ -144,7 +199,11 @@ async function rawChatCompletionMessages(messages, opts = {}) {
     const content = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
-      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+      registerAiUsage(opts, 'chat', usage, {
+        input_tokens: res.usage?.prompt_tokens,
+        output_tokens: res.usage?.completion_tokens,
+        model: opts.model || 'gpt-4o-mini'
+      });
     }
     return content;
   } catch (err) {
@@ -231,7 +290,7 @@ async function embedText(text, opts = {}) {
     failures = 0;
     const total = r.usage?.total_tokens;
     if (opts.billing?.companyId && total) {
-      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'openai_embed', total);
+      registerAiUsage(opts, 'openai_embed', total, { model: 'text-embedding-3-small', operation: 'embedding' });
     }
     return r.data[0].embedding;
   } catch (err) {
@@ -383,7 +442,11 @@ async function chatWithVision(messages, opts = {}) {
     const out = res.choices?.[0]?.message?.content || '';
     const usage = res.usage?.total_tokens;
     if (opts.billing?.companyId && usage) {
-      billingTokenService.registrarUsoSafe(opts.billing.companyId, opts.billing.userId, 'chat', usage);
+      registerAiUsage(opts, 'chat', usage, {
+        input_tokens: res.usage?.prompt_tokens,
+        output_tokens: res.usage?.completion_tokens,
+        model: opts.model || 'gpt-4o-mini'
+      });
     }
     return out;
   } catch (err) {

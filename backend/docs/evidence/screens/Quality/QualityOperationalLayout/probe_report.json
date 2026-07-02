@@ -6,10 +6,10 @@
   "probeResults": [
     {
       "spec": "GET /api/quality-intelligence/nc-capa-summary",
-      "status": 401,
+      "status": 403,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.816Z"
+  "at": "2026-06-25T19:39:43.898Z"
 }

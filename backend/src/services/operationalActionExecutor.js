@@ -7,7 +7,7 @@
  * Nunca: comandos em equipamentos, escrita em PLC, eliminação de dados, ou ações irreversíveis.
  */
 
-const unifiedMessaging = require('./unifiedMessagingService');
+const chatOperationalGovernance = require('./governanceAdapters/chatOperationalGovernanceAdapter');
 const operationalAlertsService = require('./operationalAlertsService');
 const strategicLearningService = require('./strategicLearningService');
 const dashboardComposerService = require('./dashboardComposerService');
@@ -61,9 +61,46 @@ function validateExecutionContext(context) {
 }
 
 /**
- * @param {string} event
- * @param {object} detail
+ * Notificação operacional via adapter ECO-03 (shadow ou migrado).
+ * @param {string} companyId
+ * @param {string} userId
+ * @param {string} body
+ * @param {{ type: string, severity?: string }} meta
  */
+async function sendOperationalNotification(companyId, userId, body, meta) {
+  const result = await chatOperationalGovernance.dispatchOperationalActionNotification(companyId, {
+    userId,
+    message: body,
+    type: meta.type,
+    severity: meta.severity || 'high',
+    eventType: meta.type
+  });
+
+  if (result.skipped) {
+    return { ok: false, error: result.reason || 'skipped' };
+  }
+
+  if (result.mode === 'governance') {
+    const ok = result.distribution?.success === true;
+    const first = result.distribution?.results?.[0];
+    return {
+      ok,
+      notificationId: first?.result?.notificationId || first?.notificationId || null,
+      mode: 'governance',
+      policyId: result.policyId
+    };
+  }
+
+  const legacy = result.legacy || {};
+  const first = Array.isArray(legacy.results) ? legacy.results[0] : null;
+  return {
+    ok: legacy.ok === true,
+    notificationId: first?.notificationId || null,
+    mode: result.mode || 'shadow',
+    policyId: result.policyId || null
+  };
+}
+
 function logStructured(event, detail) {
   try {
     console.warn(
@@ -367,8 +404,9 @@ async function executeOperationalActions(evaluation, context = {}) {
         .filter(Boolean);
       const body = `[Decisão operacional]\n${lines.join('\n')}`.slice(0, 3800);
       try {
-        const send = await unifiedMessaging.sendToUser(companyId, user.id, body, {
-          type: 'operational_decision'
+        const send = await sendOperationalNotification(companyId, user.id, body, {
+          type: 'operational_decision',
+          severity: 'high'
         });
         if (send.ok) {
           executed.push({
@@ -406,8 +444,9 @@ async function executeOperationalActions(evaluation, context = {}) {
           .filter(Boolean);
         const body = `[Autonomia supervisionada]\n${lines.join('\n')}`.slice(0, 3800);
         try {
-          const send = await unifiedMessaging.sendToUser(companyId, user.id, body, {
-            type: 'autonomous_suggestion'
+          const send = await sendOperationalNotification(companyId, user.id, body, {
+            type: 'autonomous_suggestion',
+            severity: 'low'
           });
           if (send.ok) {
             executed.push({

@@ -6,29 +6,26 @@ const fs = require('fs');
 const geminiService = require('./geminiService');
 const mediaProcessor = require('./mediaProcessorService');
 const ai = require('./ai');
+const documentTextExtractor = require('./documentTextExtractorService');
 
-const ALLOWED_EXT = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.webp', '.mp3', '.m4a', '.wav', '.webm'];
-
-async function extractPdfText(filePath) {
-  try {
-    const pdfParse = require('pdf-parse');
-    const buf = fs.readFileSync(filePath);
-    const data = await pdfParse(buf);
-    return (data.text || '').slice(0, 12000);
-  } catch {
-    return null;
-  }
-}
-
-async function extractDocText(filePath) {
-  try {
-    const mammoth = require('mammoth');
-    const result = await mammoth.extractRawText({ path: filePath });
-    return (result.value || '').slice(0, 12000);
-  } catch {
-    return null;
-  }
-}
+const ALLOWED_EXT = [
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.pptx',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.mp3',
+  '.m4a',
+  '.wav',
+  '.webm',
+  '.txt',
+  '.csv'
+];
 
 function mimeFromExt(ext) {
   if (['.png'].includes(ext)) return 'image/png';
@@ -118,11 +115,21 @@ async function processUploadedFile(file, userText = '', ctx = {}) {
     return { text: enrichedText, meta };
   }
 
-  if (['.pdf', '.doc', '.docx'].includes(ext)) {
+  if (['.pdf', '.doc', '.docx', '.xlsx', '.xls', '.pptx', '.txt', '.csv'].includes(ext)) {
     meta.type = 'documento';
-    const extracted =
-      ext === '.pdf' ? await extractPdfText(file.path) : await extractDocText(file.path);
-    const docText = extracted || '(não foi possível extrair texto do documento)';
+    const extraction = await documentTextExtractor.extractFromPath(file.path, file.originalname || '', {
+      module: 'registro_inteligente',
+      user: { id: userId, company_id: companyId }
+    });
+
+    if (!extraction.ok) {
+      throw new Error(
+        extraction.error ||
+          'Não foi possível extrair conteúdo deste arquivo. Formato não suportado ou arquivo corrompido.'
+      );
+    }
+
+    const docText = extraction.text;
 
     if (docText && ai.chatCompletion) {
       try {
@@ -136,6 +143,9 @@ async function processUploadedFile(file, userText = '', ctx = {}) {
       }
     }
 
+    meta.extractor = extraction.extractor;
+    meta.extraction_chars = extraction.chars;
+
     enrichedText = [
       '[Anexo: documento]',
       meta.document_summary ? `Resumo: ${meta.document_summary}` : null,
@@ -148,7 +158,9 @@ async function processUploadedFile(file, userText = '', ctx = {}) {
     return { text: enrichedText, meta };
   }
 
-  throw new Error('Tipo de arquivo não suportado. Use foto (PNG/JPG), documento (PDF/DOC) ou áudio (MP3/M4A/WAV).');
+  throw new Error(
+    'Tipo de arquivo não suportado. Use foto (PNG/JPG), documento (PDF/DOC/DOCX/XLSX/PPTX/TXT) ou áudio (MP3/M4A/WAV).'
+  );
 }
 
 module.exports = {

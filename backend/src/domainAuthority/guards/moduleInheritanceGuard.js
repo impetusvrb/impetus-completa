@@ -20,7 +20,7 @@ function filterModulesWithInheritance(modules, axis, meta = {}) {
     let ok = true;
     let reason = null;
 
-    if (entry?.level === ehs.INHERITANCE.EXCLUSIVE && entry.owner_axis !== axis) {
+    if (entry?.level === ehs.INHERITANCE.EXCLUSIVE && entry.owner_axis !== axis && !(entry.shared_with || []).includes(axis)) {
       ok = false;
       reason = 'exclusive_other_domain';
     } else if (entry?.level === ehs.INHERITANCE.RESTRICTED && entry.owner_axis !== axis && !(entry.shared_with || []).includes(axis)) {

@@ -4,14 +4,34 @@
  */
 'use strict';
 
-const { livingSeed, seededFloat } = require('./cognitiveLivingEnrichment');
+const { livingSeed, seededFloat, isLivingEnrichmentEnabled } = require('./cognitiveLivingEnrichment');
 const presence = require('./organizationalPresenceEngine');
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function buildCognitiveCore(seed, mode) {
+function buildCognitiveCore(seed, mode, livingOn = false) {
+  if (!livingOn) {
+    return {
+      name: 'IMPETUS Cognitive Core',
+      codename: 'Central Cognitive Engine',
+      version: '2.0',
+      operational_mode: mode,
+      status: {
+        cognitive_core: 'STANDBY',
+        behavior_mapping: 'AWAITING_DATA',
+        cross_analysis: 'DISABLED',
+        operational_sync: '—',
+        organizational_awareness: 'AWAITING_CADASTRO',
+        digital_twin_sync: '—',
+        predictive_engine: 'STANDBY',
+        predictive_layer: 'STANDBY'
+      },
+      throughput_events_per_min: 0,
+      awareness_level_pct: null
+    };
+  }
   const running = seededFloat(seed, 300, 0, 1) > 0.2;
   return {
     name: 'IMPETUS Cognitive Core',
@@ -33,19 +53,25 @@ function buildCognitiveCore(seed, mode) {
   };
 }
 
-function buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode = '') {
+function buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode = '', livingOn = false) {
   const sectors = heatmap.map((s) => ({
     id: s.id,
     name: s.name,
     role: 'sector',
-    productivity_index: clamp(Math.round(100 - s.intensity * 0.45 + seededFloat(seed, 310 + s.id, -5, 8)), 52, 96),
-    communication_flow: clamp(Math.round(s.sync_pct || 75 - seededFloat(seed, 320 + s.id, 0, 12)), 48, 95),
+    productivity_index: livingOn
+      ? clamp(Math.round(100 - s.intensity * 0.45 + seededFloat(seed, 310 + s.id, -5, 8)), 52, 96)
+      : s.intensity != null
+        ? clamp(Math.round(100 - s.intensity * 0.45), 0, 100)
+        : null,
+    communication_flow: livingOn
+      ? clamp(Math.round(s.sync_pct || 75 - seededFloat(seed, 320 + s.id, 0, 12)), 48, 95)
+      : s.sync_pct ?? null,
     operational_heat: s.intensity,
     tension: s.label,
     signals: s.intensity >= 55 ? ['pressão', 'monitorar'] : ['estável']
   }));
 
-  if (!sectors.length) {
+  if (!sectors.length && livingOn) {
     const defaults =
       profileCode?.includes('quality') || orgCtx.functional_area === 'quality'
         ? ['Qualidade', 'Produção', 'Laboratório', 'Logística']
@@ -64,6 +90,26 @@ function buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode = 
         signals: ['sincronizado']
       });
     });
+  }
+
+  if (!sectors.length && !livingOn) {
+    return {
+      label: 'Digital Twin Organizacional',
+      subtitle: 'Cadastre departamentos, setores e equipamentos na Base Estrutural',
+      hierarchy: {
+        root: orgCtx.cargo || '—',
+        department: orgCtx.departamento || '—',
+        sector: orgCtx.setor || '—',
+        level: orgCtx.hierarchy_level ?? null
+      },
+      sectors: [],
+      aggregate: {
+        organizational_health: null,
+        operational_maturity_pct: null,
+        sync_index: null
+      },
+      data_state: 'empty'
+    };
   }
 
   return {
@@ -464,13 +510,63 @@ function composeOrganizationalIntelligence(ctx) {
     profileCode,
     org_map,
     neural_graph,
-    audience
+    audience,
+    livingOn: livingOnCtx
   } = ctx;
 
+  const livingOn = livingOnCtx !== undefined ? livingOnCtx : isLivingEnrichmentEnabled();
   const seed = livingSeed(companyId);
 
-  const cognitive_core = buildCognitiveCore(seed, mode);
-  let digital_twin = buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode);
+  if (!livingOn) {
+    const cognitive_core = buildCognitiveCore(seed, mode, false);
+    let digital_twin = buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode, false);
+    if (audience) {
+      const { filterDigitalTwin } = require('./cognitiveAudienceResolver');
+      digital_twin = filterDigitalTwin(digital_twin, audience);
+    }
+    return {
+      cognitive_core,
+      digital_twin,
+      multi_agents: { agents: [], status: 'AWAITING_DATA' },
+      consciousness: {
+        active_phrase: 'Aguardando cadastro estrutural e dados operacionais',
+        level_pct: null
+      },
+      operational_narrative: {
+        headline: 'Cadastre departamentos, setores e equipamentos na Base Estrutural',
+        events: []
+      },
+      cause_effect: { chains: [] },
+      advanced_predictions: { items: [] },
+      organizational_memory: { patterns: (feed || []).slice(0, 5) },
+      strategic_intelligence: { items: [] },
+      autonomous_focus: { focus_areas: [] },
+      org_map: org_map || { nodes: [], flows: [] },
+      blackbox: {
+        engines: Object.entries(cognitive_core.status).map(([id, status]) => ({
+          id,
+          label: id,
+          status
+        })),
+        background_log: [],
+        hidden_processes: []
+      },
+      timeline,
+      feed,
+      neural_graph: neural_graph || { nodes: [], links: [] },
+      ambient: { mood: 'idle', scanner_speed: 0, glow_intensity: 0, pulse_rate: 0 },
+      global_whispers: [],
+      global_presence: { level: null },
+      organizational_energy: null,
+      emergent_insights: [],
+      decision_engine: { queue: [] },
+      cognitive_timeline: timeline,
+      awareness_mode: 'awaiting_data'
+    };
+  }
+
+  const cognitive_core = buildCognitiveCore(seed, mode, livingOn);
+  let digital_twin = buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode, livingOn);
   const multi_agents = buildMultiAgents(orgCtx, global, tension, seed, audience);
   const consciousness = buildConsciousness(seed);
   const operational_narrative = buildOperationalNarrative(orgCtx, global, tension, seed);

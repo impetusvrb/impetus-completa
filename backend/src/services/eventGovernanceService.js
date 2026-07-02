@@ -212,6 +212,17 @@ function evaluateEvent(event) {
     confidence: confidenceScore
   });
 
+  let decisionContext = null;
+  try {
+    const memoryIntegration = require('./governanceMemoryIntegrationService');
+    const memoryCtx = memoryIntegration.buildMemoryContext(event, policy);
+    if (memoryCtx) {
+      decisionContext = Object.freeze({ memory: Object.freeze(memoryCtx) });
+    }
+  } catch {
+    /* memory enrichment optional */
+  }
+
   return {
     approved: true,
     policyId: policy.id,
@@ -219,7 +230,8 @@ function evaluateEvent(event) {
     escalationLevel,
     recipients,
     shadowMode,
-    decision
+    decision,
+    decisionContext
   };
 }
 

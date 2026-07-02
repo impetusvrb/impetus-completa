@@ -1,0 +1,62 @@
+/**
+ * UI-GLOBAL-OVERLAY-001 — Popover do cabeçalho (portal, viewport-aware)
+ */
+
+html.impetus-header-popover-open .content {
+  overflow: hidden !important;
+}
+
+.header-popover {
+  display: flex;
+  flex-direction: column;
+  min-width: min(280px, calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: min(92vw, 420px);
+  width: max-content;
+  box-sizing: border-box;
+  background: var(--bg-primary, #070c14);
+  border: 1px solid var(--border-subtle, #243848);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 212, 255, 0.08);
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.header-popover--ready {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.header-popover__title {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.header-popover__header {
+  flex-shrink: 0;
+}
+
+.header-popover__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.header-popover.header-dropdown--notifications {
+  min-width: min(320px, calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: min(92vw, 420px);
+}
+
+.header-popover .header-dropdown__notif-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.header-popover .header-dropdown__filter-row {
+  max-height: none;
+}

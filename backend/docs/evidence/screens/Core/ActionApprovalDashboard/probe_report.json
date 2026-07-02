@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/action-approvals",
   "probes": [
-    "GET /api/action-runtime/approvals?limit=5"
+    "GET /api/workflow-engine/approvals/pending?limit=5"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/action-runtime/approvals?limit=5",
-      "status": 401,
+      "spec": "GET /api/workflow-engine/approvals/pending?limit=5",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.684Z"
+  "at": "2026-06-26T01:52:10.404Z"
 }

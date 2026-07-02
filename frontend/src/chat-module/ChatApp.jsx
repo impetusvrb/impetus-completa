@@ -237,7 +237,20 @@ export default function ChatApp(){
         ]);
       }
     }catch(e){
-      setAiMessages(prev=>[...prev,{id:Date.now()+1,content:'Erro ao conectar com a IA.',isUser:false,created_at:new Date().toISOString()}]);
+      const errMsg =
+        e?.response?.data?.error ||
+        e?.response?.data?.message ||
+        e?.response?.data?.reply ||
+        (e?.response?.status
+          ? `Erro ${e.response.status}: ${e?.response?.data?.code || 'falha na API de IA'}`
+          : null) ||
+        (e?.message && !/^network error$/i.test(e.message) ? e.message : null);
+      setAiMessages(prev=>[...prev,{
+        id:Date.now()+1,
+        content: errMsg || 'Erro ao conectar com a IA.',
+        isUser:false,
+        created_at:new Date().toISOString()
+      }]);
     } finally{ setAiLoading(false); }
   }
 

@@ -70,13 +70,17 @@ export default function StockPanel({ stock = [], twins = [], profile, onCreatePu
                 type="button"
                 className={styles.btnPrimary}
                 onClick={async () => {
-                  await onCreatePurchaseOrder?.({
-                    itemId: poItem.id,
-                    code: poItem.code,
-                    qty: poQty,
-                    note: poNote
-                  });
-                  setPoItem(null);
+                  try {
+                    await onCreatePurchaseOrder?.({
+                      itemId: poItem.id,
+                      code: poItem.code,
+                      qty: poQty,
+                      note: poNote
+                    });
+                    setPoItem(null);
+                  } catch {
+                    /* feedback no módulo pai */
+                  }
                 }}
               >
                 Enviar pedido

@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const STORE_DIR = path.join(__dirname, '../../../../data/governance-learning');
+const { dataSubdir } = require('../../../config/impetusHome');
+const STORE_DIR = dataSubdir('governance-learning');
 
 function _ensureDir() {
   try {

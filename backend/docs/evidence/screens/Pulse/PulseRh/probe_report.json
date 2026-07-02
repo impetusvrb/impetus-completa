@@ -1,0 +1,21 @@
+{
+  "route": "/app/pulse-rh",
+  "probes": [
+    "GET /api/pulse/hr/company-settings",
+    "GET /api/pulse/hr/campaigns"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/pulse/hr/company-settings",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "spec": "GET /api/pulse/hr/campaigns",
+      "status": 403,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:27:46.560Z"
+}

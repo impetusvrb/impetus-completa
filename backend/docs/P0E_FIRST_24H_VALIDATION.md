@@ -1,41 +1,33 @@
 # P0E — First 24h Validation
 
-**Gerado:** 2026-06-15T15:31:37.285Z
+**Gerado:** 2026-06-26T16:39:55.377Z
 
 ```json
 {
   "window_hours": 24,
-  "ioe_total": 13156,
-  "ioe_per_hour": 548.2,
-  "deliveries_total": 13155,
-  "deliveries_per_hour": 548.1,
+  "ioe_total": 16,
+  "ioe_per_hour": 0.7,
+  "deliveries_total": 0,
+  "deliveries_per_hour": 0,
   "hourly_ioe": [
     {
-      "hour": "2026-06-12T22:00:00.000Z",
-      "cnt": 13100
+      "hour": "2026-06-26T16:00:00.000Z",
+      "cnt": 5
     },
     {
-      "hour": "2026-06-12T21:00:00.000Z",
-      "cnt": 31
+      "hour": "2026-06-26T15:00:00.000Z",
+      "cnt": 3
     },
     {
-      "hour": "2026-06-12T20:00:00.000Z",
-      "cnt": 10
-    },
-    {
-      "hour": "2026-06-12T18:00:00.000Z",
-      "cnt": 4
-    },
-    {
-      "hour": "2026-06-12T17:00:00.000Z",
+      "hour": "2026-06-26T02:00:00.000Z",
       "cnt": 6
     },
     {
-      "hour": "2026-06-12T15:00:00.000Z",
-      "cnt": 4
+      "hour": "2026-06-25T16:00:00.000Z",
+      "cnt": 1
     },
     {
-      "hour": "2026-06-12T04:00:00.000Z",
+      "hour": "2026-06-25T14:00:00.000Z",
       "cnt": 1
     }
   ],
@@ -49,9 +41,9 @@
   "pm2": {
     "found": true,
     "status": "online",
-    "restarts": 366,
+    "restarts": 496,
     "unstable_restarts": 0,
-    "uptime_hours": 0.1,
+    "uptime_hours": 0,
     "memory_bytes": 0,
     "cpu_pct": 0
   },

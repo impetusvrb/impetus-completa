@@ -136,8 +136,8 @@ async function loadTimeline(companyId, limit = 10) {
     items.push({
       time: formatTime(new Date()),
       ts: new Date().toISOString(),
-      label: 'Sistema cognitivo ativo',
-      detail: 'Monitoramento contínuo iniciado'
+      label: 'Sem eventos operacionais',
+      detail: 'Aguardando dados reais'
     });
   }
   return items;
@@ -157,7 +157,9 @@ async function loadSectorHeatmap(companyId) {
       [companyId]
     );
     for (const row of depts.rows || []) {
-      const intensity = clamp(parseInt(row.alert_hint || 0, 10) * 18 + 20, 15, 95);
+      const hint = parseInt(row.alert_hint || 0, 10);
+      if (hint < 1) continue;
+      const intensity = clamp(hint * 18 + 20, 15, 95);
       sectors.push({
         id: row.id,
         name: row.name,
@@ -166,15 +168,7 @@ async function loadSectorHeatmap(companyId) {
       });
     }
   } catch (_) {
-    sectors.push(
-      { id: 'prod', name: 'Produção', intensity: 55, label: 'atenção' },
-      { id: 'man', name: 'Manutenção', intensity: 72, label: 'crítico' },
-      { id: 'qual', name: 'Qualidade', intensity: 38, label: 'estável' },
-      { id: 'rh', name: 'RH', intensity: 42, label: 'atenção' }
-    );
-  }
-  if (!sectors.length) {
-    sectors.push({ id: 'org', name: 'Organização', intensity: 40, label: 'estável' });
+    /* sem dados fictícios em instalação limpa */
   }
   return sectors;
 }
@@ -377,11 +371,16 @@ async function buildCognitivePulse(user) {
   }
 
   const seed = living.livingSeed(companyId);
+  const livingOn = living.isLivingEnrichmentEnabled();
   let global = buildGlobalCognitiveMetrics(orgCtx, tasks, alerts, profileCode);
-  global = living.applyLivingOscillation(global, seed);
+  if (livingOn) {
+    global = living.applyLivingOscillation(global, seed);
+  }
 
   let heatmap = await loadSectorHeatmap(companyId);
-  heatmap = living.enrichHeatmap(heatmap, seed);
+  if (livingOn) {
+    heatmap = living.enrichHeatmap(heatmap, seed);
+  }
 
   let feed = await loadRecentFeedEventsWithTasks(companyId, user, scope, 8);
   try {
@@ -431,19 +430,70 @@ async function buildCognitivePulse(user) {
   } catch (plcFeedErr) {
     console.warn('[COGNITIVE_PULSE][plc_anomaly_feed]', plcFeedErr?.message ?? plcFeedErr);
   }
-  feed = living.expandFeedIntelligently(feed, orgCtx, global, seed, 20);
+  feed = livingOn
+    ? living.expandFeedIntelligently(feed, orgCtx, global, seed, 20)
+    : feed.slice(0, 8);
 
   let timeline = await loadTimeline(companyId, 6);
-  timeline = living.enrichTimeline(timeline, seed, audience);
+  if (livingOn) {
+    timeline = living.enrichTimeline(timeline, seed, audience);
+  }
 
-  const curves = living.buildPredictionCurves(seed, audience);
+  const hasOperationalData =
+    alerts.length > 0 || feed.length > 0 || (tasks?.total ?? 0) > 0;
+
+  if (!livingOn && !hasOperationalData) {
+    global = {
+      global_efficiency_pct: null,
+      operational_risk: '—',
+      operational_risk_score: null,
+      ia_confidence_pct: null,
+      organizational_climate: '—',
+      operational_climate: '—',
+      active_bottleneck: '—',
+      most_critical_sector: '—',
+      cognitive_status: 'AGUARDANDO_DADOS',
+      open_tasks: tasks?.open ?? 0,
+      critical_alerts: 0,
+      productivity_delta_pct: null,
+      interaction_delta_pct: null,
+      risk_delta: null
+    };
+    feed = [];
+    timeline = [];
+  }
+
+  const curves = livingOn ? living.buildPredictionCurves(seed, audience) : [];
   let predictions = buildPredictions(global, orgCtx);
-  predictions = living.enrichPredictions(predictions, curves, global, audience);
+  if (livingOn) {
+    predictions = living.enrichPredictions(predictions, curves, global, audience);
+  }
 
-  const tension = living.buildOrganizationalTension(global, heatmap, seed);
-  const global_operation = living.buildGlobalOperationState(global, heatmap, orgCtx, seed);
-  let org_map = await living.loadOrgMap(companyId, heatmap, seed);
-  const neural_graph = living.buildNeuralGraph(heatmap, global);
+  const tension = livingOn
+    ? living.buildOrganizationalTension(global, heatmap, seed)
+    : {
+        organizational_sync_pct: null,
+        operational_pressure: '—',
+        intersector_confidence: '—',
+        operational_tension: '—',
+        leadership_stability: '—',
+        sector_friction_index: 0
+      };
+  const global_operation = livingOn
+    ? living.buildGlobalOperationState(global, heatmap, orgCtx, seed)
+    : {
+        headline: heatmap.length ? 'Operação monitorada' : 'Aguardando cadastro operacional',
+        organizational_health_pct: null,
+        global_risk: global.operational_risk || '—',
+        communication_health: '—',
+        sectors_watching: heatmap.filter((h) => h.intensity >= 45).map((h) => h.name)
+      };
+  let org_map = livingOn
+    ? await living.loadOrgMap(companyId, heatmap, seed)
+    : await living.loadOrgMap(companyId, heatmap, seed);
+  const neural_graph = livingOn
+    ? living.buildNeuralGraph(heatmap, global)
+    : { nodes: [], links: [] };
 
   const mode = inferOperationalMode(
     {
@@ -467,25 +517,31 @@ async function buildCognitivePulse(user) {
     profileCode,
     org_map,
     neural_graph,
-    audience
+    audience,
+    livingOn
   });
 
   org_map = intelligence.org_map;
   const blackbox = intelligence.blackbox;
 
   let ia_observations = buildIaObservations(orgCtx, global, profileCode);
-  ia_observations = living.enrichIaObservations(ia_observations, orgCtx, tension, global_operation, audience);
+  if (livingOn) {
+    ia_observations = living.enrichIaObservations(ia_observations, orgCtx, tension, global_operation, audience);
+  }
 
   const organizational_insights = buildOrganizationalInsights(orgCtx);
   const radar = buildRadarSignals(alerts, tasks);
   let memory = buildMemoryHints(orgCtx, feed);
-  memory = living.enrichMemory(memory, seed);
+  if (livingOn) {
+    memory = living.enrichMemory(memory, seed);
+  }
 
   const pulse = {
     ok: true,
     engine: 'organizational_intelligence',
     captured_at: new Date().toISOString(),
     operational_mode: mode,
+    data_state: hasOperationalData ? (livingOn ? 'enriched' : 'live') : 'empty',
     organizational_context: {
       valid: orgCtx.valid,
       cargo: orgCtx.cargo,
@@ -509,7 +565,7 @@ async function buildCognitivePulse(user) {
     organizational_insights,
     radar,
     memory,
-    living: true,
+    living: livingOn,
     cognitive_core: intelligence.cognitive_core,
     digital_twin: intelligence.digital_twin,
     multi_agents: intelligence.multi_agents,

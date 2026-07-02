@@ -1,0 +1,992 @@
+/* ═══════════════════════════════════════════════════════════
+   GÊMEO DIGITAL APLICADO — Design System Industrial 4.0
+   ═══════════════════════════════════════════════════════════ */
+
+.gda-module {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 400px;
+}
+
+/* Header */
+.gda-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  border-bottom: 2px solid var(--cyan);
+}
+
+.gda-header__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cyan);
+}
+
+.gda-header__title h2 {
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.gda-header__subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+}
+
+.gda-header__actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Navigation buttons */
+.gda-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-nav-btn:hover {
+  border-color: var(--border-active);
+  color: var(--cyan);
+}
+
+.gda-nav-btn--active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: var(--glow-cyan);
+}
+
+/* KPI Strip */
+.gda-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.gda-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  border-left: 3px solid var(--kpi-accent, var(--cyan));
+}
+
+.gda-kpi-icon {
+  color: var(--kpi-accent, var(--cyan));
+  opacity: 0.9;
+}
+
+.gda-kpi-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.gda-kpi-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.gda-kpi-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Section title */
+.gda-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.gda-section-title svg {
+  color: var(--cyan);
+}
+
+/* Buttons */
+.gda-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--cyan);
+  border-radius: 4px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--cyan);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gda-primary-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.2);
+  box-shadow: var(--glow-cyan);
+}
+
+.gda-primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gda-btn--sm {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}
+
+.gda-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gda-secondary-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.gda-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.gda-ghost-btn:hover {
+  color: var(--cyan);
+}
+
+/* Select */
+.gda-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.gda-select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
+}
+
+.gda-select--sm {
+  width: auto;
+  min-width: 200px;
+}
+
+.gda-form-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Diagnose form */
+.gda-diagnose-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-diagnose-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Error */
+.gda-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 64, 64, 0.08);
+  border: 1px solid rgba(255, 64, 64, 0.3);
+  border-radius: 4px;
+  color: var(--red);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+}
+
+/* Empty */
+.gda-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+}
+
+/* Criticality badge */
+.gda-criticality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--badge-color, var(--green));
+  border-radius: 3px;
+  color: var(--badge-color, var(--green));
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Sensor dot */
+.gda-sensor-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: gdaBlink 2s ease-in-out infinite;
+}
+
+@keyframes gdaBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Diagnosis panel */
+.gda-diagnosis-panel {
+  padding: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-diagnosis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.gda-diagnosis-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.gda-diagnosis-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-diagnosis-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* Sensor analysis */
+.gda-sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gda-sensor-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.gda-sensor-card[data-status="critical"],
+.gda-sensor-card[data-status="failure"] {
+  border-color: rgba(255, 64, 64, 0.4);
+}
+
+.gda-sensor-card[data-status="attention"] {
+  border-color: rgba(255, 170, 0, 0.4);
+}
+
+.gda-sensor-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.gda-sensor-trend {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.gda-sensor-detail {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  width: 100%;
+}
+
+/* Differential diagnosis */
+.gda-diff-list {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.gda-diff-list li {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Recommendation */
+.gda-recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+.gda-recommendation svg {
+  color: var(--cyan);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Visual cards */
+.gda-visuals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.gda-visual-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-visual-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cyan);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-visual-card__desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.gda-visual-components {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.gda-visual-component-item {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--green);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.gda-visual-meta {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.gda-visual-annotation {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
+.gda-visual-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gda-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-tag--red {
+  background: rgba(255, 64, 64, 0.12);
+  border: 1px solid rgba(255, 64, 64, 0.3);
+  color: var(--red);
+}
+
+.gda-safety-warnings {
+  margin-top: 10px;
+}
+
+.gda-safety-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 170, 0, 0.06);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+  border-radius: 3px;
+  color: var(--amber);
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.gda-ai-disclaimer {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Trend panel */
+.gda-trend-panel {
+  padding: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-trend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gda-trend-card {
+  padding: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.gda-trend-card[data-status="critical"],
+.gda-trend-card[data-status="failure"] {
+  border-color: rgba(255, 64, 64, 0.4);
+}
+
+.gda-trend-card[data-status="attention"] {
+  border-color: rgba(255, 170, 0, 0.4);
+}
+
+.gda-trend-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.85rem;
+}
+
+.gda-trend-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gda-trend-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.gda-trend-label {
+  color: var(--text-tertiary);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.gda-trend-value {
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.gda-trend-dir--rising { color: var(--red); }
+.gda-trend-dir--falling { color: var(--green); }
+.gda-trend-dir--stable { color: var(--text-secondary); }
+
+.gda-trend-alarm {
+  background: rgba(255, 64, 64, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* Prediction */
+.gda-prediction-panel {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+  border-radius: 6px;
+}
+
+.gda-prediction-panel h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+}
+
+.gda-prediction-grid {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.gda-prediction-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gda-prediction-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.gda-prediction-label {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.gda-prediction-detail {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
+/* Procedure panel */
+.gda-procedure-panel {
+  padding: 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-procedure-section {
+  margin-bottom: 16px;
+}
+
+.gda-procedure-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 8px;
+}
+
+.gda-procedure-section h4 svg {
+  color: var(--cyan);
+}
+
+.gda-procedure-section p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.gda-procedure-list {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.gda-procedure-list li {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.gda-loto {
+  padding: 14px;
+  background: rgba(255, 64, 64, 0.04);
+  border: 1px solid rgba(255, 64, 64, 0.15);
+  border-radius: 4px;
+}
+
+.gda-loto h4 {
+  color: var(--red) !important;
+}
+
+.gda-procedure-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
+
+.gda-procedure-meta svg {
+  color: var(--cyan);
+}
+
+/* History */
+.gda-history-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.gda-diagnostics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gda-diag-card {
+  padding: 14px 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gda-diag-card:hover {
+  border-color: var(--border-active);
+  background: var(--bg-tertiary);
+}
+
+.gda-diag-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.gda-diag-machine {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-diag-card__body p {
+  margin: 2px 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.gda-diag-card__footer {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.gda-status {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gda-status--active { color: var(--cyan); }
+.gda-status--resolved { color: var(--green); }
+.gda-status--escalated { color: var(--amber); }
+.gda-status--archived { color: var(--text-tertiary); }
+
+/* Top failures */
+.gda-top-failures {
+  padding: 16px 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.gda-failures-table {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.gda-ft-header {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.7rem;
+}
+
+.gda-ft-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+}
+
+.gda-ft-count {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.gda-ft-eff--effective { color: var(--green); }
+.gda-ft-eff--partial { color: var(--amber); }
+.gda-ft-eff--ineffective { color: var(--red); }
+
+/* Dashboard actions */
+.gda-dash-actions {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 0;
+}
+
+/* Result nav */
+.gda-result__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Loading overlay */
+.gda-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 12, 20, 0.7);
+  border-radius: 6px;
+  z-index: 10;
+  color: var(--cyan);
+}
+
+.gda-spin {
+  animation: gdaSpin 1s linear infinite;
+}
+
+@keyframes gdaSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Mobile: ManuIA Campo ── */
+@media (max-width: 767px) {
+  .gda-module {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .gda-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .gda-header__actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .gda-nav-btn {
+    flex: 1 1 calc(33.33% - 4px);
+    min-width: 0;
+    justify-content: center;
+    font-size: 0.72rem;
+    padding: 8px 6px;
+  }
+
+  .gda-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gda-diagnosis-grid,
+  .gda-sensor-grid,
+  .gda-trend-grid,
+  .gda-visuals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gda-diagnose-actions {
+    flex-direction: column;
+  }
+
+  .gda-diagnose-actions .gda-primary-btn,
+  .gda-diagnose-actions .gda-secondary-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .gda-ft-header {
+    display: none;
+  }
+
+  .gda-ft-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .gda-ft-row span {
+    font-size: 0.82rem;
+  }
+
+  .gda-result__nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .gda-result__nav .gda-primary-btn,
+  .gda-result__nav .gda-ghost-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 390px) {
+  .gda-nav-btn {
+    flex: 1 1 100%;
+  }
+
+  .gda-kpi-strip {
+    grid-template-columns: 1fr;
+  }
+}

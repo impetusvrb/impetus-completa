@@ -6,10 +6,10 @@
   "probeResults": [
     {
       "spec": "GET /api/safety-operational/events/summary",
-      "status": 401,
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.831Z"
+  "at": "2026-06-25T16:08:52.162Z"
 }

@@ -4,10 +4,10 @@
     "ok": true,
     "alerts": [
       {
-        "id": "4ee7fbd7-2f93-4752-943e-fed408022773",
+        "id": "b3f4eec9-5eec-49b2-9e0f-c0ddc112fb64",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_training_expired",
-        "titulo": "[CERT cert-sst-1782132392867] NR-35 vencida",
+        "titulo": "[CERT cert-sst-1782487694091] NR-35 vencida",
         "mensagem": "Treinamento trabalho em altura vencido — operador setor A.",
         "severidade": "media",
         "equipamento": null,
@@ -17,22 +17,22 @@
         "metadata": {
           "nr": "NR-35",
           "kind": "training_expired",
-          "cert_run": "cert-sst-1782132392867",
+          "cert_run": "cert-sst-1782487694091",
           "location": "Setor A",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "6875f01a-f7a5-4f23-870d-4e57106564a5"
+          "correlation_id": "ecf3d77b-ea2f-4f3d-a911-fbd4a658de57"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:46:33.307Z",
+        "created_at": "2026-06-26T15:28:14.494Z",
         "source": "safety_operational"
       },
       {
-        "id": "ba08c7c1-dc46-4974-9538-c85e949cf6c1",
+        "id": "b6fb7d30-55fb-4d57-a2ad-ff45b81272cb",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT cert-sst-1782132392867] Quase-acidente — empilhadeira",
+        "titulo": "[CERT cert-sst-1782487694091] Quase-acidente — empilhadeira",
         "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
         "severidade": "media",
         "equipamento": null,
@@ -41,22 +41,22 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "near_miss",
-          "cert_run": "cert-sst-1782132392867",
+          "cert_run": "cert-sst-1782487694091",
           "location": "Pátio logístico",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "6875f01a-f7a5-4f23-870d-4e57106564a5"
+          "correlation_id": "ecf3d77b-ea2f-4f3d-a911-fbd4a658de57"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:46:33.234Z",
+        "created_at": "2026-06-26T15:28:14.398Z",
         "source": "safety_operational"
       },
       {
-        "id": "a998f588-4c31-4b83-aa65-d7ec01cd2871",
+        "id": "eca2057b-a7cd-4f7c-b535-8bb6576df396",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT cert-sst-1782132392867] Incidente — queda de objeto",
+        "titulo": "[CERT cert-sst-1782487694091] Incidente — queda de objeto",
         "mensagem": "Objeto metálico caiu de prateleira linha 2. Sem vítimas.",
         "severidade": "alta",
         "equipamento": null,
@@ -65,22 +65,22 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "incident",
-          "cert_run": "cert-sst-1782132392867",
+          "cert_run": "cert-sst-1782487694091",
           "location": "Linha 2 — Armazém",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "6875f01a-f7a5-4f23-870d-4e57106564a5"
+          "correlation_id": "ecf3d77b-ea2f-4f3d-a911-fbd4a658de57"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:46:33.059Z",
+        "created_at": "2026-06-26T15:28:14.258Z",
         "source": "safety_operational"
       },
       {
-        "id": "5352d861-5eb8-4996-878f-5081cc6d4356",
+        "id": "1321088c-7dcd-497a-815f-a46cb534e3ff",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782129905070] Quase-acidente 3",
+        "titulo": "[CERT-AIOI cert-p72-1782440376256] Quase-acidente 3",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -91,19 +91,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "b2db249e-6201-4543-af75-9bf0932f1542"
+          "correlation_id": "b771a87c-6760-487e-b29d-20371d394f51"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:09.847Z",
+        "created_at": "2026-06-26T02:19:38.864Z",
         "source": "safety_operational"
       },
       {
-        "id": "82f9e9d2-9f91-43be-ab46-0fec7560a356",
+        "id": "d81a9d81-058c-4d71-8393-3d22eadba435",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782129905070] Quase-acidente 2",
+        "titulo": "[CERT-AIOI cert-p72-1782440376256] Quase-acidente 2",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -114,19 +114,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "b2db249e-6201-4543-af75-9bf0932f1542"
+          "correlation_id": "b771a87c-6760-487e-b29d-20371d394f51"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:09.682Z",
+        "created_at": "2026-06-26T02:19:38.790Z",
         "source": "safety_operational"
       },
       {
-        "id": "910b7669-54e1-4808-947d-b9f736349330",
+        "id": "fdc57365-d429-4220-9bf2-61223d765db8",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782129905070] Quase-acidente 1",
+        "titulo": "[CERT-AIOI cert-p72-1782440376256] Quase-acidente 1",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -137,19 +137,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "b2db249e-6201-4543-af75-9bf0932f1542"
+          "correlation_id": "b771a87c-6760-487e-b29d-20371d394f51"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:09.541Z",
+        "created_at": "2026-06-26T02:19:38.731Z",
         "source": "safety_operational"
       },
       {
-        "id": "a894e3a4-c477-4a76-a30b-ab47096009f8",
+        "id": "b4a88b19-7050-4451-be7a-7652e05c51c0",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT-EG cert-p72-1782129905070] Evento governado",
+        "titulo": "[CERT-EG cert-p72-1782440376256] Evento governado",
         "mensagem": "Teste política SST_LIFECYCLE",
         "severidade": "alta",
         "equipamento": null,
@@ -160,19 +160,19 @@
           "kind": "incident",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "b2db249e-6201-4543-af75-9bf0932f1542"
+          "correlation_id": "b771a87c-6760-487e-b29d-20371d394f51"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:08.855Z",
+        "created_at": "2026-06-26T02:19:38.307Z",
         "source": "safety_operational"
       },
       {
-        "id": "ea3119d6-30e8-41a5-b94a-b27ac95888a8",
+        "id": "0482e613-a368-4381-a156-c77e121e6556",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_training_expired",
-        "titulo": "[CERT cert-sst-1782129903781] NR-35 vencida",
+        "titulo": "[CERT cert-sst-1782440375690] NR-35 vencida",
         "mensagem": "Treinamento trabalho em altura vencido — operador setor A.",
         "severidade": "media",
         "equipamento": null,
@@ -182,22 +182,22 @@
         "metadata": {
           "nr": "NR-35",
           "kind": "training_expired",
-          "cert_run": "cert-sst-1782129903781",
+          "cert_run": "cert-sst-1782440375690",
           "location": "Setor A",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "a345ba83-da4f-462d-89e3-8657fb54db6f"
+          "correlation_id": "5edd405a-45f5-4f79-86c1-2762c3bfc6a5"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:04.264Z",
+        "created_at": "2026-06-26T02:19:35.923Z",
         "source": "safety_operational"
       },
       {
-        "id": "3fcd6322-8e52-4955-bd03-7e32c6c0846f",
+        "id": "20e4a154-86de-4e41-85f5-d1fcf2087ac3",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT cert-sst-1782129903781] Quase-acidente — empilhadeira",
+        "titulo": "[CERT cert-sst-1782440375690] Quase-acidente — empilhadeira",
         "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
         "severidade": "media",
         "equipamento": null,
@@ -206,22 +206,22 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "near_miss",
-          "cert_run": "cert-sst-1782129903781",
+          "cert_run": "cert-sst-1782440375690",
           "location": "Pátio logístico",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "a345ba83-da4f-462d-89e3-8657fb54db6f"
+          "correlation_id": "5edd405a-45f5-4f79-86c1-2762c3bfc6a5"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:04.104Z",
+        "created_at": "2026-06-26T02:19:35.854Z",
         "source": "safety_operational"
       },
       {
-        "id": "8bb990f9-642a-44b2-a3b4-4d1c606b4f26",
+        "id": "ee3b51e7-9c2d-4504-a6ef-e654f56abf17",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT cert-sst-1782129903781] Incidente — queda de objeto",
+        "titulo": "[CERT cert-sst-1782440375690] Incidente — queda de objeto",
         "mensagem": "Objeto metálico caiu de prateleira linha 2. Sem vítimas.",
         "severidade": "alta",
         "equipamento": null,
@@ -230,22 +230,22 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "incident",
-          "cert_run": "cert-sst-1782129903781",
+          "cert_run": "cert-sst-1782440375690",
           "location": "Linha 2 — Armazém",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "a345ba83-da4f-462d-89e3-8657fb54db6f"
+          "correlation_id": "5edd405a-45f5-4f79-86c1-2762c3bfc6a5"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-22T12:05:04.001Z",
+        "created_at": "2026-06-26T02:19:35.796Z",
         "source": "safety_operational"
       },
       {
-        "id": "5413ea23-0667-423f-80ea-521cbdb00ff4",
+        "id": "3eaf43e8-a478-4255-9d05-a271b57ecf3b",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079418244] Quase-acidente 3",
+        "titulo": "[CERT-AIOI cert-p72-1782440353432] Quase-acidente 3",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -256,19 +256,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "fbd33781-1862-4d66-b3b9-32a8e595eebe"
+          "correlation_id": "3afe0d33-4057-4ee9-b4c7-1067aa5c8d5a"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:03:40.668Z",
+        "created_at": "2026-06-26T02:19:17.827Z",
         "source": "safety_operational"
       },
       {
-        "id": "b55e1996-e130-4fbc-bac7-a1dcb7559b62",
+        "id": "cd2011c9-2fe3-4b32-b93c-cc54147bbc1b",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079418244] Quase-acidente 2",
+        "titulo": "[CERT-AIOI cert-p72-1782440353432] Quase-acidente 2",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -279,19 +279,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "fbd33781-1862-4d66-b3b9-32a8e595eebe"
+          "correlation_id": "3afe0d33-4057-4ee9-b4c7-1067aa5c8d5a"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:03:40.489Z",
+        "created_at": "2026-06-26T02:19:17.794Z",
         "source": "safety_operational"
       },
       {
-        "id": "ce5ce030-9536-49fb-b0a7-42a8157c6242",
+        "id": "bbb6bde7-4429-420a-86f4-e3da47b7592a",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079418244] Quase-acidente 1",
+        "titulo": "[CERT-AIOI cert-p72-1782440353432] Quase-acidente 1",
         "mensagem": "Correlação repetida cert",
         "severidade": "media",
         "equipamento": null,
@@ -302,19 +302,19 @@
           "kind": "near_miss",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "fbd33781-1862-4d66-b3b9-32a8e595eebe"
+          "correlation_id": "3afe0d33-4057-4ee9-b4c7-1067aa5c8d5a"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:03:40.426Z",
+        "created_at": "2026-06-26T02:19:17.754Z",
         "source": "safety_operational"
       },
       {
-        "id": "056b4038-4c5d-495c-8f6a-61b794eb0378",
+        "id": "1408f95b-e6c5-478a-ae9a-b576fd15f988",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT-EG cert-p72-1782079418244] Evento governado",
+        "titulo": "[CERT-EG cert-p72-1782440353432] Evento governado",
         "mensagem": "Teste política SST_LIFECYCLE",
         "severidade": "alta",
         "equipamento": null,
@@ -325,20 +325,45 @@
           "kind": "incident",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "fbd33781-1862-4d66-b3b9-32a8e595eebe"
+          "correlation_id": "3afe0d33-4057-4ee9-b4c7-1067aa5c8d5a"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:03:40.017Z",
+        "created_at": "2026-06-26T02:19:17.369Z",
         "source": "safety_operational"
       },
       {
-        "id": "cbd30261-6889-4986-b4ab-e02570764788",
+        "id": "7f70ca33-62d9-40a1-a353-37feda475774",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_training_expired",
+        "titulo": "[CERT cert-sst-1782440352843] NR-35 vencida",
+        "mensagem": "Treinamento trabalho em altura vencido — operador setor A.",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "nr": "NR-35",
+          "kind": "training_expired",
+          "cert_run": "cert-sst-1782440352843",
+          "location": "Setor A",
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "7aa201bf-7931-48bc-a478-1f8a75f0c586"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-26T02:19:13.141Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "9d01f9eb-fc14-441d-a1ac-38aa1ea697cc",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079312880] Quase-acidente 3",
-        "mensagem": "Correlação repetida cert",
+        "titulo": "[CERT cert-sst-1782440352843] Quase-acidente — empilhadeira",
+        "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
         "severidade": "media",
         "equipamento": null,
         "linha": null,
@@ -346,67 +371,115 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "near_miss",
-          "location": null,
+          "cert_run": "cert-sst-1782440352843",
+          "location": "Pátio logístico",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "4d355850-f228-41f0-8f1c-15dbf1006ee4"
+          "correlation_id": "7aa201bf-7931-48bc-a478-1f8a75f0c586"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:01:55.672Z",
+        "created_at": "2026-06-26T02:19:13.092Z",
         "source": "safety_operational"
       },
       {
-        "id": "8867e6e3-96ce-41fd-b110-1f36259e25c4",
-        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079312880] Quase-acidente 2",
-        "mensagem": "Correlação repetida cert",
-        "severidade": "media",
-        "equipamento": null,
-        "linha": null,
-        "responsavel_id": null,
-        "evento_origem_id": null,
-        "metadata": {
-          "kind": "near_miss",
-          "location": null,
-          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "4d355850-f228-41f0-8f1c-15dbf1006ee4"
-        },
-        "resolvido": false,
-        "resolvido_por": null,
-        "resolvido_em": null,
-        "created_at": "2026-06-21T22:01:55.635Z",
-        "source": "safety_operational"
-      },
-      {
-        "id": "a7be917f-e577-4ec8-bec7-dd653a0cf6f0",
-        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT-AIOI cert-p72-1782079312880] Quase-acidente 1",
-        "mensagem": "Correlação repetida cert",
-        "severidade": "media",
-        "equipamento": null,
-        "linha": null,
-        "responsavel_id": null,
-        "evento_origem_id": null,
-        "metadata": {
-          "kind": "near_miss",
-          "location": null,
-          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "4d355850-f228-41f0-8f1c-15dbf1006ee4"
-        },
-        "resolvido": false,
-        "resolvido_por": null,
-        "resolvido_em": null,
-        "created_at": "2026-06-21T22:01:55.594Z",
-        "source": "safety_operational"
-      },
-      {
-        "id": "387c0772-f2ae-45ee-830a-b5d95d080354",
+        "id": "208aa205-c763-4660-b681-4aff0ae78523",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT-EG cert-p72-1782079312880] Evento governado",
+        "titulo": "[CERT cert-sst-1782440352843] Incidente — queda de objeto",
+        "mensagem": "Objeto metálico caiu de prateleira linha 2. Sem vítimas.",
+        "severidade": "alta",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "incident",
+          "cert_run": "cert-sst-1782440352843",
+          "location": "Linha 2 — Armazém",
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "7aa201bf-7931-48bc-a478-1f8a75f0c586"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-26T02:19:12.997Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "bc4af8b9-e062-47fe-a564-296d02ca7a22",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403711334] Quase-acidente 3",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "b8d433f3-4887-45e2-bb80-ea55f0bdc7da"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:08:33.697Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "545bd6a3-4344-41f8-ae01-189d83856937",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403711334] Quase-acidente 2",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "b8d433f3-4887-45e2-bb80-ea55f0bdc7da"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:08:33.665Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "991c21c5-3642-48c1-b9fc-e7eae627e041",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403711334] Quase-acidente 1",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "b8d433f3-4887-45e2-bb80-ea55f0bdc7da"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:08:33.625Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "5241dfc1-7082-4b96-b20b-be2d51e1db45",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_incident_created",
+        "titulo": "[CERT-EG cert-p72-1782403711334] Evento governado",
         "mensagem": "Teste política SST_LIFECYCLE",
         "severidade": "alta",
         "equipamento": null,
@@ -417,19 +490,19 @@
           "kind": "incident",
           "location": null,
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "4d355850-f228-41f0-8f1c-15dbf1006ee4"
+          "correlation_id": "b8d433f3-4887-45e2-bb80-ea55f0bdc7da"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T22:01:55.198Z",
+        "created_at": "2026-06-25T16:08:33.246Z",
         "source": "safety_operational"
       },
       {
-        "id": "927eb707-334b-47a0-a6e6-e60e5688b7e4",
+        "id": "7e1c6175-88ee-422f-b650-b95457c2f5d2",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_training_expired",
-        "titulo": "[CERT cert-sst-1782078195593] NR-35 vencida",
+        "titulo": "[CERT cert-sst-1782403710687] NR-35 vencida",
         "mensagem": "Treinamento trabalho em altura vencido — operador setor A.",
         "severidade": "media",
         "equipamento": null,
@@ -439,22 +512,22 @@
         "metadata": {
           "nr": "NR-35",
           "kind": "training_expired",
-          "cert_run": "cert-sst-1782078195593",
+          "cert_run": "cert-sst-1782403710687",
           "location": "Setor A",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "d4ba690d-2ed4-4688-9f75-3e66638f6bef"
+          "correlation_id": "61fa984b-b042-441f-9c79-41dbc94c19be"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T21:43:15.880Z",
+        "created_at": "2026-06-25T16:08:31.012Z",
         "source": "safety_operational"
       },
       {
-        "id": "fa1b8a30-5496-4a9f-9c45-70b9c968aee0",
+        "id": "f6633908-41e1-4d3a-9bad-b736f3ac13cc",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT cert-sst-1782078195593] Quase-acidente — empilhadeira",
+        "titulo": "[CERT cert-sst-1782403710687] Quase-acidente — empilhadeira",
         "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
         "severidade": "media",
         "equipamento": null,
@@ -463,22 +536,22 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "near_miss",
-          "cert_run": "cert-sst-1782078195593",
+          "cert_run": "cert-sst-1782403710687",
           "location": "Pátio logístico",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "d4ba690d-2ed4-4688-9f75-3e66638f6bef"
+          "correlation_id": "61fa984b-b042-441f-9c79-41dbc94c19be"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T21:43:15.798Z",
+        "created_at": "2026-06-25T16:08:30.916Z",
         "source": "safety_operational"
       },
       {
-        "id": "e427452a-a32d-49d4-97e2-8aca960c3ec8",
+        "id": "f0b2f39a-93b5-4cba-9978-dffb1767ab9d",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT cert-sst-1782078195593] Incidente — queda de objeto",
+        "titulo": "[CERT cert-sst-1782403710687] Incidente — queda de objeto",
         "mensagem": "Objeto metálico caiu de prateleira linha 2. Sem vítimas.",
         "severidade": "alta",
         "equipamento": null,
@@ -487,22 +560,114 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "incident",
-          "cert_run": "cert-sst-1782078195593",
+          "cert_run": "cert-sst-1782403710687",
           "location": "Linha 2 — Armazém",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "d4ba690d-2ed4-4688-9f75-3e66638f6bef"
+          "correlation_id": "61fa984b-b042-441f-9c79-41dbc94c19be"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T21:43:15.723Z",
+        "created_at": "2026-06-25T16:08:30.848Z",
         "source": "safety_operational"
       },
       {
-        "id": "11ef8b4b-fcb6-4594-926c-0605dde7f91e",
+        "id": "b820b851-fc40-4d18-aac2-cdc3bcd65a60",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403537095] Quase-acidente 3",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "ab6f3f27-6a96-4a5a-8fcb-00521b0fdfc6"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:05:40.070Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "30d91c7c-2ba5-4b57-9d8f-5e67923700da",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403537095] Quase-acidente 2",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "ab6f3f27-6a96-4a5a-8fcb-00521b0fdfc6"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:05:40.024Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "1f87ab1c-ef43-4883-a70c-8ae852697e05",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_near_miss",
+        "titulo": "[CERT-AIOI cert-p72-1782403537095] Quase-acidente 1",
+        "mensagem": "Correlação repetida cert",
+        "severidade": "media",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "near_miss",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "ab6f3f27-6a96-4a5a-8fcb-00521b0fdfc6"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:05:39.986Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "7da85926-44a7-4196-81f0-0345c201a698",
+        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+        "tipo_alerta": "sst_incident_created",
+        "titulo": "[CERT-EG cert-p72-1782403537095] Evento governado",
+        "mensagem": "Teste política SST_LIFECYCLE",
+        "severidade": "alta",
+        "equipamento": null,
+        "linha": null,
+        "responsavel_id": null,
+        "evento_origem_id": null,
+        "metadata": {
+          "kind": "incident",
+          "location": null,
+          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
+          "correlation_id": "ab6f3f27-6a96-4a5a-8fcb-00521b0fdfc6"
+        },
+        "resolvido": false,
+        "resolvido_por": null,
+        "resolvido_em": null,
+        "created_at": "2026-06-25T16:05:39.588Z",
+        "source": "safety_operational"
+      },
+      {
+        "id": "43596ef1-a936-4ef3-aedc-c5f263ab55e8",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_training_expired",
-        "titulo": "[CERT cert-sst-1782077780315] NR-35 vencida",
+        "titulo": "[CERT cert-sst-1782403536615] NR-35 vencida",
         "mensagem": "Treinamento trabalho em altura vencido — operador setor A.",
         "severidade": "media",
         "equipamento": null,
@@ -512,22 +677,22 @@
         "metadata": {
           "nr": "NR-35",
           "kind": "training_expired",
-          "cert_run": "cert-sst-1782077780315",
+          "cert_run": "cert-sst-1782403536615",
           "location": "Setor A",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "1c436c04-dc23-4784-9bc0-06eebcb0391e"
+          "correlation_id": "e1cf2f48-6e28-49e8-85f3-4511f952545c"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T21:36:20.659Z",
+        "created_at": "2026-06-25T16:05:36.826Z",
         "source": "safety_operational"
       },
       {
-        "id": "a0b3e580-e0f1-40f7-bc06-aec41679ed27",
+        "id": "b4ce543e-7b11-42a4-8ff5-738c83de728e",
         "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "tipo_alerta": "sst_near_miss",
-        "titulo": "[CERT cert-sst-1782077780315] Quase-acidente — empilhadeira",
+        "titulo": "[CERT cert-sst-1782403536615] Quase-acidente — empilhadeira",
         "mensagem": "Empilhadeira passou a menos de 1m de colaborador em cruzamento.",
         "severidade": "media",
         "equipamento": null,
@@ -536,60 +701,16 @@
         "evento_origem_id": null,
         "metadata": {
           "kind": "near_miss",
-          "cert_run": "cert-sst-1782077780315",
+          "cert_run": "cert-sst-1782403536615",
           "location": "Pátio logístico",
           "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "1c436c04-dc23-4784-9bc0-06eebcb0391e"
+          "correlation_id": "e1cf2f48-6e28-49e8-85f3-4511f952545c"
         },
         "resolvido": false,
         "resolvido_por": null,
         "resolvido_em": null,
-        "created_at": "2026-06-21T21:36:20.561Z",
+        "created_at": "2026-06-25T16:05:36.771Z",
         "source": "safety_operational"
-      },
-      {
-        "id": "ecdd9251-175d-4cc0-bf29-c216f9dd1f7d",
-        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "tipo_alerta": "sst_incident_created",
-        "titulo": "[CERT cert-sst-1782077780315] Incidente — queda de objeto",
-        "mensagem": "Objeto metálico caiu de prateleira linha 2. Sem vítimas.",
-        "severidade": "alta",
-        "equipamento": null,
-        "linha": null,
-        "responsavel_id": null,
-        "evento_origem_id": null,
-        "metadata": {
-          "kind": "incident",
-          "cert_run": "cert-sst-1782077780315",
-          "location": "Linha 2 — Armazém",
-          "reported_by": "4a6efb71-e25a-4d33-9c4c-2ed2d6124173",
-          "correlation_id": "1c436c04-dc23-4784-9bc0-06eebcb0391e"
-        },
-        "resolvido": false,
-        "resolvido_por": null,
-        "resolvido_em": null,
-        "created_at": "2026-06-21T21:36:20.421Z",
-        "source": "safety_operational"
-      },
-      {
-        "id": "749b8e06-493a-48f9-b0cd-682fb440086d",
-        "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-        "tipo_alerta": "tarefa_atrasada",
-        "titulo": "Tarefa atrasada: Gerar relatórios",
-        "mensagem": "Responsável: wellington_machado. Agendada para 08/01/2024, 08:00:00",
-        "severidade": "media",
-        "equipamento": null,
-        "linha": null,
-        "responsavel_id": null,
-        "evento_origem_id": null,
-        "metadata": {
-          "task_id": "9dfc1722-b380-4261-b6aa-3dc94cf62e34"
-        },
-        "resolvido": false,
-        "resolvido_por": null,
-        "resolvido_em": null,
-        "created_at": "2026-04-18T20:26:18.002Z",
-        "source": null
       }
     ]
   }

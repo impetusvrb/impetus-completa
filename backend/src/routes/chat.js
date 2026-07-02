@@ -9,13 +9,15 @@ const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loade
 const executiveMode = require('../services/executiveMode');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
 
+const uploadPaths = require('../config/uploadPaths');
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
+  destination: (req, file, cb) => cb(null, uploadPaths.chat()),
   filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
 });
 const upload = multer({ storage, limits: { fileSize: 52428800 } });
 const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../../../uploads/chat')),
+  destination: (_req, _file, cb) => cb(null, uploadPaths.chat()),
   filename: (_req, file, cb) => cb(null, `avatar-${uuidv4()}${path.extname(file.originalname || '.jpg')}`)
 });
 const avatarUpload = multer({
@@ -128,7 +130,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (req.user.role === 'ceo' && req.user.company_id && (fileType === 'document' || fileType === 'image')) {
       let documentBase64 = null;
       try {
-        const filePath = req.file.path || path.join(__dirname, '../../../../uploads/chat', req.file.filename);
+        const filePath = req.file.path || path.join(uploadPaths.chat(), req.file.filename);
         const buf = fs.readFileSync(filePath);
         documentBase64 = buf.toString('base64');
       } catch (readErr) {

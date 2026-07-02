@@ -1,15 +1,15 @@
 {
   "route": "/app/admin/equipment-library",
   "probes": [
-    "GET /api/admin/equipment-library"
+    "GET /api/admin/equipment-library/health"
   ],
   "probeResults": [
     {
-      "spec": "GET /api/admin/equipment-library",
-      "status": 404,
+      "spec": "GET /api/admin/equipment-library/health",
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T13:27:13.222Z"
+  "at": "2026-06-25T19:29:08.171Z"
 }

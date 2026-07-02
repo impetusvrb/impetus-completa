@@ -184,7 +184,7 @@
       {
         "id": "k1",
         "title": "Interações (semana)",
-        "value": 413,
+        "value": 1320,
         "growth": 100,
         "color": "blue",
         "route": "/app/operacional",
@@ -225,7 +225,14 @@
     "functional_axis": "finance",
     "functional_area_label": "Finanças",
     "functional_area_source": "functional_area_explicit",
-    "contextual_modules_hint": [],
+    "contextual_modules_hint": [
+      "billing",
+      "costs",
+      "kpi_cards",
+      "reports",
+      "insights_ia",
+      "dashboard"
+    ],
     "personalization": {
       "resolved_profile": "director_financial",
       "resolved_functional_area": "finance",
@@ -239,7 +246,18 @@
       "seniority_level": null,
       "onboarding_completed": false,
       "ai_profile_context": {},
-      "usage_top_entities": [],
+      "usage_top_entities": [
+        {
+          "entity_type": "dashboard_layout",
+          "entity_id": "director_financial",
+          "weight": 8
+        },
+        {
+          "entity_type": "dashboard_context",
+          "entity_id": "specialized_cockpit_runtime",
+          "weight": 4
+        }
+      ],
       "ai_insights_instructions": "Modo: operacional. Profundidade: detailed. Foque em: status operacional, pendências, tarefas. Prioridades do cargo: visao_global, comparativo_setores, riscos_estrategicos, tendencias, impacto_financeiro. Reforço (Base Estrutural / cargo formal): cargo: Diretor Financeiro | temas: Custos operacionais, Indicadores financeiros, Centros de custo, Rentabilidade por área | área: Financeiro / Controladoria / Estratégia. Seja objetivo. Exemplo de estilo: \"8 propostas em andamento. 3 insights prioritários. Interações do departamento: 24.\"",
       "allowed_modules": [
         "ai",
@@ -377,7 +395,7 @@
         {
           "id": "k1",
           "title": "Interações (semana)",
-          "value": 413,
+          "value": 1320,
           "growth": 100,
           "color": "blue",
           "route": "/app/operacional",
@@ -690,18 +708,8 @@
     "governance_learning": {
       "phase": "Z.29",
       "learning_active": true,
-      "patterns_detected": [
-        {
-          "id": "recurring_overload",
-          "confidence": 0.7
-        }
-      ],
-      "fatigue_patterns": [
-        {
-          "id": "persistent_fatigue",
-          "occurrences": 4
-        }
-      ],
+      "patterns_detected": [],
+      "fatigue_patterns": [],
       "usefulness_trends": [
         {
           "avg": 0.72,
@@ -715,23 +723,7 @@
           "direction": "stable"
         }
       ],
-      "recommendations_generated": [
-        {
-          "id": "pattern_recurring_overload",
-          "action": "review_pattern",
-          "pattern": "recurring_overload",
-          "supervised": true,
-          "auto_apply": false,
-          "explanation": "Padrão recorrente: recurring_overload"
-        },
-        {
-          "id": "fatigue_persistent_fatigue",
-          "action": "reduce_cognitive_load",
-          "supervised": true,
-          "auto_apply": false,
-          "explanation": "Fadiga persistente detectada no histórico"
-        }
-      ],
+      "recommendations_generated": [],
       "auto_mutation_applied": false,
       "runtime_safe": true,
       "supervised": true,
@@ -758,7 +750,7 @@
       "auto_decisions": false
     },
     "cognitive_authority_map": {
-      "generated_at": "2026-06-22T12:46:35.458Z",
+      "generated_at": "2026-06-26T15:28:15.791Z",
       "official_runtime": "runtime_z",
       "fallback_runtime": "motor_a",
       "dominant_delivery": "runtime_z",
@@ -914,11 +906,11 @@
       "fallback_dominance_ratio": 0.25,
       "runtime_z_effective_ratio": 1,
       "frontend_convergence_score": 0.329,
-      "memory_quality_score": 0.959,
+      "memory_quality_score": 0.8,
       "causal_density": 1,
-      "inference_truth_score": 0.521,
-      "operational_event_density": 0.542,
-      "synthetic_memory_ratio": 0.769,
+      "inference_truth_score": 0.532,
+      "operational_event_density": 5,
+      "synthetic_memory_ratio": 0,
       "runtime_authority_score": 0.135,
       "verified_operational_memory_ratio": 1,
       "convergence_state": "divergent",
@@ -928,9 +920,9 @@
       "authoritative_global": false,
       "synthetic_visibility_guard": {
         "applied": true,
-        "synthetic_memory_ratio": 0.769,
-        "high_synthetic_ratio": true,
-        "user_facing_label": "SIMULAÇÃO · não é dado PLC/real"
+        "synthetic_memory_ratio": 0,
+        "high_synthetic_ratio": false,
+        "user_facing_label": null
       }
     },
     "quality_authority_runtime": {
@@ -963,222 +955,11 @@
       }
     },
     "operational_context_runtime": {
-      "timeline_event_count": 13,
+      "timeline_event_count": 120,
       "new_events_appended": 0,
       "events_sample": [
         {
-          "event_id": "syn_7661160392",
-          "domain": "production",
-          "source_runtime": "synthetic_operational",
-          "event_type": "shift_handover",
-          "operational_context": "[SIM] Passagem turno — backlog comunicado",
-          "causal_chain": [
-            {
-              "step": "synthetic_seed",
-              "source": "event_density_engine",
-              "at": "2026-05-24T10:31:41.640Z"
-            },
-            {
-              "step": "follows",
-              "related_event_id": "syn_f8cb67cde6",
-              "at": "2026-05-24T10:31:41.640Z"
-            }
-          ],
-          "related_events": [
-            "syn_f8cb67cde6"
-          ],
-          "confidence_score": 0.76,
-          "historical_similarity": 0.65,
-          "recurrence_detected": false,
-          "verification_state": "synthetic",
-          "created_at": "2026-05-24T10:31:41.640Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": true,
-          "display_label": "SIMULAÇÃO · não é dado PLC/real",
-          "display_trust": "synthetic_only",
-          "must_not_present_as_plc": true,
-          "must_not_present_as_kpi": true
-        },
-        {
-          "event_id": "syn_1ba5e48794",
-          "domain": "quality",
-          "source_runtime": "synthetic_operational",
-          "event_type": "risk_elevated",
-          "operational_context": "[SIM] Risco elevado — recorrência desvio",
-          "causal_chain": [
-            {
-              "step": "synthetic_seed",
-              "source": "event_density_engine",
-              "at": "2026-05-24T09:31:41.640Z"
-            },
-            {
-              "step": "follows",
-              "related_event_id": "syn_7661160392",
-              "at": "2026-05-24T09:31:41.640Z"
-            }
-          ],
-          "related_events": [
-            "syn_7661160392"
-          ],
-          "confidence_score": 0.84,
-          "historical_similarity": 0.65,
-          "recurrence_detected": false,
-          "verification_state": "synthetic",
-          "created_at": "2026-05-24T09:31:41.640Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": true,
-          "display_label": "SIMULAÇÃO · não é dado PLC/real",
-          "display_trust": "synthetic_only",
-          "must_not_present_as_plc": true,
-          "must_not_present_as_kpi": true
-        },
-        {
-          "event_id": "syn_2bbc062a0b",
-          "domain": "quality",
-          "source_runtime": "synthetic_operational",
-          "event_type": "inspection_queue",
-          "operational_context": "[SIM] Fila inspeção — densidade operacional",
-          "causal_chain": [
-            {
-              "step": "synthetic_seed",
-              "source": "event_density_engine",
-              "at": "2026-05-24T08:31:41.640Z"
-            },
-            {
-              "step": "follows",
-              "related_event_id": "syn_1ba5e48794",
-              "at": "2026-05-24T08:31:41.640Z"
-            }
-          ],
-          "related_events": [
-            "syn_1ba5e48794"
-          ],
-          "confidence_score": 0.77,
-          "historical_similarity": 0.65,
-          "recurrence_detected": false,
-          "verification_state": "synthetic",
-          "created_at": "2026-05-24T08:31:41.640Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": true,
-          "display_label": "SIMULAÇÃO · não é dado PLC/real",
-          "display_trust": "synthetic_only",
-          "must_not_present_as_plc": true,
-          "must_not_present_as_kpi": true
-        },
-        {
-          "event_id": "syn_24d8aa15f7",
-          "domain": "quality",
-          "source_runtime": "synthetic_operational",
-          "event_type": "nc_opened",
-          "operational_context": "[SIM] NC aberta — desvio processo inspeção",
-          "causal_chain": [
-            {
-              "step": "synthetic_seed",
-              "source": "event_density_engine",
-              "at": "2026-05-24T07:31:41.640Z"
-            },
-            {
-              "step": "follows",
-              "related_event_id": "syn_2bbc062a0b",
-              "at": "2026-05-24T07:31:41.640Z"
-            }
-          ],
-          "related_events": [
-            "syn_2bbc062a0b"
-          ],
-          "confidence_score": 0.88,
-          "historical_similarity": 0.65,
-          "recurrence_detected": true,
-          "verification_state": "synthetic",
-          "created_at": "2026-05-24T07:31:41.640Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": true,
-          "display_label": "SIMULAÇÃO · não é dado PLC/real",
-          "display_trust": "synthetic_only",
-          "must_not_present_as_plc": true,
-          "must_not_present_as_kpi": true
-        },
-        {
-          "event_id": "syn_2f8b721c7b",
-          "domain": "quality",
-          "source_runtime": "synthetic_operational",
-          "event_type": "capa_assigned",
-          "operational_context": "[SIM] CAPA atribuída — causa raiz em análise",
-          "causal_chain": [
-            {
-              "step": "synthetic_seed",
-              "source": "event_density_engine",
-              "at": "2026-05-24T06:31:41.640Z"
-            },
-            {
-              "step": "follows",
-              "related_event_id": "syn_24d8aa15f7",
-              "at": "2026-05-24T06:31:41.640Z"
-            }
-          ],
-          "related_events": [
-            "syn_24d8aa15f7"
-          ],
-          "confidence_score": 0.85,
-          "historical_similarity": 0.65,
-          "recurrence_detected": false,
-          "verification_state": "synthetic",
-          "created_at": "2026-05-24T06:31:41.640Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": true,
-          "display_label": "SIMULAÇÃO · não é dado PLC/real",
-          "display_trust": "synthetic_only",
-          "must_not_present_as_plc": true,
-          "must_not_present_as_kpi": true
-        },
-        {
-          "event_id": "evt_90be459b6f1afbd8",
-          "domain": "production",
-          "source_runtime": "runtime_z",
-          "event_type": "production_cockpit_signal",
-          "operational_context": "Produção consolidada · telemetria empty",
-          "causal_chain": [
-            {
-              "step": "cross_domain_signal",
-              "source": "production_runtime",
-              "at": "2026-06-01T13:28:12.390Z"
-            }
-          ],
-          "related_events": [],
-          "confidence_score": 0.75,
-          "historical_similarity": null,
-          "recurrence_detected": false,
-          "verification_state": "pending",
-          "created_at": "2026-06-01T13:28:12.390Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": false,
-          "display_trust": "operational_pending"
-        },
-        {
-          "event_id": "evt_00e6452814532c34",
-          "domain": "production",
-          "source_runtime": "runtime_z",
-          "event_type": "production_cockpit_signal",
-          "operational_context": "Produção consolidada · telemetria empty",
-          "causal_chain": [
-            {
-              "step": "cross_domain_signal",
-              "source": "production_runtime",
-              "at": "2026-06-21T16:05:42.187Z"
-            }
-          ],
-          "related_events": [],
-          "confidence_score": 0.75,
-          "historical_similarity": null,
-          "recurrence_detected": false,
-          "verification_state": "pending",
-          "created_at": "2026-06-21T16:05:42.187Z",
-          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "synthetic": false,
-          "display_trust": "operational_pending"
-        },
-        {
-          "event_id": "evt_780d5f8064879180",
+          "event_id": "evt_bf362eaabc09cdaa",
           "domain": "maintenance",
           "source_runtime": "runtime_z",
           "event_type": "reliability_signal",
@@ -1187,7 +968,7 @@
             {
               "step": "reliability_ingested",
               "source": "maintenance_runtime",
-              "at": "2026-06-21T16:56:29.732Z"
+              "at": "2026-06-25T16:12:08.786Z"
             }
           ],
           "related_events": [],
@@ -1195,7 +976,168 @@
           "historical_similarity": null,
           "recurrence_detected": false,
           "verification_state": "pending",
-          "created_at": "2026-06-21T16:56:29.732Z",
+          "created_at": "2026-06-25T16:12:08.786Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_8b14ddc169da3300",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:35:08.169Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:35:08.169Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_a8e11eb2795e77e8",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:38:08.365Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:38:08.365Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_961682e4ac122556",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:38:08.669Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:38:08.669Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_f01e678a5f9f5e38",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:38:09.430Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:38:09.430Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_fba73a43a8479d95",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:38:10.016Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:38:10.016Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_e6694734b01198c1",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-25T19:38:10.311Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-25T19:38:10.311Z",
+          "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
+          "synthetic": false,
+          "display_trust": "operational_pending"
+        },
+        {
+          "event_id": "evt_e1f39bc9551fc56c",
+          "domain": "maintenance",
+          "source_runtime": "runtime_z",
+          "event_type": "reliability_signal",
+          "operational_context": "confiabilidade · degradação · disponibilidade",
+          "causal_chain": [
+            {
+              "step": "reliability_ingested",
+              "source": "maintenance_runtime",
+              "at": "2026-06-26T02:46:26.459Z"
+            }
+          ],
+          "related_events": [],
+          "confidence_score": 0.78,
+          "historical_similarity": null,
+          "recurrence_detected": false,
+          "verification_state": "pending",
+          "created_at": "2026-06-26T02:46:26.459Z",
           "company_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
           "synthetic": false,
           "display_trust": "operational_pending"
@@ -1206,24 +1148,24 @@
       "auto_mutation": false,
       "synthetic_visibility_guard": {
         "applied": true,
-        "synthetic_events_in_sample": 5,
+        "synthetic_events_in_sample": 0,
         "policy": "synthetic_must_be_labeled"
       }
     },
     "operational_memory_runtime": {
-      "memory_quality_score": 0.959,
+      "memory_quality_score": 0.8,
       "causal_density": 1,
-      "synthetic_memory_ratio": 0.769,
-      "verified_operational_memory": 13,
+      "synthetic_memory_ratio": 0,
+      "verified_operational_memory": 120,
       "rejected_memories": [],
-      "weak_causality_detected": false,
+      "weak_causality_detected": true,
       "verified_operational_memory_ratio": 1,
       "auto_mutation": false
     },
     "inference_validation_runtime": {
       "inferences": [
         {
-          "inference_id": "inf_a8b3576ba83b",
+          "inference_id": "inf_a6a1e951a353",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1232,22 +1174,10 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-21T23:30:34.059Z"
+          "validated_at": "2026-06-26T02:37:51.289Z"
         },
         {
-          "inference_id": "inf_813a8ee7857a",
-          "runtime_source": "governance_learning",
-          "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
-          "operational_outcome": null,
-          "validation_state": "weak",
-          "truth_score": 0.5,
-          "false_positive": false,
-          "confidence_delta": 0,
-          "validated_at": "2026-06-21T23:30:34.059Z"
-        },
-        {
-          "inference_id": "inf_ea6fad849dbc",
+          "inference_id": "inf_2fe497e58be2",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1256,22 +1186,10 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-21T23:30:47.619Z"
+          "validated_at": "2026-06-26T02:37:51.725Z"
         },
         {
-          "inference_id": "inf_7ccecd48997c",
-          "runtime_source": "governance_learning",
-          "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
-          "operational_outcome": null,
-          "validation_state": "weak",
-          "truth_score": 0.5,
-          "false_positive": false,
-          "confidence_delta": 0,
-          "validated_at": "2026-06-21T23:30:47.619Z"
-        },
-        {
-          "inference_id": "inf_acecd291f0fe",
+          "inference_id": "inf_7377e3c39559",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1280,22 +1198,10 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T00:13:27.574Z"
+          "validated_at": "2026-06-26T02:38:11.803Z"
         },
         {
-          "inference_id": "inf_9cb3c99bef66",
-          "runtime_source": "governance_learning",
-          "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
-          "operational_outcome": null,
-          "validation_state": "weak",
-          "truth_score": 0.5,
-          "false_positive": false,
-          "confidence_delta": 0,
-          "validated_at": "2026-06-22T00:13:27.574Z"
-        },
-        {
-          "inference_id": "inf_e463ca7f95b2",
+          "inference_id": "inf_22a9f61d0f2b",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1304,22 +1210,34 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T03:41:05.108Z"
+          "validated_at": "2026-06-26T02:38:12.314Z"
         },
         {
-          "inference_id": "inf_22cdf9b2942f",
+          "inference_id": "inf_99eda42765f8",
+          "runtime_source": "runtime_z",
+          "inference_type": "operational_narrative",
+          "prediction": "confiabilidade · degradação · disponibilidade",
+          "operational_outcome": null,
+          "validation_state": "pending",
+          "truth_score": 0.55,
+          "false_positive": false,
+          "confidence_delta": 0,
+          "validated_at": "2026-06-26T02:46:26.462Z"
+        },
+        {
+          "inference_id": "inf_be820ef51a1c",
           "runtime_source": "governance_learning",
           "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
+          "prediction": "adaptation_recommended_now",
           "operational_outcome": null,
           "validation_state": "weak",
           "truth_score": 0.5,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T03:41:05.108Z"
+          "validated_at": "2026-06-26T02:46:26.462Z"
         },
         {
-          "inference_id": "inf_58ab07199207",
+          "inference_id": "inf_4dd2569ec8c1",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1328,22 +1246,10 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T12:05:06.262Z"
+          "validated_at": "2026-06-26T11:07:24.234Z"
         },
         {
-          "inference_id": "inf_89ee93bddb4a",
-          "runtime_source": "governance_learning",
-          "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
-          "operational_outcome": null,
-          "validation_state": "weak",
-          "truth_score": 0.5,
-          "false_positive": false,
-          "confidence_delta": 0,
-          "validated_at": "2026-06-22T12:05:06.262Z"
-        },
-        {
-          "inference_id": "inf_7ae232a51e83",
+          "inference_id": "inf_acf3add43b71",
           "runtime_source": "runtime_z",
           "inference_type": "operational_narrative",
           "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
@@ -1352,22 +1258,58 @@
           "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T12:46:35.497Z"
+          "validated_at": "2026-06-26T11:07:24.868Z"
         },
         {
-          "inference_id": "inf_2b6412f8b144",
-          "runtime_source": "governance_learning",
-          "inference_type": "learning_pattern",
-          "prediction": "recurring_overload",
+          "inference_id": "inf_4d9990ab1f56",
+          "runtime_source": "runtime_z",
+          "inference_type": "operational_narrative",
+          "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
           "operational_outcome": null,
-          "validation_state": "weak",
-          "truth_score": 0.5,
+          "validation_state": "pending",
+          "truth_score": 0.55,
           "false_positive": false,
           "confidence_delta": 0,
-          "validated_at": "2026-06-22T12:46:35.497Z"
+          "validated_at": "2026-06-26T11:07:33.963Z"
+        },
+        {
+          "inference_id": "inf_6e8e20b06324",
+          "runtime_source": "runtime_z",
+          "inference_type": "operational_narrative",
+          "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
+          "operational_outcome": null,
+          "validation_state": "pending",
+          "truth_score": 0.55,
+          "false_positive": false,
+          "confidence_delta": 0,
+          "validated_at": "2026-06-26T14:52:33.893Z"
+        },
+        {
+          "inference_id": "inf_d22e34a8e9db",
+          "runtime_source": "runtime_z",
+          "inference_type": "operational_narrative",
+          "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
+          "operational_outcome": null,
+          "validation_state": "pending",
+          "truth_score": 0.55,
+          "false_positive": false,
+          "confidence_delta": 0,
+          "validated_at": "2026-06-26T14:52:35.088Z"
+        },
+        {
+          "inference_id": "inf_a0601f80b231",
+          "runtime_source": "runtime_z",
+          "inference_type": "operational_narrative",
+          "prediction": "Saúde enterprise: índice 72 · maturidade 68. Convergência organizacional 50% · confiabilidade 100. Risco consolidado 0 · pressão decisória 17.",
+          "operational_outcome": null,
+          "validation_state": "pending",
+          "truth_score": 0.55,
+          "false_positive": false,
+          "confidence_delta": 0,
+          "validated_at": "2026-06-26T15:28:15.808Z"
         }
       ],
-      "inference_truth_score": 0.521,
+      "inference_truth_score": 0.532,
       "confirmed_count": 0,
       "rejected_count": 0,
       "weak_count": 200,
@@ -1376,20 +1318,20 @@
       "reliability_metrics": {
         "precision": 0,
         "false_positive_rate": 0,
-        "historical_confidence": 0.525,
+        "historical_confidence": 0.546,
         "valid_causality_ratio": 0,
         "by_domain": {
           "quality": 0.55
         },
         "by_runtime": {
           "runtime_z": {
-            "count": 6,
-            "truth_sum": 3.3,
+            "count": 11,
+            "truth_sum": 6.049999999999999,
             "avg_truth": 0.55
           },
           "governance_learning": {
-            "count": 6,
-            "truth_sum": 3,
+            "count": 1,
+            "truth_sum": 0.5,
             "avg_truth": 0.5
           }
         }
@@ -1398,25 +1340,23 @@
       "auto_remediation": false
     },
     "event_density_runtime": {
-      "operational_event_density": 0.542,
+      "operational_event_density": 5,
       "causal_density": 1,
-      "timeline_continuity": 0.019,
-      "memory_depth": 0.26,
-      "inferential_support_score": 0.729,
-      "synthetic_vs_real_ratio": 0.769,
-      "real_event_count": 3,
-      "synthetic_event_count": 10,
+      "timeline_continuity": 1,
+      "memory_depth": 1,
+      "inferential_support_score": 0.775,
+      "synthetic_vs_real_ratio": 0,
+      "real_event_count": 120,
+      "synthetic_event_count": 0,
       "domain_coverage": [
-        "quality",
-        "maintenance",
-        "production"
+        "maintenance"
       ],
       "synthetic_generated": 0,
       "auto_mutation": false,
       "synthetic_visibility_guard": {
         "applied": true,
         "synthetic_generated": 0,
-        "synthetic_vs_real_ratio": 0.769,
+        "synthetic_vs_real_ratio": 0,
         "warning": null
       }
     },
@@ -1442,11 +1382,11 @@
       "fallback_dominance_ratio": 0.25,
       "runtime_z_effective_ratio": 1,
       "frontend_convergence_score": 0.329,
-      "memory_quality_score": 0.959,
+      "memory_quality_score": 0.8,
       "causal_density": 1,
-      "inference_truth_score": 0.521,
-      "operational_density": 0.542,
-      "synthetic_memory_ratio": 0.769,
+      "inference_truth_score": 0.532,
+      "operational_density": 5,
+      "synthetic_memory_ratio": 0,
       "runtime_authority_score": 0.135,
       "verified_operational_memory_ratio": 1
     },
@@ -1533,7 +1473,7 @@
           {
             "node_id": "node_queue",
             "node_type": "queue",
-            "operational_weight": 0.6,
+            "operational_weight": 0.2,
             "causal_links": [
               {
                 "to": "node_throughput",
@@ -1547,7 +1487,7 @@
               "delay",
               "setup"
             ],
-            "confidence_score": 0.75
+            "confidence_score": 0.45
           },
           {
             "node_id": "node_waste",
@@ -1618,7 +1558,7 @@
           {
             "node_id": "node_delay",
             "node_type": "delay",
-            "operational_weight": 0.6,
+            "operational_weight": 0.2,
             "causal_links": [
               {
                 "to": "node_queue",
@@ -1631,7 +1571,7 @@
             "upstream_dependencies": [
               "downtime"
             ],
-            "confidence_score": 0.75
+            "confidence_score": 0.45
           },
           {
             "node_id": "node_nc",
@@ -1691,50 +1631,23 @@
           }
         ],
         "node_count": 14,
-        "graph_readiness": 0.35714285714285715,
+        "graph_readiness": 0.21428571428571427,
         "auto_mutation": false
       },
       "causal": {
         "chains": [
           {
             "causal_chain": [
-              "delay",
-              "queue",
-              "throughput"
-            ],
-            "causal_strength": 0.533,
-            "recurrence_factor": 0,
-            "operational_impact": 0.533,
-            "evidence_density": 0,
-            "chain_id": "comm_delay_bottleneck",
-            "hypothesis": "falha comunicação/atraso → gargalo"
-          },
-          {
-            "causal_chain": [
               "setup",
               "queue",
               "throughput"
             ],
-            "causal_strength": 0.483,
+            "causal_strength": 0.35,
             "recurrence_factor": 0,
-            "operational_impact": 0.483,
+            "operational_impact": 0.35,
             "evidence_density": 0,
             "chain_id": "setup_queue_throughput",
             "hypothesis": "setup alto → fila → throughput ↓"
-          },
-          {
-            "causal_chain": [
-              "production",
-              "throughput",
-              "quality",
-              "nc"
-            ],
-            "causal_strength": 0.275,
-            "recurrence_factor": 1,
-            "operational_impact": 0.44,
-            "evidence_density": 6,
-            "chain_id": "production_accel_nc",
-            "hypothesis": "produção acelerada → pressão → NC ↑"
           },
           {
             "causal_chain": [
@@ -1748,24 +1661,51 @@
             "evidence_density": 0,
             "chain_id": "rework_waste_efficiency",
             "hypothesis": "retrabalho → desperdício → eficiência ↓"
+          },
+          {
+            "causal_chain": [
+              "production",
+              "throughput",
+              "quality",
+              "nc"
+            ],
+            "causal_strength": 0.275,
+            "recurrence_factor": 0,
+            "operational_impact": 0.275,
+            "evidence_density": 0,
+            "chain_id": "production_accel_nc",
+            "hypothesis": "produção acelerada → pressão → NC ↑"
+          },
+          {
+            "causal_chain": [
+              "delay",
+              "queue",
+              "throughput"
+            ],
+            "causal_strength": 0.267,
+            "recurrence_factor": 0,
+            "operational_impact": 0.267,
+            "evidence_density": 0,
+            "chain_id": "comm_delay_bottleneck",
+            "hypothesis": "falha comunicação/atraso → gargalo"
           }
         ],
         "strongest_chain": {
           "causal_chain": [
-            "delay",
+            "setup",
             "queue",
             "throughput"
           ],
-          "causal_strength": 0.533,
+          "causal_strength": 0.35,
           "recurrence_factor": 0,
-          "operational_impact": 0.533,
+          "operational_impact": 0.35,
           "evidence_density": 0,
-          "chain_id": "comm_delay_bottleneck",
-          "hypothesis": "falha comunicação/atraso → gargalo"
+          "chain_id": "setup_queue_throughput",
+          "hypothesis": "setup alto → fila → throughput ↓"
         },
         "auto_decisions": false
       },
-      "graph_readiness": 0.35714285714285715,
+      "graph_readiness": 0.21428571428571427,
       "auto_decisions": false
     },
     "operational_economic_runtime": {
@@ -1786,49 +1726,49 @@
       "heuristic_model": true,
       "auto_decisions": false,
       "preventive": {
-        "preventive_action": "monitorização operacional — sem acção automática",
-        "avoided_loss_estimate": 40.05,
-        "operational_preservation_score": 0.5,
-        "intervention_efficiency": 0.45
+        "preventive_action": "redução setup — throughput preservado",
+        "avoided_loss_estimate": 80.1,
+        "operational_preservation_score": 0.66,
+        "intervention_efficiency": 0.62
       },
       "preventive_recommendations": [
         {
-          "preventive_action": "monitorização operacional — sem acção automática",
-          "avoided_loss_estimate": 40.05,
-          "operational_preservation_score": 0.5,
-          "intervention_efficiency": 0.45
+          "preventive_action": "redução setup — throughput preservado",
+          "avoided_loss_estimate": 80.1,
+          "operational_preservation_score": 0.66,
+          "intervention_efficiency": 0.62
         }
       ],
       "auto_remediation": false
     },
     "economic_pressure_runtime": {
-      "economic_pressure_index": 0.143,
-      "economic_stability": 0.857,
-      "projected_operational_cost": 409.09,
+      "economic_pressure_index": 0.077,
+      "economic_stability": 0.923,
+      "projected_operational_cost": 405.13,
       "escalation_probability": 0.2,
       "auto_decisions": false
     },
     "real_confidence_runtime": {
       "narrative_confidence": 0.65,
-      "statistical_confidence": 0.214,
+      "statistical_confidence": 0.129,
       "causal_confidence": 0.92,
-      "operational_confidence": 0.292,
-      "historical_confidence": 0.76,
-      "unified_confidence_score": 0.567,
+      "operational_confidence": 0.31,
+      "historical_confidence": 0.766,
+      "unified_confidence_score": 0.555,
       "flat_score_avoided": true,
       "auto_decisions": false,
       "validation": {
         "confidence_integrity": "valid",
         "weak_dimensions": [],
         "inflated_confidence_detected": false,
-        "fallback_confidence_applied": 0.567,
+        "fallback_confidence_applied": 0.555,
         "auto_mutation": false
       },
       "evolution": {
         "trend": "stable",
-        "stability": 0.997,
+        "stability": 0.915,
         "snapshot_count": 90,
-        "latest_unified": 0.567,
+        "latest_unified": 0.555,
         "precision_growth": false,
         "auto_mutation": false
       }
@@ -1846,10 +1786,10 @@
       "auto_decisions": false
     },
     "cognitive_trust_runtime": {
-      "cognitive_trust_index": 0.356,
+      "cognitive_trust_index": 0.347,
       "operator_trust_level": "low",
-      "inference_reliability": 0.521,
-      "operational_adoption_score": 0.15,
+      "inference_reliability": 0.532,
+      "operational_adoption_score": 0,
       "auto_decisions": false
     },
     "production_bottleneck_runtime": {
@@ -1857,20 +1797,20 @@
         "node_id": "node_oee",
         "node_type": "oee",
         "weight": 0.78,
-        "origin_causal": "falha comunicação/atraso → gargalo"
+        "origin_causal": "setup alto → fila → throughput ↓"
       },
       "propagation_risk": "medium",
       "affected_domains": [],
-      "estimated_operational_loss": 415.74,
-      "confidence_level": 0.384,
+      "estimated_operational_loss": 273,
+      "confidence_level": 0.252,
       "auto_remediation": false
     },
     "cognitive_c3_summary": {
       "phase": "C3",
       "bottleneck": "oee",
-      "economic_pressure": 0.143,
-      "unified_confidence": 0.567,
-      "cognitive_trust": 0.356,
+      "economic_pressure": 0.077,
+      "unified_confidence": 0.555,
+      "cognitive_trust": 0.347,
       "auto_decisions": false,
       "authoritative_global": false
     },
@@ -2030,7 +1970,12 @@
         {
           "id": "bottleneck_loss",
           "claim": "gargalo correlacionado com perda operacional",
-          "confidence": 0.384
+          "confidence": 0.252
+        },
+        {
+          "id": "setup_throughput",
+          "claim": "setup reduziu throughput",
+          "confidence": 0.35
         },
         {
           "id": "preventive_impact",
@@ -2041,7 +1986,7 @@
       "rejected_causalities": [],
       "false_operational_correlations": [],
       "verified_operational_impact": true,
-      "truth_validation_confidence": 0.467,
+      "truth_validation_confidence": 0.384,
       "auto_decisions": false
     },
     "economic_truth_runtime": {
@@ -2114,10 +2059,10 @@
       "causal": {
         "causal_integrity_score": 0.904,
         "weak_causalities": [
-          "comm_delay_bottleneck",
           "setup_queue_throughput",
+          "rework_waste_efficiency",
           "production_accel_nc",
-          "rework_waste_efficiency"
+          "comm_delay_bottleneck"
         ],
         "recursive_drift_detected": false,
         "unsupported_correlations": [],
@@ -2435,10 +2380,10 @@
       }
     },
     "governance_consolidation_runtime": {
-      "governance_consolidation_score": 0.429,
+      "governance_consolidation_score": 0.427,
       "authority_integrity": "0.421",
       "runtime_stability": "0.850",
-      "trust_integrity": "0.356",
+      "trust_integrity": "0.347",
       "drift_safe": false,
       "governance_state": {
         "phase": "C6",
@@ -2472,7 +2417,7 @@
       "sovereignty_safe": false,
       "authority_unification_score": 0.4,
       "authority_integrity": 0.5,
-      "governance_consolidation_score": 0.429,
+      "governance_consolidation_score": 0.427,
       "sovereignty_certified": false,
       "unified_cognitive_infrastructure": false,
       "rollback_ready": true,
@@ -2504,7 +2449,7 @@
           "kpis": "z_kpi_runtime",
           "context": "z_context_assembly_runtime"
         },
-        "latency_ms": 199,
+        "latency_ms": 307,
         "validation": {
           "ok": true,
           "safety_score": 0.75,
@@ -2700,7 +2645,7 @@
                 "id": "k1",
                 "key": "k1",
                 "title": "Interações (semana)",
-                "value": 425,
+                "value": 1328,
                 "previous_value": null,
                 "unit": null,
                 "trend": null,
@@ -2711,7 +2656,7 @@
                 "raw": {
                   "id": "k1",
                   "title": "Interações (semana)",
-                  "value": 425,
+                  "value": 1328,
                   "growth": 100,
                   "color": "blue",
                   "route": "/app/operacional",
@@ -2809,7 +2754,14 @@
             "functional_axis": "finance",
             "functional_area_label": "Finanças",
             "functional_area_source": "functional_area_explicit",
-            "contextual_modules_hint": [],
+            "contextual_modules_hint": [
+              "billing",
+              "costs",
+              "kpi_cards",
+              "reports",
+              "insights_ia",
+              "dashboard"
+            ],
             "personalization": {
               "resolved_profile": "director_financial",
               "resolved_functional_area": "finance",
@@ -2823,7 +2775,18 @@
               "seniority_level": null,
               "onboarding_completed": false,
               "ai_profile_context": {},
-              "usage_top_entities": [],
+              "usage_top_entities": [
+                {
+                  "entity_type": "dashboard_layout",
+                  "entity_id": "director_financial",
+                  "weight": 8
+                },
+                {
+                  "entity_type": "dashboard_context",
+                  "entity_id": "specialized_cockpit_runtime",
+                  "weight": 4
+                }
+              ],
               "ai_insights_instructions": "Modo: operacional. Profundidade: detailed. Foque em: status operacional, pendências, tarefas. Prioridades do cargo: visao_global, comparativo_setores, riscos_estrategicos, tendencias, impacto_financeiro. Reforço (Base Estrutural / cargo formal): cargo: Diretor Financeiro | temas: Custos operacionais, Indicadores financeiros, Centros de custo, Rentabilidade por área | área: Financeiro / Controladoria / Estratégia. Seja objetivo. Exemplo de estilo: \"8 propostas em andamento. 3 insights prioritários. Interações do departamento: 24.\"",
               "allowed_modules": [
                 "ai",
@@ -3034,9 +2997,9 @@
       },
       "metrics": {
         "z_sovereignty_score": 0.88,
-        "z_bootstrap_latency_ms": 199,
+        "z_bootstrap_latency_ms": 307,
         "z_hydration_latency_ms": 0,
-        "z_context_assembly_ms": 205,
+        "z_context_assembly_ms": 309,
         "z_fallback_activation_count": 0,
         "z_blank_screen_prevention_count": 0,
         "z_shadow_divergence_score": 0.033,
@@ -3047,7 +3010,7 @@
         "z_contextual_accuracy_score": 0.75,
         "requests_total": 1
       },
-      "assembly_ms": 205,
+      "assembly_ms": 309,
       "invariants": {
         "motor_a_never_deleted": true,
         "engine_v2_never_deleted": true,
@@ -3115,17 +3078,17 @@
       },
       "context": {
         "temporal": {
-          "iso": "2026-06-22T12:46:35.779Z",
-          "hour": 12,
+          "iso": "2026-06-26T15:28:16.157Z",
+          "hour": 15,
           "part_of_day": "tarde",
           "business_hours": true,
           "weekend": false,
-          "weekday": "seg"
+          "weekday": "sex"
         },
         "shift": {
-          "shift_name": "turno_1",
-          "shift_hours": "6h–14h",
-          "within_change_window": false
+          "shift_name": "turno_2",
+          "shift_hours": "14h–22h",
+          "within_change_window": true
         },
         "operational": {
           "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
@@ -3283,13 +3246,13 @@
         "attention_breadth": 1
       },
       "awareness": {
-        "shift": "turno_1",
+        "shift": "turno_2",
         "business_hours": true,
         "operational_state": "idle",
         "has_active_workflow": false,
         "critical_incidents": 0,
         "detected_risks": [],
-        "awareness_signature": "turno_1|idle|P4|low"
+        "awareness_signature": "turno_2|idle|P4|low"
       },
       "fusion": {
         "cognitive_density": 0.215,
@@ -3301,9 +3264,9 @@
         "detected_risks": []
       },
       "narrative": {
-        "narrative": "turno 1",
+        "narrative": "turno 2",
         "sentences": [
-          "turno 1"
+          "turno 2"
         ],
         "cognitive_density": 0.215,
         "natural": true
@@ -3381,7 +3344,7 @@
         "multi_domain": false,
         "domain_count": 1,
         "operational_state": "idle",
-        "awareness_signature": "turno_1|idle|P4|low",
+        "awareness_signature": "turno_2|idle|P4|low",
         "cognitive_density": 0.215
       }
     },
@@ -3430,10 +3393,10 @@
       },
       "mature_narrative": {
         "mature": true,
-        "narrative": "Confiança de inferência baixa — Z responde de forma conservadora. · Operação em turno 1, período tarde.",
+        "narrative": "Confiança de inferência baixa — Z responde de forma conservadora. · Operação em turno 2, período tarde.",
         "sentences": [
           "Confiança de inferência baixa — Z responde de forma conservadora.",
-          "Operação em turno 1, período tarde."
+          "Operação em turno 2, período tarde."
         ],
         "pattern_id": null,
         "language_quality": 0.606
@@ -3608,17 +3571,17 @@
         },
         "context": {
           "temporal": {
-            "iso": "2026-06-22T12:46:35.779Z",
-            "hour": 12,
+            "iso": "2026-06-26T15:28:16.157Z",
+            "hour": 15,
             "part_of_day": "tarde",
             "business_hours": true,
             "weekend": false,
-            "weekday": "seg"
+            "weekday": "sex"
           },
           "shift": {
-            "shift_name": "turno_1",
-            "shift_hours": "6h–14h",
-            "within_change_window": false
+            "shift_name": "turno_2",
+            "shift_hours": "14h–22h",
+            "within_change_window": true
           },
           "operational": {
             "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
@@ -3776,13 +3739,13 @@
           "attention_breadth": 1
         },
         "awareness": {
-          "shift": "turno_1",
+          "shift": "turno_2",
           "business_hours": true,
           "operational_state": "idle",
           "has_active_workflow": false,
           "critical_incidents": 0,
           "detected_risks": [],
-          "awareness_signature": "turno_1|idle|P4|low"
+          "awareness_signature": "turno_2|idle|P4|low"
         },
         "fusion": {
           "cognitive_density": 0.215,
@@ -3794,9 +3757,9 @@
           "detected_risks": []
         },
         "narrative": {
-          "narrative": "turno 1",
+          "narrative": "turno 2",
           "sentences": [
-            "turno 1"
+            "turno 2"
           ],
           "cognitive_density": 0.215,
           "natural": true
@@ -3874,7 +3837,7 @@
           "multi_domain": false,
           "domain_count": 1,
           "operational_state": "idle",
-          "awareness_signature": "turno_1|idle|P4|low",
+          "awareness_signature": "turno_2|idle|P4|low",
           "cognitive_density": 0.215
         }
       },
@@ -3923,10 +3886,10 @@
         },
         "mature_narrative": {
           "mature": true,
-          "narrative": "Confiança de inferência baixa — Z responde de forma conservadora. · Operação em turno 1, período tarde.",
+          "narrative": "Confiança de inferência baixa — Z responde de forma conservadora. · Operação em turno 2, período tarde.",
           "sentences": [
             "Confiança de inferência baixa — Z responde de forma conservadora.",
-            "Operação em turno 1, período tarde."
+            "Operação em turno 2, período tarde."
           ],
           "pattern_id": null,
           "language_quality": 0.606
@@ -4061,7 +4024,7 @@
       "issues": [],
       "warnings": [],
       "source": "user_management_and_structural_base",
-      "loaded_at": "2026-06-22T12:46:36.121Z"
+      "loaded_at": "2026-06-26T15:28:16.439Z"
     },
     "structural_profile": {
       "funcao": "diretor",
@@ -4371,7 +4334,7 @@
           {
             "id": "k1",
             "title": "Interações (semana)",
-            "value": 413,
+            "value": 1320,
             "growth": 100,
             "color": "blue",
             "route": "/app/operacional",
@@ -4422,7 +4385,7 @@
         "semantic_publication_integrity": 0.7,
         "runtime_semantic_health": "watch",
         "legacy_dependency_score": 1,
-        "observed_at": "2026-06-22T12:46:35.254Z"
+        "observed_at": "2026-06-26T15:28:15.556Z"
       }
     },
     "precision_delivery": {
@@ -4482,7 +4445,7 @@
         "widgets": [],
         "kpis": [],
         "summary": null,
-        "generated_at": "2026-06-22T12:46:35.256Z"
+        "generated_at": "2026-06-26T15:28:15.558Z"
       }
     },
     "cognitive_convergence": {
@@ -4508,7 +4471,7 @@
               "authority": "contextual_truth_authority"
             },
             "governance_envelope": null,
-            "established_at": "2026-06-22T12:46:35.257Z"
+            "established_at": "2026-06-26T15:28:15.560Z"
           },
           "operational_scope": "finance",
           "semantic_state": {
@@ -4611,7 +4574,7 @@
                 {
                   "id": "k1",
                   "title": "Interações (semana)",
-                  "value": 413,
+                  "value": 1320,
                   "growth": 100,
                   "color": "blue",
                   "route": "/app/operacional",
@@ -4662,7 +4625,7 @@
               "semantic_publication_integrity": 0.7,
               "runtime_semantic_health": "watch",
               "legacy_dependency_score": 1,
-              "observed_at": "2026-06-22T12:46:35.254Z"
+              "observed_at": "2026-06-26T15:28:15.556Z"
             }
           },
           "precision": {
@@ -4722,11 +4685,11 @@
               "widgets": [],
               "kpis": [],
               "summary": null,
-              "generated_at": "2026-06-22T12:46:35.256Z"
+              "generated_at": "2026-06-26T15:28:15.558Z"
             }
           },
           "exposure": null,
-          "composed_at": "2026-06-22T12:46:35.257Z"
+          "composed_at": "2026-06-26T15:28:15.560Z"
         },
         "semantic": {
           "semantic_state": {
@@ -4757,7 +4720,7 @@
         },
         "contextual_unification_score": 0.84,
         "runtime_truth_confidence": 0.9,
-        "resolved_at": "2026-06-22T12:46:35.257Z"
+        "resolved_at": "2026-06-26T15:28:15.560Z"
       },
       "cognitive_consistency_score": 0.95,
       "runtime_truth_integrity": 0.88,
@@ -4792,7 +4755,7 @@
             "winning_layer": "unified_context"
           }
         ],
-        "generated_at": "2026-06-22T12:46:35.262Z"
+        "generated_at": "2026-06-26T15:28:15.561Z"
       },
       "graph_summary": {
         "nodes": 8,
@@ -4870,7 +4833,7 @@
         ],
         "correlation_score": 0.25,
         "critical": false,
-        "resolved_at": "2026-06-22T12:46:35.264Z",
+        "resolved_at": "2026-06-26T15:28:15.564Z",
         "auto_mitigation": false
       },
       "calibration": {
@@ -4914,7 +4877,7 @@
           "overload_risk": false,
           "lifecycle": "observe"
         },
-        "supervised_at": "2026-06-22T12:46:35.263Z"
+        "supervised_at": "2026-06-26T15:28:15.563Z"
       },
       "operational_state": {
         "lifecycle": "observe",
@@ -4922,7 +4885,7 @@
         "pressure_samples": [
           {
             "v": 0.387,
-            "ts": 1782132395265
+            "ts": 1782487695564
           }
         ],
         "governance_layers": {
@@ -4932,8 +4895,8 @@
           "convergence": true
         },
         "overload_risk": false,
-        "last_supervision": "2026-06-22T12:46:35.263Z",
-        "updated_at": "2026-06-22T12:46:35.263Z"
+        "last_supervision": "2026-06-26T15:28:15.563Z",
+        "updated_at": "2026-06-26T15:28:15.563Z"
       },
       "telemetry_snapshot": {
         "governance_operational_maturity": 0.85,
@@ -4945,7 +4908,7 @@
         "governance_effectiveness_score": 0.8465,
         "operational_trustworthiness": 0.7075,
         "samples": 1,
-        "ts": "2026-06-22T12:46:35.265Z"
+        "ts": "2026-06-26T15:28:15.564Z"
       },
       "auto_correct": false,
       "auto_calibrate": false
@@ -5200,7 +5163,7 @@
         "observability_pressure": 0.88,
         "runtime_sustainability": 0.6928,
         "samples": 1,
-        "ts": "2026-06-22T12:46:35.267Z"
+        "ts": "2026-06-26T15:28:15.567Z"
       },
       "auto_simplify": false,
       "auto_consolidate": false,
@@ -5722,7 +5685,7 @@
         "summary_targeting_precision": 0.87,
         "contextual_delivery_confidence": 0.92,
         "samples": 1,
-        "ts": "2026-06-22T12:46:35.269Z"
+        "ts": "2026-06-26T15:28:15.569Z"
       },
       "auto_enforce": false
     },
@@ -5742,7 +5705,7 @@
           "finance"
         ],
         "conflict": false,
-        "synchronized_at": "2026-06-22T12:46:35.270Z",
+        "synchronized_at": "2026-06-26T15:28:15.570Z",
         "runtime_truth_integrity": 0.94
       },
       "interchannel": {
@@ -5796,7 +5759,7 @@
         "temporal_consistency": 0.93,
         "pipeline_agreement_score": 0.9,
         "samples": 1,
-        "ts": "2026-06-22T12:46:35.271Z"
+        "ts": "2026-06-26T15:28:15.571Z"
       },
       "auto_enforce": false
     },
@@ -5902,7 +5865,7 @@
         "runtime_decision_stability": 0.92,
         "supervision_recommendation_score": 0,
         "samples": 1,
-        "ts": "2026-06-22T12:46:35.273Z"
+        "ts": "2026-06-26T15:28:15.573Z"
       },
       "auto_enforce": false
     },
@@ -5951,7 +5914,7 @@
           "summary_delivery_accuracy": 0.87,
           "runtime_activation_confidence": 0.92,
           "samples": 1,
-          "ts": "2026-06-22T12:46:35.274Z"
+          "ts": "2026-06-26T15:28:15.575Z"
         }
       },
       "readiness": {
@@ -6015,7 +5978,7 @@
           "semantic_usefulness": 0.98,
           "insight_feeding_quality": 0.98,
           "samples": 1,
-          "ts": "2026-06-22T12:46:35.276Z"
+          "ts": "2026-06-26T15:28:15.577Z"
         },
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
       },
@@ -6366,7 +6329,7 @@
             {
               "id": "k1",
               "title": "Interações (semana)",
-              "value": 413,
+              "value": 1320,
               "growth": 100,
               "color": "blue",
               "route": "/app/operacional",
@@ -6407,7 +6370,14 @@
           "functional_axis": "finance",
           "functional_area_label": "Finanças",
           "functional_area_source": "functional_area_explicit",
-          "contextual_modules_hint": [],
+          "contextual_modules_hint": [
+            "billing",
+            "costs",
+            "kpi_cards",
+            "reports",
+            "insights_ia",
+            "dashboard"
+          ],
           "personalization": {
             "resolved_profile": "director_financial",
             "resolved_functional_area": "finance",
@@ -6421,7 +6391,18 @@
             "seniority_level": null,
             "onboarding_completed": false,
             "ai_profile_context": {},
-            "usage_top_entities": [],
+            "usage_top_entities": [
+              {
+                "entity_type": "dashboard_layout",
+                "entity_id": "director_financial",
+                "weight": 8
+              },
+              {
+                "entity_type": "dashboard_context",
+                "entity_id": "specialized_cockpit_runtime",
+                "weight": 4
+              }
+            ],
             "ai_insights_instructions": "Modo: operacional. Profundidade: detailed. Foque em: status operacional, pendências, tarefas. Prioridades do cargo: visao_global, comparativo_setores, riscos_estrategicos, tendencias, impacto_financeiro. Reforço (Base Estrutural / cargo formal): cargo: Diretor Financeiro | temas: Custos operacionais, Indicadores financeiros, Centros de custo, Rentabilidade por área | área: Financeiro / Controladoria / Estratégia. Seja objetivo. Exemplo de estilo: \"8 propostas em andamento. 3 insights prioritários. Interações do departamento: 24.\"",
             "allowed_modules": [
               "ai",
@@ -6539,7 +6520,7 @@
               {
                 "id": "k1",
                 "title": "Interações (semana)",
-                "value": 413,
+                "value": 1320,
                 "growth": 100,
                 "color": "blue",
                 "route": "/app/operacional",
@@ -6631,7 +6612,7 @@
           "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
           "events": [
             {
-              "at": "2026-06-22T12:46:35.282Z",
+              "at": "2026-06-26T15:28:15.588Z",
               "type": "expansion_maturity_observed",
               "score": 0.5
             }
@@ -6901,7 +6882,7 @@
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "events": [
           {
-            "at": "2026-06-22T12:46:35.285Z",
+            "at": "2026-06-26T15:28:15.592Z",
             "type": "production_activation_observed",
             "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b"
           }
@@ -7293,7 +7274,14 @@
               "reason": "exclusive_other_domain"
             }
           ],
-          "contextual_modules_hint": [],
+          "contextual_modules_hint": [
+            "billing",
+            "costs",
+            "kpi_cards",
+            "reports",
+            "insights_ia",
+            "dashboard"
+          ],
           "allowed_pipelines": [
             "financial_intelligence",
             "cost_center",
@@ -7375,9 +7363,9 @@
         },
         "rollback": {
           "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
-          "rollback_ready": false,
+          "rollback_ready": true,
           "rollback_marker": null,
-          "latest_backup": null,
+          "latest_backup": "phase-z0-2026-06-25T09-42-06",
           "rollback_plan": {
             "steps": [
               {
@@ -7600,7 +7588,14 @@
                   "reason": "exclusive_other_domain"
                 }
               ],
-              "contextual_modules_hint": [],
+              "contextual_modules_hint": [
+                "billing",
+                "costs",
+                "kpi_cards",
+                "reports",
+                "insights_ia",
+                "dashboard"
+              ],
               "allowed_pipelines": [
                 "financial_intelligence",
                 "cost_center",
@@ -7788,7 +7783,7 @@
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "events": [
           {
-            "ts": "2026-06-22T12:46:35.290Z",
+            "ts": "2026-06-26T15:28:15.600Z",
             "type": "leakage_observed",
             "cross_domain": 2,
             "domain_leaks": 2
@@ -7906,7 +7901,7 @@
         "tenant_id": "511f4819-fc48-479e-b11e-49ba4fb9c81b",
         "events": [
           {
-            "ts": "2026-06-22T12:46:35.298Z",
+            "ts": "2026-06-26T15:28:15.608Z",
             "phase": "Z.14",
             "type": "sidebar_leakage",
             "domain": "executive",
@@ -7981,7 +7976,7 @@
             "legacy_source": true,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.300Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -8046,7 +8041,7 @@
             "legacy_source": false,
             "contextual_source": true,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.300Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -8103,7 +8098,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -8160,7 +8155,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -8217,7 +8212,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -8274,7 +8269,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.610Z",
             "meta": null
           }
         ],
@@ -8584,7 +8579,7 @@
             "stage": "contextual_enforcement_Z2",
             "source": "contextualActivation",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -8594,7 +8589,7 @@
             "stage": "pilot_runtime_Z3",
             "source": "pilotTenants",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -8614,7 +8609,7 @@
             "stage": "real_enforcement_Z13",
             "source": "realTenantEnforcement",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -8624,7 +8619,7 @@
             "stage": "canonical_governance_Z14",
             "source": "canonicalModuleGovernance",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.610Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -9090,7 +9085,7 @@
             "legacy_source": true,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.300Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -9155,7 +9150,7 @@
             "legacy_source": false,
             "contextual_source": true,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.300Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -9212,7 +9207,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -9269,7 +9264,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -9326,7 +9321,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "meta": null
           },
           {
@@ -9383,7 +9378,7 @@
             "legacy_source": false,
             "contextual_source": false,
             "fallback_applied": false,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.610Z",
             "meta": null
           }
         ],
@@ -9807,7 +9802,7 @@
             "stage": "contextual_enforcement_Z2",
             "source": "contextualActivation",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -9817,7 +9812,7 @@
             "stage": "pilot_runtime_Z3",
             "source": "pilotTenants",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -9837,7 +9832,7 @@
             "stage": "real_enforcement_Z13",
             "source": "realTenantEnforcement",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.609Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -9847,7 +9842,7 @@
             "stage": "canonical_governance_Z14",
             "source": "canonicalModuleGovernance",
             "executed": true,
-            "timestamp": "2026-06-22T12:46:35.301Z",
+            "timestamp": "2026-06-26T15:28:15.610Z",
             "modules_after_count": 19,
             "leakage_detected": false,
             "governance_applied": false
@@ -10701,18 +10696,8 @@
       "governance_learning": {
         "phase": "Z.29",
         "learning_active": true,
-        "patterns_detected": [
-          {
-            "id": "recurring_overload",
-            "confidence": 0.7
-          }
-        ],
-        "fatigue_patterns": [
-          {
-            "id": "persistent_fatigue",
-            "occurrences": 4
-          }
-        ],
+        "patterns_detected": [],
+        "fatigue_patterns": [],
         "usefulness_trends": [
           {
             "avg": 0.72,
@@ -10726,23 +10711,7 @@
             "direction": "stable"
           }
         ],
-        "recommendations_generated": [
-          {
-            "id": "pattern_recurring_overload",
-            "action": "review_pattern",
-            "pattern": "recurring_overload",
-            "supervised": true,
-            "auto_apply": false,
-            "explanation": "Padrão recorrente: recurring_overload"
-          },
-          {
-            "id": "fatigue_persistent_fatigue",
-            "action": "reduce_cognitive_load",
-            "supervised": true,
-            "auto_apply": false,
-            "explanation": "Fadiga persistente detectada no histórico"
-          }
-        ],
+        "recommendations_generated": [],
         "auto_mutation_applied": false,
         "runtime_safe": true,
         "supervised": true,
@@ -10750,12 +10719,7 @@
       },
       "governance_learning_report": {
         "patterns": {
-          "patterns_detected": [
-            {
-              "id": "recurring_overload",
-              "confidence": 0.7
-            }
-          ],
+          "patterns_detected": [],
           "auto_apply": false
         },
         "usefulness": {
@@ -10788,28 +10752,18 @@
           }
         },
         "fatigue": {
-          "fatigue_patterns": [
-            {
-              "id": "persistent_fatigue",
-              "occurrences": 4
-            }
-          ],
-          "persistent": true,
+          "fatigue_patterns": [],
+          "persistent": false,
           "attention": {
-            "collapse_risk": true,
-            "executive_pressure": true
+            "collapse_risk": false,
+            "executive_pressure": false
           },
           "alerts": {
             "alert_persistence": false,
             "occurrences": 0
           },
           "stress": {
-            "stress_patterns": [
-              {
-                "id": "dashboard_stress",
-                "count": 4
-              }
-            ]
+            "stress_patterns": []
           }
         },
         "convergence": {
@@ -10836,41 +10790,13 @@
           }
         },
         "cockpit_patterns": {
-          "patterns": [
-            {
-              "id": "persistent_fatigue",
-              "count": 4,
-              "supervised": true
-            }
-          ],
-          "patterns_detected": [
-            {
-              "id": "persistent_fatigue",
-              "count": 4,
-              "supervised": true
-            }
-          ],
+          "patterns": [],
+          "patterns_detected": [],
           "insufficient_history": false
         },
         "recommendations": {
-          "recommendations_generated": [
-            {
-              "id": "pattern_recurring_overload",
-              "action": "review_pattern",
-              "pattern": "recurring_overload",
-              "supervised": true,
-              "auto_apply": false,
-              "explanation": "Padrão recorrente: recurring_overload"
-            },
-            {
-              "id": "fatigue_persistent_fatigue",
-              "action": "reduce_cognitive_load",
-              "supervised": true,
-              "auto_apply": false,
-              "explanation": "Fadiga persistente detectada no histórico"
-            }
-          ],
-          "count": 2,
+          "recommendations_generated": [],
+          "count": 0,
           "supervised": true,
           "reversible": true,
           "auditable": true,
@@ -10895,7 +10821,7 @@
               0.72,
               0.72,
               0.72,
-              0.72,
+              0.7,
               0.72,
               0.72,
               0.72,
@@ -10908,7 +10834,7 @@
           "strategic_patterns": [
             {
               "id": "convergence_history",
-              "points": 50
+              "points": 47
             }
           ],
           "alarmism_blocked": true
@@ -10917,7 +10843,7 @@
           "supervised": true,
           "auto_decision_blocked": true,
           "auto_remediation_blocked": true,
-          "human_oversight_required": true
+          "human_oversight_required": false
         },
         "performance": {
           "runtime_safe": true,
@@ -10943,7 +10869,7 @@
     "identity_observability": {
       "runtime": "zIdentityObservabilityRuntime",
       "version": 1,
-      "timestamp": "2026-06-22T12:46:36.132Z",
+      "timestamp": "2026-06-26T15:28:16.448Z",
       "user_identity": {
         "user_id": "af089666-4f32-4252-8a8b-2bf2fdb0cc3c",
         "name": "Laurência Barbarbosa",

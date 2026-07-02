@@ -2,9 +2,10 @@
 
 const path = require('path');
 
-const CONTEXT_DIR = path.join(__dirname, '../../../data/operational-context');
-const CONFIDENCE_DIR = path.join(__dirname, '../../../data/confidence-evolution');
-const INFERENCE_DIR = path.join(__dirname, '../../../data/inference-validation');
+const { dataSubdir } = require('../../config/impetusHome');
+const CONTEXT_DIR = dataSubdir('operational-context');
+const CONFIDENCE_DIR = dataSubdir('confidence-evolution');
+const INFERENCE_DIR = dataSubdir('inference-validation');
 
 function validateTenantContextBoundary(user = {}, payload = {}) {
   const tenantId = String(user?.company_id || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');

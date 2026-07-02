@@ -1,0 +1,15 @@
+{
+  "route": "/app/pulse-gestao",
+  "probes": [
+    "GET /api/pulse/mgmt/aggregates"
+  ],
+  "probeResults": [
+    {
+      "spec": "GET /api/pulse/mgmt/aggregates",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "classified": "AMARELO",
+  "at": "2026-06-24T15:27:46.599Z"
+}

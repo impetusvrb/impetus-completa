@@ -6,10 +6,10 @@
   "probeResults": [
     {
       "spec": "GET /api/logistics-intelligence/dashboard",
-      "status": 401,
+      "status": 200,
       "ok": true
     }
   ],
   "classified": "AMARELO",
-  "at": "2026-06-22T12:30:57.803Z"
+  "at": "2026-06-25T19:49:47.430Z"
 }

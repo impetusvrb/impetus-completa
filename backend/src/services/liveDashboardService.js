@@ -326,6 +326,11 @@ function canOrchestrate(user, profileCode, functionalArea) {
 
 function buildIntelligentSummary({
   orgContext,
+  userName,
+  profileLabel,
+  areaLabel,
+  deptName,
+  jobTitle,
   signals,
   gaps,
   sufficiency,
@@ -333,14 +338,31 @@ function buildIntelligentSummary({
   profileCode,
   functionalArea
 }) {
-  if (!orgContext?.valid) {
+  let effectiveOrg = orgContext;
+  if (!effectiveOrg?.valid) {
+    const hasLegacyIdentity = userName || profileLabel || jobTitle || deptName || areaLabel;
+    if (hasLegacyIdentity) {
+      effectiveOrg = {
+        valid: true,
+        nome: userName || 'Utilizador',
+        cargo: jobTitle || profileLabel || null,
+        funcao_organizacional: profileLabel || null,
+        funcao_sistema: null,
+        departamento: deptName || null,
+        area_funcional_label: areaLabel || null,
+        warnings: []
+      };
+    }
+  }
+
+  if (!effectiveOrg?.valid) {
     return (
       orgContext?.validation_message ||
       'Dados estruturais inconsistentes ou não configurados. Complete o cadastro em Gestão de Usuários e vincule o cargo na Base Estrutural.'
     );
   }
 
-  const nome = orgContext.nome || 'Utilizador';
+  const nome = effectiveOrg.nome || 'Utilizador';
   const financeLike = profileCode === 'finance_management' || functionalArea === 'finance';
   const hrLike =
     profileCode === 'hr_management' ||
@@ -350,23 +372,27 @@ function buildIntelligentSummary({
     profileCode === 'admin_system' ||
     functionalArea == null ||
     functionalArea === '';
-  const domainSafeAlerts = financeLike || hrLike || unassignedLike;
+  const executiveLike =
+    profileCode === 'ceo_executive' ||
+    functionalArea === 'executive' ||
+    functionalArea === 'executiva';
+  const domainSafeAlerts = financeLike || hrLike || unassignedLike || executiveLike;
 
   const parts = [
     `${nome}, esta leitura reflete o seu **cadastro organizacional oficial** no IMPETUS`
   ];
-  if (orgContext.cargo) parts.push(`cargo **${orgContext.cargo}**`);
-  if (orgContext.funcao_organizacional) {
-    parts.push(`função **${orgContext.funcao_organizacional}**`);
-  } else if (orgContext.funcao_sistema) {
-    parts.push(`função no sistema **${orgContext.funcao_sistema}**`);
+  if (effectiveOrg.cargo) parts.push(`cargo **${effectiveOrg.cargo}**`);
+  if (effectiveOrg.funcao_organizacional) {
+    parts.push(`função **${effectiveOrg.funcao_organizacional}**`);
+  } else if (effectiveOrg.funcao_sistema) {
+    parts.push(`função no sistema **${effectiveOrg.funcao_sistema}**`);
   }
-  if (orgContext.departamento) parts.push(`departamento **${orgContext.departamento}**`);
-  if (orgContext.area_funcional_label) parts.push(`área funcional **${orgContext.area_funcional_label}**`);
+  if (effectiveOrg.departamento) parts.push(`departamento **${effectiveOrg.departamento}**`);
+  if (effectiveOrg.area_funcional_label) parts.push(`área funcional **${effectiveOrg.area_funcional_label}**`);
 
   parts.push(
     domainSafeAlerts
-      ? `Indicadores no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas relevantes.`
+      ? `Indicadores no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas relevantes ao seu domínio.`
       : `Indicadores no seu escopo: **${signals.tasksOpen}** tarefas abertas, **${signals.tasksOverdue}** com prazo vencido, **${signals.alertsOpen}** alertas operacionais abertos.`
   );
 
@@ -386,8 +412,8 @@ function buildIntelligentSummary({
     parts.push(`**Ajustes recomendados:** ${gaps.join(' · ')}`);
   }
 
-  if (orgContext.warnings?.length) {
-    parts.push(`**Avisos estruturais:** ${orgContext.warnings.map((w) => w.message).join(' · ')}`);
+  if (effectiveOrg.warnings?.length) {
+    parts.push(`**Avisos estruturais:** ${effectiveOrg.warnings.map((w) => w.message).join(' · ')}`);
   }
 
   return parts.join('. ') + '.';

@@ -6,6 +6,7 @@
  * - Polling de alertas por voz (fora do AIChatPage)
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDashboardBoot } from '../runtimeBoot/DashboardBootContext';
 import { useLocation } from 'react-router-dom';
 import { ImpetusVoiceContext } from './ImpetusVoiceContext';
 import { useVoiceEngine } from '../hooks/useVoiceEngine';
@@ -250,9 +251,10 @@ export default function ImpetusVoiceProvider({ children }) {
     };
   }, [voiceEnabled, notify]);
 
-  // Preferências (voz/velocidade + alertas)
+  // Preferências (voz/velocidade + alertas) — onda 3 do boot
+  const { phase: bootPhase } = useDashboardBoot();
   useEffect(() => {
-    if (!voiceEnabled) return;
+    if (!voiceEnabled || bootPhase < 3) return;
     dashboard
       .getVoicePreferences()
       .then((r) => {
@@ -268,7 +270,7 @@ export default function ImpetusVoiceProvider({ children }) {
         });
       })
       .catch(() => {});
-  }, [setAlertsEnabled, setVoicePrefs, voiceEnabled]);
+  }, [setAlertsEnabled, setVoicePrefs, voiceEnabled, bootPhase]);
 
   // Ao detectar wake word, abre presença (float/overlay) imediatamente
   useEffect(() => {
