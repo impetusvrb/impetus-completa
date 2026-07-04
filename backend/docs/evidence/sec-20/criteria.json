@@ -1,0 +1,28 @@
+{
+  "certification": "SEC-20",
+  "criteria": {
+    "security_baseline_certified": true,
+    "sec01_to_sec19_certified": true,
+    "full_regression_passing": true,
+    "operational_readiness_certified": true,
+    "stress_certified": true,
+    "attack_simulation_certified": true,
+    "security_dashboard_available": true,
+    "enterprise_security_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "tests_passing": true
+  },
+  "passed": 58,
+  "failed": 0,
+  "decision": "CERTIFIED WITH REMARKS",
+  "ncs": [
+    {
+      "id": "NC-SEC20-001",
+      "severity": "Média",
+      "message": "Regressão completa não executada nesta corrida (SEC20_SKIP_REGRESSION=true sem cache)",
+      "treatment": "Executar SEC_20 sem skip ou gerar regression-summary.json",
+      "impact": "Certificação condicional até regressão 100% PASS",
+      "status": "OPEN"
+    }
+  ]
+}

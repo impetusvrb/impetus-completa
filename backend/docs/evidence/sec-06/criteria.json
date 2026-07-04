@@ -1,0 +1,43 @@
+{
+  "certification": "SEC-06",
+  "implemented_at": "2026-07-03T23:30:00Z",
+  "feature_flag": "SECURITY_RESPONSE_ORCHESTRATOR",
+  "feature_flag_default": false,
+  "default_mode": "advise",
+  "max_executable_level": 2,
+  "protect_enabled_default": false,
+  "depends_on": ["SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05"],
+  "tests": {
+    "file": "backend/src/tests/securityResponse/SEC_06_RESPONSE_AUDIT.test.js",
+    "passed": 22,
+    "failed": 0
+  },
+  "criteria": {
+    "response_orchestrator_available": true,
+    "response_catalog_available": true,
+    "response_levels_available": true,
+    "observe_mode_available": true,
+    "advise_mode_available": true,
+    "assist_mode_available": true,
+    "protect_mode_disabled": true,
+    "rollback_available": true,
+    "audit_endpoint_available": true,
+    "feature_flag_available": true,
+    "security_baseline_preserved": true,
+    "security_observatory_preserved": true,
+    "security_correlation_preserved": true,
+    "security_threat_intelligence_preserved": true,
+    "security_runtime_integrity_preserved": true,
+    "security_notification_center_preserved": true,
+    "event_governance_preserved": true,
+    "eco_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "no_destructive_actions": true,
+    "tests_passing": true
+  },
+  "audit_endpoints": [
+    "GET /api/audit/security-response",
+    "GET /api/audit/security-response/history"
+  ],
+  "adaptive_protection": "plan_only"
+}

@@ -563,4 +563,435 @@ router.get('/eco-convergence/status', requireAuth, requireTenantAdminRole, (req,
   }
 });
 
+/**
+ * GET /api/audit/security-observatory
+ * SEC-01 — Enterprise Security Observatory (read-only, observational).
+ */
+router.get('/security-observatory', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec01 = require('../securityObservatory');
+    res.json(sec01.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security Observatory'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-incidents
+ * SEC-02 — Enterprise Security Correlation Engine (read-only).
+ */
+router.get('/security-incidents', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec02 = require('../securityCorrelation');
+    res.json(sec02.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security Incidents'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-threat-intelligence
+ * SEC-03 — Enterprise Threat Intelligence Engine (read-only, consultative).
+ */
+router.get('/security-threat-intelligence', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec03 = require('../securityThreatIntelligence');
+    res.json(sec03.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Threat Intelligence'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-runtime-integrity
+ * SEC-04 — Enterprise Runtime Integrity (read-only, observational).
+ */
+router.get('/security-runtime-integrity', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec04 = require('../securityRuntimeIntegrity');
+    res.json(sec04.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Runtime Integrity'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-notifications/pending
+ * SEC-05 — Notificações pendentes (read-only).
+ */
+router.get('/security-notifications/pending', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec05 = require('../securityNotification');
+    res.json(sec05.getPendingPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter notificações pendentes'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-notifications
+ * SEC-05 — Enterprise Security Notification Center (read-only).
+ */
+router.get('/security-notifications', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec05 = require('../securityNotification');
+    res.json(sec05.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security Notifications'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-response/history
+ * SEC-06 — Histórico de respostas orchestradas.
+ */
+router.get('/security-response/history', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec06 = require('../securityResponse');
+    res.json(sec06.getHistoryPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter histórico de respostas'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-response
+ * SEC-06 — Enterprise Security Response Orchestrator (read-only audit).
+ */
+router.get('/security-response', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec06 = require('../securityResponse');
+    res.json(sec06.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security Response'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-soc/executive
+ * SEC-07 — SOC Dashboard Executivo (read-only).
+ */
+router.get('/security-soc/executive', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec07 = require('../securitySOC');
+    res.json(sec07.getExecutivePayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter SOC Executivo'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-soc/operations
+ * SEC-07 — SOC Dashboard Operacional (read-only).
+ */
+router.get('/security-soc/operations', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec07 = require('../securitySOC');
+    res.json(sec07.getOperationsPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter SOC Operacional'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-soc
+ * SEC-07 — Enterprise Security Operations Center (read-only).
+ */
+router.get('/security-soc', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec07 = require('../securitySOC');
+    res.json(sec07.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security SOC'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-certification
+ * SEC-08 — Enterprise Security Certification v1 (read-only evidência).
+ */
+router.get('/security-certification', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const evidencePath = path.join(__dirname, '../../docs/evidence/sec-08/certification-latest.json');
+    if (!fs.existsSync(evidencePath)) {
+      return res.status(404).json({
+        ok: false,
+        phase: 'SEC-08',
+        error: 'Certificação não executada — correr SEC_08_ENTERPRISE_SECURITY_CERTIFICATION.test.js'
+      });
+    }
+    const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+    res.json({ ok: true, phase: 'SEC-08', read_only: true, ...evidence });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err?.message || 'Erro ao obter Security Certification'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-promotion
+ * SEC-09 — Enterprise Security Promotion Dashboard (read-only plano + estado).
+ */
+router.get('/security-promotion', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec09 = require('../securityPromotion');
+    res.json(sec09.getPromotionPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-09',
+      error: err?.message || 'Erro ao obter Security Promotion'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-active-defense
+ * SEC-10 — Enterprise Active Defense (read-only consultivo).
+ */
+router.get('/security-active-defense', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec10 = require('../securityActiveDefense');
+    res.json(sec10.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-10',
+      error: err?.message || 'Erro ao obter Active Defense'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-adaptive-protection
+ * SEC-11 — Enterprise Adaptive Protection (read-only planos).
+ */
+router.get('/security-adaptive-protection', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec11 = require('../securityAdaptiveProtection');
+    res.json(sec11.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-11',
+      error: err?.message || 'Erro ao obter Adaptive Protection'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-execution-validation
+ * SEC-12 — Execution Validation Layer (dry-run only).
+ */
+router.get('/security-execution-validation', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec12 = require('../securityExecutionValidation');
+    res.json(sec12.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-12',
+      error: err?.message || 'Erro ao obter Execution Validation'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-controlled-execution
+ * SEC-13 — Controlled Protection Execution (read-only audit).
+ */
+router.get('/security-controlled-execution', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec13 = require('../securityControlledExecution');
+    res.json(sec13.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-13',
+      error: err?.message || 'Erro ao obter Controlled Execution'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-operational-promotion
+ * SEC-13A — Enterprise Security Operational Promotion & Validation.
+ */
+router.get('/security-operational-promotion', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec13a = require('../securityPromotionOperational');
+    res.json(sec13a.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-13A',
+      error: err?.message || 'Erro ao obter Operational Promotion'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-adaptive-blocking
+ * SEC-14 — Enterprise Adaptive Blocking Engine (recomendações only).
+ */
+router.get('/security-adaptive-blocking', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec14 = require('../securityAdaptiveBlocking');
+    res.json(sec14.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-14',
+      error: err?.message || 'Erro ao obter Adaptive Blocking'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-anti-scanner
+ * SEC-15 — Anti-Scanner + Anti-Enumeration (contramedidas recomendadas only).
+ */
+router.get('/security-anti-scanner', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec15 = require('../securityAntiScanner');
+    res.json(sec15.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-15',
+      error: err?.message || 'Erro ao obter Anti-Scanner'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-threat-deception
+ * SEC-16 — Enterprise Threat Deception Framework (planos certificados only).
+ */
+router.get('/security-threat-deception', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec16 = require('../securityThreatDeception');
+    res.json(sec16.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-16',
+      error: err?.message || 'Erro ao obter Threat Deception'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-exfiltration
+ * SEC-17 — Enterprise Exfiltration Detection & Data Protection (consultivo).
+ */
+router.get('/security-exfiltration', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec17 = require('../securityExfiltrationDetection');
+    res.json(sec17.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-17',
+      error: err?.message || 'Erro ao obter Exfiltration Detection'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-runtime-protection
+ * SEC-18 — Enterprise Adaptive Runtime Protection (controlador consultivo).
+ */
+router.get('/security-runtime-protection', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec18 = require('../securityRuntimeProtection');
+    res.json(sec18.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-18',
+      error: err?.message || 'Erro ao obter Runtime Protection'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-operational-certification
+ * SEC-19 — Enterprise Attack Simulation & Operational Stress Certification (read-only).
+ */
+router.get('/security-operational-certification', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec19 = require('../securityOperationalCertification');
+    res.json(sec19.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-19',
+      error: err?.message || 'Erro ao obter Operational Certification'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-certification-v2
+ * SEC-20 — Enterprise Security v2 Operational Certification (read-only evidência consolidada).
+ */
+router.get('/security-certification-v2', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec20 = require('../securityCertificationV2');
+    const payload = sec20.getAuditPayload();
+    if (!payload.evidence?.criteria && !payload.dashboard) {
+      return res.status(404).json({
+        ok: false,
+        phase: 'SEC-20',
+        error: 'Certificação v2 não executada — correr SEC_20_ENTERPRISE_SECURITY_CERTIFICATION.test.js'
+      });
+    }
+    res.json(payload);
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-20',
+      error: err?.message || 'Erro ao obter Security Certification v2'
+    });
+  }
+});
+
 module.exports = router;

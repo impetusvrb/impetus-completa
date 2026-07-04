@@ -3,7 +3,7 @@
  */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Cpu, RefreshCw, AlertCircle, Wallet, BarChart3, CreditCard, Pause, Play, Shield } from 'lucide-react';
+import { Cpu, RefreshCw, AlertCircle, Wallet, BarChart3, CreditCard, Pause, Play, Shield, Plug } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -59,6 +59,19 @@ const IA_COST_TABLE = [
   }
 ];
 
+function isGlobalImpetusAdmin() {
+  try {
+    const u = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    const role = String(u.role || '').toLowerCase();
+    return (
+      ['internal_admin', 'super_admin', 'impetus_admin', 'admin_impetus'].includes(role) ||
+      u.is_internal_admin === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function NexusIACustos() {
   const notify = useNotification();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,11 +86,20 @@ export default function NexusIACustos() {
     const t = searchParams.get('tab');
     if (t === 'wallet') return 'wallet';
     if (t === 'infra') return 'infra';
+    if (t === 'gateways') return 'gateways';
     return 'tokens';
   });
   const [walletData, setWalletData] = useState(null);
   const [billingEngine, setBillingEngine] = useState(null);
   const [billingLedger, setBillingLedger] = useState([]);
+  const [billingReconcile, setBillingReconcile] = useState(null);
+  const [gateways, setGateways] = useState([]);
+  const [gatewaysLoading, setGatewaysLoading] = useState(false);
+  const [gatewaysErr, setGatewaysErr] = useState('');
+  const [autoRechargeEnabled, setAutoRechargeEnabled] = useState(false);
+  const [autoRechargeAmount, setAutoRechargeAmount] = useState('50');
+  const [autoRechargeMin, setAutoRechargeMin] = useState('0');
+  const canManageGateways = useMemo(() => isGlobalImpetusAdmin(), []);
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletErr, setWalletErr] = useState('');
   const [thresholdInput, setThresholdInput] = useState('');
@@ -113,16 +135,22 @@ export default function NexusIACustos() {
     setWalletLoading(true);
     setWalletErr('');
     try {
-      const [dash, engine, ledger] = await Promise.all([
+      const [dash, engine, ledger, reconcile] = await Promise.all([
         nexusWallet.getDashboard({ ledger_limit: 60 }),
         nexusWallet.getBillingEngineDashboard().catch(() => null),
-        nexusWallet.getBillingLedger({ limit: 80 }).catch(() => null)
+        nexusWallet.getBillingLedger({ limit: 80 }).catch(() => null),
+        nexusWallet.reconcileBilling().catch(() => null)
       ]);
       setWalletData(dash.data);
       setBillingEngine(engine?.data?.ok ? engine.data : null);
       setBillingLedger(ledger?.data?.entries || []);
+      setBillingReconcile(reconcile?.data?.consistent != null ? reconcile.data : null);
       const th = dash.data?.wallet?.low_balance_threshold_credits;
       if (th != null) setThresholdInput(String(th));
+      const w = dash.data?.wallet;
+      if (w?.auto_recharge_enabled != null) setAutoRechargeEnabled(!!w.auto_recharge_enabled);
+      if (w?.auto_recharge_amount_brl != null) setAutoRechargeAmount(String(w.auto_recharge_amount_brl));
+      if (w?.auto_recharge_min_balance != null) setAutoRechargeMin(String(w.auto_recharge_min_balance));
     } catch (e) {
       setWalletErr(e?.apiMessage || e?.response?.data?.error || e?.message || 'Erro ao carregar carteira.');
       setWalletData(null);
@@ -137,9 +165,28 @@ export default function NexusIACustos() {
     load();
   }, [ano, mes]);
 
+  const loadGateways = useCallback(async () => {
+    if (!canManageGateways) return;
+    setGatewaysLoading(true);
+    setGatewaysErr('');
+    try {
+      const r = await nexusWallet.listGlobalGateways();
+      setGateways(r.data?.gateways || []);
+    } catch (e) {
+      setGatewaysErr(e?.response?.data?.error || e?.message || 'Erro ao carregar gateways.');
+      setGateways([]);
+    } finally {
+      setGatewaysLoading(false);
+    }
+  }, [canManageGateways]);
+
   useEffect(() => {
     if (view === 'wallet') loadWallet();
   }, [view, loadWallet]);
+
+  useEffect(() => {
+    if (view === 'gateways') loadGateways();
+  }, [view, loadGateways]);
 
   useEffect(() => {
     if (searchParams.get('stripe') === 'success') {
@@ -163,6 +210,7 @@ export default function NexusIACustos() {
     const next = new URLSearchParams(searchParams);
     if (v === 'wallet') next.set('tab', 'wallet');
     else if (v === 'infra') next.set('tab', 'infra');
+    else if (v === 'gateways') next.set('tab', 'gateways');
     else next.delete('tab');
     setSearchParams(next, { replace: true });
   };
@@ -278,6 +326,15 @@ export default function NexusIACustos() {
           >
             <Shield size={18} /> Infraestrutura e privacidade
           </button>
+          {canManageGateways && (
+            <button
+              type="button"
+              className={view === 'gateways' ? 'active' : ''}
+              onClick={() => setTab('gateways')}
+            >
+              <Plug size={18} /> Gateways IMPETUS
+            </button>
+          )}
         </div>
 
         {view === 'tokens' && (
@@ -384,6 +441,17 @@ export default function NexusIACustos() {
                   </div>
                 )}
 
+                {walletData.billingEngineEnabled && (
+                  <div className="nexus-wallet-info" style={{ borderColor: 'var(--cyan)' }}>
+                    <strong>Billing Engine v4 activo.</strong>{' '}
+                    {billingReconcile?.consistent === true
+                      ? 'Ledger e carteira reconciliados.'
+                      : billingReconcile?.consistent === false
+                        ? 'Divergência ledger/carteira — contacte suporte.'
+                        : 'Motor enterprise multi-tenant em operação.'}
+                  </div>
+                )}
+
                 {walletData.wallet?.consumption_paused && (
                   <div className="nexus-custos-alert nexus-wallet-alert-pause">
                     <Pause size={20} />
@@ -412,6 +480,10 @@ export default function NexusIACustos() {
                       <div className="nexus-custos-card">
                         <span className="nexus-custos-card-label">Consumo mês (engine)</span>
                         <strong>{formatCredits(billingEngine.consumption_month?.credits)}</strong>
+                      </div>
+                      <div className="nexus-custos-card">
+                        <span className="nexus-custos-card-label">Consumo ano (engine)</span>
+                        <strong>{formatCredits(billingEngine.consumption_year?.credits)}</strong>
                       </div>
                     </>
                   )}
@@ -491,9 +563,12 @@ export default function NexusIACustos() {
                       onClick={async () => {
                         try {
                           await nexusWallet.updateSettings({
-                            low_balance_threshold_credits: Number(thresholdInput) || 0
+                            low_balance_threshold_credits: Number(thresholdInput) || 0,
+                            auto_recharge_enabled: autoRechargeEnabled,
+                            auto_recharge_amount_brl: Number(autoRechargeAmount) || 50,
+                            auto_recharge_min_balance: Number(autoRechargeMin) || 0
                           });
-                          notify.success('Limiar atualizado');
+                          notify.success('Configurações guardadas');
                           loadWallet();
                         } catch (e) {
                           notify.error(e?.response?.data?.error || 'Erro');
@@ -536,6 +611,36 @@ export default function NexusIACustos() {
                       <RefreshCw size={18} className={walletLoading ? 'spin' : ''} />
                     </button>
                   </div>
+                  <div className="nexus-wallet-settings" style={{ marginTop: 12 }}>
+                    <label className="nexus-wallet-hint">
+                      <input
+                        type="checkbox"
+                        checked={autoRechargeEnabled}
+                        onChange={(e) => setAutoRechargeEnabled(e.target.checked)}
+                      />{' '}
+                      Auto-recarga activa (quando saldo &lt; mínimo)
+                    </label>
+                    <label>
+                      Valor auto-recarga (R$)
+                      <input
+                        type="number"
+                        min={5}
+                        step={1}
+                        value={autoRechargeAmount}
+                        onChange={(e) => setAutoRechargeAmount(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Saldo mínimo (créditos)
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={autoRechargeMin}
+                        onChange={(e) => setAutoRechargeMin(e.target.value)}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <h2 className="nexus-wallet-h2">Consumo em créditos (mês atual)</h2>
@@ -560,6 +665,34 @@ export default function NexusIACustos() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                )}
+
+                {billingEngine?.top_users?.length > 0 && (
+                  <>
+                    <h2 className="nexus-wallet-h2">Utilizadores que mais consumiram (mês)</h2>
+                    <ul className="nexus-wallet-override-list">
+                      {billingEngine.top_users.map((u) => (
+                        <li key={u.user_id || u.name}>
+                          <strong>{u.name || String(u.user_id || '').slice(0, 8)}</strong>:{' '}
+                          {formatCredits(u.credits)} créditos
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {billingEngine?.top_departments?.length > 0 && (
+                  <>
+                    <h2 className="nexus-wallet-h2">Consumo por departamento (mês)</h2>
+                    <ul className="nexus-wallet-override-list">
+                      {billingEngine.top_departments.map((d) => (
+                        <li key={d.department_id}>
+                          <strong>{d.department_name || 'Departamento'}</strong>:{' '}
+                          {formatCredits(d.credits)} créditos
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
 
                 {billingEngine && billingLedger.length > 0 && (
@@ -685,6 +818,51 @@ export default function NexusIACustos() {
                 )}
               </>
             )}
+          </section>
+        )}
+
+        {view === 'gateways' && canManageGateways && (
+          <section className="nexus-wallet-section">
+            <p className="nexus-wallet-hint" style={{ marginBottom: 16 }}>
+              Painel exclusivo IMPETUS — activar gateways de recarga. Credenciais permanecem no servidor.
+            </p>
+            {gatewaysErr && (
+              <div className="nexus-custos-alert">
+                <AlertCircle size={20} />
+                <span>{gatewaysErr}</span>
+              </div>
+            )}
+            {gatewaysLoading && !gateways.length && <p className="nexus-custos-loading">Carregando…</p>}
+            <div className="nexus-infra-cards">
+              {gateways.map((g) => (
+                <article key={g.provider} className="nexus-custos-card nexus-infra-card">
+                  <span className="nexus-custos-card-label">Gateway</span>
+                  <h3 className="nexus-infra-provider">{g.label || g.provider}</h3>
+                  <p className={`nexus-infra-status nexus-infra-status--${g.enabled ? 'up' : 'down'}`}>
+                    {g.enabled ? 'Activado' : 'Desactivado'}
+                  </p>
+                  <button
+                    type="button"
+                    className={g.enabled ? 'nexus-btn-secondary' : 'nexus-btn-primary'}
+                    disabled={gatewaysLoading}
+                    onClick={async () => {
+                      try {
+                        await nexusWallet.updateGlobalGateway(g.provider, {
+                          enabled: !g.enabled,
+                          config: g.config || {}
+                        });
+                        notify.success(`${g.label} actualizado`);
+                        loadGateways();
+                      } catch (e) {
+                        notify.error(e?.response?.data?.error || 'Erro');
+                      }
+                    }}
+                  >
+                    {g.enabled ? 'Desactivar' : 'Activar'}
+                  </button>
+                </article>
+              ))}
+            </div>
           </section>
         )}
 

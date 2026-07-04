@@ -23,6 +23,59 @@ function requireCompanyAdmin(req, res, next) {
 
 const chain = [requireAuth, requireCompanyAdmin];
 
+function requireGlobalImpetusAdmin(req, res, next) {
+  const role = String(req.user?.role || '').toLowerCase();
+  if (
+    ['internal_admin', 'super_admin', 'impetus_admin', 'admin_impetus'].includes(role) ||
+    req.user?.is_internal_admin === true
+  ) {
+    return next();
+  }
+  return res.status(403).json({
+    ok: false,
+    code: 'GLOBAL_ADMIN_ONLY',
+    error: 'Acesso restrito à equipa global IMPETUS.'
+  });
+}
+
+const globalChain = [requireAuth, requireGlobalImpetusAdmin];
+
+router.get('/billing-engine/reconcile', ...chain, async (req, res) => {
+  try {
+    const billingEngine = require('../../services/nexusBillingEngine');
+    if (!billingEngine.isEnabled()) {
+      return res.status(503).json({ ok: false, code: 'BILLING_ENGINE_OFF', error: 'Motor v4 desactivado.' });
+    }
+    const data = await billingEngine.reconcileCompanyWallet(req.user.company_id, req.user.id);
+    if (!data.ok) return res.status(400).json(data);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/global-gateways', ...globalChain, async (_req, res) => {
+  try {
+    const gateways = await require('../../services/billingGatewayService').listGateways();
+    res.json({ ok: true, gateways });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.patch('/global-gateways/:provider', ...globalChain, async (req, res) => {
+  try {
+    const gateway = await require('../../services/billingGatewayService').updateGateway(
+      req.params.provider,
+      { enabled: req.body?.enabled === true, config: req.body?.config },
+      req.user?.id
+    );
+    res.json({ ok: true, gateway });
+  } catch (err) {
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+});
+
 router.get('/billing-engine/dashboard', ...chain, async (req, res) => {
   try {
     const billingEngine = require('../../services/nexusBillingEngine');

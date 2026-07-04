@@ -120,8 +120,8 @@ async function chargeConsumption(input, usage = {}) {
       balanceAfter = balanceBefore - creditsToDebit;
       await client.query(
         `UPDATE nexus_company_wallets SET
-          balance_credits = $3,
-          consumption_paused = CASE WHEN $3 <= 0 THEN true ELSE consumption_paused END,
+          balance_credits = $3::numeric,
+          consumption_paused = CASE WHEN ($3::numeric) <= 0 THEN true ELSE consumption_paused END,
           updated_at = now()
          WHERE company_id = $1 AND wallet_id = $2`,
         [context.companyId, context.walletId, balanceAfter]
@@ -302,7 +302,7 @@ async function creditTopUp(input, { credits, amountBrl = 0, gateway = 'stripe', 
     );
 
     await client.query(
-      `UPDATE nexus_company_wallets SET balance_credits = $3, consumption_paused = false, updated_at = now()
+      `UPDATE nexus_company_wallets SET balance_credits = $3::numeric, consumption_paused = false, updated_at = now()
        WHERE company_id = $1 AND wallet_id = $2`,
       [context.companyId, context.walletId, balanceAfter]
     );
@@ -334,7 +334,8 @@ async function getCompanyDashboard(companyId, userId) {
   if (!resolved.ok) return resolved;
 
   const cid = resolved.context.companyId;
-  const [wallet, today, month, topUsers, topServices] = await Promise.all([
+  const walletId = resolved.context.walletId;
+  const [wallet, today, month, year, topUsers, topServices, topDepartments] = await Promise.all([
     db.query(`SELECT * FROM nexus_company_wallets WHERE company_id = $1`, [cid]),
     db.query(
       `SELECT COALESCE(SUM(credits_charged),0)::float AS credits, COALESCE(SUM(price_brl),0)::float AS brl
@@ -347,15 +348,28 @@ async function getCompanyDashboard(companyId, userId) {
       [cid]
     ),
     db.query(
-      `SELECT user_id, SUM(credits_charged)::float AS credits
-       FROM billing_ledger WHERE company_id = $1 AND created_at >= date_trunc('month', now())
-       GROUP BY user_id ORDER BY credits DESC LIMIT 10`,
+      `SELECT COALESCE(SUM(credits_charged),0)::float AS credits, COALESCE(SUM(price_brl),0)::float AS brl
+       FROM billing_ledger WHERE company_id = $1 AND created_at >= date_trunc('year', now())`,
+      [cid]
+    ),
+    db.query(
+      `SELECT bl.user_id, u.name, SUM(bl.credits_charged)::float AS credits
+       FROM billing_ledger bl LEFT JOIN users u ON u.id = bl.user_id
+       WHERE bl.company_id = $1 AND bl.created_at >= date_trunc('month', now())
+       GROUP BY bl.user_id, u.name ORDER BY credits DESC LIMIT 10`,
       [cid]
     ),
     db.query(
       `SELECT service, SUM(credits_charged)::float AS credits
        FROM billing_ledger WHERE company_id = $1 AND created_at >= date_trunc('month', now())
        GROUP BY service ORDER BY credits DESC LIMIT 10`,
+      [cid]
+    ),
+    db.query(
+      `SELECT bl.department_id, d.name AS department_name, SUM(bl.credits_charged)::float AS credits
+       FROM billing_ledger bl LEFT JOIN departments d ON d.id = bl.department_id
+       WHERE bl.company_id = $1 AND bl.created_at >= date_trunc('month', now()) AND bl.department_id IS NOT NULL
+       GROUP BY bl.department_id, d.name ORDER BY credits DESC LIMIT 10`,
       [cid]
     )
   ]);
@@ -365,10 +379,54 @@ async function getCompanyDashboard(companyId, userId) {
     wallet_id: wallet.rows[0]?.wallet_id,
     balance_credits: Number(wallet.rows[0]?.balance_credits || 0),
     consumption_paused: wallet.rows[0]?.consumption_paused === true,
+    low_balance_threshold_credits: Number(wallet.rows[0]?.low_balance_threshold_credits || 0),
+    auto_recharge_enabled: wallet.rows[0]?.auto_recharge_enabled === true,
+    auto_recharge_amount_brl: Number(wallet.rows[0]?.auto_recharge_amount_brl || 50),
+    auto_recharge_min_balance: Number(wallet.rows[0]?.auto_recharge_min_balance || 0),
     consumption_today: today.rows[0],
     consumption_month: month.rows[0],
+    consumption_year: year.rows[0],
     top_users: topUsers.rows,
-    top_services: topServices.rows
+    top_services: topServices.rows,
+    top_departments: topDepartments.rows,
+    engine_enabled: true
+  };
+}
+
+async function reconcileCompanyWallet(companyId, userId) {
+  const resolved = await resolveBillingContext({ companyId, userId, requestId: `reconcile-${Date.now()}` });
+  if (!resolved.ok) return resolved;
+
+  const cid = resolved.context.companyId;
+  const walletId = resolved.context.walletId;
+  const [wallet, lastLedger, ledgerSum] = await Promise.all([
+    db.query(`SELECT balance_credits, wallet_id FROM nexus_company_wallets WHERE company_id = $1`, [cid]),
+    db.query(
+      `SELECT balance_after, created_at FROM billing_ledger
+       WHERE company_id = $1 AND wallet_id = $2 ORDER BY created_at DESC, id DESC LIMIT 1`,
+      [cid, walletId]
+    ),
+    db.query(
+      `SELECT COALESCE(SUM(credits_charged),0)::numeric AS net_charged, COUNT(*)::int AS entries
+       FROM billing_ledger WHERE company_id = $1`,
+      [cid]
+    )
+  ]);
+
+  const walletBal = Number(wallet.rows[0]?.balance_credits || 0);
+  const ledgerBal = lastLedger.rows[0] ? Number(lastLedger.rows[0].balance_after) : null;
+  const consistent = ledgerBal == null || Math.abs(walletBal - ledgerBal) < 0.000001;
+
+  return {
+    ok: true,
+    company_id: cid,
+    wallet_id: walletId,
+    wallet_balance: walletBal,
+    ledger_balance_after: ledgerBal,
+    ledger_entries: ledgerSum.rows[0]?.entries || 0,
+    net_credits_charged: Number(ledgerSum.rows[0]?.net_charged || 0),
+    consistent,
+    last_ledger_at: lastLedger.rows[0]?.created_at || null
   };
 }
 
@@ -378,5 +436,6 @@ module.exports = {
   chargeConsumption,
   creditTopUp,
   getCompanyDashboard,
+  reconcileCompanyWallet,
   resolveBillingContext
 };

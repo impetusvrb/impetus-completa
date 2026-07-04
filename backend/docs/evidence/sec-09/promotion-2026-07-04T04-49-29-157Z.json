@@ -1,0 +1,46 @@
+{
+  "certification": "SEC-09-ENTERPRISE-SECURITY-PROMOTION",
+  "version": "v1",
+  "executedAt": "2026-07-04T04:49:29.157Z",
+  "passed": 21,
+  "failed": 0,
+  "globalDecision": "SEC-09 PROMOTION PLAN APPROVED — MANUAL ACTIVATION PENDING",
+  "criteria": {
+    "promotion_plan_available": true,
+    "activation_order_defined": true,
+    "rollback_defined": true,
+    "health_checks_defined": true,
+    "security_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "tests_passing": true
+  },
+  "auto_activation": false,
+  "activation_sequence": [
+    "SECURITY_OBSERVATORY",
+    "SECURITY_CORRELATION_ENGINE",
+    "SECURITY_THREAT_INTELLIGENCE",
+    "SECURITY_RUNTIME_INTEGRITY",
+    "SECURITY_NOTIFICATION_CENTER",
+    "SECURITY_RESPONSE_ORCHESTRATOR",
+    "SECURITY_SOC"
+  ],
+  "recommended_phase_1": {
+    "label": "Promoção imediata passiva (pós-SEC-09)",
+    "steps": [
+      "SEC-01",
+      "SEC-02",
+      "SEC-03",
+      "SEC-04",
+      "SEC-05",
+      "SEC-06",
+      "SEC-07"
+    ],
+    "sec06Constraints": {
+      "SECURITY_RESPONSE_ORCHESTRATOR": "true",
+      "SECURITY_RESPONSE_DEFAULT_MODE": "advise",
+      "SECURITY_RESPONSE_MAX_LEVEL": "1",
+      "SECURITY_RESPONSE_PROTECT_ENABLED": "false"
+    },
+    "note": "Módulos observacionais primeiro; SEC-06 em advise L1; Protect permanece OFF"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "certification": "SEC-15",
+  "criteria": {
+    "anti_scanner_available": false,
+    "scanner_fingerprint_available": false,
+    "enumeration_detection_available": false,
+    "surface_protection_planner_available": false,
+    "scanner_confidence_available": false,
+    "audit_endpoint_available": false,
+    "feature_flags_available": false,
+    "enterprise_security_preserved": false,
+    "enterprise_baseline_preserved": false,
+    "tests_passing": false
+  },
+  "passed": 33,
+  "failed": 3
+}

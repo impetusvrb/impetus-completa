@@ -1,0 +1,27 @@
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 3000/tcp                   DENY IN     Anywhere                   # Block direct frontend
+[ 2] 4000/tcp                   DENY IN     Anywhere                   # Block direct backend
+[ 3] 22/tcp                     ALLOW IN    170.246.0.0/16             # IMPETUS SSH Gustavo Vero IPv4
+[ 4] 22/tcp                     ALLOW IN    186.225.0.0/16             # IMPETUS SSH Welligton Next IPv4
+[ 5] 80/tcp                     ALLOW IN    170.246.0.0/16             # IMPETUS HTTP Gustavo Vero
+[ 6] 80/tcp                     ALLOW IN    186.225.0.0/16             # IMPETUS HTTP Welligton Next
+[ 7] 443/tcp                    ALLOW IN    170.246.0.0/16             # IMPETUS HTTPS Gustavo Vero
+[ 8] 443/tcp                    ALLOW IN    186.225.0.0/16             # IMPETUS HTTPS Welligton Next
+[ 9] Anywhere                   DENY IN     3.19.29.56                 # IMPETUS blocked attacker
+[10] Anywhere                   DENY IN     216.238.69.243             # IMPETUS blocked attacker
+[11] Anywhere                   DENY IN     35.153.53.215              # IMPETUS blocked attacker
+[12] Anywhere                   DENY IN     27.79.3.161                # IMPETUS blocked attacker
+[13] Anywhere                   DENY IN     171.231.186.160            # IMPETUS blocked attacker
+[14] Anywhere                   DENY IN     134.122.102.174            # IMPETUS blocked attacker
+[15] 3000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct frontend
+[16] 4000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct backend
+[17] 22                         ALLOW IN    2804:2484::/32             # IMPETUS SSH Gustavo Vero IPv6
+[18] 22                         ALLOW IN    2804:2980::/32             # IMPETUS SSH Welligton Next IPv6
+[19] 80                         ALLOW IN    2804:2484::/32             # IMPETUS HTTP Gustavo V6
+[20] 80                         ALLOW IN    2804:2980::/32             # IMPETUS HTTP Welligton V6
+[21] 443                        ALLOW IN    2804:2484::/32             # IMPETUS HTTPS Gustavo V6
+[22] 443                        ALLOW IN    2804:2980::/32             # IMPETUS HTTPS Welligton V6
+

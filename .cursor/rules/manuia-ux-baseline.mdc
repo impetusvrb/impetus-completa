@@ -1,0 +1,52 @@
+---
+description: Baseline UX congelada do módulo ManuIA — hierarquia, navegação única, responsividade e protocolo de regressão
+globs: frontend/src/pages/ManuIA.*,frontend/src/features/manutencao-ia/**,frontend/src/modules/live-assistance/**,frontend/src/manuia-app/**,frontend/src/components/manu-ia/**
+alwaysApply: false
+---
+
+# MANUIA-UX-BASELINE (congelamento UX + regressão)
+
+Documentação completa: `frontend/docs/MANUIA_UX_BASELINE.md`
+
+> **Antes de finalizar qualquer alteração na ManuIA**, execute obrigatoriamente o protocolo de regressão visual definido em `MANUIA_UX_BASELINE.md` (secção 11 — MANUIA-UX-BASELINE-002). Nenhuma tarefa deverá ser considerada concluída sem validar todos os viewports (360×800, 390×844, 768×1024, ≥1366px), checklist estrutural, funcional e responsivo, e sem registar evidência em `backend/docs/evidence/cert01/`.
+
+## Escopo
+
+Aplica-se **somente** à ManuIA (`/app/manutencao/manuia`, `/app/manutencao/manuia-app` e ficheiros listados nos globs). **Não** restringe Dashboard, Centro de Comando nem outros módulos.
+
+## Hierarquia fixa (não reordenar)
+
+1. Cognitive Core compacto (`Layout` → `CognitiveCompactPresence variant="manuia"`)
+2. Cabeçalho ManuIA
+3. Centro de Ação (`ManuiaActionCenter` — 4 tiles: Pesquisa, Ao vivo, Upload, QR)
+4. Runtime compacto (`ManuiaOperationalKpiStrip`)
+5. Ferramentas — **uma** navegação: stack vertical (mobile) OU tabs (desktop)
+6. Conteúdo do `activeTab`
+7. Resultados
+8. Atalhos
+
+## Navegação — regras invioláveis
+
+- **Uma instância no DOM:** `useIsMobileNav()` → render condicional; **proibido** montar `manuia-tools-stack` e `manuia-tabs` simultaneamente (mesmo com `display:none`).
+- **Ordem `MODULE_TABS`:** Pesquisa → Assistência Técnica ao Vivo → Gestão de Ativos → Análise Foto/Vídeo → Gêmeo Digital.
+- **Proibido:** segunda barra horizontal no mobile, menu «Mais» paralelo, duplicar handlers/estado de navegação.
+- Handlers: mobile stack usa `goSearch()` / `goLive()` / `setActiveTab`; desktop tabs usa `setActiveTab`.
+
+## Antes de alterar estrutura
+
+Exige aprovação explícita + atualizar `MANUIA_UX_BASELINE.md`. Fixes pontuais (bug, acessibilidade) podem preservar a hierarquia.
+
+## Protocolo de regressão (obrigatório ao concluir tarefa)
+
+1. Viewports: 360×800, 390×844, 768×1024, ≥1366px (+ paisagem mobile/tablet)
+2. Checklists: estrutura, navegação, funcionalidade, interface, responsividade (secção 11)
+3. Evidência: `backend/docs/evidence/cert01/CERT-MANUIA-REGRESSION-*.md`
+
+## Checklist rápido
+
+- [ ] Uma nav de ferramentas no mobile
+- [ ] Runtime após Centro de Ação
+- [ ] Sem componentes duplicados
+- [ ] Desktop tabs intactos (≥768px)
+- [ ] DS Industrial 4.0 mantido
+- [ ] Protocolo secção 11 executado + evidência registada

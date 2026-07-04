@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-26T16:40:12.790Z",
+  "generatedAt": "2026-07-02T19:57:21.441Z",
   "source": "frontend/src/App.jsx",
-  "importCount": 96,
+  "importCount": 97,
   "guardNames": [
     "PrivateRoute",
     "SetupGuard",
@@ -30,7 +30,7 @@
       "route": "/",
       "screen": "Login",
       "screenFile": "./pages/Login",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [],
       "allowedRoles": null,
@@ -157,7 +157,7 @@
       "route": "/app/ceo",
       "screen": "Dashboard",
       "screenFile": "./pages/Dashboard",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -173,7 +173,7 @@
       "route": "/app/operacional",
       "screen": "Operacional",
       "screenFile": "./pages/Operacional",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -189,7 +189,7 @@
       "route": "/app/registro-inteligente",
       "screen": "RegistroInteligente",
       "screenFile": "./pages/RegistroInteligente",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -271,6 +271,22 @@
       "route": "/app/pulse-rh",
       "screen": "PulseRh",
       "screenFile": "./pages/PulseRh",
+      "screenFileExists": true,
+      "module": "Pulse",
+      "guards": [
+        "PrivateRoute",
+        "SetupGuard",
+        "PulseRhRouteGuard"
+      ],
+      "allowedRoles": null,
+      "isRedirect": false,
+      "isLayout": false,
+      "loader": "lazy"
+    },
+    {
+      "route": "/app/pulse-cognitive-rh",
+      "screen": "PulseCognitiveRh",
+      "screenFile": "./pages/PulseCognitiveRh",
       "screenFileExists": true,
       "module": "Pulse",
       "guards": [
@@ -388,7 +404,7 @@
       "route": "/app/manutencao/manuia",
       "screen": "ManuIA",
       "screenFile": "./pages/ManuIA",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "ManuIA",
       "guards": [
         "PrivateRoute",
@@ -480,7 +496,7 @@
       "route": "/app/admin/conteudo-empresa",
       "screen": "CompanyAdminSettings",
       "screenFile": "./pages/CompanyAdminSettings",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -531,7 +547,7 @@
       "route": "/app/admin/users",
       "screen": "AdminUsers",
       "screenFile": "./pages/AdminUsers",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -549,7 +565,7 @@
       "route": "/app/admin/implantacao-guia",
       "screen": "ImplementationGuide",
       "screenFile": "./pages/ImplementationGuide",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Core",
       "guards": [
         "PrivateRoute",
@@ -603,7 +619,7 @@
       "route": "/app/admin/structural",
       "screen": "AdminStructural",
       "screenFile": "./pages/AdminStructural",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -693,7 +709,7 @@
       "route": "/app/admin/rollout-center",
       "screen": "RolloutCenterHub",
       "screenFile": "./domains/admin/rollout-center/RolloutCenterHub",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -783,7 +799,7 @@
       "route": "/app/admin/audio-logs",
       "screen": "AdminAudioLogs",
       "screenFile": "./pages/AdminAudioLogs",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -817,7 +833,7 @@
       "route": "/app/admin/nexusia-custos",
       "screen": "NexusIACustos",
       "screenFile": "./pages/NexusIACustos",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Custos/Billing",
       "guards": [
         "PrivateRoute",
@@ -835,7 +851,7 @@
       "route": "/app/admin/help-center",
       "screen": "AdminHelpCenter",
       "screenFile": "./pages/AdminHelpCenter",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "Admin",
       "guards": [
         "PrivateRoute",
@@ -1072,7 +1088,7 @@
       "route": "/app/safety/operational/inspection",
       "screen": "SafetyFieldInspectionPage",
       "screenFile": "./domains/safety/routes/SafetyFieldInspectionPage.jsx",
-      "screenFileExists": false,
+      "screenFileExists": true,
       "module": "SST",
       "guards": [
         "Suspense",

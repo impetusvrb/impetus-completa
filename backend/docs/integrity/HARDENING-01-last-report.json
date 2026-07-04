@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-07-03T21:20:37Z",
+  "status": "ok",
+  "missing_files": [],
+  "drift_files": [],
+  "checked_count": 15,
+  "baseline": "/var/www/impetus-completa/backend/docs/integrity/HARDENING-01-baseline.sha256"
+}

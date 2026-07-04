@@ -1,0 +1,23 @@
+{
+  "certification": "ECO-06-CONTEXT-CONSUMER",
+  "executedAt": "2026-07-03T01:15:00.751Z",
+  "passed": 17,
+  "failed": 1,
+  "contextDecision": "CONSUMER READY COM RESSALVAS",
+  "globalDecision": "NÃO CERTIFICADO",
+  "criteria": {
+    "conversation_consumer_adapter_available": true,
+    "knowledge_base_consumer_available": true,
+    "shadow_mode_available": true,
+    "consumer_mode_available": true,
+    "institutional_knowledge_reused": true,
+    "no_duplicate_knowledge": true,
+    "conversation_context_preserved": true,
+    "rollback_available": true,
+    "event_governance_preserved": true,
+    "apis_unchanged": true,
+    "dtos_unchanged": true,
+    "tests_passing": false
+  },
+  "note": "ECO_CONTEXT_VIA_EG=OFF — CCE perfil próprio; KB consultada shadow sem alterar prompt"
+}

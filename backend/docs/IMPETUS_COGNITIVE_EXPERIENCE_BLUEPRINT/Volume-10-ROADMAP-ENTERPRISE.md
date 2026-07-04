@@ -116,6 +116,52 @@ Documentação: [`backend/docs/ECO_02_CONVERGENCE_ARCHITECTURE.md`](../../ECO_02
 
 **Regra:** P0/P1 (bypasses) antes de Controller, Pulse ou Backbone.
 
+**Sequência ECO:** ✅ **ENCERRADA** (ECO-01 → ECO-08)
+
 ---
 
-*Volume X · v1.1 · 2026-07-02*
+## 7. Programa SEC — Enterprise Security v1 (pós incidente)
+
+> **Baseline:** SECURITY-BASELINE-01 · Observabilidade, inteligência e resposta graduada · Sem bloqueios automáticos
+
+| Fase | Objectivo | Status |
+|------|-----------|--------|
+| SECURITY-BASELINE-01 | Referência estado correcto pós-incidente | ✅ Certificado |
+| SEC-01 | Enterprise Security Observatory | ✅ 17/17 |
+| SEC-02 | Correlation Engine | ✅ 18/18 |
+| SEC-03 | Threat Intelligence | ✅ 20/20 |
+| SEC-04 | Runtime Integrity | ✅ 20/20 |
+| SEC-05 | Notification Center | ✅ 20/20 |
+| SEC-06 | Response Orchestrator (Observe→Assist) | ✅ 22/22 |
+| SEC-07 | Security Operations Center | ✅ 22/22 |
+| SEC-08 | Certificação final + Operational Readiness | ✅ **ENTERPRISE SECURITY V1 — CERTIFIED WITH REMARKS** |
+
+Documentação: [`backend/docs/ENTERPRISE_SECURITY_V1.md`](../../ENTERPRISE_SECURITY_V1.md) · [`SECURITY_CERTIFICATION_V1.md`](../../SECURITY_CERTIFICATION_V1.md)
+
+**Regra:** Flags `SECURITY_*` OFF por defeito · Protect (SEC-06 L3) plan-only · Evoluções → Enterprise Security v2
+
+**Sequência SEC:** ✅ **ENCERRADA** (SECURITY-BASELINE-01 → SEC-08)
+
+| Fase | Objectivo | Status |
+|------|-----------|--------|
+| SEC-09 | Promoção operacional controlada (equivalente PROMOTION-02) | ✅ **PLANO APROVADO — ACTIVAÇÃO MANUAL PENDENTE** |
+| SEC-10 | Enterprise Active Defense Fase 1 (consultivo) | ✅ Implementado |
+| SEC-11 | Enterprise Adaptive Protection Fase 2 (planos) | ✅ Implementado |
+| SEC-12 | Execution Validation & Safe Execution (dry-run) | ✅ Implementado |
+| SEC-13 | Controlled Protection Execution (LOW auto) | ✅ Implementado |
+| SEC-13A | Operational Promotion & Validation | ✅ Implementado |
+| SEC-14 | Adaptive Blocking Engine (recomendações) | ✅ Implementado |
+| SEC-15 | Anti-Scanner + Anti-Enumeration | ✅ Implementado |
+| SEC-16 | Threat Deception Framework | ✅ Implementado |
+| SEC-17 | Exfiltration Detection & Data Protection | ✅ Implementado |
+| SEC-18 | Adaptive Runtime Protection (Controller) | ✅ Implementado |
+| SEC-19 | Attack Simulation & Operational Stress Certification | ✅ Implementado |
+| SEC-20 | Enterprise Security v2 Operational Certification | ✅ Implementado |
+
+Documentação: [`SEC_19_OPERATIONAL_CERTIFICATION.md`](../../SEC_19_OPERATIONAL_CERTIFICATION.md) · [`SECURITY_CERTIFICATION_V2.md`](../../SECURITY_CERTIFICATION_V2.md)
+
+**Ciclo Enterprise Security v2:** ✅ **ENCERRADO** (SECURITY-BASELINE-01 → SEC-20)
+
+---
+
+*Volume X · v2.3 · 2026-07-04*

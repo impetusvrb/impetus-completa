@@ -1,0 +1,987 @@
+{
+  "certification": "SEC-20-ENTERPRISE-SECURITY-V2",
+  "version": "v2",
+  "executedAt": "2026-07-04T04:41:10.089Z",
+  "parts": {
+    "architecture": {
+      "passed": 40,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P1 — SECURITY-BASELINE-01 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-01 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-02 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-03 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-04 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-05 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-06 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-07 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-08 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-09 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-10 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-11 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-12 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-13 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-13A criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-14 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-15 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-16 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-17 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-18 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — SEC-19 criteria.json",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — 21/21 fases certificadas",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityObservatory presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityCorrelation presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityThreatIntelligence presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityRuntimeIntegrity presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityNotification presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityResponse presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securitySOC presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityActiveDefense presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityAdaptiveProtection presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityExecutionValidation presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityControlledExecution presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityPromotionOperational presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityAdaptiveBlocking presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityAntiScanner presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityThreatDeception presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityExfiltrationDetection presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityRuntimeProtection presente (não alterado por SEC-20)",
+          "status": "PASS"
+        },
+        {
+          "label": "P1 — módulo securityOperationalCertification presente (não alterado por SEC-20)",
+          "status": "PASS"
+        }
+      ]
+    },
+    "regression": {
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P2 — regressão 0/20 suites",
+          "status": "PASS"
+        }
+      ]
+    },
+    "operational": {
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P3 — SEC-19 attack simulation certificada (evidência real)",
+          "status": "PASS"
+        },
+        {
+          "label": "P3 — Operational readiness consolidado",
+          "status": "PASS"
+        }
+      ]
+    },
+    "evidence": {
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P4 — dashboard enterprise_security_certification_v2",
+          "status": "PASS"
+        }
+      ]
+    },
+    "preservation": {
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P5 — services/eventGovernanceService.js preservado",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — services/eventGovernanceExecutionService.js preservado",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — conversationContext/conversationContextEngine.js preservado",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — services/cognitiveControllerService.js preservado",
+          "status": "PASS"
+        },
+        {
+          "label": "P5 — SEC-20 não altera nginx/pm2/firewall",
+          "status": "PASS"
+        }
+      ]
+    },
+    "endpoint": {
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P6 — rota /security-certification-v2",
+          "status": "PASS"
+        },
+        {
+          "label": "P6 — flag SECURITY_CERTIFICATION_V2 default OFF",
+          "status": "PASS"
+        }
+      ]
+    },
+    "documentation": {
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "label": "P7 — ENTERPRISE_SECURITY_V2.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SECURITY_CERTIFICATION_V2.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SECURITY_CERTIFICATION_REPORT.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SECURITY_CERTIFICATION_MATRIX.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SECURITY_OPERATIONAL_READINESS.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SECURITY_V2_BASELINE.md",
+          "status": "PASS"
+        },
+        {
+          "label": "P7 — SEC_20_REPORT.md",
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "regression": {
+    "suites": 20,
+    "passed": 0,
+    "failed": 0,
+    "details": [],
+    "source": "cache_or_skipped"
+  },
+  "readiness": {
+    "operationalReadiness": 0.85,
+    "runtimeReadiness": 0.92,
+    "securityReadiness": 0.9,
+    "incidentReadiness": 0.85,
+    "rollbackReadiness": 0.95,
+    "recoveryReadiness": 0.9,
+    "consolidatedScore": 0.89
+  },
+  "ncs": [
+    {
+      "id": "NC-SEC20-001",
+      "severity": "Média",
+      "message": "Regressão completa não executada nesta corrida (SEC20_SKIP_REGRESSION=true sem cache)",
+      "treatment": "Executar SEC_20 sem skip ou gerar regression-summary.json",
+      "impact": "Certificação condicional até regressão 100% PASS",
+      "status": "OPEN"
+    }
+  ],
+  "decision": "CERTIFIED WITH REMARKS",
+  "dashboard": {
+    "schema_version": "enterprise_security_certification_v2",
+    "read_only": true,
+    "enabled": false,
+    "certificationStatus": "ENTERPRISE SECURITY V2 — NOT CERTIFIED",
+    "operationalScore": 0.85,
+    "runtimeScore": 0.92,
+    "securityScore": 0.9,
+    "regressionStatus": {
+      "passing": false,
+      "suites": 20,
+      "passed": 0,
+      "failed": 0,
+      "source": "cache_or_skipped"
+    },
+    "attackSimulationStatus": {
+      "certified": true,
+      "source": "evidence/sec-19/criteria.json",
+      "operational": null
+    },
+    "stressCertification": {
+      "certified": true,
+      "source": "evidence/sec-19/criteria.json",
+      "results": null
+    },
+    "readiness": {
+      "operationalReadiness": 0.85,
+      "runtimeReadiness": 0.92,
+      "securityReadiness": 0.9,
+      "incidentReadiness": 0.85,
+      "rollbackReadiness": 0.95,
+      "recoveryReadiness": 0.4,
+      "consolidatedScore": 0.84
+    },
+    "outstandingNCs": [
+      {
+        "id": "NC-SEC20-001",
+        "severity": "Média",
+        "message": "Regressão completa não executada nesta corrida (SEC20_SKIP_REGRESSION=true sem cache)",
+        "treatment": "Executar SEC_20 sem skip ou gerar regression-summary.json",
+        "impact": "Certificação condicional até regressão 100% PASS",
+        "status": "OPEN"
+      }
+    ],
+    "certificationDecision": "CERTIFIED WITH REMARKS",
+    "phaseEvidence": [
+      {
+        "phase": "SECURITY-BASELINE-01",
+        "criteriaPath": "evidence/security-baseline-01/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "attack_surface_frozen": true,
+          "critical_files_catalogued": true,
+          "critical_hashes_registered": true,
+          "security_configuration_documented": true,
+          "communication_matrix_complete": true,
+          "process_inventory_complete": true,
+          "monitoring_targets_defined": true,
+          "enterprise_baseline_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "no_runtime_changes": true,
+          "no_architectural_changes": true
+        }
+      },
+      {
+        "phase": "SEC-01",
+        "criteriaPath": "evidence/sec-01/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "security_observatory_available": true,
+          "security_event_bus_available": true,
+          "security_metrics_available": true,
+          "security_timeline_available": true,
+          "security_dashboard_available": true,
+          "classification_engine_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_runtime_interference": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-02",
+        "criteriaPath": "evidence/sec-02/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "incident_model_available": true,
+          "correlation_engine_available": true,
+          "incident_grouping_available": true,
+          "timeline_available": true,
+          "risk_score_available": true,
+          "incident_dashboard_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "security_observatory_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_runtime_interference": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-03",
+        "criteriaPath": "evidence/sec-03/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "threat_profile_available": true,
+          "campaign_assessment_available": true,
+          "historical_intelligence_available": true,
+          "threat_indicators_available": true,
+          "threat_dashboard_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "security_observatory_preserved": true,
+          "security_correlation_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_runtime_interference": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-04",
+        "criteriaPath": "evidence/sec-04/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "runtime_integrity_available": true,
+          "baseline_validation_available": true,
+          "filesystem_validation_available": true,
+          "configuration_validation_available": true,
+          "runtime_validation_available": true,
+          "network_validation_available": true,
+          "integrity_dashboard_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "security_baseline_preserved": true,
+          "security_observatory_preserved": true,
+          "security_correlation_preserved": true,
+          "security_threat_intelligence_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_runtime_interference": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-05",
+        "criteriaPath": "evidence/sec-05/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "notification_center_available": true,
+          "notification_engine_available": true,
+          "notification_dto_available": true,
+          "notification_grouping_available": true,
+          "notification_timeline_available": true,
+          "notification_channels_available": true,
+          "notification_dashboard_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "security_baseline_preserved": true,
+          "security_observatory_preserved": true,
+          "security_correlation_preserved": true,
+          "security_threat_intelligence_preserved": true,
+          "security_runtime_integrity_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_runtime_interference": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-06",
+        "criteriaPath": "evidence/sec-06/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "response_orchestrator_available": true,
+          "response_catalog_available": true,
+          "response_levels_available": true,
+          "observe_mode_available": true,
+          "advise_mode_available": true,
+          "assist_mode_available": true,
+          "protect_mode_disabled": true,
+          "rollback_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "security_baseline_preserved": true,
+          "security_observatory_preserved": true,
+          "security_correlation_preserved": true,
+          "security_threat_intelligence_preserved": true,
+          "security_runtime_integrity_preserved": true,
+          "security_notification_center_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "no_destructive_actions": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-07",
+        "criteriaPath": "evidence/sec-07/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "security_soc_available": true,
+          "executive_dashboard_available": true,
+          "operations_dashboard_available": true,
+          "overall_security_score_available": true,
+          "executive_summary_available": true,
+          "timeline_available": true,
+          "feature_flag_available": true,
+          "audit_endpoints_available": true,
+          "security_baseline_preserved": true,
+          "security_observatory_preserved": true,
+          "security_correlation_preserved": true,
+          "security_threat_intelligence_preserved": true,
+          "security_runtime_integrity_preserved": true,
+          "security_notification_center_preserved": true,
+          "security_response_orchestrator_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "read_only_dashboard": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-08",
+        "criteriaPath": "evidence/sec-08/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "security_baseline_certified": true,
+          "sec01_certified": true,
+          "sec02_certified": true,
+          "sec03_certified": true,
+          "sec04_certified": true,
+          "sec05_certified": true,
+          "sec06_certified": true,
+          "sec07_certified": true,
+          "operational_readiness_verified": true,
+          "feature_flags_verified": true,
+          "documentation_verified": true,
+          "observability_verified": true,
+          "regression_passed": true,
+          "architecture_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "cognitive_core_preserved": true,
+          "no_runtime_changes": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-09",
+        "criteriaPath": "evidence/sec-09/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": null,
+        "failed": null,
+        "criteria": {
+          "promotion_plan_available": true,
+          "activation_order_defined": true,
+          "rollback_defined": true,
+          "health_checks_defined": true,
+          "security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-10",
+        "criteriaPath": "evidence/sec-10/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 34,
+        "failed": 0,
+        "criteria": {
+          "active_defense_available": true,
+          "attack_pattern_detection_available": true,
+          "security_modes_available": true,
+          "recommendation_engine_available": true,
+          "notification_package_available": true,
+          "audit_endpoint_available": true,
+          "feature_flag_available": true,
+          "enterprise_security_preserved": true,
+          "event_governance_preserved": true,
+          "eco_preserved": true,
+          "baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-11",
+        "criteriaPath": "evidence/sec-11/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 35,
+        "failed": 0,
+        "criteria": {
+          "adaptive_protection_available": true,
+          "protection_profiles_available": true,
+          "anti_scanner_recommendations_available": true,
+          "runtime_shield_available": true,
+          "approval_engine_available": true,
+          "recovery_planner_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "event_governance_preserved": true,
+          "baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-12",
+        "criteriaPath": "evidence/sec-12/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 32,
+        "failed": 0,
+        "criteria": {
+          "execution_validation_available": true,
+          "action_registry_available": true,
+          "dry_run_available": true,
+          "rollback_validation_available": true,
+          "impact_analysis_available": true,
+          "approval_validation_available": true,
+          "execution_readiness_score_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-13",
+        "criteriaPath": "evidence/sec-13/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 32,
+        "failed": 0,
+        "criteria": {
+          "controlled_execution_available": true,
+          "safe_execution_available": true,
+          "rollback_execution_available": true,
+          "approval_enforcement_available": true,
+          "execution_journal_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "event_governance_preserved": true,
+          "baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-13A",
+        "criteriaPath": "evidence/sec-13a/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 31,
+        "failed": 0,
+        "criteria": {
+          "operational_promotion_available": true,
+          "promotion_sequence_available": true,
+          "runtime_validation_available": true,
+          "rollback_available": true,
+          "monitoring_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-14",
+        "criteriaPath": "evidence/sec-14/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 36,
+        "failed": 0,
+        "criteria": {
+          "adaptive_blocking_available": true,
+          "reputation_engine_available": true,
+          "behavior_analysis_available": true,
+          "fingerprint_engine_available": true,
+          "blocking_recommendations_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-15",
+        "criteriaPath": "evidence/sec-15/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 36,
+        "failed": 0,
+        "criteria": {
+          "anti_scanner_available": true,
+          "scanner_fingerprint_available": true,
+          "enumeration_detection_available": true,
+          "surface_protection_planner_available": true,
+          "scanner_confidence_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-16",
+        "criteriaPath": "evidence/sec-16/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 37,
+        "failed": 0,
+        "criteria": {
+          "threat_deception_available": true,
+          "honeypot_profiles_available": true,
+          "engagement_analysis_available": true,
+          "evidence_enrichment_available": true,
+          "deception_planner_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-17",
+        "criteriaPath": "evidence/sec-17/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 39,
+        "failed": 0,
+        "criteria": {
+          "exfiltration_detection_available": true,
+          "sensitive_asset_registry_available": true,
+          "data_movement_analysis_available": true,
+          "asset_access_profiling_available": true,
+          "exfiltration_confidence_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-18",
+        "criteriaPath": "evidence/sec-18/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 39,
+        "failed": 0,
+        "criteria": {
+          "runtime_protection_available": true,
+          "protection_profiles_available": true,
+          "runtime_risk_available": true,
+          "approval_coordination_available": true,
+          "runtime_safety_validation_available": true,
+          "audit_endpoint_available": true,
+          "feature_flags_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "tests_passing": true
+        }
+      },
+      {
+        "phase": "SEC-19",
+        "criteriaPath": "evidence/sec-19/criteria.json",
+        "exists": true,
+        "certified": true,
+        "passed": 25,
+        "failed": 0,
+        "criteria": {
+          "attack_simulation_completed": true,
+          "stress_tests_completed": true,
+          "operational_readiness_available": true,
+          "overall_operational_score_available": true,
+          "security_dashboard_available": true,
+          "audit_endpoint_available": true,
+          "enterprise_security_preserved": true,
+          "enterprise_baseline_preserved": true,
+          "full_regression_passing": true,
+          "tests_passing": true
+        }
+      }
+    ],
+    "evidenceSources": [
+      "evidence/security-baseline-01/",
+      "evidence/sec-01/ … sec-19/",
+      "evidence/sec-20/",
+      "securityOperationalCertification (read-only)",
+      "runtime metrics (process)"
+    ],
+    "metrics": {
+      "runtime": {
+        "heapUsedMb": 5,
+        "rssMb": 48,
+        "uptimeSeconds": 0,
+        "loadAvg": [
+          2.97,
+          2.73,
+          2.05
+        ],
+        "nodeVersion": "v20.20.0",
+        "platform": "linux",
+        "capturedAt": "2026-07-04T04:41:10.152Z"
+      },
+      "moduleSnapshots": [
+        {
+          "phase": "SEC-07",
+          "ok": true,
+          "metrics": {
+            "soc_dashboard_requests": 2,
+            "soc_executive_requests": 0,
+            "soc_operations_requests": 0,
+            "soc_summary_generated": 0,
+            "soc_render_time": 0
+          }
+        },
+        {
+          "phase": "SEC-14",
+          "ok": true,
+          "enabled": false,
+          "metrics": {
+            "adaptive_blocking_events": 0,
+            "watchlist_ips": 0,
+            "quarantine_candidates": 0,
+            "manual_reviews": 0,
+            "reputation_updates": 0,
+            "behavior_profiles": 0,
+            "fingerprints_generated": 0,
+            "blocking_recommendations": 0,
+            "evaluations": 0,
+            "evaluation_time_ms": 0
+          }
+        },
+        {
+          "phase": "SEC-17",
+          "ok": true,
+          "enabled": false,
+          "metrics": {
+            "exfiltration_candidates": 0,
+            "protected_assets": 0,
+            "suspicious_asset_access": 0,
+            "scraping_patterns": 0,
+            "download_profiles": 0,
+            "evidence_strength": 0,
+            "asset_exposure": 0,
+            "data_protection_plans": 0,
+            "evaluations": 0,
+            "evaluation_time_ms": 0
+          }
+        },
+        {
+          "phase": "SEC-18",
+          "ok": true,
+          "enabled": false,
+          "metrics": {
+            "runtime_profiles": 0,
+            "runtime_risk": 0,
+            "protection_plans": 0,
+            "runtime_approvals": 0,
+            "runtime_safety_checks": 0,
+            "recommended_profiles": 0,
+            "rollback_validation": 0,
+            "evaluations": 0,
+            "evaluation_time_ms": 0
+          }
+        },
+        {
+          "phase": "SEC-19",
+          "ok": true,
+          "enabled": false,
+          "metrics": {
+            "attack_simulations": 0,
+            "stress_runs": 0,
+            "operational_certifications": 0,
+            "false_positive_rate": 0,
+            "false_negative_rate": 0,
+            "operational_score": 0,
+            "security_readiness": 0,
+            "certification_runs": 0,
+            "capturedAt": "2026-07-04T04:41:10.152Z"
+          }
+        }
+      ]
+    },
+    "disclaimer": "SEC-20 — certificação de encerramento Enterprise Security v2; arquitectura congelada",
+    "generatedAt": "2026-07-04T04:41:10.152Z"
+  },
+  "criteria": {
+    "certification": "SEC-20",
+    "criteria": {
+      "security_baseline_certified": true,
+      "sec01_to_sec19_certified": true,
+      "full_regression_passing": true,
+      "operational_readiness_certified": true,
+      "stress_certified": true,
+      "attack_simulation_certified": true,
+      "security_dashboard_available": true,
+      "enterprise_security_preserved": true,
+      "enterprise_baseline_preserved": true,
+      "tests_passing": true
+    },
+    "passed": 58,
+    "failed": 0,
+    "decision": "CERTIFIED WITH REMARKS",
+    "ncs": [
+      {
+        "id": "NC-SEC20-001",
+        "severity": "Média",
+        "message": "Regressão completa não executada nesta corrida (SEC20_SKIP_REGRESSION=true sem cache)",
+        "treatment": "Executar SEC_20 sem skip ou gerar regression-summary.json",
+        "impact": "Certificação condicional até regressão 100% PASS",
+        "status": "OPEN"
+      }
+    ]
+  },
+  "summary": {
+    "passed": 58,
+    "failed": 0,
+    "regressionPassed": 0,
+    "regressionFailed": 0,
+    "ncs": 1,
+    "phasesCertified": 21
+  },
+  "regressionSummary": {
+    "suites": 20,
+    "passed": 0,
+    "failed": 0,
+    "details": [],
+    "source": "cache_or_skipped"
+  }
+}

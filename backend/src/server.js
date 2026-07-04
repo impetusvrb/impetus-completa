@@ -71,10 +71,22 @@ try {
   /* never break boot */
 }
 try {
+  const { requestAccessLogMiddleware } = require('./middleware/requestAccessLog');
+  app.use(requestAccessLogMiddleware);
+} catch (_e) {
+  /* never break boot */
+}
+try {
   const { observabilityMiddleware } = require('./middleware/observabilityMiddleware');
   app.use(observabilityMiddleware);
 } catch (_e) {
   /* WAVE 2 opt-in — never break boot */
+}
+try {
+  const { securityObservatoryMiddleware } = require('./securityObservatory/middleware/securityObservatoryMiddleware');
+  app.use(securityObservatoryMiddleware);
+} catch (_e) {
+  /* SEC-01 opt-in — never break boot */
 }
 app.use(compression());
 const corsOptions = buildCorsOptions();
@@ -2696,6 +2708,150 @@ httpServer.on('error', (err) => {
       }
     } catch (e) {
       console.warn('[Z17_PILOT_RECOVERY_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-01 — Enterprise Security Observatory (observational only; SECURITY_OBSERVATORY=false default).
+    try {
+      const sec01 = require('./securityObservatory');
+      sec01.init();
+    } catch (e) {
+      console.warn('[SEC-01_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-02 — Security Correlation Engine (read-only; SECURITY_CORRELATION_ENGINE=false default).
+    try {
+      const sec02 = require('./securityCorrelation');
+      sec02.init();
+    } catch (e) {
+      console.warn('[SEC-02_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-03 — Threat Intelligence Engine (consultative; SECURITY_THREAT_INTELLIGENCE=false default).
+    try {
+      const sec03 = require('./securityThreatIntelligence');
+      sec03.init();
+    } catch (e) {
+      console.warn('[SEC-03_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-04 — Runtime Integrity (observational; SECURITY_RUNTIME_INTEGRITY=false default).
+    try {
+      const sec04 = require('./securityRuntimeIntegrity');
+      sec04.init();
+    } catch (e) {
+      console.warn('[SEC-04_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-05 — Notification Center (notification only; SECURITY_NOTIFICATION_CENTER=false default).
+    try {
+      const sec05 = require('./securityNotification');
+      sec05.init();
+    } catch (e) {
+      console.warn('[SEC-05_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-06 — Response Orchestrator (graduated; SECURITY_RESPONSE_ORCHESTRATOR=false default).
+    try {
+      const sec06 = require('./securityResponse');
+      sec06.init();
+    } catch (e) {
+      console.warn('[SEC-06_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-07 — SOC Dashboard (read-only; SECURITY_SOC=false default).
+    try {
+      const sec07 = require('./securitySOC');
+      sec07.init();
+    } catch (e) {
+      console.warn('[SEC-07_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-10 — Enterprise Active Defense (consultative; SECURITY_ACTIVE_DEFENSE=false default).
+    try {
+      const sec10 = require('./securityActiveDefense');
+      sec10.init();
+    } catch (e) {
+      console.warn('[SEC-10_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-11 — Enterprise Adaptive Protection (plan only; SECURITY_ADAPTIVE_PROTECTION=false default).
+    try {
+      const sec11 = require('./securityAdaptiveProtection');
+      sec11.init();
+    } catch (e) {
+      console.warn('[SEC-11_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-12 — Execution Validation (dry-run only; SECURITY_EXECUTION_VALIDATION=false default).
+    try {
+      const sec12 = require('./securityExecutionValidation');
+      sec12.init();
+    } catch (e) {
+      console.warn('[SEC-12_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-13 — Controlled Execution (LOW auto only; SECURITY_CONTROLLED_EXECUTION=false default).
+    try {
+      const sec13 = require('./securityControlledExecution');
+      sec13.init();
+    } catch (e) {
+      console.warn('[SEC-13_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-13A — Operational Promotion & Validation (SECURITY_OPERATIONAL_PROMOTION=false default).
+    try {
+      const sec13a = require('./securityPromotionOperational');
+      sec13a.init();
+    } catch (e) {
+      console.warn('[SEC-13A_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-14 — Enterprise Adaptive Blocking (observe only; SECURITY_ADAPTIVE_BLOCKING=false default).
+    try {
+      const sec14 = require('./securityAdaptiveBlocking');
+      sec14.init();
+    } catch (e) {
+      console.warn('[SEC-14_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-15 — Anti-Scanner + Anti-Enumeration (observe only; SECURITY_ANTI_SCANNER=false default).
+    try {
+      const sec15 = require('./securityAntiScanner');
+      sec15.init();
+    } catch (e) {
+      console.warn('[SEC-15_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-16 — Threat Deception Framework (observe only; SECURITY_THREAT_DECEPTION=false default).
+    try {
+      const sec16 = require('./securityThreatDeception');
+      sec16.init();
+    } catch (e) {
+      console.warn('[SEC-16_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-17 — Exfiltration Detection (observe only; SECURITY_EXFILTRATION_DETECTION=false default).
+    try {
+      const sec17 = require('./securityExfiltrationDetection');
+      sec17.init();
+    } catch (e) {
+      console.warn('[SEC-17_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-18 — Runtime Protection Controller (observe only; SECURITY_RUNTIME_PROTECTION=false default).
+    try {
+      const sec18 = require('./securityRuntimeProtection');
+      sec18.init();
+    } catch (e) {
+      console.warn('[SEC-18_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-19 — Operational Certification (audit-only; SECURITY_OPERATIONAL_CERTIFICATION=false default).
+    try {
+      const sec19 = require('./securityOperationalCertification');
+      sec19.init();
+    } catch (e) {
+      console.warn('[SEC-19_BOOT]', e && e.message ? e.message : e);
     }
 
     const listenHost = (process.env.LISTEN_HOST || '127.0.0.1').trim() || '127.0.0.1';

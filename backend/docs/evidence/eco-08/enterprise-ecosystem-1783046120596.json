@@ -1,0 +1,50 @@
+{
+  "certification": "ECO-08-ENTERPRISE-ECOSYSTEM",
+  "executedAt": "2026-07-03T02:35:20.595Z",
+  "passed": 19,
+  "failed": 6,
+  "globalDecision": "ENTERPRISE ECOSYSTEM NOT CERTIFIED",
+  "componentDecisions": {
+    "event_governance": "CERTIFICADO COM RESSALVAS",
+    "controller": "CERTIFICADO COM RESSALVAS",
+    "pulse": "CERTIFICADO COM RESSALVAS",
+    "conversation_context": "CERTIFICADO COM RESSALVAS",
+    "executive_dashboards": "CERTIFICADO COM RESSALVAS",
+    "knowledge_base": "CERTIFICADO COM RESSALVAS",
+    "executive_insights": "CERTIFICADO COM RESSALVAS"
+  },
+  "criteria": {
+    "event_governance_v1_preserved": true,
+    "ecosystem_converged": true,
+    "all_consumers_certified": true,
+    "all_adapters_certified": true,
+    "all_feature_flags_independent": true,
+    "all_rollbacks_available": true,
+    "all_observability_available": true,
+    "apis_unchanged": true,
+    "dtos_unchanged": true,
+    "regression_passing": false,
+    "enterprise_baseline_established": false
+  },
+  "regression": {
+    "ECO_02_CONVERGENCE_ARCHITECTURE": {
+      "ok": true
+    },
+    "ECO_03_BYPASS_MIGRATION": {
+      "ok": true
+    },
+    "ECO_04_CONTROLLER_CONSUMER": {
+      "ok": true
+    },
+    "ECO_05_PULSE_CONSUMER": {
+      "ok": true
+    },
+    "ECO_06_CONTEXT_CONSUMER": {
+      "ok": true
+    },
+    "ECO_07_EXECUTIVE_CONSUMER": {
+      "ok": true
+    }
+  },
+  "note": "Convergência arquitectural completa em shadow (flags OFF). Activação consumer em staging pendente — NC-ECO-03-001…007-001."
+}

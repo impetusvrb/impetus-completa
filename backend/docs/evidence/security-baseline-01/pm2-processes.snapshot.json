@@ -1,0 +1,83 @@
+[
+  {
+    "name": "lipsync-api",
+    "pid": null,
+    "status": "online",
+    "script": "/var/www/impetus-completa/lipsync/lipsync_api.py",
+    "cwd": "/var/www/impetus-completa",
+    "restarts": 1,
+    "created_at": 1779657428161
+  },
+  {
+    "name": "impetus-frontend",
+    "pid": 4114349,
+    "status": "online",
+    "script": "/usr/bin/npm",
+    "cwd": "/var/www/impetus-completa/frontend",
+    "restarts": 229,
+    "created_at": 1783113626995
+  },
+  {
+    "name": "impetus-backend",
+    "pid": 4027145,
+    "status": "online",
+    "script": "/var/www/impetus-completa/backend/src/server.js",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 528,
+    "created_at": 1783028555390
+  },
+  {
+    "name": "impetus-lab-modbus",
+    "pid": 0,
+    "status": "stopped",
+    "script": "/var/www/impetus-completa/backend/scripts/industrial-lab-modbus-server.py",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 0,
+    "created_at": 1779903791308
+  },
+  {
+    "name": "impetus-lab-opcua",
+    "pid": 0,
+    "status": "stopped",
+    "script": "/var/www/impetus-completa/backend/scripts/industrial-lab-opcua-server.js",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 22,
+    "created_at": 1779904136069
+  },
+  {
+    "name": "impetus-edge-agent-lab",
+    "pid": 0,
+    "status": "stopped",
+    "script": "/var/www/impetus-completa/backend/scripts/edge-agent-physical-lab.js",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 4,
+    "created_at": 1779903809559
+  },
+  {
+    "name": "impetus-lab-oidc",
+    "pid": 0,
+    "status": "stopped",
+    "script": "/var/www/impetus-completa/backend/scripts/industrial-lab-oidc-provider.js",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 12,
+    "created_at": 1779918493588
+  },
+  {
+    "name": "impetus-lab-smtp",
+    "pid": 0,
+    "status": "stopped",
+    "script": "/var/www/impetus-completa/backend/scripts/industrial-lab-smtp.js",
+    "cwd": "/var/www/impetus-completa/backend",
+    "restarts": 54,
+    "created_at": 1779918493608
+  },
+  {
+    "name": "pm2-logrotate",
+    "pid": 3885526,
+    "status": "online",
+    "script": "/root/.pm2/modules/pm2-logrotate/node_modules/pm2-logrotate/app.js",
+    "cwd": "/root/.pm2/modules/pm2-logrotate/node_modules/pm2-logrotate",
+    "restarts": 4,
+    "created_at": 1782840997434
+  }
+]

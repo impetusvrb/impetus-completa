@@ -1,0 +1,57 @@
+{
+  "certification": "INTEG-01",
+  "executedAt": "2026-07-03T02:22:20.749Z",
+  "parts": {},
+  "ncs": [
+    {
+      "id": "NC-INT-002",
+      "severity": "Média",
+      "message": "Event Backbone cognitivo opera sem integração directa ao Event Governance",
+      "part": "backbone",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-001",
+      "severity": "Média",
+      "message": "Cognitive Controller não integra directamente com Event Governance v1",
+      "part": "cognitive",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-006",
+      "severity": "Média",
+      "message": "Pulse Cognitive mantém governança interna paralela ao Event Governance v1",
+      "part": "cognitive",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-005",
+      "severity": "Baixa",
+      "message": "Políticas CHAT_OPERATIONAL e NC_BRIDGE_MIRROR sem adapter dedicado activo",
+      "part": "bypass",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-003",
+      "severity": "Baixa",
+      "message": "Frontend não consome APIs /api/audit/event-governance/*",
+      "part": "frontend",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-INT-007",
+      "severity": "Baixa",
+      "message": "Todos os adapters em shadow por defeito — migração activa requer flags EVENT_GOVERNANCE_* por domínio",
+      "part": "integration",
+      "status": "OPEN"
+    }
+  ],
+  "latency_ms": 14.02,
+  "decision": "NÃO CERTIFICADO",
+  "summary": {
+    "passed": 28,
+    "failed": 1,
+    "ncs": 6,
+    "blocking": 0
+  }
+}

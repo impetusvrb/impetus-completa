@@ -208,6 +208,10 @@ export const nexusWallet = {
   getDashboard: (params) => api.get('/admin/nexus-wallet', { params }),
   getBillingEngineDashboard: () => api.get('/admin/nexus-wallet/billing-engine/dashboard'),
   getBillingLedger: (params) => api.get('/admin/nexus-wallet/billing-ledger', { params }),
+  reconcileBilling: () => api.get('/admin/nexus-wallet/billing-engine/reconcile'),
+  listGlobalGateways: () => api.get('/admin/nexus-wallet/global-gateways'),
+  updateGlobalGateway: (provider, data) =>
+    api.patch(`/admin/nexus-wallet/global-gateways/${encodeURIComponent(provider)}`, data),
   updateSettings: (data) => api.patch('/admin/nexus-wallet/settings', data),
   checkoutStripe: (data) => api.post('/admin/nexus-wallet/checkout/stripe', data),
   checkoutPagSeguro: (data) => api.post('/admin/nexus-wallet/checkout/pagseguro', data),

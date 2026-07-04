@@ -3,8 +3,29 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const anamService = require('../services/anamService');
+const billingTokenService = require('../services/billingTokenService');
+const { fromAuthUser, usageMeta } = require('../services/nexusBillingEngine/billingMetaHelper');
 
 const router = express.Router();
+
+async function anamBillingPrecheck(user, req) {
+  if (!user?.company_id) return null;
+  try {
+    const billingEngine = require('../services/nexusBillingEngine');
+    if (billingEngine.isEnabled()) {
+      const ctx = fromAuthUser(user, req, { operation: 'anam_session' });
+      const auth = await billingEngine.authorizeConsumption(ctx, { servico: 'akool', quantidade: 1 });
+      if (!auth.ok && !auth.skipped) return 'Créditos Nexus IA insuficientes para iniciar sessão Anam.';
+      return null;
+    }
+  } catch (_) {
+    /* legacy */
+  }
+  const nexusWalletService = require('../services/nexusWalletService');
+  const r = await nexusWalletService.canConsumeEstimate(user.company_id, 'akool', 1);
+  if (r.skipped || r.ok) return null;
+  return 'Créditos Nexus IA insuficientes para iniciar sessão Anam.';
+}
 
 async function sendPublicConfig(res) {
   try {
@@ -46,6 +67,10 @@ router.post('/prepare', requireAuth, (req, res) => {
  */
 router.post('/session-token', requireAuth, async (req, res) => {
   try {
+    const blocked = await anamBillingPrecheck(req.user, req);
+    if (blocked) {
+      return res.status(402).json({ ok: false, error: blocked, code: 'INSUFFICIENT_BALANCE' });
+    }
     const personaId = req.body?.personaId;
     const userFromDb = String(req.user?.name || req.user?.full_name || '').trim();
     const data = await anamService.createSessionToken({
@@ -59,6 +84,17 @@ router.post('/session-token', requireAuth, async (req, res) => {
         timezone: req.body?.timezone
       }
     });
+    if (req.user?.company_id) {
+      const ctx = fromAuthUser(req.user, req, { operation: 'anam_session' });
+      billingTokenService.registrarUsoSafe(
+        req.user.company_id,
+        req.user.id,
+        'akool',
+        1,
+        'session',
+        usageMeta('anam', personaId || 'default', { ...ctx, operation: 'anam_session' })
+      );
+    }
     return res.json({ ok: true, ...data });
   } catch (e) {
     if (e.code === 'ANAM_NOT_CONFIGURED') {

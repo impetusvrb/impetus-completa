@@ -1,0 +1,49 @@
+# CERT-ONPREM-CONTAINER-01 — contexto de build enxuto
+.git
+.gitignore
+.cursor
+.cursorrules
+.cursor/rules
+
+# Dependências (reinstaladas no build)
+**/node_modules
+frontend/dist
+frontend/dist_backup_*
+frontend/dist.prev.*
+
+# Persistência local (montada via volumes)
+.impetus-home
+impetus-data
+backend/uploads
+backend/data
+backend/logs
+backend/licenses
+backend/backups
+backend/temp
+backend/runtime
+backend/.env
+.env
+.env.*
+!.env.production.example
+
+# Legado / espelhos
+impetus_complete
+deploy_backups
+frontend/dist_backup_*
+
+# Docs e artefactos não necessários na imagem
+**/*.md
+!backend/package.json
+docs
+*.log
+*.tar.gz
+
+# Python lipsync (opcional, profile separado)
+lipsync/.venv
+lipsync/Wav2Lip
+
+# IDE / OS
+.DS_Store
+*.swp
+.vscode
+.idea

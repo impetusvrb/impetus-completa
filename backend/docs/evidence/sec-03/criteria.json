@@ -1,0 +1,31 @@
+{
+  "certification": "SEC-03",
+  "implemented_at": "2026-07-03T22:30:00Z",
+  "feature_flag": "SECURITY_THREAT_INTELLIGENCE",
+  "feature_flag_default": false,
+  "depends_on": ["SEC-01", "SEC-02"],
+  "tests": {
+    "file": "backend/src/tests/securityThreatIntelligence/SEC_03_THREAT_INTELLIGENCE_AUDIT.test.js",
+    "passed": 20,
+    "failed": 0
+  },
+  "criteria": {
+    "threat_profile_available": true,
+    "campaign_assessment_available": true,
+    "historical_intelligence_available": true,
+    "threat_indicators_available": true,
+    "threat_dashboard_available": true,
+    "audit_endpoint_available": true,
+    "feature_flag_available": true,
+    "security_observatory_preserved": true,
+    "security_correlation_preserved": true,
+    "event_governance_preserved": true,
+    "eco_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "no_runtime_interference": true,
+    "tests_passing": true
+  },
+  "audit_endpoint": "GET /api/audit/security-threat-intelligence",
+  "no_auto_response": true,
+  "no_attacker_identity_inference": true
+}

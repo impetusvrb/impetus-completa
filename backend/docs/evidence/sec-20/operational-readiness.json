@@ -1,0 +1,9 @@
+{
+  "operationalReadiness": 0.85,
+  "runtimeReadiness": 0.92,
+  "securityReadiness": 0.9,
+  "incidentReadiness": 0.85,
+  "rollbackReadiness": 0.95,
+  "recoveryReadiness": 0.9,
+  "consolidatedScore": 0.89
+}

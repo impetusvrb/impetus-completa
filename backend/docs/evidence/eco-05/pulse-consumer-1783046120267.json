@@ -1,0 +1,22 @@
+{
+  "certification": "ECO-05-PULSE-CONSUMER",
+  "executedAt": "2026-07-03T02:35:20.266Z",
+  "passed": 16,
+  "failed": 0,
+  "pulseDecision": "CONSUMER READY COM RESSALVAS",
+  "globalDecision": "CERTIFICADO COM RESSALVAS",
+  "criteria": {
+    "pulse_consumer_adapter_available": true,
+    "shadow_mode_available": true,
+    "consumer_mode_available": true,
+    "pulse_reuses_governance_metrics": true,
+    "pulse_no_longer_recalculates_governance_scores": true,
+    "feature_flag_available": true,
+    "rollback_available": true,
+    "event_governance_preserved": true,
+    "apis_unchanged": true,
+    "dtos_unchanged": true,
+    "tests_passing": true
+  },
+  "note": "ECO_PULSE_VIA_EG=OFF — Pulse permanece camada analítica; ingestão/index próprios"
+}

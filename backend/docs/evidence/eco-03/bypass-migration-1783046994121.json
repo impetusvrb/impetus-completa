@@ -1,0 +1,23 @@
+{
+  "certification": "ECO-03-BYPASS-MIGRATION",
+  "executedAt": "2026-07-03T02:49:54.121Z",
+  "passed": 16,
+  "failed": 0,
+  "flowDecisions": {
+    "operationalActionExecutor": "MIGRADO COM RESSALVAS",
+    "operationalRealtimeCoordinator": "MIGRADO COM RESSALVAS",
+    "organizationalAI_notifyRecipients": "MIGRADO COM RESSALVAS"
+  },
+  "globalDecision": "CERTIFICADO COM RESSALVAS",
+  "criteria": {
+    "all_p0_bypasses_removed": true,
+    "all_p1_adapters_created": true,
+    "feature_flags_available": true,
+    "independent_rollbacks_available": true,
+    "event_governance_v1_preserved": true,
+    "apis_unchanged": true,
+    "observability_complete": true,
+    "tests_passing": true
+  },
+  "note": "Flags OFF — shadow mode activo; activação gradual requer restart PM2 por flag"
+}

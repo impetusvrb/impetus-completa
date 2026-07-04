@@ -1,0 +1,21 @@
+{
+  "certification": "ECO-04-CONTROLLER-CONSUMER",
+  "executedAt": "2026-07-03T02:24:01.573Z",
+  "passed": 16,
+  "failed": 0,
+  "controllerDecision": "CONSUMER READY COM RESSALVAS",
+  "globalDecision": "CERTIFICADO COM RESSALVAS",
+  "criteria": {
+    "controller_consumer_adapter_available": true,
+    "shadow_mode_available": true,
+    "consumer_mode_available": true,
+    "controller_no_longer_recalculates_decisions": true,
+    "feature_flag_available": true,
+    "rollback_available": true,
+    "event_governance_v1_preserved": true,
+    "apis_unchanged": true,
+    "dtos_unchanged": true,
+    "tests_passing": true
+  },
+  "note": "ECO_CONTROLLER_VIA_EG=OFF — shadow observacional; activação após critérios ECO-03 staging"
+}

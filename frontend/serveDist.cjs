@@ -122,6 +122,20 @@ app.use(
   })
 );
 
+/** HARDENING-01: paths de scanner nunca recebem index.html (defesa em profundidade). */
+const PROBE_PATH_RE =
+  /(?:^|\/)(?:\.env(?:\.[^/]+)?|\.git|server\.js|package\.json|Dockerfile|docker-compose[^/]*|webpack\.config\.[^/]+|vite\.config\.[^/]+|credentials\.json|secrets\.json|.*\.(?:env|yml|yaml|ini|php|py|sql|bak|properties|toml|key|pem|map|log|dump))(?:$|[/?#])/i;
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const pathname = (req.path || '').split('?')[0];
+  if (pathname.includes('/.') || PROBE_PATH_RE.test(pathname)) {
+    res.status(404).type('text/plain').send('Not found');
+    return;
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     next();

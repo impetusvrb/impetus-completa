@@ -1,0 +1,55 @@
+{
+  "certification": "BASELINE-LOCK-01",
+  "executedAt": "2026-07-03T03:09:55.988Z",
+  "passed": 30,
+  "failed": 0,
+  "globalDecision": "BASELINE ENCERRADA COM RESSALVAS",
+  "areaDecisions": {
+    "engenharia_enterprise": "ENCERRADA COM RESSALVAS",
+    "arquitetura": "ENCERRADA COM RESSALVAS",
+    "governanca": "ENCERRADA",
+    "ecossistema": "ENCERRADA COM RESSALVAS",
+    "infraestrutura": "ENCERRADA COM RESSALVAS",
+    "documentacao": "ENCERRADA"
+  },
+  "criteria": {
+    "baseline_v1_frozen": true,
+    "architecture_locked": true,
+    "all_certifications_registered": true,
+    "all_adrs_classified": true,
+    "all_feature_flags_classified": true,
+    "all_observability_verified": true,
+    "no_pending_enterprise_code_changes": true,
+    "documentation_consistent": true,
+    "future_v2_guidelines_defined": true,
+    "production_code_unchanged": true
+  },
+  "ncs": [
+    {
+      "id": "NC-BL-01",
+      "desc": "TODO embeddings admin/settings",
+      "severity": "baixa"
+    },
+    {
+      "id": "NC-BL-02",
+      "desc": "TODO CommunicationPanel frontend",
+      "severity": "baixa"
+    },
+    {
+      "id": "NC-BL-03",
+      "desc": "Homologação ops pendente",
+      "severity": "média"
+    },
+    {
+      "id": "NC-BL-04",
+      "desc": "Flags ECO staging OFF",
+      "severity": "média"
+    },
+    {
+      "id": "NC-BL-05",
+      "desc": "ADR-ECO-005 retirement v2",
+      "severity": "baixa"
+    }
+  ],
+  "note": "Read-only — nenhum código alterado. Baseline v1 ponto de corte oficial."
+}

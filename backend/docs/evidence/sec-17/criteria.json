@@ -1,0 +1,17 @@
+{
+  "certification": "SEC-17",
+  "criteria": {
+    "exfiltration_detection_available": true,
+    "sensitive_asset_registry_available": true,
+    "data_movement_analysis_available": true,
+    "asset_access_profiling_available": true,
+    "exfiltration_confidence_available": true,
+    "audit_endpoint_available": true,
+    "feature_flags_available": true,
+    "enterprise_security_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "tests_passing": true
+  },
+  "passed": 39,
+  "failed": 0
+}

@@ -1,0 +1,21 @@
+{
+  "certification": "ECO-07-EXECUTIVE-CONSUMER",
+  "executedAt": "2026-07-03T02:35:20.586Z",
+  "passed": 18,
+  "failed": 0,
+  "executiveDecision": "CONSUMER READY COM RESSALVAS",
+  "globalDecision": "CERTIFICADO COM RESSALVAS",
+  "criteria": {
+    "executive_consumer_adapter_available": true,
+    "executive_insights_reused": true,
+    "shadow_mode_available": true,
+    "consumer_mode_available": true,
+    "no_parallel_kpi_calculation": true,
+    "rollback_available": true,
+    "event_governance_preserved": true,
+    "apis_unchanged": true,
+    "dtos_unchanged": true,
+    "tests_passing": true
+  },
+  "note": "ECO_EXECUTIVE_VIA_EG=OFF — dashboards preservados; Executive Insights shadow compare"
+}

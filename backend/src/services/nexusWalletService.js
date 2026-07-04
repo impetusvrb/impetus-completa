@@ -481,6 +481,12 @@ async function getDashboard(companyId, ledgerLimit = 40) {
     [companyId]
   );
   const ratesGlobal = await db.query(`SELECT servico, credits_per_unit, description FROM nexus_wallet_global_rates ORDER BY servico`);
+  let billingEngineEnabled = false;
+  try {
+    billingEngineEnabled = require('./nexusBillingEngine').isEnabled();
+  } catch (_) {
+    billingEngineEnabled = false;
+  }
   return {
     wallet,
     ledger: ledger.rows,
@@ -488,6 +494,7 @@ async function getDashboard(companyId, ledgerLimit = 40) {
     ratesCompany: ratesCompany.rows,
     ratesGlobal: ratesGlobal.rows,
     walletEnabled: WALLET_ENABLED,
+    billingEngineEnabled,
     enforce: ENFORCE
   };
 }
@@ -500,14 +507,22 @@ async function updateWalletSettings(companyId, body) {
       ? Math.max(0, Number(b.low_balance_threshold_credits))
       : null;
   const paused = b.consumption_paused != null ? !!b.consumption_paused : null;
+  const autoEnabled = b.auto_recharge_enabled != null ? !!b.auto_recharge_enabled : null;
+  const autoAmount =
+    b.auto_recharge_amount_brl != null ? Math.max(5, Number(b.auto_recharge_amount_brl)) : null;
+  const autoMin =
+    b.auto_recharge_min_balance != null ? Math.max(0, Number(b.auto_recharge_min_balance)) : null;
 
   await db.query(
     `UPDATE nexus_company_wallets SET
       low_balance_threshold_credits = COALESCE($2, low_balance_threshold_credits),
       consumption_paused = COALESCE($3, consumption_paused),
+      auto_recharge_enabled = COALESCE($4, auto_recharge_enabled),
+      auto_recharge_amount_brl = COALESCE($5, auto_recharge_amount_brl),
+      auto_recharge_min_balance = COALESCE($6, auto_recharge_min_balance),
       updated_at = now()
      WHERE company_id = $1`,
-    [companyId, threshold, paused]
+    [companyId, threshold, paused, autoEnabled, autoAmount, autoMin]
   );
   return getWallet(companyId);
 }

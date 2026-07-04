@@ -1,0 +1,32 @@
+{
+  "certification": "SECURITY-BASELINE-01",
+  "frozen_at": "2026-07-03T21:30:00Z",
+  "git_head": "daf338657ac3a90fe777dad78c5936d75b89b090",
+  "predecessor": "HARDENING-01",
+  "successor_phases": ["SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05", "SEC-06", "SEC-07", "SEC-08"],
+  "criteria": {
+    "attack_surface_frozen": true,
+    "critical_files_catalogued": true,
+    "critical_hashes_registered": true,
+    "security_configuration_documented": true,
+    "communication_matrix_complete": true,
+    "process_inventory_complete": true,
+    "monitoring_targets_defined": true,
+    "enterprise_baseline_preserved": true,
+    "event_governance_preserved": true,
+    "eco_preserved": true,
+    "no_runtime_changes": true,
+    "no_architectural_changes": true
+  },
+  "evidence_directory": "backend/docs/evidence/security-baseline-01/",
+  "deliverables": [
+    "SECURITY_BASELINE_01.md",
+    "SECURITY_ATTACK_SURFACE.md",
+    "SECURITY_FILE_BASELINE.md",
+    "SECURITY_CONFIGURATION_BASELINE.md",
+    "SECURITY_PROCESS_BASELINE.md",
+    "SECURITY_COMMUNICATION_MATRIX.md",
+    "SECURITY_MONITORING_MATRIX.md",
+    "SECURITY_BASELINE_REPORT.md"
+  ]
+}

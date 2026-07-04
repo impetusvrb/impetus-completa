@@ -1,0 +1,17 @@
+{
+  "certification": "SEC-14",
+  "criteria": {
+    "adaptive_blocking_available": false,
+    "reputation_engine_available": false,
+    "behavior_analysis_available": false,
+    "fingerprint_engine_available": false,
+    "blocking_recommendations_available": false,
+    "audit_endpoint_available": false,
+    "feature_flags_available": false,
+    "enterprise_security_preserved": false,
+    "enterprise_baseline_preserved": false,
+    "tests_passing": false
+  },
+  "passed": 29,
+  "failed": 7
+}

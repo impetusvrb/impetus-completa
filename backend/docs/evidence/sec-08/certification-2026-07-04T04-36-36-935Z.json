@@ -1,0 +1,87 @@
+{
+  "certification": "SEC-08-ENTERPRISE-SECURITY-V1",
+  "version": "v1",
+  "executedAt": "2026-07-04T04:36:36.935Z",
+  "frozenAt": "2026-07-04T04:36:36.935Z",
+  "passed": 50,
+  "failed": 0,
+  "globalDecision": "ENTERPRISE SECURITY V1 — CERTIFIED WITH REMARKS",
+  "criteria": {
+    "security_baseline_certified": true,
+    "sec01_certified": true,
+    "sec02_certified": true,
+    "sec03_certified": true,
+    "sec04_certified": true,
+    "sec05_certified": true,
+    "sec06_certified": true,
+    "sec07_certified": true,
+    "operational_readiness_verified": true,
+    "feature_flags_verified": true,
+    "documentation_verified": true,
+    "observability_verified": true,
+    "regression_passed": true,
+    "architecture_preserved": true,
+    "event_governance_preserved": true,
+    "eco_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "cognitive_core_preserved": true,
+    "no_runtime_changes": true,
+    "tests_passing": true
+  },
+  "regression": {
+    "SEC-01": {
+      "ok": true
+    },
+    "SEC-02": {
+      "ok": true
+    },
+    "SEC-03": {
+      "ok": true
+    },
+    "SEC-04": {
+      "ok": true
+    },
+    "SEC-05": {
+      "ok": true
+    },
+    "SEC-06": {
+      "ok": true
+    },
+    "SEC-07": {
+      "ok": true
+    }
+  },
+  "ncs": [
+    {
+      "id": "NC-SEC-08-001",
+      "severity": "Baixa",
+      "message": "Flags SEC OFF em produção — modo shadow por design até activação operacional",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-SEC-08-002",
+      "severity": "Média",
+      "message": "Testes operacionais reais (scan/nginx/PM2) pendentes em ambiente staging com flags ON",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-SEC-08-003",
+      "severity": "Baixa",
+      "message": "Adapters Email/SMS/Push SEC-05 skipped — envio externo futuro v2",
+      "status": "OPEN"
+    }
+  ],
+  "operational_readiness": {
+    "ecosystem_init_on": true,
+    "ecosystem_safe_off": true,
+    "soc_partial_modules": true,
+    "sec_chain_read_only": true
+  },
+  "pillars_closed": [
+    "Enterprise v1",
+    "Event Governance v1",
+    "ECO v1",
+    "Enterprise Security v1"
+  ],
+  "next_cycle": "Enterprise Security v2 — evoluções futuras preservam baseline SEC-08"
+}

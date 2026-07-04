@@ -1,0 +1,48 @@
+{
+  "certification": "ECO-01-FASE-1",
+  "executedAt": "2026-07-03T02:24:01.030Z",
+  "passed": 13,
+  "failed": 2,
+  "findings": [
+    {
+      "type": "integrated",
+      "count": 11
+    },
+    {
+      "id": "ECO-BYPASS-003",
+      "file": "organizationalAI.js",
+      "severity": "Alta"
+    },
+    {
+      "id": "ECO-PARALLEL-001",
+      "file": "cognitiveControllerService.js",
+      "nc": "NC-INT-001"
+    },
+    {
+      "id": "ECO-PARALLEL-002",
+      "file": "cognitiveEventBackboneService.js",
+      "nc": "NC-INT-002"
+    },
+    {
+      "id": "ECO-PARALLEL-003",
+      "module": "pulseCognitive",
+      "nc": "NC-INT-006"
+    },
+    {
+      "id": "ECO-ORPHAN-001",
+      "policies": [
+        "CHAT_OPERATIONAL",
+        "NC_BRIDGE_MIRROR"
+      ],
+      "nc": "NC-INT-005"
+    }
+  ],
+  "decision": "AUDITORIA INCOMPLETA",
+  "criteria": {
+    "convergence_audit_complete": false,
+    "parallel_flows_inventoried": true,
+    "bypasses_classified": true,
+    "event_governance_v1_preserved": true,
+    "no_code_changes": true
+  }
+}

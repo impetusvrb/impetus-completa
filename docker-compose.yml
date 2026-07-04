@@ -72,6 +72,12 @@ services:
       - /tmp:size=256M,mode=1777
     cap_drop:
       - ALL
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://127.0.0.1:4000/health | grep -q \'"status"\' || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
 
   frontend:
     build:

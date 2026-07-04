@@ -1,0 +1,46 @@
+{
+  "certification": "SEC-08",
+  "criteria": {
+    "security_baseline_certified": false,
+    "sec01_certified": true,
+    "sec02_certified": true,
+    "sec03_certified": true,
+    "sec04_certified": false,
+    "sec05_certified": true,
+    "sec06_certified": true,
+    "sec07_certified": true,
+    "operational_readiness_verified": false,
+    "feature_flags_verified": false,
+    "documentation_verified": false,
+    "observability_verified": false,
+    "regression_passed": false,
+    "architecture_preserved": false,
+    "event_governance_preserved": true,
+    "eco_preserved": true,
+    "enterprise_baseline_preserved": true,
+    "cognitive_core_preserved": true,
+    "no_runtime_changes": true,
+    "tests_passing": false
+  },
+  "globalDecision": "ENTERPRISE SECURITY NOT CERTIFIED",
+  "ncs": [
+    {
+      "id": "NC-SEC-08-001",
+      "severity": "Baixa",
+      "message": "Flags SEC OFF em produção — modo shadow por design até activação operacional",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-SEC-08-002",
+      "severity": "Média",
+      "message": "Testes operacionais reais (scan/nginx/PM2) pendentes em ambiente staging com flags ON",
+      "status": "OPEN"
+    },
+    {
+      "id": "NC-SEC-08-003",
+      "severity": "Baixa",
+      "message": "Adapters Email/SMS/Push SEC-05 skipped — envio externo futuro v2",
+      "status": "OPEN"
+    }
+  ]
+}

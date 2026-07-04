@@ -1,0 +1,5 @@
+*******************************************************************************
+  IMPETUS — Acesso autorizado apenas a operadores identificados.
+  Todas as sessões são registadas (auth.log).
+  Tentativas não autorizadas serão reportadas.
+*******************************************************************************

@@ -785,7 +785,9 @@
 
   function getLipsyncSocketConnectOpts() {
     var legacy = (localStorage.getItem('impetus_lipsync_io_url') || '').trim();
+    var token = getJwtForProxy();
     var ioOpts = { transports: ['websocket', 'polling'] };
+    if (token) ioOpts.auth = { token: token };
     if (legacy) {
       return { url: legacy, opts: ioOpts };
     }
@@ -809,6 +811,10 @@
   function initLipsyncSocket() {
     if (typeof io === 'undefined') return;
     if (localStorage.getItem('impetus_avatar_lipsync') !== '1') return;
+    if (!getJwtForProxy()) {
+      console.warn('[lipsync socket] JWT ausente — defina token Impetus para /impetus-avatar');
+      return;
+    }
     var conn = getLipsyncSocketConnectOpts();
     try {
       var socket = io(conn.url, conn.opts);
