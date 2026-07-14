@@ -72,6 +72,17 @@ function requireAdminAuth(req, res, next) {
       }
       req.adminUser = admin;
       req.adminToken = raw;
+      try {
+        const { runValidatedIdentityReconGuard } = require('../securityRecon/guard/validatedIdentityReconGuard');
+        if (!runValidatedIdentityReconGuard(req, res, {
+          validationSource: 'requireAdminAuth',
+          identityType: 'ADMIN'
+        })) {
+          return;
+        }
+      } catch (_recon) {
+        /* fail-open */
+      }
       next();
     })
     .catch((e) => {

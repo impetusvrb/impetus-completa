@@ -1,0 +1,416 @@
+{
+  "generatedAt": "2026-07-14T00:48:51.674Z",
+  "gitHead": "c3c20f7e7ea6dc1421c014a81e3ebc28f5a09cd7",
+  "workingTree": {
+    "statusCount": 1419,
+    "trackedModified": 96,
+    "untracked": 1604,
+    "byCategory": {
+      "UNKNOWN": 34,
+      "UNRELATED_BACKEND": 153,
+      "DOCUMENTATION": 1391,
+      "NGINX_INFRA": 40,
+      "AUTH_IDENTITY": 6,
+      "EDGE_SECURITY": 3,
+      "SEC01_SECURITY": 9,
+      "FRONTEND": 23,
+      "EVIDENCE": 3,
+      "TESTS": 15,
+      "SECURITY_RECON": 23
+    }
+  },
+  "securityReconManifest": [
+    {
+      "relativePath": "backend/src/securityRecon/index.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1034,
+      "sha256": "ace7b670f4a49a4a2974b85542fa3082c8c54f2f26f7a788e999bf2cb9c6fffe",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/config/securityReconFlags.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1153,
+      "sha256": "3dd7f566e720f24f04812ef159710d77d45852f86e94cb9535310b55d0b1ecf2",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/middleware/securityReconMiddleware.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 3154,
+      "sha256": "7ae1faa66d03bc5d92def13c3770428e662730e6735dcf572c0a4217cb6839e7",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/guard/validatedIdentityReconGuard.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 3830,
+      "sha256": "ed9ef929b33b918969cbb06aafd31894c7521ad4069d0f007c37408ea2df3e8e",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/guard/edgeIngestValidatedGate.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1270,
+      "sha256": "e8ea0d66b40f5ff78d8e8971485eda954e7752d1238e7c3b9e41a1a9816d5f9e",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/securityReconCorrelationEngine.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 5404,
+      "sha256": "152d718f31c11c76cd3d165234de67e64f4f7068fd6cc91f5aa00a5d37b6b927",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/postValidationDecision.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2156,
+      "sha256": "6f2a528b040722cc729aaacc30b8e4c4acaa9963dc0f3149460bfd23716e2976",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/anonymousPreAuthPolicy.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1335,
+      "sha256": "52bf3049eb94e4ecc99f95f43c3fe7a2b4dfc37099cbe0a3f908c8e3ae30369d",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/validatedIdentityContext.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1341,
+      "sha256": "f905493125b323137ed66022f10aed4b408cfae1cc5e5b096a8fb07c2c2fe160",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/identityContext.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1956,
+      "sha256": "e91cfa0358676b1eb49f853dbce038e00883f874fa5b1d7da33fdf599665bd44",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/serviceIdentityMarker.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1149,
+      "sha256": "64d8ab2dbb1e8d30e90426213961fee59ba4eb7e728aebeef80d47d368d211ea",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/signalNormalizer.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 5347,
+      "sha256": "6bdadf87881f1be7110ba83ab9336220359fba9c3cfb06a0e4d0dea4acd4eb68",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/scorePolicy.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2372,
+      "sha256": "bde2d3542bd6d7ee1a848a8652b33de0b6cc44895df074940e9404c218481d45",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/decisionEventLimiter.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1307,
+      "sha256": "18d9c39c70ade28745a2b143e212a610af26310e5cf14cca9d8fb3e55287edc4",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/engine/routeExposurePolicy.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1924,
+      "sha256": "efd51005c8202280c94e5ab8cc99aff23be2b91138af0ce40133d36775321f00",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/store/reconStateStore.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 3449,
+      "sha256": "4ff69a78d2b6a6c580dc2f5279ec9cdf89afe230e9a663232b9b76274ebb8cf3",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/dto/securitySignalDto.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2252,
+      "sha256": "10f814946259f877d27edda0f07cede5b86c1f7aa5312e421fc67eaceb465200",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/ingest/threatWatchSignalIngestor.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2779,
+      "sha256": "c47528eadff45bb0f4ad953dc12b2cfd8ad35f101e4849380906f1bd9d56eb49",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/runtime/securityReconRuntime.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2666,
+      "sha256": "c5e176b74d97e86c7b207aceb765ac741cc933dea25107dc5a8aa64535e705a2",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/catalog/securitySignatureCatalog.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 1758,
+      "sha256": "fc7817d2441e4ed3dd9110d419241706500df822d877955636749f0b2b779800",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/securityRecon/catalog/security-signature-catalog.json",
+      "exists": false,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "headComparison": "MISSING"
+    },
+    {
+      "relativePath": "backend/src/services/clientIpResolver.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2261,
+      "sha256": "c74187e6e3532fe17f22cbba4fd4230f89648e83e2d7af81eed0eb6d24945c70",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/services/edgeTokenCrypto.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 2096,
+      "sha256": "e6da73f34e86cbcd4f189a7d4473fe563a5c89755a17ce9cfd84e59aba216ab5",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/services/nginxAccessLogPath.js",
+      "exists": false,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "headComparison": "MISSING"
+    },
+    {
+      "relativePath": "backend/src/middleware/auth.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 32071,
+      "sha256": "ef3baf680dfe6ab318d06ff107f6f4c203d7952b0a55426f298378ae9d779ea7",
+      "tracked": true,
+      "headComparison": "MODIFIED_TRACKED",
+      "headSha256": "c50402310c15dba50b914978914620b1f86dc577912618d35dea306338600cf4"
+    },
+    {
+      "relativePath": "backend/src/middleware/adminPortalAuth.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 3531,
+      "sha256": "4cf3bc3fdf4e8068ccdff4e9280d43a54e170fdf0aa8c7e2017e86adccfd62c5",
+      "tracked": true,
+      "headComparison": "MODIFIED_TRACKED",
+      "headSha256": "14f36aa20eda77f6eb9433b0ea711ddc90cd33796dc6bf963b27aaa6e2acace2"
+    },
+    {
+      "relativePath": "backend/src/routes/integrations.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 6288,
+      "sha256": "67d74ff07207f3c1cc481e0c0072c51e7e8a88a854197a89707356b3b6e382aa",
+      "tracked": true,
+      "headComparison": "MODIFIED_TRACKED",
+      "headSha256": "3ca4dafa901d23451b29401ec5431b8e466f9c2c8f396ef7dbdcc349bc55703b"
+    },
+    {
+      "relativePath": "backend/src/services/edgeIngestService.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 4192,
+      "sha256": "a57b23d602867fb7cf9c7f3efd88aa921605ff86e10c16facf5f550c31f8d0ed",
+      "tracked": true,
+      "headComparison": "MODIFIED_TRACKED",
+      "headSha256": "8bf7d464690c8906865913f51a6bb576bd10200d91968c1117ec694761219b26"
+    },
+    {
+      "relativePath": "backend/scripts/sec-anti-recon-ip-equivalence.js",
+      "exists": true,
+      "runtimeRelevant": true,
+      "sourcePhase": "002-005",
+      "size": 3139,
+      "sha256": "0416a8c54b22aae9028f7bb2e3313df1caab34ae2c38e34a95740f59b981fba0",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_002.test.js",
+      "exists": true,
+      "runtimeRelevant": false,
+      "sourcePhase": "002-005",
+      "size": 11682,
+      "sha256": "683a3e182047b571e7c9c0b03ae4e6c1092d2f77e6e193ed10214a8e167b4845",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_003.test.js",
+      "exists": true,
+      "runtimeRelevant": false,
+      "sourcePhase": "003",
+      "size": 13119,
+      "sha256": "b40f60f16f267eb3e18f9b38dbc14c5611dd67a453adb0e4252ef28c567f0bc0",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_004.test.js",
+      "exists": true,
+      "runtimeRelevant": false,
+      "sourcePhase": "004",
+      "size": 14924,
+      "sha256": "f2a6edf9df32a757b9958729881f30a5104a59ed167bfa41a1a9b34ae8d60416",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/scripts/sec005-go-live-validation.js",
+      "exists": true,
+      "runtimeRelevant": false,
+      "sourcePhase": "002-005",
+      "size": 11030,
+      "sha256": "fac6b4cbe530b21252c26f425210fe939f4e7adb4d121179cb6df383773662a6",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    },
+    {
+      "relativePath": "backend/scripts/sec006-forensic-audit.js",
+      "exists": true,
+      "runtimeRelevant": false,
+      "sourcePhase": "002-005",
+      "size": 7940,
+      "sha256": "7105e97525c318e7e547747aec0c625e93f8fddcda605846674582382128a910",
+      "tracked": false,
+      "headComparison": "UNTRACKED_RUNTIME_FILE"
+    }
+  ],
+  "reconciliation": {
+    "manifestFiles": 34,
+    "matchesHead": 0,
+    "modifiedTracked": 4,
+    "untrackedRuntimeFiles": 28,
+    "commitRepresentsActiveRuntime": "NAO",
+    "modifiedFiles": [
+      "backend/src/middleware/auth.js",
+      "backend/src/middleware/adminPortalAuth.js",
+      "backend/src/routes/integrations.js",
+      "backend/src/services/edgeIngestService.js"
+    ],
+    "untrackedFiles": [
+      "backend/src/securityRecon/index.js",
+      "backend/src/securityRecon/config/securityReconFlags.js",
+      "backend/src/securityRecon/middleware/securityReconMiddleware.js",
+      "backend/src/securityRecon/guard/validatedIdentityReconGuard.js",
+      "backend/src/securityRecon/guard/edgeIngestValidatedGate.js",
+      "backend/src/securityRecon/engine/securityReconCorrelationEngine.js",
+      "backend/src/securityRecon/engine/postValidationDecision.js",
+      "backend/src/securityRecon/engine/anonymousPreAuthPolicy.js",
+      "backend/src/securityRecon/engine/validatedIdentityContext.js",
+      "backend/src/securityRecon/engine/identityContext.js",
+      "backend/src/securityRecon/engine/serviceIdentityMarker.js",
+      "backend/src/securityRecon/engine/signalNormalizer.js",
+      "backend/src/securityRecon/engine/scorePolicy.js",
+      "backend/src/securityRecon/engine/decisionEventLimiter.js",
+      "backend/src/securityRecon/engine/routeExposurePolicy.js",
+      "backend/src/securityRecon/store/reconStateStore.js",
+      "backend/src/securityRecon/dto/securitySignalDto.js",
+      "backend/src/securityRecon/ingest/threatWatchSignalIngestor.js",
+      "backend/src/securityRecon/runtime/securityReconRuntime.js",
+      "backend/src/securityRecon/catalog/securitySignatureCatalog.js",
+      "backend/src/services/clientIpResolver.js",
+      "backend/src/services/edgeTokenCrypto.js",
+      "backend/scripts/sec-anti-recon-ip-equivalence.js",
+      "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_002.test.js",
+      "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_003.test.js",
+      "backend/src/tests/securityRecon/IMPETUS_SEC_ANTI_RECON_004.test.js",
+      "backend/scripts/sec005-go-live-validation.js",
+      "backend/scripts/sec006-forensic-audit.js"
+    ]
+  },
+  "moduleResolution": {
+    "entrypoint": "/var/www/impetus-completa/backend/src/server.js",
+    "resolvedModules": {
+      "./src/securityRecon/middleware/securityReconMiddleware.js": "ERROR: Cannot find module './src/securityRecon/middleware/securityReconMiddleware.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js",
+      "./src/securityRecon/guard/validatedIdentityReconGuard.js": "ERROR: Cannot find module './src/securityRecon/guard/validatedIdentityReconGuard.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js",
+      "./src/securityRecon/engine/postValidationDecision.js": "ERROR: Cannot find module './src/securityRecon/engine/postValidationDecision.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js",
+      "./src/securityRecon/engine/scorePolicy.js": "ERROR: Cannot find module './src/securityRecon/engine/scorePolicy.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js",
+      "./src/services/clientIpResolver.js": "ERROR: Cannot find module './src/services/clientIpResolver.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js",
+      "./src/services/edgeTokenCrypto.js": "ERROR: Cannot find module './src/services/edgeTokenCrypto.js'\nRequire stack:\n- /var/www/impetus-completa/backend/scripts/sec006-forensic-audit.js"
+    }
+  }
+}

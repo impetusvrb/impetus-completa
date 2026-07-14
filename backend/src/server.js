@@ -23,6 +23,15 @@ try {
   process.exit(1);
 }
 
+try {
+  require('./securityApplication/runtimeConfigurationValidator').validateAppsecBootOrThrow({
+    backendRoot: path.join(__dirname, '..')
+  });
+} catch (e) {
+  console.error(e.message || e);
+  process.exit(1);
+}
+
 const fs = require('fs');
 const http = require('http');
 const express = require('express');
@@ -87,6 +96,12 @@ try {
   app.use(securityObservatoryMiddleware);
 } catch (_e) {
   /* SEC-01 opt-in — never break boot */
+}
+try {
+  const { securityReconMiddleware } = require('./securityRecon/middleware/securityReconMiddleware');
+  app.use(securityReconMiddleware);
+} catch (_e) {
+  /* SEC-RECON opt-in — never break boot */
 }
 app.use(compression());
 const corsOptions = buildCorsOptions();
@@ -245,32 +260,44 @@ async function voiceHealthProbe() {
   return voz;
 }
 
-app.get('/health', async (req, res) => {
-  if (allowHealthDetails(req)) {
-    const [voz, integrations] = await Promise.all([voiceHealthProbe(), getAiIntegrationsHealth()]);
-    return res.json({
-      success: true,
-      status: 'ok',
-      service: 'impetus-backend',
-      voz,
-      integrations
-    });
-  }
-  return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
+/** Resposta mínima de liveness — sem probes externos (FIX-006). */
+function healthLivenessPayload() {
+  return { success: true, status: 'ok', service: 'impetus-backend' };
+}
+
+/** Detalhe operacional: TTS + integrações IA (somente /health/integrations). */
+async function healthIntegrationsPayload() {
+  const [voz, integrations] = await Promise.all([voiceHealthProbe(), getAiIntegrationsHealth()]);
+  return {
+    success: true,
+    status: 'ok',
+    service: 'impetus-backend',
+    voz,
+    integrations
+  };
+}
+
+app.get('/health', (_req, res) => {
+  return res.json(healthLivenessPayload());
 });
 
-app.get('/api/health', async (req, res) => {
-  if (allowHealthDetails(req)) {
-    const [voz, integrations] = await Promise.all([voiceHealthProbe(), getAiIntegrationsHealth()]);
-    return res.json({
-      success: true,
-      status: 'ok',
-      service: 'impetus-backend',
-      voz,
-      integrations
-    });
+app.get('/api/health', (_req, res) => {
+  return res.json(healthLivenessPayload());
+});
+
+/** Readiness de integrações — probes externos; não usar em LB liveness. */
+app.get('/health/integrations', async (req, res) => {
+  if (!allowHealthDetails(req)) {
+    return res.status(403).json({ success: false, error: 'Detalhe de integrações requer X-Health-Key ou acesso local.' });
   }
-  return res.json({ success: true, status: 'ok', service: 'impetus-backend' });
+  return res.json(await healthIntegrationsPayload());
+});
+
+app.get('/api/health/integrations', async (req, res) => {
+  if (!allowHealthDetails(req)) {
+    return res.status(403).json({ success: false, error: 'Detalhe de integrações requer X-Health-Key ou acesso local.' });
+  }
+  return res.json(await healthIntegrationsPayload());
 });
 
 /** Versão do build frontend — negociação runtime (cache busting seguro). Sem auth. */
@@ -300,16 +327,20 @@ app.get('/api/system/frontend-build', (_req, res) => {
  *   • Comportamento aditivo: callers existentes que enviem X-Health-Key
  *     continuam a obter o payload completo (zero quebra).
  */
-app.get('/api/system/boot-metrics', (req, res) => {
+app.get('/api/system/boot-metrics', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  const { respondWithPolicy } = require('./securityApplication/publicEndpointPolicy');
   try {
-    const db = require('./db');
+    const dbMod = require('./db');
     const perf = require('./observability/requestPerfMetrics');
-    res.json({
-      ok: true,
-      pool: db.getPoolStats(),
-      request_perf: perf.snapshot(),
-      session_activity_throttle_ms: require('./middleware/sessionActivityThrottle').THROTTLE_MS
+    return respondWithPolicy(req, res, {
+      minimal: { ok: true },
+      full: {
+        ok: true,
+        pool: dbMod.getPoolStats(),
+        request_perf: perf.snapshot(),
+        session_activity_throttle_ms: require('./middleware/sessionActivityThrottle').THROTTLE_MS
+      }
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e?.message || 'boot-metrics unavailable' });
@@ -2726,6 +2757,14 @@ httpServer.on('error', (err) => {
       console.warn('[SEC-02_BOOT]', e && e.message ? e.message : e);
     }
 
+    // SEC-RECON — Anti-recon correlation (additive; SECURITY_RECON_CORRELATION=false default).
+    try {
+      const secRecon = require('./securityRecon');
+      secRecon.init();
+    } catch (e) {
+      console.warn('[SEC-RECON_BOOT]', e && e.message ? e.message : e);
+    }
+
     // SEC-03 — Threat Intelligence Engine (consultative; SECURITY_THREAT_INTELLIGENCE=false default).
     try {
       const sec03 = require('./securityThreatIntelligence');
@@ -2852,6 +2891,38 @@ httpServer.on('error', (err) => {
       sec19.init();
     } catch (e) {
       console.warn('[SEC-19_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-21 — Production Security Activation tracking (SECURITY_PRODUCTION_ACTIVATION=false default).
+    try {
+      const sec21 = require('./securityProductionActivation');
+      sec21.init();
+    } catch (e) {
+      console.warn('[SEC-21_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-21A — Go-Live Gate (SECURITY_GO_LIVE_GATE=false default, consultivo only).
+    try {
+      const sec21a = require('./securityGoLiveGate');
+      sec21a.init();
+    } catch (e) {
+      console.warn('[SEC-21A_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-21B — Baseline Synchronization (SECURITY_BASELINE_SYNCHRONIZATION=false default, consultivo only).
+    try {
+      const sec21b = require('./securityBaselineSynchronization');
+      sec21b.init();
+    } catch (e) {
+      console.warn('[SEC-21B_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // SEC-21C — Go-Live Validation & Final Authorization (SECURITY_GO_LIVE_VALIDATION=false default).
+    try {
+      const sec21c = require('./securityGoLiveValidation');
+      sec21c.init();
+    } catch (e) {
+      console.warn('[SEC-21C_BOOT]', e && e.message ? e.message : e);
     }
 
     const listenHost = (process.env.LISTEN_HOST || '127.0.0.1').trim() || '127.0.0.1';

@@ -490,6 +490,17 @@ function requireAuth(req, res, next) {
         tenantDb.setRequestTenant(hydrated.company_id);
       }
     } catch { /* non-blocking */ }
+    try {
+      const { runValidatedIdentityReconGuard } = require('../securityRecon/guard/validatedIdentityReconGuard');
+      if (!runValidatedIdentityReconGuard(req, res, {
+        validationSource: 'requireAuth',
+        identityType: 'USER'
+      })) {
+        return;
+      }
+    } catch (_recon) {
+      /* fail-open — nunca bloquear auth por falha SEC-RECON */
+    }
     next();
   }).catch(err => {
     if (err?.code === 'SERVICE_UNAVAILABLE' || isDbUnavailableError(err)) {

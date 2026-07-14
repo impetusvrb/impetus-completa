@@ -1,0 +1,81 @@
+{
+  "schema_version": "security_signature_catalog_v1",
+  "concepts": [
+    {
+      "id": "WORDPRESS_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "wordpress",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "high",
+      "patterns": ["/wp-admin", "/wp-login.php", "/xmlrpc.php", "/wp-config"]
+    },
+    {
+      "id": "ENV_FILE_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "dotenv",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "critical",
+      "patterns": ["/.env", "/.aws/"]
+    },
+    {
+      "id": "GIT_METADATA_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "git",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "high",
+      "patterns": ["/.git"]
+    },
+    {
+      "id": "PHPMYADMIN_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "phpmyadmin",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "high",
+      "patterns": ["/phpmyadmin"]
+    },
+    {
+      "id": "ACTUATOR_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "spring-actuator",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "medium",
+      "patterns": ["/actuator"]
+    },
+    {
+      "id": "CGI_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "cgi",
+      "technologyPresent": false,
+      "confidence": "medium",
+      "severityHint": "medium",
+      "patterns": ["/cgi-bin"]
+    },
+    {
+      "id": "PHPUNIT_PROBE",
+      "canonicalSignalType": "TECHNOLOGY_MISMATCH_PROBE",
+      "targetTechnology": "phpunit",
+      "technologyPresent": false,
+      "confidence": "high",
+      "severityHint": "high",
+      "patterns": ["/vendor/phpunit"]
+    }
+  ],
+  "signalTypeAliases": {
+    "HTTP_CREDENTIAL_PROBE": "CREDENTIAL_PROBE",
+    "CREDENTIAL_SCAN": "CREDENTIAL_PROBE",
+    "HTTP_404_FLOOD": "HTTP_404_FLOOD",
+    "PATH_DISCOVERY": "PATH_DISCOVERY",
+    "SCANNER_UA": "SCANNER_UA",
+    "TECHNOLOGY_MISMATCH_PROBE": "TECHNOLOGY_MISMATCH_PROBE"
+  },
+  "sourceLayers": [
+    "NGINX_THREAT_WATCH",
+    "SEC01_RUNTIME",
+    "ANTI_SCANNER"
+  ]
+}

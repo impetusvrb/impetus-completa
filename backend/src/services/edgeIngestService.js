@@ -5,7 +5,7 @@
  */
 const db = require('../db');
 const plcData = require('./plcDataService');
-const crypto = require('crypto');
+const { timingSafeEqualHex, hashEdgeToken } = require('./edgeTokenCrypto');
 
 /**
  * Processa payload do edge agent
@@ -52,8 +52,8 @@ async function ingest(payload) {
   if (!token || typeof token !== 'string') {
     throw new Error('token obrigatório no corpo (mesmo valor devolvido no registo do edge)');
   }
-  const inputHash = crypto.createHash('sha256').update(String(token).trim()).digest('hex');
-  if (inputHash !== agentRow.token_hash) {
+  const inputHash = hashEdgeToken(token);
+  if (!timingSafeEqualHex(inputHash, agentRow.token_hash)) {
     throw new Error('token inválido');
   }
 
@@ -107,8 +107,9 @@ async function ingest(payload) {
  * Registra edge agent (para admin configurar tokens)
  */
 async function registerEdgeAgent(companyId, { edge_id, name }) {
+  const crypto = require('crypto');
   const token = crypto.randomBytes(24).toString('hex');
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const tokenHash = hashEdgeToken(token);
 
   await db.query(`
     INSERT INTO edge_agents (company_id, edge_id, name, token_hash, enabled)
@@ -123,5 +124,6 @@ async function registerEdgeAgent(companyId, { edge_id, name }) {
 
 module.exports = {
   ingest,
-  registerEdgeAgent
+  registerEdgeAgent,
+  validateEdgeCredentials: require('./edgeTokenCrypto').validateEdgeCredentials
 };

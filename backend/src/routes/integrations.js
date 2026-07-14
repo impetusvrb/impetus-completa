@@ -118,7 +118,7 @@ router.get('/production/shift', requireAuth, requireCompanyActive, async (req, r
  * Edge agent envia leituras em batch
  * Auth: edge_id + company_id + token no body
  */
-router.post('/edge/ingest', async (req, res) => {
+router.post('/edge/ingest', require('../securityRecon/guard/edgeIngestValidatedGate').edgeIngestValidatedGate, async (req, res) => {
   try {
     const result = await edgeIngest.ingest(req.body);
     res.json({ ok: true, processed: result.processed });
