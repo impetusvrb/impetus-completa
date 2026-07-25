@@ -1,5 +1,7 @@
 'use strict';
 
+const { isSensitiveDiagnosticKey } = require('../securityApplication/diagnosticRedaction');
+
 /**
  * Flag Reconciler Runtime — Enterprise Grade
  *
@@ -154,7 +156,9 @@ function reconcile() {
   const dependencyViolations = [];
   const diagnostics = { total_flags: 0, critical_flags: 0, undefined_critical: [], drift_detected: false };
 
-  const allEnvKeys = Object.keys(process.env).filter(k => k.startsWith('IMPETUS_'));
+  const allEnvKeys = Object.keys(process.env).filter(
+    (key) => key.startsWith('IMPETUS_') && !isSensitiveDiagnosticKey(key)
+  );
   diagnostics.total_flags = allEnvKeys.length;
 
   for (const key of allEnvKeys) {

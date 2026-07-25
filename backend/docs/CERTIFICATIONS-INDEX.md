@@ -1,6 +1,16 @@
 # Índice — Certificações Enterprise On-Premise v1
 
-**Última actualização:** 2026-07-04 (SEC-20 — Enterprise Security v2 Certification)
+**Última actualização:** 2026-07-10 (APPSEC-02A — External Red Team Readiness)
+
+---
+
+## Dossiê Oficial de Incidentes
+
+| Programa | Documento | Status |
+|----------|-----------|--------|
+| INCIDENT-KNOWLEDGE-BASE-01 | [`security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md`](./security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md) | ✅ Consolidado |
+
+Índice completo: [`security/incident-knowledge-base/`](./security/incident-knowledge-base/) — timeline, evidências, análise técnica, lições aprendidas, IOCs/TTPs.
 
 ---
 
@@ -30,6 +40,11 @@
 | SEC-18 Runtime Protection | [`SEC_18_RUNTIME_PROTECTION.md`](./SEC_18_RUNTIME_PROTECTION.md) | ✅ Controlador consultivo |
 | SEC-19 Operational Certification | [`SEC_19_OPERATIONAL_CERTIFICATION.md`](./SEC_19_OPERATIONAL_CERTIFICATION.md) | ✅ Simulação + stress audit-only |
 | **SEC-20 Certification v2** | [`SECURITY_CERTIFICATION_V2.md`](./SECURITY_CERTIFICATION_V2.md) | ✅ **Encerramento formal v2** |
+| **SEC-21 Production Activation** | [`SEC_21_PRODUCTION_ACTIVATION.md`](./SEC_21_PRODUCTION_ACTIVATION.md) | ✅ **14/14 — ONLINE OPERATIONAL** |
+| **SEC-21A Go-Live Gate** | [`SEC_21A_PRODUCTION_GO_LIVE_GATE.md`](./SEC_21A_PRODUCTION_GO_LIVE_GATE.md) | ✅ Gate consultivo |
+| **SEC-21B Baseline Sync** | [`SEC_21B_BASELINE_SYNCHRONIZATION.md`](./SEC_21B_BASELINE_SYNCHRONIZATION.md) | ✅ 16/16 Reconciliação |
+| **SEC-21C Go-Live Validation** | [`SEC_21C_GO_LIVE_VALIDATION.md`](./SEC_21C_GO_LIVE_VALIDATION.md) | ✅ Autorização final |
+| **OPERATIONAL-GO-LIVE-01** | [`OPERATIONAL_GO_LIVE_01.md`](./OPERATIONAL_GO_LIVE_01.md) | ✅ Produção activa |
 
 Congelamento: [`ENTERPRISE_SECURITY_V1.md`](./ENTERPRISE_SECURITY_V1.md) · Relatório: [`SECURITY_CERTIFICATION_REPORT.md`](./SECURITY_CERTIFICATION_REPORT.md) · Matriz: [`SECURITY_CERTIFICATION_MATRIX.md`](./SECURITY_CERTIFICATION_MATRIX.md) · Readiness: [`SECURITY_READINESS_REPORT.md`](./SECURITY_READINESS_REPORT.md) · Evidências: [`evidence/sec-08/`](./evidence/sec-08/)
 
@@ -65,9 +80,70 @@ Promoção: [`SEC_09_RUNTIME_PROMOTION.md`](./SEC_09_RUNTIME_PROMOTION.md) · Ch
 **Comando SEC-19:** `node backend/src/tests/securityOperational/SEC_19_OPERATIONAL_CERTIFICATION.test.js`  
 **Endpoint operational certification:** `GET /api/audit/security-operational-certification`  
 **Comando SEC-20:** `node backend/src/tests/audit/SEC_20_ENTERPRISE_SECURITY_CERTIFICATION.test.js`  
-**Endpoint certification v2:** `GET /api/audit/security-certification-v2`
+**Endpoint certification v2:** `GET /api/audit/security-certification-v2`  
+**Comando SEC-21:** `node backend/src/tests/audit/SEC_21_PRODUCTION_ACTIVATION.test.js`  
+**Endpoint production activation:** `GET /api/audit/security-production-activation`  
+**Comando SEC-21C:** `node backend/src/tests/audit/SEC_21C_GO_LIVE_VALIDATION.test.js`  
+**Endpoint go-live validation:** `GET /api/audit/security-go-live-validation`
 
-**Sequência SEC v2:** ✅ **ENCERRADA** (SECURITY-BASELINE-01 → SEC-20)
+**OPERATIONAL-GO-LIVE-01:** `scripts/security/operational-go-live-01.sh` · evidências `evidence/operational-go-live-01/`
+
+**Sequência SEC v2:** ✅ **ENCERRADA E EM PRODUÇÃO** · SEC-21 → SEC-21A → SEC-21B → SEC-21C → **OPERATIONAL-GO-LIVE-01**
+
+---
+
+## Enterprise Application Security (APPSEC-01)
+
+| Fase | Documento | Status |
+|------|-----------|--------|
+| **APPSEC-01** | [`APPSEC_01.md`](./APPSEC_01.md) | ✅ **Implementado** |
+| Arquitetura | [`APPSEC_01_ARCHITECTURE.md`](./APPSEC_01_ARCHITECTURE.md) | ✅ |
+| Route Security | [`APPSEC_01_ROUTE_SECURITY.md`](./APPSEC_01_ROUTE_SECURITY.md) | ✅ |
+| Upload Security | [`APPSEC_01_UPLOAD_SECURITY.md`](./APPSEC_01_UPLOAD_SECURITY.md) | ✅ |
+| Secret Management | [`APPSEC_01_SECRET_MANAGEMENT.md`](./APPSEC_01_SECRET_MANAGEMENT.md) | ✅ |
+| SSRF Protection | [`APPSEC_01_SSRF_PROTECTION.md`](./APPSEC_01_SSRF_PROTECTION.md) | ✅ |
+| Relatório | [`APPSEC_01_REPORT.md`](./APPSEC_01_REPORT.md) | ✅ 20/20 testes |
+
+**Comando:** `node backend/src/tests/securityApplication/APPSEC_01.test.js`  
+**Endpoint:** `GET /api/audit/appsec-01`  
+**Origem:** Red Team 04/07/2026 · Complementa SEC-01→SEC-21C (não substitui)
+
+---
+
+## Application Security Validation (APPSEC-02)
+
+| Fase | Documento | Status |
+|------|-----------|--------|
+| **APPSEC-02** | [`APPSEC_02.md`](./APPSEC_02.md) | ✅ **APPSEC_CERTIFIED_WITH_REMARKS** |
+| Relatório | [`APPSEC_02_REPORT.md`](./APPSEC_02_REPORT.md) | ✅ |
+| Comparação | [`APPSEC_02_COMPARISON.md`](./APPSEC_02_COMPARISON.md) | ✅ |
+| Certificação | [`APPSEC_02_CERTIFICATION.md`](./APPSEC_02_CERTIFICATION.md) | ✅ |
+| Risco residual | [`APPSEC_02_RESIDUAL_RISK.md`](./APPSEC_02_RESIDUAL_RISK.md) | ✅ medium |
+
+**Comando:** `node backend/src/tests/securityApplicationValidation/APPSEC_02.test.js`  
+**Endpoint:** `GET /api/audit/appsec-validation`  
+**Evidências:** [`evidence/appsec-02/validation-latest.json`](./evidence/appsec-02/validation-latest.json)
+
+---
+
+## Operational Hardening & External Red Team Readiness (APPSEC-02A)
+
+| Fase | Documento | Status |
+|------|-----------|--------|
+| **APPSEC-02A** | [`APPSEC_02A.md`](./APPSEC_02A.md) | ✅ **READY_FOR_EXTERNAL_RED_TEAM** |
+| Operational Readiness | [`APPSEC_02A_OPERATIONAL_READINESS.md`](./APPSEC_02A_OPERATIONAL_READINESS.md) | ✅ |
+| Secret Cleanup | [`APPSEC_02A_SECRET_CLEANUP.md`](./APPSEC_02A_SECRET_CLEANUP.md) | ✅ |
+| Dependency Plan | [`APPSEC_02A_DEPENDENCY_PLAN.md`](./APPSEC_02A_DEPENDENCY_PLAN.md) | ✅ |
+| Runtime Validation | [`APPSEC_02A_RUNTIME_VALIDATION.md`](./APPSEC_02A_RUNTIME_VALIDATION.md) | ✅ |
+| Confidence Level | [`APPSEC_02A_CONFIDENCE_LEVEL.md`](./APPSEC_02A_CONFIDENCE_LEVEL.md) | ✅ |
+| Relatório | [`APPSEC_02A_REPORT.md`](./APPSEC_02A_REPORT.md) | ✅ 16/16 testes |
+
+**Comando:** `node backend/src/tests/securityOperationalReadiness/APPSEC_02A.test.js`  
+**Endpoint:** `GET /api/audit/appsec-operational-readiness`  
+**Script cleanup:** `backend/scripts/security/cleanup-env-artifacts.sh`  
+**Evidências:** [`evidence/appsec-02a/readiness-latest.json`](./evidence/appsec-02a/readiness-latest.json)
+
+**Sequência APPSEC:** APPSEC-01 → APPSEC-02 → **APPSEC-02A** → Red Team externo independente
 
 ---
 

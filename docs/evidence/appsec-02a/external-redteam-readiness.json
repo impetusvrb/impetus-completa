@@ -1,0 +1,27 @@
+{
+  "schema_version": "external_redteam_readiness_v1",
+  "generated_at": "2026-07-10T20:51:30.242Z",
+  "decision": "NOT_READY",
+  "overall_readiness_percent": 91,
+  "dimensions": {
+    "operational_readiness": {
+      "score": 75,
+      "remarks": [
+        "Config runtime CRITICAL/HIGH"
+      ]
+    },
+    "security_readiness": {
+      "score": 100,
+      "remarks": []
+    },
+    "application_readiness": {
+      "score": 100,
+      "remarks": []
+    },
+    "residual_risk": "low"
+  },
+  "remarks": [
+    "Config runtime CRITICAL/HIGH"
+  ],
+  "next_step": "Completar acções operacionais APPSEC_02A_SECRET_CLEANUP e runtime config"
+}

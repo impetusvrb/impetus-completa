@@ -1,0 +1,26 @@
+{
+  "mode": "GO_LIVE_GUARD",
+  "status": "GO_LIVE_GUARD_SUCCESS",
+  "phase1": {
+    "phase": "PHASE_1_INTENSIVE",
+    "samples": 5,
+    "alerts": [],
+    "failed": false
+  },
+  "phase2": {
+    "phase": "PHASE_2_STABILIZATION",
+    "samples": 6,
+    "alerts": [],
+    "failed": false
+  },
+  "fileIncidents": [],
+  "hashDriftAlerts": [],
+  "sshMaxConnections": 1,
+  "failed": false,
+  "autoAction": false,
+  "operators": [
+    "Wellington",
+    "Gustavo"
+  ],
+  "completedAt": "2026-07-04T19:29:06.064Z"
+}

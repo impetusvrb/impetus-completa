@@ -1,0 +1,470 @@
+{
+  "reportVersion": "go_live_gate_v1",
+  "overallStatus": "NOT_READY",
+  "goLiveDecision": "GO_LIVE_DENIED",
+  "overallScore": 0.75,
+  "integrityScore": 0.553,
+  "baselineStatus": "DIVERGED",
+  "runtimeStatus": "STABLE",
+  "securityStatus": "NOT_READY",
+  "operationalStatus": "SEC21_COMPLETE",
+  "warnings": [
+    {
+      "code": "SEC21A_INFRA_SKIPPED",
+      "message": "Infra probes skipped (test mode)"
+    }
+  ],
+  "blockingIssues": [
+    {
+      "code": "INTEGRITY_BELOW_THRESHOLD",
+      "message": "Score 0.553 < 0.95",
+      "severity": "CRITICAL"
+    },
+    {
+      "code": "CRITICAL_FILE_DIVERGENCE",
+      "items": [
+        {
+          "path": "backend/src/server.js",
+          "issue": "HASH_MISMATCH",
+          "expected": "56f95db482d1",
+          "actual": "a2508783ee47"
+        },
+        {
+          "path": "infra/nginx/impetus-production.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        },
+        {
+          "path": "infra/nginx/impetus-hardening-locations.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "1bcb48661eb3",
+          "actual": "943bc17a8cfa"
+        },
+        {
+          "path": "scripts/deploy-nginx-hardening.sh",
+          "issue": "HASH_MISMATCH",
+          "expected": "6cb47e5cb96f",
+          "actual": "94fd459cb8f0"
+        },
+        {
+          "path": "/etc/nginx/sites-available/impetus",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        }
+      ]
+    }
+  ],
+  "approvedModules": [
+    "SEC-01",
+    "SEC-02",
+    "SEC-03",
+    "SEC-04",
+    "SEC-05",
+    "SEC-06",
+    "SEC-07",
+    "SEC-10",
+    "SEC-11",
+    "SEC-12",
+    "SEC-13",
+    "SEC-13A",
+    "SEC-14",
+    "SEC-15",
+    "SEC-16",
+    "SEC-17",
+    "SEC-18",
+    "SEC-19",
+    "SEC-20",
+    "SEC-21"
+  ],
+  "failedModules": [],
+  "nextRecommendedAction": "Executar scripts/integrity-check.sh --baseline; restaurar ficheiros críticos; score >= 0.95",
+  "approvalTimestamp": null,
+  "observation": null,
+  "criteria": {
+    "integrity_above_threshold": false,
+    "baseline_synchronized": false,
+    "all_modules_online": true,
+    "all_endpoints_healthy": true,
+    "runtime_stable": true,
+    "pm2_healthy": true,
+    "nginx_healthy": true,
+    "database_healthy": true,
+    "tls_valid": true,
+    "rollback_available": true,
+    "security_ready": false,
+    "operational_ready": true,
+    "documentation_present": true,
+    "evidence_present": true,
+    "no_critical_nc": false,
+    "no_pending_rollback": true
+  },
+  "validators": {
+    "integrity": {
+      "ok": false,
+      "integrityScore": 0.553,
+      "threshold": 0.95,
+      "status": "COMPROMISED",
+      "aboveThreshold": false,
+      "drift": {
+        "classification": "Critical Drift",
+        "blocking": true,
+        "reason": "Filesystem CRITICAL findings"
+      },
+      "enabled": false,
+      "blocking": true,
+      "findings": {
+        "missing": 0,
+        "drift": 6,
+        "filesystem": 1
+      }
+    },
+    "baseline": {
+      "ok": false,
+      "baselineOk": true,
+      "hardeningOk": true,
+      "synchronized": false,
+      "divergences": [
+        {
+          "path": "backend/src/server.js",
+          "issue": "HASH_MISMATCH",
+          "expected": "56f95db482d1",
+          "actual": "a2508783ee47"
+        },
+        {
+          "path": "infra/nginx/impetus-production.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        },
+        {
+          "path": "infra/nginx/impetus-hardening-locations.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "1bcb48661eb3",
+          "actual": "943bc17a8cfa"
+        },
+        {
+          "path": "scripts/deploy-nginx-hardening.sh",
+          "issue": "HASH_MISMATCH",
+          "expected": "6cb47e5cb96f",
+          "actual": "94fd459cb8f0"
+        },
+        {
+          "path": "backend/.env.example",
+          "issue": "HASH_MISMATCH",
+          "expected": "0e4f57f52e37",
+          "actual": "a96e5fdb300e"
+        },
+        {
+          "path": "/etc/nginx/sites-available/impetus",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        }
+      ],
+      "criticalDivergences": [
+        {
+          "path": "backend/src/server.js",
+          "issue": "HASH_MISMATCH",
+          "expected": "56f95db482d1",
+          "actual": "a2508783ee47"
+        },
+        {
+          "path": "infra/nginx/impetus-production.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        },
+        {
+          "path": "infra/nginx/impetus-hardening-locations.conf",
+          "issue": "HASH_MISMATCH",
+          "expected": "1bcb48661eb3",
+          "actual": "943bc17a8cfa"
+        },
+        {
+          "path": "scripts/deploy-nginx-hardening.sh",
+          "issue": "HASH_MISMATCH",
+          "expected": "6cb47e5cb96f",
+          "actual": "94fd459cb8f0"
+        },
+        {
+          "path": "/etc/nginx/sites-available/impetus",
+          "issue": "HASH_MISMATCH",
+          "expected": "c595ff376d72",
+          "actual": "9b2c913fcc46"
+        }
+      ],
+      "blocking": true,
+      "manifestEntries": 15
+    },
+    "modules": {
+      "ok": true,
+      "total": 20,
+      "approvedModules": [
+        "SEC-01",
+        "SEC-02",
+        "SEC-03",
+        "SEC-04",
+        "SEC-05",
+        "SEC-06",
+        "SEC-07",
+        "SEC-10",
+        "SEC-11",
+        "SEC-12",
+        "SEC-13",
+        "SEC-13A",
+        "SEC-14",
+        "SEC-15",
+        "SEC-16",
+        "SEC-17",
+        "SEC-18",
+        "SEC-19",
+        "SEC-20",
+        "SEC-21"
+      ],
+      "failedModules": [],
+      "results": [
+        {
+          "phase": "SEC-01",
+          "module": "securityObservatory",
+          "flag": "SECURITY_OBSERVATORY",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-02",
+          "module": "securityCorrelation",
+          "flag": "SECURITY_CORRELATION_ENGINE",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-03",
+          "module": "securityThreatIntelligence",
+          "flag": "SECURITY_THREAT_INTELLIGENCE",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-04",
+          "module": "securityRuntimeIntegrity",
+          "flag": "SECURITY_RUNTIME_INTEGRITY",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-05",
+          "module": "securityNotification",
+          "flag": "SECURITY_NOTIFICATION_CENTER",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-06",
+          "module": "securityResponse",
+          "flag": "SECURITY_RESPONSE_ORCHESTRATOR",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-07",
+          "module": "securitySOC",
+          "flag": "SECURITY_SOC",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-10",
+          "module": "securityActiveDefense",
+          "flag": "SECURITY_ACTIVE_DEFENSE",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-11",
+          "module": "securityAdaptiveProtection",
+          "flag": "SECURITY_ADAPTIVE_PROTECTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-12",
+          "module": "securityExecutionValidation",
+          "flag": "SECURITY_EXECUTION_VALIDATION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-13",
+          "module": "securityControlledExecution",
+          "flag": "SECURITY_CONTROLLED_EXECUTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-13A",
+          "module": "securityPromotionOperational",
+          "flag": "SECURITY_OPERATIONAL_PROMOTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-14",
+          "module": "securityAdaptiveBlocking",
+          "flag": "SECURITY_ADAPTIVE_BLOCKING",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-15",
+          "module": "securityAntiScanner",
+          "flag": "SECURITY_ANTI_SCANNER",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-16",
+          "module": "securityThreatDeception",
+          "flag": "SECURITY_THREAT_DECEPTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-17",
+          "module": "securityExfiltrationDetection",
+          "flag": "SECURITY_EXFILTRATION_DETECTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-18",
+          "module": "securityRuntimeProtection",
+          "flag": "SECURITY_RUNTIME_PROTECTION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-19",
+          "module": "securityOperationalCertification",
+          "flag": "SECURITY_OPERATIONAL_CERTIFICATION",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-20",
+          "module": "securityCertificationV2",
+          "flag": "SECURITY_CERTIFICATION_V2",
+          "flagOn": false,
+          "status": "READY",
+          "healthy": true,
+          "error": null
+        },
+        {
+          "phase": "SEC-21",
+          "module": "securityProductionActivation",
+          "flag": "SECURITY_PRODUCTION_ACTIVATION",
+          "flagOn": false,
+          "status": "ONLINE",
+          "healthy": true,
+          "error": null
+        }
+      ],
+      "blocking": false
+    },
+    "endpoints": {
+      "ok": true,
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "failures": [],
+      "latency": {
+        "avgMs": 1,
+        "maxMs": 5
+      },
+      "blocking": false
+    },
+    "infrastructure": {
+      "ok": true,
+      "skipped": true,
+      "blocking": false,
+      "checks": {}
+    },
+    "security": {
+      "ok": false,
+      "rollbackAvailable": true,
+      "sec21Evidence": true,
+      "sec20Present": true,
+      "openNCs": 1,
+      "criticalNCs": [
+        "NC-SEC20-001"
+      ],
+      "snapshotConsistent": true,
+      "pendingApprovals": 0,
+      "blocking": true,
+      "securityReady": false
+    },
+    "runtime": {
+      "ok": true,
+      "cpu": {
+        "load1": 1.79,
+        "loadPerCpu": 0.895,
+        "cpus": 2
+      },
+      "memory": {
+        "heapUsedMb": 10,
+        "rssMb": 56,
+        "freeMb": 4672
+      },
+      "eventLoop": {
+        "uptimeSec": 1
+      },
+      "pm2Restarts": 528,
+      "fdCount": 43,
+      "warnings": [
+        {
+          "code": "PM2_RESTARTS",
+          "value": 528
+        }
+      ],
+      "blocking": false,
+      "runtimeStable": true
+    }
+  }
+}

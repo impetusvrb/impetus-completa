@@ -1,0 +1,25 @@
+{
+  "sample": 21,
+  "timestamp_utc": "2026-07-14T15:10:59Z",
+  "methodology": "v2_non_interfering",
+  "checkpoint": false,
+  "sample_collect_ms": 251,
+  "pm2": {"pid": "1596913", "restarts": 24, "uptime_sec": 342, "rss_kb": 295744},
+  "http": {
+    "health": {"status": 200, "time_s": 0.009349},
+    "bot_config": {"status": 200, "time_s": 0.005674}
+  },
+  "host": {"disk_used_pct": "97%", "disk_avail": "3.7G", "load_avg": "3.41, 3.01, 2.04", "mem_avail_mb": 5591, "swap_used_mb": 0},
+  "postgresql": {"active": "1", "idle": "6", "idle_in_tx": "0", "total": "7"},
+  "pool": {"totalCount":0,"idleCount":0,"waitingCount":0},
+  "outbox": {
+    "pending_count": "0",
+    "pending_count_type": "EXACT_COUNT",
+    "table_live_estimate": "272502",
+    "table_live_estimate_type": "ESTIMATED_COUNT",
+    "delivered_exact_checkpoint": null,
+    "delivered_count_type": "ESTIMATED_COUNT"
+  },
+  "archive_log_derived": {"cycles_observed":2,"total_archived_logged":400,"total_deleted_logged":400,"recent":[{"event":"INDUSTRIAL_ARCHIVE","run_id":"c6438bfb-531e-4d66-ac95-d2aa6896c138","archived":200,"deleted":200,"dry_run":false,"archive_mode":"on","cutoff":"2026-07-07T11:22:21.080Z","company_id":null},{"event":"INDUSTRIAL_ARCHIVE","run_id":"9a16719b-9559-4d50-a91c-eb9f85a20cd2","archived":200,"deleted":200,"dry_run":false,"archive_mode":"on","cutoff":"2026-07-07T12:24:33.212Z","company_id":null}]},
+  "oom_log_total": 2
+}

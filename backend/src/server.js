@@ -518,6 +518,28 @@ useRoute('/api/operations/runtime', './routes/operations/runtimeStabilizationRou
 useRoute('/api/operations/golive', './routes/operations/goLiveMonitoringRoutes', requireAuth);
 useRoute('/api/mes', './domains/mes/routes/mesRoutes', requireAuth);
 useRoute('/api/logistics', './domains/logistics/routes/logisticsRoutes', requireAuth);
+/* WMS-001 — Logistics Operational Foundation (produção desligada por default) */
+useRoute(
+  '/api/logistics-operational',
+  './domains/logistics-operational/routes/logisticsOperationalRoutes',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/supply',
+  './domains/supply/routes/supplyRoutes',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/integration/inc048',
+  './integration/inc048/routes/inc048Routes',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
 useRoute('/api/analytics', './domains/analytics/routes/analyticsRoutes', requireAuth);
 /* M1.6 — Production Domain Operational Validation (READ ONLY) */
 useRoute('/api/m1/validation', './routes/m1ValidationRoutes', requireAuth);
@@ -639,6 +661,27 @@ useRoute(
 useRoute(
   '/api/quality-activation',
   './routes/qualityActivation',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/ppap',
+  './routes/ppap',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/msa',
+  './routes/msa',
+  requireAuth,
+  requireCompanyActive,
+  apiByUserLimiter
+);
+useRoute(
+  '/api/ishikawa',
+  './routes/ishikawa',
   requireAuth,
   requireCompanyActive,
   apiByUserLimiter
@@ -2786,7 +2829,23 @@ httpServer.on('error', (err) => {
       const sec05 = require('./securityNotification');
       sec05.init();
     } catch (e) {
-      console.warn('[SEC-05_BOOT]', e && e.message ? e.message : e);
+      let event = {
+        phase: 'SEC-05',
+        status: 'failed',
+        last_error: {
+          stage: 'module_load_or_init',
+          name: String(e?.name || 'Error').slice(0, 80),
+          code: e?.code ? String(e.code).slice(0, 80) : null
+        }
+      };
+      try {
+        const observability = require('./securityNotification/observability/bootstrapObservability');
+        observability.recordBootstrapFailure('module_load_or_init', e);
+        event = observability.toLogEvent();
+      } catch (_) {
+        // O fallback acima permanece seguro mesmo se a própria observabilidade falhar.
+      }
+      console.error('[SEC-05_BOOT_FAILURE]', JSON.stringify(event));
     }
 
     // SEC-06 — Response Orchestrator (graduated; SECURITY_RESPONSE_ORCHESTRATOR=false default).
@@ -2923,6 +2982,14 @@ httpServer.on('error', (err) => {
       sec21c.init();
     } catch (e) {
       console.warn('[SEC-21C_BOOT]', e && e.message ? e.message : e);
+    }
+
+    // INT-01B — Integrity Sensor (INTEGRITY_SENSOR_ENABLED=false default; shadow mode).
+    try {
+      const integrityRuntime = require('./services/integrity/IntegrityRuntime');
+      integrityRuntime.init();
+    } catch (e) {
+      console.warn('[INTEGRITY_SENSOR_BOOT]', e && e.message ? e.message : e);
     }
 
     const listenHost = (process.env.LISTEN_HOST || '127.0.0.1').trim() || '127.0.0.1';

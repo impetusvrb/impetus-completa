@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync, spawnSync } = require('child_process');
 const http = require('http');
+const { sanitizePm2ProcessList } = require('../src/securityApplication/diagnosticRedaction');
 
 const ROOT = path.join(__dirname, '..');
 const REPO = path.join(ROOT, '..');
@@ -16,6 +17,11 @@ const FRONTEND = path.join(REPO, 'frontend');
 const DRY_RUN = process.argv.includes('--dry-run');
 const STAMP = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 const BK = path.join(ROOT, 'backups', `environment-shadow-activation-${STAMP}`);
+
+function writeSanitizedPm2Snapshot(filePath) {
+  const raw = execSync('pm2 jlist 2>/dev/null', { cwd: REPO, encoding: 'utf8', timeout: 10000 });
+  fs.writeFileSync(filePath, JSON.stringify(sanitizePm2ProcessList(raw), null, 2), { mode: 0o600 });
+}
 
 const BACKEND_FLAGS = `
 # ─── ENVIRONMENT shadow activation (Etapa 7) ───
@@ -130,14 +136,17 @@ async function main() {
     [path.join(FRONTEND, '.env'), path.join(BK, 'env', 'frontend.env')]
   ];
   for (const [src, dst] of envFiles) {
-    if (fs.existsSync(src)) fs.copyFileSync(src, dst);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dst);
+      fs.chmodSync(dst, 0o600);
+    }
   }
   const distSrc = path.join(FRONTEND, 'dist');
   if (fs.existsSync(distSrc)) {
     run(`cp -a "${distSrc}" "${path.join(BK, 'dist', 'frontend-dist-snapshot')}"`, REPO);
   }
   try {
-    run(`pm2 jlist > "${path.join(BK, 'pm2', 'pm2-snapshot.json')}"`, REPO);
+    writeSanitizedPm2Snapshot(path.join(BK, 'pm2', 'pm2-snapshot.json'));
   } catch (_e) {
     /* optional */
   }
@@ -197,13 +206,19 @@ async function main() {
   if (!DRY_RUN) {
     const buildLog = path.join(BK, 'reports', 'vite-build.log');
     run(`npm run build 2>&1 | tee "${buildLog}"`, FRONTEND);
-    run('pm2 reload impetus-frontend --update-env', REPO);
-    run('pm2 reload impetus-backend --update-env', REPO);
+    run(
+      'pm2 restart ecosystem.runtime.config.cjs --only impetus-frontend --env production --update-env',
+      REPO
+    );
+    run(
+      'pm2 restart ecosystem.runtime.config.cjs --only impetus-backend --env production --update-env',
+      REPO
+    );
     await new Promise((r) => setTimeout(r, 5000));
     const smoke = await smokeTests(path.join(BK, 'reports', 'smoke-post-reload.txt'));
     fs.writeFileSync(path.join(BK, 'reports', 'smoke-post-reload.txt'), smoke.join('\n'));
     try {
-      run(`pm2 jlist > "${path.join(BK, 'pm2', 'pm2-post-reload.json')}"`, REPO);
+      writeSanitizedPm2Snapshot(path.join(BK, 'pm2', 'pm2-post-reload.json'));
     } catch (_e) {
       /* ignore */
     }

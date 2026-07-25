@@ -1,4 +1,5 @@
 const db = require('../db');
+const crossTenant = require('../securityApplication/crossTenantAccessValidator');
 const AI_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 async function setUserPresence(userId, isOnline) {
@@ -47,6 +48,12 @@ async function getOrCreatePrivateConversation(userId, targetUserId, companyId) {
     WHERE c.type = 'private' AND c.company_id = $3 LIMIT 1
   `, [userId, targetUserId, companyId]);
   if (rows.length > 0) return rows[0];
+  const targetCheck = await crossTenant.validatePrivateConversationTarget(targetUserId, companyId);
+  if (!targetCheck.ok) {
+    const err = new Error(targetCheck.error);
+    err.status = targetCheck.status;
+    throw err;
+  }
   const { rows: [conv] } = await db.query(
     `INSERT INTO chat_conversations (company_id, type, created_by) VALUES ($1, 'private', $2) RETURNING id`,
     [companyId, userId]
@@ -56,11 +63,21 @@ async function getOrCreatePrivateConversation(userId, targetUserId, companyId) {
 }
 
 async function createGroup(userId, companyId, name, participantIds) {
+  const all = [...new Set([userId, ...(participantIds || [])])];
+  const participantsCheck = await crossTenant.validateConversationParticipants({
+    companyId,
+    participantIds: all,
+    actorUserId: userId
+  });
+  if (!participantsCheck.ok) {
+    const err = new Error(participantsCheck.error);
+    err.status = participantsCheck.status;
+    throw err;
+  }
   const { rows: [conv] } = await db.query(
     `INSERT INTO chat_conversations (company_id, type, name, created_by) VALUES ($1,'group',$2,$3) RETURNING id`,
     [companyId, name, userId]
   );
-  const all = [...new Set([userId, ...participantIds])];
   for (const pid of all) {
     await db.query(`INSERT INTO chat_participants (conversation_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
       [conv.id, pid, pid === userId ? 'admin' : 'member']);
@@ -163,8 +180,19 @@ async function getConversationParticipants(conversationId, userId) {
   return rows;
 }
 
-async function addParticipant(conversationId, userId, newUserId) {
+async function addParticipant(conversationId, userId, newUserId, companyId) {
   await verifyParticipant(conversationId, userId);
+  const { rows: [conv] } = await db.query(
+    `SELECT company_id FROM chat_conversations WHERE id = $1 LIMIT 1`,
+    [conversationId]
+  );
+  const tenantId = companyId || conv?.company_id;
+  const check = await crossTenant.validateParticipantAddition(newUserId, tenantId);
+  if (!check.ok) {
+    const err = new Error(check.error);
+    err.status = check.status;
+    throw err;
+  }
   await db.query(`INSERT INTO chat_participants (conversation_id,user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, [conversationId, newUserId]);
 }
 

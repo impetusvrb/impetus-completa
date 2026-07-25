@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "cpu": {
+    "load1": 1.22,
+    "loadPerCpu": 0.61,
+    "cpus": 2
+  },
+  "memory": {
+    "heapUsedMb": 9,
+    "rssMb": 54,
+    "freeMb": 4679
+  },
+  "eventLoop": {
+    "uptimeSec": 1
+  },
+  "pm2Restarts": 528,
+  "fdCount": 43,
+  "warnings": [
+    {
+      "code": "PM2_RESTARTS",
+      "value": 528
+    }
+  ],
+  "blocking": false,
+  "runtimeStable": true
+}

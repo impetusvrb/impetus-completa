@@ -15,13 +15,34 @@ const lockout = require('../middleware/accountLockout');
 
 const router = express.Router();
 
-// LOGIN
-router.post('/login', lockout.loginLockoutMiddleware, async (req, res) => {
+const LOGIN_HANDLER_TIMEOUT_MS = parseInt(process.env.IMPETUS_LOGIN_HANDLER_TIMEOUT_MS, 10) || 25000;
+
+function loginPoolPressureResponse(res) {
+  return res.status(503).json({
+    ok: false,
+    error: 'Serviço temporariamente sobrecarregado. Tente novamente em alguns segundos.',
+    code: 'DB_POOL_PRESSURE',
+    message: 'Serviço temporariamente sobrecarregado. Tente novamente em alguns segundos.'
+  });
+}
+
+function isLoginDbPoolUnderPressure() {
+  const stats = typeof db.getPoolStats === 'function' ? db.getPoolStats() : null;
+  if (!stats) return false;
+  return stats.idleCount === 0 && stats.waitingCount >= 3;
+}
+
+async function runLoginHandler(req, res) {
   const { email, password } = req.body;
 
   try {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email e senha obrigatórios' });
+    }
+
+    if (isLoginDbPoolUnderPressure()) {
+      console.warn('[LOGIN][DB_POOL_PRESSURE] fast-fail', db.getPoolStats());
+      return loginPoolPressureResponse(res);
     }
 
     const result = await db.query(
@@ -208,6 +229,40 @@ router.post('/login', lockout.loginLockoutMiddleware, async (req, res) => {
   } catch (err) {
     console.error('[LOGIN_ERROR]', err);
     return res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+}
+
+// LOGIN
+router.post('/login', lockout.loginLockoutMiddleware, async (req, res) => {
+  let timeoutId;
+  try {
+    await Promise.race([
+      runLoginHandler(req, res),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(Object.assign(new Error('LOGIN_HANDLER_TIMEOUT'), { code: 'LOGIN_TIMEOUT' }));
+        }, LOGIN_HANDLER_TIMEOUT_MS);
+      })
+    ]);
+  } catch (err) {
+    if (err?.code === 'LOGIN_TIMEOUT') {
+      console.error('[LOGIN_TIMEOUT]', { ms: LOGIN_HANDLER_TIMEOUT_MS, pool: db.getPoolStats?.() });
+      if (!res.headersSent) {
+        return res.status(503).json({
+          ok: false,
+          error: 'Tempo esgotado ao autenticar. Tente novamente em instantes.',
+          code: 'LOGIN_TIMEOUT',
+          message: 'Tempo esgotado ao autenticar. Tente novamente em instantes.'
+        });
+      }
+      return;
+    }
+    if (!res.headersSent) {
+      console.error('[LOGIN_ERROR]', err);
+      return res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 });
 

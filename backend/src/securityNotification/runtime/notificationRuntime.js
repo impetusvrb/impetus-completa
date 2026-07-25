@@ -10,24 +10,50 @@ const store = require('../store/notificationStore');
 const metrics = require('../metrics/notificationMetrics');
 const { createNotificationDashboardDto } = require('../dto/notificationDashboardDto');
 const { freezeNotification } = require('../dto/notificationDto');
+const bootstrapObservability = require('../observability/bootstrapObservability');
 
 let pollTimer = null;
 
+function logBootstrap(level, label) {
+  console[level](label, JSON.stringify(bootstrapObservability.toLogEvent()));
+}
+
+async function executeCycle(stage) {
+  bootstrapObservability.recordCycleStart(stage);
+  try {
+    const result = await runCycle();
+    bootstrapObservability.recordCycleSuccess(stage);
+    if (stage === 'initial') logBootstrap('info', '[SEC-05_BOOT]');
+    return result;
+  } catch (error) {
+    bootstrapObservability.recordCycleFailure(stage, error);
+    logBootstrap('error', '[SEC-05_CYCLE_FAILURE]');
+    return [];
+  }
+}
+
 function bootstrap() {
-  if (!flags.isSecurityNotificationCenterEnabled()) {
-    return { enabled: false };
+  const enabled = flags.isSecurityNotificationCenterEnabled();
+  if (enabled && pollTimer) {
+    return { enabled: true, status: bootstrapObservability.getSnapshot().status, already_started: true };
   }
 
-  runCycle().catch((e) => console.warn('[SEC-05] initial cycle:', e?.message));
+  bootstrapObservability.recordAttempt(enabled);
+  if (!enabled) {
+    logBootstrap('info', '[SEC-05_BOOT]');
+    return { enabled: false, status: 'disabled' };
+  }
+
+  executeCycle('initial');
 
   pollTimer = setInterval(() => {
-    runCycle().catch((e) => console.warn('[SEC-05] periodic cycle:', e?.message));
+    executeCycle('periodic');
   }, 60000);
 
   if (pollTimer.unref) pollTimer.unref();
 
-  console.log('[SEC-05] Enterprise Security Notification Center activo (notification only)');
-  return { enabled: true };
+  bootstrapObservability.recordBootstrapScheduled();
+  return { enabled: true, status: 'starting' };
 }
 
 async function runCycle() {
@@ -39,6 +65,7 @@ function shutdown() {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  bootstrapObservability.recordStopped();
 }
 
 function buildDashboard() {
@@ -85,6 +112,7 @@ function getAuditPayload() {
     notifications: store.getAll().slice(0, 100).map((n) => freezeNotification(n)),
     pending: store.getPending().slice(0, 50).map((n) => freezeNotification(n)),
     metrics: metrics.getSnapshot(),
+    bootstrap: bootstrapObservability.getSnapshot(),
     criteria: {
       notification_center_available: true,
       notification_engine_available: true,
@@ -95,6 +123,8 @@ function getAuditPayload() {
       notification_dashboard_available: true,
       audit_endpoint_available: true,
       feature_flag_available: true,
+      bootstrap_observable: true,
+      silent_bootstrap_failures_eliminated: true,
       security_baseline_preserved: true,
       security_observatory_preserved: true,
       security_correlation_preserved: true,
@@ -120,5 +150,6 @@ module.exports = {
   runCycle,
   buildDashboard,
   getAuditPayload,
-  getPendingPayload
+  getPendingPayload,
+  getBootstrapStatus: bootstrapObservability.getSnapshot
 };

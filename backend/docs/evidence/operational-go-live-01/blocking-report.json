@@ -1,0 +1,7 @@
+{
+  "phase": "OPERATIONAL-GO-LIVE-01",
+  "status": "ABORTED",
+  "timestamp": "2026-07-04T19:10:16Z",
+  "reason": "GO_LIVE_GUARD falhou",
+  "partial_changes": false
+}

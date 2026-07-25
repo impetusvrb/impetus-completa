@@ -1,0 +1,407 @@
+{
+  "generated_at": "2026-07-23T20:50:01.537392+00:00",
+  "mission": "SEC-CERT-003",
+  "pack_summary": {
+    "GAP-INT-01-ARCH": 5,
+    "INT-01A": 6,
+    "INT-01B": 6,
+    "INT-01C": 6,
+    "INT-01D": 6,
+    "SEC-OBS-002": 10,
+    "SEC-COVERAGE-002": 9,
+    "SEC-CERT-002": 7,
+    "SEC-BASELINE-002": 8,
+    "INT-LIM-001": 4,
+    "INT-LIM-002": 4,
+    "INT-LIM-003": 4,
+    "INT-DEDUP-001": 5,
+    "SEC-OBS-003": 5,
+    "SEC-OBS-003R": 6,
+    "SEC-COVERAGE-003": 6
+  },
+  "pack_files": {
+    "GAP-INT-01-ARCH": [
+      "GAP_INT_01_ARCHITECTURE.md",
+      "INTEGRITY_EVENT_MODEL.md",
+      "INTEGRITY_IMPLEMENTATION_ROADMAP.md",
+      "INTEGRITY_SENSOR_REFERENCE.md",
+      "INTEGRITY_TELEMETRY_ARCHITECTURE.md"
+    ],
+    "INT-01A": [
+      "INTEGRITY_ASSET_INVENTORY.md",
+      "INTEGRITY_BASELINE_INITIAL.md",
+      "INTEGRITY_BASELINE_MANAGER_SPEC.md",
+      "INTEGRITY_BASELINE_POLICY.md",
+      "INTEGRITY_BASELINE_VALIDATION.md",
+      "INT_01A_COMPLETION_REPORT.md"
+    ],
+    "INT-01B": [
+      "INTEGRITY_ENGINE_DETERMINISM.md",
+      "INTEGRITY_ENGINE_IMPLEMENTATION.md",
+      "INTEGRITY_ENGINE_PERFORMANCE.md",
+      "INTEGRITY_ENGINE_SHADOW_VALIDATION.md",
+      "INTEGRITY_ENGINE_TEST_REPORT.md",
+      "INT_01B_COMPLETION_REPORT.md"
+    ],
+    "INT-01C": [
+      "INTEGRITY_PERFORMANCE_REPORT.md",
+      "INTEGRITY_STATE_MODEL.md",
+      "INTEGRITY_TELEMETRY_IMPLEMENTATION.md",
+      "INTEGRITY_TELEMETRY_VALIDATION.md",
+      "INT_01C_COMPLETION_REPORT.md",
+      "resilience-results.json"
+    ],
+    "INT-01D": [
+      "INTEGRITY_DASHBOARD_INTEGRATION.md",
+      "INTEGRITY_FALLBACK_VALIDATION.md",
+      "INTEGRITY_REALTIME_VALIDATION.md",
+      "INTEGRITY_STATE_CONSUMPTION.md",
+      "INT_01D_COMPLETION_REPORT.md",
+      "integration-results.json"
+    ],
+    "SEC-OBS-002": [
+      "INTEGRITY_DASHBOARD_VALIDATION.md",
+      "INTEGRITY_OPERATIONAL_LOGBOOK.md",
+      "INTEGRITY_OPERATIONAL_OBSERVABILITY.md",
+      "INTEGRITY_PERFORMANCE_OBSERVATION.md",
+      "INTEGRITY_RUNTIME_VALIDATION.md",
+      "SEC_OBS_002_COMPLETION_REPORT.md",
+      "activation-log.json",
+      "controlled-events.json",
+      "failure-recovery.json",
+      "perf-stability.json"
+    ],
+    "SEC-COVERAGE-002": [
+      "INTEGRITY_AUDITD_COVERAGE.md",
+      "INTEGRITY_COVERAGE_AUDIT.md",
+      "INTEGRITY_COVERAGE_MATRIX.md",
+      "INTEGRITY_FALSE_POSITIVE_ANALYSIS.md",
+      "INTEGRITY_GAP_ANALYSIS.md",
+      "SEC_COVERAGE_002_COMPLETION_REPORT.md",
+      "analysis-summary.json",
+      "coverage-audit-raw.json",
+      "functional-coverage.json"
+    ],
+    "SEC-CERT-002": [
+      "INTEGRITY_ARCHITECTURE_COMPLIANCE.md",
+      "INTEGRITY_CERTIFICATION_MATRIX.md",
+      "INTEGRITY_FINAL_CERTIFICATE.md",
+      "INTEGRITY_OPERATIONAL_CERTIFICATION.md",
+      "INTEGRITY_RISK_REGISTER.md",
+      "SEC_CERT_002_COMPLETION_REPORT.md",
+      "certification-snapshot.json"
+    ],
+    "SEC-BASELINE-002": [
+      "INTEGRITY_BASELINE_MANIFEST.json",
+      "INTEGRITY_BASELINE_MANIFEST.md",
+      "INTEGRITY_BASELINE_VERSION_HISTORY.md",
+      "INTEGRITY_GOVERNANCE_UPDATE.md",
+      "INTEGRITY_LIMITATIONS_REGISTER.md",
+      "INTEGRITY_SECURITY_BASELINE_2026.md",
+      "SEC_BASELINE_002_COMPLETION_REPORT.md",
+      "drift-comparison.json"
+    ],
+    "INT-LIM-001": [
+      "AUDITD_PERFORMANCE.md",
+      "AUDITD_REALTIME_VALIDATION.md",
+      "AUDITD_RULES_IMPLEMENTATION.md",
+      "LIM_001_CLOSURE_REPORT.md"
+    ],
+    "INT-LIM-002": [
+      "LIM_002_CLOSURE_REPORT.md",
+      "MEDIUM_ASSET_WATCHERS.md",
+      "MEDIUM_PERFORMANCE_ANALYSIS.md",
+      "MEDIUM_REALTIME_VALIDATION.md"
+    ],
+    "INT-LIM-003": [
+      "GID_MONITORING_IMPLEMENTATION.md",
+      "GID_VALIDATION_REPORT.md",
+      "LIM_003_CLOSURE_REPORT.md",
+      "PERMCHECKER_COMPATIBILITY.md"
+    ],
+    "INT-DEDUP-001": [
+      "EVENTBUS_DEDUP_ANALYSIS.md",
+      "EVENTBUS_DEDUP_IMPLEMENTATION.md",
+      "EVENTBUS_DEDUP_VALIDATION.md",
+      "INT_DEDUP_001_COMPLETION_REPORT.md",
+      "dedup-validation.json"
+    ],
+    "SEC-OBS-003": [
+      "INTEGRITY_OPERATIONAL_REVALIDATION.md",
+      "INTEGRITY_PERFORMANCE_RECHECK.md",
+      "INTEGRITY_PIPELINE_VALIDATION.md",
+      "SEC_OBS_003_COMPLETION_REPORT.md",
+      "functional-revalidation.json"
+    ],
+    "SEC-OBS-003R": [
+      "EVENTBUS_RUNTIME_LOGS.md",
+      "EVENTBUS_RUNTIME_VALIDATION.md",
+      "SEC_OBS_003R_COMPLETION_REPORT.md",
+      "reload-log.json",
+      "runtime-log.txt",
+      "runtime-validation.json"
+    ],
+    "SEC-COVERAGE-003": [
+      "INTEGRITY_ASSET_COVERAGE_MATRIX.md",
+      "INTEGRITY_FINAL_COVERAGE.md",
+      "INTEGRITY_RISK_REASSESSMENT.md",
+      "SEC_COVERAGE_003_COMPLETION_REPORT.md",
+      "analysis-summary.json",
+      "coverage-audit-raw.json"
+    ]
+  },
+  "arch_docs": [
+    "GAP_INT_01_ARCHITECTURE.md",
+    "INTEGRITY_EVENT_MODEL.md",
+    "INTEGRITY_IMPLEMENTATION_ROADMAP.md",
+    "INTEGRITY_SENSOR_REFERENCE.md",
+    "INTEGRITY_TELEMETRY_ARCHITECTURE.md"
+  ],
+  "phases": {
+    "INT-01A": {
+      "exists": true,
+      "size": 8346,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "INT_01A_COMPLETION_REPORT.md",
+      "status_line": "| `INT_01A_STATUS` | **PASS** |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "INT-01B": {
+      "exists": true,
+      "size": 7176,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "INT_01B_COMPLETION_REPORT.md",
+      "status_line": "| `INT_01B_STATUS` | **PASS** |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "INT-01C": {
+      "exists": true,
+      "size": 7752,
+      "has_PASS": true,
+      "has_CERTIFIED": false,
+      "name": "INT_01C_COMPLETION_REPORT.md",
+      "status_line": "| INT_01C_STATUS | PASS | \u2705 |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "INT-01D": {
+      "exists": true,
+      "size": 6293,
+      "has_PASS": true,
+      "has_CERTIFIED": false,
+      "name": "INT_01D_COMPLETION_REPORT.md",
+      "status_line": "| INT_01D_STATUS | PASS | \u2705 |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "SEC-OBS-002": {
+      "exists": true,
+      "size": 3847,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_OBS_002_COMPLETION_REPORT.md",
+      "status_line": "| SEC_OBS_002_STATUS | PASS | \u2705 |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "SEC-COVERAGE-002": {
+      "exists": true,
+      "size": 3411,
+      "has_PASS": true,
+      "has_CERTIFIED": false,
+      "name": "SEC_COVERAGE_002_COMPLETION_REPORT.md",
+      "status_line": "| SEC_COVERAGE_002_STATUS | PASS | \u2705 |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "SEC-CERT-002": {
+      "exists": true,
+      "size": 4502,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_CERT_002_COMPLETION_REPORT.md",
+      "status_line": "| SEC_CERT_002_STATUS | PASS | \u2705 |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": true,
+      "ready_for_cert": false
+    },
+    "SEC-BASELINE-002": {
+      "exists": true,
+      "size": 7495,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_BASELINE_002_COMPLETION_REPORT.md",
+      "status_line": "| SEC_BASELINE_002_STATUS | **PASS** | Este relat\u00f3rio |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": true,
+      "ready_for_cert": false
+    },
+    "INT-LIM-001": {
+      "exists": true,
+      "size": 4470,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "LIM_001_CLOSURE_REPORT.md",
+      "status_line": "| INT_LIM_001_STATUS | **PASS** | Este relat\u00f3rio |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": true,
+      "ready_for_cert": false
+    },
+    "INT-LIM-002": {
+      "exists": true,
+      "size": 4072,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "LIM_002_CLOSURE_REPORT.md",
+      "status_line": "| INT_LIM_002_STATUS | **PASS** | Este relat\u00f3rio |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": true,
+      "ready_for_cert": false
+    },
+    "INT-LIM-003": {
+      "exists": true,
+      "size": 4591,
+      "has_PASS": true,
+      "has_CERTIFIED": false,
+      "name": "LIM_003_CLOSURE_REPORT.md",
+      "status_line": "| INT_LIM_003_STATUS | **PASS** | Este relat\u00f3rio |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "INT-DEDUP-001": {
+      "exists": true,
+      "size": 2572,
+      "has_PASS": true,
+      "has_CERTIFIED": false,
+      "name": "INT_DEDUP_001_COMPLETION_REPORT.md",
+      "status_line": "| INT_DEDUP_001_STATUS | **PASS** |",
+      "closed_obs_f1": true,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "SEC-OBS-003": {
+      "exists": true,
+      "size": 3781,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_OBS_003_COMPLETION_REPORT.md",
+      "status_line": "| SEC_OBS_003_STATUS | **PASS_WITH_FINDINGS** |",
+      "closed_obs_f1": false,
+      "certified_with_limitations": true,
+      "ready_for_cert": false
+    },
+    "SEC-OBS-003R": {
+      "exists": true,
+      "size": 1878,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_OBS_003R_COMPLETION_REPORT.md",
+      "status_line": "| SEC_OBS_003R_STATUS | **PASS** |",
+      "closed_obs_f1": true,
+      "certified_with_limitations": false,
+      "ready_for_cert": false
+    },
+    "SEC-COVERAGE-003": {
+      "exists": true,
+      "size": 2453,
+      "has_PASS": true,
+      "has_CERTIFIED": true,
+      "name": "SEC_COVERAGE_003_COMPLETION_REPORT.md",
+      "status_line": "| SEC_COVERAGE_003_STATUS | **PASS** |",
+      "closed_obs_f1": true,
+      "certified_with_limitations": false,
+      "ready_for_cert": true
+    }
+  },
+  "decoupling": {
+    "getIntegrityState": true,
+    "integrity_state_payload": true,
+    "no_HashChecker_in_dashboard": true,
+    "no_createHash_in_dashboard": true,
+    "Intelligence_StateStore": true,
+    "Intelligence_INTEGRITY_case": true
+  },
+  "components": {
+    "IntegrityBaselineManager.js": true,
+    "IntegrityHashChecker.js": true,
+    "IntegrityPermChecker.js": true,
+    "IntegrityAuditdBridge.js": true,
+    "IntegrityEventBus.js": true,
+    "IntegrityCorrelationEngine.js": true,
+    "IntegrityEngine.js": true,
+    "IntegrityRuntime.js": true,
+    "IntegrityStateStore.js": true,
+    "IntegrityMetricsCollector.js": true
+  },
+  "capabilities": {
+    "hash": true,
+    "perm_chmod": true,
+    "uid": true,
+    "gid": true,
+    "auditd_bridge": true,
+    "eventbus_dedup_fix": true,
+    "correlation": true,
+    "state_store": true
+  },
+  "forensic": {
+    "baseline_v2_sha": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+    "baseline_v2_match": true,
+    "baseline_v1_preserved": true,
+    "inventory_sha": "d3edf2470cae453cb23dd840107921db7ae70c88e0d28462bbd0ebbe91d8baea"
+  },
+  "runtime": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "assets_monitored": 35,
+    "violations": 2,
+    "baseline_id": "IMPETUS-INTEGRITY-BASELINE-v2",
+    "ok": false
+  },
+  "limitations": {
+    "LIM-001": "CLOSED",
+    "LIM-002": "CLOSED",
+    "LIM-003": "CLOSED",
+    "OBS-003-F1": "CLOSED",
+    "LIM-004": "SCOPE_BOUNDARY"
+  },
+  "coverage_acceptance": {
+    "SEC_COVERAGE_003_STATUS": "PASS",
+    "FULL_CRITICAL_COVERAGE": true,
+    "FULL_HIGH_COVERAGE": true,
+    "FULL_MEDIUM_COVERAGE": true,
+    "NO_OPERATIONAL_LIMITATIONS": true,
+    "NO_CRITICAL_GAPS": true,
+    "PIPELINE_FULLY_VALIDATED": true,
+    "RISK_REGISTER_UPDATED": true,
+    "READY_FOR_CERTIFICATION": true,
+    "P0_COUNT": 0,
+    "P1_OPERATIONAL_COUNT": 0,
+    "P2_COUNT": 3
+  },
+  "finding_resolution": "OBS-003-F1 opened in SEC-OBS-003, closed in SEC-OBS-003R \u2014 consistent chain",
+  "contradictions": [],
+  "admin_notes": [
+    "INT-M-004: monitor_owner=true without expected_owner/group \u2014 inventory hygiene P2 (SEC-COVERAGE-003 RISK-INV-001)",
+    "INT-C-010 / INT-M-003 hash drift vs baseline v2 from INT-LIM-001 \u2014 expected; consolidate in SEC-BASELINE-003"
+  ],
+  "decision_inputs": {
+    "arch_ok": true,
+    "ops_ok": true,
+    "trace_ok": true,
+    "no_ops_lim": true,
+    "risk_ok": true,
+    "cov_ready": true
+  },
+  "classification": "CERTIFIED"
+}

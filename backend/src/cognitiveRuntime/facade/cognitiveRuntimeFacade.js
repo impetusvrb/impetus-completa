@@ -33,6 +33,27 @@ const flagsZM1 = require('../config/phaseZM1FeatureFlags');
 const { runMaintenanceCockpitPilot } = require('../pilot/maintenanceCockpitPilot');
 const { applyMaintenanceControlledRenderPromotion } = require('../renderPromotion/maintenance/maintenanceControlledRenderRuntime');
 const { applyMaintenanceCockpitConsolidation } = require('../domains/maintenance/runtime/maintenanceCockpitConsolidationRuntime');
+const flagsLogistics = require('../config/phaseLogisticsNativeFeatureFlags');
+const { runLogisticsCockpitPilot } = require('../pilot/logisticsCockpitPilot');
+const { applyLogisticsControlledRenderPromotion } = require('../renderPromotion/logistics/logisticsControlledRenderRuntime');
+const { applyLogisticsCockpitConsolidation } = require('../domains/logistics/runtime/logisticsCockpitConsolidationRuntime');
+const { attachLogisticsRuntimeFoundation } = require('../domains/logistics/runtime/logisticsFoundationAttachment');
+const flagsPpap = require('../config/phasePpapNativeFeatureFlags');
+const { runPpapCockpitPilot } = require('../pilot/ppapCockpitPilot');
+const { applyPpapControlledRenderPromotion } = require('../renderPromotion/ppap/ppapControlledRenderRuntime');
+const { applyPpapCockpitConsolidation } = require('../domains/ppap/runtime/ppapCockpitConsolidationRuntime');
+const { attachPpapRuntimeFoundation } = require('../domains/ppap/runtime/ppapFoundationAttachment');
+const flagsMsa = require('../config/phaseMsaNativeFeatureFlags');
+const { runMsaCockpitPilot } = require('../pilot/msaCockpitPilot');
+const { applyMsaControlledRenderPromotion } = require('../renderPromotion/msa/msaControlledRenderRuntime');
+const { applyMsaCockpitConsolidation } = require('../domains/msa/runtime/msaCockpitConsolidationRuntime');
+const { attachMsaRuntimeFoundation } = require('../domains/msa/runtime/msaFoundationAttachment');
+const flagsIshikawa = require('../config/phaseIshikawaNativeFeatureFlags');
+const { runIshikawaCockpitPilot } = require('../pilot/ishikawaCockpitPilot');
+const { applyIshikawaControlledRenderPromotion } = require('../renderPromotion/ishikawa/ishikawaControlledRenderRuntime');
+const { applyIshikawaCockpitConsolidation } = require('../domains/ishikawa/runtime/ishikawaCockpitConsolidationRuntime');
+const { attachIshikawaRuntimeFoundation } = require('../domains/ishikawa/runtime/ishikawaFoundationAttachment');
+const { attachSupplyPilotRuntime } = require('../../domains/supply/pilot/supplyPilotFacadeAttachment');
 const { runExecutiveCockpitPilot } = require('../pilot/executiveCockpitPilot');
 const { applyExecutiveControlledRenderPromotion } = require('../renderPromotion/executive/executiveControlledRenderRuntime');
 const { applyExecutiveBoardroomConsolidation } = require('../domains/executive/runtime/executiveCockpitConsolidationRuntime');
@@ -74,6 +95,10 @@ function getCognitiveRuntimeStatus(ctx = {}) {
     safety_render_promotion: process.env.IMPETUS_SAFETY_RENDER_PROMOTION || 'off',
     hr_native_cockpit: flagsZ26.hrNativeCockpitMode(),
     hr_cognitive_runtime: process.env.IMPETUS_HR_COGNITIVE_RUNTIME || 'off',
+    logistics_native_cockpit: flagsLogistics.logisticsNativeCockpitMode(),
+    logistics_cognitive_runtime: process.env.IMPETUS_LOGISTICS_COGNITIVE_RUNTIME_ENABLED || 'off',
+    ppap_native_cockpit: flagsPpap.ppapNativeCockpitMode(),
+    ppap_cognitive_runtime: process.env.IMPETUS_PPAP_COGNITIVE_RUNTIME_ENABLED || 'off',
     registry_stats: registry.getRegistryStats(),
     registry_consolidation: (() => {
       try {
@@ -596,8 +621,312 @@ async function applyCognitiveFoundationToDashboard(user = {}, payload = {}, ctx 
     }
   }
 
+  let logisticsPilot = null;
+  if (
+    flagsLogistics.isLogisticsCognitiveRuntimeActive() ||
+    flagsLogistics.isLogisticsCognitiveRuntimeShadow() ||
+    ctx.force_logistics_pilot
+  ) {
+    logisticsPilot = await runLogisticsCockpitPilot(user, finalPayload, { ...ctx, tenant_id: user?.company_id });
+    if (logisticsPilot && !logisticsPilot.pilot_skipped) {
+      report.logistics_cockpit_pilot = {
+        pilot_id: logisticsPilot.pilot_id,
+        foundation_only: logisticsPilot.foundation_only,
+        engine_bridge: logisticsPilot.engine_bridge,
+        composition_score: logisticsPilot.composition_score
+      };
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-LOG-Z.19';
+    }
+  }
+
+  if (
+    (flagsLogistics.isLogisticsRenderPromotionControlled() || ctx.force_logistics_render) &&
+    logisticsPilot &&
+    !logisticsPilot.pilot_skipped
+  ) {
+    const logR = applyLogisticsControlledRenderPromotion(
+      user,
+      finalPayload,
+      { ...ctx, tenant_id: user?.company_id },
+      logisticsPilot
+    );
+    if (logR.payload) finalPayload = logR.payload;
+    if (logR.cognitive_render_promotion) {
+      report.logistics_render_promotion = logR.cognitive_render_promotion;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-LOG-Z.22';
+    }
+  }
+
+  if (
+    (flagsLogistics.isLogisticsNativeCockpitPilot() || ctx.force_logistics_consolidation) &&
+    logisticsPilot &&
+    !logisticsPilot.pilot_skipped
+  ) {
+    const logC = await applyLogisticsCockpitConsolidation(
+      user,
+      finalPayload,
+      {
+        ...ctx,
+        logistics_render_promoted: finalPayload.cognitive_render_promotion?.promotion_applied === true,
+        tenant_id: user?.company_id
+      },
+      logisticsPilot
+    );
+    if (logC.payload) finalPayload = logC.payload;
+    if (logC.logistics_cognitive_runtime) {
+      report.logistics_cognitive_runtime = logC.logistics_cognitive_runtime;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-LOG-Z.23';
+    }
+  }
+
+  const foundationAttach = await attachLogisticsRuntimeFoundation(user, finalPayload, report);
+  finalPayload = foundationAttach.payload;
+  if (foundationAttach.report?.logistics_runtime_foundation) {
+    report.logistics_runtime_foundation = foundationAttach.report.logistics_runtime_foundation;
+  }
+  if (foundationAttach.report?.logistics_signal_loader) {
+    report.logistics_signal_loader = foundationAttach.report.logistics_signal_loader;
+  }
+
+  let ppapPilot = null;
+  if (
+    flagsPpap.isPpapCognitiveRuntimeActive() ||
+    flagsPpap.isPpapCognitiveRuntimeShadow() ||
+    ctx.force_ppap_pilot
+  ) {
+    ppapPilot = await runPpapCockpitPilot(user, finalPayload, { ...ctx, tenant_id: user?.company_id });
+    if (ppapPilot && !ppapPilot.pilot_skipped) {
+      report.ppap_cockpit_pilot = {
+        pilot_id: ppapPilot.pilot_id,
+        foundation_only: ppapPilot.foundation_only,
+        engine_bridge: ppapPilot.engine_bridge,
+        composition_score: ppapPilot.composition_score
+      };
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-PPAP-Z.19';
+    }
+  }
+
+  if (
+    (flagsPpap.isPpapRenderPromotionControlled() || ctx.force_ppap_render) &&
+    ppapPilot &&
+    !ppapPilot.pilot_skipped
+  ) {
+    const ppapR = applyPpapControlledRenderPromotion(
+      user,
+      finalPayload,
+      { ...ctx, tenant_id: user?.company_id },
+      ppapPilot
+    );
+    if (ppapR.payload) finalPayload = ppapR.payload;
+    if (ppapR.cognitive_render_promotion) {
+      report.ppap_render_promotion = ppapR.cognitive_render_promotion;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-PPAP-Z.22';
+    }
+  }
+
+  const ppapRenderPromoted =
+    report.ppap_render_promotion?.promotion_applied === true ||
+    (finalPayload.cognitive_render_promotion?.cockpit_mode === 'ppap_native' &&
+      finalPayload.cognitive_render_promotion?.promotion_applied === true);
+
+  if (
+    (flagsPpap.isPpapNativeCockpitPilot() || ctx.force_ppap_consolidation) &&
+    ppapPilot &&
+    !ppapPilot.pilot_skipped
+  ) {
+    const ppapC = await applyPpapCockpitConsolidation(
+      user,
+      finalPayload,
+      {
+        ...ctx,
+        ppap_render_promoted: ppapRenderPromoted,
+        tenant_id: user?.company_id
+      },
+      ppapPilot
+    );
+    if (ppapC.payload) finalPayload = ppapC.payload;
+    if (ppapC.ppap_cognitive_runtime) {
+      report.ppap_cognitive_runtime = ppapC.ppap_cognitive_runtime;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-PPAP-Z.23';
+    }
+  }
+
+  const ppapFoundationAttach = await attachPpapRuntimeFoundation(user, finalPayload, report);
+  finalPayload = ppapFoundationAttach.payload;
+  if (ppapFoundationAttach.report?.ppap_runtime_foundation) {
+    report.ppap_runtime_foundation = ppapFoundationAttach.report.ppap_runtime_foundation;
+  }
+  if (ppapFoundationAttach.report?.ppap_signal_loader) {
+    report.ppap_signal_loader = ppapFoundationAttach.report.ppap_signal_loader;
+  }
+
+  let msaPilot = null;
+  if (
+    flagsMsa.isMsaCognitiveRuntimeActive() ||
+    flagsMsa.isMsaCognitiveRuntimeShadow() ||
+    ctx.force_msa_pilot
+  ) {
+    msaPilot = await runMsaCockpitPilot(user, finalPayload, { ...ctx, tenant_id: user?.company_id });
+    if (msaPilot && !msaPilot.pilot_skipped) {
+      report.msa_cockpit_pilot = {
+        pilot_id: msaPilot.pilot_id,
+        foundation_only: msaPilot.foundation_only,
+        engine_bridge: msaPilot.engine_bridge,
+        composition_score: msaPilot.composition_score
+      };
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-MSA-Z.19';
+    }
+  }
+
+  if (
+    (flagsMsa.isMsaRenderPromotionControlled() || ctx.force_msa_render) &&
+    msaPilot &&
+    !msaPilot.pilot_skipped
+  ) {
+    const msaR = applyMsaControlledRenderPromotion(
+      user,
+      finalPayload,
+      { ...ctx, tenant_id: user?.company_id },
+      msaPilot
+    );
+    if (msaR.payload) finalPayload = msaR.payload;
+    if (msaR.cognitive_render_promotion) {
+      report.msa_render_promotion = msaR.cognitive_render_promotion;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-MSA-Z.22';
+    }
+  }
+
+  const msaRenderPromoted =
+    report.msa_render_promotion?.promotion_applied === true ||
+    (finalPayload.cognitive_render_promotion?.cockpit_mode === 'msa_native' &&
+      finalPayload.cognitive_render_promotion?.promotion_applied === true);
+
+  if (
+    (flagsMsa.isMsaNativeCockpitPilot() || ctx.force_msa_consolidation) &&
+    msaPilot &&
+    !msaPilot.pilot_skipped
+  ) {
+    const msaC = await applyMsaCockpitConsolidation(
+      user,
+      finalPayload,
+      {
+        ...ctx,
+        msa_render_promoted: msaRenderPromoted,
+        tenant_id: user?.company_id
+      },
+      msaPilot
+    );
+    if (msaC.payload) finalPayload = msaC.payload;
+    if (msaC.msa_cognitive_runtime) {
+      report.msa_cognitive_runtime = msaC.msa_cognitive_runtime;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-MSA-Z.23';
+    }
+  }
+
+  const msaFoundationAttach = await attachMsaRuntimeFoundation(user, finalPayload, report);
+  finalPayload = msaFoundationAttach.payload;
+  if (msaFoundationAttach.report?.msa_runtime_foundation) {
+    report.msa_runtime_foundation = msaFoundationAttach.report.msa_runtime_foundation;
+  }
+  if (msaFoundationAttach.report?.msa_signal_loader) {
+    report.msa_signal_loader = msaFoundationAttach.report.msa_signal_loader;
+  }
+
+  let ishikawaPilot = null;
+  if (
+    flagsIshikawa.isIshikawaCognitiveRuntimeActive() ||
+    flagsIshikawa.isIshikawaCognitiveRuntimeShadow() ||
+    ctx.force_ishikawa_pilot
+  ) {
+    ishikawaPilot = await runIshikawaCockpitPilot(user, finalPayload, { ...ctx, tenant_id: user?.company_id });
+    if (ishikawaPilot && !ishikawaPilot.pilot_skipped) {
+      report.ishikawa_cockpit_pilot = {
+        pilot_id: ishikawaPilot.pilot_id,
+        foundation_only: ishikawaPilot.foundation_only,
+        engine_bridge: ishikawaPilot.engine_bridge,
+        composition_score: ishikawaPilot.composition_score
+      };
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-ISHIKAWA-Z.19';
+    }
+  }
+
+  if (
+    (flagsIshikawa.isIshikawaRenderPromotionControlled() || ctx.force_ishikawa_render) &&
+    ishikawaPilot &&
+    !ishikawaPilot.pilot_skipped
+  ) {
+    const ishikawaR = applyIshikawaControlledRenderPromotion(
+      user,
+      finalPayload,
+      { ...ctx, tenant_id: user?.company_id },
+      ishikawaPilot
+    );
+    if (ishikawaR.payload) finalPayload = ishikawaR.payload;
+    if (ishikawaR.cognitive_render_promotion) {
+      report.ishikawa_render_promotion = ishikawaR.cognitive_render_promotion;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-ISHIKAWA-Z.22';
+    }
+  }
+
+  const ishikawaRenderPromoted =
+    report.ishikawa_render_promotion?.promotion_applied === true ||
+    (finalPayload.cognitive_render_promotion?.cockpit_mode === 'ishikawa_native' &&
+      finalPayload.cognitive_render_promotion?.promotion_applied === true);
+
+  if (
+    (flagsIshikawa.isIshikawaNativeCockpitPilot() || ctx.force_ishikawa_consolidation) &&
+    ishikawaPilot &&
+    !ishikawaPilot.pilot_skipped
+  ) {
+    const ishikawaC = await applyIshikawaCockpitConsolidation(
+      user,
+      finalPayload,
+      {
+        ...ctx,
+        ishikawa_render_promoted: ishikawaRenderPromoted,
+        tenant_id: user?.company_id
+      },
+      ishikawaPilot
+    );
+    if (ishikawaC.payload) finalPayload = ishikawaC.payload;
+    if (ishikawaC.ishikawa_cognitive_runtime) {
+      report.ishikawa_cognitive_runtime = ishikawaC.ishikawa_cognitive_runtime;
+      report.phase_stack = (report.phase_stack || 'Z.18') + '-ISHIKAWA-Z.23';
+    }
+  }
+
+  const ishikawaFoundationAttach = await attachIshikawaRuntimeFoundation(user, finalPayload, report);
+  finalPayload = ishikawaFoundationAttach.payload;
+  if (ishikawaFoundationAttach.report?.ishikawa_runtime_foundation) {
+    report.ishikawa_runtime_foundation = ishikawaFoundationAttach.report.ishikawa_runtime_foundation;
+  }
+  if (ishikawaFoundationAttach.report?.ishikawa_signal_loader) {
+    report.ishikawa_signal_loader = ishikawaFoundationAttach.report.ishikawa_signal_loader;
+  }
+
+  const supplyPilotAttach = await attachSupplyPilotRuntime(user, finalPayload, report, {
+    ...ctx,
+    tenant_id: user?.company_id
+  });
+  finalPayload = supplyPilotAttach.payload;
+  if (supplyPilotAttach.report?.supply_pilot) {
+    report.supply_pilot = supplyPilotAttach.report.supply_pilot;
+    report.phase_stack = (report.phase_stack || 'Z.18') + '-SUPPLY-GF-026';
+  }
+  if (supplyPilotAttach.report?.supply_signal_loader) {
+    report.supply_signal_loader = supplyPilotAttach.report.supply_signal_loader;
+  }
+  if (supplyPilotAttach.report?.supply_cognitive_runtime) {
+    report.supply_cognitive_runtime = supplyPilotAttach.report.supply_cognitive_runtime;
+  }
+
   // M1.16 — payload consumidor imutável em quality shadow_only (metadados ficam no report)
-  if (report.quality_cockpit_pilot?.mode === 'shadow_only') {
+  // INC-030 — Z.23 homologado (consolidation_applied) entrega runtime no payload raiz
+  const qualityNativeRuntimeDelivered =
+    specializedCockpit?.consolidation_applied === true &&
+    specializedCockpit?.cockpit_mode === 'quality_native';
+
+  if (report.quality_cockpit_pilot?.mode === 'shadow_only' && !qualityNativeRuntimeDelivered) {
     finalPayload = payload;
   }
 

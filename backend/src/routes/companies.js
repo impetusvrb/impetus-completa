@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { hashPassword, createSession, requireAuth } = require('../middleware/auth');
+const { companyOnboardingLimiter } = require('../middleware/globalRateLimit');
 const { logAction } = require('../middleware/audit');
 const { z } = require('zod');
 const { getCompanySubscriptionUxProfile } = require('../services/subscription/subscriptionCompanyReader');
@@ -26,7 +27,7 @@ const createCompanySchema = z.object({
  * Cria nova empresa + usuário administrador inicial (CEO/Direção)
  * Rota pública para onboarding
  */
-router.post('/', async (req, res) => {
+router.post('/', companyOnboardingLimiter, async (req, res) => {
   const client = await db.pool.connect();
   try {
     const parsed = createCompanySchema.parse({

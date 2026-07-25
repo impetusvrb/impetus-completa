@@ -10,28 +10,40 @@ const path = require('path');
 
 let _loaded = false;
 
+function loadEnvFiles(paths, environment = process.env) {
+  const dotenv = require('dotenv');
+  const merged = {};
+  const seen = new Set();
+
+  for (const candidate of paths) {
+    const normalized = path.normalize(candidate);
+    if (seen.has(normalized) || !fs.existsSync(candidate)) continue;
+    seen.add(normalized);
+    Object.assign(merged, dotenv.parse(fs.readFileSync(candidate)));
+  }
+
+  for (const [key, value] of Object.entries(merged)) {
+    if (!Object.prototype.hasOwnProperty.call(environment, key)) {
+      environment[key] = value;
+    }
+  }
+
+  return environment;
+}
+
 function loadImpetusEnv() {
   if (_loaded) return;
   _loaded = true;
 
-  const dotenv = require('dotenv');
   const home = require('./impetusHome');
-
-  dotenv.config();
-
   const legacy = home.legacyEnvFilePath();
-  if (fs.existsSync(legacy)) {
-    dotenv.config({ path: legacy, override: false });
-  }
-
   const primary = home.envFilePath();
-  if (fs.existsSync(primary) && path.normalize(primary) !== path.normalize(legacy)) {
-    dotenv.config({ path: primary, override: true });
-  } else if (fs.existsSync(legacy)) {
-    dotenv.config({ path: legacy, override: true });
-  }
+
+  // Ordem crescente de precedência: cwd < legado < primário < process.env.
+  loadEnvFiles([path.resolve(process.cwd(), '.env'), legacy, primary]);
 }
 
 module.exports = {
   loadImpetusEnv,
+  loadEnvFiles,
 };

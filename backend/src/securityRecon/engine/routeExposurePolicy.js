@@ -19,7 +19,8 @@ const PUBLIC_PREFIXES = Object.freeze([
 
 const ADMIN_SENSITIVE_PREFIXES = Object.freeze([
   '/api/impetus-admin/security-dashboard',
-  '/api/impetus-admin'
+  '/api/impetus-admin',
+  '/api/admin-portal'
 ]);
 
 const EDGE_INGEST_PREFIXES = Object.freeze([

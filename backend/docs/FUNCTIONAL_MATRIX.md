@@ -1,5 +1,11 @@
 # MATRIZ FUNCIONAL REAL — IMPETUS (geração automática)
 
+> **APPSEC-02A (2026-07-10):** Preparação operacional para Red Team externo — `READY_FOR_EXTERNAL_RED_TEAM`. Ver [`APPSEC_02A.md`](./APPSEC_02A.md).
+
+> **APPSEC-02 (2026-07-04):** Validação Red Team pós-APPSEC-01 — `APPSEC_CERTIFIED_WITH_REMARKS`. Ver [`APPSEC_02.md`](./APPSEC_02.md).
+
+> **APPSEC-01 (2026-07-04):** Camada `securityApplication/` — cross-tenant, SSRF, uploads, ACL, secrets. Ver [`APPSEC_01.md`](./APPSEC_01.md).
+
 > Gerado por `backend/scripts/audit/buildFunctionalMatrix.js` em 2026-07-02T19:57:21.453Z.
 > **Read-only.** Status preliminares são ESTÁTICOS. `NAO_VALIDADO` = estrutura íntegra aguardando validação E2E (Parte 7 do manual). Nenhuma linha é VERDE sem evidência de execução.
 
@@ -1302,6 +1308,8 @@
 
 ## Enterprise Security v1 (SEC-08)
 
+> **Dossiê Oficial de Incidentes:** [`security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md`](./security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md) (INCIDENT-KNOWLEDGE-BASE-01)
+
 > **Programa encerrado:** 2026-07-04 · Flags `SECURITY_*` OFF por defeito · Modo shadow até activação staging
 
 | Fase | Documento | Status |
@@ -1328,6 +1336,10 @@
 | SEC-18 Runtime Protection | [`SEC_18_RUNTIME_PROTECTION.md`](./SEC_18_RUNTIME_PROTECTION.md) | ✅ Controlador consultivo |
 | SEC-19 Operational Certification | [`SEC_19_OPERATIONAL_CERTIFICATION.md`](./SEC_19_OPERATIONAL_CERTIFICATION.md) | ✅ Simulação + stress audit-only |
 | **SEC-20 Certification v2** | [`SECURITY_CERTIFICATION_V2.md`](./SECURITY_CERTIFICATION_V2.md) | ✅ Encerramento formal |
+| **SEC-21 Production Activation** | [`SEC_21_PRODUCTION_ACTIVATION.md`](./SEC_21_PRODUCTION_ACTIVATION.md) | ✅ 14/14 ONLINE |
+| **SEC-21A Go-Live Gate** | [`SEC_21A_PRODUCTION_GO_LIVE_GATE.md`](./SEC_21A_PRODUCTION_GO_LIVE_GATE.md) | ✅ 16/16 Gate consultivo |
+| **SEC-21B Baseline Sync** | [`SEC_21B_BASELINE_SYNCHRONIZATION.md`](./SEC_21B_BASELINE_SYNCHRONIZATION.md) | ✅ 16/16 Reconciliação |
+| **SEC-21C Go-Live Validation** | [`SEC_21C_GO_LIVE_VALIDATION.md`](./SEC_21C_GO_LIVE_VALIDATION.md) | ✅ 15/15 Autorização final |
 
 | Comando / Endpoint | Descrição |
 |--------------------|-----------|
@@ -1365,7 +1377,15 @@
 | `GET /api/audit/security-operational-certification` | Operational Certification SEC-19 |
 | `node src/tests/securityOperational/SEC_19_OPERATIONAL_CERTIFICATION.test.js` | Auditoria SEC-19 |
 | `GET /api/audit/security-certification-v2` | Certification v2 SEC-20 |
+| `GET /api/audit/security-production-activation` | Production activation SEC-21 |
+| `GET /api/audit/security-go-live-gate` | Go-Live Gate SEC-21A (autoridade final) |
 | `node src/tests/audit/SEC_20_ENTERPRISE_SECURITY_CERTIFICATION.test.js` | Certificação final SEC-20 |
+| `node src/tests/audit/SEC_21_PRODUCTION_ACTIVATION.test.js` | Activação operacional SEC-21 |
+| `node src/tests/audit/SEC_21A_PRODUCTION_GO_LIVE_GATE.test.js` | Gate Go-Live SEC-21A |
+| `GET /api/audit/security-baseline-synchronization` | Baseline Sync SEC-21B |
+| `node src/tests/audit/SEC_21B_BASELINE_SYNCHRONIZATION.test.js` | Reconciliação baseline SEC-21B |
+| `GET /api/audit/security-go-live-validation` | Go-Live Validation SEC-21C (autorização final) |
+| `node src/tests/audit/SEC_21C_GO_LIVE_VALIDATION.test.js` | Validação final Go-Live SEC-21C |
 
 Congelamento: [`ENTERPRISE_SECURITY_V1.md`](./ENTERPRISE_SECURITY_V1.md) · Promoção: [`SEC_09_PROMOTION.md`](./SEC_09_PROMOTION.md) · Readiness: [`SECURITY_READINESS_REPORT.md`](./SECURITY_READINESS_REPORT.md)
 

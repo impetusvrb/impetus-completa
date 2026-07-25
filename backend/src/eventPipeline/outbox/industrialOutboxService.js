@@ -12,6 +12,9 @@ const {
   outboxDrainBatchSize
 } = require('../industrialFlags');
 
+const MAX_ENVELOPE_JSON_BYTES =
+  parseInt(process.env.IMPETUS_INDUSTRIAL_ENVELOPE_MAX_BYTES || '262144', 10) || 262144;
+
 const BASE_BACKOFF_MS = 500;
 const MAX_BACKOFF_MS = 30000;
 const MEMORY_CAP = parseInt(process.env.IMPETUS_INDUSTRIAL_OUTBOX_MEMORY_CAP || '8000', 10) || 8000;
@@ -35,16 +38,22 @@ function _backoffFor(attempts) {
   return Math.floor(exp * (0.5 + Math.random()));
 }
 
-function _safeJson(obj) {
-  try {
-    return JSON.parse(JSON.stringify(obj));
-  } catch (_e) {
-    return {};
-  }
+function _sanitizeEnvelope(obj) {
+  if (obj == null || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  return { ...obj };
 }
 
 async function _persistRow(row) {
   if (!isIndustrialOutboxEnabled()) return { ok: true, persisted: false };
+  let envelopeJson;
+  try {
+    envelopeJson = JSON.stringify(row.envelope);
+    if (envelopeJson.length > MAX_ENVELOPE_JSON_BYTES) {
+      return { ok: false, error: 'envelope_too_large' };
+    }
+  } catch (_e) {
+    return { ok: false, error: 'envelope_not_serializable' };
+  }
   try {
     const db = require('../../db');
     const partitionMonth =
@@ -69,7 +78,7 @@ async function _persistRow(row) {
         row.causation_id,
         row.trace_id,
         row.workflow_id,
-        JSON.stringify(row.envelope),
+        envelopeJson,
         row.status,
         row.attempts,
         row.next_attempt_at,
@@ -98,7 +107,7 @@ async function _persistRow(row) {
             row.causation_id,
             row.trace_id,
             row.workflow_id,
-            JSON.stringify(row.envelope),
+            envelopeJson,
             row.status,
             row.attempts,
             row.next_attempt_at,
@@ -121,7 +130,10 @@ async function _persistRow(row) {
  * @param {{ handler?: (env: object) => Promise<{ ok: boolean }> }} [opts]
  */
 async function enqueueIndustrialEvent(envelope, opts = {}) {
-  const env = _safeJson(envelope);
+  const env = _sanitizeEnvelope(envelope);
+  if (!env) {
+    return { ok: false, deferred: false, reason: 'envelope_too_large_or_invalid' };
+  }
   const id = env.event_id || uuidv4();
   const row = {
     id,

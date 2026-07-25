@@ -1,0 +1,16 @@
+{
+  "probeIp": "198.51.100.77",
+  "technologyMismatch": { "httpStatus": 404, "note": "Express 404 — sinal observado no middleware pre-auth" },
+  "enumeration": { "requests": 15, "httpStatusEach": 404, "note": "Rotas anónimas — pre-auth não bloqueia sem sinal forte" },
+  "fakeAuthorization": { "httpStatus": 404, "bodyType": "express_html", "trustReduction": false },
+  "loopbackSpoofXff": { "httpStatus": 404, "note": "Health não testado neste probe; spoof não confere trust loopback" },
+  "authenticatedHighScore": {
+    "path": "/api/companies/me",
+    "httpStatus": 404,
+    "body": "{\"success\":false,\"error\":\"Not found\"}",
+    "handlerSuppressed": true,
+    "note": "404 neutro JSON = SEC-RECON post-validation enforcement, não Express HTML"
+  },
+  "policyFrozen": true,
+  "thresholdsUnchanged": true
+}

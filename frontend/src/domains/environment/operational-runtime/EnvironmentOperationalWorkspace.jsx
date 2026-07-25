@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import useEoxHubHeaderVisible from '../../../presentation/eox/useEoxHubHeaderVisible.js';
 import { resolveEnvironmentAudienceBand, resolveEnvironmentUxDensity } from '../navigation/environmentAudienceNavigation.js';
 import { isEnvironmentOperationalRuntimeEnabled } from './environmentOperationalFeatureFlags.js';
 import {
@@ -55,6 +56,7 @@ export function EnvironmentOperationalWorkspace() {
   const companyId = ctx.companyId;
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
+  const showHubHeader = useEoxHubHeaderVisible();
 
   let userBand = 'operator';
   try {
@@ -218,14 +220,16 @@ export function EnvironmentOperationalWorkspace() {
 
   return (
     <div {...uxShell}>
-      <header style={{ marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: 20, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-          Ambiental — Centro Operacional
-        </h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
-          Água · ETA/ETE · Emissões · Resíduos · Campo · mobile · offline · realtime
-        </p>
-      </header>
+      {showHubHeader ? (
+        <header style={{ marginBottom: '1rem' }}>
+          <h1 style={{ margin: 0, fontSize: 20, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+            Ambiental — Centro Operacional
+          </h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
+            Água · ETA/ETE · Emissões · Resíduos · Campo · mobile · offline · realtime
+          </p>
+        </header>
+      ) : null}
       {hubCard()}
     </div>
   );

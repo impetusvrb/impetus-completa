@@ -1,0 +1,242 @@
+{
+  "generated_at": "2026-07-23T17:41:29.925Z",
+  "scenarios": [
+    {
+      "scenario": "hash_content_change",
+      "received": [
+        "INTEGRITY_HASH_CHANGED"
+      ],
+      "attrs": [],
+      "event_count": 1,
+      "latency_ms": 33,
+      "pass": true,
+      "note": null,
+      "detail": [
+        {
+          "type": "INTEGRITY_HASH_CHANGED",
+          "sev": "CRITICAL",
+          "detail": "hash SHA256 diverge do baseline (mtime: 1784828487 → 1784828488)"
+        }
+      ]
+    },
+    {
+      "scenario": "chmod_change",
+      "received": [
+        "INTEGRITY_PERM_CHANGED"
+      ],
+      "attrs": [],
+      "event_count": 1,
+      "latency_ms": 41,
+      "pass": true,
+      "note": null,
+      "detail": [
+        {
+          "type": "INTEGRITY_PERM_CHANGED",
+          "sev": "CRITICAL",
+          "detail": "permissão alterada: esperado=644 actual=755"
+        }
+      ]
+    },
+    {
+      "scenario": "uid_change",
+      "received": [
+        "INTEGRITY_OWNER_CHANGED"
+      ],
+      "attrs": [
+        "UID"
+      ],
+      "event_count": 1,
+      "latency_ms": 39,
+      "pass": true,
+      "note": "UID isolated file",
+      "detail": [
+        {
+          "type": "INTEGRITY_OWNER_CHANGED",
+          "attr": "UID",
+          "sev": "CRITICAL",
+          "detail": "owner alterado: esperado=root(uid=0) actual=uid:1"
+        }
+      ]
+    },
+    {
+      "scenario": "gid_change",
+      "received": [
+        "INTEGRITY_OWNER_CHANGED"
+      ],
+      "attrs": [
+        "GID"
+      ],
+      "event_count": 1,
+      "latency_ms": 35,
+      "pass": true,
+      "note": "GID isolated file",
+      "detail": [
+        {
+          "type": "INTEGRITY_OWNER_CHANGED",
+          "attr": "GID",
+          "sev": "CRITICAL",
+          "detail": "group alterado: esperado=root(gid=0) actual=gid:1"
+        }
+      ]
+    },
+    {
+      "scenario": "uid_gid_simultaneous_same_file",
+      "received": [
+        "INTEGRITY_OWNER_CHANGED"
+      ],
+      "attrs": [
+        "UID"
+      ],
+      "event_count": 1,
+      "latency_ms": 39,
+      "pass": false,
+      "note": "DEDUP_FINDING: only 1 OWNER_CHANGED emitted (attrs=[\"UID\"]); EventBus key=path::event_type window=30s",
+      "detail": [
+        {
+          "type": "INTEGRITY_OWNER_CHANGED",
+          "attr": "UID",
+          "sev": "CRITICAL",
+          "detail": "owner alterado: esperado=root(uid=0) actual=uid:1"
+        }
+      ]
+    },
+    {
+      "scenario": "gid_after_uid_different_path",
+      "received": [
+        "INTEGRITY_OWNER_CHANGED"
+      ],
+      "attrs": [
+        "GID"
+      ],
+      "event_count": 1,
+      "latency_ms": 40,
+      "pass": true,
+      "note": "different path bypasses dedup",
+      "detail": [
+        {
+          "type": "INTEGRITY_OWNER_CHANGED",
+          "attr": "GID",
+          "sev": "CRITICAL",
+          "detail": "group alterado: esperado=root(gid=0) actual=gid:1"
+        }
+      ]
+    },
+    {
+      "scenario": "file_deletion",
+      "received": [
+        "INTEGRITY_FILE_DELETED"
+      ],
+      "attrs": [],
+      "event_count": 1,
+      "latency_ms": 31,
+      "pass": true,
+      "note": null,
+      "detail": [
+        {
+          "type": "INTEGRITY_FILE_DELETED",
+          "sev": "CRITICAL",
+          "detail": "ficheiro ausente: /tmp/sec-obs-003b-HXLMHS/del.txt"
+        }
+      ]
+    },
+    {
+      "scenario": "restoration_clean",
+      "received": [],
+      "attrs": [],
+      "event_count": 0,
+      "latency_ms": 30,
+      "pass": true,
+      "note": null,
+      "detail": []
+    },
+    {
+      "scenario": "medium_asset_hash",
+      "received": [
+        "INTEGRITY_HASH_CHANGED"
+      ],
+      "attrs": [],
+      "event_count": 1,
+      "latency_ms": 32,
+      "pass": true,
+      "note": null,
+      "detail": [
+        {
+          "type": "INTEGRITY_HASH_CHANGED",
+          "sev": "HIGH",
+          "detail": "hash SHA256 diverge do baseline (mtime: 1784828487 → 1784828489)"
+        }
+      ]
+    },
+    {
+      "scenario": "auditd_dirs_and_bridge",
+      "received": [
+        "impetus_nginx_config",
+        "impetus_fail2ban_config",
+        "impetus_tls_config",
+        "impetus_cron_config",
+        "impetus_repo_write"
+      ],
+      "pass": true,
+      "note": "rules live + bridge keys",
+      "event_count": 0,
+      "latency_ms": 0,
+      "attrs": []
+    }
+  ],
+  "pass_count": 9,
+  "fail_count": 1,
+  "total": 10,
+  "core_capabilities_pass": true,
+  "simultaneous_uid_gid_pass": false,
+  "finding_OBS_003_F1": {
+    "id": "OBS-003-F1",
+    "title": "EventBus dedup suppresses consecutive INTEGRITY_OWNER_CHANGED on same path",
+    "severity": "P2",
+    "description": "Dedup key is asset_path::event_type (30s). UID and GID both emit INTEGRITY_OWNER_CHANGED, so simultaneous chown user:group emits only the first attribute change.",
+    "impact": "When UID and GID change together on the same asset, GID (or second attribute) event may be lost within 30s window.",
+    "gid_isolated": true,
+    "uid_isolated": true,
+    "recommended_fix": "Include changed_attribute in EventBus dedup key (additive, minimal) before SEC-CERT-003"
+  },
+  "bus_stats": {
+    "emitted": 8,
+    "deduplicated": 1,
+    "discarded": 0,
+    "queue_size": 8
+  },
+  "corr_stats": {
+    "processed": 8,
+    "suppressed": 0,
+    "written": 8,
+    "persisted": 8,
+    "errors": 0,
+    "violations": 8
+  },
+  "state": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "violations": 8
+  },
+  "live_production": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "violations": 2,
+    "baseline_id": "IMPETUS-INTEGRITY-BASELINE-v2",
+    "metrics": {
+      "avg_hash_ms": 0.04,
+      "avg_scan_ms": 0.81,
+      "avg_correlation_ms": 1,
+      "heap_mb": 1258.38,
+      "queue_size": 2,
+      "p95_hash_ms": 0,
+      "rss_mb": 1436.34,
+      "external_mb": 4.07,
+      "samples": {
+        "hash": 100,
+        "scan": 100,
+        "correlation": 2
+      }
+    },
+    "note": "2 violations = INT-C-010 + INT-M-003 legitimate INT-LIM-001 drift"
+  }
+}

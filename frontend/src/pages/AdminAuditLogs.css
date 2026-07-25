@@ -45,6 +45,41 @@
   margin: 0;
 }
 
+.admin-logs-banner {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+}
+
+.admin-logs-banner--error {
+  border: 1px solid var(--red);
+  background: rgba(255, 64, 64, 0.08);
+  color: var(--red);
+}
+
+.admin-logs-banner--warn {
+  border: 1px solid var(--amber);
+  background: rgba(255, 170, 0, 0.08);
+  color: var(--amber);
+}
+
+.admin-logs-banner__detail {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-logs-banner__hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

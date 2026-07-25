@@ -1,9 +1,14 @@
 /**
  * Mapa de Vazamentos — Prompt Parte 4. Ranking/diagrama de perdas no grid.
+ * REG-002 R4 — deep-link para Mapa de Vazamento Financeiro.
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { dashboard } from '../../../services/api';
-import { MapPin } from 'lucide-react';
+import { getFinanceOfficialRoute } from '../../../domains/finance/metadata/financeNavigationMetadata.js';
+import { MapPin, ChevronRight } from 'lucide-react';
+
+const FINANCE_LEAKAGE_ROUTE = getFinanceOfficialRoute('leakage');
 
 function Skeleton() {
   return (
@@ -15,6 +20,7 @@ function Skeleton() {
 }
 
 export default function WidgetMapaVazamentos() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -40,6 +46,9 @@ export default function WidgetMapaVazamentos() {
       <div className="cc-widget cc-mapa cc-widget--error">
         <div className="cc-mapa__header"><MapPin size={20} /> Mapa de Vazamentos</div>
         <p className="cc-widget__empty">Dados indisponíveis.</p>
+        <button type="button" className="cc-widget__action" onClick={() => navigate(FINANCE_LEAKAGE_ROUTE)}>
+          Abrir mapa <ChevronRight size={16} />
+        </button>
       </div>
     );
   }
@@ -49,6 +58,9 @@ export default function WidgetMapaVazamentos() {
       <div className="cc-mapa__header">
         <MapPin size={20} />
         <span>Mapa de Vazamentos</span>
+        <button type="button" className="cc-widget__action" onClick={() => navigate(FINANCE_LEAKAGE_ROUTE)} aria-label="Abrir Mapa de Vazamento Financeiro">
+          Abrir <ChevronRight size={16} />
+        </button>
       </div>
       {items.length === 0 ? (
         <p className="cc-widget__empty">Nenhum vazamento identificado no período.</p>
@@ -57,8 +69,8 @@ export default function WidgetMapaVazamentos() {
           {items.map((item, i) => (
             <li key={i} className="cc-mapa__item">
               <span className="cc-mapa__rank">{i + 1}</span>
-              <span className="cc-mapa__label">{item.origin || item.name || item.area || '-'}</span>
-              <span className="cc-mapa__valor">{item.value ?? item.total ?? item.impacto ?? 0}</span>
+              <span className="cc-mapa__label">{item.origin || item.name || item.area || item.leak_label || '-'}</span>
+              <span className="cc-mapa__valor">{item.value ?? item.total ?? item.impacto ?? item.impact_30d ?? 0}</span>
             </li>
           ))}
         </ul>

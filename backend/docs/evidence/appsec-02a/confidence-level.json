@@ -1,0 +1,196 @@
+{
+  "schema_version": "confidence_level_v1",
+  "generated_at": "2026-07-10T20:56:33.263Z",
+  "findings": [
+    {
+      "finding_id": "RT-01",
+      "status": "FIXED",
+      "baseline_priority": "P0",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-02",
+      "status": "FIXED",
+      "baseline_priority": "P0",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-03",
+      "status": "FIXED",
+      "baseline_priority": "P0",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-04",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-05",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 85,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-06",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-07",
+      "status": "FIXED",
+      "baseline_priority": "P0",
+      "confidence_percent": 85,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-08",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 85,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-09",
+      "status": "FIXED",
+      "baseline_priority": "P2",
+      "confidence_percent": 75,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-10",
+      "status": "NOT_APPLICABLE",
+      "confidence_percent": 100,
+      "confidence_level": "VERY_HIGH",
+      "evidence": [
+        "out_of_scope"
+      ]
+    },
+    {
+      "finding_id": "RT-11",
+      "status": "FIXED",
+      "baseline_priority": "P3",
+      "confidence_percent": 75,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-12",
+      "status": "FIXED",
+      "baseline_priority": "P3",
+      "confidence_percent": 75,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-13",
+      "status": "NOT_APPLICABLE",
+      "confidence_percent": 100,
+      "confidence_level": "VERY_HIGH",
+      "evidence": [
+        "out_of_scope"
+      ]
+    },
+    {
+      "finding_id": "RT-14",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 96,
+      "confidence_level": "VERY_HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-15",
+      "status": "FIXED",
+      "baseline_priority": "P1",
+      "confidence_percent": 75,
+      "confidence_level": "HIGH",
+      "evidence_sources": [
+        "static_code:mitigation_present",
+        "scenarios:pass",
+        "dynamic_http:verified"
+      ]
+    },
+    {
+      "finding_id": "RT-16",
+      "status": "NOT_APPLICABLE",
+      "confidence_percent": 100,
+      "confidence_level": "VERY_HIGH",
+      "evidence": [
+        "out_of_scope"
+      ]
+    }
+  ],
+  "aggregate": {
+    "average_confidence_percent": 89,
+    "average_confidence_level": "HIGH",
+    "very_high_count": 9,
+    "high_count": 7,
+    "below_medium_count": 0
+  }
+}

@@ -62,7 +62,12 @@ function startScheduler() {
     _timers.push(
       _safeInterval(async () => {
         const archive = require('../archive/industrialArchiveService');
-        await archive.archiveDeliveredBatch();
+        const { archiveMaxBatchesPerCycle } = require('../industrialFlags');
+        const maxBatches = archiveMaxBatchesPerCycle();
+        for (let i = 0; i < maxBatches; i += 1) {
+          const result = await archive.archiveDeliveredBatch();
+          if (!result.ok || !result.archived) break;
+        }
       }, ARCHIVE_MS, 'ARCHIVE')
     );
   }

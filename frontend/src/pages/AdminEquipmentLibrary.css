@@ -31,6 +31,41 @@
   margin-top: 0.5rem;
 }
 
+.eq-lib-banner {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+}
+
+.eq-lib-banner--error {
+  border: 1px solid var(--red);
+  background: rgba(255, 64, 64, 0.08);
+  color: var(--red);
+}
+
+.eq-lib-banner--warn {
+  border: 1px solid var(--amber);
+  background: rgba(255, 170, 0, 0.08);
+  color: var(--amber);
+}
+
+.eq-lib-banner__detail {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
+.eq-lib-banner__hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
 .eq-lib-hint {
   opacity: 0.85;
   font-size: 0.9rem;

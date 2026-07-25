@@ -37,8 +37,7 @@ export default function CognitiveEcosystemDetailContent({
   onModeChange,
   feedTick: feedTickProp
 }) {
-  if (!pulse?.ok) return null;
-
+  // React Hooks Rules: sempre antes de qualquer return condicional.
   const [feedTickLocal, setFeedTickLocal] = useState(0);
   const feedTick = feedTickProp ?? feedTickLocal;
 
@@ -47,6 +46,30 @@ export default function CognitiveEcosystemDetailContent({
     const id = setInterval(() => setFeedTickLocal((t) => t + 1), 3500);
     return () => clearInterval(id);
   }, [feedTickProp]);
+
+  // Estado vazio EXPLÍCITO — nunca abre o sheet sem conteúdo (INC-004).
+  if (!pulse) {
+    return (
+      <div className="cog-detail-empty" role="status" aria-live="polite">
+        <p className="cog-detail-empty__title">Cognitive Core</p>
+        <p className="cog-detail-empty__desc">
+          Sincronizando ecossistema cognitivo… Se persistir, verifique a ligação à rede.
+        </p>
+        <div className="cog-detail-empty__spinner" aria-hidden />
+      </div>
+    );
+  }
+
+  if (pulse && pulse.ok === false) {
+    return (
+      <div className="cog-detail-empty" role="status" aria-live="polite">
+        <p className="cog-detail-empty__title">Cognitive Core temporariamente indisponível</p>
+        <p className="cog-detail-empty__desc">
+          {pulse.error || 'Não foi possível obter o pulso cognitivo. Reintentando automaticamente.'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>

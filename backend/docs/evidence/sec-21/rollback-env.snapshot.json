@@ -1,0 +1,13 @@
+{
+  "createdAt": "2026-07-04T17:05:21.532Z",
+  "preSnapshotId": "pre-activation-2026-07-04T17-05-21-453Z",
+  "env": {
+    "SEC04_SKIP_GIT_CHECK": "true"
+  },
+  "procedure": [
+    "1. Restaurar variáveis de rollback-env.snapshot",
+    "2. pm2 restart impetus-backend --update-env",
+    "3. Validar GET /api/audit/security-production-activation",
+    "4. Confirmar flags SECURITY_*=false conforme rollback"
+  ]
+}

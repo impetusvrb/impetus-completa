@@ -257,3 +257,62 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Reference failure recovery banners (SF-005/006) */
+.admin-ref-banner {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+}
+
+.admin-ref-banner--error {
+  border: 1px solid var(--red);
+  background: rgba(255, 64, 64, 0.08);
+  color: var(--red);
+}
+
+.admin-ref-banner--warn {
+  border: 1px solid var(--amber);
+  background: rgba(255, 170, 0, 0.08);
+  color: var(--amber);
+}
+
+.admin-ref-banner__body {
+  flex: 1;
+  min-width: 200px;
+}
+
+.admin-ref-banner__code {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.admin-ref-banner__detail {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-ref-banner__hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.admin-ref-banner__retry {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.admin-ref-module-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": "security_playbooks_v1",
+  "updated_at": "2026-07-06",
+  "playbooks": [
+    {
+      "id": "pb-scanner-mass",
+      "version": "1.0.0",
+      "match_types": ["SCANNER_UA", "HTTP_404_FLOOD", "GENERIC_SCANNER", "HTTP_SCAN"],
+      "title": "Scanner / bot massivo",
+      "governance": "automatic",
+      "summary": "Tráfego automatizado a paths inexistentes ou sensíveis.",
+      "steps": [
+        "Confirmar padrão no nginx access (404/444 em burst)",
+        "Verificar se IP já está em fail2ban ou UFW",
+        "Aplicar UFW DENY se persistir após jail",
+        "Registar incidente em /var/lib/impetus/incidents/",
+        "Monitorizar repetição nas próximas 24h"
+      ],
+      "auto_actions": ["fail2ban", "ufw_deny", "threat_watch_alert"],
+      "escalation": "Se >3 IPs distintos em 10 min → elevar risco L2"
+    },
+    {
+      "id": "pb-credential-probe",
+      "version": "1.0.0",
+      "match_types": ["HTTP_CREDENTIAL_PROBE", "CREDENTIAL_SCAN", "AUTH_ATTEMPT", "login_falhou"],
+      "title": "Prova de credenciais / brute-force",
+      "governance": "automatic",
+      "summary": "Tentativas repetidas de autenticação ou paths de login.",
+      "steps": [
+        "Bloquear IP em fail2ban impetus-auth-fail",
+        "Confirmar Turnstile activo no painel",
+        "Rever logs admin_logs (login_falhou)",
+        "Notificar equipa se >5 falhas/hora",
+        "Considerar MFA obrigatório se conta alvo identificada"
+      ],
+      "auto_actions": ["fail2ban", "whatsapp_high", "turnstile_verify"],
+      "escalation": "Login com sucesso após falhas → L3 + lockdown review"
+    },
+    {
+      "id": "pb-sensitive-200",
+      "version": "1.0.0",
+      "match_types": ["INVASION_SENSITIVE_200", "MULTI_LAYER_BREACH", "HTTP_WRITE_ATTEMPT"],
+      "title": "Invasão multi-camada / ficheiro sensível",
+      "governance": "automatic",
+      "summary": "Resposta 200 ou write em path crítico (.env, admin, etc.).",
+      "steps": [
+        "Activar lockdown PM2 se IMPETUS_AUTO_LOCKDOWN_ENABLED",
+        "Preservar logs nginx + threat-watch",
+        "Bloquear IP(s) em UFW imediatamente",
+        "WhatsApp CRITICAL para equipa",
+        "Auditoria cognitiva do IP",
+        "Restore manual após validação"
+      ],
+      "auto_actions": ["lockdown_pm2", "ufw_deny", "whatsapp_critical", "preserve_evidence"],
+      "escalation": "Nunca restaurar sem validar integridade SEC-04"
+    },
+    {
+      "id": "pb-ssh-brute",
+      "version": "1.0.0",
+      "match_types": ["SSH_BRUTE_FORCE", "SSH_EVENT"],
+      "title": "Brute-force SSH",
+      "governance": "automatic",
+      "summary": "Tentativas SSH repetidas na VPS.",
+      "steps": [
+        "Confirmar jail sshd / impetus-ssh activo",
+        "Verificar UFW allow apenas Cloudflare + IPs admin",
+        "Rever /var/log/auth.log",
+        "Considerar fail2ban recidive se reincidente"
+      ],
+      "auto_actions": ["fail2ban", "ufw_deny"],
+      "escalation": "Sucesso SSH de IP desconhecido → incidente P0"
+    },
+    {
+      "id": "pb-admin-after-fails",
+      "version": "1.0.0",
+      "match_types": ["ADMIN_LOGIN_AFTER_FAILS", "AUTH_SUCCESS_AFTER_BREACH"],
+      "title": "Login admin após falhas / pós-breach",
+      "governance": "semi_automatic",
+      "summary": "Sessão admin após sequência de falhas ou alertas HIGH.",
+      "steps": [
+        "Revogar sessões activas do utilizador",
+        "Exigir MFA no próximo login",
+        "Rever IP e geo do login",
+        "Aprovar reabertura de acesso pela equipa"
+      ],
+      "auto_actions": ["session_revoke", "mfa_challenge"],
+      "escalation": "Aprovação humana obrigatória (🟡)"
+    },
+    {
+      "id": "pb-rate-anomaly",
+      "version": "1.0.0",
+      "match_types": ["RATE_ANOMALY", "ENUMERATION"],
+      "title": "Anomalia de taxa / enumeração API",
+      "governance": "semi_automatic",
+      "summary": "Volume anómalo vs baseline 7 dias.",
+      "steps": [
+        "Comparar com baseline comportamental",
+        "Aumentar rate limit nginx temporariamente",
+        "Avaliar CAPTCHA Turnstile no endpoint",
+        "Aprovar regra permanente se ataque confirmado"
+      ],
+      "auto_actions": ["rate_limit_temp"],
+      "escalation": "Regra permanente requer aprovação 🟡"
+    }
+  ]
+}

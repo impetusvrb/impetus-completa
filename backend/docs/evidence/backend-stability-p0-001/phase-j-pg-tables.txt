@@ -1,0 +1,25 @@
+ schemaname |            relname            |  total  |    bytes    
+------------+-------------------------------+---------+-------------
+ public     | industrial_event_outbox       | 28 GB   | 30385397760
+ public     | telemetry_timeseries_v1       | 6465 MB |  6779420672
+ public     | opcua_connection_audit        | 2996 MB |  3141320704
+ public     | modbus_connection_audit       | 1053 MB |  1103626240
+ public     | industrial_event_archive      | 516 MB  |   540729344
+ public     | aioi_executive_queue_snapshot | 453 MB  |   475250688
+ public     | plc_collected_data            | 304 MB  |   318562304
+ public     | audit_universal_log           | 156 MB  |   163102720
+ public     | system_metrics                | 90 MB   |    94724096
+ public     | industrial_operational_events | 14 MB   |    14557184
+ public     | aioi_outbox                   | 9168 kB |     9388032
+ public     | industrial_event_dlq          | 7728 kB |     7913472
+ public     | ai_interaction_traces         | 4768 kB |     4882432
+ public     | audit_logs                    | 4352 kB |     4456448
+ public     | live_dashboard_snapshots      | 2776 kB |     2842624
+ public     | dashboard_usage_events        | 2352 kB |     2408448
+ public     | manual_chunks                 | 2016 kB |     2064384
+ public     | mqtt_connection_audit         | 1872 kB |     1916928
+ public     | tenant_rls_audit_events       | 1232 kB |     1261568
+ public     | ai_prompt_lineage             | 1216 kB |     1245184
+(20 rows)
+
+40 GB

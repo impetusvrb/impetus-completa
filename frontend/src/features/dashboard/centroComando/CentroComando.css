@@ -1,3 +1,266 @@
+/* INC-012/014/015 — faixa cognitiva no topo (normal flow, sem sticky) */
+.cc-top-cognitive-presence {
+  margin: 0 0 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .cc-top-cognitive-presence {
+    margin-top: -0.625rem;
+    margin-bottom: 0.35rem;
+  }
+
+  /* INC-015 — linha horizontal: Onipresença | mensagem | Atualizar */
+  .cc-cognitive-continuity-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem 0.65rem;
+    padding: 0;
+    margin-bottom: 0.35rem;
+  }
+
+  .cc-cognitive-continuity-row .cog-omnipresence-zone {
+    display: contents;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cc-cognitive-continuity-row .cog-omnipresence-zone__label {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  .cc-cognitive-continuity-row .cog-whispers--multi {
+    position: static;
+    top: auto;
+    right: auto;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .cc-cognitive-continuity-row .cog-whispers__item {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* INC-018 — inline: presença viva neutra (sem escalação por scroll) */
+    color: var(--green, #00ff88);
+    border-color: rgba(0, 255, 136, 0.28);
+    background: rgba(7, 12, 20, 0.72);
+    font-size: 0.68rem;
+  }
+
+  .cc-cognitive-continuity-row .cog-whispers__item--semantic-warning,
+  .cc-cognitive-continuity-row .cog-whispers__item--semantic-critical {
+    /* Inline mantém identidade calma — criticidade só reforça no persist */
+    color: var(--green, #00ff88);
+    border-color: rgba(0, 255, 136, 0.28);
+  }
+
+  /* INC-019 — elevar stacking context da linha quando whisper pinned (irmãos .cc > * z-index:1) */
+  .cc-cognitive-continuity-row:has(.cog-whispers--scroll-persist) {
+    position: relative;
+    z-index: 3;
+  }
+
+  .cc-cognitive-continuity-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .cc-cognitive-continuity-action .live-dash-actions--continuity {
+    display: flex;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cc-cognitive-continuity-action .live-dash-btn--continuity {
+    padding: 0.32rem 0.6rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .cc .live-dash-unified--continuity.live-intelligent-dashboard {
+    padding-top: 0;
+    margin-top: 0;
+    max-width: none;
+  }
+
+  .cc .live-dash-unified--continuity .live-dash-header {
+    margin-bottom: 0.65rem;
+  }
+
+  /* INC-016 — expandir workspace horizontal (gutter único via .content) */
+  .cc.cc--premium {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .cc .live-intelligent-dashboard {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  /*
+   * INC-017 — persistência de scroll (mecânica congelada).
+   * INC-018 — posicionamento seguro + semântica visual do whisper persistente.
+   * Histórico: top: 4.5rem; right: 1.25rem (88ccfd9e2).
+   * Actual: abaixo da topbar (54px) + respiro; margem direita segura.
+   */
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cc-cognitive-continuity-row
+    .cog-whispers--multi.cog-whispers--scroll-persist {
+    position: fixed;
+    top: calc(var(--impetus-topbar-height, 54px) + 2.25rem);
+    right: max(12px, 1rem);
+    left: auto;
+    z-index: 4;
+    pointer-events: none;
+    width: auto;
+    max-width: min(340px, calc(100vw - 280px));
+    margin: 0;
+    padding: 0;
+  }
+
+  /* INC-021 — entrada do whisper persistente (cosmético) */
+  @keyframes whisperPersistEnter {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist.cog-whispers--persist-enter
+    .cog-whispers__item {
+    animation: whisperPersistEnter 160ms ease-out;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cc-cognitive-continuity-row
+    .cog-whispers--multi.cog-whispers--scroll-persist
+    .cog-whispers__item {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 0.72rem;
+    letter-spacing: 0.35px;
+    line-height: 1.35;
+    padding: 0.45rem 0.65rem;
+    background: rgba(7, 12, 20, 0.92);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    transition: opacity 180ms ease, filter 180ms ease, box-shadow 180ms ease, visibility 180ms ease;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  /* INC-018 — semântica persistente (mesma priority, maior legibilidade) */
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist
+    .cog-whispers__item--semantic-normal {
+    color: var(--cyan, #00d4ff);
+    border: 1px solid rgba(0, 212, 255, 0.38);
+    box-shadow:
+      0 4px 18px rgba(0, 0, 0, 0.45),
+      0 0 12px var(--glow-cyan, rgba(0, 212, 255, 0.12));
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist
+    .cog-whispers__item--semantic-warning {
+    color: var(--amber, #ffaa00);
+    border: 1px solid rgba(255, 170, 0, 0.42);
+    box-shadow:
+      0 4px 18px rgba(0, 0, 0, 0.45),
+      0 0 10px var(--glow-amber, rgba(255, 170, 0, 0.14));
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist
+    .cog-whispers__item--semantic-critical {
+    color: var(--red, #ff4040);
+    border: 1px solid rgba(255, 64, 64, 0.45);
+    box-shadow:
+      0 4px 18px rgba(0, 0, 0, 0.45),
+      0 0 10px var(--glow-red, rgba(255, 64, 64, 0.16));
+  }
+
+  /*
+   * INC-019/020 — yielding/dismissed: cede ou recolhe sem alterar severity.
+   * Container mantém pointer-events:none; item oculto não bloqueia cards.
+   */
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist.cog-whispers--focus-yielding
+    .cog-whispers__item,
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist.cog-whispers--focus-dismissed
+    .cog-whispers__item {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    filter: none;
+    animation: none;
+    cursor: default;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist.cog-whispers--focus-yielding
+    .cog-whispers__item--semantic-critical,
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist.cog-whispers--focus-dismissed
+    .cog-whispers__item--semantic-critical {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* INC-021 — transição entre pensamentos (persistente apenas) */
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist
+    .cog-whispers__item--msg-out {
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 100ms ease-out, transform 100ms ease-out;
+    animation: none;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop']
+    .cog-whispers--scroll-persist
+    .cog-whispers__item--msg-in {
+    animation: whisperPersistEnter 120ms ease-out;
+  }
+}
+
+.cc-top-cognitive-presence .cog-global-strip--desktop-compact-single,
+.cc-top-cognitive-presence .cog-global-strip--desktop-summary,
+.cc-top-cognitive-presence .cog-global-strip--compact {
+  margin-bottom: 0;
+}
+
+/* Mobile/tablet: omni fora da grid de continuidade */
+@media (max-width: 1023px) {
+  .cc .cog-omnipresence-zone {
+    margin: 0 0 0.65rem;
+    padding: 0 0.75rem;
+  }
+}
+
 /* Banner Base Estrutural */
 .cc__structural-banner {
   margin: 0 0 1rem;

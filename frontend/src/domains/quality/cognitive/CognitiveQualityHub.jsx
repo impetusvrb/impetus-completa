@@ -1,11 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { safeUUID } from '../../../utils/safeUuid.js';
 import { qualityCognitive as qcApi } from '../../../services/api.js';
+import { fetchDashboardMeShared } from '../../../runtimeBoot/dashboardMeSharedStore.js';
 import { isQualityCognitiveRuntimeEnabled } from './qualityCognitiveFeatureFlags.js';
 import { isQualityCognitiveEffectiveEnabled } from '../navigation/qualityRuntimeModuleBridge.js';
+import {
+  buildCognitiveSignalsFromRuntime,
+  buildRuntimeInsightPack,
+  hasSufficientSignalsForRunInsights,
+  mergeRuntimeAndApiPacks,
+  resolveQualityRuntimeContext
+} from './qualityCognitiveRuntimeSignalAdapter.js';
 
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' };
+
+function EmptyDataPanel({ label }) {
+  return (
+    <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4, flex: '1 1 200px' }}>
+      <div style={{ ...mono, color: 'var(--text-tertiary)', marginBottom: 6 }}>{label}</div>
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+        Sem dados suficientes
+      </p>
+    </div>
+  );
+}
 
 function RiskGauge({ score }) {
   const pct = score != null ? (score * 100).toFixed(1) : null;
@@ -17,19 +35,35 @@ function RiskGauge({ score }) {
         {pct != null ? `${pct}%` : '—'}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-        {score > 0.7 ? 'Crítico — ação imediata' : score > 0.4 ? 'Elevado — monitorar' : 'Normal'}
+        {score == null
+          ? 'Sem dados suficientes'
+          : score > 0.7
+            ? 'Crítico — ação imediata'
+            : score > 0.4
+              ? 'Elevado — monitorar'
+              : 'Normal'}
       </div>
     </div>
   );
 }
 
-function DriftCard({ drift }) {
-  if (!drift?.ok) return null;
+function DriftCard({ drift, unavailable }) {
+  if (unavailable || !drift?.ok) return <EmptyDataPanel label="Drift Preditivo" />;
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4, flex: '1 1 200px' }}>
       <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 6 }}>Drift Preditivo</div>
       <div style={{ fontSize: 16, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-        Severidade: <span style={{ color: drift.drift_severity === 'high' ? 'var(--red)' : drift.drift_severity === 'medium' ? 'var(--amber)' : 'var(--green)' }}>
+        Severidade:{' '}
+        <span
+          style={{
+            color:
+              drift.drift_severity === 'high'
+                ? 'var(--red)'
+                : drift.drift_severity === 'medium'
+                  ? 'var(--amber)'
+                  : 'var(--green)'
+          }}
+        >
           {drift.drift_severity ?? '—'}
         </span>
       </div>
@@ -40,28 +74,43 @@ function DriftCard({ drift }) {
   );
 }
 
-function SupplierCard({ supplier }) {
-  if (!supplier?.ok) return null;
-  const trendColor = supplier.trend === 'worsening' ? 'var(--red)' : supplier.trend === 'improving' ? 'var(--green)' : 'var(--text-secondary)';
+function SupplierCard({ supplier, unavailable }) {
+  if (unavailable || !supplier?.ok) return <EmptyDataPanel label="Fornecedor" />;
+  const trendColor =
+    supplier.trend === 'worsening' ? 'var(--red)' : supplier.trend === 'improving' ? 'var(--green)' : 'var(--text-secondary)';
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4, flex: '1 1 200px' }}>
       <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 6 }}>Fornecedor</div>
       <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{supplier.supplier_id}</div>
       <div style={{ fontSize: 13, marginTop: 4 }}>
-        Tendência: <span style={{ color: trendColor, fontFamily: 'var(--font-mono)' }}>{supplier.trend ?? '—'}</span>
+        Tendência:{' '}
+        <span style={{ color: trendColor, fontFamily: 'var(--font-mono)' }}>{supplier.trend ?? '—'}</span>
       </div>
       {supplier.base_scorecard?.total_inspected != null && (
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-          {supplier.base_scorecard.total_inspected} inspecionados · {supplier.base_scorecard.defect_rate != null ? `${(supplier.base_scorecard.defect_rate * 100).toFixed(1)}%` : '—'} defeitos
+          {supplier.base_scorecard.total_inspected} inspecionados ·{' '}
+          {supplier.base_scorecard.defect_rate != null
+            ? `${(supplier.base_scorecard.defect_rate * 100).toFixed(1)}%`
+            : '—'}{' '}
+          defeitos
         </div>
       )}
     </div>
   );
 }
 
-function RecommendationsList({ recommendations }) {
+function RecommendationsList({ recommendations, unavailable }) {
   const list = recommendations?.recommendations || [];
-  if (!list.length) return null;
+  if (unavailable || !list.length) {
+    return (
+      <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
+        <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Recomendações assistivas</div>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          Sem dados suficientes
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
       <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Recomendações assistivas</div>
@@ -69,7 +118,11 @@ function RecommendationsList({ recommendations }) {
         {list.map((r, i) => (
           <li key={r.kind || i} style={{ marginBottom: 10, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--amber)', fontSize: 11 }}>{r.kind}</span>
-            {r.priority ? <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontSize: 10, marginLeft: 6 }}>{r.priority}</span> : null}
+            {r.priority ? (
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontSize: 10, marginLeft: 6 }}>
+                {r.priority}
+              </span>
+            ) : null}
             <br />
             {r.rationale}
           </li>
@@ -79,37 +132,30 @@ function RecommendationsList({ recommendations }) {
   );
 }
 
-function NarrativePanel({ narrative }) {
-  if (!narrative?.headline) return null;
+function NarrativePanel({ narrative, unavailable }) {
+  if (unavailable || !narrative?.headline) {
+    return (
+      <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
+        <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Narrativa Executiva</div>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          Sem dados suficientes
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
       <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Narrativa Executiva</div>
-      <p style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 8px', lineHeight: 1.4 }}>{narrative.headline}</p>
+      <p style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600, margin: '0 0 8px', lineHeight: 1.4 }}>
+        {narrative.headline}
+      </p>
       {(narrative.paragraphs || []).map((p, i) => (
-        <p key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0', lineHeight: 1.6 }}>{p}</p>
+        <p key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0', lineHeight: 1.6 }}>
+          {p}
+        </p>
       ))}
     </div>
   );
-}
-
-function buildSignals() {
-  return {
-    process_values: [10, 10.1, 10.05, 10.2, 10.4, 10.55, 10.7, 10.85, 11.0, 11.2, 11.4, 11.6],
-    defect_rates: [0.01, 0.012, 0.015, 0.019, 0.024, 0.03],
-    recurrence_records: [
-      { entity_type: 'line', entity_id: 'L4', kind: 'scratch', occurred_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-      { entity_type: 'line', entity_id: 'L4', kind: 'scratch', occurred_at: new Date(Date.now() - 86400000).toISOString() },
-      { entity_type: 'line', entity_id: 'L4', kind: 'scratch', occurred_at: new Date().toISOString() }
-    ],
-    supplier_id: 'default-supplier',
-    supplier_rows: [
-      { inspected: 500, defects: 2, lots: 5, rejected_lots: 0 },
-      { inspected: 500, defects: 6, lots: 5, rejected_lots: 1 },
-      { inspected: 500, defects: 14, lots: 5, rejected_lots: 2 }
-    ],
-    usl: 12, lsl: 8,
-    correlation_id: safeUUID()
-  };
 }
 
 export default function CognitiveQualityHub({ companyId }) {
@@ -117,20 +163,46 @@ export default function CognitiveQualityHub({ companyId }) {
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [runtimeConnected, setRuntimeConnected] = useState(false);
 
   const loadInsights = useCallback(async () => {
     if (!isQualityCognitiveRuntimeEnabled()) return;
-    setLoading(true); setErr('');
+    setLoading(true);
+    setErr('');
     try {
-      const { data } = await qcApi.runInsights({ signals: buildSignals(), emit_events: false });
-      setPack(data.pack);
+      const meRes = await fetchDashboardMeShared({ force: true });
+      const meData = meRes?.data || {};
+      const ctx = resolveQualityRuntimeContext(meData);
+
+      if (!ctx.connected) {
+        setRuntimeConnected(false);
+        setPack(null);
+        setErr('Runtime quality_native não disponível no payload — aguardando consolidação Z.23.');
+        return;
+      }
+
+      setRuntimeConnected(true);
+      const runtimePack = buildRuntimeInsightPack(meData);
+      const signals = buildCognitiveSignalsFromRuntime(meData);
+
+      let apiPack = null;
+      if (hasSufficientSignalsForRunInsights(signals)) {
+        const { data } = await qcApi.runInsights({ signals, emit_events: false });
+        apiPack = data?.pack || null;
+      }
+
+      setPack(mergeRuntimeAndApiPacks(runtimePack, apiPack));
       setLastUpdated(new Date().toLocaleTimeString('pt-BR'));
     } catch (e) {
       setErr(e?.response?.data?.error || e.message || 'Serviço cognitivo indisponível');
-    } finally { setLoading(false); }
-  }, []);
+    } finally {
+      setLoading(false);
+    }
+  }, [companyId]);
 
-  useEffect(() => { loadInsights(); }, [loadInsights]);
+  useEffect(() => {
+    loadInsights();
+  }, [loadInsights]);
 
   if (!isQualityCognitiveEffectiveEnabled()) {
     return (
@@ -149,11 +221,18 @@ export default function CognitiveQualityHub({ companyId }) {
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
             Drift preditivo · Risco · Fornecedores · Recomendações · Narrativas executivas
+            {runtimeConnected ? (
+              <span style={{ marginLeft: 8, color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>· runtime Z.23</span>
+            ) : null}
             {lastUpdated && <span style={{ marginLeft: 8 }}>· atualizado {lastUpdated}</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link to="/app/quality/operational" className="btn-ghost" style={{ minHeight: 40, padding: '0 12px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', fontSize: 13 }}>
+          <Link
+            to="/app/quality/operational"
+            className="btn-ghost"
+            style={{ minHeight: 40, padding: '0 12px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', fontSize: 13 }}
+          >
             ← Operacional
           </Link>
           <button type="button" className="btn-ghost" style={{ minHeight: 40, borderRadius: 4, fontSize: 13 }} onClick={loadInsights} disabled={loading}>
@@ -162,7 +241,11 @@ export default function CognitiveQualityHub({ companyId }) {
         </div>
       </div>
 
-      {err ? <div className="impetus-card" style={{ padding: 12, borderRadius: 4 }}><p style={{ margin: 0, color: 'var(--amber)', fontSize: 13 }}>{err}</p></div> : null}
+      {err ? (
+        <div className="impetus-card" style={{ padding: 12, borderRadius: 4 }}>
+          <p style={{ margin: 0, color: 'var(--amber)', fontSize: 13 }}>{err}</p>
+        </div>
+      ) : null}
 
       {loading && !pack ? (
         <div className="impetus-card" style={{ padding: '1.5rem', borderRadius: 4 }}>
@@ -174,11 +257,11 @@ export default function CognitiveQualityHub({ companyId }) {
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             <RiskGauge score={pack.risk?.predictive_risk_score} />
-            <DriftCard drift={pack.engines?.drift} />
-            <SupplierCard supplier={pack.engines?.supplier} />
+            <DriftCard drift={pack.engines?.drift} unavailable={pack.unavailable?.drift} />
+            <SupplierCard supplier={pack.engines?.supplier} unavailable={pack.unavailable?.supplier} />
           </div>
-          <RecommendationsList recommendations={pack.recommendations} />
-          <NarrativePanel narrative={pack.narrative} />
+          <RecommendationsList recommendations={pack.recommendations} unavailable={pack.unavailable?.recommendations} />
+          <NarrativePanel narrative={pack.narrative} unavailable={pack.unavailable?.narrative} />
         </>
       ) : null}
     </div>

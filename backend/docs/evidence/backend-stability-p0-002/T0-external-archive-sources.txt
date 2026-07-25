@@ -1,0 +1,3 @@
+19G	/var/www/impetus-completa/backend/backups/checkpoint_2026-06-26T1622.sql
+2.3G	/var/www/impetus-completa/backend/backups/backup_20260701_000949/database.dump
+8.7G	/var/lib/apport/coredump

@@ -1,0 +1,24 @@
+{
+  "schema_version": "runtime_config_readiness_v1",
+  "generated_at": "2026-07-10T20:56:25.184Z",
+  "node_env": "production",
+  "env_file_path": "/var/www/impetus-completa/backend/.env",
+  "env_file_exists": true,
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "code": "HSTS_NOT_CONFIGURED",
+      "message": "HSTS não encontrado em Nginx nem Helmet explícito",
+      "evidence": {},
+      "auto_fix": false
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 0
+  },
+  "passed": true,
+  "auto_fix_applied": false
+}

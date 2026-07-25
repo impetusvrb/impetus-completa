@@ -1,0 +1,720 @@
+{
+  "reportVersion": "baseline_synchronization_v1",
+  "synchronizationStatus": "READY_FOR_BASELINE_UPDATE",
+  "reconciliationDecision": "BASELINE_SYNCHRONIZATION_APPROVED",
+  "integrityBefore": 0.553,
+  "integrityProjected": 1,
+  "certifiedChanges": [
+    {
+      "path": "backend/src/server.js",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "56f95db482d1c7527261020e1bf099797eaeda3fc91908cee496c06823d45bad",
+      "actualSha256": "939dad9dbafa420e7cb56c9980e736f6f4cfdca63de267829bb4068c27e401ea",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Boot tracking SEC-21/SEC-21A adicionado após snapshot baseline 2026-07-03; rotas audit em routes/audit.js",
+      "pendingReason": null,
+      "contentEvidence": [
+        "securityProductionActivation",
+        "securityGoLiveGate",
+        "SEC-21_BOOT",
+        "SEC-21A_BOOT"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Boot tracking SEC-21/SEC-21A adicionado após snapshot baseline 2026-07-03; rotas audit em routes/audit.js",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "infra/nginx/impetus-production.conf",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "c595ff376d724d47ea803cce668ab4a2a766624841dc3d26e3b241800d33829d",
+      "actualSha256": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "rationale": "Evolução hardening pós-incidente; alinhado INCIDENT-KNOWLEDGE-BASE-01",
+      "pendingReason": null,
+      "contentEvidence": [
+        "404",
+        "anti-scanner"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Evolução hardening pós-incidente; alinhado INCIDENT-KNOWLEDGE-BASE-01",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02",
+          "SEC-15"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "infra/nginx/impetus-hardening-locations.conf",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "1bcb48661eb373ca8ac4adff548aeef32a96d4149273f4338e80c0b01fdca92f",
+      "actualSha256": "943bc17a8cfae8d25bbd007b2ca811585a20038233b8a43d753180347f2aa0b5",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "rationale": "Regras anti-scanner/enumeration certificadas HARDENING-01/02",
+      "pendingReason": null,
+      "contentEvidence": [
+        "location",
+        "deny",
+        "403"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Regras anti-scanner/enumeration certificadas HARDENING-01/02",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02",
+          "SEC-15"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "scripts/deploy-nginx-hardening.sh",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "6cb47e5cb96f12dffa23d23b7b2233de33cbabab08c84f96e1e5abfbd8fcd465",
+      "actualSha256": "94fd459cb8f029572ebde81b721c4529334d5c951de7e4c3b1280bc65caa9ce9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "rationale": "Script operacional de deploy nginx; espelha configs repo → /etc/nginx",
+      "pendingReason": null,
+      "contentEvidence": [
+        "nginx",
+        "hardening",
+        "sites-available"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Script operacional de deploy nginx; espelha configs repo → /etc/nginx",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "backend/.env.example",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "0e4f57f52e37b8290943573d528ee3bb160b071708a3fe63bf934833fd4b8976",
+      "actualSha256": "781e56f94a91b7519aa2fbefa27fb12639a64a99c6474e4426206f6aa62eb014",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Flags SEC-21/SEC-21A documentadas; default OFF preservado",
+      "pendingReason": null,
+      "contentEvidence": [
+        "SECURITY_PRODUCTION_ACTIVATION",
+        "SECURITY_GO_LIVE_GATE",
+        "SEC21A_"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Flags SEC-21/SEC-21A documentadas; default OFF preservado",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "/etc/nginx/sites-available/impetus",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "c595ff376d724d47ea803cce668ab4a2a766624841dc3d26e3b241800d33829d",
+      "actualSha256": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "rationale": "Estado deployado em produção; hash actual coincide com impetus-production.conf no repo",
+      "pendingReason": null,
+      "contentEvidence": [],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Estado deployado em produção; hash actual coincide com impetus-production.conf no repo",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "backend/docs/IMPETUS_COGNITIVE_EXPERIENCE_BLUEPRINT/Volume-10-ROADMAP-ENTERPRISE.md",
+      "hashDiverged": true,
+      "issue": "BLUEPRINT_DRIFT",
+      "expectedSha256": "30f2f18c25cd7ca54718a2d4d51619b7354e37e36dc488d1f9773dbc2974e306",
+      "actualSha256": "3f38673defba2d27044f28d1e03618151ea3f45d8c5037f21fe3f4fc887d56b2",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A",
+        "SEC-20"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Blueprint actualizado com SEC-21/21A; drift filesystem SEC-04 (BLUEPRINT_DRIFT)",
+      "pendingReason": null,
+      "contentEvidence": [
+        "SEC-21",
+        "SEC-21A",
+        "Go-Live"
+      ],
+      "source": "filesystem_validation",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Blueprint actualizado com SEC-21/21A; drift filesystem SEC-04 (BLUEPRINT_DRIFT)",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A",
+          "SEC-20"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    }
+  ],
+  "rejectedChanges": [],
+  "pendingChanges": [],
+  "filesEligibleForBaseline": [
+    "backend/src/server.js",
+    "infra/nginx/impetus-production.conf",
+    "infra/nginx/impetus-hardening-locations.conf",
+    "scripts/deploy-nginx-hardening.sh",
+    "backend/.env.example",
+    "/etc/nginx/sites-available/impetus",
+    "backend/docs/IMPETUS_COGNITIVE_EXPERIENCE_BLUEPRINT/Volume-10-ROADMAP-ENTERPRISE.md"
+  ],
+  "filesRejected": [],
+  "nextAction": "Revisão humana final → executar manualmente: scripts/integrity-check.sh --baseline → re-executar SEC-21A",
+  "criteria": {
+    "drift_analyzed": true,
+    "certified_changes_identified": true,
+    "unexpected_changes_identified": false,
+    "baseline_decision_available": true,
+    "integrity_projection_available": true,
+    "synchronization_report_generated": true,
+    "no_runtime_changes": true,
+    "no_security_changes": true,
+    "rollback_preserved": true,
+    "enterprise_baseline_preserved": true
+  },
+  "divergences": [
+    {
+      "path": "backend/src/server.js",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "56f95db482d1c7527261020e1bf099797eaeda3fc91908cee496c06823d45bad",
+      "actualSha256": "939dad9dbafa420e7cb56c9980e736f6f4cfdca63de267829bb4068c27e401ea",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Boot tracking SEC-21/SEC-21A adicionado após snapshot baseline 2026-07-03; rotas audit em routes/audit.js",
+      "pendingReason": null,
+      "contentEvidence": [
+        "securityProductionActivation",
+        "securityGoLiveGate",
+        "SEC-21_BOOT",
+        "SEC-21A_BOOT"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Boot tracking SEC-21/SEC-21A adicionado após snapshot baseline 2026-07-03; rotas audit em routes/audit.js",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "infra/nginx/impetus-production.conf",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "c595ff376d724d47ea803cce668ab4a2a766624841dc3d26e3b241800d33829d",
+      "actualSha256": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "rationale": "Evolução hardening pós-incidente; alinhado INCIDENT-KNOWLEDGE-BASE-01",
+      "pendingReason": null,
+      "contentEvidence": [
+        "404",
+        "anti-scanner"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Evolução hardening pós-incidente; alinhado INCIDENT-KNOWLEDGE-BASE-01",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02",
+          "SEC-15"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "infra/nginx/impetus-hardening-locations.conf",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "1bcb48661eb373ca8ac4adff548aeef32a96d4149273f4338e80c0b01fdca92f",
+      "actualSha256": "943bc17a8cfae8d25bbd007b2ca811585a20038233b8a43d753180347f2aa0b5",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "rationale": "Regras anti-scanner/enumeration certificadas HARDENING-01/02",
+      "pendingReason": null,
+      "contentEvidence": [
+        "location",
+        "deny",
+        "403"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Regras anti-scanner/enumeration certificadas HARDENING-01/02",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02",
+          "SEC-15"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "scripts/deploy-nginx-hardening.sh",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "6cb47e5cb96f12dffa23d23b7b2233de33cbabab08c84f96e1e5abfbd8fcd465",
+      "actualSha256": "94fd459cb8f029572ebde81b721c4529334d5c951de7e4c3b1280bc65caa9ce9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "rationale": "Script operacional de deploy nginx; espelha configs repo → /etc/nginx",
+      "pendingReason": null,
+      "contentEvidence": [
+        "nginx",
+        "hardening",
+        "sites-available"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Script operacional de deploy nginx; espelha configs repo → /etc/nginx",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "backend/.env.example",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "0e4f57f52e37b8290943573d528ee3bb160b071708a3fe63bf934833fd4b8976",
+      "actualSha256": "781e56f94a91b7519aa2fbefa27fb12639a64a99c6474e4426206f6aa62eb014",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Flags SEC-21/SEC-21A documentadas; default OFF preservado",
+      "pendingReason": null,
+      "contentEvidence": [
+        "SECURITY_PRODUCTION_ACTIVATION",
+        "SECURITY_GO_LIVE_GATE",
+        "SEC21A_"
+      ],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Flags SEC-21/SEC-21A documentadas; default OFF preservado",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "/etc/nginx/sites-available/impetus",
+      "hashDiverged": true,
+      "issue": "HASH_MISMATCH",
+      "expectedSha256": "c595ff376d724d47ea803cce668ab4a2a766624841dc3d26e3b241800d33829d",
+      "actualSha256": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "certified": true,
+      "documentation": [
+        "HARDENING-01_REPORT.md",
+        "INCIDENT-HARDENING-SILVY-RAN.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": true,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "rationale": "Estado deployado em produção; hash actual coincide com impetus-production.conf no repo",
+      "pendingReason": null,
+      "contentEvidence": [],
+      "source": "manifest",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Estado deployado em produção; hash actual coincide com impetus-production.conf no repo",
+        "causingSec": [
+          "HARDENING-01",
+          "HARDENING-02"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": true,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    },
+    {
+      "path": "backend/docs/IMPETUS_COGNITIVE_EXPERIENCE_BLUEPRINT/Volume-10-ROADMAP-ENTERPRISE.md",
+      "hashDiverged": true,
+      "issue": "BLUEPRINT_DRIFT",
+      "expectedSha256": "30f2f18c25cd7ca54718a2d4d51619b7354e37e36dc488d1f9773dbc2974e306",
+      "actualSha256": "3f38673defba2d27044f28d1e03618151ea3f45d8c5037f21fe3f4fc887d56b2",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A",
+        "SEC-20"
+      ],
+      "certified": true,
+      "documentation": [
+        "SEC_21_PRODUCTION_ACTIVATION.md",
+        "SEC_21_ACTIVATION_REPORT.md",
+        "SEC_21_REPORT.md",
+        "SEC_21A_PRODUCTION_GO_LIVE_GATE.md",
+        "SEC_21A_REPORT.md"
+      ],
+      "architectureApproved": true,
+      "operationalChange": false,
+      "accidentalChange": false,
+      "shouldRemain": true,
+      "shouldRevert": false,
+      "eligibleForBaseline": true,
+      "classification": "CERTIFIED_EVOLUTION",
+      "rationale": "Blueprint actualizado com SEC-21/21A; drift filesystem SEC-04 (BLUEPRINT_DRIFT)",
+      "pendingReason": null,
+      "contentEvidence": [
+        "SEC-21",
+        "SEC-21A",
+        "Go-Live"
+      ],
+      "source": "filesystem_validation",
+      "questions": {
+        "hashDiverged": true,
+        "why": "Blueprint actualizado com SEC-21/21A; drift filesystem SEC-04 (BLUEPRINT_DRIFT)",
+        "causingSec": [
+          "SEC-21",
+          "SEC-21A",
+          "SEC-20"
+        ],
+        "certified": true,
+        "documentationPresent": true,
+        "architectureApproved": true,
+        "operationalChange": false,
+        "accidentalChange": false,
+        "shouldRemain": true,
+        "shouldRevert": false,
+        "eligibleForBaseline": true
+      }
+    }
+  ],
+  "baselineUpdateCommand": "scripts/integrity-check.sh --baseline",
+  "evaluatedAt": "2026-07-04T18:28:48.615Z",
+  "readOnly": true,
+  "noRuntimeChanges": true
+}

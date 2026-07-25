@@ -9,6 +9,7 @@ const {
   isIndustrialArchiveEnabled,
   isIndustrialOutboxEnabled,
   archiveDeliveredAfterDays,
+  archiveBatchSize,
   isIndustrialBackboneActive,
   isArchiveDryRun,
   industrialArchiveMode
@@ -33,7 +34,10 @@ async function archiveDeliveredBatch(opts = {}) {
   }
 
   const days = opts.delivered_days != null ? Number(opts.delivered_days) : archiveDeliveredAfterDays();
-  const batchSize = Math.min(500, Math.max(1, Number(opts.batch_size) || 200));
+  const batchSize = Math.min(
+    10000,
+    Math.max(1, Number(opts.batch_size) || archiveBatchSize())
+  );
   const cutoff = new Date(Date.now() - days * 86400000).toISOString();
   _stats.runs += 1;
   const runId = uuidv4();

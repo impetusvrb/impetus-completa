@@ -149,7 +149,10 @@ function buildGlobalPresence(ambient, whispers, cognitiveCore, autonomousFocus) 
     heartbeat_bpm: Math.round(58 + (ambient?.pulse_rate || 1) * 8),
     adaptive_layout: autonomousFocus?.layout_hint || 'balanced_cognitive',
     visual_intensity: autonomousFocus?.visual_intensity || 'normal',
-    core_online: cognitiveCore?.status?.cognitive_core === 'ACTIVE'
+    core_online:
+      cognitiveCore?.status?.cognitive_core === 'ACTIVE' ||
+      cognitiveCore?.status?.cognitive_core === 'PRESENCE' ||
+      cognitiveCore?.presence_online === true
   };
 }
 

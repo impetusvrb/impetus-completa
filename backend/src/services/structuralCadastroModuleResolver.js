@@ -88,7 +88,7 @@ const MENU_KEY_LABELS = Object.freeze({
   safety_intelligence: 'Segurança / SST',
   environment_intelligence: 'Meio Ambiente',
   logistics_intelligence: 'Logística',
-  financial_intelligence: 'Inteligência Financeira',
+  financial_intelligence: 'Finance',
   audit: 'Auditoria',
   anomaly_detection: 'Detecção de anomalias',
   admin: 'Administração'

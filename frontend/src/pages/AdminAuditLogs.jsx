@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Shield, Filter, Search, Bot, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { FileText, Shield, Filter, Search, Bot, ChevronDown, ChevronRight, RefreshCw, AlertCircle } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import DataLineageBlock from '../components/DataLineageBlock';
@@ -24,6 +24,11 @@ function safePayloadPreview(payload) {
   }
 }
 
+/** Padrão canónico IMPETUS — mensagem segura sem expor payload sensível. */
+function resolveAdminApiError(e, fallback) {
+  return e?.apiMessage || e?.response?.data?.error || e?.message || fallback;
+}
+
 export default function AdminAuditLogs() {
   const notify = useNotification();
   const [activeTab, setActiveTab] = useState('audit');
@@ -35,6 +40,19 @@ export default function AdminAuditLogs() {
   const [aiTraces, setAiTraces] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiExpandId, setAiExpandId] = useState(null);
+  const [statsError, setStatsError] = useState(null);
+  const [logsLoadError, setLogsLoadError] = useState(null);
+
+  const loadStats = useCallback(async () => {
+    setStatsError(null);
+    try {
+      const r = await adminLogs.getStats(7);
+      setStats(r.data);
+    } catch (e) {
+      setStats(null);
+      setStatsError(resolveAdminApiError(e, 'Indicadores de auditoria indisponíveis (AUDIT_STATS_LOAD_FAILED).'));
+    }
+  }, []);
 
   const loadAiTraces = useCallback(async () => {
     try {
@@ -50,36 +68,42 @@ export default function AdminAuditLogs() {
     }
   }, [notify]);
 
-  useEffect(() => {
-    loadLogs();
-  }, [activeTab, pagination.offset]);
+  const loadLogs = useCallback(async () => {
+    if (activeTab === 'ai-interactions') {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLogsLoadError(null);
+    try {
+      const params = { limit: pagination.limit, offset: pagination.offset, ...filters };
+      const res = activeTab === 'audit'
+        ? await adminLogs.getAuditLogs(params)
+        : await adminLogs.getDataAccessLogs(params);
+      setLogs(res.data?.logs ?? []);
+      setPagination(res.data?.pagination ?? { total: 0, limit: pagination.limit, offset: pagination.offset });
+    } catch (e) {
+      setLogs([]);
+      const msg = resolveAdminApiError(e, 'Falha ao carregar logs de auditoria (AUDIT_DATA_LOAD_FAILED).');
+      setLogsLoadError(msg);
+      notify.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, pagination.limit, pagination.offset, filters, notify]);
 
   useEffect(() => {
-    adminLogs.getStats(7).then(r => setStats(r.data)).catch(() => {});
-  }, []);
+    loadLogs();
+  }, [loadLogs]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     if (activeTab !== 'ai-interactions') return;
     loadAiTraces();
   }, [activeTab, loadAiTraces]);
-
-  const loadLogs = async () => {
-    if (activeTab === 'ai-interactions') {
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const params = { limit: pagination.limit, offset: pagination.offset, ...filters };
-      const res = activeTab === 'audit' ? await adminLogs.getAuditLogs(params) : await adminLogs.getDataAccessLogs(params);
-      setLogs(res.data.logs);
-      setPagination(res.data.pagination);
-    } catch (e) {
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao carregar logs');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const auditColumns = [
     { key: 'created_at', label: 'Data', render: v => v ? format(new Date(v), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-' },
@@ -110,7 +134,17 @@ export default function AdminAuditLogs() {
           </div>
         </div>
 
-        {stats?.summary && (
+        {statsError && (
+          <div className="admin-logs-banner admin-logs-banner--warn" role="alert">
+            <AlertCircle size={16} aria-hidden="true" />
+            <span>{statsError}</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={loadStats}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {stats?.summary && !statsError && (
           <div className="stats-cards">
             <div className="stat-card"><span className="stat-value">{stats.summary.total_events || 0}</span><span className="stat-label">Eventos (7d)</span></div>
             <div className="stat-card"><span className="stat-value">{stats.summary.critical_events || 0}</span><span className="stat-label">Críticos</span></div>
@@ -232,7 +266,30 @@ export default function AdminAuditLogs() {
               <button className="btn btn-primary" onClick={loadLogs}><Filter size={18} /> Filtrar</button>
             </div>
 
-            <Table columns={activeTab === 'audit' ? auditColumns : dataColumns} data={logs} loading={loading} emptyMessage="Nenhum log" pagination={pagination} onPageChange={off => setPagination(p => ({ ...p, offset: off }))} />
+            {logsLoadError && !loading ? (
+              <div className="admin-logs-banner admin-logs-banner--error" role="alert">
+                <AlertCircle size={18} aria-hidden="true" />
+                <div>
+                  <strong>Falha ao carregar dados de auditoria</strong>
+                  <p className="admin-logs-banner__detail">{logsLoadError}</p>
+                  <p className="admin-logs-banner__hint">
+                    Estado distinto de &quot;sem eventos&quot; — a recolha falhou (AUDIT_DATA_LOAD_FAILED).
+                  </p>
+                </div>
+                <button type="button" className="btn btn-primary btn-sm" onClick={loadLogs}>
+                  <RefreshCw size={14} /> Tentar novamente
+                </button>
+              </div>
+            ) : (
+              <Table
+                columns={activeTab === 'audit' ? auditColumns : dataColumns}
+                data={logs}
+                loading={loading}
+                emptyMessage="Nenhum registro de auditoria no período (NO_AUDIT_EVENTS)"
+                pagination={pagination}
+                onPageChange={(off) => setPagination((p) => ({ ...p, offset: off }))}
+              />
+            )}
           </>
         )}
       </div>

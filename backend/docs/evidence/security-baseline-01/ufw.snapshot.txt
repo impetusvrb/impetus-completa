@@ -16,12 +16,25 @@ Status: active
 [12] Anywhere                   DENY IN     27.79.3.161                # IMPETUS blocked attacker
 [13] Anywhere                   DENY IN     171.231.186.160            # IMPETUS blocked attacker
 [14] Anywhere                   DENY IN     134.122.102.174            # IMPETUS blocked attacker
-[15] 3000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct frontend
-[16] 4000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct backend
-[17] 22                         ALLOW IN    2804:2484::/32             # IMPETUS SSH Gustavo Vero IPv6
-[18] 22                         ALLOW IN    2804:2980::/32             # IMPETUS SSH Welligton Next IPv6
-[19] 80                         ALLOW IN    2804:2484::/32             # IMPETUS HTTP Gustavo V6
-[20] 80                         ALLOW IN    2804:2980::/32             # IMPETUS HTTP Welligton V6
-[21] 443                        ALLOW IN    2804:2484::/32             # IMPETUS HTTPS Gustavo V6
-[22] 443                        ALLOW IN    2804:2980::/32             # IMPETUS HTTPS Welligton V6
+[15] Anywhere                   DENY IN     170.64.137.227             # IMPETUS scanner blocked 2026-07-04
+[16] Anywhere                   DENY IN     195.178.110.199            # IMPETUS scanner blocked 2026-07-04
+[17] Anywhere                   DENY IN     35.236.156.112             # IMPETUS scanner historical
+[18] Anywhere                   DENY IN     91.92.241.196              # IMPETUS scanner historical
+[19] Anywhere                   DENY IN     52.234.3.19                # IMPETUS scanner historical
+[20] Anywhere                   DENY IN     34.174.144.217             # IMPETUS scanner historical
+[21] Anywhere                   DENY IN     116.110.214.207            # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[22] Anywhere                   DENY IN     171.231.181.160            # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[23] Anywhere                   DENY IN     27.79.41.141               # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[24] Anywhere                   DENY IN     27.79.5.235                # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[25] Anywhere                   DENY IN     49.49.240.250              # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[26] Anywhere                   DENY IN     94.154.43.56               # IMPETUS auto-ban: SSH_BRUTE_FORCE
+[27] Anywhere                   DENY IN     203.0.113.77               # IMPETUS auto-ban: HTTP_CREDENTIAL_PROBE
+[28] 3000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct frontend
+[29] 4000/tcp (v6)              DENY IN     Anywhere (v6)              # Block direct backend
+[30] 22                         ALLOW IN    2804:2484::/32             # IMPETUS SSH Gustavo Vero IPv6
+[31] 22                         ALLOW IN    2804:2980::/32             # IMPETUS SSH Welligton Next IPv6
+[32] 80                         ALLOW IN    2804:2484::/32             # IMPETUS HTTP Gustavo V6
+[33] 80                         ALLOW IN    2804:2980::/32             # IMPETUS HTTP Welligton V6
+[34] 443                        ALLOW IN    2804:2484::/32             # IMPETUS HTTPS Gustavo V6
+[35] 443                        ALLOW IN    2804:2980::/32             # IMPETUS HTTPS Welligton V6
 

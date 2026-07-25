@@ -62,6 +62,27 @@ const DOMAINS = Object.freeze({
     status: 'shadow',
     runtime_internal: null
   },
+  logistics_operational: {
+    id: 'logistics_operational',
+    label: 'Logística Operacional (WMS)',
+    legacy_services: [],
+    legacy_routes: ['/api/logistics-operational'],
+    event_prefix: 'wms.',
+    scaffold_path: 'domains/logistics-operational',
+    status: 'operational',
+    runtime_internal: null
+  },
+  supply: {
+    id: 'supply',
+    label: 'Suprimentos (Supply)',
+    legacy_services: [],
+    legacy_routes: [],
+    event_prefix: 'supply.',
+    scaffold_path: 'domains/supply',
+    status: 'foundation',
+    runtime_internal: null,
+    cognitive_runtime_id: 'supply_native'
+  },
   mes: {
     id: 'mes',
     label: 'MES (Manufacturing Execution)',

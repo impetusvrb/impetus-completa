@@ -1,0 +1,157 @@
+{
+  "started_at": "2026-07-23T13:04:48.636Z",
+  "tests": [
+    {
+      "name": "Baseline carregado sem erro",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "getAllAssets retorna 35 activos (≥10)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "10 activos CRITICAL no baseline",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "getHealth() → baseline_valid=true",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "getHealth() → assets_total=35",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "getAssetByPath(server.js) → CRITICAL",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "computeFileSha256 coincide com hash esperado (A)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Evento INTEGRITY_HASH_CHANGED emitido",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Deduplicação: 3 eventos suprimidos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Evento INTEGRITY_PERM_CHANGED registado no bus",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "chmod 777 aplicado correctamente ao ficheiro de teste",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Permissão restaurada a 644",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "EventBus emitiu 10 eventos distintos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Todos os event_id são únicos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "FIFO: ordem correcta",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Shadow log existe e contém entradas de integridade",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "CorrelationEngine processou 1 eventos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Deploy mode suprime eventos: 1 suprimidos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "5 hashes idênticos: e9746cf7e260c13b…",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Formato event_id determinístico: int-20260723130448-0015",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "100× SHA256 de server.js (104577 bytes): total=29.9ms avg=0.30ms",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "stat() avg: 0.005ms — custo diferencial = 1.8% do hash",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "1000 eventos emitidos no EventBus: 7.1ms total",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Memória: heap=5.3MB rss=47.4MB",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "IntegrityRuntime.init() com flag=false → motor não iniciado (getEngine()=null)",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "performance": {
+    "sha256_avg_ms": "0.299",
+    "sha256_100runs_ms": "29.9",
+    "stat_avg_ms": "0.0054",
+    "stat_cost_pct": "1.8%",
+    "eventbus_1000_ms": "7.1",
+    "heap_mb": "5.3",
+    "rss_mb": "47.4",
+    "asset_size_bytes": 104577
+  },
+  "determinism": {
+    "ENGINE_DETERMINISTIC": true,
+    "runs": 5,
+    "hash_consistency": "PASS",
+    "hash_sample": "e9746cf7e260c13b85f4d6af650901fc1de12cc2bcedef3b7898a5fc8348252a",
+    "all_equal": true
+  },
+  "reversibility": {
+    "INTEGRITY_SENSOR_ENABLED_false_is_noop": true,
+    "no_dashboard_integration": true,
+    "no_security_intelligence_integration": true,
+    "production_code_unchanged": true
+  },
+  "finished_at": "2026-07-23T13:04:49.000Z",
+  "passed": 25,
+  "failed": 0,
+  "overall": "PASS"
+}

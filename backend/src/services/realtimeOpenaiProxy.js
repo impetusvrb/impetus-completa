@@ -26,7 +26,7 @@
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, JWT_ALGORITHMS } = require('../middleware/auth');
 const aiSecurityGateway = require('./aiSecurityGateway');
 const unifiedOrchestrator = require('./unifiedOrchestrator');
 const {
@@ -124,7 +124,7 @@ function attachRealtimeOpenaiProxy(httpServer, options = {}) {
 
     let tokenPayload;
     try {
-      tokenPayload = jwt.verify(token, JWT_SECRET);
+      tokenPayload = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
     } catch (err) {
       console.warn('[realtimeOpenaiProxy][jwt_verify]', err?.message ?? err);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');

@@ -1,0 +1,322 @@
+{
+  "state_snapshot": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "assets_monitored": 35,
+    "violations": 4,
+    "baseline_id": "INT-01A-BASELINE-20260723"
+  },
+  "counts": {
+    "inventory_entries": 38,
+    "baseline_assets": 35,
+    "engine_monitored": 35,
+    "inventory_missing_baseline": 3,
+    "baseline_missing_inventory": 0,
+    "path_class_mismatches": 0
+  },
+  "no_baseline": [
+    {
+      "id": "INT-M-001",
+      "path": "/var/www/impetus-completa/backend/src/routes/",
+      "criticality": "MEDIUM",
+      "monitor_hash": true,
+      "monitor_perm": false,
+      "monitor_owner": false,
+      "auditd_covered": true,
+      "auditd_key": "impetus_repo_write",
+      "expected_perm": null,
+      "expected_owner": null,
+      "category": "BACKEND_ROUTES",
+      "note": "Monitorado como grupo; hash individual por ficheiro em INT-01B",
+      "is_group": false,
+      "reason": "missing_baseline"
+    },
+    {
+      "id": "INT-M-002",
+      "path": "/var/www/impetus-completa/backend/src/middleware/",
+      "criticality": "MEDIUM",
+      "monitor_hash": true,
+      "monitor_perm": false,
+      "monitor_owner": false,
+      "auditd_covered": true,
+      "auditd_key": "impetus_repo_write",
+      "expected_perm": null,
+      "expected_owner": null,
+      "category": "BACKEND_MIDDLEWARE",
+      "note": "Monitorado como grupo; hash individual por ficheiro em INT-01B",
+      "is_group": false,
+      "reason": "missing_baseline"
+    },
+    {
+      "id": "INT-M-005",
+      "path": "/var/www/impetus-completa/backend/src/security/config/",
+      "criticality": "MEDIUM",
+      "monitor_hash": true,
+      "monitor_perm": false,
+      "monitor_owner": false,
+      "auditd_covered": true,
+      "auditd_key": "impetus_repo_write",
+      "expected_perm": null,
+      "expected_owner": null,
+      "category": "BACKEND_SECURITY",
+      "note": null,
+      "is_group": false,
+      "reason": "missing_baseline"
+    }
+  ],
+  "no_inventory": [],
+  "mismatches": [],
+  "coverage_by_criticality": {
+    "CRITICAL": {
+      "inventory_file_assets": 10,
+      "baseline_assets": 10,
+      "inventory_with_baseline": 10,
+      "hash_monitored": 10,
+      "perm_monitored": 10,
+      "owner_monitored": 10,
+      "pct_inventory_in_baseline": 100.0,
+      "pct_baseline_hash_monitored": 100.0,
+      "directory_group_exceptions": []
+    },
+    "HIGH": {
+      "inventory_file_assets": 23,
+      "baseline_assets": 23,
+      "inventory_with_baseline": 23,
+      "hash_monitored": 23,
+      "perm_monitored": 4,
+      "owner_monitored": 23,
+      "pct_inventory_in_baseline": 100.0,
+      "pct_baseline_hash_monitored": 100.0,
+      "directory_group_exceptions": []
+    },
+    "MEDIUM": {
+      "inventory_file_assets": 5,
+      "baseline_assets": 2,
+      "inventory_with_baseline": 2,
+      "hash_monitored": 2,
+      "perm_monitored": 0,
+      "owner_monitored": 1,
+      "pct_inventory_in_baseline": 40.0,
+      "pct_baseline_hash_monitored": 100.0,
+      "directory_group_exceptions": []
+    }
+  },
+  "monitored_sample": [
+    {
+      "id": "INT-C-001",
+      "path": "/var/www/impetus-completa/backend/src/server.js",
+      "criticality": "CRITICAL",
+      "monitor_hash": true,
+      "monitor_perm": true,
+      "monitor_owner": true,
+      "in_inventory": true,
+      "exists": true
+    },
+    {
+      "id": "INT-C-002",
+      "path": "/var/www/impetus-completa/backend/.env",
+      "criticality": "CRITICAL",
+      "monitor_hash": true,
+      "monitor_perm": true,
+      "monitor_owner": true,
+      "in_inventory": true,
+      "exists": true
+    },
+    {
+      "id": "INT-C-003",
+      "path": "/var/www/impetus-completa/ecosystem.runtime.config.cjs",
+      "criticality": "CRITICAL",
+      "monitor_hash": true,
+      "monitor_perm": true,
+      "monitor_owner": true,
+      "in_inventory": true,
+      "exists": true
+    },
+    {
+      "id": "INT-C-004",
+      "path": "/etc/nginx/sites-enabled/impetus",
+      "criticality": "CRITICAL",
+      "monitor_hash": true,
+      "monitor_perm": true,
+      "monitor_owner": true,
+      "in_inventory": true,
+      "exists": true
+    },
+    {
+      "id": "INT-C-005",
+      "path": "/etc/nginx/snippets/impetus-cloudflare-proxy-guard.conf",
+      "criticality": "CRITICAL",
+      "monitor_hash": true,
+      "monitor_perm": true,
+      "monitor_owner": true,
+      "in_inventory": true,
+      "exists": true
+    }
+  ],
+  "all_monitored_ids": [
+    "INT-C-001",
+    "INT-C-002",
+    "INT-C-003",
+    "INT-C-004",
+    "INT-C-005",
+    "INT-C-006",
+    "INT-C-007",
+    "INT-C-008",
+    "INT-C-009",
+    "INT-C-010",
+    "INT-H-001",
+    "INT-H-002",
+    "INT-H-003",
+    "INT-H-004",
+    "INT-H-005",
+    "INT-H-006",
+    "INT-H-007",
+    "INT-H-008",
+    "INT-H-009",
+    "INT-H-010",
+    "INT-H-011",
+    "INT-H-012",
+    "INT-H-013",
+    "INT-H-014",
+    "INT-H-015",
+    "INT-H-016",
+    "INT-H-017",
+    "INT-H-018",
+    "INT-H-019",
+    "INT-H-020",
+    "INT-H-021",
+    "INT-H-022",
+    "INT-H-023",
+    "INT-M-003",
+    "INT-M-004"
+  ],
+  "auditd_stats": {
+    "covered_true": 18,
+    "covered_false": 20,
+    "null": 0,
+    "uncovered": [
+      {
+        "id": "INT-C-004",
+        "path": "/etc/nginx/sites-enabled/impetus",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-005",
+        "path": "/etc/nginx/snippets/impetus-cloudflare-proxy-guard.conf",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-006",
+        "path": "/etc/nginx/snippets/impetus-hardening-locations.conf",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-007",
+        "path": "/etc/letsencrypt/live/plataformaimpetus.com/cert.pem",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-008",
+        "path": "/etc/letsencrypt/live/plataformaimpetus.com/privkey.pem",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-009",
+        "path": "/etc/fail2ban/jail.d/impetus.conf",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-C-010",
+        "path": "/etc/audit/rules.d/impetus.rules",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "INT-H-006",
+        "path": "/usr/local/bin/impetus-threat-watch.sh",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-007",
+        "path": "/usr/local/bin/impetus-breach-lockdown-engine.sh",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-008",
+        "path": "/usr/local/bin/impetus-emergency-lockdown.sh",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-009",
+        "path": "/usr/local/bin/impetus-audit-watch.sh",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-016",
+        "path": "/etc/nginx/snippets/impetus-ip-allowlist.conf",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-017",
+        "path": "/etc/nginx/snippets/impetus-ip-allowlist-wrapper.conf",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-018",
+        "path": "/etc/nginx/snippets/impetus-proxy.conf",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-019",
+        "path": "/etc/nginx/snippets/impetus-proxy-ws.conf",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-020",
+        "path": "/etc/cron.d/impetus-security-auto-audit",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-021",
+        "path": "/etc/cron.d/impetus-security-baseline",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-022",
+        "path": "/etc/cron.d/impetus-security-observatory",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-H-023",
+        "path": "/etc/cron.d/impetus-security-weekly-sim",
+        "criticality": "HIGH"
+      },
+      {
+        "id": "INT-M-004",
+        "path": "/etc/letsencrypt/archive/plataformaimpetus.com/fullchain2.pem",
+        "criticality": "MEDIUM"
+      }
+    ],
+    "by_key": {
+      "impetus_repo_write": 17,
+      "impetus_env": 1
+    }
+  },
+  "audit_rules_scan": {
+    "/etc/audit/rules.d/impetus.rules": {
+      "exists": true,
+      "nginx": false,
+      "fail2ban": false,
+      "letsencrypt": false,
+      "audit": false,
+      "usr_local_bin": false
+    },
+    "/var/www/impetus-completa/infra/security/audit/impetus-audit.rules": {
+      "exists": true,
+      "nginx": false,
+      "fail2ban": false,
+      "letsencrypt": false,
+      "audit": false,
+      "usr_local_bin": false
+    }
+  }
+}

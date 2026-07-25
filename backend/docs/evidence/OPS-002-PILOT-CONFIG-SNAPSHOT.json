@@ -1,0 +1,29 @@
+{
+  "applied_at": "2026-07-18T19:53:38.285Z",
+  "delivery": "OPS-002",
+  "baseline": "BASELINE-SUPPLY-v2.0",
+  "frontend_flags": {
+    "VITE_IMPETUS_LOGISTICS_ENABLED": "true",
+    "VITE_IMPETUS_LOGISTICS_MENU": "true",
+    "VITE_IMPETUS_LOGISTICS_WORKSPACE": "true",
+    "VITE_IMPETUS_LOGISTICS_CC": "true"
+  },
+  "backend_flags": {
+    "IMPETUS_LOGISTICS_ENABLED": "true",
+    "IMPETUS_LOGISTICS_MENU": "true",
+    "IMPETUS_LOGISTICS_WORKSPACE": "true",
+    "IMPETUS_LOGISTICS_CC": "true",
+    "IMPETUS_WMS_API_ENABLED": "true"
+  },
+  "inc048_enabled": false,
+  "fe_before": {
+    "VITE_IMPETUS_LOGISTICS_ENABLED": "true",
+    "VITE_IMPETUS_LOGISTICS_MENU": "true",
+    "VITE_IMPETUS_LOGISTICS_WORKSPACE": "true",
+    "VITE_IMPETUS_LOGISTICS_CC": "true"
+  },
+  "be_before": {
+    "inc048": "(absent)",
+    "wms_api": "true"
+  }
+}

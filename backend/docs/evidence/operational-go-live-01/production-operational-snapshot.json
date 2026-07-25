@@ -1,0 +1,159 @@
+{
+  "reportVersion": "production_operational_snapshot_v1",
+  "capturedAt": "2026-07-04T19:29:06.057Z",
+  "gitHead": "c3c20f7e7ea6dc1421c014a81e3ebc28f5a09cd7",
+  "hashes": {
+    "backend/src/server.js": "72c227ce27a801546211202dcc7713d993bff90d97cf36510857527a157679f7",
+    "ecosystem.config.js": "144643fdcaad75cd84a5c148ac0ac12b70cf33c5729c1a09d0c1b7b345be0ad3",
+    "frontend/vite.config.js": "8eeef053bfcdf2695c876dd36c34d07abec31c7531e357a249755c9e9948c7d1",
+    "frontend/serveDist.cjs": "9197c935a461f32e91605ea554e8d56c85c0c27b1127e6ad0476c20e0aa62a4a",
+    "infra/nginx/impetus-production.conf": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+    "infra/nginx/impetus-hardening-locations.conf": "943bc17a8cfae8d25bbd007b2ca811585a20038233b8a43d753180347f2aa0b5",
+    "scripts/deploy-nginx-hardening.sh": "94fd459cb8f029572ebde81b721c4529334d5c951de7e4c3b1280bc65caa9ce9",
+    "scripts/integrity-check.sh": "487f69e158e513d82ce63dac47b0cc8bab1fa1ba1e74d3e80e4e7e6ec69bf8b5",
+    ".github/workflows/cert-drift.yml": "252631e10fe8eed8476d978562f049abf89d160f9d072f776031347b03deaecc",
+    "backend/.env.example": "1df81e429652f19386f48bdab45ed3089cbf26bf4f549cca54815fb2ce48c2d0",
+    "backend/docs/FUNCTIONAL_MATRIX.json": "06ff02becb8c873a2a6d313fdbe17db24c1c4c5fc088e4781a48566a742ef493",
+    "backend/src/config/security.js": "06a713e6b57c1241de27e6355f53669bd7e6830d9c293012d4af8f85b092d9d4",
+    "backend/scripts/run-all-migrations.js": "cc7fceb14d2bb008edce5e740d523d01ed56a3fe08aa91aa7e73198ad6ac0b27",
+    "/etc/nginx/sites-available/impetus": "9b2c913fcc461df6fd80817753202d2c1d818d63ab5f450194c4eedd458e81e9",
+    "/etc/ssh/sshd_config.d/99-impetus-hardening.conf": "580a3f0ec8aff2251de052fa3fda286e721e86fd26371e236a18178f2bf59132"
+  },
+  "processes": [
+    {
+      "name": "lipsync-api",
+      "status": "online"
+    },
+    {
+      "name": "impetus-frontend",
+      "pid": 4114349,
+      "status": "online"
+    },
+    {
+      "name": "impetus-backend",
+      "pid": 1032336,
+      "status": "online"
+    },
+    {
+      "name": "impetus-lab-modbus",
+      "pid": 0,
+      "status": "stopped"
+    },
+    {
+      "name": "impetus-lab-opcua",
+      "pid": 0,
+      "status": "stopped"
+    },
+    {
+      "name": "impetus-edge-agent-lab",
+      "pid": 0,
+      "status": "stopped"
+    },
+    {
+      "name": "impetus-lab-oidc",
+      "pid": 0,
+      "status": "stopped"
+    },
+    {
+      "name": "impetus-lab-smtp",
+      "pid": 0,
+      "status": "stopped"
+    },
+    {
+      "name": "pm2-logrotate",
+      "pid": 3885526,
+      "status": "online"
+    }
+  ],
+  "pm2": {
+    "online": true,
+    "pid": 1032336,
+    "restarts": 529,
+    "processes": [
+      {
+        "name": "lipsync-api",
+        "status": "online"
+      },
+      {
+        "name": "impetus-frontend",
+        "pid": 4114349,
+        "status": "online"
+      },
+      {
+        "name": "impetus-backend",
+        "pid": 1032336,
+        "status": "online"
+      },
+      {
+        "name": "impetus-lab-modbus",
+        "pid": 0,
+        "status": "stopped"
+      },
+      {
+        "name": "impetus-lab-opcua",
+        "pid": 0,
+        "status": "stopped"
+      },
+      {
+        "name": "impetus-edge-agent-lab",
+        "pid": 0,
+        "status": "stopped"
+      },
+      {
+        "name": "impetus-lab-oidc",
+        "pid": 0,
+        "status": "stopped"
+      },
+      {
+        "name": "impetus-lab-smtp",
+        "pid": 0,
+        "status": "stopped"
+      },
+      {
+        "name": "pm2-logrotate",
+        "pid": 3885526,
+        "status": "online"
+      }
+    ]
+  },
+  "memory": {
+    "rss": 76099584,
+    "heapTotal": 29876224,
+    "heapUsed": 12173544,
+    "external": 1810231,
+    "arrayBuffers": 168756
+  },
+  "cpu": {
+    "load": [
+      1.25,
+      1.51,
+      1.55
+    ],
+    "cpus": 2
+  },
+  "nginx": {
+    "status": "active"
+  },
+  "postgresql": {
+    "status": "127.0.0.1:5432 - accepting connections\nready"
+  },
+  "security": {
+    "flags": "post-promotion",
+    "secChain": {
+      "securityObservatory": true,
+      "securityCorrelation": true,
+      "securityAntiScanner": true,
+      "securityExfiltrationDetection": true,
+      "securitySOC": true,
+      "securityRuntimeIntegrity": true
+    }
+  },
+  "enterprise": {
+    "version": "v2",
+    "baseline": "/var/www/impetus-completa/backend/docs/evidence/security-baseline-01/critical-files.sha256.manifest"
+  },
+  "runtime": {
+    "uptimeSec": 19,
+    "nodeVersion": "v20.20.0"
+  }
+}

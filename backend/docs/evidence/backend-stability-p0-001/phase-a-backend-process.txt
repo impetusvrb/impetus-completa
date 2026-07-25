@@ -1,0 +1,8 @@
+backend_pid=1571021
+    PID   RSS    VSZ %MEM %CPU     ELAPSED CMD
+1571021 558452 12286668  6.8 11.8    35:33 node /var/www/impetus-completa/backend/src/server.js
+VmPeak:	12315040 kB
+VmSize:	12286668 kB
+VmRSS:	  558452 kB
+Threads:	11
+{"pool":{"totalCount":0,"idleCount":0,"waitingCount":0}}

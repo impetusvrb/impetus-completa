@@ -1,0 +1,160 @@
+{
+  "started_at": "2026-07-23T14:15:31.268Z",
+  "tests": [
+    {
+      "name": "Flag desligada → available=false (correcto)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "reason=sensor_disabled",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Flag ligada + estado disponível → available=true",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "mode=WATCH consumido correctamente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assets_monitored=33 preservado",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "violations=0 (sistema íntegro)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "baseline_id correcto",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "read_ms=0ms (observabilidade activa)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "violations=2 consumidos correctamente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "ok=false correctamente reflectido",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json ausente → available=false (fallback activo)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Fallback activo: Intelligence usa proxy fail2ban certificado (motor indisponível)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "mode=DEGRADED consumido correctamente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "last_error preenchido no estado DEGRADED",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "5 leituras consecutivas: mode consistente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "5 leituras consecutivas: violations consistente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json corrompido → available=false (fallback gracioso)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Near-realtime: violations actualizadas 0→1 (sem cache; leitura directa de state.json)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "ok=false reflectido após violação",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "reads=2 registados",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "fallbacks=0 registados",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "avg_read_ms=0ms",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "last_read_ms=0ms",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Nenhuma lógica de integridade duplicada no Dashboard (apenas StateStore.readStateFile)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Intelligence: nenhum recálculo de hash ou permissões",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "feature_flag": {
+    "disabled_returns_unavailable": true,
+    "enabled_returns_state": true,
+    "violations_propagated": true
+  },
+  "fallback": {
+    "missing_state_triggers_fallback": true,
+    "intelligence_uses_proxy": true,
+    "degraded_mode_propagated": true
+  },
+  "consistency": {
+    "consistent_reads": true,
+    "samples": 5,
+    "corruption_handled": true
+  },
+  "realtime": {
+    "update_reflected": true
+  },
+  "observability": {
+    "reads": 2,
+    "fallbacks": 0,
+    "errors": 0,
+    "total_read_ms": 0,
+    "last_read_ms": 0,
+    "avg_read_ms": 0
+  },
+  "finished_at": "2026-07-23T14:15:31.467Z",
+  "passed": 25,
+  "failed": 0,
+  "overall": "PASS"
+}

@@ -38,6 +38,8 @@ const { getUnifiedSessionContext } = require('../services/unifiedSessionContextS
 const smartSummaryService = require('../services/smartSummary');
 const { heavyRouteLimiter } = require('../middleware/globalRateLimit');
 const dashboardOperationalBrainRouter = require('./dashboardOperationalBrain');
+const dashboardFinancialLeakageRouter = require('./dashboardFinancialLeakage');
+const dashboardIndustrialRouter = require('./dashboardIndustrial');
 
 function userHasDirectorOrAdminInsightsAccess(u) {
   const role = String((u && u.role) || '').toLowerCase();
@@ -162,6 +164,9 @@ function buildSafeChatErrorMessage(err, fallback) {
 
 router.use('/maintenance', dashboardMaintenanceRouter);
 router.use('/operational-brain', dashboardOperationalBrainRouter);
+/** REG-002 R1/R2 — remount existing services (thin routers · no new business logic) */
+router.use('/financial-leakage', dashboardFinancialLeakageRouter);
+router.use('/industrial', dashboardIndustrialRouter);
 
 const preferencesSchema = z.object({
   cards_order: z.array(z.string()).optional(),
@@ -1124,6 +1129,30 @@ router.get('/me', requireAuth, async (req, res) => {
         }
         if (cog.payload.maintenance_live_validation) {
           legacyResponse.maintenance_live_validation = cog.payload.maintenance_live_validation;
+        }
+        if (cog.payload.logistics_cognitive_runtime) {
+          legacyResponse.logistics_cognitive_runtime = cog.payload.logistics_cognitive_runtime;
+        }
+        if (cog.payload.logistics_runtime) {
+          legacyResponse.logistics_runtime = cog.payload.logistics_runtime;
+        }
+        if (cog.payload.logistics_cognitive_centers) {
+          legacyResponse.logistics_cognitive_centers = cog.payload.logistics_cognitive_centers;
+        }
+        if (cog.payload.logistics_signal_loader) {
+          legacyResponse.logistics_signal_loader = cog.payload.logistics_signal_loader;
+        }
+        if (cog.payload.ppap_cognitive_runtime) {
+          legacyResponse.ppap_cognitive_runtime = cog.payload.ppap_cognitive_runtime;
+        }
+        if (cog.payload.ppap_runtime) {
+          legacyResponse.ppap_runtime = cog.payload.ppap_runtime;
+        }
+        if (cog.payload.ppap_cognitive_centers) {
+          legacyResponse.ppap_cognitive_centers = cog.payload.ppap_cognitive_centers;
+        }
+        if (cog.payload.ppap_signal_loader) {
+          legacyResponse.ppap_signal_loader = cog.payload.ppap_signal_loader;
         }
         if (cog.payload.executive_cognitive_runtime) {
           legacyResponse.executive_cognitive_runtime = cog.payload.executive_cognitive_runtime;

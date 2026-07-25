@@ -1,0 +1,213 @@
+{
+  "baseline_id": "BASELINE-SUPPLY-v2.0",
+  "manifest_id": "BASELINE-SUPPLY-v2.0-MANIFEST",
+  "published_at": "2026-07-18T19:00:59.795Z",
+  "publication_date": "2026-07-18",
+  "certification_source": "REV-002",
+  "certification_verdict": "BASELINE-SUPPLY-v2.0 CERTIFIED WITH CONDITIONS",
+  "source_manifest_id": "BASELINE-CANDIDATE-SUPPLY-WMS-v2.0",
+  "source_manifest_generated_at": "2026-07-18T18:31:14.238Z",
+  "source_baseline_system": "v1.4",
+  "configuration_freeze": true,
+  "baseline_system_locked": "v1.4",
+  "target_baseline": "BASELINE-SUPPLY-v2.0",
+  "subsequent_baseline": "BASELINE-WMS-v1.0",
+  "runtimes": {
+    "homologated_locked_count": 11,
+    "supply_native": {
+      "runtime_id": "supply_native",
+      "version": "0.1.0",
+      "maturity": "homologation",
+      "homologation_phase": "GF-027",
+      "rest_apis": {
+        "phase": "GF-027",
+        "active": true
+      },
+      "pilot_integration_layer": {
+        "phase": "GF-026",
+        "active": true
+      }
+    },
+    "logistics_operational": {
+      "runtime_id": "logistics_operational",
+      "domain": "logistics-operational",
+      "phase": "WMS-004",
+      "api_version": "v1",
+      "api_phase": "WMS-003",
+      "workspace_phase": "WMS-004",
+      "cognitive_runtime": "logistics_native",
+      "cognitive_locked": true
+    },
+    "logistics_cognitive_locked": "logistics_native",
+    "promotion_runtime": {
+      "phase": "GF-025",
+      "active": true,
+      "runtime_id": "supply_native"
+    },
+    "pilot_layer": {
+      "phase": "GF-026",
+      "contract_version": "0.3.0",
+      "wms_compatible": "0.3.0"
+    },
+    "inc048": {
+      "id": "INC-048",
+      "active": false,
+      "category": "Architectural Convergence"
+    }
+  },
+  "contracts": {
+    "supply": "0.2.0",
+    "pilot": "0.3.0",
+    "wms_compatible": "0.3.0",
+    "inc048": "1.0.0"
+  },
+  "public_apis": {
+    "supply": {
+      "base": "/api/supply/v1",
+      "contract_version": "0.2.0",
+      "phase": "GF-027"
+    },
+    "wms": {
+      "base": "/api/logistics-operational/v1",
+      "phase": "WMS-004"
+    }
+  },
+  "workspaces": {
+    "supply": {
+      "path": "/app/supply/workspace",
+      "phase": "GF-027"
+    },
+    "wms": {
+      "path": "/app/logistics-operational/workspace",
+      "phase": "WMS-004"
+    }
+  },
+  "command_center": {
+    "supply": {
+      "runtime_id": "supply_native",
+      "payload": "supply_cognitive_runtime"
+    },
+    "logistics_cognitive": {
+      "runtime_id": "logistics_native"
+    },
+    "logistics_operational": {
+      "exposure": "WmsOperationalCcExposure",
+      "phase": "WMS-004"
+    }
+  },
+  "feature_flags_default": {
+    "supply": {
+      "supply_enabled": false,
+      "supply_api_enabled": false,
+      "supply_menu_enabled": false,
+      "supply_workspace_enabled": false,
+      "supply_runtime_enabled": false,
+      "supply_cognitive_enabled": false,
+      "supply_promotion_enabled": false,
+      "supply_pilot_enabled": false,
+      "supply_cc_inbound": false,
+      "supply_logistics_bridge": false,
+      "supply_menu_visible": false,
+      "production_enabled": false,
+      "menu_visible": false,
+      "wms_integration_active": false,
+      "phase": "GF-027",
+      "status": "HOMOLOGATION"
+    },
+    "wms": {
+      "wms_operational_enabled": false,
+      "wms_inventory_enabled": false,
+      "wms_receiving_enabled": false,
+      "wms_shipping_enabled": false,
+      "wms_picking_enabled": false,
+      "wms_transfer_enabled": false,
+      "wms_api_enabled": false,
+      "logistics_api_enabled": false,
+      "inventory_api_enabled": false,
+      "logistics_enabled": false,
+      "logistics_menu": false,
+      "logistics_workspace": false,
+      "logistics_cc": false,
+      "phase": "WMS-004",
+      "production_enabled": false,
+      "menu_visible": false
+    },
+    "production_global": false,
+    "pilot_activation_only": true
+  },
+  "modules": [
+    "supply_api",
+    "supply_workspace",
+    "supply_pilot_layer",
+    "logistics_operational_api",
+    "logistics_operational_workspace",
+    "inc048_convergence",
+    "supply_promotion_runtime"
+  ],
+  "inventories": [
+    "SYSTEM-RUNTIME-INVENTORY.md",
+    "FOUNDATION_RUNTIMES.md",
+    "WMS-IMPLEMENTATION-ROADMAP.md",
+    "REV-001-GAP-MATRIX.md"
+  ],
+  "wms005_baseline_ref": {
+    "phase": "WMS-005",
+    "date": "2026-07-18",
+    "scenarios": [
+      {
+        "id": "procurement_receiving",
+        "expected": "PASS"
+      },
+      {
+        "id": "inventory_picking",
+        "expected": "PASS"
+      },
+      {
+        "id": "inventory_shipping",
+        "expected": "PASS"
+      },
+      {
+        "id": "warehouse_transfer",
+        "expected": "PASS"
+      },
+      {
+        "id": "cognitive_integrated",
+        "expected": "PASS"
+      }
+    ],
+    "integrated_validation": true,
+    "cross_domain": true,
+    "verdict": "READY FOR WMS-006"
+  },
+  "evidence_refs": [
+    {
+      "file": "WMS-005-EXECUTIVE-SUMMARY.md",
+      "exists": true
+    },
+    {
+      "file": "WMS-006-HOMOLOGATION.md",
+      "exists": false
+    },
+    {
+      "file": "WMS-006-PRODUCTION-READINESS.md",
+      "exists": false
+    },
+    {
+      "file": "WMS-006-CERTIFICATION.md",
+      "exists": false
+    },
+    {
+      "file": "WMS-006-ARCHITECTURE-CONFORMANCE.md",
+      "exists": false
+    },
+    {
+      "file": "INC-048-CONVERGENCE.md",
+      "exists": true
+    },
+    {
+      "file": "GF-027-HOMOLOGATION.md",
+      "exists": true
+    }
+  ],
+  "release_signature": "a7fa921afdf385f61e49bb0d338da9e26b0cc6793f488e2497c76bea9eb913a2"
+}

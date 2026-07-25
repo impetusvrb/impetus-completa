@@ -166,6 +166,121 @@
   max-height: none;
 }
 
+/* INC-014 — faixa única compacta (desktop topo) */
+.cog-global-strip--desktop-compact-single {
+  position: static;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+
+.cog-core-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem 0.55rem;
+  flex-wrap: wrap;
+  padding: 0.48rem 0.58rem;
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(7, 12, 20, 0.85);
+  writing-mode: horizontal-tb;
+}
+
+.cog-core-rail__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.cog-core-rail__status {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, var(--text3));
+  white-space: nowrap;
+}
+
+.cog-core-rail__status::before {
+  content: '·';
+  margin-right: 0.3rem;
+  opacity: 0.65;
+}
+
+.cog-core-rail__engines {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem 0.32rem;
+  min-width: 0;
+}
+
+.cog-core-rail__cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.22rem;
+  padding: 0.1rem 0.32rem;
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(0, 212, 255, 0.03);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.cog-core-rail__cell-label {
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary, var(--text3));
+}
+
+.cog-core-rail__cell-val {
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.cog-core-rail__cell--run .cog-core-rail__cell-val {
+  color: var(--cyan);
+}
+
+.cog-core-rail__awareness-icon {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  border-radius: 4px;
+  background: rgba(0, 212, 255, 0.06);
+  color: var(--green);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cog-core-rail__awareness-icon:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.14);
+}
+
+.cog-core-rail__awareness-icon:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
 .cog-global-strip__engines-panel {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -394,6 +509,36 @@
   top: 3.25rem;
 }
 
+.cog-omnipresence-zone {
+  position: relative;
+  padding: 0 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.cog-omnipresence-zone__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 0.35rem;
+  opacity: 0.92;
+}
+
+.cog-omnipresence-zone .cog-whispers--multi {
+  position: static;
+  top: auto;
+  right: auto;
+  margin: 0;
+}
+
+@media (min-width: 1024px) {
+  [data-viewport-tier='desktop'] .cog-omnipresence-zone {
+    margin-bottom: 1.125rem;
+  }
+}
+
 /* Omni presença por zona */
 .cog-omni {
   display: flex;
@@ -615,6 +760,27 @@
     position: relative;
     z-index: auto;
     flex-shrink: 0;
+  }
+}
+
+/*
+ * FIX-007 — safe interaction area notebook (1366×768 baseline CERT-01.1 / UX-015).
+ * Garante área clicável do botão Atualizar sem z-index arbitrário.
+ */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-header {
+    align-items: flex-start;
+    gap: 0.75rem 1rem;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-presence-content .live-dash-unified--exec .live-dash-actions {
+    flex-shrink: 0;
+    min-width: max-content;
+    margin-left: auto;
+  }
+
+  .cog-presence-root[data-viewport-tier='desktop'] .cog-whispers {
+    margin-bottom: 1.125rem;
   }
 }
 

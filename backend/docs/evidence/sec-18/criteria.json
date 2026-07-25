@@ -1,17 +1,17 @@
 {
   "certification": "SEC-18",
   "criteria": {
-    "runtime_protection_available": true,
-    "protection_profiles_available": true,
-    "runtime_risk_available": true,
-    "approval_coordination_available": true,
-    "runtime_safety_validation_available": true,
-    "audit_endpoint_available": true,
-    "feature_flags_available": true,
-    "enterprise_security_preserved": true,
-    "enterprise_baseline_preserved": true,
-    "tests_passing": true
+    "runtime_protection_available": false,
+    "protection_profiles_available": false,
+    "runtime_risk_available": false,
+    "approval_coordination_available": false,
+    "runtime_safety_validation_available": false,
+    "audit_endpoint_available": false,
+    "feature_flags_available": false,
+    "enterprise_security_preserved": false,
+    "enterprise_baseline_preserved": false,
+    "tests_passing": false
   },
-  "passed": 39,
-  "failed": 0
+  "passed": 28,
+  "failed": 11
 }

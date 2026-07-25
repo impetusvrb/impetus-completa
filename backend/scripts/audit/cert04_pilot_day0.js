@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { sanitizePm2ProcessList } = require('../../src/securityApplication/diagnosticRedaction');
 
 const BACKEND = path.resolve(__dirname, '..', '..');
 const DOCS = path.join(BACKEND, 'docs/iecp');
@@ -58,7 +59,7 @@ function main() {
     matrix_stats: matrix.stats,
     p0e: readP0e(),
     drift_ok: driftOk,
-    pm2: sh('pm2 jlist 2>/dev/null | head -c 500')
+    pm2: sanitizePm2ProcessList(sh('pm2 jlist 2>/dev/null'))
   });
 
   fs.writeFileSync(LOG_JSON, JSON.stringify(log, null, 2));

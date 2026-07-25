@@ -7,12 +7,7 @@
 
 const flags = require('../config/securityObservatoryFlags');
 const metrics = require('../metrics/securityMetricsStore');
-
-function resolveClientIp(req) {
-  const fwd = (req.get && req.get('x-forwarded-for')) || '';
-  const first = String(fwd).split(',')[0].trim();
-  return first || req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
-}
+const { resolveClientIp } = require('../../services/clientIpResolver');
 
 function securityObservatoryMiddleware(req, res, next) {
   if (!flags.isSecurityObservatoryEnabled()) return next();

@@ -123,6 +123,16 @@ function archiveDeliveredAfterDays() {
   return Number.isFinite(n) && n >= 1 ? Math.min(90, Math.floor(n)) : 7;
 }
 
+function archiveBatchSize() {
+  const n = Number(process.env.IMPETUS_INDUSTRIAL_ARCHIVE_BATCH_SIZE || 2000);
+  return Number.isFinite(n) && n > 0 ? Math.min(10000, Math.floor(n)) : 2000;
+}
+
+function archiveMaxBatchesPerCycle() {
+  const n = Number(process.env.IMPETUS_INDUSTRIAL_ARCHIVE_MAX_BATCHES_PER_CYCLE || 50);
+  return Number.isFinite(n) && n > 0 ? Math.min(200, Math.floor(n)) : 50;
+}
+
 function globalBackpressureQueueCap() {
   const n = Number(process.env.IMPETUS_INDUSTRIAL_BACKPRESSURE_QUEUE_CAP || 15000);
   return Number.isFinite(n) && n > 100 ? Math.min(500000, Math.floor(n)) : 15000;
@@ -190,5 +200,7 @@ module.exports = {
   isArchiveDryRun,
   streamRecoveryStaleMs,
   archiveDeliveredAfterDays,
+  archiveBatchSize,
+  archiveMaxBatchesPerCycle,
   globalBackpressureQueueCap
 };

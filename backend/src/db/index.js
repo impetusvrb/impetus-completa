@@ -11,11 +11,20 @@ const max = parseInt(process.env.DB_POOL_MAX, 10) || 20;
 const min = parseInt(process.env.DB_POOL_MIN, 10) || 2;
 const idleTimeoutMillis = parseInt(process.env.DB_POOL_IDLE_TIMEOUT, 10) || 30000;
 const connectionTimeoutMillis = parseInt(process.env.DB_POOL_CONNECT_TIMEOUT, 10) || 10000;
+// Guardas do lado do servidor: impedem que uma query/transação presa segure
+// uma conexão para sempre (causa raiz de esgotamento do pool). Qualquer query
+// acima de `statementTimeout` é abortada; qualquer transação ociosa acima de
+// `idleInTxTimeout` é encerrada, devolvendo a conexão ao pool.
+const statementTimeout = parseInt(process.env.DB_STATEMENT_TIMEOUT, 10) || 60000;
+const idleInTxTimeout = parseInt(process.env.DB_IDLE_IN_TX_TIMEOUT, 10) || 30000;
 const commonPool = {
   max,
   min,
   idleTimeoutMillis,
   connectionTimeoutMillis,
+  statement_timeout: statementTimeout,
+  idle_in_transaction_session_timeout: idleInTxTimeout,
+  keepAlive: true,
   allowExitOnIdle: false
 };
 
@@ -33,10 +42,30 @@ const pool = databaseUrl
 
 pool.on('error', (err) => console.error('[DB] Pool error:', err.message));
 
+const POOL_PRESSURE_LOG_INTERVAL_MS = 10000;
+let lastPoolPressureLogAt = 0;
+let suppressedPoolPressureLogs = 0;
+
+function logPoolPressure(stats) {
+  const now = Date.now();
+  if (now - lastPoolPressureLogAt < POOL_PRESSURE_LOG_INTERVAL_MS) {
+    suppressedPoolPressureLogs += 1;
+    return;
+  }
+
+  console.warn('[DB][POOL_PRESSURE]', JSON.stringify({
+    event: 'DATABASE_POOL_WAIT',
+    ...stats,
+    suppressed_since_last_log: suppressedPoolPressureLogs
+  }));
+  lastPoolPressureLogAt = now;
+  suppressedPoolPressureLogs = 0;
+}
+
 async function query(text, params) {
   const stats = { totalCount: pool.totalCount, idleCount: pool.idleCount, waitingCount: pool.waitingCount };
   if (stats.waitingCount >= 3) {
-    console.warn('[DB][POOL_PRESSURE]', JSON.stringify({ event: 'DATABASE_POOL_WAIT', ...stats }));
+    logPoolPressure(stats);
   }
   try {
     const flags = require('../tenant-isolation/config/tenantRlsFlags');

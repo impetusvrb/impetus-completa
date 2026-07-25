@@ -1,0 +1,8 @@
+2140:[1531267:0x13f12b50]  7054364 ms: Mark-Compact (reduce) 2052.2 (2135.5) -> 2025.8 (2098.8) MB, 1552.17 / 0.00 ms  (+ 1178.1 ms in 195 steps since start of marking, biggest step 27.1 ms, walltime since start of marking 2908 ms) (average mu = 0.398, current
+2144:FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+2147: 1: 0xb76db1 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node /var/www/impetus-completa/backend/src/server.js]
+2157:11: 0x1229705 v8::internal::JsonParser<unsigned short>::MakeString(v8::internal::JsonString const&, v8::internal::Handle<v8::internal::String>) [node /var/www/impetus-completa/backend/src/server.js]
+2159:13: 0x1231689 v8::internal::JsonParser<unsigned short>::ParseJson(v8::internal::Handle<v8::internal::Object>) [node /var/www/impetus-completa/backend/src/server.js]
+3788:FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+3791: 1: 0xb76db1 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node /var/www/impetus-completa/backend/src/server.js]
+3840 /root/.pm2/logs/impetus-backend-error.log

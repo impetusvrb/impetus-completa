@@ -1,0 +1,132 @@
+{
+  "schema_version": "restart_validation_v1",
+  "generated_at": "2026-07-10T20:56:30.128Z",
+  "pre_restart": {
+    "schema_version": "runtime_snapshot_v1",
+    "captured_at": "2026-07-10T20:56:27.101Z",
+    "phase": "pre_restart",
+    "pm2": [
+      {
+        "name": "pm2-logrotate",
+        "status": "online",
+        "pid": 901,
+        "memory": 0,
+        "uptime": 1783268386660
+      },
+      {
+        "name": "lipsync-api",
+        "status": "online",
+        "memory": 0,
+        "uptime": 1783268386842
+      },
+      {
+        "name": "impetus-frontend",
+        "status": "online",
+        "pid": 234656,
+        "memory": 0,
+        "uptime": 1783434163371
+      },
+      {
+        "name": "impetus-backend",
+        "status": "online",
+        "pid": 1034732,
+        "memory": 0,
+        "uptime": 1783716293138
+      },
+      {
+        "name": "impetus-lab-modbus",
+        "status": "online",
+        "pid": 934,
+        "memory": 0,
+        "uptime": 1783268386939
+      },
+      {
+        "name": "impetus-lab-opcua",
+        "status": "online",
+        "pid": 949,
+        "memory": 0,
+        "uptime": 1783268387097
+      },
+      {
+        "name": "impetus-edge-agent-lab",
+        "status": "online",
+        "pid": 950,
+        "memory": 0,
+        "uptime": 1783268387098
+      },
+      {
+        "name": "impetus-lab-oidc",
+        "status": "online",
+        "pid": 952,
+        "memory": 0,
+        "uptime": 1783268387188
+      },
+      {
+        "name": "impetus-lab-smtp",
+        "status": "online",
+        "pid": 958,
+        "memory": 0,
+        "uptime": 1783268387189
+      },
+      {
+        "name": "impetus-admin-portal",
+        "status": "online",
+        "pid": 480893,
+        "memory": 0,
+        "uptime": 1783529558662
+      }
+    ],
+    "postgresql": {
+      "ok": true
+    },
+    "redis": {
+      "ok": false,
+      "optional": true,
+      "note": "Redis não utilizado ou indisponível"
+    },
+    "nginx": {
+      "ok": true
+    },
+    "mqtt": {
+      "optional": true,
+      "note": "MQTT lab — verificar apenas se industrial-lab activo"
+    },
+    "tls": {
+      "note": "Validar certificado via nginx/curl externo manualmente"
+    },
+    "health_endpoints": {
+      "/api/health": {
+        "ok": true,
+        "status": 200,
+        "body": "{\"success\":true,\"status\":\"ok\",\"service\":\"impetus-backend\",\"voz\":{\"openai\":true,\"google_credentials_ok\":false,\"tts_available\":true},\"integrations\":{\"schema_version\":\"ai_integrations_health_v1\",\"probed_at\":\"2026-07-10T20:56:11.573Z\",\"cache_ttl_ms\":45000,\"openai\":{\"status\":\"up\",\"configured\":true},\"anthropic\":{\"status\":\"up\",\"configured\":true},\"google_vertex\":{\"status\":\"up\",\"configured\":true},\"akool\":{\"status\":\"down\",\"configured\":false,\"detail\":\"AKOOL_API_KEY ausente\"},\"from_cache\":true}}"
+      },
+      "/api/system/health/deep": {
+        "ok": true,
+        "status": 200,
+        "body": "{\"ready\":true,\"issues\":[]}"
+      },
+      "/api/system/boot-metrics": {
+        "ok": true,
+        "status": 200,
+        "body": "{\"ok\":true}"
+      },
+      "/api/aioi/health": {
+        "ok": true,
+        "status": 200,
+        "body": "{\"ok\":true,\"status\":\"HEALTHY\"}"
+      }
+    },
+    "appsec_probe": {
+      "note": "Endpoints audit requerem auth — validados estaticamente se offline",
+      "health": {
+        "ok": true,
+        "status": 200,
+        "body": "{\"success\":true,\"status\":\"ok\",\"service\":\"impetus-backend\",\"voz\":{\"openai\":true,\"google_credentials_ok\":false,\"tts_available\":true},\"integrations\":{\"schema_version\":\"ai_integrations_health_v1\",\"probed_at\":\"2026-07-10T20:56:11.573Z\",\"cache_ttl_ms\":45000,\"openai\":{\"status\":\"up\",\"configured\":true},\"anthropic\":{\"status\":\"up\",\"configured\":true},\"google_vertex\":{\"status\":\"up\",\"configured\":true},\"akool\":{\"status\":\"down\",\"configured\":false,\"detail\":\"AKOOL_API_KEY ausente\"},\"from_cache\":true}}"
+      }
+    },
+    "ready": true
+  },
+  "post_restart": null,
+  "comparison": null,
+  "note": "Execute novamente com phase=post_restart após pm2 restart para comparação completa"
+}

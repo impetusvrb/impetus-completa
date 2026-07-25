@@ -1,9 +1,11 @@
 /**
  * Mapa Industrial Interativo — Prompt Parte 4. Diagrama de máquinas/status no grid.
+ * REG-002 R5 — deep-link para Centro de Operações Industrial.
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { dashboard } from '../../../services/api';
-import { Cpu } from 'lucide-react';
+import { Cpu, ChevronRight } from 'lucide-react';
 
 function Skeleton() {
   return (
@@ -15,6 +17,7 @@ function Skeleton() {
 }
 
 export default function WidgetDiagramaIndustrial() {
+  const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -35,6 +38,9 @@ export default function WidgetDiagramaIndustrial() {
       <div className="cc-widget cc-diagrama cc-widget--error">
         <div className="cc-diagrama__header"><Cpu size={20} /> Mapa Industrial</div>
         <p className="cc-widget__empty">Mapa indisponível.</p>
+        <button type="button" className="cc-widget__action" onClick={() => navigate('/app/centro-operacoes-industrial')}>
+          Abrir centro <ChevronRight size={16} />
+        </button>
       </div>
     );
   }
@@ -44,6 +50,9 @@ export default function WidgetDiagramaIndustrial() {
       <div className="cc-diagrama__header">
         <Cpu size={20} />
         <span>Mapa Industrial</span>
+        <button type="button" className="cc-widget__action" onClick={() => navigate('/app/centro-operacoes-industrial')} aria-label="Abrir Centro de Operações Industrial">
+          Abrir <ChevronRight size={16} />
+        </button>
       </div>
       {machines.length === 0 ? (
         <p className="cc-widget__empty">Nenhuma máquina cadastrada para exibição.</p>

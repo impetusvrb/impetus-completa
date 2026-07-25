@@ -5,11 +5,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DOMAIN="${IMPETUS_NGINX_DOMAIN:-srv1422313.hstgr.cloud}"
 
-echo "[1/6] Snippets proxy + hardening + log format"
+echo "[1/7] Snippets proxy + hardening + log format + IP allowlist"
 install -m 0644 "$ROOT/infra/nginx/impetus-proxy.conf" /etc/nginx/snippets/impetus-proxy.conf
 install -m 0644 "$ROOT/infra/nginx/impetus-proxy-ws.conf" /etc/nginx/snippets/impetus-proxy-ws.conf
 install -m 0644 "$ROOT/infra/nginx/impetus-hardening-locations.conf" /etc/nginx/snippets/impetus-hardening-locations.conf
 install -m 0644 "$ROOT/infra/nginx/impetus-log-format.conf" /etc/nginx/conf.d/impetus-log-format.conf
+install -m 0644 "$ROOT/infra/nginx/snippets/impetus-ip-allowlist-wrapper.conf" /etc/nginx/snippets/impetus-ip-allowlist-wrapper.conf
+install -d -m 0755 /var/www/impetus-denied
+install -m 0644 "$ROOT/infra/nginx/static/impetus-access-denied.html" /var/www/impetus-denied/index.html
 
 echo "[2/6] Site impetus (backup anterior se existir)"
 if [ -f /etc/nginx/sites-available/impetus ]; then

@@ -70,7 +70,7 @@ function securityReconMiddleware(req, res, next) {
 
     const t0 = Date.now();
     res.on('finish', () => {
-      if (req._reconContainmentApplied) return;
+      if (req._reconContainmentApplied || req._reconPostValidationBlocked) return;
       try {
         const finishIdentity = resolveIdentityContext(req);
         const signal = normalizeFromHttpRequest(req, {

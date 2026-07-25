@@ -1,0 +1,75 @@
+.warehouse-intelligence-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.wi-heatmap-panel,
+.wi-capacity-panel,
+.wi-bottleneck-panel,
+.wi-flow-panel,
+.wi-performance-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.wi-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.wi-panel-card {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wi-panel-card--critical,
+.wi-panel-card--high {
+  border-color: var(--red);
+}
+
+.wi-panel-card--medium {
+  border-color: var(--amber);
+}
+
+.wi-flow-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wi-flow-stage {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.wi-flow-arrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--cyan);
+  text-align: center;
+}
+
+.wi-trace-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 3px solid var(--cyan);
+  background: var(--bg-panel);
+}
+
+[data-wms-analytical-layer] .impetus-card {
+  background: var(--bg-panel);
+}

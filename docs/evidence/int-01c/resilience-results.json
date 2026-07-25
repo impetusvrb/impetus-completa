@@ -1,0 +1,150 @@
+{
+  "started_at": "2026-07-23T13:50:43.881Z",
+  "tests": [
+    {
+      "name": "Motor inicia em modo WATCH com baseline disponível",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "sensor_active=true após start()",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Baseline carregado: baseline_valid=true",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Motor para correctamente com stop()",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Esperado DEGRADED, got WATCH",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "sensor_active=true mesmo em DEGRADED",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Campo error não preenchido em DEGRADED",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "state.json mode=WATCH",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "state.json last_error ausente",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "Motor continua em WATCH com auditd indisponível (bridge degradado)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "HashChecker/PermChecker activos sem auditd",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Esperado DEGRADED, got WATCH",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "tryRecover() retornou false",
+      "status": "FAIL",
+      "detail": ""
+    },
+    {
+      "name": "Motor recupera para modo WATCH",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json actualizado para mode=WATCH após recuperação",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json last_error limpo após recuperação",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json stats.events_produced=10",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "state.json stats.events_persisted=10",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "events.jsonl contém 10 linhas, todas JSON válido",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Consistência: 10 eventos persistidos de ~8 esperados (sem perda)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "3 ciclos arranque/paragem: state.json sempre consistente",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "IntegrityStateStore.readStateFile() retorna estado válido (Dashboard Service compatível)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "readStateFile() mode=WATCH (compatível com OBSERVADA no painel)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Campo violations presente (compatível com ATUOU no painel)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Campo ok=true (sistema íntegro)",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "resilience": {
+    "baseline_unavailable": "WATCH"
+  },
+  "recovery": {
+    "recovered": false,
+    "mode_after": "WATCH"
+  },
+  "consistency": {
+    "NO_EVENT_LOSS": true
+  },
+  "compatibility": {
+    "DASHBOARD_COMPATIBLE": true,
+    "INTELLIGENCE_COMPATIBLE": true,
+    "OBSERVATORY_COMPATIBLE": true,
+    "INCIDENT_COMPATIBLE": true
+  },
+  "finished_at": "2026-07-23T13:50:44.382Z",
+  "passed": 19,
+  "failed": 6,
+  "overall": "FAIL"
+}

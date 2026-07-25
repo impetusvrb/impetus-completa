@@ -31,38 +31,6 @@ function severityToImpact(severity) {
 export default function InsightsList({ insights = [], loading = false, onInsightClick }) {
   const [explainFor, setExplainFor] = useState(null);
 
-  const defaultInsights = [
-    {
-      id: 1,
-      type: 'alert',
-      severity: 'critical',
-      title: 'Risco de atraso em manutenção crítica',
-      impact: 'Alto Impacto',
-      reference: 'Ref: 259.XXX.007',
-      suggestion: 'Sugerido: Rever alocação de equipe'
-    },
-    {
-      id: 2,
-      type: 'opportunity',
-      severity: 'medium',
-      title: 'Oportunidade de otimização de consumo',
-      impact: 'Médio Impacto',
-      reference: 'Ref: 153.XXX.007',
-      suggestion: 'Sugerido: Ajustar configuração B1'
-    },
-    {
-      id: 3,
-      type: 'alert',
-      severity: 'high',
-      title: 'Anomalia detectada: Pico de temperatura',
-      impact: 'Alto Impacto',
-      reference: 'Ref: 139.XXX.007',
-      suggestion: 'Inspecionar setor Ar'
-    }
-  ];
-
-  const displayInsights = insights.length > 0 ? insights : defaultInsights;
-
   const getIcon = (type) => {
     if (type === 'opportunity') return Info;
     return AlertCircle;
@@ -177,7 +145,15 @@ export default function InsightsList({ insights = [], loading = false, onInsight
       )}
 
       <div className="insights-list">
-        {displayInsights.map((insight) => {
+        {insights.length === 0 ? (
+          <div className="insights-empty-state" role="status">
+            <Info size={20} aria-hidden />
+            <div>
+              <strong>Dados de insights indisponíveis</strong>
+              <p>Risco não avaliado. A ausência de dados não significa ausência de risco.</p>
+            </div>
+          </div>
+        ) : insights.map((insight) => {
           const Icon = getIcon(insight.type);
           const severityClass = getSeverityClass(insight.severity);
           const impact = insight.impact || severityToImpact(insight.severity);

@@ -51,11 +51,49 @@ import CognitivePresenceShell from './cognitiveEcosystem/CognitivePresenceShell'
 import CognitiveCollapsibleSection from './cognitiveEcosystem/CognitiveCollapsibleSection';
 import CognitiveMobileStripSlot from './cognitiveEcosystem/CognitiveMobileStripSlot';
 import CognitiveDesktopStripSlot from './cognitiveEcosystem/CognitiveDesktopStripSlot';
+import CognitiveOmniPresence from './cognitiveEcosystem/CognitiveOmniPresence';
+import useViewportTier from './cognitiveEcosystem/useViewportTier';
 import { CognitiveOmniHeader } from './cognitiveEcosystem/CognitiveOmniPresence';
 import AdaptiveOperationalShell from './cognitiveEcosystem/AdaptiveOperationalShell';
 import CognitiveLiveTicker from './cognitiveEcosystem/CognitiveLiveTicker';
 import { CognitiveOmniRail } from './cognitiveEcosystem/CognitiveOmniPresence';
 import StructuralIdentityBanner from './StructuralIdentityBanner';
+import QualityNativeCockpitPromotion from './QualityNativeCockpitPromotion';
+import LogisticsNativeCockpitPromotion from './LogisticsNativeCockpitPromotion';
+import PpapNativeCockpitPromotion from './PpapNativeCockpitPromotion';
+import MsaNativeCockpitPromotion from './MsaNativeCockpitPromotion';
+import IshikawaNativeCockpitPromotion from './IshikawaNativeCockpitPromotion';
+import WmsOperationalCcExposure from './WmsOperationalCcExposure';
+import SupplyNativeCockpitPromotion from './SupplyNativeCockpitPromotion';
+import {
+  resolveSpecializedCockpitRuntime,
+  resolveLogisticsCockpitRuntime,
+  resolvePpapCockpitRuntime,
+  resolveMsaCockpitRuntime,
+  resolveIshikawaCockpitRuntime,
+  resolveSupplyCockpitRuntime
+} from '../../../cognitiveRuntime/cockpit/specializedCockpitResolver.js';
+import {
+  QUALITY_PLACEHOLDER_WIDGET_IDS,
+  shouldSuppressPlaceholderWidgets
+} from '../../../cognitiveRuntime/cockpit/qualityNativeCockpitRegistry.js';
+import {
+  LOGISTICS_PLACEHOLDER_WIDGET_IDS,
+  shouldSuppressLogisticsPlaceholderWidgets
+} from '../../../cognitiveRuntime/cockpit/logisticsNativeCockpitRegistry.js';
+import {
+  PPAP_PLACEHOLDER_WIDGET_IDS,
+  shouldSuppressPpapPlaceholderWidgets
+} from '../../../cognitiveRuntime/cockpit/ppapNativeCockpitRegistry.js';
+import {
+  MSA_PLACEHOLDER_WIDGET_IDS,
+  shouldSuppressMsaPlaceholderWidgets
+} from '../../../cognitiveRuntime/cockpit/msaNativeCockpitRegistry.js';
+import {
+  ISHIKAWA_PLACEHOLDER_WIDGET_IDS,
+  shouldSuppressIshikawaPlaceholderWidgets
+} from '../../../cognitiveRuntime/cockpit/ishikawaNativeCockpitRegistry.js';
+import { shouldSuppressSupplyPlaceholderWidgets } from '../../../cognitiveRuntime/cockpit/supplyNativeCockpitRegistry.js';
 import './CentroComando.css';
 
 /** Painel lateral cognitivo — IA, alertas, insights (ordem fixa de leitura). */
@@ -116,7 +154,9 @@ export default function CentroComando() {
 
   const [liveSurface, setLiveSurface] = useState(null);
   const [warRoomMode, setWarRoomMode] = useState('normal');
+  const [continuityRefreshMount, setContinuityRefreshMount] = useState(null);
   const layoutTrackSig = useRef('');
+  const viewportTier = useViewportTier();
 
   // DashboardContextAdapter: prefere engine_v2 → personalizado → LayoutPorCargo (fallback).
   // Mantém compatibilidade total com o fluxo anterior.
@@ -128,41 +168,68 @@ export default function CentroComando() {
 
   useEffect(() => {
     if (bootPhase < 2) return undefined;
-    dashboard.getLiveSurface()
-      .then((r) => {
-        if (r?.data?.ok && r?.data?.surface) setLiveSurface(r.data.surface);
-      })
-      .catch(() => {});
-    return undefined;
-  }, [bootPhase]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (bootPhase < 2) return undefined;
-    const token = localStorage.getItem('impetus_token');
-    if (!token) return undefined;
-
-    const streamUrl = `/api/dashboard/live-surface/stream?token=${encodeURIComponent(token)}`;
-    const sse = new EventSource(streamUrl);
-
-    sse.addEventListener('surface', (evt) => {
-      try {
-        const parsed = JSON.parse(evt.data || '{}');
-        if (parsed?.ok && parsed?.surface) setLiveSurface(parsed.surface);
-      } catch {
-        // ignora payload invalido
-      }
-    });
-
-    sse.onerror = () => {
-      sse.close();
+    const loadSurface = () => {
+      dashboard.getLiveSurface()
+        .then((r) => {
+          if (cancelled) return;
+          if (r?.data?.ok && r?.data?.surface) setLiveSurface(r.data.surface);
+        })
+        .catch(() => {
+          // INC-004: manter last-known-good; erros de rede não devem apagar o painel.
+        });
     };
 
+    loadSurface();
+    // Refresh REST periódico (ex-SSE). O endpoint /live-surface/stream requer
+    // token em querystring, incompatível com o hardening enterprise em vigor
+    // (IMPETUS_ALLOW_TOKEN_IN_QUERY=false). O polling REST usa Authorization
+    // Bearer via interceptor e cobre o mesmo caso de uso.
+    const id = setInterval(loadSurface, 15000);
     return () => {
-      sse.close();
+      cancelled = true;
+      clearInterval(id);
     };
   }, [bootPhase]);
 
   const widgets = useMemo(() => (Array.isArray(dashboardCtx?.widgets) ? dashboardCtx.widgets : []), [dashboardCtx]);
+
+  const qualityNativeCockpit = useMemo(
+    () => resolveSpecializedCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const logisticsNativeCockpit = useMemo(
+    () => resolveLogisticsCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const ppapNativeCockpit = useMemo(
+    () => resolvePpapCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const msaNativeCockpit = useMemo(
+    () => resolveMsaCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const ishikawaNativeCockpit = useMemo(
+    () => resolveIshikawaCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const supplyNativeCockpit = useMemo(
+    () => resolveSupplyCockpitRuntime(mePayload || {}),
+    [mePayload]
+  );
+  const qualityNativeActive = shouldSuppressPlaceholderWidgets(qualityNativeCockpit?.runtime);
+  const logisticsNativeActive = shouldSuppressLogisticsPlaceholderWidgets(logisticsNativeCockpit?.runtime);
+  const ppapNativeActive = shouldSuppressPpapPlaceholderWidgets(ppapNativeCockpit?.runtime);
+  const msaNativeActive = shouldSuppressMsaPlaceholderWidgets(msaNativeCockpit?.runtime);
+  const ishikawaNativeActive = shouldSuppressIshikawaPlaceholderWidgets(ishikawaNativeCockpit?.runtime);
+  const supplyNativeActive = shouldSuppressSupplyPlaceholderWidgets(supplyNativeCockpit?.runtime);
+  const qualityPlaceholderSet = useMemo(() => new Set(QUALITY_PLACEHOLDER_WIDGET_IDS), []);
+  const logisticsPlaceholderSet = useMemo(() => new Set(LOGISTICS_PLACEHOLDER_WIDGET_IDS), []);
+  const ppapPlaceholderSet = useMemo(() => new Set(PPAP_PLACEHOLDER_WIDGET_IDS), []);
+  const msaPlaceholderSet = useMemo(() => new Set(MSA_PLACEHOLDER_WIDGET_IDS), []);
+  const ishikawaPlaceholderSet = useMemo(() => new Set(ISHIKAWA_PLACEHOLDER_WIDGET_IDS), []);
 
   useEffect(() => {
     if (!widgets?.length || !user?.id || !user?.company_id) return;
@@ -215,12 +282,19 @@ export default function CentroComando() {
         : [];
 
   const showUnifiedLive = canAccessLiveDashboardUser(user);
+  const execContinuityLayout = viewportTier.isDesktop && showUnifiedLive;
 
   const { mainWidgets, sidebarWidgets } = useMemo(() => {
     const main = [];
     const side = [];
     const sideBuckets = Object.fromEntries(SIDEBAR_WIDGET_IDS.map((id) => [id, null]));
     for (const w of widgets) {
+      if (qualityNativeActive && qualityPlaceholderSet.has(w.id)) continue;
+      if (logisticsNativeActive && logisticsPlaceholderSet.has(w.id)) continue;
+      if (ppapNativeActive && ppapPlaceholderSet.has(w.id)) continue;
+      if (msaNativeActive && msaPlaceholderSet.has(w.id)) continue;
+      if (ishikawaNativeActive && ishikawaPlaceholderSet.has(w.id)) continue;
+      if (w.collapsed_generic === true || w.visible === false) continue;
       if (SIDEBAR_WIDGET_SET.has(w.id)) {
         sideBuckets[w.id] = w;
       } else {
@@ -229,14 +303,14 @@ export default function CentroComando() {
     }
     const orderedSide = SIDEBAR_WIDGET_IDS.map((id) => sideBuckets[id]).filter(Boolean);
     return { mainWidgets: main, sidebarWidgets: orderedSide };
-  }, [widgets]);
+  }, [widgets, qualityNativeActive, qualityPlaceholderSet, logisticsNativeActive, logisticsPlaceholderSet, ppapNativeActive, ppapPlaceholderSet, msaNativeActive, msaPlaceholderSet, ishikawaNativeActive, ishikawaPlaceholderSet]);
 
   const renderWidget = (w) => {
     const Component = getWidgetComponent(w.id);
     if (!Component) return null;
     const span = w.position?.width === 2 ? 2 : 1;
     return (
-      <div key={w.id} className="cc__cell cc__cell--alive" style={{ gridColumn: `span ${span}` }}>
+      <div key={w.id} className="cc__cell cc__cell--alive" data-whisper-focus-surface style={{ gridColumn: `span ${span}` }}>
         {w.id === 'pergunte_ia' ? (
           <WidgetPergunteIA title={iaWidgetTitle} exampleHints={iaExampleHints} />
         ) : (
@@ -249,19 +323,40 @@ export default function CentroComando() {
   return (
     <Layout>
       <CognitivePulseProvider>
-      <CognitivePresenceShell warRoomMode={warRoomMode} onModeChange={setWarRoomMode}>
+      <CognitivePresenceShell
+        warRoomMode={warRoomMode}
+        onModeChange={setWarRoomMode}
+        suppressOmniPresence
+      >
       <div
         className={`cc cc--premium cc--mode-${warRoomMode} cc--cognitive-alive`}
         data-cognitive-alive="true"
       >
-        {showUnifiedLive && (
-          <ModuleErrorBoundary moduleName="Painel vivo">
-            <LiveDashboardUnifiedPanel variant="exec" />
-          </ModuleErrorBoundary>
+        {/* INC-012/013R: core no topo; omni como sibling independente (normal flow) */}
+        <div className="cc-top-cognitive-presence" aria-label="Presença cognitiva IMPETUS">
+          <CognitiveMobileStripSlot />
+          <CognitiveDesktopStripSlot />
+        </div>
+
+        {/* INC-015: continuidade horizontal desktop (omni + mensagem + Atualizar) */}
+        {execContinuityLayout ? (
+          <div className="cc-cognitive-continuity-row">
+            <CognitiveOmniPresence scrollPersistence />
+            <div ref={setContinuityRefreshMount} className="cc-cognitive-continuity-action" />
+          </div>
+        ) : (
+          <CognitiveOmniPresence scrollPersistence={false} />
         )}
 
-        <CognitiveMobileStripSlot />
-        <CognitiveDesktopStripSlot />
+        {showUnifiedLive && (
+          <ModuleErrorBoundary moduleName="Painel vivo">
+            <LiveDashboardUnifiedPanel
+              variant="exec"
+              execContinuityLayout={execContinuityLayout}
+              refreshMountEl={continuityRefreshMount}
+            />
+          </ModuleErrorBoundary>
+        )}
 
         <CentroComandoCommandHeader
           user={user}
@@ -311,10 +406,81 @@ export default function CentroComando() {
             <div className="cc__section-label">
               <span>// CENTRO OPERACIONAL</span>
               <span className="cc__section-meta">
-                {mainWidgets.length} módulos · motor {dashboardCtx?.source || 'contextual'}
+                {qualityNativeActive
+                  ? `quality_native · ${qualityNativeCockpit?.centers?.length ?? 0} centers`
+                  : logisticsNativeActive
+                    ? `logistics_native · ${logisticsNativeCockpit?.centers?.length ?? 0} centers`
+                    : ppapNativeActive
+                      ? `ppap_native · ${ppapNativeCockpit?.centers?.length ?? 0} centers`
+                      : msaNativeActive
+                        ? `msa_native · ${msaNativeCockpit?.centers?.length ?? 0} centers`
+                        : ishikawaNativeActive
+                          ? `ishikawa_native · ${ishikawaNativeCockpit?.centers?.length ?? 0} centers`
+                          : supplyNativeActive
+                            ? `supply_native · ${supplyNativeCockpit?.centers?.length ?? 0} centers`
+                            : `${mainWidgets.length} módulos · motor ${dashboardCtx?.source || 'contextual'}`}
               </span>
             </div>
             <div className="cc__grid cc__grid--main cc__grid--alive">
+              {qualityNativeActive ? (
+                <ModuleErrorBoundary moduleName="Qualidade Z.23">
+                  <QualityNativeCockpitPromotion
+                    centers={qualityNativeCockpit?.centers || []}
+                    companyId={user?.company_id}
+                    runtime={qualityNativeCockpit?.runtime}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
+              {logisticsNativeActive ? (
+                <ModuleErrorBoundary moduleName="Logística Z.23">
+                  <LogisticsNativeCockpitPromotion
+                    centers={logisticsNativeCockpit?.centers || []}
+                    companyId={user?.company_id}
+                    runtime={logisticsNativeCockpit?.runtime}
+                    signalLoader={mePayload?.logistics_signal_loader}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
+              <WmsOperationalCcExposure />
+              {ppapNativeActive ? (
+                <ModuleErrorBoundary moduleName="PPAP Z.23">
+                  <PpapNativeCockpitPromotion
+                    centers={ppapNativeCockpit?.centers || []}
+                    companyId={user?.company_id}
+                    runtime={ppapNativeCockpit?.runtime}
+                    signalLoader={mePayload?.ppap_signal_loader}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
+              {msaNativeActive ? (
+                <ModuleErrorBoundary moduleName="MSA Z.23">
+                  <MsaNativeCockpitPromotion
+                    centers={msaNativeCockpit?.centers || []}
+                    companyId={user?.company_id}
+                    runtime={msaNativeCockpit?.runtime}
+                    signalLoader={mePayload?.msa_signal_loader}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
+              {ishikawaNativeActive ? (
+                <ModuleErrorBoundary moduleName="Ishikawa Z.23">
+                  <IshikawaNativeCockpitPromotion
+                    centers={ishikawaNativeCockpit?.centers || []}
+                    companyId={user?.company_id}
+                    runtime={ishikawaNativeCockpit?.runtime}
+                    signalLoader={mePayload?.ishikawa_signal_loader}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
+              {supplyNativeActive ? (
+                <ModuleErrorBoundary moduleName="Supply Z.23">
+                  <SupplyNativeCockpitPromotion
+                    centers={supplyNativeCockpit?.centers || []}
+                    runtime={supplyNativeCockpit?.runtime}
+                    signalLoader={mePayload?.supply_signal_loader}
+                  />
+                </ModuleErrorBoundary>
+              ) : null}
               {mainWidgets.map(renderWidget)}
             </div>
           </div>

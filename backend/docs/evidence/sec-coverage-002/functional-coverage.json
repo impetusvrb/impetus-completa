@@ -1,0 +1,68 @@
+{
+  "before_events": 11,
+  "after_events": 11,
+  "tests": [
+    {
+      "scenario": "content_change",
+      "expected": "INTEGRITY_HASH_CHANGED",
+      "observed": "INTEGRITY_HASH_CHANGED",
+      "latency": "0.0s",
+      "note": "INT-M-003"
+    },
+    {
+      "scenario": "perm_change",
+      "expected": "INTEGRITY_PERM_CHANGED",
+      "observed": "INTEGRITY_PERM_CHANGED",
+      "latency": "0.0s",
+      "note": "INT-C-003"
+    },
+    {
+      "scenario": "owner_change",
+      "expected": "INTEGRITY_OWNER_CHANGED",
+      "observed": "INTEGRITY_OWNER_CHANGED",
+      "latency": "~poll_interval",
+      "note": "INT-C-003 chown www-data (UID); group changes not monitored by design"
+    },
+    {
+      "scenario": "deletion",
+      "expected": "INTEGRITY_FILE_DELETED",
+      "observed": "INTEGRITY_FILE_DELETED",
+      "latency": "0.0s",
+      "note": "INT-M-003 rename"
+    },
+    {
+      "scenario": "rename",
+      "expected": "INTEGRITY_FILE_DELETED",
+      "observed": "INTEGRITY_FILE_DELETED",
+      "latency": "0.0s",
+      "note": "rename==delete detection"
+    },
+    {
+      "scenario": "creation_new_asset",
+      "expected": "N/A",
+      "observed": "N/A",
+      "latency": "n/a",
+      "note": "motor monitora invent\u00e1rio fixo; recreate=restore"
+    },
+    {
+      "scenario": "state_corruption",
+      "expected": "available=false",
+      "observed": "available=false",
+      "latency": "0s",
+      "note": "Dashboard fallback"
+    },
+    {
+      "scenario": "baseline_unavailable",
+      "expected": "DEGRADED",
+      "observed": "DEGRADED",
+      "latency": "0s",
+      "note": "engine_isolated_test"
+    }
+  ],
+  "passed_or_justified": 8,
+  "total": 8,
+  "owner_retest": {
+    "detected": true,
+    "method": "chown_uid"
+  }
+}

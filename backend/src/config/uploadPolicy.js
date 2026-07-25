@@ -13,6 +13,7 @@ const MODULE_LIMITS_MB = Object.freeze({
   dashboard_chat: parseInt(process.env.IMPETUS_CHAT_UPLOAD_MAX_MB || '15', 10),
   dashboard_chat_image: parseInt(process.env.IMPETUS_CHAT_IMAGE_MAX_MB || '5', 10),
   chat_internal: parseInt(process.env.IMPETUS_CHAT_INTERNAL_MAX_MB || '50', 10),
+  manuals_legacy: parseInt(process.env.IMPETUS_MANUALS_UPLOAD_MAX_MB || '50', 10),
   registro_inteligente: parseInt(process.env.IMPETUS_REGISTRO_UPLOAD_MAX_MB || '15', 10),
   cadastrar_com_ia: parseInt(process.env.IMPETUS_CADASTRO_IA_UPLOAD_MAX_MB || '15', 10),
   technical_library: parseInt(process.env.IMPETUS_TECH_LIB_UPLOAD_MAX_MB || '120', 10),
@@ -46,7 +47,8 @@ const MIME_GROUPS = Object.freeze({
     'text/plain',
     'text/csv'
   ],
-  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac', 'audio/webm', 'audio/x-m4a']
+  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac', 'audio/webm', 'audio/x-m4a'],
+  video: ['video/mp4', 'video/webm', 'video/quicktime']
 });
 
 function getMaxBytes(moduleKey = 'default') {
@@ -64,10 +66,14 @@ function isExtensionAllowed(ext, groups = ['image', 'document', 'audio']) {
   return groups.some((g) => (EXT_GROUPS[g] || []).includes(normalized));
 }
 
-function isMimeAllowed(mime, groups = ['image', 'document', 'audio']) {
+function isMimeAllowed(mime, groups = ['image', 'document', 'audio'], ext = null) {
   const m = String(mime || '').toLowerCase().split(';')[0].trim();
   if (!m) return false;
-  if (m === 'application/octet-stream') return true;
+  if (m === 'application/octet-stream') {
+    const normalizedExt = String(ext || '').toLowerCase();
+    if (!normalizedExt.startsWith('.')) return false;
+    return isExtensionAllowed(normalizedExt, groups);
+  }
   return groups.some((g) => (MIME_GROUPS[g] || []).includes(m));
 }
 

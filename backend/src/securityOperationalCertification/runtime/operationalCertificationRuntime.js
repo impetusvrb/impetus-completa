@@ -21,6 +21,16 @@ function bootstrap() {
     };
   }
 
+  if (!flags.shouldSeedSyntheticIncidents()) {
+    console.log('[SEC-19] Certificação em modo shadow — simulações sintéticas desactivadas (sem alertas falsos)');
+    return {
+      ok: true,
+      enabled: true,
+      shadow: true,
+      message: 'SECURITY_OPERATIONAL_CERTIFICATION_SEED_INCIDENTS=false'
+    };
+  }
+
   if (bootstrapped) {
     return { ok: true, enabled: true, message: 'already bootstrapped' };
   }

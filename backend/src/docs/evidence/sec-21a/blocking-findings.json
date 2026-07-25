@@ -1,0 +1,42 @@
+[
+  {
+    "code": "INTEGRITY_BELOW_THRESHOLD",
+    "message": "Score 0 < 0.95",
+    "severity": "CRITICAL"
+  },
+  {
+    "code": "CRITICAL_FILE_DIVERGENCE",
+    "items": [
+      {
+        "path": "backend/src/server.js",
+        "issue": "HASH_MISMATCH",
+        "expected": "56f95db482d1",
+        "actual": "a2508783ee47"
+      },
+      {
+        "path": "infra/nginx/impetus-production.conf",
+        "issue": "HASH_MISMATCH",
+        "expected": "c595ff376d72",
+        "actual": "9b2c913fcc46"
+      },
+      {
+        "path": "infra/nginx/impetus-hardening-locations.conf",
+        "issue": "HASH_MISMATCH",
+        "expected": "1bcb48661eb3",
+        "actual": "943bc17a8cfa"
+      },
+      {
+        "path": "scripts/deploy-nginx-hardening.sh",
+        "issue": "HASH_MISMATCH",
+        "expected": "6cb47e5cb96f",
+        "actual": "94fd459cb8f0"
+      },
+      {
+        "path": "/etc/nginx/sites-available/impetus",
+        "issue": "HASH_MISMATCH",
+        "expected": "c595ff376d72",
+        "actual": "9b2c913fcc46"
+      }
+    ]
+  }
+]

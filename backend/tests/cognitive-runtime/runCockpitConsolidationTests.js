@@ -160,8 +160,14 @@ async function testFacade() {
     PAYLOAD,
     { force_cockpit_consolidation: true, force_render_promotion: true, force_specialized_enrich: true }
   );
-  const scr = out.cognitive_runtime_report?.specialized_cockpit_runtime || out.payload.specialized_cockpit_runtime;
-  assert(scr?.consolidation_applied === true || out.cognitive_runtime_report?.specialized_cockpit_preview, 'facade z23');
+  const reportRuntime = out.cognitive_runtime_report?.specialized_cockpit_runtime;
+  const payloadRuntime = out.payload?.specialized_cockpit_runtime;
+  assert(reportRuntime?.consolidation_applied === true, 'facade z23 report runtime');
+  assert(payloadRuntime?.consolidation_applied === true, 'facade z23 payload runtime (INC-030)');
+  assert(
+    payloadRuntime?.cockpit_mode === reportRuntime?.cockpit_mode,
+    'payload runtime matches report'
+  );
 }
 
 async function run() {

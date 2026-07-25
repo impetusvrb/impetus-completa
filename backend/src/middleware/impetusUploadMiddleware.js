@@ -32,9 +32,9 @@ function createUploadMiddleware(opts = {}) {
     limits: { fileSize: uploadPolicy.getMaxBytes(moduleKey) },
     fileFilter: (_req, file, cb) => {
       const ext = path.extname(file.originalname || '').toLowerCase();
-      const mimeOk = uploadPolicy.isMimeAllowed(file.mimetype, allowedGroups);
+      const mimeOk = uploadPolicy.isMimeAllowed(file.mimetype, allowedGroups, ext);
       const extOk = uploadPolicy.isExtensionAllowed(ext, allowedGroups);
-      if (!mimeOk && !extOk) {
+      if (!mimeOk || !extOk) {
         const err = new Error('Formato de arquivo não suportado.');
         err.code = 'INVALID_TYPE';
         return cb(err);

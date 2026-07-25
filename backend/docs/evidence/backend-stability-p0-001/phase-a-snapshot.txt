@@ -1,0 +1,135 @@
+Tue Jul 14 12:57:38 UTC 2026
+---
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           794M  1.2M  793M   1% /run
+/dev/sda1        97G   93G  3.9G  97% /
+tmpfs           3.9G   28K  3.9G   1% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/sda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           794M   36K  794M   1% /run/user/0
+---
+Filesystem       Inodes  IUsed    IFree IUse% Mounted on
+tmpfs           1015912    720  1015192    1% /run
+/dev/sda1      12902400 309510 12592890    3% /
+tmpfs           1015912      2  1015910    1% /dev/shm
+tmpfs           1015912      3  1015909    1% /run/lock
+/dev/sda15            0      0        0     - /boot/efi
+tmpfs            203182     36   203146    1% /run/user/0
+---
+               total        used        free      shared  buff/cache   available
+Mem:           7.8Gi       1.7Gi       128Mi       141Mi       6.0Gi       5.6Gi
+Swap:             0B          0B          0B
+---
+ 12:57:38 up 8 days, 20:38,  0 users,  load average: 0.61, 0.43, 0.67
+┌────┬───────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 9  │ impetus-admin-portal      │ default     │ N/A     │ fork    │ 1458915  │ 18h    │ 1    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 3  │ impetus-backend           │ default     │ 0.1.0   │ fork    │ 1571021  │ 35m    │ 21   │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 6  │ impetus-edge-agent-lab    │ default     │ 0.1.0   │ fork    │ 1426585  │ 24h    │ 1    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 2  │ impetus-frontend          │ default     │ N/A     │ fork    │ 1480889  │ 15h    │ 5    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 4  │ impetus-lab-modbus        │ default     │ 0.1.0   │ fork    │ 1426467  │ 24h    │ 0    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 7  │ impetus-lab-oidc          │ default     │ 0.1.0   │ fork    │ 1426475  │ 24h    │ 0    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 5  │ impetus-lab-opcua         │ default     │ 0.1.0   │ fork    │ 1426473  │ 24h    │ 0    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 8  │ impetus-lab-smtp          │ default     │ 0.1.0   │ fork    │ 1426476  │ 24h    │ 0    │ online    │ 0%       │ 0b       │ root     │ disabled │
+│ 1  │ lipsync-api               │ default     │ N/A     │ fork    │ N/A      │ 24h    │ 0    │ online    │ 0%       │ 0b       │ root     │ disabled │
+└────┴───────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 0  │ pm2-logrotate                │ 3.0.0         │ 1426448  │ online   │ 0    │ 0%       │ 0b       │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+---PM2 DESCRIBE---
+ Describing process with id 3 - name impetus-backend 
+┌───────────────────┬─────────────────────────────────────────────────┐
+│ status            │ online                                          │
+│ name              │ impetus-backend                                 │
+│ namespace         │ default                                         │
+│ version           │ 0.1.0                                           │
+│ restarts          │ 21                                              │
+│ uptime            │ 35m                                             │
+│ script path       │ /var/www/impetus-completa/backend/src/server.js │
+│ script args       │ N/A                                             │
+│ error log path    │ /root/.pm2/logs/impetus-backend-error.log       │
+│ out log path      │ /root/.pm2/logs/impetus-backend-out.log         │
+│ pid path          │ /root/.pm2/pids/impetus-backend-3.pid           │
+│ interpreter       │ node                                            │
+│ interpreter args  │ N/A                                             │
+│ script id         │ 3                                               │
+│ exec cwd          │ /var/www/impetus-completa/backend               │
+│ exec mode         │ fork_mode                                       │
+│ node.js version   │ 20.20.0                                         │
+│ node env          │ development                                     │
+│ watch & reload    │ ✘                                               │
+│ unstable restarts │ 0                                               │
+│ created at        │ 2026-07-14T00:35:45.660Z                        │
+└───────────────────┴─────────────────────────────────────────────────┘
+Process configuration
+┌────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PGPASSWORD     │ Impetus91043066@                                                                                                                                                     │
+│ DB_PASSWORD    │ Impetus91043066@                                                                                                                                                     │
+│ DB_USER        │ postgres                                                                                                                                                             │
+│ DB_NAME        │ impetus_db                                                                                                                                                           │
+│ DB_PORT        │ 5432                                                                                                                                                                 │
+│ DB_HOST        │ 127.0.0.1                                                                                                                                                            │
+│ OPENAI_API_KEY │ sk-proj-***REDACTED*** │
+└────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ Actions available 
+┌────────────────────────┐
+│ km:heapdump            │
+│ km:cpu:profiling:start │
+│ km:cpu:profiling:stop  │
+│ km:heap:sampling:start │
+│ km:heap:sampling:stop  │
+└────────────────────────┘
+ Trigger via: pm2 trigger impetus-backend <action_name>
+
+ Code metrics value 
+┌────────────────────────┬──────────────┐
+│ Used Heap Size         │ 380.85 MiB   │
+│ Heap Usage             │ 77.57 %      │
+│ Heap Size              │ 490.97 MiB   │
+│ Event Loop Latency p95 │ 287.30 ms    │
+│ Event Loop Latency     │ 0.49 ms      │
+│ Active handles         │ 20           │
+│ Active requests        │ 0            │
+│ HTTP                   │ 0.23 req/min │
+│ HTTP P95 Latency       │ 80 ms        │
+│ HTTP Mean Latency      │ 5 ms         │
+└────────────────────────┴──────────────┘
+ Divergent env variables from local env 
+┌─────────────────────┬──────────────────────────────────────────────────────────────────┐
+│ SSH_CONNECTION      │ 186.225.69.253 39081 72.61.221.152 22                            │
+│ XDG_SESSION_ID      │ 14485                                                            │
+│ SSH_CLIENT          │ 186.225.69.253 39081 22                                          │
+│ VSCODE_IPC_HOOK_CLI │ /run/user/0/vscode-ipc-8e4f945e-e612-455a-96a6-f41bffd43bf2.sock │
+└─────────────────────┴──────────────────────────────────────────────────────────────────┘
+
+ Add your own code metrics: http://bit.ly/code-metrics
+ Use `pm2 logs impetus-backend [--lines 1000]` to display logs
+ Use `pm2 env 3` to display environment variables
+ Use `pm2 monit` to monitor CPU and Memory usage impetus-backend
+---SS---
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                                            
+LISTEN 0      244        127.0.0.1:5432       0.0.0.0:*    users:(("postgres",pid=825,fd=6))                                                 
+LISTEN 0      511        127.0.0.1:38073      0.0.0.0:*    users:(("node",pid=1571536,fd=21))                                                
+LISTEN 0      511        127.0.0.1:1025       0.0.0.0:*    users:(("node /var/www/i",pid=1426476,fd=21))                                     
+LISTEN 0      511        127.0.0.1:1080       0.0.0.0:*    users:(("node /var/www/i",pid=1426476,fd=20))                                     
+LISTEN 0      511        127.0.0.1:5174       0.0.0.0:*    users:(("node",pid=1458927,fd=18))                                                
+LISTEN 0      100        127.0.0.1:1883       0.0.0.0:*    users:(("mosquitto",pid=779,fd=5))                                                
+LISTEN 0      100        127.0.0.1:502        0.0.0.0:*    users:(("python3",pid=1426467,fd=7))                                              
+LISTEN 0      511          0.0.0.0:3000       0.0.0.0:*    users:(("node",pid=1480903,fd=18))                                                
+LISTEN 0      511        127.0.0.1:37109      0.0.0.0:*    users:(("node",pid=1571577,fd=21))                                                
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=691,fd=14))                                         
+LISTEN 0      511        127.0.0.1:8080       0.0.0.0:*    users:(("node /var/www/i",pid=1426475,fd=19))                                     
+LISTEN 0      511        127.0.0.1:4000       0.0.0.0:*    users:(("node /var/www/i",pid=1571021,fd=19))                                     
+LISTEN 0      128          0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=793,fd=3))                                                     
+LISTEN 0      511          0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=478212,fd=7),("nginx",pid=478211,fd=7),("nginx",pid=815,fd=7))
+LISTEN 0      511          0.0.0.0:443        0.0.0.0:*    users:(("nginx",pid=478212,fd=9),("nginx",pid=478211,fd=9),("nginx",pid=815,fd=9))
+LISTEN 0      100            [::1]:1883          [::]:*    users:(("mosquitto",pid=779,fd=6))                                                
+LISTEN 0      244            [::1]:5432          [::]:*    users:(("postgres",pid=825,fd=5))                                                 
+LISTEN 0      511                *:4840             *:*    users:(("node /var/www/i",pid=1426473,fd=19))                                     
+LISTEN 0      128             [::]:22            [::]:*    users:(("sshd",pid=793,fd=4))                                                     
+LISTEN 0      511             [::]:80            [::]:*    users:(("nginx",pid=478212,fd=8),("nginx",pid=478211,fd=8),("nginx",pid=815,fd=8))
+LISTEN 0      511             [::]:443           [::]:*    users:(("nginx",pid=478212,fd=10),("nginx",pid=478211,fd=10),("nginx",pid=815,fd=10))

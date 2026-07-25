@@ -1,0 +1,73 @@
+{
+  "generated_at_utc": "2026-07-13T15:50:00.000Z",
+  "status": "AWAITING_EXTERNAL_ARCHIVE_VALIDATION",
+  "packages": [
+    {
+      "filename": "IMPETUS_FORENSIC_EVIDENCE_2026_07.tar.gz",
+      "path": "backend/docs/evidence/storage-remediation/export-staging/IMPETUS_FORENSIC_EVIDENCE_2026_07.tar.gz",
+      "size_bytes": 56320,
+      "sha256": "1c98ebbb7fa1be5bc29f94b8be00c1a14f5004cd8a0abb9dfe6553e0e3e17b36",
+      "classification": "INCIDENT_EVIDENCE",
+      "encrypted": false,
+      "contents_summary": "P0 audit report, forensic manifests, nginx/fail2ban/auth logs"
+    },
+    {
+      "filename": "IMPETUS_FORENSIC_PM2_LOGS_2026_07.tar.gz",
+      "path": "backend/docs/evidence/storage-remediation/export-staging/IMPETUS_FORENSIC_PM2_LOGS_2026_07.tar.gz",
+      "size_bytes": 63963136,
+      "sha256": "e0f4e2080fc5ee8f4a6acc02c7684a09102de29a61906513b1c1078992bf7fd6",
+      "classification": "INCIDENT_EVIDENCE",
+      "encrypted": false,
+      "contents_summary": "PM2 logs including OOM window Jul 11-13"
+    },
+    {
+      "filename": "IMPETUS_SECURITY_CERTIFICATIONS_2026.tar.gz",
+      "path": "backend/docs/evidence/storage-remediation/export-staging/IMPETUS_SECURITY_CERTIFICATIONS_2026.tar.gz",
+      "size_bytes": 1363148,
+      "sha256": "5a2e372f99966fe54f6b4e59cd0b1631b96f6f01b5db5fe63dbfa515d211b848",
+      "classification": "CERTIFICATION_EVIDENCE",
+      "encrypted": false,
+      "file_count_approx": 6010,
+      "contents_summary": "backend/docs/evidence (SEC, APPSEC, GO-LIVE, admin-portal-security)"
+    }
+  ],
+  "package_c_secret_backups": {
+    "filename": "IMPETUS_SECRET_BACKUPS_2026.ENCRYPTED",
+    "status": "STOP_SECRET_ARCHIVE_REQUIRES_HUMAN_KEY",
+    "reason": "40 secret-bearing .env backup files identified. Strong encryption requires human-provided key. Cannot embed key in repo/report.",
+    "paths_inventory": "See FORENSIC_MANIFEST_2026_07_13.json entries with classification SECRET_BEARING_BACKUP",
+    "active_runtime_preserved": "/var/www/impetus-completa/backend/.env — NOT included in open archive"
+  },
+  "deferred_external_transfer_large": [
+    {
+      "path": "/var/lib/apport/coredump/",
+      "size": "11G",
+      "classification": "INCIDENT_EVIDENCE",
+      "sha256_manifest": "APPORT_CORE_SHA256_MANIFEST.txt",
+      "transfer_method": "scp/rsync direct to external 1TB storage — do NOT delete VPS copies until EXTERNAL_ARCHIVE_VALIDATED"
+    },
+    {
+      "path": "/var/www/impetus-completa/backend/backups/checkpoint_2026-06-26T1622.sql",
+      "size": "19G",
+      "classification": "DATABASE_BACKUP",
+      "sha256": "DEFERRED_LARGE_FILE",
+      "transfer_method": "scp/rsync direct — retain until external copy validated"
+    },
+    {
+      "path": "/var/www/impetus-completa/backend/backups/backup_20260701_000949/database.dump",
+      "size": "2.3G",
+      "classification": "DATABASE_BACKUP",
+      "transfer_method": "scp/rsync direct"
+    }
+  ],
+  "transfer_instructions": [
+    "1. From authorized workstation: scp -r root@VPS:/var/www/impetus-completa/backend/docs/evidence/storage-remediation/export-staging/ ./IMPETUS_EXPORT/",
+    "2. scp root@VPS:/var/lib/apport/coredump/* ./IMPETUS_EXPORT/apport_cores/",
+    "3. scp root@VPS:/var/www/impetus-completa/backend/backups/checkpoint_2026-06-26T1622.sql ./IMPETUS_EXPORT/",
+    "4. Copy all to 1TB external drive",
+    "5. sha256sum each file on external drive",
+    "6. Compare with this manifest",
+    "7. Confirm: EXTERNAL_ARCHIVE_VALIDATED=true before any VPS deletion of originals"
+  ],
+  "external_archive_validated": false
+}

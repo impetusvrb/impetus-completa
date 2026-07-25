@@ -20,7 +20,11 @@ function assert(c, m) {
 
 assert(existsSync(hub), 'CognitiveQualityHub.jsx');
 assert(existsSync(flags), 'qualityCognitiveFeatureFlags.js');
+const hubSrc = readFileSync(hub, 'utf8');
+assert(!hubSrc.includes('function buildSignals'), 'no demo buildSignals');
+assert(hubSrc.includes('qualityCognitiveRuntimeSignalAdapter'), 'runtime signal adapter wired');
 const wss = readFileSync(ws, 'utf8');
-assert(wss.includes('view=cognitive'), 'workspace liga ?view=cognitive');
+assert(wss.includes('?view='), 'workspace resolve view param');
+assert(wss.includes('cognitive: CognitiveQualityHub'), 'workspace maps cognitive view');
 assert(wss.includes('CognitiveQualityHub'), 'workspace lazy-load cognitive hub');
 console.log('OK quality-cognitive-runtime (frontend smoke)');

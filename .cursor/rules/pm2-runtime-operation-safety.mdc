@@ -1,0 +1,21 @@
+---
+description: Protege o runtime PM2 contra reinícios não autorizados ou repetitivos
+alwaysApply: true
+---
+
+# Segurança operacional PM2
+
+- Tratar `pm2 jlist`, `pm2 describe` e leitura saneada de logs como operações
+  permitidas de diagnóstico.
+- Não executar `pm2 restart`, `reload`, `start`, `startOrRestart`, `delete`,
+  `kill`, `save` ou `resurrect` sem autorização explícita do prompt para
+  mutar o ambiente vivo.
+- Testes, builds, health checks e alterações de código não autorizam restart
+  implícito.
+- Quando autorizado, usar `ecosystem.runtime.config.cjs --env production
+  --update-env`; usar `--only` para limitar aos processos alterados.
+- Executar no máximo um restart por processo por ciclo de validação, salvo
+  procedimento operacional explicitamente aprovado.
+- Validar health e política efetiva antes de qualquer `pm2 save`.
+- Nunca aumentar memória, timeout ou número de reinícios apenas para ocultar
+  crash; exigir evidência registrada no microciclo correspondente.

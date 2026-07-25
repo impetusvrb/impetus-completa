@@ -173,6 +173,24 @@ function _applyRoleDeniedModules(modules, ctx) {
 
 function _resolveDomainAxis(ctx) {
   try {
+    const profile = String(ctx?.dashboard_profile || '').toLowerCase();
+    const profileAxisHints = [
+      ['quality', 'quality'],
+      ['maintenance', 'maintenance'],
+      ['manutenc', 'maintenance'],
+      ['safety', 'safety'],
+      ['seguranc', 'safety'],
+      ['environment', 'environmental'],
+      ['ambient', 'environmental'],
+      ['logistic', 'logistics'],
+      ['production', 'production'],
+      ['producao', 'production'],
+      ['hr', 'hr'],
+      ['rh', 'hr']
+    ];
+    for (const [frag, axis] of profileAxisHints) {
+      if (profile.includes(frag)) return axis;
+    }
     const domainRegistry = require('../domainAuthority/registry/domainRegistry');
     const catalog = require('../config/functionalAreaCatalog');
     const raw =
@@ -345,6 +363,7 @@ async function buildModuleAccessContext(user) {
     nome: enrichedUser.name,
     email: enrichedUser.email,
     role: enrichedUser.role,
+    dashboard_profile: enrichedUser.dashboard_profile || null,
     hierarchy_level: hierarchyLevel,
     company_role_id: enrichedUser.company_role_id || null,
     functional_area: functionalArea,
@@ -376,6 +395,29 @@ async function buildModuleAccessContext(user) {
   };
 }
 
+function _profileHintMenuKeysFromProfile(dashboardProfile) {
+  const pc = String(dashboardProfile || '').toLowerCase();
+  const profileHints = [
+    ['quality', ['quality_intelligence', 'operational']],
+    ['maintenance', ['manuia', 'operational']],
+    ['manutenc', ['manuia', 'operational']],
+    ['safety', ['safety_intelligence', 'operational']],
+    ['seguranc', ['safety_intelligence', 'operational']],
+    ['environment', ['environment_intelligence', 'operational']],
+    ['ambient', ['environment_intelligence', 'operational']],
+    ['logistic', ['logistics_intelligence', 'operational']],
+    ['production', ['operational', 'quality_intelligence']],
+    ['producao', ['operational', 'quality_intelligence']],
+    ['hr', ['hr_intelligence', 'operational']],
+    ['rh', ['hr_intelligence', 'operational']]
+  ];
+  const keys = new Set();
+  for (const [frag, mods] of profileHints) {
+    if (pc.includes(frag)) mods.forEach((k) => keys.add(k));
+  }
+  return [...keys];
+}
+
 /**
  * Valida um módulo (menu_key ou module_id) contra o contexto estrutural.
  */
@@ -401,6 +443,41 @@ function validateModuleAccess(accessContext, moduleKeyOrId) {
   }
 
   if (!ctx.structural_complete) {
+    const axis = _resolveDomainAxis(ctx);
+    const axisKeys = (axis && FUNCTIONAL_AREA_TO_MENU_KEYS[axis]) || [];
+    if (axisKeys.includes(menuKey)) {
+      return {
+        allowed: true,
+        module_type: getModuleType(mod),
+        menu_key: menuKey,
+        bypass: 'domain_axis_structural_incomplete'
+      };
+    }
+    const pc = String(ctx.dashboard_profile || '').toLowerCase();
+    const profileHints = [
+      ['quality', ['quality_intelligence', 'operational']],
+      ['maintenance', ['manuia', 'operational']],
+      ['manutenc', ['manuia', 'operational']],
+      ['safety', ['safety_intelligence', 'operational']],
+      ['seguranc', ['safety_intelligence', 'operational']],
+      ['environment', ['environment_intelligence', 'operational']],
+      ['ambient', ['environment_intelligence', 'operational']],
+      ['logistic', ['logistics_intelligence', 'operational']],
+      ['production', ['operational', 'quality_intelligence']],
+      ['producao', ['operational', 'quality_intelligence']],
+      ['hr', ['hr_intelligence', 'operational']],
+      ['rh', ['hr_intelligence', 'operational']]
+    ];
+    for (const [frag, keys] of profileHints) {
+      if (pc.includes(frag) && keys.includes(menuKey)) {
+        return {
+          allowed: true,
+          module_type: getModuleType(mod),
+          menu_key: menuKey,
+          bypass: 'profile_structural_incomplete'
+        };
+      }
+    }
     return {
       allowed: false,
       reason: MSG_INCOMPLETE,
@@ -577,7 +654,8 @@ async function resolveForUser(user, legacyCandidates = []) {
   const candidates = [
     ...new Set([
       ...(Array.isArray(legacyCandidates) ? legacyCandidates : []),
-      ...(ctx.authorized_menu_keys || [])
+      ...(ctx.authorized_menu_keys || []),
+      ...(!ctx.structural_complete ? _profileHintMenuKeysFromProfile(enriched?.dashboard_profile) : [])
     ])
   ];
 

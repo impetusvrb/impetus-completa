@@ -55,6 +55,20 @@ function getDiagnostics() {
   };
 }
 
+/** Payload público — sem UUIDs de tenant nem URLs internas. */
+function getPublicDiagnostics() {
+  const pilots = flags.federationPilotTenants();
+  return {
+    enabled: flags.isFederationEnabled(),
+    mode: flags.federationMode(),
+    oidc: flags.isOidcEnabled(),
+    saml: flags.isSamlEnabled(),
+    scim: flags.isScimEnabled(),
+    pilot_only: flags.federationPilotOnly(),
+    pilot_tenant_count: pilots.length,
+  };
+}
+
 module.exports = {
   getEffectiveMode,
   isActiveForTenant,
@@ -63,4 +77,5 @@ module.exports = {
   isShadowOnly,
   assertTenantAccess,
   getDiagnostics,
+  getPublicDiagnostics,
 };

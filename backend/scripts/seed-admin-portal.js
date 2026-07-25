@@ -3,16 +3,18 @@
  * Cria usuário super_admin inicial do painel IMPETUS (equipe interna).
  * Executar APÓS admin_portal_migration.sql
  *
- * Uso: node scripts/seed-admin-portal.js
- * Email padrão: admin@impetus.local
- * Senha padrão: 123456  → TROCAR EM PRODUÇÃO IMEDIATAMENTE
+ * Uso: ADMIN_PORTAL_SEED_EMAIL=... ADMIN_PORTAL_SEED_PASSWORD=... node scripts/seed-admin-portal.js
  */
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const bcrypt = require('bcryptjs');
 const db = require('../src/db');
 
-const EMAIL = process.env.ADMIN_PORTAL_SEED_EMAIL || 'admin@impetus.local';
-const PASSWORD = process.env.ADMIN_PORTAL_SEED_PASSWORD || '123456';
+const EMAIL = String(process.env.ADMIN_PORTAL_SEED_EMAIL || '').trim();
+const PASSWORD = String(process.env.ADMIN_PORTAL_SEED_PASSWORD || '');
+
+if (!EMAIL || !PASSWORD) {
+  throw new Error('ADMIN_PORTAL_SEED_CREDENTIALS_NOT_CONFIGURED');
+}
 
 async function main() {
   const hash = bcrypt.hashSync(PASSWORD, 12);
@@ -27,7 +29,6 @@ async function main() {
     ['Administrador IMPETUS', EMAIL.toLowerCase(), hash]
   );
   console.log('[seed-admin-portal] Criado super_admin:', EMAIL);
-  console.log('[seed-admin-portal] ATENÇÃO: altere a senha padrão em produção (123456 é apenas desenvolvimento).');
   process.exit(0);
 }
 

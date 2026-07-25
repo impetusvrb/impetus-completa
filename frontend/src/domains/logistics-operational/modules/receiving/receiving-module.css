@@ -1,0 +1,107 @@
+.receiving-intelligence-panel,
+.receiving-dock-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.receiving-intelligence-grid,
+.receiving-dock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.receiving-intel-card,
+.receiving-dock-card {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.receiving-dock-card--occupied {
+  border-color: rgba(255, 170, 0, 0.35);
+}
+
+.receiving-dock-card--available {
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+.receiving-dock-card--queue {
+  border-color: rgba(0, 212, 255, 0.35);
+}
+
+.receiving-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.receiving-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.receiving-grid-summary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+.receiving-asn-panel {
+  margin-bottom: 10px;
+}
+
+.receiving-asn-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px 12px;
+}
+
+.receiving-asn-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.receiving-asn-fields label span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.receiving-asn-fields input,
+.receiving-asn-fields select {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.receiving-asn-error {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--red);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .receiving-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

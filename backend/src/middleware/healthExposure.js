@@ -26,7 +26,20 @@ function allowHealthDetails(req) {
   return isLocalRequest(req);
 }
 
+/** boot-metrics: não confiar só em loopback quando há X-Forwarded-For (nginx). */
+function allowBootMetrics(req) {
+  const secret = (process.env.HEALTH_DETAIL_KEY || '').trim();
+  if (secret) {
+    const header = (req.get('x-health-key') || '').trim();
+    if (header && header === secret) return true;
+  }
+  const forwarded = (req.get('x-forwarded-for') || '').trim();
+  if (forwarded) return false;
+  return isLocalRequest(req);
+}
+
 module.exports = {
   allowHealthDetails,
+  allowBootMetrics,
   isLocalRequest
 };

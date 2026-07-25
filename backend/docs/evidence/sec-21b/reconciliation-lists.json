@@ -1,0 +1,72 @@
+{
+  "approvableChanges": [
+    {
+      "path": "backend/src/server.js",
+      "classification": "CERTIFIED_EVOLUTION",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "rationale": "Boot tracking SEC-21/SEC-21A adicionado após snapshot baseline 2026-07-03; rotas audit em routes/audit.js"
+    },
+    {
+      "path": "infra/nginx/impetus-production.conf",
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "rationale": "Evolução hardening pós-incidente; alinhado INCIDENT-KNOWLEDGE-BASE-01"
+    },
+    {
+      "path": "infra/nginx/impetus-hardening-locations.conf",
+      "classification": "EXPECTED_SECURITY_CHANGE",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02",
+        "SEC-15"
+      ],
+      "rationale": "Regras anti-scanner/enumeration certificadas HARDENING-01/02"
+    },
+    {
+      "path": "scripts/deploy-nginx-hardening.sh",
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "rationale": "Script operacional de deploy nginx; espelha configs repo → /etc/nginx"
+    },
+    {
+      "path": "backend/.env.example",
+      "classification": "CERTIFIED_EVOLUTION",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A"
+      ],
+      "rationale": "Flags SEC-21/SEC-21A documentadas; default OFF preservado"
+    },
+    {
+      "path": "/etc/nginx/sites-available/impetus",
+      "classification": "EXPECTED_OPERATIONAL_CHANGE",
+      "causingSec": [
+        "HARDENING-01",
+        "HARDENING-02"
+      ],
+      "rationale": "Estado deployado em produção; hash actual coincide com impetus-production.conf no repo"
+    },
+    {
+      "path": "backend/docs/IMPETUS_COGNITIVE_EXPERIENCE_BLUEPRINT/Volume-10-ROADMAP-ENTERPRISE.md",
+      "classification": "CERTIFIED_EVOLUTION",
+      "causingSec": [
+        "SEC-21",
+        "SEC-21A",
+        "SEC-20"
+      ],
+      "rationale": "Blueprint actualizado com SEC-21/21A; drift filesystem SEC-04 (BLUEPRINT_DRIFT)"
+    }
+  ],
+  "rejectedChanges": [],
+  "pendingChanges": []
+}

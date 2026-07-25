@@ -48,22 +48,21 @@ import {
   ListChecks,
   GitBranch,
   Award,
-  ClipboardCheck
+  ClipboardCheck,
+  Warehouse,
+  Truck
 } from 'lucide-react';
 import { companies, auth } from '../services/api';
 import { useNotificationCenter, UNIFIED_CATEGORIES } from '../hooks/useNotificationCenter';
 import FactoryTeamOperatorBar from './FactoryTeamOperatorBar';
 import SystemHealthDrawer from './SystemHealthDrawer';
 import { userCanAccessSystemHealth } from './SystemHealthPanel';
-import { useVisibleModules, clearMenuStabilityCache } from '../hooks/useVisibleModules';
+import { useVisibleModules, clearMenuStabilityCache, ensureUniversalSidebarItems, mergeUserFromDashboardMe } from '../hooks/useVisibleModules';
+import { invalidateDashboardMeCache } from '../runtimeBoot/dashboardMeSharedStore';
 import { applySidebarGovernanceAdapter } from '../runtimeGovernance/sidebarGovernanceAdapter.js';
-import { shouldBlockPublicationMerge } from '../runtimeGovernance/sidebarLeakageProtection.js';
 import { shouldSkipLegacyPipeline } from '../runtimeTerminalGovernance/terminalGovernanceGuard.js';
 import { buildHybridMenu, ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS } from '../utils/contextualSidebarBuilder';
-import { safeMergeQualityPublicationIntoMenu } from '../domains/quality/navigation/qualityMenuPublicationEngine.js';
-import { safeMergeSafetyPublicationIntoMenu } from '../domains/safety/navigation/safetyMenuPublicationEngine.js';
-import { safeMergeLogisticsPublicationIntoMenu } from '../domains/logistics/navigation/logisticsMenuPublicationEngine.js';
-import { safeMergeEnvironmentPublicationIntoMenu } from '../domains/environment/navigation/environmentMenuPublicationEngine.js';
+import { applyPresentationNavigationMenu } from '../presentation/navigation/applyPresentationNavigationMenu.js';
 import { fetchNavigationPublicationContextsStaggered } from '../runtimeBoot/fetchNavigationPublicationContexts.js';
 import { useDashboardBoot } from '../runtimeBoot/DashboardBootContext';
 import {
@@ -77,13 +76,20 @@ import CognitiveCompactPresence from '../features/dashboard/centroComando/cognit
 import {
   resolveMenuRole,
   isMaintenanceProfile,
+  hasMaintenanceProfileContext,
+  isMaintenanceTechnicianMenu,
+  shouldInjectManuiaMenuModules,
   isColaboradorSimples,
   shouldOfferPulseRhMenu,
   isExecutiveLeadershipRole,
   isStrictAdminRole,
   isAdministrativePortalOnlyUser,
-  userHasSystemAdministrationCapability
+  userHasSystemAdministrationCapability,
+  canAccessDirectorOrCEOAdminRoutes
 } from '../utils/roleUtils';
+import { canAccessIndustrialCoreModules as checkIndustrialCoreModules } from '../utils/industrialCoreAccess';
+import { canAccessFinanceDomainMenu as checkFinanceDomainMenu } from '../domains/finance/navigation/financeAccess';
+import { FINANCE_SIDEBAR_MENU_ITEMS } from '../domains/finance/metadata/financeNavigationMetadata.js';
 import ImpetusPulseModal from '../features/pulse/ImpetusPulseModal';
 import ImpetusPulseSupervisorModal from '../features/pulse/ImpetusPulseSupervisorModal';
 import { useImpetusPulse } from '../features/pulse/useImpetusPulse';
@@ -277,6 +283,20 @@ export default function Layout({ children }) {
     }
   }
 
+  const {
+    filterMenu,
+    canAccessPath,
+    visibleModules,
+    loading: modulesLoading,
+    maintenanceFromProfile,
+    contextualModules,
+    contextualMeta,
+    dashboardMePayload
+  } = useVisibleModules();
+
+  // Perfil/capabilities do servidor prevalecem — evita menu vazio com localStorage antigo.
+  user = mergeUserFromDashboardMe(user, dashboardMePayload);
+
   const role = resolveMenuRole(user);
   const dashboardProfile = String(user?.dashboard_profile || '').toLowerCase();
   const functionalArea = String(user?.functional_area || user?.area || '').toLowerCase();
@@ -290,21 +310,11 @@ export default function Layout({ children }) {
     '/app/cerebro-operacional',
     '/app/insights'
   ]);
-  const {
-    filterMenu,
-    canAccessPath,
-    visibleModules,
-    loading: modulesLoading,
-    maintenanceFromProfile,
-    contextualModules,
-    contextualMeta,
-    dashboardMePayload
-  } = useVisibleModules();
   const visibleIndustrialSet = new Set(visibleModules || []);
-  /** Mapa Industrial / centros operacionais — CEO e diretores com `operational` no servidor. */
-  const canAccessIndustrialCoreModules =
-    visibleIndustrialSet.has('operational') &&
-    (role === 'ceo' || role === 'diretor');
+  /** REG-002 R3 — política única partilhada com App.jsx (industrialCoreAccess.js) */
+  const canAccessIndustrialCoreModules = checkIndustrialCoreModules(user, visibleIndustrialSet);
+  /** FIN-EVOLVE-001 — política Finance (financeAccess.js) */
+  const canAccessFinanceModules = checkFinanceDomainMenu(user, visibleModules || []);
   const [qualityPublicationServerCtx, setQualityPublicationServerCtx] = useState(null);
   const [safetyPublicationServerCtx, setSafetyPublicationServerCtx] = useState(null);
   const [logisticsPublicationServerCtx, setLogisticsPublicationServerCtx] = useState(null);
@@ -327,8 +337,8 @@ export default function Layout({ children }) {
     };
   }, [modulesLoading, bootPhase]);
 
-  const maintenanceProfile = isMaintenanceProfile(user) || maintenanceFromProfile;
-  const maintenanceTechnicianMenu = maintenanceProfile && resolveMenuRole(user) === 'colaborador';
+  const maintenanceProfile = hasMaintenanceProfileContext(user, maintenanceFromProfile);
+  const maintenanceTechnicianMenu = isMaintenanceTechnicianMenu(user, maintenanceFromProfile);
 
   const rawPath = location.pathname || '/';
   const normalizedPath = rawPath.replace(/\/+$/, '') || '/';
@@ -341,7 +351,7 @@ export default function Layout({ children }) {
 
   let pathOk = canAccessPath(location.pathname);
   const adminPortalUser = isAdministrativePortalOnlyUser(user);
-  if (isColaboradorSimples(user) && !adminPortalUser) {
+  if (isColaboradorSimples(user, maintenanceFromProfile) && !adminPortalUser) {
     const allowedOperacional = [
       '/app',
       '/app/proacao',
@@ -380,7 +390,9 @@ export default function Layout({ children }) {
 
   if (!modulesLoading && !allowManuiaByMaintenance && !pathOk) {
     if (isStrictAdminRole(user)) return <Navigate to="/app/admin/implantacao-guia" replace state={{ from: location }} />;
-    if (isColaboradorSimples(user)) return <Navigate to="/app" replace state={{ from: location }} />;
+    if (isColaboradorSimples(user, maintenanceFromProfile)) {
+      return <Navigate to="/app" replace state={{ from: location }} />;
+    }
     return <Navigate to="/app" replace state={{ from: location }} />;
   }
   if (!modulesLoading && location.pathname === '/app' && isStrictAdminRole(user)) return <Navigate to="/app/admin/implantacao-guia" replace />;
@@ -391,6 +403,13 @@ export default function Layout({ children }) {
     { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro operacional' },
     { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' }
   ];
+
+  /** FIN-EVOLVE-001A — hub Finance unificado (metadata provider) */
+  const MENU_BLOCO_FINANCE = FINANCE_SIDEBAR_MENU_ITEMS.map((item) => ({
+    path: item.path,
+    icon: DollarSign,
+    label: item.label
+  }));
 
   /** Liderança — núcleo industrial liberado apenas para CEO/Diretor industrial-operações. */
   const MENU_LIDERANCA = [
@@ -448,6 +467,8 @@ export default function Layout({ children }) {
       { path: '/app/admin/departments', icon: Building2, label: 'Departamentos' },
       { path: '/app/admin/equipes-operacionais', icon: UsersRound, label: 'Equipes operacionais' },
       { path: '/app/admin/structural', icon: Layers, label: 'Base Estrutural' },
+      { path: '/app/admin/warehouse', icon: Warehouse, label: 'Cadastros — Almoxarifado' },
+      { path: '/app/admin/logistics', icon: Truck, label: 'Cadastros — Logística' },
       { path: '/app/admin/conteudo-empresa', icon: ScrollText, label: 'Conteúdo da empresa' },
       { path: '/app/admin/equipment-library', icon: Package, label: 'Biblioteca técnica' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca de Arquivos' },
@@ -499,8 +520,7 @@ export default function Layout({ children }) {
       { path: '/app/cerebro-operacional', icon: Brain, label: 'Cérebro operacional' },
       { path: '/app/insights', icon: TrendingUp, label: 'Insights operacionais' },
       { path: '/app/centro-previsao-operacional', icon: TrendingUp, label: 'Centro de Previsão' },
-      { path: '/app/centro-custos-industriais', icon: DollarSign, label: 'Centro de Custos' },
-      { path: '/app/mapa-vazamento-financeiro', icon: TrendingDown, label: 'Mapa de Vazamento' },
+      { path: '/app/finance', icon: DollarSign, label: 'Finance' },
       { path: '/app/cadastrar-com-ia', icon: Upload, label: 'Cadastrar com IA' },
       { path: '/app/biblioteca', icon: FolderOpen, label: 'Biblioteca' },
       { path: '/app/registro-inteligente', icon: FileEdit, label: 'Registro Inteligente' },
@@ -545,13 +565,9 @@ export default function Layout({ children }) {
     baseMenuItems = cloned;
   }
 
-  // Regra: manutenção — só injecta ManuIA se o servidor autorizou o módulo.
-  if (
-    maintenanceProfile &&
-    visibleSet.has('manuia') &&
-    !maintenanceTechnicianMenu &&
-    !isAdministrativePortalOnlyUser(user)
-  ) {
+  // Regra: manutenção — perfil confirmado recebe ManuIA (alinhado a STANDALONE_MANUIA_PATHS / route access).
+  // Não exige visibleSet.has('manuia'): evita MENU_VISIBLE=FALSE com ROUTE_ACCESS=TRUE após reconciliação.
+  if (shouldInjectManuiaMenuModules(user, maintenanceFromProfile)) {
     const cloned = [...baseMenuItems];
     const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
     const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
@@ -576,6 +592,37 @@ export default function Layout({ children }) {
     }
   }
 
+  if (canAccessFinanceModules) {
+    const cloned = [...baseMenuItems];
+    const existing = new Set(cloned.map((item) => (item.path || '').replace(/\/+$/, '') || '/'));
+    const missingFinance = MENU_BLOCO_FINANCE.filter((item) => {
+      const p = (item.path || '').replace(/\/+$/, '') || '/';
+      return !existing.has(p);
+    });
+    if (missingFinance.length > 0) {
+      const dashboardIdx = cloned.findIndex((item) => item.path === '/app');
+      const insertAt = dashboardIdx >= 0 ? dashboardIdx + 1 : 0;
+      cloned.splice(insertAt, 0, ...missingFinance);
+      baseMenuItems = cloned;
+    }
+  }
+
+  // FIX-002 — Logs de Áudio: menu alinhado a DirectorOrCEORouteGuard (ceo/admin/diretor + capability)
+  if (canAccessDirectorOrCEOAdminRoutes(user)) {
+    const cloned = [...baseMenuItems];
+    if (!cloned.some((item) => item.path === '/app/admin/audio-logs')) {
+      const auditIdx = cloned.findIndex((item) => item.path === '/app/admin/audit-logs');
+      const settingsIdx = cloned.findIndex((item) => item.path === '/app/settings');
+      const insertAt = auditIdx >= 0 ? auditIdx + 1 : (settingsIdx >= 0 ? settingsIdx : cloned.length);
+      cloned.splice(insertAt, 0, {
+        path: '/app/admin/audio-logs',
+        icon: Mic,
+        label: 'Logs de Áudio'
+      });
+      baseMenuItems = cloned;
+    }
+  }
+
   // Phase 8 — Camada contextual híbrida (aditiva, off-by-default no servidor).
   //
   // Em produção `IMPETUS_CONTEXTUAL_MODULES=off` → backend NÃO emite
@@ -591,6 +638,17 @@ export default function Layout({ children }) {
   // o Layout devolve o menu legacy puro (sem itens QUALITY/contextual),
   // evitando que a falha escale até ao ModuleErrorBoundary ("Erro em Dashboard").
   let menuItems;
+  const suppressDomainPublicationNav = role === 'ceo' || role === 'diretor';
+  const presentationNavParams = {
+    user,
+    visibleModules,
+    modulesLoading,
+    suppressDomainSections: suppressDomainPublicationNav,
+    qualityPublication: qualityPublicationServerCtx,
+    safetyPublication: safetyPublicationServerCtx,
+    environmentPublication: environmentPublicationServerCtx,
+    dashboardMe: dashboardMePayload
+  };
   try {
     const terminalLocked = shouldSkipLegacyPipeline(dashboardMePayload);
     if (terminalLocked) {
@@ -617,60 +675,7 @@ export default function Layout({ children }) {
       ? { denyModuleIds: [...ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS] }
       : undefined;
     const hybridBase = buildHybridMenu(baseMenuItems, contextualModules, hybridMenuOpts);
-    // Liderança executiva (CEO / Diretor) usa o menu curado implementado
-    // (MENUS.ceo / MENU_LIDERANCA). A navegação publicada por domínio
-    // (Quality/Safety/Logistics/Environment) NÃO é sobreposta nestes perfis —
-    // evita o "duplo menu" (overlay de domínio vs. menu base) e o flicker
-    // causado pelo carregamento assíncrono do contexto de publicação.
-    const suppressDomainPublicationNav = role === 'ceo' || role === 'diretor';
-    const withQuality =
-      !suppressDomainPublicationNav &&
-      shouldBlockPublicationMerge('quality', dashboardMePayload) === false
-        ? safeMergeQualityPublicationIntoMenu(hybridBase, {
-            user,
-            visibleModules,
-            contextualModules,
-            modulesLoading,
-            serverPublication: qualityPublicationServerCtx
-          })
-        : hybridBase;
-    const withSafety =
-      !suppressDomainPublicationNav &&
-      shouldBlockPublicationMerge('safety', dashboardMePayload) === false
-        ? safeMergeSafetyPublicationIntoMenu(withQuality, {
-            user,
-            visibleModules,
-            contextualModules,
-            modulesLoading,
-            serverPublication: safetyPublicationServerCtx
-          })
-        : withQuality;
-    const withLogistics =
-      !suppressDomainPublicationNav &&
-      shouldBlockPublicationMerge('logistics', dashboardMePayload) === false
-        ? safeMergeLogisticsPublicationIntoMenu(withSafety, {
-            user,
-            visibleModules,
-            contextualModules,
-            modulesLoading,
-            serverPublication: logisticsPublicationServerCtx
-          })
-        : withSafety;
-    const baseMenuItemsHybrid =
-      !suppressDomainPublicationNav &&
-      shouldBlockPublicationMerge('environment', dashboardMePayload) === false
-        ? safeMergeEnvironmentPublicationIntoMenu(withLogistics, {
-            user,
-            visibleModules,
-            contextualModules,
-            modulesLoading,
-            serverPublication: environmentPublicationServerCtx
-          })
-        : withLogistics;
-    menuItems = filterMenu(baseMenuItemsHybrid);
-    if (!visibleModules?.includes('safety_intelligence')) {
-      menuItems = menuItems.filter((item) => !item._safety_publication);
-    }
+    menuItems = filterMenu(hybridBase);
     const governed = applySidebarGovernanceAdapter({
       dashboardMe: dashboardMePayload,
       menuItems,
@@ -681,12 +686,21 @@ export default function Layout({ children }) {
     menuItems = governed.menuItems;
     }
     menuItems = menuItems.filter((item) => {
+      if (item.presentationType || item._presentation_layer) return true;
       const p = (item.path || '').replace(/\/+$/, '') || '/';
       if (role === 'ceo') return true;
       if (!INDUSTRIAL_CORE_PATHS.has(p)) return true;
       return canAccessIndustrialCoreModules;
     });
     menuItems = dedupeSidebarMenuItems(menuItems);
+    menuItems = applyPresentationNavigationMenu(menuItems, presentationNavParams);
+    menuItems = dedupeSidebarMenuItems(menuItems);
+    menuItems = ensureUniversalSidebarItems(menuItems, user, {
+      Target,
+      Upload,
+      FileEdit,
+      FolderOpen
+    });
     if (!isStrictAdminRole(user)) {
       menuItems = menuItems.filter(
         (item) => (item.path || '').replace(/\/+$/, '') !== '/app/admin/implantacao-guia'
@@ -700,6 +714,14 @@ export default function Layout({ children }) {
     } catch {
       menuItems = baseMenuItems.slice();
     }
+    menuItems = ensureUniversalSidebarItems(menuItems, user, {
+      Target,
+      Upload,
+      FileEdit,
+      FolderOpen
+    });
+    menuItems = applyPresentationNavigationMenu(menuItems, presentationNavParams);
+    menuItems = dedupeSidebarMenuItems(menuItems);
   }
 
   if (isUserSettingsFocus) {
@@ -711,17 +733,23 @@ export default function Layout({ children }) {
 
   if (
     !isUserSettingsFocus &&
-    (!Array.isArray(menuItems) || menuItems.length === 0) &&
-    (isExecutiveLeadershipRole(user) ||
-      userHasSystemAdministrationCapability(user) ||
-      String(user?.role || '').toLowerCase() === 'ceo')
+    (!Array.isArray(menuItems) || menuItems.length === 0)
   ) {
     try {
       menuItems = filterMenu(baseMenuItems, null, { loading: false });
     } catch {
-      menuItems = baseMenuItems.slice();
+      menuItems = baseMenuItems.filter(
+        (item) =>
+          ['/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/biblioteca', '/app/chatbot', '/chat', '/app/settings', '/app'].includes(
+            (item.path || '').replace(/\/+$/, '')
+          )
+      );
     }
-    if (canAccessIndustrialCoreModules && role !== 'ceo') {
+    if (
+      canAccessIndustrialCoreModules &&
+      role !== 'ceo' &&
+      (isExecutiveLeadershipRole(user) || userHasSystemAdministrationCapability(user))
+    ) {
       const existing = new Set((menuItems || []).map((i) => (i.path || '').replace(/\/+$/, '') || '/'));
       for (const item of MENU_BLOCO_INDUSTRIAL) {
         const p = (item.path || '').replace(/\/+$/, '') || '/';
@@ -749,6 +777,7 @@ export default function Layout({ children }) {
     localStorage.removeItem('impetus_token');
     localStorage.removeItem('impetus_user');
     clearMenuStabilityCache();
+    invalidateDashboardMeCache();
     try {
       const { stopAnamStreamNow } = await import('../services/anamSessionSingleton');
       await stopAnamStreamNow();
@@ -858,6 +887,27 @@ export default function Layout({ children }) {
 
         <nav className="sidebar-nav">
           {menuItems.map((item, itemIndex) => {
+            if (item.presentationType === 'divider') {
+              if (!sidebarOpen) return null;
+              return (
+                <div
+                  key={sidebarNavItemKey(item, itemIndex)}
+                  className="nav-section-divider"
+                  aria-hidden="true"
+                />
+              );
+            }
+            if (item.presentationType === 'section-header') {
+              if (!sidebarOpen) return null;
+              return (
+                <div
+                  key={sidebarNavItemKey(item, itemIndex)}
+                  className="nav-section-header"
+                >
+                  {item.label}
+                </div>
+              );
+            }
             if (item.settingsBack) {
               const Icon = item.icon;
               return (

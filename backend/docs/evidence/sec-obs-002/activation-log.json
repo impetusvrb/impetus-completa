@@ -1,0 +1,13 @@
+{
+  "phase": "FASE_1_ACTIVATION",
+  "activation_start": "2026-07-23T14:28:43Z",
+  "activation_end": "2026-07-23T14:28:58Z",
+  "downtime_approx_sec": 15,
+  "pid_before": "3134989",
+  "pid_after": "3140001",
+  "flag": "INTEGRITY_SENSOR_ENABLED=true",
+  "intervals": {
+    "hash": 30,
+    "perm": 20
+  }
+}

@@ -1,9 +1,9 @@
 /**
  * Controlo de acesso a ficheiros em /uploads (multi-tenant).
+ * APPSEC-01: delega à política deny-by-default quando activa.
  */
-const path = require('path');
-const db = require('../db');
-const { resolveUploadFile } = require('../paths');
+const { userCanReadUploadStrict } = require('../securityApplication/uploadAclPolicy');
+const appsecFlags = require('../securityApplication/config/appsecFlags');
 
 /**
  * @param {object} user — req.user com id, company_id
@@ -11,6 +11,13 @@ const { resolveUploadFile } = require('../paths');
  * @returns {Promise<boolean>}
  */
 async function userCanReadUpload(user, relativeFromUploads) {
+  if (appsecFlags.isAppsecEnabled()) {
+    return userCanReadUploadStrict(user, relativeFromUploads);
+  }
+  const path = require('path');
+  const db = require('../db');
+  const { resolveUploadFile } = require('../paths');
+
   if (!user || !user.company_id || !relativeFromUploads) return false;
   const cid = user.company_id;
   const rel = relativeFromUploads.replace(/^\/+/, '');

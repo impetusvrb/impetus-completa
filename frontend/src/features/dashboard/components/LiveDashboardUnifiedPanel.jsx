@@ -3,6 +3,7 @@
  * Embutido na Visão Executiva e nos demais dashboards em /app.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { liveDashboard } from '../../../services/api';
 import { useDashboardBoot } from '../../../runtimeBoot/DashboardBootContext';
 import { isStrictAdminRole } from '../../../utils/roleUtils';
@@ -29,6 +30,12 @@ function formatLiveDashboardError(err) {
   if (err.apiMessage) return err.apiMessage;
   const status = err.response?.status;
   const bodyError = err.response?.data?.error;
+  const bodySuccess = err.response?.data?.success;
+  // INC-004: SEC-RECON pode retornar 404 { success:false, error:'Not found' } para
+  // sessão autenticada em navegação intensa — traduzir para mensagem operacional.
+  if (status === 404 && bodySuccess === false && bodyError === 'Not found') {
+    return 'Serviço momentaneamente sob contenção. Aguarde alguns segundos e clique em «Atualizar».';
+  }
   if (bodyError) return bodyError;
   if (status === 503) {
     return 'Serviço temporariamente indisponível (servidor sobrecarregado ou em reinício). Use «Atualizar» em alguns segundos.';
@@ -67,7 +74,12 @@ function FormattedIntelligentSummary({ text }) {
   );
 }
 
-export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = false }) {
+export default function LiveDashboardUnifiedPanel({
+  variant = 'light',
+  hidden = false,
+  execContinuityLayout = false,
+  refreshMountEl = null
+}) {
   const { phase } = useDashboardBoot();
   const [live, setLive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,14 +122,15 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
       const { data } = await liveDashboard.getState();
       if (!data?.ok) {
         setErr(data?.error || 'Não foi possível carregar o painel inteligente.');
-        setLive(null);
+        // INC-004: preservar dados válidos anteriores; nunca descartar payload
+        // já mostrado por causa de uma chamada secundária/refresh que falhou.
         return;
       }
       setLive(data);
       setHistorical(null);
     } catch (e) {
       setErr(formatLiveDashboardError(e));
-      setLive(null);
+      // INC-004: manter `live` anterior — banner exibe o erro sem apagar o painel.
     } finally {
       setLoading(false);
     }
@@ -213,7 +226,16 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
   })();
   if (isStrictAdminRole(user)) return null;
 
-  const rootClass = `live-intelligent-dashboard live-dash-unified live-dash-unified--${variant}`;
+  const rootClass = `live-intelligent-dashboard live-dash-unified live-dash-unified--${variant}${
+    execContinuityLayout ? ' live-dash-unified--continuity' : ''
+  }`;
+
+  const refreshButton = (
+    <button type="button" className="live-dash-btn live-dash-btn--continuity" onClick={() => loadLive()} disabled={loading}>
+      <RefreshCw size={16} className={loading ? 'live-dash-spin' : ''} aria-hidden />
+      Atualizar
+    </button>
+  );
 
   return (
     <div className={rootClass}>
@@ -229,14 +251,14 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             </p>
           </div>
         </div>
-        <div className="live-dash-actions">
-          <button type="button" className="live-dash-btn" onClick={() => loadLive()} disabled={loading}>
-            <RefreshCw size={16} className={loading ? 'live-dash-spin' : ''} /> Atualizar
-          </button>
-        </div>
+        {!execContinuityLayout && <div className="live-dash-actions">{refreshButton}</div>}
       </header>
 
-      <section className="live-dash-timebar" aria-label="Histórico do painel">
+      {execContinuityLayout &&
+        refreshMountEl &&
+        createPortal(<div className="live-dash-actions live-dash-actions--continuity">{refreshButton}</div>, refreshMountEl)}
+
+      <section className="live-dash-timebar" aria-label="Histórico do painel" data-whisper-focus-surface>
         <History size={18} />
         <span className="live-dash-timebar-label">Máquina do tempo</span>
         <button type="button" className="live-dash-btn live-dash-btn--ghost" onClick={goNow} disabled={!isHistorical}>
@@ -288,6 +310,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             <section
               className={`live-dash-personalization live-dash-personalization--${display.personalization.data_sufficiency || 'full'}`}
               aria-label="Contexto do seu perfil"
+              data-whisper-focus-surface
             >
               <div className="live-dash-personalization-head">
                 <span className="live-dash-pers-badge">
@@ -346,7 +369,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
             </section>
           )}
 
-          <section className="live-dash-summary" aria-live="polite">
+          <section className="live-dash-summary" aria-live="polite" data-whisper-focus-surface>
             <h2 className="live-dash-visually-hidden">Resumo inteligente</h2>
             <FormattedIntelligentSummary
               text={
@@ -441,7 +464,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
           )}
 
           {display.focus_moment && (
-            <section className={`live-dash-focus live-dash-focus--${display.focus_moment.status || 'estavel'}`} aria-label="Foco do momento">
+            <section className={`live-dash-focus live-dash-focus--${display.focus_moment.status || 'estavel'}`} aria-label="Foco do momento" data-whisper-focus-surface>
               <h3>{display.focus_moment.title}</h3>
               <p>{display.focus_moment.message}</p>
               {Array.isArray(display.focus_moment.cta) && display.focus_moment.cta.length > 0 && (
@@ -455,7 +478,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
           )}
 
           {dynamicSurface?.groups && (
-            <section className="live-dash-dynamic" aria-label="Blocos dinâmicos por relevância">
+            <section className="live-dash-dynamic" aria-label="Blocos dinâmicos por relevância" data-whisper-focus-surface>
               {Object.entries(dynamicSurface.groups)
                 .filter(([, blocks]) => Array.isArray(blocks) && blocks.length > 0)
                 .map(([groupKey, blocks]) => (
@@ -468,6 +491,7 @@ export default function LiveDashboardUnifiedPanel({ variant = 'light', hidden = 
                         <article
                           key={block.id != null ? String(block.id) : `dyn-${groupKey}-${bidx}`}
                           className={`live-dash-dynamic-card live-dash-dynamic-card--${block.severity || 'baixa'}`}
+                          data-whisper-focus-surface
                         >
                           <div className="live-dash-dynamic-head">
                             <h4>{block.title != null ? String(block.title) : '—'}</h4>

@@ -2,9 +2,14 @@
  * Linha principal de KPIs críticos — leitura executiva rápida (dados reais /api).
  */
 import React, { useEffect, useState, useMemo } from 'react';
-import { dashboard } from '../../../services/api';
+import { dashboard, qualityIntelligence } from '../../../services/api';
+import { fetchDashboardMeShared } from '../../../runtimeBoot/dashboardMeSharedStore';
 import { AlertTriangle, Brain, MessageSquare, Target, TrendingUp, Zap } from 'lucide-react';
 import IndustrialMiniGauge from './IndustrialMiniGauge';
+import {
+  buildQualityCommandCenterKpiView,
+  QUALITY_KPI_EMPTY
+} from './qualityCommandCenterKpiAdapter';
 
 function HeroKpiCard({ icon: Icon, label, value, unit, tone = 'cyan', gaugePct, sub }) {
   return (
@@ -41,18 +46,24 @@ function HeroKpiCard({ icon: Icon, label, value, unit, tone = 'cyan', gaugePct, 
 export default function CentroComandoHeroKpis({ hrDashboard = false }) {
   const [summary, setSummary] = useState(null);
   const [kpis, setKpis] = useState([]);
+  const [meData, setMeData] = useState(null);
+  const [ncrSummary, setNcrSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       dashboard.getSummary().catch(() => null),
-      dashboard.getKPIs().catch(() => null)
+      dashboard.getKPIs().catch(() => null),
+      fetchDashboardMeShared().catch(() => null),
+      qualityIntelligence.getNcrCapaSummary().catch(() => null)
     ])
-      .then(([sRes, kRes]) => {
+      .then(([sRes, kRes, meRes, ncrRes]) => {
         if (cancelled) return;
         setSummary(sRes?.data?.summary || null);
         setKpis(Array.isArray(kRes?.data?.kpis) ? kRes.data.kpis : []);
+        setMeData(meRes?.data || null);
+        setNcrSummary(ncrRes?.data || null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -62,11 +73,32 @@ export default function CentroComandoHeroKpis({ hrDashboard = false }) {
     };
   }, []);
 
+  const qualityKpis = useMemo(
+    () =>
+      buildQualityCommandCenterKpiView({
+        meData,
+        summary,
+        kpis,
+        ncrSummary
+      }),
+    [meData, summary, kpis, ncrSummary]
+  );
+
   const cards = useMemo(() => {
     const inter = summary?.operational_interactions?.total ?? 0;
     const interGrowth = summary?.operational_interactions?.growth_percentage ?? 0;
     const insights = summary?.ai_insights?.total ?? 0;
     const alertsCrit = summary?.alerts?.critical ?? 0;
+
+    const criticalTasksValue = qualityKpis?.heroCriticalTasks?.unavailable
+      ? QUALITY_KPI_EMPTY
+      : qualityKpis?.heroCriticalTasks?.display ?? String(summary?.proposals?.total ?? 0);
+    const criticalTasksUnit = qualityKpis ? qualityKpis.heroCriticalTasks.unit : 'propostas';
+    const criticalTasksSub = qualityKpis?.heroCriticalTasks?.sub ?? 'pendências';
+    const criticalTasksGauge = qualityKpis?.heroCriticalTasks?.unavailable
+      ? null
+      : Math.min(100, (qualityKpis?.heroCriticalTasks?.value ?? summary?.proposals?.total ?? 0) * 10);
+
     const proposals = summary?.proposals?.total ?? 0;
     const healthScore = Math.min(100, Math.max(0, 88 - alertsCrit * 12 + (interGrowth > 0 ? 4 : 0)));
     const iaScore = Math.min(100, Math.max(0, 70 + Math.min(insights, 20)));
@@ -151,12 +183,12 @@ export default function CentroComandoHeroKpis({ hrDashboard = false }) {
       },
       {
         icon: Target,
-        label: 'TAREFAS CRÍTICAS',
-        value: String(proposals),
-        unit: 'propostas',
+        label: qualityKpis ? 'NC ABERTAS' : 'TAREFAS CRÍTICAS',
+        value: criticalTasksValue,
+        unit: criticalTasksUnit,
         tone: 'amber',
-        gaugePct: Math.min(100, proposals * 10),
-        sub: 'pendências'
+        gaugePct: criticalTasksGauge,
+        sub: criticalTasksSub
       },
       {
         icon: TrendingUp,
@@ -186,7 +218,7 @@ export default function CentroComandoHeroKpis({ hrDashboard = false }) {
         sub: 'operacional'
       }
     ];
-  }, [summary, kpis, hrDashboard]);
+  }, [summary, kpis, hrDashboard, qualityKpis]);
 
   if (loading) {
     return (

@@ -38,6 +38,7 @@ import {
   Shield
 } from 'lucide-react';
 import core from './contextualSidebarBuilder.core.cjs';
+import { FINANCE_CONTEXTUAL_MENU_OVERRIDES } from '../domains/finance/metadata/financeNavigationMetadata.js';
 
 const { buildHybridMenu: _buildHybridMenu, logContextualDebugSummary: _logSummary } = core;
 
@@ -59,20 +60,19 @@ export const ADMIN_PORTAL_DENIED_CONTEXTUAL_MODULE_IDS = Object.freeze([
   'pulse_gestao',
   'manuia',
   'hr_intelligence',
-  'quality_intelligence',
-  'proaction'
+  'quality_intelligence'
 ]);
 
 export const CONTEXTUAL_MODULE_TO_MENU_ITEM = Object.freeze({
   cost_center: {
     icon: DollarSign,
-    label: 'Centro de Custos',
-    path: '/app/centro-custos-industriais'
+    label: FINANCE_CONTEXTUAL_MENU_OVERRIDES.cost_center.label,
+    path: FINANCE_CONTEXTUAL_MENU_OVERRIDES.cost_center.path
   },
   losses_map: {
     icon: TrendingDown,
-    label: 'Mapa de Vazamento',
-    path: '/app/mapa-vazamento-financeiro'
+    label: FINANCE_CONTEXTUAL_MENU_OVERRIDES.losses_map.label,
+    path: FINANCE_CONTEXTUAL_MENU_OVERRIDES.losses_map.path
   },
   centro_previsao_operacional: {
     icon: TrendingUp,
@@ -81,8 +81,8 @@ export const CONTEXTUAL_MODULE_TO_MENU_ITEM = Object.freeze({
   },
   financial_intelligence: {
     icon: DollarSign,
-    label: 'Inteligência Financeira',
-    path: '/app/centro-custos-industriais'
+    label: FINANCE_CONTEXTUAL_MENU_OVERRIDES.financial_intelligence.label,
+    path: FINANCE_CONTEXTUAL_MENU_OVERRIDES.financial_intelligence.path
   },
   centro_operacoes_industrial: {
     icon: Building2,

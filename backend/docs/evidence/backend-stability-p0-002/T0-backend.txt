@@ -1,0 +1,19 @@
+backend_pid=1576703
+VmPeak:	12162516 kB
+VmSize:	12114628 kB
+VmRSS:	  387968 kB
+Threads:	11
+{
+  "pool": {
+    "totalCount": 0,
+    "idleCount": 0,
+    "waitingCount": 0
+  },
+  "mem": {
+    "rss": 53911552,
+    "heapTotal": 10199040,
+    "heapUsed": 7652584,
+    "external": 3248512,
+    "arrayBuffers": 65702
+  }
+}

@@ -174,10 +174,14 @@ async function executeCycle() {
     _log('cycle_error', { run: _runCount, error: err.message });
     return { ok: false, error: err.message };
   } finally {
-    if (lockHeld) {
-      await _releaseLock(client);
+    try {
+      if (lockHeld) await _releaseLock(client);
+    } catch (lockErr) {
+      _log('lock_release_error', { error: lockErr?.message });
     }
-    client.release();
+    try {
+      client.release();
+    } catch (_) { /* client já libertado / conexão morta */ }
     _cycleInProgress = false;
   }
 }

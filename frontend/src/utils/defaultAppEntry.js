@@ -1,7 +1,9 @@
 /**
  * Rota inicial após login — painel principal por defeito; admin → IA em texto.
+ * FIN-STAB-001: perfil financeiro aterra no Hub Finance.
  */
-import { isStrictAdminRole } from './roleUtils';
+import { isStrictAdminRole, isFinanceDashboardLayout } from './roleUtils.js';
+import { FINANCE_DOMAIN_BASE } from '../domains/finance/navigation/financeAccess.js';
 
 const LEADERSHIP_ROLES = new Set(['ceo', 'diretor', 'gerente', 'coordenador', 'supervisor']);
 
@@ -35,6 +37,11 @@ export function resolveDefaultAppPath(user) {
 
   if (isStrictAdminRole(user) || role === 'admin' || role === 'internal_admin') {
     return '/app/chatbot';
+  }
+
+  // FIN-STAB-001 — utilizador financeiro → Hub Finance (não dashboard genérico)
+  if (isFinanceDashboardLayout(user)) {
+    return FINANCE_DOMAIN_BASE;
   }
 
   if (LEADERSHIP_ROLES.has(role) || role === 'operador') {

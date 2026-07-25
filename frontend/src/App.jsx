@@ -23,7 +23,9 @@ import {
   isStrictAdminRole,
   userHasSystemAdministrationCapability
 } from './utils/roleUtils';
+import { useVisibleModules, mergeUserFromDashboardMe } from './hooks/useVisibleModules';
 import { resolveDefaultAppPath } from './utils/defaultAppEntry';
+import { canAccessIndustrialCore as checkIndustrialCoreAccess } from './utils/industrialCoreAccess';
 import { factoryTeam } from './services/api';
 import './components/FactoryTeamOperatorBar.css';
 
@@ -73,16 +75,31 @@ const AdminEquipmentLibrary = lazy(() => import('./pages/AdminEquipmentLibrary')
 const ManuIA = lazy(() => import('./pages/ManuIA'));
 const ManuIAExtensionApp = lazy(() => import('./manuia-app/ManuIAExtensionApp'));
 const QualityOperationalLayout = lazy(() => import('./domains/quality/routes/QualityOperationalLayout.jsx'));
+const QualityOperationalNavLayout = lazy(() => import('./domains/quality/layout/QualityOperationalNavLayout.jsx'));
 const QualityOperationalWorkspacePage = lazy(() => import('./domains/quality/routes/QualityOperationalWorkspacePage.jsx'));
 const QualityInspectionRuntimePage = lazy(() => import('./domains/quality/routes/QualityInspectionRuntimePage.jsx'));
 const QualityKioskRuntimePage = lazy(() => import('./domains/quality/routes/QualityKioskRuntimePage.jsx'));
 const SafetyOperationalLayout = lazy(() => import('./domains/safety/routes/SafetyOperationalLayout.jsx'));
+const SafetyOperationalNavLayout = lazy(() => import('./domains/safety/layout/SafetyOperationalNavLayout.jsx'));
 const SafetyOperationalWorkspacePage = lazy(() => import('./domains/safety/routes/SafetyOperationalWorkspacePage.jsx'));
 const SafetyFieldInspectionPage = lazy(() => import('./domains/safety/routes/SafetyFieldInspectionPage.jsx'));
 const LogisticsOperationalLayout = lazy(() => import('./domains/logistics/routes/LogisticsOperationalLayout.jsx'));
+const LogisticsOperationalNavLayout = lazy(() => import('./domains/logistics/layout/LogisticsOperationalNavLayout.jsx'));
 const LogisticsOperationalWorkspacePage = lazy(() => import('./domains/logistics/routes/LogisticsOperationalWorkspacePage.jsx'));
+const WmsLegacyWorkspaceRoutes = lazy(() => import('./domains/logistics-operational/pages/WmsLegacyWorkspaceRoutes.jsx'));
+const WmsLogisticsStandaloneRoutes = lazy(() => import('./domains/logistics-operational/pages/WmsLogisticsStandaloneRoutes.jsx'));
+const WmsStandaloneGate = lazy(() => import('./domains/logistics-operational/components/WmsStandaloneGate.jsx'));
+const SupplyWorkspacePage = lazy(() => import('./domains/supply/pages/SupplyWorkspacePage.jsx'));
 const EnvironmentOperationalLayout = lazy(() => import('./domains/environment/routes/EnvironmentOperationalLayout.jsx'));
+const EnvironmentOperationalNavLayout = lazy(() => import('./domains/environment/layout/EnvironmentOperationalNavLayout.jsx'));
 const EnvironmentOperationalWorkspacePage = lazy(() => import('./domains/environment/routes/EnvironmentOperationalWorkspacePage.jsx'));
+const FinanceOperationalLayout = lazy(() => import('./domains/finance/workspace/FinanceOperationalLayout.jsx'));
+const FinanceNavLayout = lazy(() => import('./domains/finance/workspace/FinanceNavLayout.jsx'));
+const FinanceWorkspacePage = lazy(() => import('./domains/finance/workspace/FinanceWorkspacePage.jsx'));
+const FinanceBillingGate = lazy(() => import('./domains/finance/workspace/FinanceBillingGate.jsx'));
+const FinanceTwinFinancialView = lazy(() => import('./domains/finance/twin/views/FinanceTwinFinancialView.jsx'));
+const FinanceWhatIfView = lazy(() => import('./domains/finance/whatif/scenario-view/FinanceWhatIfView.jsx'));
+const FinancePredictionView = lazy(() => import('./domains/finance/prediction/prediction-view/FinancePredictionView.jsx'));
 const CentroPrevisaoOperacional = lazy(() => import('./pages/CentroPrevisaoOperacional'));
 const CentroCustosExecutivo = lazy(() => import('./pages/CentroCustosExecutivo'));
 const MapaVazamentoFinanceiro = lazy(() => import('./pages/MapaVazamentoFinanceiro'));
@@ -174,19 +191,8 @@ function roleGuardAllows(allowedRoles) {
 function canAccessIndustrialCore() {
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
-    const role = String(user.role || '').toLowerCase();
-    if (role === 'ceo') return true;
-    if (role !== 'diretor') return false;
-
-    const profile = String(user.dashboard_profile || '').toLowerCase();
-    const area = String(user.functional_area || user.area || '').toLowerCase();
-    return (
-      profile === 'director_industrial' ||
-      profile === 'director_operations' ||
-      area.includes('industrial') ||
-      area.includes('operations') ||
-      area.includes('operacoes')
-    );
+    // REG-002 R3 — política única (utils/industrialCoreAccess.js)
+    return checkIndustrialCoreAccess(user);
   } catch {
     return false;
   }
@@ -230,16 +236,18 @@ function isColaborador() {
 
 /** Rotas permitidas para colaborador: simples (mínimo) vs técnico de manutenção */
 function ColaboradorRouteGuard({ children }) {
+  const { maintenanceFromProfile, dashboardMePayload } = useVisibleModules();
   if (!isColaborador()) return children;
   try {
-    const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    let user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+    user = mergeUserFromDashboardMe(user, dashboardMePayload);
     if (userHasSystemAdministrationCapability(user) || isStrictAdminRole(user) || user.is_tenant_admin === true) {
       return children;
     }
     const raw = typeof window !== 'undefined' ? window.location.pathname : '';
     const path = raw.replace(/\/+$/, '') || '/';
 
-    if (isColaboradorSimples(user)) {
+    if (isColaboradorSimples(user, maintenanceFromProfile)) {
       const allowOp = [
         '/app',
         '/app/equipe-operacional',
@@ -260,7 +268,7 @@ function ColaboradorRouteGuard({ children }) {
       return children;
     }
 
-    if (isMaintenanceTechnicianMenu(user)) {
+    if (isMaintenanceTechnicianMenu(user, maintenanceFromProfile)) {
       const allow = ['/app', '/app/equipe-operacional', '/app/proacao', '/app/cadastrar-com-ia', '/app/registro-inteligente', '/app/chatbot', '/chat', '/diagnostic', '/app/manutencao/manuia', '/app/manutencao/manuia-app', '/app/biblioteca', '/app/settings'];
       const ok =
         allow.includes(path) ||
@@ -395,9 +403,21 @@ function isCEO() {
  */
 const UNIVERSAL_SAFE_ACCESS_CEO_PATHS = [
   '/app',
-  '/app/chatbot',
+  '/app/dashboard-vivo',
+  '/app/centro-operacoes-industrial',
+  '/app/cerebro-operacional',
+  '/app/insights',
+  '/app/centro-previsao-operacional',
+  '/app/centro-custos-industriais',
+  '/app/mapa-vazamento-financeiro',
+  '/app/finance',
+  '/app/cadastrar-com-ia',
+  '/app/biblioteca',
   '/app/registro-inteligente',
-  '/app/cadastrar-com-ia'
+  '/app/validacao-organizacional',
+  '/app/chatbot',
+  '/chat',
+  '/app/settings'
 ];
 
 function CEORouteGuard({ children }) {
@@ -637,10 +657,10 @@ export default function App() {
           <PrivateRoute><SetupGuard><CEORouteGuard><CentroPrevisaoOperacional /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/centro-custos-industriais" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><CentroCustosExecutivo /></CEORouteGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><CEORouteGuard><Navigate to="/app/finance/costs" replace /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/mapa-vazamento-financeiro" element={
-          <PrivateRoute><SetupGuard><CEORouteGuard><MapaVazamentoFinanceiro /></CEORouteGuard></SetupGuard></PrivateRoute>
+          <PrivateRoute><SetupGuard><CEORouteGuard><Navigate to="/app/finance/leakage" replace /></CEORouteGuard></SetupGuard></PrivateRoute>
         } />
         <Route path="/app/configuracoes" element={<Navigate to="/app/admin/conteudo-empresa" replace />} />
         <Route path="/app/admin/conteudo-empresa" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CompanyAdminSettings /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
@@ -669,7 +689,7 @@ export default function App() {
         <Route path="/app/admin/centro-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><CentroCustosAdmin /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/audio-logs" element={<PrivateRoute><SetupGuard><DirectorOrCEORouteGuard><AdminAudioLogs /></DirectorOrCEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/integrations" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminIntegrations /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
-        <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><NexusIACustos /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
+        <Route path="/app/admin/nexusia-custos" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><Navigate to="/app/finance/billing" replace /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/help-center" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminHelpCenter /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/warehouse" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminWarehouse /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
         <Route path="/app/admin/logistics" element={<PrivateRoute><SetupGuard><CEORouteGuard><ColaboradorRouteGuard><AdminRouteGuard><AdminLogistics /></AdminRouteGuard></ColaboradorRouteGuard></CEORouteGuard></SetupGuard></PrivateRoute>} />
@@ -693,37 +713,45 @@ export default function App() {
           }
         >
           <Route
-            index
             element={
               <Suspense fallback={<PageLoader />}>
-                <QualityOperationalWorkspacePage />
+                <QualityOperationalNavLayout />
               </Suspense>
             }
-          />
-          <Route
-            path="workspace"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <QualityOperationalWorkspacePage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="inspection"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <QualityInspectionRuntimePage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="kiosk"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <QualityKioskRuntimePage />
-              </Suspense>
-            }
-          />
+          >
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <QualityOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="workspace"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <QualityOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="inspection"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <QualityInspectionRuntimePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="kiosk"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <QualityKioskRuntimePage />
+                </Suspense>
+              }
+            />
+          </Route>
         </Route>
         <Route
           path="/app/safety/operational"
@@ -742,29 +770,37 @@ export default function App() {
           }
         >
           <Route
-            index
             element={
               <Suspense fallback={<PageLoader />}>
-                <SafetyOperationalWorkspacePage />
+                <SafetyOperationalNavLayout />
               </Suspense>
             }
-          />
-          <Route
-            path="workspace"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <SafetyOperationalWorkspacePage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="inspection"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <SafetyFieldInspectionPage />
-              </Suspense>
-            }
-          />
+          >
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <SafetyOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="workspace"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <SafetyOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="inspection"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <SafetyFieldInspectionPage />
+                </Suspense>
+              }
+            />
+          </Route>
         </Route>
         <Route
           path="/app/logistics/operational"
@@ -783,22 +819,74 @@ export default function App() {
           }
         >
           <Route
-            index
             element={
               <Suspense fallback={<PageLoader />}>
-                <LogisticsOperationalWorkspacePage />
+                <LogisticsOperationalNavLayout />
               </Suspense>
             }
-          />
-          <Route
-            path="workspace"
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <LogisticsOperationalWorkspacePage />
-              </Suspense>
-            }
-          />
+          >
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <LogisticsOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="workspace"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <LogisticsOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+          </Route>
         </Route>
+        <Route
+          path="/app/logistics/*"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <Suspense fallback={<PageLoader />}>
+                    <WmsStandaloneGate>
+                      <WmsLogisticsStandaloneRoutes />
+                    </WmsStandaloneGate>
+                  </Suspense>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/app/logistics-operational/workspace/*"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <Suspense fallback={<PageLoader />}>
+                    <WmsLegacyWorkspaceRoutes />
+                  </Suspense>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/app/supply/workspace"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <Suspense fallback={<PageLoader />}>
+                    <SupplyWorkspacePage />
+                  </Suspense>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/app/environment/operational"
           element={
@@ -816,21 +904,112 @@ export default function App() {
           }
         >
           <Route
-            index
             element={
               <Suspense fallback={<PageLoader />}>
-                <EnvironmentOperationalWorkspacePage />
+                <EnvironmentOperationalNavLayout />
               </Suspense>
             }
-          />
+          >
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <EnvironmentOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="workspace"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <EnvironmentOperationalWorkspacePage />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Route>
+        <Route
+          path="/app/finance"
+          element={
+            <PrivateRoute>
+              <SetupGuard>
+                <ColaboradorRouteGuard>
+                  <CEORouteGuard>
+                    <Suspense fallback={<PageLoader />}>
+                      <FinanceOperationalLayout />
+                    </Suspense>
+                  </CEORouteGuard>
+                </ColaboradorRouteGuard>
+              </SetupGuard>
+            </PrivateRoute>
+          }
+        >
           <Route
-            path="workspace"
             element={
               <Suspense fallback={<PageLoader />}>
-                <EnvironmentOperationalWorkspacePage />
+                <FinanceNavLayout />
               </Suspense>
             }
-          />
+          >
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FinanceWorkspacePage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="costs"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <CentroCustosExecutivo />
+                </Suspense>
+              }
+            />
+            <Route
+              path="leakage"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <MapaVazamentoFinanceiro />
+                </Suspense>
+              }
+            />
+            <Route
+              path="billing"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FinanceBillingGate>
+                    <NexusIACustos />
+                  </FinanceBillingGate>
+                </Suspense>
+              }
+            />
+            <Route
+              path="twin"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FinanceTwinFinancialView />
+                </Suspense>
+              }
+            />
+            <Route
+              path="whatif"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FinanceWhatIfView />
+                </Suspense>
+              }
+            />
+            <Route
+              path="prediction"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <FinancePredictionView />
+                </Suspense>
+              }
+            />
+          </Route>
         </Route>
         {/* Enterprise Hardening Bloco 8 (A17): /chat passa a respeitar SetupGuard
             (utilizador novo precisa concluir setup-empresa antes de aceder a

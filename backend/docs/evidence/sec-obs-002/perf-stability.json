@@ -1,0 +1,57 @@
+{
+  "dashboard": {
+    "available": true,
+    "mode": "WATCH",
+    "assets_monitored": 35,
+    "baseline_id": "INT-01A-BASELINE-20260723",
+    "violations": 4,
+    "last_check": "2026-07-23T14:40:31.973Z",
+    "layer_status": "ATUOU",
+    "consistent_reads": true,
+    "avg_read_ms": 0.0
+  },
+  "performance": {
+    "pm2_memory_bytes": 0,
+    "pm2_memory_mb": 0.0,
+    "pm2_cpu_pct": 0,
+    "state_metrics": {
+      "avg_hash_ms": 0.2,
+      "avg_scan_ms": 8.333,
+      "avg_correlation_ms": 1.25,
+      "heap_mb": 182.55,
+      "queue_size": 4,
+      "p95_hash_ms": 1,
+      "rss_mb": 272.66,
+      "external_mb": 5.09,
+      "samples": {
+        "hash": 100,
+        "scan": 3,
+        "correlation": 4
+      }
+    },
+    "event_to_display_latency_sec": {
+      "hash_sec": 15.0,
+      "perm_sec": 12.0,
+      "delete_sec": 21.0
+    },
+    "limits": {
+      "cpu_pct": 1,
+      "heap_mb": 50,
+      "read_ms": 1
+    },
+    "within_limits": true
+  },
+  "stability": {
+    "queue_size": 4,
+    "errors": 0,
+    "duplicate_event_ids": 0,
+    "events_total": 11,
+    "event_types": {
+      "INTEGRITY_HASH_CHANGED": 9,
+      "INTEGRITY_FILE_DELETED": 1,
+      "INTEGRITY_PERM_CHANGED": 1
+    },
+    "observation_window_sec": 35,
+    "no_memory_leak_indicator": true
+  }
+}

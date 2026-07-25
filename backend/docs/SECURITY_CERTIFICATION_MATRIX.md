@@ -30,6 +30,10 @@
 | SEC-18 | securityRuntimeProtection | `/security-runtime-protection` | SEC_18_* | `sec-18/` |
 | SEC-19 | securityOperationalCertification | `/security-operational-certification` | SEC_19_* | `sec-19/` |
 | **SEC-20** | **securityCertificationV2** | **`/security-certification-v2`** | **SEC_20_*** | **`sec-20/`** |
+| **SEC-21** | **securityProductionActivation** | **`/security-production-activation`** | **SEC_21_*** | **`sec-21/`** |
+| **SEC-21A** | **securityGoLiveGate** | **`/security-go-live-gate`** | **SEC_21A_*** | **`sec-21a/`** |
+| **SEC-21B** | **securityBaselineSynchronization** | **`/security-baseline-synchronization`** | **SEC_21B_*** | **`sec-21b/`** |
+| **SEC-21C** | **securityGoLiveValidation** | **`/security-go-live-validation`** | **SEC_21C_*** | **`sec-21c/`** |
 
 ---
 

@@ -1,0 +1,12 @@
+{
+  "reload_at": "2026-07-23T19:59:48.702484+00:00",
+  "pre_pid": 3180185,
+  "post_pid": 3181502,
+  "pid_changed": true,
+  "status": "online",
+  "pre_restarts": 27,
+  "post_restarts": 28,
+  "eventbus_sha256": "e29db70ccf4d7a21130f0ab2e0382f3ac4b4055b2462157241e23f9ef4dade71",
+  "eventbus_has_buildDedupKey": true,
+  "eventbus_has_INT_DEDUP_001": true
+}

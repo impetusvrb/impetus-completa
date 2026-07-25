@@ -27,6 +27,7 @@ module.exports = {
   channels: require('./channels/channelRouter'),
   getAuditPayload: runtime.getAuditPayload,
   getPendingPayload: runtime.getPendingPayload,
+  getBootstrapStatus: runtime.getBootstrapStatus,
   buildDashboard: runtime.buildDashboard,
   processAllSources: engine.processAllSources
 };

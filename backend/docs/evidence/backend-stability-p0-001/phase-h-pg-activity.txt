@@ -1,0 +1,6 @@
+12|1|11|0|11
+   pid   | state  | wait_event_type | wait_event | duration |                                                          query                                                           
+---------+--------+-----------------+------------+----------+--------------------------------------------------------------------------------------------------------------------------
+ 1575106 | active |                 |            | 00:00:00 | SELECT pid, state, wait_event_type, wait_event, now()-query_start as duration, left(query,120) as query FROM pg_stat_act
+(1 row)
+

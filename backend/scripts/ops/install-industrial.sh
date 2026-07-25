@@ -48,8 +48,8 @@ fi
 # 5. PM2 — backend + frontend (sem lab em produção)
 echo "[5/8] PM2 restart produção..."
 pm2 stop impetus-lab-modbus impetus-lab-opcua impetus-lab-oidc impetus-lab-smtp impetus-edge-agent-lab 2>/dev/null || true
-(cd "$BACKEND" && pm2 restart impetus-backend --update-env)
-(cd "$FRONTEND" && pm2 restart impetus-frontend --update-env)
+(cd "$ROOT" && pm2 startOrRestart ecosystem.runtime.config.cjs --only impetus-backend --env production --update-env)
+(cd "$ROOT" && pm2 startOrRestart ecosystem.runtime.config.cjs --only impetus-frontend --env production --update-env)
 
 # 6. Testes smoke
 echo "[6/8] Testes governança..."

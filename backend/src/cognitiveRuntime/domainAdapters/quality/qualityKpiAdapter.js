@@ -16,7 +16,7 @@ function kpiRow(id, title, value, color, route, icon) {
     label: title,
     value,
     color: color || 'teal',
-    route: route || '/app/quality',
+    route: route || '/app/quality/operational',
     icon: icon || 'alert',
     icon_key: icon || 'alert',
     growth: null,
@@ -72,7 +72,7 @@ function buildQualitySpecializedKpis(bindings = [], signalBundle = {}, opts = {}
         'Monitor SPC / drift',
         `${spc.metrics.drift_severity} (${conf}%)`,
         spc.metrics.drift_severity === 'high' ? 'red' : 'amber',
-        '/app/quality',
+        '/app/quality/operational',
         'activity'
       )
     );
@@ -101,7 +101,7 @@ function buildQualitySpecializedKpis(bindings = [], signalBundle = {}, opts = {}
         'NC por setor (pico)',
         `${top.sector}: ${top.count}`,
         'blue',
-        '/app/quality',
+        '/app/quality/operational',
         'map'
       )
     );
@@ -115,7 +115,7 @@ function buildQualitySpecializedKpis(bindings = [], signalBundle = {}, opts = {}
         'Conformidade (proxy)',
         audit.metrics?.compliance_proxy_score ?? '—',
         'green',
-        '/app/quality',
+        '/app/quality/operational',
         'target'
       )
     );
@@ -129,7 +129,7 @@ function buildQualitySpecializedKpis(bindings = [], signalBundle = {}, opts = {}
         'Estabilidade processo',
         Number(stab.metrics.deterioration_score).toFixed(2),
         'teal',
-        '/app/quality',
+        '/app/quality/operational',
         'activity'
       )
     );

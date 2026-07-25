@@ -1,0 +1,21 @@
+# NOTA METODOLÓGICA
+# A cifra operacional "359" refere-se ao evento de exclusão em massa de 2026-07-03 ~14:32 UTC.
+# A medição técnica do pico foi ~342 paths (git ls-files --deleted | wc -l) no transcript b1c1917a.
+# Nesta auditoria (15:10 UTC) restavam 56; após HARDENING-01: 0.
+# Este CSV documenta (A) o inventário do pico/remanescentes e (B) a reconciliação 359≈342.
+
+categoria,caminho_exemplo_ou_grupo,qtd,extensao_tipica,tamanho_bytes,proprietario,permissoes,timestamp_mtime_utc,processo_responsavel,pid,usuario_os,comando_executado,hash_quando_possivel,tipo_operacao,mesmo_evento,confianca,observacao
+PICO_DELECAO,backend/src/server.js + árvore backend/src + frontend/src + ecosystem + docs + scripts,~342,misto,~variável,root,-,2026-07-03T14:32:15Z,NÃO IDENTIFICADO (lacuna auditd),N/D,root (sessão SSH correlacionada),comando exacto NÃO CAPTURADO,N/D,exclusao_fisica_selectiva,SIM,ALTA,Pico medido por git ls-files --deleted; Git HEAD daf338657 íntegro
+REMANESCENTE_1510,backend/scripts/audit/*,20,.js,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,recuperavel via git,exclusao_ainda_ausente_as_1510,SIM,ALTA,cert04_pilot_close.js e2e_cert_all.js checkMatrixDrift.js etc.
+REMANESCENTE_1510,backend/scripts/ops/*,5,.sh/.js,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD,exclusao_ainda_ausente,SIM,ALTA,install-industrial.sh go-live-readiness.js
+REMANESCENTE_1510,backend/docs/ (blueprint+cert),23,.md/.json,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD,exclusao_ainda_ausente,SIM,ALTA,FUNCTIONAL_MATRIX.json Volumes ICEB CERT-04_PILOT_EXECUTION_PLAN.md
+REMANESCENTE_1510,scripts/ raiz,4,.sh,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD,exclusao_ainda_ausente,SIM,ALTA,deploy-impetus.sh cert-drift-gate.sh
+REMANESCENTE_1510,frontend build,2,.js/.env,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD,exclusao_ainda_ausente,SIM,ALTA,vite.config.js .env.production
+REMANESCENTE_1510,CI/infra,2,.yml/.sql,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD,exclusao_ainda_ausente,SIM,ALTA,.github/workflows/cert-drift.yml migration
+REMANESCENTE_1510,outros,4,misto,-,root,-,2026-07-03T14:32:15Z,N/D,N/D,root,N/D,git HEAD / submodule,exclusao_ainda_ausente,SIM,ALTA,.cursor/rules charts; lipsync/Wav2Lip gitlink
+RESTAURADO_1436,backend/src/** + frontend/src/** + ecosystem.config.js,~286 (342-56),.js/.jsx,-,root,-,2026-07-03T14:36:17Z,Cursor Agent (transcript b1c1917a),N/D,root,git checkout HEAD -- backend/src frontend/src ecosystem.config.js …,server.js MD5 6552c028=HEAD,restauro_parcial,SIM,ALTA,Agente RESTAUROU — não apagou
+POS_HARDENING_01,todos os 56 remanescentes,56,misto,-,root,-,2026-07-03 (fase HARDENING-01),operador/hardening,N/D,root,git checkout HEAD -- $(git ls-files --deleted),git deleted=0,restauro_completo,SIM,ALTA,Blueprint 00-10 11/11; audit scripts 20; CI ok
+NAO_EH_GIT_COMMIT,-,0,-,-,-,-,-,-,-,-,-,-,exclusao_NAO_via_commit,SIM,ALTA,reflog Jul/03 sem reset/clean/checkout destrutivo
+RECONCILIACAO_359,evento_exclusao_massa_20260703,359_operacional≈342_tecnico,-,-,-,-,2026-07-03T14:32:15Z,-,-,-,-,-,mesma_ocorrencia,SIM,ALTA,359=cifra do chamado; 342=medição forense do pico; diferença atribuível a momento da contagem/restauro parcial
+ENV_AUSENTE,backend/.env,1,.env,~43770 no disco em outros momentos,root,600 pós-hardening,ausente às 15:10; recriado 16:53,N/D,N/D,root,restaurado de .env.pre-promotion-*,N/D,ausencia_pos_exclusao,SIM,MEDIA,.env não estava no Git; risco confidencialidade PM2 dump
+POSTGRES_NAO_AFECTADO,-,0,-,-,-,-,-,-,-,-,-,-,sem_DROP_TRUNCATE,NAO,ALTA,BD/uploads não afectados pelo incidente de ficheiros

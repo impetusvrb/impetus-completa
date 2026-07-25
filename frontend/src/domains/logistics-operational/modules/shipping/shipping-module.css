@@ -1,0 +1,86 @@
+.shipping-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.shipping-load-panel,
+.shipping-loading-panel,
+.shipping-intelligence-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.shipping-load-grid,
+.shipping-dock-grid,
+.shipping-intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.shipping-load-card,
+.shipping-dock-card,
+.shipping-intel-card {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.shipping-dock-card--occupied {
+  border-color: var(--amber);
+}
+
+.shipping-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.shipping-grid-summary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+.shipping-carrier-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.shipping-filter-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.shipping-timeline-input {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  max-width: 180px;
+}
+
+@media (max-width: 768px) {
+  .shipping-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

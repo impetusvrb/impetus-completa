@@ -1,0 +1,55 @@
+## IMPETUS — auditd rules (SEC-02 / forensics deleção)
+## Instalar: infra/scripts/install-auditd-impetus.sh
+
+# Reset stacking (install script faz augenrules --load)
+-D
+
+# Buffer para picos de eventos em deploy/rsync
+-b 16384
+
+# Falha se backlog (não silenciar perda de eventos)
+-f 1
+
+# ── Repositório produção ─────────────────────────────────────────────────────
+-w /var/www/impetus-completa -p wa -k impetus_repo_write
+
+# Deleções — watch impetus_repo_write regista nametype=DELETE; regra syscall por subdir backend
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F dir=/var/www/impetus-completa/backend -k impetus_delete
+-a always,exit -F arch=b32 -S unlink,unlinkat,rename,renameat -F dir=/var/www/impetus-completa/backend -k impetus_delete
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F dir=/var/www/impetus-completa/frontend -k impetus_delete
+-a always,exit -F arch=b32 -S unlink,unlinkat,rename,renameat -F dir=/var/www/impetus-completa/frontend -k impetus_delete
+
+# Segredos e config OPS
+-w /var/www/impetus-completa/backend/.env -p wa -k impetus_env
+-w /etc/impetus -p wa -k impetus_config
+
+# ── Infra crítica do sistema — INT-LIM-001 (2026-07-23) ─────────────────────
+# Cobertura em tempo real dos directórios críticos do baseline INTEGRITY v2
+# Chaves mapeadas em IntegrityAuditdBridge.IMPETUS_KEYS — sem alteração de código
+
+# Servidor web — alterações em nginx geram INTEGRITY_HASH_CHANGED (CRITICAL)
+-w /etc/nginx/ -p wa -k impetus_nginx_config
+
+# Protecção brute-force — fail2ban gera INTEGRITY_HASH_CHANGED (CRITICAL)
+-w /etc/fail2ban/ -p wa -k impetus_fail2ban_config
+
+# Certificados TLS — letsencrypt gera INTEGRITY_CERT_CHANGED (CRITICAL)
+-w /etc/letsencrypt/ -p wa -k impetus_tls_config
+
+# Tarefas agendadas — cron.d gera INTEGRITY_HASH_CHANGED (HIGH)
+-w /etc/cron.d/ -p wa -k impetus_cron_config
+
+# Backups de env (não devem voltar ao backend/)
+-w /var/backups/impetus-env-secrets -p wa -k impetus_env_backup
+
+# ── Comandos destrutivos (correlação PID/UID em investigação) ───────────────
+-a always,exit -F arch=b64 -S execve -F path=/usr/bin/rm -k impetus_exec_rm
+-a always,exit -F arch=b32 -S execve -F path=/usr/bin/rm -k impetus_exec_rm
+-a always,exit -F arch=b64 -S execve -F path=/usr/bin/rsync -k impetus_exec_rsync
+-a always,exit -F arch=b32 -S execve -F path=/usr/bin/rsync -k impetus_exec_rsync
+-a always,exit -F arch=b64 -S execve -F path=/usr/bin/git -k impetus_exec_git
+-a always,exit -F arch=b32 -S execve -F path=/usr/bin/git -k impetus_exec_git
+
+# Exec como root (SSH forensics — incidente Jul/2026)
+-a always,exit -F arch=b64 -S execve -F euid=0 -k impetus_root_exec
+-a always,exit -F arch=b32 -S execve -F euid=0 -k impetus_root_exec

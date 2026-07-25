@@ -3,14 +3,19 @@
  * Operador: DashboardOperador | Manutenção: DashboardMecanico | Demais perfis (incl. colaborador): CentroComando
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   CentroComando,
   DashboardMecanico,
   DashboardOperador
 } from '../features/dashboard';
-import { isMaintenanceProfile, isStrictAdminRole } from '../utils/roleUtils';
+import {
+  hasMaintenanceProfileContext,
+  isMaintenanceProfile,
+  isStrictAdminRole
+} from '../utils/roleUtils';
+import { mergeUserFromDashboardMe, useVisibleModules } from '../hooks/useVisibleModules';
 import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
 import './Dashboard.css';
 
@@ -42,8 +47,16 @@ function isStaffCentroProfile(user) {
 }
 
 export default function Dashboard() {
-  const userStr = localStorage.getItem('impetus_user');
-  const user = userStr ? (() => { try { return JSON.parse(userStr); } catch { return null; } })() : null;
+  const { maintenanceFromProfile, dashboardMePayload, loading: modulesLoading } = useVisibleModules();
+  const user = useMemo(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+      return mergeUserFromDashboardMe(parsed, dashboardMePayload);
+    } catch {
+      return mergeUserFromDashboardMe({}, dashboardMePayload);
+    }
+  }, [dashboardMePayload]);
+
   const isAdmin = isStrictAdminRole(user);
   const intelligentActivated = useRef(false);
   useEffect(() => {
@@ -58,8 +71,27 @@ export default function Dashboard() {
 
   const useStaffCentro = isStaffCentroProfile(user);
   const useOperadorDashboard = isOperadorProfile(user);
-  const useMaintenanceDashboard = isMaintenanceProfile(user);
+  const useMaintenanceDashboard = hasMaintenanceProfileContext(user, maintenanceFromProfile);
   const colaboradorRole = isColaboradorProfile(user);
+
+  /** Aguarda /dashboard/me antes de fixar colaborador genérico (localStorage pode vir só com role). */
+  const awaitingProfileResolution =
+    modulesLoading &&
+    colaboradorRole &&
+    !useMaintenanceDashboard &&
+    !isMaintenanceProfile(user) &&
+    !dashboardMePayload;
+
+  if (awaitingProfileResolution) {
+    return (
+      <ModuleErrorBoundary moduleName="Dashboard">
+        <div className="dashboard-mecanico-loading" style={{ minHeight: '40vh', display: 'grid', placeItems: 'center' }}>
+          <div className="dashboard-mecanico-spinner" />
+          <p>Carregando dashboard...</p>
+        </div>
+      </ModuleErrorBoundary>
+    );
+  }
 
   return (
     <ModuleErrorBoundary moduleName="Dashboard">

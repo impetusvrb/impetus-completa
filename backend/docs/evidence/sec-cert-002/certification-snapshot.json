@@ -1,0 +1,212 @@
+{
+  "generated_at": "2026-07-23T15:44:45.030772+00:00",
+  "pack_summary": {
+    "GAP-INT-01-ARCH": {
+      "count": 5,
+      "files": [
+        "GAP_INT_01_ARCHITECTURE.md",
+        "INTEGRITY_EVENT_MODEL.md",
+        "INTEGRITY_IMPLEMENTATION_ROADMAP.md",
+        "INTEGRITY_SENSOR_REFERENCE.md",
+        "INTEGRITY_TELEMETRY_ARCHITECTURE.md"
+      ]
+    },
+    "INT-01A": {
+      "count": 6,
+      "files": [
+        "INTEGRITY_ASSET_INVENTORY.md",
+        "INTEGRITY_BASELINE_INITIAL.md",
+        "INTEGRITY_BASELINE_MANAGER_SPEC.md",
+        "INTEGRITY_BASELINE_POLICY.md",
+        "INTEGRITY_BASELINE_VALIDATION.md",
+        "INT_01A_COMPLETION_REPORT.md"
+      ]
+    },
+    "INT-01B": {
+      "count": 6,
+      "files": [
+        "INTEGRITY_ENGINE_DETERMINISM.md",
+        "INTEGRITY_ENGINE_IMPLEMENTATION.md",
+        "INTEGRITY_ENGINE_PERFORMANCE.md",
+        "INTEGRITY_ENGINE_SHADOW_VALIDATION.md",
+        "INTEGRITY_ENGINE_TEST_REPORT.md",
+        "INT_01B_COMPLETION_REPORT.md"
+      ]
+    },
+    "INT-01C": {
+      "count": 6,
+      "files": [
+        "INTEGRITY_PERFORMANCE_REPORT.md",
+        "INTEGRITY_STATE_MODEL.md",
+        "INTEGRITY_TELEMETRY_IMPLEMENTATION.md",
+        "INTEGRITY_TELEMETRY_VALIDATION.md",
+        "INT_01C_COMPLETION_REPORT.md",
+        "resilience-results.json"
+      ]
+    },
+    "INT-01D": {
+      "count": 6,
+      "files": [
+        "INTEGRITY_DASHBOARD_INTEGRATION.md",
+        "INTEGRITY_FALLBACK_VALIDATION.md",
+        "INTEGRITY_REALTIME_VALIDATION.md",
+        "INTEGRITY_STATE_CONSUMPTION.md",
+        "INT_01D_COMPLETION_REPORT.md",
+        "integration-results.json"
+      ]
+    },
+    "SEC-OBS-002": {
+      "count": 10,
+      "files": [
+        "INTEGRITY_DASHBOARD_VALIDATION.md",
+        "INTEGRITY_OPERATIONAL_LOGBOOK.md",
+        "INTEGRITY_OPERATIONAL_OBSERVABILITY.md",
+        "INTEGRITY_PERFORMANCE_OBSERVATION.md",
+        "INTEGRITY_RUNTIME_VALIDATION.md",
+        "SEC_OBS_002_COMPLETION_REPORT.md",
+        "activation-log.json",
+        "controlled-events.json",
+        "failure-recovery.json",
+        "perf-stability.json"
+      ]
+    },
+    "SEC-COVERAGE-002": {
+      "count": 9,
+      "files": [
+        "INTEGRITY_AUDITD_COVERAGE.md",
+        "INTEGRITY_COVERAGE_AUDIT.md",
+        "INTEGRITY_COVERAGE_MATRIX.md",
+        "INTEGRITY_FALSE_POSITIVE_ANALYSIS.md",
+        "INTEGRITY_GAP_ANALYSIS.md",
+        "SEC_COVERAGE_002_COMPLETION_REPORT.md",
+        "analysis-summary.json",
+        "coverage-audit-raw.json",
+        "functional-coverage.json"
+      ]
+    }
+  },
+  "arch_docs": [
+    "GAP_INT_01_ARCHITECTURE.md",
+    "INTEGRITY_EVENT_MODEL.md",
+    "INTEGRITY_IMPLEMENTATION_ROADMAP.md",
+    "INTEGRITY_SENSOR_REFERENCE.md",
+    "INTEGRITY_TELEMETRY_ARCHITECTURE.md"
+  ],
+  "phase_statuses": {
+    "INT-01A": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 8346
+    },
+    "INT-01B": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 7176
+    },
+    "INT-01C": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 7752
+    },
+    "INT-01D": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 6293
+    },
+    "SEC-OBS-002": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 3847
+    },
+    "SEC-COVERAGE-002": {
+      "exists": true,
+      "has_PASS": true,
+      "size": 3411
+    }
+  },
+  "forensic": {
+    "baseline_sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+    "inventory_sha256": "fd8fc113754026658064dc05bd9c9039b1c2ed49f14bd1ac238253bdf4e7dabb",
+    "baseline_matches_int01a": true,
+    "inventory_matches_int01a": true,
+    "expected_baseline": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+    "expected_inventory": "fd8fc113754026658064dc05bd9c9039b1c2ed49f14bd1ac238253bdf4e7dabb"
+  },
+  "operational_state": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "assets_monitored": 35,
+    "violations": 6,
+    "baseline_id": "INT-01A-BASELINE-20260723",
+    "ok": false,
+    "metrics": {
+      "avg_hash_ms": 0.01,
+      "avg_scan_ms": 0.68,
+      "avg_correlation_ms": 1.333,
+      "heap_mb": 1408.18,
+      "queue_size": 6,
+      "p95_hash_ms": 0,
+      "rss_mb": 1529.72,
+      "external_mb": 4.1,
+      "samples": {
+        "hash": 100,
+        "scan": 100,
+        "correlation": 6
+      }
+    },
+    "stats": {
+      "hash_checks": 0,
+      "perm_checks": 0,
+      "events_produced": 6,
+      "events_suppressed": 0,
+      "events_persisted": 6,
+      "errors": 0
+    },
+    "INTEGRITY_SENSOR_ENABLED": "true"
+  },
+  "components": {
+    "IntegrityBaselineManager.js": true,
+    "IntegrityHashChecker.js": true,
+    "IntegrityPermChecker.js": true,
+    "IntegrityAuditdBridge.js": true,
+    "IntegrityEventBus.js": true,
+    "IntegrityCorrelationEngine.js": true,
+    "IntegrityEngine.js": true,
+    "IntegrityRuntime.js": true,
+    "IntegrityStateStore.js": true,
+    "IntegrityMetricsCollector.js": true
+  },
+  "decoupling": {
+    "getIntegrityState_present": true,
+    "integrity_state_in_payload": true,
+    "no_HashChecker_in_dashboard": true,
+    "no_createHash_in_dashboard": true,
+    "Intelligence_uses_StateStore": true,
+    "Intelligence_has_fallback": true
+  },
+  "coverage_acceptance": {
+    "FULL_CRITICAL_COVERAGE": true,
+    "FULL_HIGH_COVERAGE": true,
+    "MEDIUM_COVERAGE_VALIDATED": true,
+    "NO_CRITICAL_BLIND_SPOTS": true
+  },
+  "fp_fn": {
+    "false_positive_rate_pct": 0.0,
+    "false_negative_rate_pct": 0.0,
+    "duplicate_event_ids": 0,
+    "FALSE_POSITIVE_RATE_ACCEPTABLE": true,
+    "FALSE_NEGATIVE_RATE_ACCEPTABLE": true
+  },
+  "blind_summary": {
+    "P0": 0,
+    "P1": 8,
+    "P2": 16
+  },
+  "perf_obs": {
+    "avg_hash_ms": 0.2,
+    "avg_scan_ms": 8.333,
+    "avg_correlation_ms": 1.25,
+    "avg_read_ms": 0.0,
+    "within_limits": true
+  }
+}

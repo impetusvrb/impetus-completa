@@ -3,26 +3,49 @@
  * Normaliza roles do backend (PT/EN, compostos) para chaves de menu/layout.
  */
 
+import {
+  hasMaintenanceDashboardSurface,
+  resolveDashboardSurfaceCapabilities
+} from './dashboardSurfaceCapabilities.js';
+
 /** Capability contextual: administrador de sistema (company_role), sem users.role = diretor */
 export const CAP_SYSTEM_ADMINISTRATION = 'system_administration';
 
-const MAINTENANCE_PATTERN = /maintenance|manuten|mecan|eletric|eletromecan|soldad|tecnic|technician_maintenance|manager_maintenance|coordinator_maintenance|supervisor_maintenance/i;
-
 /**
- * Verifica se o usuário tem perfil de manutenção
+ * Sinal de superfície/manutenção (menu, audiência de domínio).
+ * Delega à política fail-closed INC-009/INC-022 — qualidade/ambiental/executivo primários nunca
+ * herdam manutenção por functional_area errado, heurística `tecnic` ou eixo secundário.
  */
 export function isMaintenanceProfile(user) {
+  return resolveDashboardSurfaceCapabilities(user).maintenance;
+}
+
+export {
+  resolveDashboardSurfaceCapabilities,
+  hasMaintenanceDashboardSurface,
+  resolveMaintenanceFromDashboardMe,
+  isQualityPrimary
+} from './dashboardSurfaceCapabilities.js';
+
+/**
+ * Superfície executiva estratégica — ceo_executive, eixo executivo, liderança em área executive.
+ * Fail-closed: perfis de manutenção nunca são classificados como executivos puros.
+ */
+export function isExecutiveDashboardProfile(user) {
   if (!user) return false;
-  const role = (user.role || '').toLowerCase();
-  const area = (user.functional_area || user.area || user.department || '').toLowerCase();
-  const jobTitle = (user.job_title || user.cargo || '').toLowerCase();
-  const profile = (user.dashboard_profile || '').toLowerCase();
-  return (
-    MAINTENANCE_PATTERN.test(role) ||
-    MAINTENANCE_PATTERN.test(area) ||
-    MAINTENANCE_PATTERN.test(jobTitle) ||
-    MAINTENANCE_PATTERN.test(profile)
-  );
+  if (isMaintenanceProfile(user)) return false;
+  const profile = String(user.dashboard_profile || '').toLowerCase();
+  if (profile === 'ceo_executive') return true;
+  const sp = user.structural_profile;
+  if (sp?.eixo_primario === 'eixo_executivo') return true;
+  const fa = String(user.functional_area || user.area || user.department || '').toLowerCase();
+  if (fa === 'executive' && isExecutiveLeadershipRole(user)) return true;
+  return false;
+}
+
+/** Superfície exclusiva de manutenção — política fail-closed (INC-009). */
+export function hasMaintenanceProfileContext(user, maintenanceFromProfile = false) {
+  return hasMaintenanceDashboardSurface(user, maintenanceFromProfile);
 }
 
 /**
@@ -145,6 +168,13 @@ export function userHasSystemAdministrationCapability(user) {
   );
 }
 
+/** Alinhado a DirectorOrCEORouteGuard (App.jsx) — Logs de Áudio e rotas sensíveis diretoria. */
+export function canAccessDirectorOrCEOAdminRoutes(user) {
+  if (!user) return false;
+  if (userHasSystemAdministrationCapability(user)) return true;
+  return ['ceo', 'admin', 'diretor'].includes(String(user.role || '').toLowerCase());
+}
+
 /** Conta técnica `role === 'admin'` OU administrador contextual (cargo na base estrutural) OU admin de tenant (Fase 1). */
 export function isStrictAdminRole(user) {
   if (!user) return false;
@@ -185,16 +215,28 @@ export function resolveMenuRole(user) {
 }
 
 /** Colaborador/auxiliar sem perfil de manutenção — menu mínimo (sem dashboard tradicional) */
-export function isColaboradorSimples(user) {
+export function isColaboradorSimples(user, maintenanceFromProfile = false) {
   if (!user) return false;
+  if (hasMaintenanceProfileContext(user, maintenanceFromProfile)) return false;
   const role = (user.role || '').toLowerCase();
-  if (!['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role)) return false;
-  return !isMaintenanceProfile(user);
+  return ['colaborador', 'auxiliar_producao', 'auxiliar'].includes(role);
 }
 
 /** Técnico de manutenção (mecânico, eletricista, etc.): dashboard e módulos técnicos, não o menu mínimo do colaborador */
-export function isMaintenanceTechnicianMenu(user) {
-  return isMaintenanceProfile(user) && resolveMenuRole(user) === 'colaborador';
+export function isMaintenanceTechnicianMenu(user, maintenanceFromProfile = false) {
+  return hasMaintenanceProfileContext(user, maintenanceFromProfile) && resolveMenuRole(user) === 'colaborador';
+}
+
+/**
+ * Liderança/coordenador/supervisor de manutenção: injeta ManuIA no menu de liderança.
+ * Técnicos já recebem MENU_MANUTENCAO_TECNICO — não duplicar.
+ * Alinhado a STANDALONE_MANUIA_PATHS em useVisibleModules (menu == route access).
+ */
+export function shouldInjectManuiaMenuModules(user, maintenanceFromProfile = false) {
+  if (!user || isAdministrativePortalOnlyUser(user)) return false;
+  if (!hasMaintenanceProfileContext(user, maintenanceFromProfile)) return false;
+  if (isMaintenanceTechnicianMenu(user, maintenanceFromProfile)) return false;
+  return true;
 }
 
 /** Dashboard Vivo: todos exceto admin técnico */

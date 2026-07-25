@@ -9,7 +9,7 @@ log "Patch .env produção industrial..."
 node "$ROOT/scripts/patch-env-industrial-production.js"
 
 log "PM2 restart production..."
-pm2 restart ecosystem.config.js --env production --update-env
+(cd "$ROOT" && pm2 restart ecosystem.runtime.config.cjs --env production --update-env)
 
 log "Aguardar backend (15s)..."
 sleep 15

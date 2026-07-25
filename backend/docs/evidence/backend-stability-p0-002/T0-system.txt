@@ -1,0 +1,16 @@
+=== T0 SNAPSHOT ===
+Tue Jul 14 13:26:17 UTC 2026
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        97G   93G  3.9G  97% /
+Filesystem       Inodes  IUsed    IFree IUse% Mounted on
+/dev/sda1      12902400 309568 12592832    3% /
+               total        used        free      shared  buff/cache   available
+Mem:           7.8Gi       2.3Gi       135Mi       141Mi       5.3Gi       5.0Gi
+Swap:             0B          0B          0B
+ 13:26:17 up 8 days, 21:06,  0 users,  load average: 0.62, 0.50, 0.87
+│ status            │ online                                          │
+│ restarts          │ 22                                              │
+│ uptime            │ 19m                                             │
+│ pid path          │ /root/.pm2/pids/impetus-backend-3.pid           │
+│ unstable restarts │ 0                                               │
+LISTEN 0      511        127.0.0.1:4000       0.0.0.0:*    users:(("node /var/www/i",pid=1576703,fd=19))                                     

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import useEoxHubHeaderVisible from '../../../presentation/eox/useEoxHubHeaderVisible.js';
 import { resolveLogisticsAudienceBand, resolveLogisticsUxDensity } from '../navigation/logisticsAudienceNavigation.js';
 import { isLogisticsOperationalRuntimeEnabled } from './logisticsOperationalFeatureFlags.js';
 import {
@@ -16,7 +17,13 @@ const mono = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.0
 
 function OtifGauge({ value }) {
   const pct = value != null ? `${(value * 100).toFixed(1)}%` : '—';
-  const color = value > 0.95 ? 'var(--green)' : value > 0.85 ? 'var(--amber)' : 'var(--red)';
+  const color = value == null
+    ? 'var(--text-tertiary)'
+    : value > 0.95
+      ? 'var(--green)'
+      : value > 0.85
+        ? 'var(--amber)'
+        : 'var(--red)';
   return (
     <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4, flex: '1 1 160px' }}>
       <div style={{ ...mono, color: 'var(--text-tertiary)', marginBottom: 4 }}>OTIF</div>
@@ -40,19 +47,26 @@ function LogisticsKpi({ label, value, unit, color }) {
 function OperationsOverviewPanel({ companyId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('impetus_token');
       const res = await fetch(`${API_URL.replace(/\/+$/, '')}/logistics-operational/operations/overview`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include'
       });
-      if (res.ok) setData(await res.json());
-      else setData({ otif: 0.93, pending_receipts: 12, open_pickings: 47, pending_shipments: 8, dock_occupation: 0.65 });
+      if (!res.ok) {
+        setData(null);
+        setError('Fonte operacional não configurada ou indisponível.');
+        return;
+      }
+      setData(await res.json());
     } catch {
-      setData({ otif: 0.93, pending_receipts: 12, open_pickings: 47, pending_shipments: 8, dock_occupation: 0.65 });
+      setData(null);
+      setError('Fonte operacional não configurada ou indisponível.');
     } finally { setLoading(false); }
   }, []);
 
@@ -71,8 +85,17 @@ function OperationsOverviewPanel({ companyId }) {
         <LogisticsKpi label="Recebimentos" value={data?.pending_receipts} unit="pend" color="var(--amber)" />
         <LogisticsKpi label="Pickings" value={data?.open_pickings} unit="abertos" color="var(--cyan)" />
         <LogisticsKpi label="Expedição" value={data?.pending_shipments} unit="pend" color="var(--text-secondary)" />
-        <LogisticsKpi label="Ocupação docas" value={data?.dock_occupation != null ? `${(data.dock_occupation * 100).toFixed(0)}%` : '—'} color={data?.dock_occupation > 0.9 ? 'var(--amber)' : 'var(--green)'} />
+        <LogisticsKpi
+          label="Ocupação docas"
+          value={data?.dock_occupation != null ? `${(data.dock_occupation * 100).toFixed(0)}%` : '—'}
+          color={data?.dock_occupation == null ? 'var(--text-tertiary)' : data.dock_occupation > 0.9 ? 'var(--amber)' : 'var(--green)'}
+        />
       </div>
+      {error ? (
+        <p role="status" style={{ margin: 0, ...mono, color: 'var(--amber)' }}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -159,12 +182,9 @@ function PickingView({ companyId }) {
       </div>
       <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
         <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Filas de picking ativas</div>
-        {['Zona A – Produtos acabados', 'Zona B – Matéria-prima', 'Zona C – Expedição rápida'].map((zone) => (
-          <div key={zone} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{zone}</span>
-            <span style={{ ...mono, fontSize: 10, color: 'var(--text-secondary)' }}>0 itens</span>
-          </div>
-        ))}
+        <p style={{ margin: 0, ...mono, color: 'var(--text-tertiary)' }}>
+          Sem dados disponíveis para filas de picking.
+        </p>
       </div>
       <Link to="/app/logistics/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4, minHeight: 40, display: 'inline-flex', alignItems: 'center', padding: '0 12px', fontSize: 13 }}>
         ← Hub logístico
@@ -187,12 +207,9 @@ function ShippingView({ companyId }) {
       </div>
       <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
         <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Docas de expedição</div>
-        {['Doca 1 — TIR/Truck', 'Doca 2 — Van/Utilitário', 'Doca 3 — Moto courier'].map((dock) => (
-          <div key={dock} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{dock}</span>
-            <span style={{ ...mono, fontSize: 10, color: 'var(--green)' }}>Livre</span>
-          </div>
-        ))}
+        <p style={{ margin: 0, ...mono, color: 'var(--text-tertiary)' }}>
+          Sem telemetria de docas disponível.
+        </p>
       </div>
       <Link to="/app/logistics/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4, minHeight: 40, display: 'inline-flex', alignItems: 'center', padding: '0 12px', fontSize: 13 }}>
         ← Hub logístico
@@ -241,7 +258,7 @@ function TelemetryLogisticsView({ companyId }) {
         {[
           { label: 'Veículos rastreados', value: '—', color: 'var(--cyan)' },
           { label: 'Entregas em rota', value: '—', color: 'var(--text-primary)' },
-          { label: 'Alertas ativos', value: '0', color: 'var(--green)' },
+          { label: 'Alertas ativos', value: '—', color: 'var(--text-tertiary)' },
           { label: 'Tempo médio entrega', value: '—', unit: 'h', color: 'var(--text-secondary)' }
         ].map(({ label, value, unit, color }) => (
           <LogisticsKpi key={label} label={label} value={value} unit={unit} color={color} />
@@ -250,7 +267,7 @@ function TelemetryLogisticsView({ companyId }) {
       <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
         <div style={{ ...mono, color: 'var(--cyan)', marginBottom: 8 }}>Frota em tempo real</div>
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
-          Integração GPS/TMS ativa. Dados em tempo real disponíveis mediante configuração de rastreamento.
+          Integração GPS/TMS não configurada ou sem dados disponíveis.
         </p>
       </div>
       <Link to="/app/logistics/operational" className="btn-ghost" style={{ alignSelf: 'flex-start', borderRadius: 4, minHeight: 40, display: 'inline-flex', alignItems: 'center', padding: '0 12px', fontSize: 13 }}>
@@ -307,16 +324,20 @@ function RolloutLogisticsView() {
 }
 
 function LogisticsHub({ companyId }) {
+  const showHubHeader = useEoxHubHeaderVisible();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <header>
-        <h1 style={{ margin: 0, fontSize: 20, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
-          Logística — Centro Operacional
-        </h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
-          WMS · TMS · Recebimento · Picking · Expedição · OTIF · Supply chain
-        </p>
-      </header>
+      {showHubHeader ? (
+        <header>
+          <h1 style={{ margin: 0, fontSize: 20, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+            Logística — Centro Operacional
+          </h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
+            WMS · TMS · Recebimento · Picking · Expedição · OTIF · Supply chain
+          </p>
+        </header>
+      ) : null}
 
       <OperationsOverviewPanel companyId={companyId} />
 

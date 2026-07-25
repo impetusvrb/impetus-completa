@@ -1,0 +1,55 @@
+.picking-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.picking-wave-panel,
+.picking-route-panel,
+.picking-intelligence-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.picking-wave-grid,
+.picking-route-grid,
+.picking-intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.picking-wave-card,
+.picking-route-card,
+.picking-intel-card {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.picking-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.picking-grid-summary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .picking-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

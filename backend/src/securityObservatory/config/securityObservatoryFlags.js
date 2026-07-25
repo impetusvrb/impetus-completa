@@ -32,6 +32,11 @@ function maxAggregationBuckets() {
   return envInt('SECURITY_OBSERVATORY_MAX_BUCKETS', 5000, 500, 50000);
 }
 
+/** Máximo de chaves únicas em totais (ip/path/ua) — evita crescimento ilimitado. */
+function maxTotalKeys() {
+  return envInt('SECURITY_OBSERVATORY_MAX_TOTAL_KEYS', 10000, 1000, 100000);
+}
+
 /** Máximo entradas timeline. */
 function maxTimelineEntries() {
   return envInt('SECURITY_OBSERVATORY_MAX_TIMELINE', 500, 50, 5000);
@@ -49,6 +54,7 @@ module.exports = {
   isSecurityObservatoryEnabled,
   aggregationWindowMs,
   maxAggregationBuckets,
+  maxTotalKeys,
   maxTimelineEntries,
   trustedOperatorCidrs
 };

@@ -1,0 +1,76 @@
+---
+description: Protocolo obrigatório de segurança do produto — evolução incremental only (vigente desde 19/07/2026; todos os agentes Cursor)
+alwaysApply: true
+---
+
+# Política de Segurança Arquitectural (IMPETUS)
+
+**Vigência:** 19/07/2026 — tempo indeterminado, enquanto o produto estiver em desenvolvimento  
+**Obrigatoriedade:** regra **mandatória** para **todos os agentes de edição** acionados na plataforma Cursor neste workspace  
+**Aplica-se a:** desenvolvimento, correcção, actualização, evolução, auditoria com alteração de código
+
+## Princípio inviolável
+
+**É permanentemente proibido alterar qualquer código, funcionalidade, design ou qualquer outro componente fora do escopo explicitamente especificado no prompt da actividade.**
+
+Toda actividade a partir de 19/07/2026 é **exclusivamente evolutiva**.
+
+**Objectivo:** garantir a segurança e a integridade funcional, visual, operacional e estrutural do projecto IMPETUS.
+
+## Componentes certificados — não tocar
+
+É **proibido** alterar, remover, refactorar ou substituir componentes já certificados nas fases:
+
+- BASELINE
+- ARC
+- GF (Greenfield)
+- WMS
+- NAV
+- UX
+- REV, OPS, INC e demais fases homologadas
+
+…excepto quando o **escopo explícito** da actividade actual autorizar essa alteração pontual.
+
+## Preservação obrigatória
+
+Toda implementação deve ser **incremental** e preservar:
+
+- APIs e contratos canónicos
+- Rotas certificadas e redirects de compatibilidade
+- Feature Flags (sem novas flags salvo escopo explícito)
+- RBAC existente
+- Runtimes (OCL, Supply, Pilot, Promotion, Command Center)
+- Presentation Layer certificada
+- Centro de Comando e **Centro Cognitivo**
+- Compatibilidade retroativa (bookmarks, URLs legacy)
+
+## Agentes Cursor
+
+Qualquer agente (Agent, Composer, subagent, Cloud Agent, etc.) **deve** obedecer a este protocolo antes de propor ou aplicar edits. Em dúvida sobre escopo → **não alterar**; pedir clarificação ou implementar via componente novo aditivo.
+
+## Resolução de conflito
+
+Se uma necessidade entrar em conflito com um componente certificado:
+
+1. **Criar componente novo** (wrapper, adaptador, rota paralela, redirect)
+2. **Não modificar** o componente certificado
+3. Marcar legado com `@deprecated` apenas se o escopo o exigir
+
+## Modos de execução
+
+| Modo | Comportamento |
+|------|---------------|
+| Escopo mínimo (default) | Diff mínimo; só ficheiros necessários ao prompt |
+| READ ONLY | Zero alterações de código |
+| SAFE IMPLEMENTATION | Aditivo; sem breaking changes |
+
+## Antes de editar
+
+1. Confirmar que o ficheiro está **dentro do escopo** do prompt
+2. Verificar se o ficheiro pertence a fase certificada
+3. Preferir extensão aditiva a modificação de comportamento existente
+4. Não “aproveitar” para limpar, refactorar ou melhorar código adjacente
+
+## Parecer em actividades de certificação
+
+Actividades de validação/evidência devem declarar conformidade ou observações — nunca alterar arquitectura certificada para “facilitar” testes.

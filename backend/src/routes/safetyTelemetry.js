@@ -21,7 +21,16 @@ router.use((req, res, next) => {
 });
 
 router.get('/snapshot', (req, res) => {
-  res.json({ ok: true, domain: 'safety', metrics: { navigation_samples: 0, publication_denied: 0 } });
+  res.json({
+    ok: false,
+    status: 'not_configured',
+    code: 'SAFETY_TELEMETRY_SOURCE_NOT_CONFIGURED',
+    domain: 'safety',
+    metrics: {
+      navigation_samples: null,
+      publication_denied: null
+    }
+  });
 });
 
 module.exports = router;

@@ -1,0 +1,20 @@
+{
+  "corrupt_state": {
+    "fallback_available_false": true,
+    "platform_unaffected": true
+  },
+  "baseline_unavailable": {
+    "mode": "DEGRADED",
+    "last_error_present": true,
+    "platform_health": "200",
+    "at": "2026-07-23T14:39:07Z"
+  },
+  "recovery": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "assets_monitored": 35,
+    "at": "2026-07-23T14:39:23Z"
+  },
+  "auditd_log_readable": true,
+  "baseline_sha256_after": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6"
+}

@@ -4,10 +4,11 @@
  * SEC-19 — Simulador de ataques controlados (incidentes sintéticos, sem tráfego HTTP).
  */
 
+const flags = require('../config/securityOperationalCertificationFlags');
+const metrics = require('../metrics/operationalCertificationMetrics');
+const store = require('../store/operationalCertificationStore');
 const { createSecurityIncidentDto } = require('../../securityCorrelation/dto/securityIncidentDto');
 const catalog = require('./attackScenarioCatalog');
-const store = require('../store/operationalCertificationStore');
-const metrics = require('../metrics/operationalCertificationMetrics');
 
 const ATTACK_IP = '203.0.113.99';
 
@@ -45,6 +46,9 @@ function buildIncidentFromScenario(scenario, index) {
 }
 
 function seedScenarioIncidents(scenarios) {
+  if (!flags.shouldSeedSyntheticIncidents()) {
+    return [];
+  }
   const sec02 = require('../../securityCorrelation');
   const incidents = [];
   scenarios.forEach((scenario, i) => {
@@ -128,6 +132,25 @@ function evaluateScenarioDetection(scenario, probes) {
 function runCategorySimulation(category) {
   metrics.increment('attack_simulations');
   const all = catalog.getAllScenarios().filter((s) => s.category === category);
+  if (!flags.shouldSeedSyntheticIncidents()) {
+    return {
+      category,
+      total: all.length,
+      detected: 0,
+      coverageRatio: 0,
+      results: all.map((scenario) => ({
+        scenarioId: scenario.id,
+        category,
+        classification: scenario.classification,
+        detected: false,
+        simulated: true,
+        skipped: true,
+        reason: 'seed_incidents_disabled',
+        completedAt: new Date().toISOString()
+      })),
+      probes: {}
+    };
+  }
   const sec02 = require('../../securityCorrelation');
   sec02.store.resetForTests();
   seedScenarioIncidents(all);
@@ -184,6 +207,15 @@ function runAllAttackSimulations() {
 
 function runCompositeIncidentScenario() {
   metrics.increment('attack_simulations');
+  if (!flags.shouldSeedSyntheticIncidents()) {
+    return {
+      type: 'composite_incident',
+      simulated: true,
+      skipped: true,
+      reason: 'seed_incidents_disabled',
+      completedAt: new Date().toISOString()
+    };
+  }
   const sec02 = require('../../securityCorrelation');
   sec02.store.resetForTests();
 

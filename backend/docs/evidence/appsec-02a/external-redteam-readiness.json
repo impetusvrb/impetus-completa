@@ -1,0 +1,23 @@
+{
+  "schema_version": "external_redteam_readiness_v1",
+  "generated_at": "2026-07-10T20:56:33.264Z",
+  "decision": "READY_FOR_EXTERNAL_RED_TEAM",
+  "overall_readiness_percent": 100,
+  "dimensions": {
+    "operational_readiness": {
+      "score": 100,
+      "remarks": []
+    },
+    "security_readiness": {
+      "score": 100,
+      "remarks": []
+    },
+    "application_readiness": {
+      "score": 100,
+      "remarks": []
+    },
+    "residual_risk": "low"
+  },
+  "remarks": [],
+  "next_step": "Contratar/executar Red Team independente com roteiro 04/07/2026 ampliado"
+}

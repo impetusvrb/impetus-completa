@@ -2,7 +2,7 @@
  * Biblioteca técnica de equipamentos — apenas utilizadores com role admin.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, FileText, Layers, Upload, Box } from 'lucide-react';
+import { Package, FileText, Layers, Upload, Box, AlertCircle, RefreshCw } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import EquipmentLibraryModel3DPreview from '../components/equipmentLibrary/EquipmentLibraryModel3DPreview';
@@ -18,6 +18,10 @@ function formatBytes(n) {
   if (num < 1024) return `${num} B`;
   if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`;
   return `${(num / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function resolveAdminApiError(e, fallback) {
+  return e?.apiMessage || e?.response?.data?.error || e?.message || fallback;
 }
 
 export default function AdminEquipmentLibrary() {
@@ -38,13 +42,23 @@ export default function AdminEquipmentLibrary() {
   const [upload3dVersionLabel, setUpload3dVersionLabel] = useState('');
   const [upload3dNotes, setUpload3dNotes] = useState('');
   const [upload3dPrimary, setUpload3dPrimary] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [refsError, setRefsError] = useState(null);
 
-  const loadRefs = useCallback(() => {
-    equipmentLibraryAdmin.references().then((r) => setRefs(r.data?.data || null)).catch(() => {});
+  const loadRefs = useCallback(async () => {
+    setRefsError(null);
+    try {
+      const r = await equipmentLibraryAdmin.references();
+      setRefs(r.data?.data || null);
+    } catch (e) {
+      setRefs(null);
+      setRefsError(resolveAdminApiError(e, 'Metadados de referência indisponíveis.'));
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [a, d, p, m] = await Promise.all([
         equipmentLibraryAdmin.assets.list(),
@@ -57,11 +71,22 @@ export default function AdminEquipmentLibrary() {
       setParts(p.data?.data || []);
       setModels3d(m.data?.data || []);
     } catch (e) {
-      notify.error(e.apiMessage || e.response?.data?.error || 'Erro ao carregar biblioteca técnica');
+      setAssets([]);
+      setDocs([]);
+      setParts([]);
+      setModels3d([]);
+      const msg = resolveAdminApiError(e, 'Falha ao carregar a biblioteca técnica (LIBRARY_LOAD_FAILED).');
+      setLoadError(msg);
+      notify.error(msg);
     } finally {
       setLoading(false);
     }
   }, [notify]);
+
+  const retryAll = useCallback(() => {
+    loadRefs();
+    loadAll();
+  }, [loadRefs, loadAll]);
 
   useEffect(() => {
     loadRefs();
@@ -319,6 +344,32 @@ export default function AdminEquipmentLibrary() {
           </div>
         </div>
 
+        {loadError && !loading && (
+          <div className="eq-lib-banner eq-lib-banner--error" role="alert">
+            <AlertCircle size={18} aria-hidden="true" />
+            <div>
+              <strong>Falha ao carregar biblioteca técnica</strong>
+              <p className="eq-lib-banner__detail">{loadError}</p>
+              <p className="eq-lib-banner__hint">
+                Estado distinto de biblioteca vazia — a recolha falhou (LIBRARY_LOAD_FAILED).
+              </p>
+            </div>
+            <button type="button" className="btn btn-primary btn-sm" onClick={retryAll}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {refsError && !loadError && (
+          <div className="eq-lib-banner eq-lib-banner--warn" role="status">
+            <AlertCircle size={16} aria-hidden="true" />
+            <span>{refsError}</span>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={loadRefs}>
+              <RefreshCw size={14} /> Recarregar metadados
+            </button>
+          </div>
+        )}
+
         <div className="eq-lib-tabs">
           <button type="button" className={tab === 'assets' ? 'active' : ''} onClick={() => setTab('assets')}>
             <Layers size={18} /> Equipamentos
@@ -334,7 +385,7 @@ export default function AdminEquipmentLibrary() {
           </button>
         </div>
 
-        {tab === 'assets' && (
+        {tab === 'assets' && !loadError && (
           <section className="eq-lib-section">
             <p className="eq-lib-hint">
               Os equipamentos são os mesmos da base estrutural. Aqui pode anexar modelo 3D e manual PDF por
@@ -345,20 +396,20 @@ export default function AdminEquipmentLibrary() {
                 {refs.departments.length} departamentos · {refs.productionLines?.length || 0} linhas
               </p>
             ) : null}
-            <Table columns={assetColumns} data={assets} loading={loading} emptyMessage="Nenhum equipamento" />
+            <Table columns={assetColumns} data={assets} loading={loading} emptyMessage="Nenhum equipamento cadastrado (LIBRARY_EMPTY)" />
           </section>
         )}
 
-        {tab === 'docs' && (
+        {tab === 'docs' && !loadError && (
           <section className="eq-lib-section">
             <p className="eq-lib-hint">
               Documentos de conhecimento da empresa (cadastro via API ou extensão futura do formulário).
             </p>
-            <Table columns={docColumns} data={docs} loading={loading} emptyMessage="Nenhum documento" />
+            <Table columns={docColumns} data={docs} loading={loading} emptyMessage="Nenhum documento cadastrado (LIBRARY_EMPTY)" />
           </section>
         )}
 
-        {tab === 'parts' && (
+        {tab === 'parts' && !loadError && (
           <section className="eq-lib-section">
             <div className="eq-lib-parts-toolbar">
               <label className="btn btn-secondary">
@@ -383,11 +434,11 @@ export default function AdminEquipmentLibrary() {
               </label>
             </div>
             <p className="eq-lib-hint">CSV esperado: colunas code, name; opcionalmente qty, reorder.</p>
-            <Table columns={partColumns} data={parts} loading={loading} emptyMessage="Nenhuma peça" />
+            <Table columns={partColumns} data={parts} loading={loading} emptyMessage="Nenhuma peça cadastrada (LIBRARY_EMPTY)" />
           </section>
         )}
 
-        {tab === 'models3d' && (
+        {tab === 'models3d' && !loadError && (
           <section className="eq-lib-section">
             <p className="eq-lib-hint">
               Carregue <strong>.glb</strong>, <strong>.gltf</strong>, <strong>.obj</strong>, <strong>.stl</strong> ou{' '}
@@ -547,7 +598,7 @@ export default function AdminEquipmentLibrary() {
                   columns={models3dColumns}
                   data={filteredModels3d}
                   loading={loading}
-                  emptyMessage="Nenhum modelo 3D"
+                  emptyMessage="Nenhum modelo 3D cadastrado (LIBRARY_EMPTY)"
                   onRowClick={(row) => setSelected3d(row)}
                   getRowClassName={(row) => (selected3d?.id === row.id ? 'eq-lib-3d-row-selected' : '')}
                 />

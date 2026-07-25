@@ -2,8 +2,8 @@
  * ADMIN - Logística Inteligente + Expedição Monitorada
  * Cadastros: Veículos, Pontos, Rotas, Motoristas
  */
-import React, { useState, useEffect } from 'react';
-import { Truck, MapPin, Route, Users, Plus, Edit, Trash2, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Truck, MapPin, Route, Users, Plus, Edit, Trash2, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
 import Modal, { ModalFooter } from '../components/Modal';
@@ -52,15 +52,28 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inativo' }
 ];
 
+function resolveAdminApiError(e, fallback) {
+  return e?.apiMessage || e?.response?.data?.error || e?.message || fallback;
+}
+
 export default function AdminLogistics() {
+  const notify = useNotification();
   const [activeModule, setActiveModule] = useState('vehicles');
   const [references, setReferences] = useState(null);
+  const [refsError, setRefsError] = useState(null);
+  const [refsStaleError, setRefsStaleError] = useState(null);
+  const [refsLoading, setRefsLoading] = useState(true);
+  const referencesRef = useRef(null);
 
   useEffect(() => {
-    loadReferences();
-  }, []);
+    referencesRef.current = references;
+  }, [references]);
 
-  const loadReferences = async () => {
+  const loadReferences = useCallback(async () => {
+    setRefsError(null);
+    setRefsStaleError(null);
+    setRefsLoading(true);
+    const hadValidRefs = referencesRef.current != null;
     try {
       const [v, p, r, d] = await Promise.all([
         adminLogistics.vehicles.list(),
@@ -75,17 +88,31 @@ export default function AdminLogistics() {
         drivers: d.data?.data || []
       });
     } catch (e) {
-      console.error('Erro ao carregar referências:', e);
+      const msg = resolveAdminApiError(e, 'Referências logísticas indisponíveis (REFERENCE_DATA_LOAD_FAILED).');
+      if (hadValidRefs) {
+        setRefsStaleError(msg);
+      } else {
+        setRefsError(msg);
+        notify.error(msg);
+      }
+    } finally {
+      setRefsLoading(false);
     }
-  };
+  }, [notify]);
+
+  useEffect(() => {
+    loadReferences();
+  }, [loadReferences]);
+
+  const refsLoadFailed = Boolean(refsError && references == null && !refsLoading);
 
   return (
     <Layout>
       <div className="admin-warehouse-page">
         <div className="warehouse-header">
           <div className="header-left">
-            <div className="page-icon" style={{ background: 'linear-gradient(135deg, #1e88e5, #0d47a1)' }}>
-              <Truck size={24} color="white" />
+            <div className="page-icon">
+              <Truck size={24} />
             </div>
             <div>
               <h1 className="page-title">Logística Inteligente</h1>
@@ -93,6 +120,31 @@ export default function AdminLogistics() {
             </div>
           </div>
         </div>
+
+        {refsLoadFailed && (
+          <div className="admin-ref-banner admin-ref-banner--error" role="alert">
+            <AlertCircle size={18} aria-hidden />
+            <div className="admin-ref-banner__body">
+              <span className="admin-ref-banner__code">REFERENCE_DATA_LOAD_FAILED</span>
+              <p className="admin-ref-banner__detail">{refsError}</p>
+              <p className="admin-ref-banner__hint">
+                Dropdowns de motoristas e pontos podem parecer vazios. Isto não significa ausência de dados — a consulta falhou.
+              </p>
+            </div>
+            <button type="button" className="btn btn-ghost admin-ref-banner__retry" onClick={loadReferences}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
+        {refsStaleError && (
+          <div className="admin-ref-banner admin-ref-banner--warn" role="status">
+            <AlertCircle size={18} aria-hidden />
+            <span>{refsStaleError} — exibindo último conjunto válido de referências.</span>
+            <button type="button" className="btn btn-ghost admin-ref-banner__retry" onClick={loadReferences}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
 
         <div className="warehouse-layout">
           <aside className="warehouse-sidebar">
@@ -110,9 +162,9 @@ export default function AdminLogistics() {
           </aside>
 
           <main className="warehouse-content">
-            {activeModule === 'vehicles' && <VehiclesModule refs={references} loadRefs={loadReferences} />}
+            {activeModule === 'vehicles' && <VehiclesModule refs={references} loadRefs={loadReferences} refsLoadFailed={refsLoadFailed} />}
             {activeModule === 'points' && <PointsModule refs={references} loadRefs={loadReferences} />}
-            {activeModule === 'routes' && <RoutesModule refs={references} loadRefs={loadReferences} />}
+            {activeModule === 'routes' && <RoutesModule refs={references} loadRefs={loadReferences} refsLoadFailed={refsLoadFailed} />}
             {activeModule === 'drivers' && <DriversModule refs={references} loadRefs={loadReferences} />}
           </main>
         </div>
@@ -124,7 +176,7 @@ export default function AdminLogistics() {
 // ============================================================================
 // MÓDULO: VEÍCULOS
 // ============================================================================
-function VehiclesModule({ refs, loadRefs }) {
+function VehiclesModule({ refs, loadRefs, refsLoadFailed = false }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -284,7 +336,12 @@ function VehiclesModule({ refs, loadRefs }) {
             <InputField label="Quilometragem" name="odometer_km" type="number" value={form.odometer_km} onChange={handleChange} />
           </div>
           <SelectField label="Motorista responsável" name="assigned_driver_id" value={form.assigned_driver_id} onChange={handleChange}
-            options={[{ value: '', label: '—' }, ...(refs?.drivers || []).filter(d => d.active).map(d => ({ value: d.id, label: d.name }))]} />
+            options={refsLoadFailed
+              ? [{ value: '', label: 'Indisponível (falha refs)' }]
+              : [{ value: '', label: '—' }, ...(refs?.drivers || []).filter(d => d.active).map(d => ({ value: d.id, label: d.name }))]} />
+          {refsLoadFailed && (
+            <p className="admin-ref-module-hint">Lista de motoristas indisponível — cadastro de veículo continua possível sem motorista atribuído.</p>
+          )}
           <div className="form-row checkbox-row">
             <input type="checkbox" id="has_telemetry" name="has_telemetry" checked={form.has_telemetry} onChange={handleChange} />
             <label htmlFor="has_telemetry">Possui telemetria/sensores</label>
@@ -436,7 +493,7 @@ function PointsModule({ refs, loadRefs }) {
 // ============================================================================
 // MÓDULO: ROTAS
 // ============================================================================
-function RoutesModule({ refs, loadRefs }) {
+function RoutesModule({ refs, loadRefs, refsLoadFailed = false }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -523,6 +580,9 @@ function RoutesModule({ refs, loadRefs }) {
   };
 
   const points = refs?.points || [];
+  const pointSelectOptions = refsLoadFailed
+    ? [{ value: '', label: 'Indisponível (falha refs)' }]
+    : [{ value: '', label: '—' }, ...points.map(p => ({ value: p.id, label: `${p.name} (${POINT_TYPES.find(x => x.value === p.point_type)?.label})` }))];
   const riskOptions = [{ value: 'low', label: 'Baixo' }, { value: 'medium', label: 'Médio' }, { value: 'high', label: 'Alto' }, { value: 'critical', label: 'Crítico' }];
 
   const columns = [
@@ -555,10 +615,13 @@ function RoutesModule({ refs, loadRefs }) {
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editing ? 'Editar Rota' : 'Nova Rota'} size="medium">
         <div className="generic-form">
           <InputField label="Nome da rota" name="name" value={form.name} onChange={handleChange} required />
+          {refsLoadFailed && (
+            <p className="admin-ref-module-hint">Pontos logísticos indisponíveis — use descrição textual ou recarregue referências no banner.</p>
+          )}
           <SelectField label="Origem (ponto)" name="origin_point_id" value={form.origin_point_id} onChange={handleChange}
-            options={[{ value: '', label: '—' }, ...points.map(p => ({ value: p.id, label: `${p.name} (${POINT_TYPES.find(x => x.value === p.point_type)?.label})` }))]} />
+            options={pointSelectOptions} />
           <SelectField label="Destino (ponto)" name="destination_point_id" value={form.destination_point_id} onChange={handleChange}
-            options={[{ value: '', label: '—' }, ...points.map(p => ({ value: p.id, label: `${p.name} (${POINT_TYPES.find(x => x.value === p.point_type)?.label})` }))]} />
+            options={pointSelectOptions} />
           <InputField label="Descrição origem" name="origin_description" value={form.origin_description} onChange={handleChange} />
           <InputField label="Descrição destino" name="destination_description" value={form.destination_description} onChange={handleChange} />
           <div className="form-grid-2">

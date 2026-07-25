@@ -1,0 +1,5 @@
+ db_size | outbox_size | outbox_heap | outbox_idx 
+---------+-------------+-------------+------------
+ 40 GB   | 28 GB       | 23 GB       | 5731 MB
+(1 row)
+

@@ -1,0 +1,128 @@
+{
+  "manifest_id": "IMPETUS-INTEGRITY-MANIFEST-v2",
+  "generated_at": "2026-07-23T16:03:26.308310+00:00",
+  "generated_by": "SEC-BASELINE-002",
+  "baseline_version": "2.0",
+  "baseline_id": "IMPETUS-INTEGRITY-BASELINE-v2",
+  "forensic_anchors": {
+    "baseline_v1_sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+    "baseline_v2_sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+    "asset_inventory_sha256": "fd8fc113754026658064dc05bd9c9039b1c2ed49f14bd1ac238253bdf4e7dabb"
+  },
+  "files": [
+    {
+      "path": "docs/evidence/sec-baseline-002/INTEGRITY_SECURITY_BASELINE_2026.md",
+      "sha256": "ae8ec3c4440de39a02805e6c456af26c7b8f765439cff236da00819a1180f6cb",
+      "size_bytes": 6102,
+      "mtime_unix": 1784822455,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-002/INTEGRITY_BASELINE_VERSION_HISTORY.md",
+      "sha256": "ba341033a327476c0e5ed665912de8a5f86c6873d74659c7473c059e4a051db6",
+      "size_bytes": 3383,
+      "mtime_unix": 1784822510,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-002/INTEGRITY_LIMITATIONS_REGISTER.md",
+      "sha256": "8edb92e391ca83fc8e1ec061bf5fe47de6cd792f66f6a7c2f56f962b4bd90d69",
+      "size_bytes": 4480,
+      "mtime_unix": 1784822510,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-002/INTEGRITY_GOVERNANCE_UPDATE.md",
+      "sha256": "24d9b12146dfc189a83f3eaae4ccde78db50ce76eacfb0d64b6be87217834a92",
+      "size_bytes": 5371,
+      "mtime_unix": 1784822552,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-002/drift-comparison.json",
+      "sha256": "da95485d956c603e4dd6343806708425342d607f1784894a8caefb20053404f6",
+      "size_bytes": 3733,
+      "mtime_unix": 1784822350,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/baseline.json",
+      "sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+      "size_bytes": 17592,
+      "mtime_unix": 1784822405,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/baseline-int-01a.json",
+      "sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+      "size_bytes": 15796,
+      "mtime_unix": 1784809267,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/asset_inventory.json",
+      "sha256": "fd8fc113754026658064dc05bd9c9039b1c2ed49f14bd1ac238253bdf4e7dabb",
+      "size_bytes": 25143,
+      "mtime_unix": 1784809138,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-01a/INT_01A_COMPLETION_REPORT.md",
+      "sha256": "6a8013e55e37430aa6feef2bf485eea217ee9a4d9d586010d1f53cdbab81ab21",
+      "size_bytes": 8346,
+      "mtime_unix": 1784809731,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-01b/INT_01B_COMPLETION_REPORT.md",
+      "sha256": "ad0a5f6a5e7961dc8bbc1b27caef157b335ae0d71b7f8444ae24caa26ed68b1d",
+      "size_bytes": 7176,
+      "mtime_unix": 1784812181,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-01c/INT_01C_COMPLETION_REPORT.md",
+      "sha256": "c91117e8a076cf6c6c2b3d6b1ce1b4d8d939477247d1e4c283284c6458a87946",
+      "size_bytes": 7752,
+      "mtime_unix": 1784815018,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-01d/INT_01D_COMPLETION_REPORT.md",
+      "sha256": "8a978fd924853a2aa3733ab3bc4f331d3670c7c53514a891a622b0a848bf0881",
+      "size_bytes": 6293,
+      "mtime_unix": 1784816114,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-obs-002/SEC_OBS_002_COMPLETION_REPORT.md",
+      "sha256": "f5e88309a99304248972da128667b78494d83b0b6650081a58ce623a60448d48",
+      "size_bytes": 3847,
+      "mtime_unix": 1784817825,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-coverage-002/SEC_COVERAGE_002_COMPLETION_REPORT.md",
+      "sha256": "c23052bcd8c0478eee8c25adaab0afc6a773ec8032528669a5ea4400c3934493",
+      "size_bytes": 3411,
+      "mtime_unix": 1784820379,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-cert-002/SEC_CERT_002_COMPLETION_REPORT.md",
+      "sha256": "7358bc5bbe6c967b39b2e998527b78df05b014977c118af29106c42c01f3da5b",
+      "size_bytes": 4502,
+      "mtime_unix": 1784821626,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-cert-002/INTEGRITY_FINAL_CERTIFICATE.md",
+      "sha256": "1a89617c524c89a37e2204f503109488d535a4033c44033121e885dd9ab69bd4",
+      "size_bytes": 2753,
+      "mtime_unix": 1784821594,
+      "exists": true
+    }
+  ],
+  "total_files": 16,
+  "missing_files": 0
+}

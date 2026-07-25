@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import useEoxHubHeaderVisible from '../../../presentation/eox/useEoxHubHeaderVisible.js';
 import {
   isQualityGovernanceEffectiveEnabled,
   isQualityTelemetryEffectiveEnabled,
@@ -13,16 +14,20 @@ import { isQualityOperationalDiagnosticsEnabled } from './qualityOperationalFeat
  * Hub enterprise — vista por defeito do centro operacional (sem empilhar debug/inspeção).
  */
 export function QualityOperationalHub() {
+  const showHubHeader = useEoxHubHeaderVisible();
+
   return (
     <div>
-      <header style={{ marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: 20, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-          Qualidade — Centro Operacional
-        </h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
-          Inspeções · NCR/CAPA · SPC · Telemetria · Inteligência contextual · Rollout
-        </p>
-      </header>
+      {showHubHeader ? (
+        <header style={{ marginBottom: '1rem' }}>
+          <h1 style={{ margin: 0, fontSize: 20, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+            Qualidade — Centro Operacional
+          </h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
+            Inspeções · NCR/CAPA · SPC · Telemetria · Inteligência contextual · Rollout
+          </p>
+        </header>
+      ) : null}
       <div className="impetus-card" style={{ padding: '1rem', borderRadius: 4 }}>
         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 14 }}>
           Selecione um módulo no menu lateral ou use os atalhos abaixo. Workspaces reais montam por vista contextual (?view=).

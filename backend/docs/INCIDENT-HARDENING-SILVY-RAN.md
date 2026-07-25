@@ -94,7 +94,13 @@ PermitRootLogin no
 PasswordAuthentication no
 ```
 
-**fail2ban:** instalar jails ssh + nginx (não automatizado neste repo).
+**fail2ban:** ✅ activo — jails `sshd`, `impetus-nginx-scan`, `nginx-limit-req`  
+**IPs bloqueados UFW:** 3.19.29.56, 170.64.137.227, 195.178.110.199 (+ lista incidente)
+
+```bash
+sudo ./scripts/security/install-fail2ban-impetus.sh
+fail2ban-client status impetus-nginx-scan
+```
 
 **UFW logging:** confirmar `/var/log/ufw.log` existe após `ufw logging on`.
 

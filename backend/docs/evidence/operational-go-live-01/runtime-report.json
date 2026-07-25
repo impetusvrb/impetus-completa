@@ -1,0 +1,20 @@
+{
+  "phase1": {
+    "phase": "PHASE_1_INTENSIVE",
+    "samples": 5,
+    "alerts": [],
+    "failed": false
+  },
+  "phase2": {
+    "phase": "PHASE_2_STABILIZATION",
+    "samples": 6,
+    "alerts": [],
+    "failed": false
+  },
+  "limits": {
+    "maxHeapMb": 768,
+    "maxRssMb": 1536,
+    "maxLatencyMs": 3000,
+    "minIntegrity": 0.95
+  }
+}

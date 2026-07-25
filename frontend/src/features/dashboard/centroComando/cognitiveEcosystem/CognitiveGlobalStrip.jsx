@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Brain } from 'lucide-react';
 import { useCognitiveShellUi } from './CognitiveShellUiContext';
 import CognitiveCoreSummaryCard from './CognitiveCoreSummaryCard';
 
@@ -75,21 +76,80 @@ function TabletExpandedStrip({ core, presence, consciousness, engines, tick, she
   );
 }
 
-/** Desktop: card resumido (~60–90px) + engines sob demanda (UI-DESKTOP-004). */
-function DesktopSummaryStrip({ core, consciousness, engines, shellUi }) {
-  const [enginesOpen, setEnginesOpen] = useState(false);
+/** INC-014 — Desktop topo: faixa única horizontal compacta (identidade + motores + ícone). */
+function DesktopCompactSingleStrip({ core, consciousness, engines, shellUi }) {
+  const coreState = core?.status?.cognitive_core;
+  const statusLabel =
+    consciousness?.awareness_state ||
+    (coreState === 'PRESENCE'
+      ? 'PRESENÇA ATIVA'
+      : coreState === 'ACTIVE'
+        ? 'ATIVO'
+        : coreState === 'STANDBY'
+          ? 'AGUARDANDO DADOS'
+          : '—');
 
   return (
-    <div className="cog-global-strip cog-global-strip--desktop-summary" role="status" aria-live="polite">
+    <div className="cog-global-strip cog-global-strip--desktop-compact-single" role="status" aria-live="polite">
+      <div className="cog-core-rail">
+        <div className="cog-core-rail__identity">
+          <span className="cog-global-strip__pulse" aria-hidden />
+          <span className="cog-global-strip__brand">{core.name || 'IMPETUS COGNITIVE CORE'}</span>
+          <span className="cog-core-rail__status">{statusLabel}</span>
+        </div>
+
+        {engines.length > 0 && (
+          <div className="cog-core-rail__engines" role="group" aria-label="Motores cognitivos">
+            {engines.map(([label, val]) => (
+              <span
+                key={label}
+                className={`cog-core-rail__cell ${val === 'RUNNING' || val === 'SYNCING' ? 'cog-core-rail__cell--run' : ''}`}
+                title={`${label}: ${val}`}
+              >
+                <span className="cog-core-rail__cell-label">{ENGINE_SHORT_LABELS[label] || label}</span>
+                <strong className="cog-core-rail__cell-val">{val}</strong>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {shellUi?.openAwareness && (
+          <button
+            type="button"
+            className="cog-core-rail__awareness-icon"
+            onClick={shellUi.openAwareness}
+            aria-label="Consciência Total"
+            title="Consciência Total"
+          >
+            <Brain size={16} strokeWidth={1.75} aria-hidden />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Desktop: card resumido (~60–90px) + engines sob demanda (UI-DESKTOP-004). */
+function DesktopSummaryStrip({ core, consciousness, engines, shellUi, alwaysExposeEngines = false }) {
+  const [enginesOpen, setEnginesOpen] = useState(alwaysExposeEngines);
+
+  const showEngines = alwaysExposeEngines || enginesOpen;
+
+  return (
+    <div
+      className={`cog-global-strip cog-global-strip--desktop-summary${alwaysExposeEngines ? ' cog-global-strip--top-exposed' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
       <CognitiveCoreSummaryCard
         core={core}
         consciousness={consciousness}
         compact
-        detailsExpanded={enginesOpen}
-        onOpenDetails={() => setEnginesOpen((v) => !v)}
+        detailsExpanded={showEngines}
+        onOpenDetails={alwaysExposeEngines ? undefined : () => setEnginesOpen((v) => !v)}
         onOpenAwareness={shellUi?.openAwareness}
       />
-      {enginesOpen && <EngineStatusPanel engines={engines} />}
+      {showEngines && <EngineStatusPanel engines={engines} />}
     </div>
   );
 }
@@ -132,6 +192,17 @@ export default function CognitiveGlobalStrip({
           onOpenAwareness={shellUi?.openAwareness}
         />
       </div>
+    );
+  }
+
+  if (variant === 'desktop-top-exposed') {
+    return (
+      <DesktopCompactSingleStrip
+        core={core}
+        consciousness={consciousness}
+        engines={engines}
+        shellUi={shellUi}
+      />
     );
   }
 

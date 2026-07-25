@@ -1,17 +1,17 @@
 {
   "certification": "SEC-17",
   "criteria": {
-    "exfiltration_detection_available": true,
-    "sensitive_asset_registry_available": true,
-    "data_movement_analysis_available": true,
-    "asset_access_profiling_available": true,
-    "exfiltration_confidence_available": true,
-    "audit_endpoint_available": true,
-    "feature_flags_available": true,
-    "enterprise_security_preserved": true,
-    "enterprise_baseline_preserved": true,
-    "tests_passing": true
+    "exfiltration_detection_available": false,
+    "sensitive_asset_registry_available": false,
+    "data_movement_analysis_available": false,
+    "asset_access_profiling_available": false,
+    "exfiltration_confidence_available": false,
+    "audit_endpoint_available": false,
+    "feature_flags_available": false,
+    "enterprise_security_preserved": false,
+    "enterprise_baseline_preserved": false,
+    "tests_passing": false
   },
-  "passed": 39,
-  "failed": 0
+  "passed": 29,
+  "failed": 10
 }

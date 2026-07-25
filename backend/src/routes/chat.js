@@ -1,33 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const multer = require('multer');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const chatService = require('../services/chatService');
 const { handleAIMessage, mentionsAI } = require('../services/chatAIService.loader');
 const executiveMode = require('../services/executiveMode');
 const operationalRealtimeCoordinator = require('../services/operationalRealtimeCoordinator');
+const { createUploadMiddleware, handleUploadError } = require('../middleware/impetusUploadMiddleware');
+const { postUploadMagicValidator } = require('../securityApplication/uploadSecurity');
 
 const uploadPaths = require('../config/uploadPaths');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadPaths.chat()),
-  filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
+const chatFileUpload = createUploadMiddleware({
+  module: 'chat_internal',
+  destination: uploadPaths.chat(),
+  allowedGroups: ['image', 'document', 'audio', 'video']
 });
-const upload = multer({ storage, limits: { fileSize: 52428800 } });
-const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadPaths.chat()),
-  filename: (_req, file, cb) => cb(null, `avatar-${uuidv4()}${path.extname(file.originalname || '.jpg')}`)
+
+const avatarFileUpload = createUploadMiddleware({
+  module: 'dashboard_chat_image',
+  destination: uploadPaths.chat(),
+  allowedGroups: ['image'],
+  fieldName: 'file'
 });
-const avatarUpload = multer({
-  storage: avatarStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const ok = /image\/(jpeg|jpg|png)/i.test(file.mimetype || '');
-    cb(ok ? null : new Error('Formato inválido. Use JPG ou PNG.'), ok);
-  }
-});
+
 const getIo = req => req.app.get('io');
 
 router.get('/conversations', async (req, res) => {
@@ -116,7 +112,12 @@ router.post('/conversations/:id/messages', async (req, res) => {
     res.json(msg);
   } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post(
+  '/upload',
+  chatFileUpload.single,
+  postUploadMagicValidator(),
+  handleUploadError('chat_internal'),
+  async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatorio' });
     const { conversationId, replyTo } = req.body;
@@ -185,8 +186,10 @@ router.get('/conversations/:id/participants', async (req, res) => {
   catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });
 router.post('/conversations/:id/participants', async (req, res) => {
-  try { await chatService.addParticipant(req.params.id, req.user.id, req.body.userId); res.json({ ok: true }); }
-  catch (e) { res.status(e.status||500).json({ error: e.message }); }
+  try {
+    await chatService.addParticipant(req.params.id, req.user.id, req.body.userId, req.user.company_id);
+    res.json({ ok: true });
+  } catch (e) { res.status(e.status||500).json({ error: e.message }); }
 });
 router.delete('/conversations/:id/participants/:uid', async (req, res) => {
   try { await chatService.removeParticipant(req.params.id, req.user.id, req.params.uid); res.json({ ok: true }); }
@@ -214,7 +217,12 @@ router.post('/push/subscribe', async (req, res) => {
   }
 });
 
-router.put('/me/avatar', avatarUpload.single('file'), async (req, res) => {
+router.put(
+  '/me/avatar',
+  avatarFileUpload.single,
+  postUploadMagicValidator(),
+  handleUploadError('dashboard_chat_image'),
+  async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
     const url = `/uploads/chat/${req.file.filename}`;

@@ -1,0 +1,25 @@
+---
+description: Ordem obrigatória de execução do programa ENT-EXEC-001
+alwaysApply: true
+---
+
+# ENT-EXEC-001 — Ordem de execução
+
+A fonte canónica do programa é:
+`frontend/docs/evidence/ENT-AUD-002/ENT-AUD-002-MASTER-BACKLOG.md`.
+
+## Sequência obrigatória
+
+- Executar um único item MB por microciclo, na ordem MB-001 → MB-042.
+- Respeitar prioridades, dependências, itens suspensos e gate definidos no documento canónico.
+- Não iniciar o item seguinte antes de concluir, validar, documentar e submeter o item atual à revisão técnica.
+- Atualizar `ENT-EXEC-001-P0-REPORT.md` durante MB-001 → MB-009.
+- Para cada item, registrar diagnóstico, arquivos analisados/alterados, correção, impacto, testes, evidências e pendências.
+
+## Restrições
+
+- Não ampliar escopo, aproveitar o ciclo para refatorar ou modificar outro domínio.
+- Preservar baselines certificadas e aplicar a Política de Segurança Arquitectural.
+- Em conflito com baseline ou dependência não satisfeita: parar, registrar e não implementar.
+- Não adicionar MB-043, MB-044 ou outros itens ao backlog oficial sem autorização explícita.
+- Novos domínios permanecem bloqueados até MB-001 → MB-022 concluídos ou formalmente aceites e MB-014 fechado.

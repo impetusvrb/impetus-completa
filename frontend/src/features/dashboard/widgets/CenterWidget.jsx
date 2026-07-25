@@ -6,12 +6,19 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
+import { FINANCE_OFFICIAL_DEEP_LINKS } from '../../../domains/finance/metadata/financeNavigationMetadata.js';
+
 const ROUTES = {
   center_predictions: '/app/centro-previsao-operacional',
   industrial_map: '/app/centro-operacoes-industrial',
-  cost_center: '/app/centro-custos-industriais',
-  leak_map: '/app/mapa-vazamento-financeiro',
-  central_ai: '/app/chatbot'
+  cost_center: FINANCE_OFFICIAL_DEEP_LINKS.cost_center,
+  leak_map: FINANCE_OFFICIAL_DEEP_LINKS.leak_map,
+  central_ai: '/app/chatbot',
+  // REG-002 R4/R5 — deep-links Insights + Cérebro
+  cerebro_operacional: '/app/cerebro-operacional',
+  operational_brain: '/app/cerebro-operacional',
+  insights: '/app/insights',
+  operational_insights: '/app/insights'
 };
 
 export default function CenterWidget({ id, label }) {

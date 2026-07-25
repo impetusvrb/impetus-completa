@@ -1,0 +1,33 @@
+{
+  "label": "pre_activation",
+  "timestamp": "2026-07-14T00:43:15.582Z",
+  "commit": "c3c20f7e7ea6dc1421c014a81e3ebc28f5a09cd7",
+  "pm2": {
+    "name": "impetus-backend",
+    "pid": 1511510,
+    "status": "online",
+    "restart_time": 13,
+    "uptime": 1783989345779,
+    "exec_mode": "fork_mode",
+    "heapUsedMiB": null,
+    "cpu": 0
+  },
+  "runtime": {
+    "SECURITY_RECON_CORRELATION": true,
+    "SECURITY_RECON_CONTAINMENT": true,
+    "SECURITY_OBSERVATORY": true,
+    "dbPool": {
+      "totalCount": 0,
+      "idleCount": 0,
+      "waitingCount": 0
+    },
+    "mem": {
+      "rss": 57413632,
+      "heapTotal": 11509760,
+      "heapUsed": 9160624,
+      "external": 3271881,
+      "arrayBuffers": 65702
+    }
+  },
+  "disk": "/dev/sda1        97G   93G  4.7G  96% /"
+}

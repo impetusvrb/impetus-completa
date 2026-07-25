@@ -262,9 +262,21 @@ async function executeCycle() {
     _log('cycle_error', { run: _runCount, error: err.message });
     return { ok: false, error: err.message };
   } finally {
-    if (ownershipLeases) await horizontalActivation.releaseOwnershipLeases(ownershipLeases);
-    if (lockHeld) await _releaseLock(client);
-    client.release();
+    // A devolução do client ao pool é obrigatória e não pode ser bloqueada por
+    // falha na liberação de leases/lock (senão a conexão vaza e o pool esgota).
+    try {
+      if (ownershipLeases) await horizontalActivation.releaseOwnershipLeases(ownershipLeases);
+    } catch (releaseErr) {
+      _log('lease_release_error', { error: releaseErr?.message });
+    }
+    try {
+      if (lockHeld) await _releaseLock(client);
+    } catch (lockErr) {
+      _log('lock_release_error', { error: lockErr?.message });
+    }
+    try {
+      client.release();
+    } catch (_) { /* client já libertado / conexão morta */ }
     _cycleInProgress = false;
   }
 }

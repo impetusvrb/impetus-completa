@@ -1,0 +1,136 @@
+{
+  "generated_at": "2026-07-23T20:01:08.411Z",
+  "reload": {
+    "reload_at": "2026-07-23T19:59:48.702484+00:00",
+    "pre_pid": 3180185,
+    "post_pid": 3181502,
+    "pid_changed": true,
+    "status": "online",
+    "pre_restarts": 27,
+    "post_restarts": 28,
+    "eventbus_sha256": "e29db70ccf4d7a21130f0ab2e0382f3ac4b4055b2462157241e23f9ef4dade71",
+    "eventbus_has_buildDedupKey": true,
+    "eventbus_has_INT_DEDUP_001": true
+  },
+  "pass_count": 19,
+  "fail_count": 0,
+  "total": 19,
+  "results": [
+    {
+      "scenario": "eventbus_buildDedupKey_loaded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "eventbus_key_strategy_active",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "chown_user_uid",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "scenario": "chgrp_group_gid",
+      "pass": true,
+      "detail": "count=1"
+    },
+    {
+      "scenario": "chown_user_group_simultaneous",
+      "pass": true,
+      "detail": "count=2 attrs=[\"UID\",\"GID\"] dedup=0"
+    },
+    {
+      "scenario": "pipeline_correlation_processed",
+      "pass": true,
+      "detail": "processed=4 persisted=4"
+    },
+    {
+      "scenario": "pipeline_state_store_updated",
+      "pass": true,
+      "detail": "last=INTEGRITY_OWNER_CHANGED"
+    },
+    {
+      "scenario": "pipeline_dashboard_consumer_intact",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "repeat_within_window_blocked",
+      "pass": true,
+      "detail": "received=0 dedup_delta=2"
+    },
+    {
+      "scenario": "repeat_after_window_allowed",
+      "pass": true,
+      "detail": "count=2"
+    },
+    {
+      "scenario": "window_expiry_allows_identical",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "regression_hash",
+      "pass": true,
+      "detail": "types=[\"INTEGRITY_HASH_CHANGED\"]"
+    },
+    {
+      "scenario": "regression_chmod",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "regression_delete",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "regression_restore_clean",
+      "pass": true,
+      "detail": "ghost=0"
+    },
+    {
+      "scenario": "regression_auditd_rules",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "regression_medium_hash",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "scenario": "live_sensor_watch",
+      "pass": true,
+      "detail": "mode=WATCH"
+    },
+    {
+      "scenario": "backend_health_200",
+      "pass": true,
+      "detail": "http=200"
+    }
+  ],
+  "obs_003_f1_closed": true,
+  "bus_final_stats": {
+    "emitted": 10,
+    "deduplicated": 2,
+    "discarded": 0,
+    "queue_size": 10
+  },
+  "corr_stats": {
+    "processed": 10,
+    "suppressed": 0,
+    "written": 10,
+    "persisted": 10,
+    "errors": 0
+  },
+  "live": {
+    "mode": "WATCH",
+    "sensor_active": true,
+    "violations": 10,
+    "baseline_id": null,
+    "note": "2 violations=INT-LIM-001 drift pending BASELINE-003"
+  }
+}

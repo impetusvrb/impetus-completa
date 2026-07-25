@@ -14,7 +14,12 @@ function _mode(name, defaultMode = 'off') {
   return 'off';
 }
 
-const PILOT_PROFILES = Object.freeze(['coordinator_quality']);
+/** INC-024 — promoção quality_native inclui Gerente de Qualidade (não só coordenador piloto). */
+const PILOT_PROFILES = Object.freeze([
+  'manager_quality',
+  'coordinator_quality',
+  'supervisor_quality'
+]);
 
 module.exports = {
   renderPromotionMode: () => _mode('IMPETUS_COGNITIVE_RENDER_PROMOTION', 'off'),

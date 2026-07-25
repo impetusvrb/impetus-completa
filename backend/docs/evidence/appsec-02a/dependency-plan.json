@@ -1,0 +1,171 @@
+{
+  "schema_version": "dependency_upgrade_plan_v1",
+  "generated_at": "2026-07-10T20:56:27.101Z",
+  "backend": {
+    "plans": [
+      {
+        "package": "axios",
+        "status": "clean",
+        "priority": "P0",
+        "current_version": "1.18.1",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "package-lock.json + npm ci",
+        "action": "none"
+      },
+      {
+        "package": "ws",
+        "status": "clean",
+        "priority": "P0",
+        "current_version": "8.21.0",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "package-lock.json + npm ci",
+        "action": "none"
+      },
+      {
+        "package": "xlsx",
+        "status": "clean",
+        "priority": "P1",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "pin previous version in package.json",
+        "action": "none"
+      },
+      {
+        "package": "form-data",
+        "status": "clean",
+        "priority": "P1",
+        "current_version": "4.0.6",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "nodemailer",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": "9.0.3",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "protobufjs",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": "7.6.5",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "fast-uri",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": "3.1.3",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "@grpc/grpc-js",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": "1.14.4",
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      }
+    ],
+    "audit_summary": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "frontend": {
+    "plans": [
+      {
+        "package": "axios",
+        "status": "vulnerable",
+        "priority": "P0",
+        "current_version": "1.15.2",
+        "severity": "high",
+        "risk": 8,
+        "via": [
+          "Axios: Regular Expression Denial of Service (ReDoS) via Cookie Name Injection",
+          "Allocation of Resources Without Limits or Throttling in Axios",
+          "Axios: Proxy-Authorization Credential Leak to Origin Server Across HTTP-to-HTTPS Redirect in Axios Node.js HTTP Adapter"
+        ],
+        "fix_available": true,
+        "compatibility": "test required",
+        "breaking_changes": "low",
+        "rollback": "package-lock.json + npm ci",
+        "action": "npm update axios (after regression)"
+      },
+      {
+        "package": "ws",
+        "status": "vulnerable",
+        "priority": "P0",
+        "current_version": "8.18.3",
+        "severity": "high",
+        "risk": 8,
+        "via": [
+          "ws: Uninitialized memory disclosure",
+          "ws: Memory exhaustion DoS from tiny fragments and data chunks"
+        ],
+        "fix_available": true,
+        "compatibility": "test required",
+        "breaking_changes": "medium",
+        "rollback": "package-lock.json + npm ci",
+        "action": "npm update ws (after regression)"
+      },
+      {
+        "package": "xlsx",
+        "status": "clean",
+        "priority": "P1",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "pin previous version in package.json",
+        "action": "none"
+      }
+    ],
+    "audit_summary": {
+      "info": 0,
+      "low": 0,
+      "moderate": 6,
+      "high": 4,
+      "critical": 0,
+      "total": 10
+    }
+  },
+  "vulnerable_count": 2,
+  "upgrade_priority_order": [
+    "axios",
+    "ws"
+  ],
+  "regression_command": "node backend/src/tests/securityApplication/APPSEC_01.test.js && node backend/src/tests/securityApplicationValidation/APPSEC_02.test.js",
+  "plan_complete": true,
+  "auto_upgrade": false,
+  "recommendation": "Executar upgrades P0 (axios, ws) em staging; regressão completa antes de produção"
+}

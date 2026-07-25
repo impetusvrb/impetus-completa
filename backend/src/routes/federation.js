@@ -11,7 +11,7 @@ router.get('/status', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({
     ok: true,
-    federation: gov.getDiagnostics(),
+    federation: gov.getPublicDiagnostics(),
     timestamp: new Date().toISOString(),
   });
 });

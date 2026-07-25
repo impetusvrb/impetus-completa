@@ -1,0 +1,161 @@
+{
+  "generated_at": "2026-07-23T20:31:30.698184+00:00",
+  "flows": {
+    "content_hash": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_hash"
+    },
+    "chmod": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_chmod"
+    },
+    "uid": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R chown_user_uid"
+    },
+    "gid": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R chgrp_group_gid"
+    },
+    "uid_gid_simultaneous": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R chown_user_group_simultaneous (OBS-003-F1 CLOSED)"
+    },
+    "delete": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_delete"
+    },
+    "restore": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_restore_clean"
+    },
+    "auditd": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_auditd_rules + INT-LIM-001"
+    },
+    "medium_assets": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R regression_medium_hash + INT-LIM-002"
+    },
+    "eventbus_dedup": {
+      "status": "PASS",
+      "evidence": "INT-DEDUP-001 + SEC-OBS-003R"
+    },
+    "pipeline_dashboard": {
+      "status": "PASS",
+      "evidence": "SEC-OBS-003R pipeline_*"
+    }
+  },
+  "limitations": [
+    {
+      "id": "LIM-001",
+      "title": "Cobertura parcial auditd",
+      "status": "CLOSED",
+      "phase": "INT-LIM-001",
+      "note": "4 regras instaladas; Environment Advisory separado se clock drift"
+    },
+    {
+      "id": "LIM-002",
+      "title": "Watchers MEDIUM",
+      "status": "CLOSED",
+      "phase": "INT-LIM-002",
+      "note": "5/5 com auditd realtime"
+    },
+    {
+      "id": "LIM-003",
+      "title": "Monitoriza\u00e7\u00e3o GID",
+      "status": "CLOSED",
+      "phase": "INT-LIM-003",
+      "note": "resolveGid + expected_* em CRITICAL/HIGH"
+    },
+    {
+      "id": "LIM-004",
+      "title": "Fronteira de escopo",
+      "status": "SCOPE_BOUNDARY",
+      "phase": "SEC-BASELINE-002",
+      "note": "Mem\u00f3ria/firmware/hardware/containers \u2014 n\u00e3o \u00e9 limita\u00e7\u00e3o operacional"
+    },
+    {
+      "id": "OBS-003-F1",
+      "title": "EventBus dedup UID/GID",
+      "status": "CLOSED",
+      "phase": "INT-DEDUP-001 + SEC-OBS-003R",
+      "note": "buildDedupKey com changed_attribute"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-ENV-001",
+      "severity": "P2",
+      "category": "Environment Advisory",
+      "title": "Kernel audit clock drift / audit.log stale em VM",
+      "operational_limitation": false,
+      "impact": "Eventos auditd em tempo real podem n\u00e3o aparecer no log neste ambiente; HashChecker mitiga",
+      "status": "ACCEPTED \u2014 fora do c\u00f3digo IMPETUS"
+    },
+    {
+      "id": "RISK-INV-001",
+      "severity": "P2",
+      "category": "Inventory hygiene",
+      "title": "INT-M-004 monitor_owner=true sem expected_owner/group",
+      "operational_limitation": false,
+      "impact": "PermChecker n\u00e3o verifica owner deste activo MEDIUM; detec\u00e7\u00e3o por hash+auditd permanece activa",
+      "status": "DOCUMENTED \u2014 n\u00e3o bloqueia CERTIFIED; higiene de invent\u00e1rio p\u00f3s-cert"
+    },
+    {
+      "id": "RISK-DRIFT-001",
+      "severity": "P2",
+      "category": "Baseline drift pending",
+      "title": "INT-C-010 e INT-M-003 divergem do baseline v2 (INT-LIM-001)",
+      "operational_limitation": false,
+      "impact": "Sensor detecta correctamente (violations=2); consolida\u00e7\u00e3o em SEC-BASELINE-003",
+      "status": "EXPECTED \u2014 pending BASELINE-003"
+    },
+    {
+      "id": "LIM-004",
+      "severity": "N/A",
+      "category": "Scope boundary",
+      "title": "Dom\u00ednios fora do escopo da camada INTEGRITY",
+      "operational_limitation": false,
+      "impact": "Mem\u00f3ria, firmware, hardware, containers exigem motores dedicados",
+      "status": "SCOPE_BOUNDARY \u2014 permanente por desenho"
+    }
+  ],
+  "acceptance": {
+    "SEC_COVERAGE_003_STATUS": "PASS",
+    "FULL_CRITICAL_COVERAGE": true,
+    "FULL_HIGH_COVERAGE": true,
+    "FULL_MEDIUM_COVERAGE": true,
+    "NO_OPERATIONAL_LIMITATIONS": true,
+    "NO_CRITICAL_GAPS": true,
+    "PIPELINE_FULLY_VALIDATED": true,
+    "RISK_REGISTER_UPDATED": true,
+    "READY_FOR_CERTIFICATION": true,
+    "P0_COUNT": 0,
+    "P1_OPERATIONAL_COUNT": 0,
+    "P2_COUNT": 3
+  },
+  "asset_summary": {
+    "inventory_total": 38,
+    "runtime_monitored": 35,
+    "critical": {
+      "total": 10,
+      "full": 10
+    },
+    "high": {
+      "total": 23,
+      "full": 23
+    },
+    "medium": {
+      "total": 5,
+      "auditd_realtime": 5,
+      "in_cryptographic_baseline": 2,
+      "directory_groups_via_repo_watch": 3,
+      "inventory_hygiene_note": "INT-M-004 monitor_owner without expected_* (P2)"
+    },
+    "uncovered": 0,
+    "outside_inventory": 0
+  },
+  "obsr_pass": "19/19",
+  "obs_003_f1_closed": true
+}

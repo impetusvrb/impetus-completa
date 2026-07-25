@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-07-05T04:40:19.465Z",
+  "target": "http://127.0.0.1:4000",
+  "scope": "impetus-admin-portal",
+  "summary": {
+    "total": 9,
+    "pass": 8,
+    "fail": 0,
+    "warn": 1,
+    "score": "VERDE_AMARELO"
+  },
+  "results": [
+    {
+      "id": "AP-01",
+      "title": "GET /auth/me sem token",
+      "verdict": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "id": "AP-02",
+      "title": "GET /companies sem token",
+      "verdict": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "id": "AP-03",
+      "title": "Login sem verificação humana",
+      "verdict": "PASS",
+      "detail": "HTTP 403 HUMAN_CHECK_REQUIRED"
+    },
+    {
+      "id": "AP-04",
+      "title": "Honeypot preenchido",
+      "verdict": "PASS",
+      "detail": "HTTP 403 BOT_DETECTED"
+    },
+    {
+      "id": "AP-05",
+      "title": "Resposta humana errada",
+      "verdict": "PASS",
+      "detail": "HTTP 403 HUMAN_CHECK_FAILED"
+    },
+    {
+      "id": "AP-06",
+      "title": "Senha errada com human OK",
+      "verdict": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "id": "AP-07",
+      "title": "JWT adulterado",
+      "verdict": "PASS",
+      "detail": "HTTP 401"
+    },
+    {
+      "id": "AP-08",
+      "title": "POST /api/companies público",
+      "verdict": "WARN",
+      "detail": "HTTP 201 — onboarding ainda aberto"
+    },
+    {
+      "id": "AP-09",
+      "title": "HTTPS /painel/login",
+      "verdict": "PASS",
+      "detail": "HTTP 200"
+    }
+  ]
+}

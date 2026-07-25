@@ -1,0 +1,45 @@
+{
+  "scan_at": "2026-07-23T21:09:57.444863+00:00",
+  "v2_sha_live": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+  "v2_matches_expected": true,
+  "v1_sha": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+  "unchanged": 33,
+  "drifts_legitimate": {
+    "INT-C-010": {
+      "criticality": "CRITICAL",
+      "path": "/etc/audit/rules.d/impetus.rules",
+      "baseline_sha256": "e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+      "current_sha256": "0d656e44d8f8777fbefc733f40be09561310e09733de73117edd0abe25b36753",
+      "baseline_size": 2151,
+      "current_size": 2938,
+      "baseline_perm": "640",
+      "current_perm": "640",
+      "hash_changed": true,
+      "size_changed": true,
+      "perm_changed": false,
+      "owner": "root",
+      "group": "root",
+      "mtime_unix": 1784823723,
+      "drift_reason": "INT-LIM-001 \u2014 regras auditd /etc/nginx|/etc/fail2ban|/etc/letsencrypt|/etc/cron.d"
+    },
+    "INT-M-003": {
+      "criticality": "MEDIUM",
+      "path": "/var/www/impetus-completa/infra/security/audit/impetus-audit.rules",
+      "baseline_sha256": "e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+      "current_sha256": "0d656e44d8f8777fbefc733f40be09561310e09733de73117edd0abe25b36753",
+      "baseline_size": 2151,
+      "current_size": 2938,
+      "baseline_perm": "644",
+      "current_perm": "644",
+      "hash_changed": true,
+      "size_changed": true,
+      "perm_changed": false,
+      "owner": "root",
+      "group": "root",
+      "mtime_unix": 1784823712,
+      "drift_reason": "INT-LIM-001 \u2014 fonte impetus-audit.rules actualizada"
+    }
+  },
+  "drifts_unexpected": {},
+  "missing": {}
+}

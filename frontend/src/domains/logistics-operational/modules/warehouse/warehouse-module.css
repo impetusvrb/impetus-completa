@@ -1,0 +1,135 @@
+.warehouse-ops-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.warehouse-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 12, 20, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.warehouse-modal {
+  width: 100%;
+  max-width: 480px;
+  padding: 1.25rem;
+  border-radius: 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+.warehouse-form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.warehouse-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.warehouse-form-input {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.warehouse-form-input:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+
+.warehouse-details-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.warehouse-tab--active {
+  border-color: var(--cyan) !important;
+  color: var(--cyan) !important;
+}
+
+.warehouse-occupancy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.warehouse-occ-card {
+  flex: 1 1 90px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.warehouse-workflow-shell {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.warehouse-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.warehouse-filter-active {
+  border-color: var(--cyan) !important;
+  color: var(--cyan) !important;
+}
+
+.warehouse-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.warehouse-details-row dt {
+  margin: 0;
+}
+
+.warehouse-details-row dd {
+  margin: 0;
+}
+
+.industrial-grid-table tbody tr:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+.warehouse-search-input:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+
+@media (max-width: 768px) {
+  .warehouse-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

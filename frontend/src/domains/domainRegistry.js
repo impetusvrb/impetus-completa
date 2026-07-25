@@ -1,7 +1,8 @@
 /**
  * WAVE 6 — Registry modular frontend (espelha backend domains/_core/domainRegistry).
- * Não altera visible_modules nem contextual modules existentes.
+ * FIN-EVOLVE-001A — label Finance via metadata provider.
  */
+import { FINANCE_DOMAIN_IDENTITY } from './finance/metadata/financeDomainMetadata.js';
 
 export const DOMAIN_ROUTES = Object.freeze({
   quality: {
@@ -48,6 +49,15 @@ export const DOMAIN_ROUTES = Object.freeze({
     operational: true,
     management: false,
     moduleKeys: ['operational', 'dashboard', 'cerebro_operacional']
+  },
+  finance: {
+    id: 'finance',
+    label: FINANCE_DOMAIN_IDENTITY.displayName,
+    routePrefix: FINANCE_DOMAIN_IDENTITY.landingRoute,
+    lazyKey: 'domain-finance',
+    operational: true,
+    management: true,
+    moduleKeys: ['financial_intelligence', 'cost_center', 'losses_map']
   }
 });
 

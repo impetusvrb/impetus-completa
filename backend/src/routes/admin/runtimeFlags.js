@@ -10,7 +10,11 @@
  */
 
 const express = require('express');
+const { requireTenantAdminRole, requireHierarchy } = require('../../middleware/auth');
 const router = express.Router();
+
+router.use(requireTenantAdminRole);
+router.use(requireHierarchy(1));
 
 router.get('/flags/effective', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');

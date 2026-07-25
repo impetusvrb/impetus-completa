@@ -1,0 +1,54 @@
+.transfer-module-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.transfer-route-panel,
+.transfer-type-panel,
+.transfer-intelligence-panel {
+  margin-top: 12px;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.transfer-route-grid,
+.transfer-type-grid,
+.transfer-intel-grid,
+.transfer-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.transfer-route-card,
+.transfer-type-card,
+.transfer-intel-card {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transfer-type-card--active {
+  border-color: var(--cyan);
+}
+
+.transfer-intel-card--warn {
+  border-color: var(--amber);
+}
+
+.transfer-details-grid {
+  margin-top: 8px;
+}
+
+[data-wms-internal-logistics] .impetus-card {
+  background: var(--bg-panel);
+}

@@ -1,0 +1,1063 @@
+{
+  "schema_version": "appsec_validation_v1",
+  "program": "APPSEC-02",
+  "baseline_report": "Red Team 2026-07-04",
+  "appsec_layer": "APPSEC-01",
+  "generated_at": "2026-07-10T20:53:20.510Z",
+  "decision": "APPSEC_CERTIFIED",
+  "scores": {
+    "security_improvement_score": 100,
+    "vulnerability_reduction_count": 13,
+    "baseline_exploitable_findings": 13,
+    "remaining_exploitable_scenarios": 0,
+    "residual_risk": "low",
+    "comparison_summary": {
+      "fixed": 13,
+      "partially_fixed": 0,
+      "not_fixed": 0,
+      "regression": 0,
+      "not_applicable": 3
+    },
+    "p0_p1_summary": {
+      "total": 10,
+      "fixed": 10,
+      "partially_fixed": 0,
+      "failed": 0
+    },
+    "scenario_pass_rate": 100,
+    "regression_count": 0,
+    "owasp_compliance": "aligned",
+    "enterprise_compliance": "SEC-01→SEC-21C unchanged; APPSEC-01 validated"
+  },
+  "comparison": [
+    {
+      "finding_id": "RT-01",
+      "baseline_priority": "P0",
+      "baseline_risk": "High",
+      "status": "FIXED",
+      "before_summary": "targetUserId/participantIds inseridos sem validação company_id em chatService.js",
+      "after_summary": "Cenários [ACC-IDOR-CHAT:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "ACC-IDOR-CHAT"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-02",
+      "baseline_priority": "P0",
+      "baseline_risk": "High",
+      "status": "FIXED",
+      "before_summary": "fetch(int.api_url) sem blocklist em timeClockIntegrationService.js",
+      "after_summary": "Cenários [SSRF-TIMECLOCK-INTEGRATION:PASS, SSRF-INTERNAL-127:PASS, SSRF-HTTP-ONLY:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "SSRF-TIMECLOCK-INTEGRATION",
+        "SSRF-INTERNAL-127",
+        "SSRF-HTTP-ONLY"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-03",
+      "baseline_priority": "P0",
+      "baseline_risk": "High",
+      "status": "FIXED",
+      "before_summary": "axios.request URL controlável via BD em restAdapter.js",
+      "after_summary": "Cenários [SSRF-PLC-REST:PASS, SSRF-RFC1918:PASS, SSRF-LINK-LOCAL:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "SSRF-PLC-REST",
+        "SSRF-RFC1918",
+        "SSRF-LINK-LOCAL"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-04",
+      "baseline_priority": "P1",
+      "baseline_risk": "High",
+      "status": "FIXED",
+      "before_summary": "multer sem fileFilter; 50MB; extensão de originalname",
+      "after_summary": "Cenários [UPL-CHAT-CANONICAL:PASS, UPL-MANUALS-CANONICAL:PASS, UPL-MAGIC-BYTES:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "UPL-CHAT-CANONICAL",
+        "UPL-MANUALS-CANONICAL",
+        "UPL-MAGIC-BYTES"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-05",
+      "baseline_priority": "P1",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "GET /api/system/boot-metrics e /api/aioi/health expõem métricas internas sem auth",
+      "after_summary": "Cenários [PUB-BOOT-METRICS:PASS, PUB-AIOI-HEALTH:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "PUB-BOOT-METRICS",
+        "PUB-AIOI-HEALTH"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-06",
+      "baseline_priority": "P1",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "registro-inteligente, cadastrar-ia, chat-multimodal fora de uploadAccessService",
+      "after_summary": "Cenários [ACC-ACL-UPLOADS:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "ACC-ACL-UPLOADS"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-07",
+      "baseline_priority": "P0",
+      "baseline_risk": "Critical",
+      "status": "FIXED",
+      "before_summary": "9 backups .env; artefactos pm2_env em docs/evidence/",
+      "after_summary": "Cenários [CFG-SECRET-SCANNER:PASS, CFG-ENV-BACKUPS:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "CFG-SECRET-SCANNER",
+        "CFG-ENV-BACKUPS"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-08",
+      "baseline_priority": "P1",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "LICENSE_VALIDATION_ENABLED=false; ADMIN_PORTAL_DEBUG=true; chave default time clock",
+      "after_summary": "Cenários [CFG-RUNTIME-VALIDATOR:PASS, CFG-PROD-FLAGS:PASS, CFG-FALLBACK-KEY:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "CFG-RUNTIME-VALIDATOR",
+        "CFG-PROD-FLAGS",
+        "CFG-FALLBACK-KEY"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-09",
+      "baseline_priority": "P2",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "9 High backend + 7 High frontend (axios, ws, xlsx, …)",
+      "after_summary": "Cenários [DEP-NPM-AUDIT:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "DEP-NPM-AUDIT"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-10",
+      "baseline_priority": "P2",
+      "baseline_risk": "Medium",
+      "status": "NOT_APPLICABLE",
+      "before_summary": "Fora do escopo APPSEC-01; roadmap HttpOnly cookies",
+      "after_summary": "APPSEC-01 mitigação: fora de escopo",
+      "scenario_ids": [],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-11",
+      "baseline_priority": "P3",
+      "baseline_risk": "Low",
+      "status": "FIXED",
+      "before_summary": "GET /api/federation/status expõe pilot_tenants UUIDs",
+      "after_summary": "Cenários [PUB-FEDERATION:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "PUB-FEDERATION"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-12",
+      "baseline_priority": "P3",
+      "baseline_risk": "Low",
+      "status": "FIXED",
+      "before_summary": "Status integrações IA sem chave",
+      "after_summary": "Cenários [PUB-HEALTH-DEEP:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "PUB-HEALTH-DEEP"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-13",
+      "baseline_priority": "P2",
+      "baseline_risk": "Medium",
+      "status": "NOT_APPLICABLE",
+      "before_summary": "Isolamento depende da camada app para maioria dos tenants",
+      "after_summary": "APPSEC-01 mitigação: fora de escopo",
+      "scenario_ids": [],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-14",
+      "baseline_priority": "P1",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "uploadPolicy.js aceitava octet-stream sempre",
+      "after_summary": "Cenários [UPL-MIME-EXE:PASS, UPL-OCTET-PDF:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "UPL-MIME-EXE",
+        "UPL-OCTET-PDF"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-15",
+      "baseline_priority": "P1",
+      "baseline_risk": "Medium",
+      "status": "FIXED",
+      "before_summary": "impetus-default-key-32b fallback",
+      "after_summary": "Cenários [CFG-FALLBACK-KEY:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "CFG-FALLBACK-KEY"
+      ],
+      "impact_operational": null
+    },
+    {
+      "finding_id": "RT-16",
+      "baseline_priority": "P2",
+      "baseline_risk": "Medium",
+      "status": "NOT_APPLICABLE",
+      "before_summary": "~40 rotas sem requireAuth no mount; auth por handler",
+      "after_summary": "Cenários [ACC-DASHBOARD-NO-AUTH:PASS, OWASP-APPSEC-LAYER:PASS] — agregado FIXED",
+      "scenario_ids": [
+        "ACC-DASHBOARD-NO-AUTH",
+        "OWASP-APPSEC-LAYER"
+      ],
+      "impact_operational": null
+    }
+  ],
+  "scenarios": [
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "ACC-IDOR-CHAT",
+      "category": "access",
+      "title": "IDOR Chat cross-tenant",
+      "hypothesis": "Participantes validados por company_id antes de INSERT",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "hasValidator": true,
+        "hasPrivateCheck": true,
+        "hasGroupCheck": true,
+        "hasAddCheck": true
+      },
+      "executed_at": "2026-07-10T20:53:17.208Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "ACC-CROSS-TENANT-GUARD",
+      "category": "access",
+      "title": "Cross-Tenant tenant guard",
+      "hypothesis": "tenantIsolationGuard activo com anti-spoof",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "tenant_guard_present": true
+      },
+      "executed_at": "2026-07-10T20:53:17.208Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "ACC-ACL-UPLOADS",
+      "category": "access",
+      "title": "ACL Uploads deny-by-default",
+      "hypothesis": "uploadAclPolicy cobre todos os diretórios críticos",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "aclPolicy": true,
+        "strictFn": true,
+        "coversChat": true,
+        "coversRegistro": true,
+        "coversCadastrar": true
+      },
+      "executed_at": "2026-07-10T20:53:17.209Z",
+      "duration_ms": 1,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "ACC-UPLOADS-PUBLIC",
+      "category": "access",
+      "title": "Uploads públicos sem auth",
+      "hypothesis": "/uploads/* rejeita anónimo",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401,
+        "error": null
+      },
+      "executed_at": "2026-07-10T20:53:17.210Z",
+      "duration_ms": 1,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "ACC-DASHBOARD-NO-AUTH",
+      "category": "access",
+      "title": "Dashboard sem token",
+      "hypothesis": "401 AUTH_TOKEN_MISSING",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401
+      },
+      "executed_at": "2026-07-10T20:53:17.211Z",
+      "duration_ms": 1,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-TIMECLOCK-INTEGRATION",
+      "category": "ssrf",
+      "title": "Time Clock usa safeFetch",
+      "hypothesis": "timeClockIntegrationService integrado ao motor SSRF",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "usesSafeFetch": true,
+        "localhost_blocked": true
+      },
+      "executed_at": "2026-07-10T20:53:17.212Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-PLC-REST",
+      "category": "ssrf",
+      "title": "PLC REST usa safeAxiosRequest",
+      "hypothesis": "restAdapter integrado ao motor SSRF",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "usesSafeAxiosRequest": true
+      },
+      "executed_at": "2026-07-10T20:53:17.212Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-INTERNAL-127",
+      "category": "ssrf",
+      "title": "SSRF 127.0.0.1",
+      "hypothesis": "URL https://127.0.0.1:5432/ bloqueada pelo ssrfProtectionEngine",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "url": "https://127.0.0.1:5432/",
+        "blocked": true,
+        "code": "SSRF_DNS_DENIED"
+      },
+      "executed_at": "2026-07-10T20:53:17.212Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-RFC1918",
+      "category": "ssrf",
+      "title": "SSRF RFC1918",
+      "hypothesis": "URL https://192.168.1.1/internal bloqueada pelo ssrfProtectionEngine",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "url": "https://192.168.1.1/internal",
+        "blocked": true,
+        "code": "SSRF_DNS_DENIED"
+      },
+      "executed_at": "2026-07-10T20:53:17.212Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-LINK-LOCAL",
+      "category": "ssrf",
+      "title": "SSRF link-local metadata",
+      "hypothesis": "URL https://169.254.169.254/latest/meta-data/ bloqueada pelo ssrfProtectionEngine",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "url": "https://169.254.169.254/latest/meta-data/",
+        "blocked": true,
+        "code": "SSRF_DNS_DENIED"
+      },
+      "executed_at": "2026-07-10T20:53:17.212Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-HTTP-ONLY",
+      "category": "ssrf",
+      "title": "SSRF protocolo HTTP bloqueado",
+      "hypothesis": "URL http://example.com/path bloqueada pelo ssrfProtectionEngine",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "url": "http://example.com/path",
+        "blocked": true,
+        "code": "SSRF_URL_DENIED"
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "SSRF-DNS-GUARD",
+      "category": "ssrf",
+      "title": "DNS rebinding guard (IP privado)",
+      "hypothesis": "isPrivateOrReservedIp bloqueia RFC1918",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "private_ip_blocked": true
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-CHAT-CANONICAL",
+      "category": "upload",
+      "title": "Chat upload canónico",
+      "hypothesis": "impetusUploadMiddleware substitui multer legado",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "usesCanonical": true,
+        "legacyMulterPresent": false
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-MANUALS-CANONICAL",
+      "category": "upload",
+      "title": "Manuals upload canónico",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "createUploadMiddleware": true
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-MIME-EXE",
+      "category": "upload",
+      "title": "MIME falso .exe bloqueado",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "octet_stream_exe_blocked": true
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-OCTET-PDF",
+      "category": "upload",
+      "title": "octet-stream + .pdf permitido",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "allowed": true
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-MAGIC-BYTES",
+      "category": "upload",
+      "title": "Magic bytes rejeita PDF falso",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "rejected": true
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "UPL-HTML-SVG",
+      "category": "upload",
+      "title": "HTML/SVG fora de whitelist document",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "html_blocked": true,
+        "svg_in_image_group": false
+      },
+      "executed_at": "2026-07-10T20:53:17.213Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "PUB-BOOT-METRICS",
+      "category": "public_endpoint",
+      "title": "boot-metrics payload mínimo externo",
+      "hypothesis": "Sem pool/request_perf para cliente externo",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 200,
+        "keys": [
+          "ok"
+        ],
+        "has_pool": false
+      },
+      "executed_at": "2026-07-10T20:53:17.215Z",
+      "duration_ms": 2,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "PUB-AIOI-HEALTH",
+      "category": "public_endpoint",
+      "title": "aioi/health payload mínimo externo",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "keys": [
+          "ok",
+          "status"
+        ],
+        "has_outbox": false
+      },
+      "executed_at": "2026-07-10T20:53:17.227Z",
+      "duration_ms": 12,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "PUB-HEALTH-DEEP",
+      "category": "public_endpoint",
+      "title": "health/deep payload reduzido anónimo",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "keys": [
+          "ready",
+          "issues"
+        ]
+      },
+      "executed_at": "2026-07-10T20:53:17.230Z",
+      "duration_ms": 3,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "PUB-FEDERATION",
+      "category": "public_endpoint",
+      "title": "federation status UUID leak",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "exposes_pilot_uuids": false
+      },
+      "executed_at": "2026-07-10T20:53:17.232Z",
+      "duration_ms": 2,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "PUB-MFA-STATUS",
+      "category": "public_endpoint",
+      "title": "MFA status UUID leak",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "exposes_pilot_uuids": false
+      },
+      "executed_at": "2026-07-10T20:53:17.233Z",
+      "duration_ms": 1,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "CFG-SECRET-SCANNER",
+      "category": "config",
+      "title": "Secret scanner activo",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "scanner_detects_insecure": true,
+        "backup_files_found": 0
+      },
+      "executed_at": "2026-07-10T20:53:17.233Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "CFG-ENV-BACKUPS",
+      "category": "config",
+      "title": "Backups .env no filesystem",
+      "hypothesis": "Zero backups .env (operacional)",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "count": 0,
+        "files": []
+      },
+      "executed_at": "2026-07-10T20:53:17.233Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "CFG-RUNTIME-VALIDATOR",
+      "category": "config",
+      "title": "Runtime validator no boot",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "boot_hook": true
+      },
+      "executed_at": "2026-07-10T20:53:17.234Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "CFG-PROD-FLAGS",
+      "category": "config",
+      "title": "Flags produção inseguras",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "errors": [],
+        "warnings": []
+      },
+      "executed_at": "2026-07-10T20:53:17.234Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "CFG-FALLBACK-KEY",
+      "category": "config",
+      "title": "Fallback chave Time Clock",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "fallback_in_code": true,
+        "boot_blocks": true
+      },
+      "executed_at": "2026-07-10T20:53:17.234Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "DEP-NPM-AUDIT",
+      "category": "dependencies",
+      "title": "npm audit backend",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "summary": {
+          "total": 0,
+          "critical": 0,
+          "high": 0,
+          "moderate": 0,
+          "low": 0
+        },
+        "baseline_high": 9,
+        "improved": true
+      },
+      "executed_at": "2026-07-10T20:53:18.072Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "INJ-SQL-LOGIN",
+      "category": "injection",
+      "title": "SQL Injection login",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401
+      },
+      "executed_at": "2026-07-10T20:53:18.078Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AUTH-LOCKOUT",
+      "category": "access",
+      "title": "Account lockout presente",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "module": "accountLockout.js"
+      },
+      "executed_at": "2026-07-10T20:53:18.079Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-RUNTIME-NO-AUTH",
+      "category": "aggressive",
+      "title": "Runtime flags POST sem token",
+      "hypothesis": "401/403 antes de executar rota perigosa",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401,
+        "body_preview": "{\"ok\":false,\"error\":\"Token não fornecido\",\"code\":\"AUTH_TOKEN_MISSING\"}"
+      },
+      "executed_at": "2026-07-10T20:53:18.081Z",
+      "duration_ms": 2,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-RUNTIME-JWT-NONE",
+      "category": "aggressive",
+      "title": "Runtime flags JWT alg:none",
+      "hypothesis": "alg:none rejeitado",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401
+      },
+      "executed_at": "2026-07-10T20:53:18.085Z",
+      "duration_ms": 4,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-RUNTIME-RBAC",
+      "category": "aggressive",
+      "title": "Runtime flags RBAC estático",
+      "hypothesis": "requireTenantAdminRole + requireHierarchy(1) no router",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "hasTenantAdmin": true,
+        "hasHierarchy": true
+      },
+      "executed_at": "2026-07-10T20:53:18.086Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-AVATAR-JWT",
+      "category": "aggressive",
+      "title": "Avatar namespace exige JWT",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "hasMiddleware": true,
+        "hasAlgorithms": true
+      },
+      "executed_at": "2026-07-10T20:53:18.086Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-JWT-ALG-SOCKETS",
+      "category": "aggressive",
+      "title": "Sockets fixam algorithms HS256",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "missing": []
+      },
+      "executed_at": "2026-07-10T20:53:18.086Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-UPLOAD-AND",
+      "category": "aggressive",
+      "title": "Upload exige MIME E extensão",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "and_logic": true
+      },
+      "executed_at": "2026-07-10T20:53:18.086Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-COMPANIES-RL",
+      "category": "aggressive",
+      "title": "Rate limit onboarding empresas",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "mounted": true
+      },
+      "executed_at": "2026-07-10T20:53:18.086Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-PATH-TRAVERSAL",
+      "category": "aggressive",
+      "title": "Path traversal / .env leak",
+      "hypothesis": "Sem exfiltração de ficheiros sensíveis",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "probes": [
+          {
+            "path": "/api/users/../../../etc/passwd",
+            "status": 404,
+            "blocked": true,
+            "leaks": false
+          },
+          {
+            "path": "/uploads/chat/..%2F..%2F..%2Fetc%2Fpasswd",
+            "status": 401,
+            "blocked": true,
+            "leaks": false
+          },
+          {
+            "path": "/api/dashboard/me?x=..%2F..%2F.env",
+            "status": 401,
+            "blocked": true,
+            "leaks": false
+          },
+          {
+            "path": "/.env",
+            "status": 404,
+            "blocked": true,
+            "leaks": false
+          },
+          {
+            "path": "/api/admin/runtime/flags/effective%00",
+            "status": 401,
+            "blocked": true,
+            "leaks": false
+          }
+        ]
+      },
+      "executed_at": "2026-07-10T20:53:18.102Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-TENANT-SPOOF",
+      "category": "aggressive",
+      "title": "Tenant spoof via headers",
+      "hypothesis": "Headers X-Company-Id não bypassam auth",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 401
+      },
+      "executed_at": "2026-07-10T20:53:18.108Z",
+      "duration_ms": 6,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-MASS-ASSIGN",
+      "category": "aggressive",
+      "title": "Mass assignment POST /companies",
+      "hypothesis": "Campos role/hierarchy ignorados no onboarding",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "status": 201,
+        "escalated": false,
+        "keys": [
+          "ok",
+          "company",
+          "user",
+          "token",
+          "expiresAt",
+          "message"
+        ]
+      },
+      "executed_at": "2026-07-10T20:53:18.442Z",
+      "duration_ms": 334,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "AGG-SSRF-WEBHOOK",
+      "category": "aggressive",
+      "title": "SSRF vectors em webhook público",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "results": [
+          {
+            "body": {
+              "url": "http://127.0.0.1:5432"
+            },
+            "status": 503,
+            "blocked": true
+          },
+          {
+            "body": {
+              "callback": "http://169.254.169.254/latest/meta-data/"
+            },
+            "status": 503,
+            "blocked": true
+          },
+          {
+            "body": {
+              "webhook_url": "file:///etc/passwd"
+            },
+            "status": 503,
+            "blocked": true
+          }
+        ]
+      },
+      "executed_at": "2026-07-10T20:53:18.447Z",
+      "duration_ms": 0,
+      "notes": null
+    },
+    {
+      "schema_version": "appsec_scenario_v1",
+      "id": "OWASP-APPSEC-LAYER",
+      "category": "owasp",
+      "title": "Camada APPSEC-01 presente",
+      "result": "PASS",
+      "exploitable": false,
+      "evidence": {
+        "appsec_index": true
+      },
+      "executed_at": "2026-07-10T20:53:18.447Z",
+      "duration_ms": 0,
+      "notes": null
+    }
+  ],
+  "regressions": [],
+  "residual_risk": {
+    "level": "low",
+    "open_findings": [],
+    "recommendation": "Proceder com Red Team externo independente"
+  },
+  "owasp": {
+    "top_10_revalidated": true,
+    "report_schema": "appsec_owasp_compliance_v1",
+    "red_team_remediation": [
+      {
+        "id": "RT-01",
+        "title": "IDOR Chat cross-tenant",
+        "priority": "P0",
+        "mitigated_by": "crossTenantAccessValidator",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-02",
+        "title": "SSRF Time Clock",
+        "priority": "P0",
+        "mitigated_by": "ssrfProtectionEngine",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-03",
+        "title": "SSRF PLC REST",
+        "priority": "P0",
+        "mitigated_by": "ssrfProtectionEngine",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-04",
+        "title": "Uploads legados chat/manuals",
+        "priority": "P1",
+        "mitigated_by": "impetusUploadMiddleware + uploadSecurity",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-05",
+        "title": "boot-metrics/aioi públicos",
+        "priority": "P1",
+        "mitigated_by": "publicEndpointPolicy",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-06",
+        "title": "ACL uploads incompleta",
+        "priority": "P1",
+        "mitigated_by": "uploadAclPolicy",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-07",
+        "title": "Segredos/backups .env",
+        "priority": "P0",
+        "mitigated_by": "secretManagement",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-08",
+        "title": "Config insegura produção",
+        "priority": "P1",
+        "mitigated_by": "runtimeConfigurationValidator",
+        "status": "mitigation_implemented"
+      },
+      {
+        "id": "RT-09",
+        "title": "Dependências vulneráveis",
+        "priority": "P2",
+        "mitigated_by": "dependencyGovernance",
+        "status": "mitigation_implemented"
+      }
+    ]
+  },
+  "enterprise_compliance": {
+    "sec_chain": "unchanged",
+    "event_governance": "unchanged",
+    "eco": "unchanged",
+    "cognitive_core": "unchanged",
+    "appsec_01": "validated_by_appsec_02"
+  },
+  "certification": {
+    "decision": "APPSEC_CERTIFIED",
+    "remarks": [],
+    "certified_at": "2026-07-10T20:53:18.448Z",
+    "valid_for": "APPSEC-01 layer validation",
+    "next_step": "Recomendado Red Team independente para confirmação P0/P1"
+  },
+  "execution": {
+    "duration_ms": 3302,
+    "scenarios_total": 43,
+    "scenarios_pass": 43,
+    "baseline_report": "2026-07-04"
+  },
+  "evidence_paths": [],
+  "read_only": true
+}

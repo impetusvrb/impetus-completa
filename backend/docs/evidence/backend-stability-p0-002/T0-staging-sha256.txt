@@ -1,0 +1,11 @@
+# SHA256 pre-flight — staging packages (T0)
+Tue Jul 14 13:27:16 UTC 2026
+--- IMPETUS_FORENSIC_EVIDENCE_2026_07.tar.gz ---
+size_bytes=56061 mtime=2026-07-13 15:43:28.359847668 +0000
+1c98ebbb7fa1be5bc29f94b8be00c1a14f5004cd8a0abb9dfe6553e0e3e17b36  /var/www/impetus-completa/backend/docs/evidence/storage-remediation/export-staging/IMPETUS_FORENSIC_EVIDENCE_2026_07.tar.gz
+--- IMPETUS_FORENSIC_PM2_LOGS_2026_07.tar.gz ---
+size_bytes=63277223 mtime=2026-07-13 15:43:52.551698897 +0000
+e0f4e2080fc5ee8f4a6acc02c7684a09102de29a61906513b1c1078992bf7fd6  /var/www/impetus-completa/backend/docs/evidence/storage-remediation/export-staging/IMPETUS_FORENSIC_PM2_LOGS_2026_07.tar.gz
+--- IMPETUS_SECURITY_CERTIFICATIONS_2026.tar.gz ---
+size_bytes=1314048 mtime=2026-07-13 15:43:45.083744797 +0000
+5a2e372f99966fe54f6b4e59cd0b1631b96f6f01b5db5fe63dbfa515d211b848  /var/www/impetus-completa/backend/docs/evidence/storage-remediation/export-staging/IMPETUS_SECURITY_CERTIFICATIONS_2026.tar.gz

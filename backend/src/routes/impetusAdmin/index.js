@@ -8,6 +8,7 @@ const logs = require('./logs');
 const users = require('./users');
 const incidents = require('./incidents');
 const supportRecovery = require('./supportRecovery');
+const securityDashboard = require('./securityDashboard');
 
 const router = express.Router();
 
@@ -18,5 +19,7 @@ router.use('/logs', logs);
 router.use('/users', users);
 router.use('/incidents', incidents);
 router.use('/support-recovery', supportRecovery);
+router.use('/security-dashboard', securityDashboard);
+router.use('/device-trust', require('./deviceTrust'));
 
 module.exports = router;

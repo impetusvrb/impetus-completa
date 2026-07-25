@@ -61,46 +61,31 @@ router.post('/', requireAuth, async (req, res) => {
 
 /**
  * GET /api/voz/alertas
- * Simulação simples para testes (não usar como alerta real).
+ * Não existe fonte operacional de alertas configurada para este endpoint.
  */
 router.get('/alertas', requireAuth, (req, res) => {
-  const alertaAtivo = Math.random() < 0.3;
-  if (alertaAtivo) {
-    return res.json({ ok: true, alerta: true, mensagem: 'Atenção. Foi detectada uma falha na produção.' });
-  }
-  return res.json({ ok: true, alerta: false });
+  return res.status(503).json({
+    ok: false,
+    status: 'not_configured',
+    code: 'VOICE_OPERATIONAL_SOURCE_NOT_CONFIGURED',
+    alerta: null,
+    mensagem: null
+  });
 });
 
 /**
  * POST /api/voz/comando
- * Processa um comando simples e, se falar=true, retorna também áudio em base64.
+ * Não processa comandos operacionais sem uma fonte de dados configurada.
  * Body: { comando: string, falar?: boolean }
  */
-router.post('/comando', requireAuth, async (req, res) => {
-  try {
-    const { comando, falar } = req.body || {};
-    const c = String(comando || '').toLowerCase();
-    let resposta = 'Não entendi o comando.';
-
-    if (c.includes('produção') || c.includes('producao')) {
-      resposta = 'A produção atual está em oitenta e dois por cento da meta.';
-    } else if (c.includes('manutenção') || c.includes('manutencao')) {
-      resposta = 'Existem duas manutenções pendentes no sistema.';
-    } else if (c.includes('status geral')) {
-      resposta = 'O sistema está operando com eficiência moderada, com pontos de atenção na produção.';
-    }
-
-    if (falar === true) {
-      const buffer = await openaiTts.gerarAudio(resposta);
-      const audio = buffer && buffer.length ? buffer.toString('base64') : null;
-      return res.json({ ok: true, resposta, audio });
-    }
-
-    return res.json({ ok: true, resposta });
-  } catch (e) {
-    console.error('[VOZ_COMANDO]', e);
-    return res.status(500).json({ ok: false, error: 'Erro ao processar comando de voz.' });
-  }
+router.post('/comando', requireAuth, (req, res) => {
+  return res.status(503).json({
+    ok: false,
+    status: 'not_configured',
+    code: 'VOICE_OPERATIONAL_SOURCE_NOT_CONFIGURED',
+    resposta: null,
+    audio: null
+  });
 });
 
 /**

@@ -1,0 +1,15 @@
+# INTEGRITY_BASELINE_v3_MANIFEST
+
+**Manifest ID:** IMPETUS-INTEGRITY-MANIFEST-v3  
+**SHA-256 do JSON:** `fb7bba1d1bef4d82cdc6d183203cff80e9613af3f3828539a9c2d32baff5e267`  
+
+Ver ficheiro machine-readable: `INTEGRITY_BASELINE_v3_MANIFEST.json`.
+
+## Âncoras
+
+| Versão | SHA-256 |
+|---|---|
+| v1 | `6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6` |
+| v2 | `f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818` |
+| v3 | `b7e6edb61d7cd1d2f48dd9d471a5df12b155a49431f005d4c6f93297f9174dcc` |
+| inventário | `4face35e25d50ba9e74f737cf8a5c586d0c78ed720f0d470836b4a26a6626dd7` |

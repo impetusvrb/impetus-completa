@@ -24,6 +24,7 @@ import {
 import Layout from '../components/Layout';
 import { CheckboxField } from '../components/FormField';
 import { meAccount, lgpd } from '../services/api';
+import MfaEnrollmentPanel from '../components/security/MfaEnrollmentPanel';
 import { useNotification } from '../context/NotificationContext';
 import { useProtectedMediaSrc } from '../utils/protectedUploadMedia';
 import './UserSettings.css';
@@ -521,6 +522,7 @@ export default function UserSettings() {
               </div>
             </div>
           </div>
+          <MfaEnrollmentPanel />
         </section>
 
         <section id="us-notificacoes" className="us-card us-card--accent us-section-anchor">

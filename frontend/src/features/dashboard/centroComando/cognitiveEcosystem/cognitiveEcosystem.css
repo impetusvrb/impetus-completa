@@ -1951,3 +1951,46 @@
     padding: 0.45rem 0.85rem;
   }
 }
+
+/* INC-004: estado vazio explícito do sheet cognitivo (loading / indisponível) */
+.cog-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 1.5rem 1rem 2rem;
+  color: var(--text-secondary, #cbd5e1);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.cog-detail-empty__title {
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan, #00d4ff);
+}
+
+.cog-detail-empty__desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.cog-detail-empty__spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(0, 212, 255, 0.15);
+  border-top-color: var(--cyan, #00d4ff);
+  border-radius: 50%;
+  animation: cog-detail-empty-spin 0.9s linear infinite;
+  margin-top: 0.35rem;
+}
+
+@keyframes cog-detail-empty-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

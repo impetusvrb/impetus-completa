@@ -13,10 +13,10 @@ function isEnabled() {
   return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 }
 
+const { resolveClientIp } = require('../services/clientIpResolver');
+
 function clientIp(req) {
-  const xff = req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
-  return req.ip || req.socket?.remoteAddress || '-';
+  return resolveClientIp(req) || '-';
 }
 
 function requestAccessLogMiddleware(req, res, next) {

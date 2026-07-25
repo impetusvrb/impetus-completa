@@ -31,7 +31,10 @@ log() { printf '[deploy] %s\n' "$*"; }
 reload_pm2() {
   local name="$1"
   if command -v pm2 >/dev/null 2>&1; then
-    pm2 reload "$name" --update-env || pm2 restart "$name" --update-env
+    (
+      cd "$ROOT"
+      pm2 restart ecosystem.runtime.config.cjs --only "$name" --env production --update-env
+    )
     log "PM2: $name recarregado"
   else
     log "AVISO: pm2 não encontrado — reinicie $name manualmente"

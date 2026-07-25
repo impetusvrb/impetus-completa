@@ -10,15 +10,17 @@ import CognitivePresenceShell from './centroComando/cognitiveEcosystem/Cognitive
 import CognitiveCollapsibleSection from './centroComando/cognitiveEcosystem/CognitiveCollapsibleSection';
 import { dashboard, intelligentRegistration } from '../../services/api';
 import { useDashboardBoot } from '../../runtimeBoot/DashboardBootContext';
+import { mergeUserFromDashboardMe, useVisibleModules } from '../../hooks/useVisibleModules';
 import { useNotification } from '../../context/NotificationContext';
+import { hasMaintenanceProfileContext, isExecutiveLeadershipRole, canUseTaskOrchestrationUser } from '../../utils/roleUtils';
+import { CognitivePulseProvider } from './centroComando/cognitiveEcosystem/CognitivePulseContext';
 import {
   Wrench, ClipboardList, AlertTriangle, Clock, CheckCircle2, Package, Phone, Repeat,
-  ChevronRight, Sparkles, FileEdit, History, Calendar, Users, BookOpen, Zap,   PlayCircle,
+  ChevronRight, Sparkles, FileEdit, History, Calendar, Users, BookOpen, Zap, PlayCircle,
   RefreshCw, HelpCircle
 } from 'lucide-react';
 import { DashboardInteligente } from './index';
 import LiveDashboardUnifiedPanel from './components/LiveDashboardUnifiedPanel';
-import { isExecutiveLeadershipRole, canUseTaskOrchestrationUser } from '../../utils/roleUtils';
 import './DashboardMecanico.css';
 
 /** Prefixo enviado ao chat para especializar respostas em contexto de manutenção */
@@ -48,14 +50,17 @@ function formatDt(iso) {
 export default function DashboardMecanico() {
   const navigate = useNavigate();
   const { phase: bootPhase } = useDashboardBoot();
+  const { maintenanceFromProfile, dashboardMePayload } = useVisibleModules();
   const notify = useNotification();
   const sessionUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem('impetus_user') || '{}');
+      const parsed = JSON.parse(localStorage.getItem('impetus_user') || '{}');
+      return mergeUserFromDashboardMe(parsed, dashboardMePayload);
     } catch {
-      return {};
+      return mergeUserFromDashboardMe({}, dashboardMePayload);
     }
-  }, []);
+  }, [dashboardMePayload]);
+  const maintenanceKnown = hasMaintenanceProfileContext(sessionUser, maintenanceFromProfile);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [summary, setSummary] = useState(null);
   const [cards, setCards] = useState(null);
@@ -97,10 +102,7 @@ export default function DashboardMecanico() {
   }, []);
 
   useEffect(() => {
-    if (bootPhase < 3) {
-      setLoading(false);
-      return undefined;
-    }
+    if (bootPhase < 2) return undefined;
     let cancelled = false;
     setLoading(true);
     async function load() {
@@ -239,7 +241,7 @@ export default function DashboardMecanico() {
     }
   };
 
-  if (loading) {
+  if (loading && bootPhase < 2) {
     return (
       <Layout>
         <div className="dashboard-mecanico-loading">
@@ -250,16 +252,19 @@ export default function DashboardMecanico() {
     );
   }
 
+  const showMaintenancePanel = maintenanceKnown || isMaintenance;
+
   const pt = preventivesBoard.preventives_today || [];
   const po = preventivesBoard.preventives_overdue || [];
   const pc = preventivesBoard.preventives_completed_today || [];
 
   return (
     <Layout>
+      <CognitivePulseProvider>
       <CognitivePresenceShell>
       <div className="dashboard-mecanico">
         {isExecutiveLeadershipRole(sessionUser) && <LiveDashboardUnifiedPanel variant="light" />}
-        {isMaintenance && (
+        {showMaintenancePanel && (
           <>
               <div className="dashboard-mecanico__tech-header">
                 <Wrench size={20} />
@@ -660,6 +665,7 @@ export default function DashboardMecanico() {
       </div>
       <CognitiveCollapsibleSection />
       </CognitivePresenceShell>
+      </CognitivePulseProvider>
     </Layout>
   );
 }

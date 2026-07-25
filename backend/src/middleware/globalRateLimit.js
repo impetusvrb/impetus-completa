@@ -11,7 +11,7 @@ function skipWebhookAndPreflight(req) {
   if (req.method === 'OPTIONS') return true;
   const p = String(req.originalUrl || req.url || '').split('?')[0];
   if (p === '/api/webhook' || p.startsWith('/api/webhooks/')) return true;
-  if (p === '/api/health' || p === '/api/system/health/deep' || p === '/health') return true;
+  if (p === '/api/health' || p === '/api/health/integrations' || p === '/api/system/health/deep' || p === '/health' || p === '/health/integrations') return true;
   /* Overlay de voz: probe leve + token (cache no anamService); não contar no bucket por IP. */
   if (
     p === '/api/anam/public-config' ||
@@ -57,8 +57,33 @@ const heavyRouteLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ? `u:${req.user.id}` : req.ip
 });
 
+/** 5 criações de empresa por hora por IP (onboarding público) */
+const companyOnboardingLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_COMPANY_CREATE_PER_HOUR, 10) || 5,
+  message: { ok: false, error: 'Limite de criação de empresas atingido. Tente mais tarde.', code: 'COMPANY_CREATE_RATE_LIMIT' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+/** Login painel equipe IMPETUS — anti brute-force */
+const adminPortalLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_ADMIN_PORTAL_LOGIN, 10) || 10,
+  message: {
+    ok: false,
+    error: 'Muitas tentativas de login. Aguarde 15 minutos.',
+    code: 'ADMIN_LOGIN_RATE_LIMIT'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+});
+
 module.exports = {
   apiByIpLimiter,
   apiByUserLimiter,
-  heavyRouteLimiter
+  heavyRouteLimiter,
+  companyOnboardingLimiter,
+  adminPortalLoginLimiter
 };

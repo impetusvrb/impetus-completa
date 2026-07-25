@@ -34,7 +34,7 @@ if [[ -f /root/.pm2/dump.pm2 ]]; then
 fi
 
 echo "[3/4] Reload com --update-env"
-pm2 restart ecosystem.config.js --env production --update-env
+pm2 restart ecosystem.runtime.config.cjs --env production --update-env
 
 echo "[4/4] Health check"
 sleep 3

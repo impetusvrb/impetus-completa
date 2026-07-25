@@ -157,11 +157,21 @@ Documentação: [`backend/docs/ENTERPRISE_SECURITY_V1.md`](../../ENTERPRISE_SECU
 | SEC-18 | Adaptive Runtime Protection (Controller) | ✅ Implementado |
 | SEC-19 | Attack Simulation & Operational Stress Certification | ✅ Implementado |
 | SEC-20 | Enterprise Security v2 Operational Certification | ✅ Implementado |
+| SEC-21 | Enterprise Production Security Activation | ✅ 14/14 ONLINE |
+| SEC-21A | Enterprise Production Go-Live Gate | ✅ 16/16 Gate consultivo |
+| SEC-21B | Enterprise Baseline Synchronization | ✅ 16/16 Reconciliação |
+| SEC-21C | Enterprise Go-Live Validation & Final Authorization | ✅ 15/15 Autorização final |
+| **APPSEC-01** | **Enterprise Application Security Hardening** | ✅ **Implementado** (Red Team 04/07/2026) |
+| **APPSEC-02** | **Red Team Validation & Regression** | ✅ **APPSEC_CERTIFIED_WITH_REMARKS** |
+| **APPSEC-02A** | **Operational Hardening & External Red Team Readiness** | ✅ **READY_FOR_EXTERNAL_RED_TEAM** |
 
-Documentação: [`SEC_19_OPERATIONAL_CERTIFICATION.md`](../../SEC_19_OPERATIONAL_CERTIFICATION.md) · [`SECURITY_CERTIFICATION_V2.md`](../../SECURITY_CERTIFICATION_V2.md)
+Documentação: [`SEC_21_PRODUCTION_ACTIVATION.md`](../../SEC_21_PRODUCTION_ACTIVATION.md) · [`SEC_21A_PRODUCTION_GO_LIVE_GATE.md`](../../SEC_21A_PRODUCTION_GO_LIVE_GATE.md) · [`SEC_21B_BASELINE_SYNCHRONIZATION.md`](../../SEC_21B_BASELINE_SYNCHRONIZATION.md) · [`SEC_21C_GO_LIVE_VALIDATION.md`](../../SEC_21C_GO_LIVE_VALIDATION.md) · [`APPSEC_01.md`](../../APPSEC_01.md) · [`APPSEC_02.md`](../../APPSEC_02.md) · [`APPSEC_02A.md`](../../APPSEC_02A.md)
 
-**Ciclo Enterprise Security v2:** ✅ **ENCERRADO** (SECURITY-BASELINE-01 → SEC-20)
+**Ciclo Enterprise Security v2:** ✅ **ENCERRADA** · **SEC-21 → SEC-21A → SEC-21B → SEC-21C (autorização final)**  
+**Camada Application Security:** ✅ **APPSEC-01** implementado · **APPSEC-02** certificado · **APPSEC-02A** pronto para Red Team externo
+
+**Dossiê Oficial de Incidentes:** [`backend/docs/security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md`](../../security/incident-knowledge-base/INCIDENT_MASTER_REPORT.md) (INCIDENT-KNOWLEDGE-BASE-01)
 
 ---
 
-*Volume X · v2.3 · 2026-07-04*
+*Volume X · v2.4 · 2026-07-10*

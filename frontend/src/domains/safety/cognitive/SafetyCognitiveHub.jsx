@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { API_URL } from '../../../services/api.js';
 
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' };
 
@@ -47,43 +46,15 @@ function RecommendationsPanel({ items }) {
   );
 }
 
-function buildSafetySignals() {
-  return {
-    incident_rates: [0.8, 1.0, 1.2, 0.9, 1.1, 1.4, 1.8, 2.1],
-    near_miss_counts: [2, 3, 4, 3, 5, 6, 8, 9],
-    hazard_exposure_index: 0.42,
-    compliance_rate: 0.87,
-    epi_adherence: 0.91,
-    loto_compliance: 0.94,
-    correlation_id: `sst_${Date.now()}`
-  };
-}
-
 export default function SafetyCognitiveHub({ companyId }) {
   const [pack, setPack] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
-  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const loadInsights = useCallback(async () => {
-    setLoading(true); setErr('');
-    try {
-      const token = localStorage.getItem('impetus_token');
-      const res = await fetch(`${API_URL.replace(/\/+$/, '')}/safety-cognitive/insights`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        credentials: 'include',
-        body: JSON.stringify({ signals: buildSafetySignals(), emit_events: false })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPack(data.pack || data);
-        setLastUpdated(new Date().toLocaleTimeString('pt-BR'));
-      } else {
-        setPack(null);
-      }
-    } catch { setPack(null); }
-    finally { setLoading(false); }
+  const loadInsights = useCallback(() => {
+    setLoading(false);
+    setPack(null);
+    setErr('Fonte de sinais SST não configurada. Inteligência indisponível. Estado SST não avaliado.');
   }, []);
 
   useEffect(() => { loadInsights(); }, [loadInsights]);
@@ -101,7 +72,6 @@ export default function SafetyCognitiveHub({ companyId }) {
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
             Cognitive runtime assistivo · narrativas e insights bounded
-            {lastUpdated && <span style={{ marginLeft: 8 }}>· {lastUpdated}</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -121,32 +91,34 @@ export default function SafetyCognitiveHub({ companyId }) {
         <CognitiveSafetyKpi
           label="Risco SST"
           value={risk.predictive_risk_score != null ? `${(risk.predictive_risk_score * 100).toFixed(1)}%` : '—'}
-          color={risk.predictive_risk_score > 0.7 ? 'var(--red)' : risk.predictive_risk_score > 0.4 ? 'var(--amber)' : 'var(--green)'}
+          color={risk.predictive_risk_score == null ? 'var(--text-tertiary)' : risk.predictive_risk_score > 0.7 ? 'var(--red)' : risk.predictive_risk_score > 0.4 ? 'var(--amber)' : 'var(--green)'}
         />
         <CognitiveSafetyKpi
           label="Conformidade"
-          value={risk.compliance_index != null ? `${(risk.compliance_index * 100).toFixed(0)}%` : pack ? '87%' : '—'}
-          color="var(--cyan)"
+          value={risk.compliance_index != null ? `${(risk.compliance_index * 100).toFixed(0)}%` : '—'}
+          color={risk.compliance_index == null ? 'var(--text-tertiary)' : 'var(--cyan)'}
         />
         <CognitiveSafetyKpi
           label="Exposição a riscos"
-          value={risk.hazard_exposure != null ? `${(risk.hazard_exposure * 100).toFixed(0)}%` : pack ? '42%' : '—'}
-          color={risk.hazard_exposure > 0.6 ? 'var(--amber)' : 'var(--green)'}
+          value={risk.hazard_exposure != null ? `${(risk.hazard_exposure * 100).toFixed(0)}%` : '—'}
+          color={risk.hazard_exposure == null ? 'var(--text-tertiary)' : risk.hazard_exposure > 0.6 ? 'var(--amber)' : 'var(--green)'}
           sub="índice exposição"
         />
         <CognitiveSafetyKpi
           label="Tendência incidentes"
-          value={risk.incident_trend || (pack ? 'Crescente' : '—')}
-          color={risk.incident_trend === 'increasing' || risk.incident_trend === 'Crescente' ? 'var(--amber)' : 'var(--green)'}
+          value={risk.incident_trend || '—'}
+          color={!risk.incident_trend ? 'var(--text-tertiary)' : risk.incident_trend === 'increasing' || risk.incident_trend === 'Crescente' ? 'var(--amber)' : 'var(--green)'}
         />
       </div>
 
       {narrative && <RiskNarrativePanel narrative={narrative} />}
       {recs.length > 0 && <RecommendationsPanel items={recs} />}
 
-      {!pack && !loading && (
+      {!pack && !loading && !err && (
         <div className="impetus-card" style={{ padding: '1.5rem', borderRadius: 4 }}>
-          <p style={{ ...mono, color: 'var(--text-secondary)', margin: 0 }}>Carregando inteligência SST…</p>
+          <p role="status" style={{ ...mono, color: 'var(--text-secondary)', margin: 0 }}>
+            Sem dados cognitivos disponíveis. Estado SST não avaliado.
+          </p>
         </div>
       )}
     </div>

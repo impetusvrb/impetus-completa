@@ -209,6 +209,23 @@
   gap: 2px;
 }
 
+.nav-section-divider {
+  height: 1px;
+  margin: 10px 14px 6px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.22), transparent);
+}
+
+.nav-section-header {
+  padding: 8px 18px 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -808,6 +825,13 @@
   box-sizing: border-box;
   background: linear-gradient(165deg, rgba(11, 31, 54, 0.35) 0%, transparent 42%),
     linear-gradient(180deg, var(--impetus-bg-root) 0%, var(--impetus-bg-deep) 100%);
+}
+
+@media (min-width: 1024px) {
+  /* INC-016 — gutter estrutural único (~10px) para Centro de Comando */
+  .content:has(.cc--premium) {
+    padding-inline: 10px;
+  }
 }
 
 /* Impetus IA — workspace com dashboard + chat em colunas (sem scroll competindo) */

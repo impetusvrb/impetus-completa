@@ -140,7 +140,7 @@ const DASHBOARD_PROFILES = {
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
       { key: 'lot_alerts', title: 'Alertas de lotes', icon: 'alert', color: 'orange', route: '/app/raw-material-lots' },
-      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality/operational' },
       { key: 'corrective_overdue', title: 'Ações corretivas vencidas', icon: 'alert', color: 'orange' },
       { key: 'pending_audits', title: 'Auditorias pendentes', icon: 'target', color: 'blue' },
       { key: 'deviation_recurrence', title: 'Reincidência de desvios', icon: 'alert', color: 'red' },
@@ -260,7 +260,7 @@ const DASHBOARD_PROFILES = {
     visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
-      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality/operational' },
       { key: 'operational_insights', title: 'Insights operacionais', icon: 'brain', color: 'teal' },
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },
       { key: 'pending_inspections', title: 'Inspeções pendentes', icon: 'target', color: 'blue' }
@@ -326,7 +326,7 @@ const DASHBOARD_PROFILES = {
     visible_modules: ['dashboard', 'operational', 'proaction', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'open_nc', title: 'Não conformidades abertas', icon: 'alert', color: 'red' },
-      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality/operational' },
       { key: 'corrective_overdue', title: 'Ações corretivas vencidas', icon: 'alert', color: 'orange' },
       { key: 'pending_audits', title: 'Auditorias pendentes', icon: 'target', color: 'blue' },
       { key: 'deviation_recurrence', title: 'Reincidência de desvios', icon: 'alert', color: 'red' },
@@ -387,7 +387,7 @@ const DASHBOARD_PROFILES = {
     visible_modules: ['dashboard', 'operational', 'chat', 'biblioteca', 'ai', 'quality_intelligence', 'settings'],
     cards: [
       { key: 'pending_inspections', title: 'Inspeções pendentes', icon: 'target', color: 'blue' },
-      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality' },
+      { key: 'quality_dashboard', title: 'Painel de Qualidade', icon: 'trending', color: 'teal', route: '/app/quality/operational' },
       { key: 'operational_alerts', title: 'Alertas operacionais', icon: 'alert', color: 'orange' },
       { key: 'my_interactions', title: 'Minhas interações', icon: 'message', color: 'blue' }
     ],
@@ -440,7 +440,14 @@ const DASHBOARD_PROFILES = {
     insights_mode: 'analytical_strategic',
     default_period: '7d',
     data_depth: 'detailed',
-    visible_modules: ['dashboard', 'operational', 'biblioteca', 'ai', 'settings'],
+    visible_modules: [
+      'dashboard',
+      'operational',
+      'financial_intelligence',
+      'biblioteca',
+      'ai',
+      'settings'
+    ],
     cards: [
       { key: 'financial_indicators', title: 'Indicadores financeiros', icon: 'trending', color: 'blue' },
       { key: 'department_interactions', title: 'Interações do departamento', icon: 'message', color: 'blue' },

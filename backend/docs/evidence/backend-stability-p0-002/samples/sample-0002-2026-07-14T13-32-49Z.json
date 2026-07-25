@@ -1,0 +1,15 @@
+{
+  "sample": 2,
+  "timestamp_utc": "2026-07-14T13:32:49Z",
+  "pm2": {"pid": "1576703", "restarts": 22, "uptime_sec": 1555, "rss_kb": 470788},
+  "node_process_probe": {"heapUsed": 4098624, "heapTotal": 4694016, "external": 1627513, "arrayBuffers": 10511},
+  "http": {
+    "health": {"status": 200, "time_s": 0.003153},
+    "bot_config": {"status": 200, "time_s": 0.002848}
+  },
+  "host": {"disk_used_pct": "97%", "disk_avail": "3.9G", "load_avg": "0.45, 0.78, 0.93", "mem_avail_mb": 5011, "swap_used_mb": 0},
+  "postgresql": {"active": "1", "idle": "6", "idle_in_tx": "0", "total": "7"},
+  "pool": {"totalCount":0,"idleCount":0,"waitingCount":0},
+  "outbox": {"delivered_count": "10692656", "pending_count": "0"},
+  "oom_log_total": 2
+}

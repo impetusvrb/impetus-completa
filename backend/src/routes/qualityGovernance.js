@@ -18,6 +18,7 @@ const { buildContextualStory } = require('../domains/quality/governance/executiv
 const { buildOperationalInsightPack } = require('../domains/quality/governance/ai/qualityOperationalInsightEngine');
 const { exploreImmutableChain } = require('../domains/quality/governance/audit/qualityImmutableAuditExplorer');
 const { publishQualityIndustrialEvent } = require('../domains/quality/events/qualityEventPublisher');
+const { loadQualitySpcSeriesBundle } = require('../domains/quality/governance/spc/qualitySpcSeriesService');
 const obs = require('../services/operational/enterpriseObservabilityRuntime');
 
 router.get('/health', (req, res) => {
@@ -34,6 +35,20 @@ router.use((req, res, next) => {
     return res.status(503).json({ ok: false, code: 'QUALITY_GOVERNANCE_OFF' });
   }
   next();
+});
+
+router.get('/intelligence/spc/series', async (req, res) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId || !/^[0-9a-f-]{36}$/i.test(String(companyId))) {
+      return res.status(403).json({ ok: false, error: 'company_required' });
+    }
+    const bundle = await loadQualitySpcSeriesBundle(companyId);
+    res.json(bundle);
+  } catch (err) {
+    console.error('[qualityGovernance/spc/series]', err?.message || err);
+    res.status(500).json({ ok: false, error: err?.message || 'internal_error' });
+  }
 });
 
 router.post('/intelligence/spc/screen', async (req, res) => {

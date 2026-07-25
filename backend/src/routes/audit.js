@@ -631,15 +631,25 @@ router.get('/security-runtime-integrity', requireAuth, requireTenantAdminRole, (
  * GET /api/audit/security-notifications/pending
  * SEC-05 — Notificações pendentes (read-only).
  */
+function sec05UnavailablePayload(stage, error) {
+  const observability = require('../securityNotification/observability/bootstrapObservability');
+  observability.recordBootstrapFailure(stage, error);
+  return {
+    ok: false,
+    phase: 'SEC-05',
+    status: 'unavailable',
+    code: 'SEC05_BOOTSTRAP_UNAVAILABLE',
+    error: 'Security Notifications indisponível',
+    bootstrap: observability.getSnapshot()
+  };
+}
+
 router.get('/security-notifications/pending', requireAuth, requireTenantAdminRole, (req, res) => {
   try {
     const sec05 = require('../securityNotification');
     res.json(sec05.getPendingPayload());
   } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err?.message || 'Erro ao obter notificações pendentes'
-    });
+    res.status(500).json(sec05UnavailablePayload('pending_audit_read', err));
   }
 });
 
@@ -652,10 +662,7 @@ router.get('/security-notifications', requireAuth, requireTenantAdminRole, (req,
     const sec05 = require('../securityNotification');
     res.json(sec05.getAuditPayload());
   } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err?.message || 'Erro ao obter Security Notifications'
-    });
+    res.status(500).json(sec05UnavailablePayload('audit_read', err));
   }
 });
 
@@ -990,6 +997,159 @@ router.get('/security-certification-v2', requireAuth, requireTenantAdminRole, (r
       ok: false,
       phase: 'SEC-20',
       error: err?.message || 'Erro ao obter Security Certification v2'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-production-activation
+ * SEC-21 — Enterprise Production Security Activation.
+ */
+router.get('/security-production-activation', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec21 = require('../securityProductionActivation');
+    res.json(sec21.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-21',
+      error: err?.message || 'Erro ao obter Production Security Activation'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-go-live-gate
+ * SEC-21A — Enterprise Production Go-Live Gate (consultivo only).
+ */
+router.get('/security-go-live-gate', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec21a = require('../securityGoLiveGate');
+    res.json(sec21a.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-21A',
+      error: err?.message || 'Erro ao obter Go-Live Gate'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-baseline-synchronization
+ * SEC-21B — Baseline Synchronization & Integrity Reconciliation (consultivo only).
+ */
+router.get('/security-baseline-synchronization', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec21b = require('../securityBaselineSynchronization');
+    res.json(sec21b.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-21B',
+      error: err?.message || 'Erro ao obter Baseline Synchronization'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/security-go-live-validation
+ * SEC-21C — Enterprise Go-Live Validation & Final Authorization (consultivo only).
+ */
+router.get('/security-go-live-validation', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const sec21c = require('../securityGoLiveValidation');
+    res.json(sec21c.getAuditPayload());
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'SEC-21C',
+      error: err?.message || 'Erro ao obter Go-Live Validation'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/appsec-01
+ * APPSEC-01 — Enterprise Application Security compliance (read-only).
+ */
+router.get('/appsec-01', requireAuth, requireTenantAdminRole, (req, res) => {
+  try {
+    const appsec = require('../securityApplication');
+    const report = appsec.generateOwaspComplianceReport();
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, phase: 'APPSEC-01', read_only: true, ...report });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'APPSEC-01',
+      error: err?.message || 'Erro ao obter relatório APPSEC-01'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/appsec-validation
+ * APPSEC-02 — Red Team revalidation & certification (read-only).
+ */
+router.get('/appsec-validation', requireAuth, requireTenantAdminRole, async (req, res) => {
+  try {
+    const appsec02 = require('../securityApplicationValidation');
+    const refresh = String(req.query.refresh || '').toLowerCase() === 'true';
+    let payload;
+    if (refresh) {
+      payload = await appsec02.runValidation({ persist: true });
+    } else {
+      payload = appsec02.getLatestEvidenceSync();
+      if (!payload) {
+        payload = await appsec02.runValidation({ persist: true });
+      }
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, phase: 'APPSEC-02', read_only: true, ...payload });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'APPSEC-02',
+      error: err?.message || 'Erro ao executar validação APPSEC-02'
+    });
+  }
+});
+
+/**
+ * GET /api/audit/appsec-operational-readiness
+ * APPSEC-02A — Preparação operacional para Red Team externo (read-only).
+ */
+router.get('/appsec-operational-readiness', requireAuth, requireTenantAdminRole, async (req, res) => {
+  try {
+    const readiness = require('../securityOperationalReadiness');
+    const refresh = String(req.query.refresh || '').toLowerCase() === 'true';
+    let payload;
+    if (refresh) {
+      payload = await readiness.buildReadiness({
+        persist: true,
+        unsafe_acknowledged: req.query.unsafe_acknowledged === 'true'
+      });
+    } else {
+      payload = readiness.getLatestReadiness();
+      if (!payload) {
+        payload = await readiness.buildReadiness({ persist: true });
+      }
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      phase: 'APPSEC-02A',
+      read_only: true,
+      decision: payload.external_redteam_readiness?.decision,
+      overall_readiness_percent: payload.external_redteam_readiness?.overall_readiness_percent,
+      ...payload
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      phase: 'APPSEC-02A',
+      error: err?.message || 'Erro ao obter readiness APPSEC-02A'
     });
   }
 });

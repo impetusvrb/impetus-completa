@@ -48,6 +48,23 @@ function normalizePath(p) {
   return s.slice(0, 64);
 }
 
+/** Evict lowest-count entry when map exceeds cap (totais ip/path/ua). */
+function incrementBoundedTotal(map, key, delta = 1) {
+  if (!key) return;
+  map.set(key, (map.get(key) || 0) + delta);
+  const cap = flags.maxTotalKeys();
+  if (map.size <= cap) return;
+  let minKey = null;
+  let minVal = Infinity;
+  for (const [k, v] of map.entries()) {
+    if (v < minVal) {
+      minVal = v;
+      minKey = k;
+    }
+  }
+  if (minKey != null) map.delete(minKey);
+}
+
 function recordHttpSample(sample) {
   const {
     ip,
@@ -99,9 +116,9 @@ function recordHttpSample(sample) {
   b.latency_sum += latencyMs;
   statusGlobal[sc] = (statusGlobal[sc] || 0) + 1;
 
-  ipTotals.set(ip, (ipTotals.get(ip) || 0) + 1);
-  pathTotals.set(pathNorm, (pathTotals.get(pathNorm) || 0) + 1);
-  if (userAgent) uaTotals.set(userAgent.slice(0, 120), (uaTotals.get(userAgent.slice(0, 120)) || 0) + 1);
+  incrementBoundedTotal(ipTotals, ip || 'unknown');
+  incrementBoundedTotal(pathTotals, pathNorm);
+  if (userAgent) incrementBoundedTotal(uaTotals, userAgent.slice(0, 120));
 
   return b;
 }

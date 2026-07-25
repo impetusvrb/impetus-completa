@@ -2,6 +2,7 @@
 # PROMPT 28 — Promoção controlada shadow → audit → on (sem restart agressivo)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
 ENV_FILE="$ROOT/.env"
 VERIFY="node $ROOT/scripts/runtime-unification-promotion-verify.js"
 TESTS="node $ROOT/src/tests/waveRuntimeUnificationScenarios.js"
@@ -12,7 +13,7 @@ set_mode() {
     sed -i "s/^IMPETUS_RUNTIME_UNIFICATION_MODE=.*/IMPETUS_RUNTIME_UNIFICATION_MODE=${mode}/" "$ENV_FILE"
   fi
   echo "[PROMO] MODE=${mode}"
-  pm2 reload impetus-backend --update-env
+  (cd "$REPO" && pm2 restart ecosystem.runtime.config.cjs --only impetus-backend --env production --update-env)
   sleep 12
 }
 

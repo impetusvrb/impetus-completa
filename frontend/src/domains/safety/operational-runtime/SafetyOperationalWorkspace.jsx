@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import useEoxHubHeaderVisible from '../../../presentation/eox/useEoxHubHeaderVisible.js';
 import { resolveSafetyAudienceBand, resolveSafetyUxDensity } from '../navigation/safetyAudienceNavigation.js';
 import { isSafetyGovernanceRuntimeEnabled } from '../governance/safetyGovernanceFeatureFlags.js';
 import { isSafetyTelemetryRuntimeEnabled } from '../telemetry/safetyTelemetryFeatureFlags.js';
@@ -19,6 +20,7 @@ export function SafetyOperationalWorkspace() {
   const companyId = ctx.companyId;
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
+  const showHubHeader = useEoxHubHeaderVisible();
 
   let userBand = 'operator';
   try {
@@ -65,7 +67,7 @@ export function SafetyOperationalWorkspace() {
     );
   }
 
-  if (view === 'governance') {
+  if (view === 'governance' || view === 'ptw' || view === 'epi') {
     return (
       <Suspense fallback={<p style={{ color: 'var(--text-secondary)' }}>Carregando governança SST…</p>}>
         <SafetyGovernanceHub />
@@ -110,14 +112,16 @@ export function SafetyOperationalWorkspace() {
 
   return (
     <div {...uxShell}>
-      <header style={{ marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: 20, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-          SST — Centro Operacional
-        </h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
-          GHE · Matriz de risco · PT/APR/LOTO · EPI/EPC · Incidentes · Compliance
-        </p>
-      </header>
+      {showHubHeader ? (
+        <header style={{ marginBottom: '1rem' }}>
+          <h1 style={{ margin: 0, fontSize: 20, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+            SST — Centro Operacional
+          </h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 14 }}>
+            GHE · Matriz de risco · PT/APR/LOTO · EPI/EPC · Incidentes · Compliance
+          </p>
+        </header>
+      ) : null}
       {motionlessLoadingCard()}
     </div>
   );

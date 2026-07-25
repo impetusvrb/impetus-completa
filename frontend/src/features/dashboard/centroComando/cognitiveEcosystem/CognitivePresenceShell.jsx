@@ -14,7 +14,12 @@ import './cognitiveEcosystem.css';
  * Presença global da IA — ambiente, faixa cognitiva e modos de consciência.
  * CERT-01.1: convergência Desktop × Mobile via CognitiveShellUiContext.
  */
-export default function CognitivePresenceShell({ children, warRoomMode = 'normal', onModeChange }) {
+export default function CognitivePresenceShell({
+  children,
+  warRoomMode = 'normal',
+  onModeChange,
+  suppressOmniPresence = false
+}) {
   const { pulse } = useCognitivePulseContext();
   const tier = useViewportTier();
   const [awarenessOpen, setAwarenessOpen] = useState(false);
@@ -80,7 +85,7 @@ export default function CognitivePresenceShell({ children, warRoomMode = 'normal
             variant="tablet"
           />
         )}
-        {!tier.isMobile && <CognitiveOmniPresence />}
+        {!suppressOmniPresence && <CognitiveOmniPresence />}
 
         <div className="cog-presence-content">{children}</div>
 

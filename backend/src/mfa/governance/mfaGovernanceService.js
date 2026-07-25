@@ -49,6 +49,22 @@ function getDiagnostics() {
   };
 }
 
+/** Payload público — sem lista de UUIDs de pilot tenants. */
+function getPublicDiagnostics() {
+  const pilots = flags.mfaPilotTenants();
+  return {
+    enabled: flags.isMfaEnabled(),
+    mode: flags.mfaMode(),
+    totp: flags.isTotpEnabled(),
+    webauthn: flags.isWebAuthnEnabled(),
+    backup_codes: flags.isBackupCodesEnabled(),
+    device_trust: flags.isDeviceTrustEnabled(),
+    pilot_only: flags.mfaPilotOnly(),
+    pilot_tenant_count: pilots.length,
+    rp_id: flags.rpId(),
+  };
+}
+
 module.exports = {
   getEffectiveMode,
   isActiveForTenant,
@@ -56,4 +72,5 @@ module.exports = {
   shouldAuditOnly,
   isShadowOnly,
   getDiagnostics,
+  getPublicDiagnostics,
 };

@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-07-23T18:20:27.167Z",
+  "dedup_window_ms": 30000,
+  "pass_count": 17,
+  "fail_count": 0,
+  "total": 17,
+  "results": [
+    {
+      "scenario": "key_hash_unchanged_shape",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "key_owner_uid",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "key_owner_gid",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "key_uid_gid_distinct",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "key_empty_attr_falls_back",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "uid_isolated",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "gid_isolated",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "uid_gid_simultaneous",
+      "pass": true,
+      "note": "emitted=2 attrs=[\"UID\",\"GID\"] stats={\"emitted\":2,\"deduplicated\":0,\"discarded\":0,\"queue_size\":2}"
+    },
+    {
+      "scenario": "real_duplicate_uid_blocked",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "real_duplicate_hash_blocked",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "different_types_same_path",
+      "pass": true,
+      "note": "count=3"
+    },
+    {
+      "scenario": "repeat_outside_window_allowed",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "repeat_inside_window_blocked",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "scenario": "permchecker_uid_gid_simultaneous",
+      "pass": true,
+      "note": "count=2 attrs=[\"UID\",\"GID\"] dedup=0"
+    },
+    {
+      "scenario": "permchecker_repeat_within_window_blocked",
+      "pass": true,
+      "note": "dedup_delta=2"
+    },
+    {
+      "scenario": "compat_types_without_attr_keep_legacy_key",
+      "pass": true,
+      "note": "types=9"
+    },
+    {
+      "scenario": "performance_15k_emits",
+      "pass": true,
+      "note": "total_ms=17.20 per_emit_ms=0.0011 emitted=300 dedup=14700"
+    }
+  ],
+  "strategy": {
+    "before": "path::event_type",
+    "after": "path::event_type[::changed_attribute]",
+    "rationale": "Suffix only when changed_attribute present — differentiates UID/GID without changing legacy keys for other event types"
+  }
+}

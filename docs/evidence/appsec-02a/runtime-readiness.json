@@ -1,0 +1,42 @@
+{
+  "schema_version": "runtime_config_readiness_v1",
+  "generated_at": "2026-07-10T20:51:21.734Z",
+  "node_env": "unknown",
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "code": "JWT_SECRET_MISSING",
+      "message": "JWT_SECRET ausente",
+      "evidence": {
+        "key": "JWT_SECRET"
+      },
+      "auto_fix": false
+    },
+    {
+      "severity": "CRITICAL",
+      "code": "IMPETUS_ADMIN_JWT_SECRET_MISSING",
+      "message": "IMPETUS_ADMIN_JWT_SECRET ausente",
+      "evidence": {
+        "key": "IMPETUS_ADMIN_JWT_SECRET"
+      },
+      "auto_fix": false
+    },
+    {
+      "severity": "HIGH",
+      "code": "TIME_CLOCK_ENC_KEY_MISSING",
+      "message": "TIME_CLOCK_ENC_KEY ausente",
+      "evidence": {
+        "key": "TIME_CLOCK_ENC_KEY"
+      },
+      "auto_fix": false
+    }
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 1,
+    "medium": 0,
+    "low": 0
+  },
+  "passed": false,
+  "auto_fix_applied": false
+}

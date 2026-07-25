@@ -1,0 +1,414 @@
+{
+  "schema_version": "1.0",
+  "baseline_id": "INT-01A-BASELINE-20260723",
+  "created_at": "2026-07-23T12:16:45Z",
+  "mission": "INT-01A",
+  "description": "Baseline Criptográfico Inicial IMPETUS — referência SHA256 para verificação de integridade futura",
+  "hash_algorithm": "SHA256",
+  "total_assets": 33,
+  "status": "INITIAL_BASELINE",
+  "note": "Este baseline é a fonte de verdade inicial. Qualquer substituição requer aprovação formal (ver INTEGRITY_BASELINE_POLICY.md).",
+  "assets": {
+    "CRITICAL": {
+      "INT-C-001": {
+        "path": "/var/www/impetus-completa/backend/src/server.js",
+        "sha256": "8087a73e118d5aea3fb8b80fe627b79a93be41628ce66f74a365d75efe8506a0",
+        "size_bytes": 104260,
+        "mtime_unix": 1784661314,
+        "mtime_iso": "2026-07-21T18:55:14Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 1057052
+      },
+      "INT-C-002": {
+        "path": "/var/www/impetus-completa/backend/.env",
+        "sha256": "aaf1d2455f08f7cf62807fe6c03251118f8281afdd1aa7b1e9136e02bec216ef",
+        "size_bytes": 46414,
+        "mtime_unix": 1784404418,
+        "mtime_iso": "2026-07-18T21:13:38Z",
+        "perm": "600",
+        "owner": "root",
+        "group": "root",
+        "inode": 1058257
+      },
+      "INT-C-003": {
+        "path": "/var/www/impetus-completa/ecosystem.runtime.config.cjs",
+        "sha256": "7dcbdb6d348a3f8db9e7573dbb135eabc3421f2222e692347383f1657a39943c",
+        "size_bytes": 1321,
+        "mtime_unix": 1784657906,
+        "mtime_iso": "2026-07-21T17:58:26Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 797446
+      },
+      "INT-C-004": {
+        "path": "/etc/nginx/sites-enabled/impetus",
+        "sha256": "9adf69c34dc7694e59f808fc3c088c9d53e776d449e35b50f8dec18c079daaba",
+        "size_bytes": 5490,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 809784
+      },
+      "INT-C-005": {
+        "path": "/etc/nginx/snippets/impetus-cloudflare-proxy-guard.conf",
+        "sha256": "4a7f1355a26e951ef73d9a02730478b1a22d241c7a762bb8557a33eef31627c7",
+        "size_bytes": 376,
+        "mtime_unix": 1783528522,
+        "mtime_iso": "2026-07-09T11:02:02Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 787923
+      },
+      "INT-C-006": {
+        "path": "/etc/nginx/snippets/impetus-hardening-locations.conf",
+        "sha256": "943bc17a8cfae8d25bbd007b2ca811585a20038233b8a43d753180347f2aa0b5",
+        "size_bytes": 1769,
+        "mtime_unix": 1783528457,
+        "mtime_iso": "2026-07-09T11:00:57Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 788479
+      },
+      "INT-C-007": {
+        "path": "/etc/letsencrypt/live/plataformaimpetus.com/cert.pem",
+        "canonical_path": "/etc/letsencrypt/archive/plataformaimpetus.com/cert2.pem",
+        "sha256": "bde8d715355c39b0ee40c252a5a56fd607c5c94f24487bd121c3d49ac3170e62",
+        "size_bytes": 1346,
+        "mtime_unix": 1783368195,
+        "mtime_iso": "2026-07-07T09:23:15Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 29093,
+        "is_symlink": true,
+        "symlink_target": "../../archive/plataformaimpetus.com/cert2.pem",
+        "note": "Hash calculado sobre o ficheiro real (canonical_path). certbot renewal legítimo esperado; regenerar baseline após renewal."
+      },
+      "INT-C-008": {
+        "path": "/etc/letsencrypt/live/plataformaimpetus.com/privkey.pem",
+        "canonical_path": "/etc/letsencrypt/archive/plataformaimpetus.com/privkey2.pem",
+        "sha256": "7ce3281c5a5680f0558e2b4489bb49c2856d68ad1c608af8eec8b71bd922d9b8",
+        "size_bytes": 241,
+        "mtime_unix": 1783368195,
+        "mtime_iso": "2026-07-07T09:23:15Z",
+        "perm": "600",
+        "owner": "root",
+        "group": "root",
+        "inode": 5611,
+        "is_symlink": true,
+        "symlink_target": "../../archive/plataformaimpetus.com/privkey2.pem",
+        "note": "ALTA SENSIBILIDADE. Hash calculado sobre ficheiro real. Qualquer mudança fora de certbot é incidente CRITICAL imediato."
+      },
+      "INT-C-009": {
+        "path": "/etc/fail2ban/jail.d/impetus.conf",
+        "sha256": "f9c567dc71c76690b66b0121bd04d02d683b6a836eb4d4328b20c85bec73dcec",
+        "size_bytes": 751,
+        "mtime_unix": 1783351446,
+        "mtime_iso": "2026-07-07T04:44:06Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 322047
+      },
+      "INT-C-010": {
+        "path": "/etc/audit/rules.d/impetus.rules",
+        "sha256": "e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+        "size_bytes": 2151,
+        "mtime_unix": 1783205721,
+        "mtime_iso": "2026-07-05T11:15:21Z",
+        "perm": "640",
+        "owner": "root",
+        "group": "root",
+        "inode": 324086,
+        "cross_check": {
+          "source_file": "/var/www/impetus-completa/infra/security/audit/impetus-audit.rules",
+          "source_sha256": "e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+          "match": true,
+          "note": "Hash idêntico ao source no repositório — deploy consistente confirmado"
+        }
+      }
+    },
+    "HIGH": {
+      "INT-H-001": {
+        "path": "/var/www/impetus-completa/backend/src/services/adminPortalSecurityDashboardService.js",
+        "sha256": "03c238c8ed64f0a8e9d02c7ebf50d62ebecbe29390346c489e86ec04b8bff8a7",
+        "size_bytes": 30860,
+        "mtime_unix": 1784767768,
+        "mtime_iso": "2026-07-22T23:49:28Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 1066343
+      },
+      "INT-H-002": {
+        "path": "/var/www/impetus-completa/backend/src/services/adminPortalSecurityIntelligenceService.js",
+        "sha256": "54d74f071025fe7ba8edf38fa47d91d3c6005fd1f281b33cddad46e62f58e66b",
+        "size_bytes": 29013,
+        "mtime_unix": 1784767834,
+        "mtime_iso": "2026-07-22T23:50:34Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 1066329
+      },
+      "INT-H-003": {
+        "path": "/var/www/impetus-completa/backend/src/security/cognitiveBoundaryGuard.js",
+        "sha256": "01e016f9d0ae8dac969c5e17f064ab712285a8473d565f01549013e8e460c059",
+        "size_bytes": 3503,
+        "mtime_unix": 1779209115,
+        "mtime_iso": "2026-04-19T09:25:15Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-004": {
+        "path": "/var/www/impetus-completa/backend/src/security/contextExposureSanitizer.js",
+        "sha256": "8c7a063472c458b891da2b7128314242bc7da5581d69a2d4815fbc1d5b7cbe9d",
+        "size_bytes": 2965,
+        "mtime_unix": 1779204357,
+        "mtime_iso": "2026-04-19T07:59:17Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-005": {
+        "path": "/var/www/impetus-completa/backend/src/security/domainAccessMatrix.js",
+        "sha256": "94b18b1ca36860ac5d079c8d03d3415b0b372f57629b3aec0741d9fb87aa5ed4",
+        "size_bytes": 3052,
+        "mtime_unix": 1778810322,
+        "mtime_iso": "2026-04-14T16:38:42Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-006": {
+        "path": "/usr/local/bin/impetus-threat-watch.sh",
+        "sha256": "5f3f41a8f7fecbb736a7d0c0a156c88a55c9eaf5838ede572a73e3d162652cd8",
+        "size_bytes": 11649,
+        "mtime_unix": 1783527613,
+        "mtime_iso": "2026-07-09T10:40:13Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root",
+        "inode": 28910
+      },
+      "INT-H-007": {
+        "path": "/usr/local/bin/impetus-breach-lockdown-engine.sh",
+        "sha256": "3666a70687e4f5a9ca6f6e44cdbd2a3261420ac129ea6b8b9168e22221c80c97",
+        "size_bytes": 6855,
+        "mtime_unix": 1783381283,
+        "mtime_iso": "2026-07-07T08:21:23Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root",
+        "inode": 29099,
+        "cross_check": {
+          "infra_copy": "/var/www/impetus-completa/infra/scripts/impetus-breach-lockdown-engine.sh",
+          "infra_sha256": "3666a70687e4f5a9ca6f6e44cdbd2a3261420ac129ea6b8b9168e22221c80c97",
+          "match": true,
+          "note": "Cópia /usr/local/bin idêntica ao source infra/scripts — consistência confirmada"
+        }
+      },
+      "INT-H-008": {
+        "path": "/usr/local/bin/impetus-emergency-lockdown.sh",
+        "sha256": "2b1f9ca3cb5676268c821d66a46c872a87ce68804b09de46850d55b1c6aa6931",
+        "size_bytes": 3141,
+        "mtime_unix": 1783373715,
+        "mtime_iso": "2026-07-07T06:15:15Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root",
+        "inode": 29100
+      },
+      "INT-H-009": {
+        "path": "/usr/local/bin/impetus-audit-watch.sh",
+        "sha256": "122fa4e950a1710882d30e7761dd318a117f1455077d3ff32b3285bd430327b2",
+        "size_bytes": 4274,
+        "mtime_unix": 1783205441,
+        "mtime_iso": "2026-07-05T11:10:41Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root",
+        "inode": 810
+      },
+      "INT-H-010": {
+        "path": "/var/www/impetus-completa/infra/scripts/impetus-security-observatory-ingest.sh",
+        "sha256": "d2dcb28ac4b8fb3a7679f527410ee45b2705440c744dbcbbe1a3be387f346b0e",
+        "size_bytes": 1138,
+        "mtime_unix": 1783987693,
+        "mtime_iso": "2026-07-14T10:48:13Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-011": {
+        "path": "/var/www/impetus-completa/infra/scripts/impetus-security-baseline-snapshot.sh",
+        "sha256": "b8be8e2b35f83468de82be6f376127f2ee97e53a98c0898598bff704a05c36ae",
+        "size_bytes": 2251,
+        "mtime_unix": 1783788385,
+        "mtime_iso": "2026-07-12T02:46:25Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-012": {
+        "path": "/var/www/impetus-completa/infra/scripts/impetus-security-stack-verify.sh",
+        "sha256": "cb35ee2a117a67ce11952d6fc556709329185a67b490fb59843b64c3dc486371",
+        "size_bytes": 5339,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-013": {
+        "path": "/var/www/impetus-completa/infra/scripts/deploy-fail2ban-impetus.sh",
+        "sha256": "bb6f8ece369b27af480467ca247ecebfb2a84cfcc21c3b31ebd499dbb794b586",
+        "size_bytes": 651,
+        "mtime_unix": 1783562803,
+        "mtime_iso": "2026-07-09T20:26:43Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-014": {
+        "path": "/var/www/impetus-completa/infra/scripts/install-auditd-impetus.sh",
+        "sha256": "96a91dca7eb6602a17b7020f741b079cb0d0b8ff0e184e24d6e721a8a6302b41",
+        "size_bytes": 1708,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "755",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-015": {
+        "path": "/var/www/impetus-completa/backend/package.json",
+        "sha256": "d6d3171e033c9afedf2f5f3a9da4990bf300e85f3b8497b8a401d91a5e9df82d",
+        "size_bytes": 56074,
+        "mtime_unix": 1784655750,
+        "mtime_iso": "2026-07-21T16:22:30Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 1058243
+      },
+      "INT-H-016": {
+        "path": "/etc/nginx/snippets/impetus-ip-allowlist.conf",
+        "sha256": "40b9e7cf460c8e5482e6c99af65978dba3d76ac475cc347e8d8943e77cef0a66",
+        "size_bytes": 228,
+        "mtime_unix": 1783528522,
+        "mtime_iso": "2026-07-09T11:02:02Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-017": {
+        "path": "/etc/nginx/snippets/impetus-ip-allowlist-wrapper.conf",
+        "sha256": "8ebdf8c12d1374b500fdbc18264b4303b08777caca909f27b0f94fca39285e6c",
+        "size_bytes": 489,
+        "mtime_unix": 1783528522,
+        "mtime_iso": "2026-07-09T11:02:02Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-018": {
+        "path": "/etc/nginx/snippets/impetus-proxy.conf",
+        "sha256": "36026f697187b81b001c8ec91b7a4bc7e05cb2f2972b2fb1694ec630f2324026",
+        "size_bytes": 372,
+        "mtime_unix": 1783528457,
+        "mtime_iso": "2026-07-09T11:00:57Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-019": {
+        "path": "/etc/nginx/snippets/impetus-proxy-ws.conf",
+        "sha256": "061f2db6552340f178dd02ad0ec1815a9b89beb360712e442520b3abd17f0b5b",
+        "size_bytes": 380,
+        "mtime_unix": 1783528457,
+        "mtime_iso": "2026-07-09T11:00:57Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-020": {
+        "path": "/etc/cron.d/impetus-security-auto-audit",
+        "sha256": "b8c2774f93a83943666d4df92573898cad9274467d3bb799ed36d6a35c2561af",
+        "size_bytes": 208,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-021": {
+        "path": "/etc/cron.d/impetus-security-baseline",
+        "sha256": "bb2ac72d827f698fd44a0d5c2b6baf75dc8ffe6f0053228fce5481255702997a",
+        "size_bytes": 201,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-022": {
+        "path": "/etc/cron.d/impetus-security-observatory",
+        "sha256": "f5643e75dd73eccd69f4615caefa3d1054e450b91698113282173cf8e22cb27e",
+        "size_bytes": 213,
+        "mtime_unix": 1783372524,
+        "mtime_iso": "2026-07-07T06:02:04Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      },
+      "INT-H-023": {
+        "path": "/etc/cron.d/impetus-security-weekly-sim",
+        "sha256": "4914c5b9b743e5e875ec2248b69197de5495d5e92232d06c00d9e19ddaad91e3",
+        "size_bytes": 206,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root"
+      }
+    },
+    "MEDIUM": {
+      "INT-M-003": {
+        "path": "/var/www/impetus-completa/infra/security/audit/impetus-audit.rules",
+        "sha256": "e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+        "size_bytes": 2151,
+        "mtime_unix": 1783562804,
+        "mtime_iso": "2026-07-09T20:26:44Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 808873,
+        "note": "Hash idêntico ao deployed /etc/audit/rules.d/impetus.rules — consistência verificada"
+      },
+      "INT-M-004": {
+        "path": "/etc/letsencrypt/archive/plataformaimpetus.com/fullchain2.pem",
+        "sha256": "f85fabaae6706f76e1f57813b21055e2d02cb4d99ffe0d05b1f26901e53b950a",
+        "size_bytes": 4869,
+        "mtime_unix": 1783368195,
+        "mtime_iso": "2026-07-07T09:23:15Z",
+        "perm": "644",
+        "owner": "root",
+        "group": "root",
+        "inode": 29095
+      }
+    }
+  },
+  "cross_checks_summary": {
+    "auditd_rules_source_vs_deployed": "MATCH — e22c16dcfec5b8effba9155007495d916ce14521f13af768806740a4fa548a97",
+    "breach_lockdown_usrlocalbin_vs_infra": "MATCH — 3666a70687e4f5a9ca6f6e44cdbd2a3261420ac129ea6b8b9168e22221c80c97",
+    "tls_symlink_resolution": "cert.pem → cert2.pem | privkey.pem → privkey2.pem (certbot renewal #2)"
+  }
+}

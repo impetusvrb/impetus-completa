@@ -8,6 +8,8 @@ import { fetchDashboardMeShared } from '../runtimeBoot/dashboardMeSharedStore';
 import { notifyDashboardWave1Ready } from '../runtimeBoot/DashboardBootContext';
 import {
   isMaintenanceProfile,
+  resolveMaintenanceFromDashboardMe,
+  isExecutiveDashboardProfile,
   userHasSystemAdministrationCapability,
   isAdministrativePortalOnlyUser,
   shouldOfferPulseRhMenu,
@@ -36,8 +38,115 @@ export { clearMenuStabilityCache };
 const UNIVERSAL_SAFE_ACCESS_PATHS = Object.freeze(new Set([
   '/app/proacao',
   '/app/cadastrar-com-ia',
-  '/app/registro-inteligente'
+  '/app/registro-inteligente',
+  '/app/biblioteca',
+  '/app/chatbot',
+  '/chat',
+  '/app/settings'
 ]));
+
+/** Chaves de módulo sempre liberadas (alinhado ao backend getUniversalMenuKeys). */
+const UNIVERSAL_MODULE_KEYS = Object.freeze(new Set([
+  'dashboard',
+  'settings',
+  'proaction',
+  'registro_inteligente',
+  'cadastrar_com_ia',
+  'chat',
+  'ai',
+  'biblioteca'
+]));
+
+function mergeUniversalModules(mods, govPayload, user) {
+  const fromGov = govPayload?.module_access_governance?.universal_modules;
+  const base = Array.isArray(fromGov) && fromGov.length
+    ? fromGov
+    : [...UNIVERSAL_MODULE_KEYS];
+  const merged = new Set([...(Array.isArray(mods) ? mods : []), ...base]);
+  if (String(user?.role || '').toLowerCase() === 'ceo') merged.delete('proaction');
+  if (isStrictAdminRole(user)) {
+    merged.add('admin');
+    merged.add('audit');
+  }
+  return [...merged];
+}
+
+function isUniversalModuleKey(mod) {
+  return !!mod && UNIVERSAL_MODULE_KEYS.has(mod);
+}
+
+function isUniversalMenuItem(item) {
+  const p = (item?.path || '').replace(/\/+$/, '').split('?')[0] || '/';
+  if (isUniversalSafeAccessPath(p)) return true;
+  if (_isCeoStableMenuPath(p)) return true;
+  const mod = getModuleForPath(item?.path);
+  if (!isUniversalModuleKey(mod)) return false;
+  if (mod === 'proaction' && _isCeoProactionDenied()) return false;
+  return true;
+}
+
+/** Sincroniza perfil/capabilities do servidor — evita menu errado com localStorage desatualizado. */
+export function mergeUserFromDashboardMe(user, payload) {
+  if (!payload || typeof payload !== 'object') return user || {};
+  const u = { ...(user || {}) };
+  if (payload.profile_code) u.dashboard_profile = payload.profile_code;
+  if (payload.user_context?.functional_area) u.functional_area = payload.user_context.functional_area;
+  if (Array.isArray(payload.contextual_capabilities)) {
+    u.contextual_capabilities = payload.contextual_capabilities;
+  }
+  if (typeof payload.is_tenant_admin === 'boolean') u.is_tenant_admin = payload.is_tenant_admin;
+  if (payload.tenant_admin_type !== undefined) u.tenant_admin_type = payload.tenant_admin_type;
+  if (typeof payload.tenant_admin_can_manage === 'boolean') {
+    u.tenant_admin_can_manage = payload.tenant_admin_can_manage;
+  }
+  if (payload.structural_profile) u.structural_profile = payload.structural_profile;
+  if (payload.user_context?.role && !u.role) u.role = payload.user_context.role;
+  return u;
+}
+
+function reinjectUniversalMenuItems(filtered, source) {
+  const out = Array.isArray(filtered) ? [...filtered] : [];
+  const paths = new Set(out.map((i) => (i.path || '').replace(/\/+$/, '') || '/'));
+  for (const item of Array.isArray(source) ? source : []) {
+    if (!isUniversalMenuItem(item)) continue;
+    const p = (item.path || '').replace(/\/+$/, '') || '/';
+    if (paths.has(p)) continue;
+    out.push(item);
+    paths.add(p);
+  }
+  return out;
+}
+
+/** Garante itens universais no sidebar após toda a governança (última linha de defesa). */
+export function ensureUniversalSidebarItems(menuItems, user, iconMap = {}) {
+  const list = Array.isArray(menuItems) ? [...menuItems] : [];
+  const paths = new Set(list.map((i) => (i.path || '').replace(/\/+$/, '') || '/'));
+  // Só oculta Pró-Ação para role CEO (não usar profile stale no localStorage).
+  const isCeo = String(user?.role || '').toLowerCase() === 'ceo';
+  const defaults = [
+    { path: '/app/proacao', label: 'Pró-Ação', key: 'Target' },
+    { path: '/app/cadastrar-com-ia', label: 'Cadastrar com IA', key: 'Upload' },
+    { path: '/app/registro-inteligente', label: 'Registro Inteligente', key: 'FileEdit' },
+    { path: '/app/biblioteca', label: 'Biblioteca', key: 'FolderOpen' },
+    { path: '/app/chatbot', label: 'Impetus IA', aiIcon: true },
+    { path: '/chat', label: 'Chat Impetus', chatIcon: true }
+  ];
+  let insertAt = list.findIndex((i) => (i.path || '').replace(/\/+$/, '') === '/app');
+  insertAt = insertAt >= 0 ? insertAt + 1 : 0;
+  for (const def of defaults) {
+    const p = def.path.replace(/\/+$/, '');
+    if (isCeo && p === '/app/proacao') continue;
+    if (paths.has(p)) continue;
+    const item = { path: def.path, label: def.label };
+    if (def.aiIcon) item.aiIcon = true;
+    if (def.chatIcon) item.chatIcon = true;
+    if (iconMap[def.key]) item.icon = iconMap[def.key];
+    list.splice(insertAt, 0, item);
+    insertAt += 1;
+    paths.add(p);
+  }
+  return list;
+}
 
 /**
  * Paths negados para o perfil CEO (executive experience refinement).
@@ -55,6 +164,9 @@ const CEO_STABLE_MENU_PATHS = Object.freeze(
     '/app/cerebro-operacional',
     '/app/insights',
     '/app/centro-previsao-operacional',
+    '/app/finance',
+    '/app/finance/costs',
+    '/app/finance/leakage',
     '/app/centro-custos-industriais',
     '/app/mapa-vazamento-financeiro',
     '/app/cadastrar-com-ia',
@@ -118,8 +230,18 @@ const PATH_TO_MODULE = {
   '/app/cerebro-operacional': 'operational',
   '/app/centro-operacoes-industrial': 'operational',
   '/app/centro-previsao-operacional': 'operational',
+  /** FIN-EVOLVE-001A — rotas oficiais Finance (antes: legacy → operational) */
+  '/app/finance': 'financial_intelligence',
+  '/app/finance/costs': 'financial_intelligence',
+  '/app/finance/leakage': 'financial_intelligence',
+  '/app/finance/billing': 'financial_intelligence',
   '/app/centro-custos-industriais': 'operational',
   '/app/mapa-vazamento-financeiro': 'operational',
+  '/app/validacao-organizacional': 'operational',
+  '/app/almoxarifado-inteligente': 'logistics_intelligence',
+  '/app/logistica-inteligente': 'logistics_intelligence',
+  '/app/monitored-points': 'operational',
+  '/app/equipe-operacional': 'operational',
   '/app/pulse-rh': 'operational',
   '/app/pulse-cognitive-rh': 'operational',
   '/app/pulse-gestao': 'operational',
@@ -179,6 +301,8 @@ function getModuleForPath(path) {
   const base = String(path || '').split('?')[0];
   const n = base.replace(/\/+$/, '') || '/';
   if (PATH_TO_MODULE[n]) return PATH_TO_MODULE[n];
+  // FIN-EVOLVE-001A — domínio Finance unificado (menu + canAccessPath)
+  if (n === '/app/finance' || n.startsWith('/app/finance/')) return 'financial_intelligence';
   if (n.startsWith('/app/quality/')) return 'quality_intelligence';
   if (n.startsWith('/app/safety/')) return 'safety_intelligence';
   if (n.startsWith('/app/logistics/')) return 'logistics_intelligence';
@@ -186,6 +310,21 @@ function getModuleForPath(path) {
   if (n.startsWith('/app/admin')) return 'admin';
   if (n.startsWith('/diagnostic')) return 'operational';
   return null;
+}
+
+/** FIN-STAB-001 — Hub Finance permanece visível com qualquer chave financeira liberada. */
+function isFinanceOfficialPath(path) {
+  const n = String(path || '').replace(/\/+$/, '').split('?')[0] || '/';
+  return n === '/app/finance' || n.startsWith('/app/finance/');
+}
+
+function financeModuleKeysAllow(visibleSet) {
+  return (
+    visibleSet.has('financial_intelligence') ||
+    visibleSet.has('cost_center') ||
+    visibleSet.has('losses_map') ||
+    visibleSet.has('operational')
+  );
 }
 
 /** Contas que historicamente podiam ver menu completo sem lista do servidor (fallback legado removido por defeito). */
@@ -208,9 +347,42 @@ function standaloneOperationalPathAllowed(path, user, visibleSet) {
 }
 
 /**
+ * Paths de análise estratégica executiva — suprimidos do menu quando o perfil é de manutenção.
+ * Técnicos de manutenção têm 'operational' em visible_modules para acesso a dados operacionais,
+ * mas não devem navegar por painéis de visão estratégica (custo, cerebro, previsão, mapa financeiro).
+ * INC-005 root cause 1: 'operational' em technician_maintenance habilitava itens executivos no menu.
+ */
+const EXECUTIVE_STRATEGIC_PATHS = Object.freeze(new Set([
+  '/app/cerebro-operacional',
+  '/app/insights',
+  '/app/centro-operacoes-industrial',
+  '/app/centro-previsao-operacional',
+  '/app/finance',
+  '/app/finance/costs',
+  '/app/finance/leakage',
+  '/app/finance/billing',
+  '/app/centro-custos-industriais',
+  '/app/mapa-vazamento-financeiro',
+  '/app/validacao-organizacional',
+  '/app/dashboard-vivo'
+]));
+
+/**
+ * Paths exclusivos de manutenção — nunca mostrados a perfis não-manutenção.
+ * Usado quando visible_modules está vazio (bypass executivo via userMayBypassEmptyModules)
+ * para evitar que itens de manutenção apareçam no menu do CEO/diretor.
+ * INC-005 root cause 2: bypass executivo com API bloqueada exibia módulos de manutenção ao CEO.
+ */
+const MAINTENANCE_ONLY_PATHS = Object.freeze(new Set([
+  '/app/manutencao/manuia',
+  '/app/manutencao/manuia-app'
+]));
+
+/**
  * Filtra itens de menu por visible_modules
  */
 export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
+  const sourceMenu = Array.isArray(menuItems) ? menuItems : [];
   let isMaint = false;
   try {
     const user = JSON.parse(localStorage.getItem('impetus_user') || '{}');
@@ -222,6 +394,7 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
   const terminalSet = opts._terminalVisibleModules;
   const effectiveModules = Array.isArray(terminalSet) && terminalSet.length > 0 ? terminalSet : visibleModules;
   const cachedModules = opts._cachedModules;
+  let filtered;
 
   if (!effectiveModules || effectiveModules.length === 0) {
     const uEmpty = readStoredUser();
@@ -231,20 +404,42 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
       const sysAdmin =
         userHasSystemAdministrationCapability(uEmpty) ||
         uEmpty.is_tenant_admin === true;
-      return menuItems.filter((item) => {
+      filtered = sourceMenu.filter((item) => {
         const p = (item.path || '').replace(/\/+$/, '') || '';
-        if (isUniversalSafeAccessPath(p)) return true;
+        if (isUniversalMenuItem(item)) return true;
         if (item.path === '/app' || item.path === '/app/dashboard-vivo') return true;
         const mod = getModuleForPath(item.path);
         if (!mod) return isStrictAdminRole(uEmpty);
-        if (mod === 'admin' && sysAdmin) return true;
+        if (mod === 'admin' && (sysAdmin || isStrictAdminRole(uEmpty))) return true;
         if (adminPortal && mod === 'operational') return OPERATIONAL_MODULE_ADMIN_EXEMPT_PATHS.has(p);
         return set.has(mod);
       });
+    } else if (userMayBypassEmptyModules(uEmpty)) {
+      // INC-005: bypass executivo não deve incluir paths de manutenção para perfis não-manutenção.
+      // Quando /dashboard/me está bloqueado (SEC-RECON), sourceMenu não pode vazar módulos cruzados.
+      const isMaintEmpty = isMaintenanceProfile(uEmpty);
+      if (isMaintEmpty) {
+        filtered = sourceMenu.filter((item) => {
+          const p = (item.path || '').replace(/\/+$/, '') || '';
+          return !EXECUTIVE_STRATEGIC_PATHS.has(p);
+        });
+      } else {
+        filtered = sourceMenu.filter((item) => {
+          const p = (item.path || '').replace(/\/+$/, '') || '';
+          return !MAINTENANCE_ONLY_PATHS.has(p);
+        });
+      }
+    } else if (opts.loading || !effectiveModules?.length) {
+      filtered = sourceMenu.filter(
+        (item) =>
+          isUniversalMenuItem(item) ||
+          item.path === '/app' ||
+          item.path === '/app/dashboard-vivo'
+      );
+    } else {
+      filtered = [];
     }
-    if (userMayBypassEmptyModules(uEmpty)) return menuItems;
-    if (opts.loading) return [];
-    return [];
+    return reinjectUniversalMenuItems(filtered, sourceMenu);
   }
   const set = new Set(effectiveModules);
   const u = readStoredUser();
@@ -252,10 +447,15 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
   const sysAdmin =
     userHasSystemAdministrationCapability(u) ||
     u.is_tenant_admin === true;
-  return menuItems.filter((item) => {
+  filtered = sourceMenu.filter((item) => {
     const p = (item.path || '').replace(/\/+$/, '') || '';
 
-    // Acesso universal seguro: os 3 módulos explícitos sempre visíveis no menu.
+    // INC-005: perfil de manutenção não acede a painéis de análise estratégica executiva.
+    // 'operational' nos visible_modules do técnico permite dados operacionais mas não navegação executiva.
+    if (isMaint && EXECUTIVE_STRATEGIC_PATHS.has(p)) return false;
+
+    // Módulos universais — sempre no menu (Pró-Ação, Cadastrar IA, Registro, Biblioteca, Chat…).
+    if (isUniversalMenuItem(item)) return true;
     if (isUniversalSafeAccessPath(p)) return true;
     if (_isCeoStableMenuPath(p)) return true;
 
@@ -304,6 +504,7 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
       }
       const modCtx = getModuleForPath(item.path);
       if (modCtx && set.has(modCtx)) return true;
+      if (isFinanceOfficialPath(p) && financeModuleKeysAllow(set)) return true;
       if (STANDALONE_OPERATIONAL_PATHS.has(p) && standaloneOperationalPathAllowed(p, u, set)) return true;
       return false;
     }
@@ -313,16 +514,18 @@ export function filterMenuByModules(menuItems, visibleModules, opts = {}) {
     if ((p === '/chat' || p === '/app/chatbot') && (set.has('chat') || set.has('ai'))) return true;
     if (!adminPortal && STANDALONE_OPERATIONAL_PATHS.has(p) && standaloneOperationalPathAllowed(p, u, set)) return true;
     if (isMaint && STANDALONE_MANUIA_PATHS.has(p)) return true;
+    if (isFinanceOfficialPath(p) && financeModuleKeysAllow(set)) return true;
     const mod = getModuleForPath(item.path);
     if (adminPortal && mod === 'operational' && OPERATIONAL_MODULE_ADMIN_EXEMPT_PATHS.has(p)) return true;
     if (!mod) return isStrictAdminRole(u);
-    if (mod === 'admin' && sysAdmin) return true;
+    if (mod === 'admin' && (sysAdmin || isStrictAdminRole(u))) return true;
     if (adminPortal && mod === 'operational') {
       logAdminPortal('[OPERATIONAL_MODULE_SUPPRESSED]', { path: p, layer: 'menu_module_map' });
       return false;
     }
     return set.has(mod);
   });
+  return reinjectUniversalMenuItems(filtered, sourceMenu);
 }
 
 /**
@@ -349,6 +552,15 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
   // Não afeta orchestration, telemetry nem dashboards operacionais.
   if (isUniversalSafeAccessPath(norm)) return true;
   if (_isCeoStableMenuPath(norm)) return true;
+
+  const modEarly = getModuleForPath(path);
+  if (isUniversalModuleKey(modEarly)) {
+    if (modEarly === 'proaction' && _isCeoProactionDenied()) {
+      /* CEO: Pró-Ação oculto por desenho executivo */
+    } else {
+      return true;
+    }
+  }
 
   if (!visibleModules?.length) {
     if (opts.loading) {
@@ -386,11 +598,13 @@ export function canAccessPath(path, visibleModules, contextualPathSet, opts = {}
     }
     const modCtx = getModuleForPath(path);
     if (modCtx && visibleModules.includes(modCtx)) return true;
+    if (isFinanceOfficialPath(norm) && financeModuleKeysAllow(visSet)) return true;
     if (STANDALONE_OPERATIONAL_PATHS.has(norm)) return standaloneOperationalPathAllowed(norm, u, visSet);
     return false;
   }
   const mod = getModuleForPath(path);
   if (adminPortal && mod === 'operational' && OPERATIONAL_MODULE_ADMIN_EXEMPT_PATHS.has(norm)) return true;
+  if (isFinanceOfficialPath(norm) && financeModuleKeysAllow(visSet)) return true;
   if (!mod) {
     if (isStrictAdminRole(u)) return true;
     return false;
@@ -487,7 +701,8 @@ export function useVisibleModules() {
         gov?.structural_complete === false &&
         Array.isArray(gov?.universal_modules) &&
         !gov?.executive_structural_bypass &&
-        !isExecutiveLeadershipRole(readStoredUser())
+        !isExecutiveLeadershipRole(readStoredUser()) &&
+        gov?.engine !== 'moduleAccessGovernanceEngine'
       ) {
         mods = [...new Set(gov.universal_modules)];
       } else if (
@@ -512,6 +727,7 @@ export function useVisibleModules() {
       if (gov?.engine !== 'moduleAccessGovernanceEngine') {
         mods = applyReconciliationToVisibleModules(mods, r?.data);
       }
+      mods = mergeUniversalModules(mods, r?.data, readStoredUser());
       setVisibleModules(mods);
       lastGoodModulesRef.current = mods;
       try {
@@ -520,13 +736,8 @@ export function useVisibleModules() {
       } catch {
         /* ignore */
       }
-      const profileCode = String(r?.data?.profile_code || '').toLowerCase();
-      const functionalArea = String(r?.data?.user_context?.functional_area || '').toLowerCase();
-      const isMaint =
-        profileCode.includes('maintenance') ||
-        functionalArea === 'maintenance' ||
-        functionalArea.includes('manutenc');
-      setMaintenanceFromProfile(isMaint);
+      const maintContextUser = mergeUserFromDashboardMe(readStoredUser(), r?.data);
+      setMaintenanceFromProfile(resolveMaintenanceFromDashboardMe(r?.data, maintContextUser));
       // Phase 8 — extrair contextual_modules sem alterar contrato existente.
       const cmRaw = r?.data?.contextual_modules_governed ?? r?.data?.contextual_modules;
       let cmMeta = r?.data?.contextual_modules_meta || null;

@@ -13,7 +13,8 @@ const deviceTrust = require('../mfa/services/deviceTrustService');
 const flags = require('../mfa/config/mfaFlags');
 
 router.get('/status', (req, res) => {
-  res.json({ ok: true, mfa: gov.getDiagnostics() });
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, mfa: gov.getPublicDiagnostics() });
 });
 
 router.post('/verify', async (req, res) => {

@@ -1,18 +1,18 @@
 {
   "certification": "SEC-19",
   "criteria": {
-    "attack_simulation_completed": true,
-    "stress_tests_completed": true,
-    "operational_readiness_available": true,
-    "overall_operational_score_available": true,
-    "security_dashboard_available": true,
-    "audit_endpoint_available": true,
-    "enterprise_security_preserved": true,
-    "enterprise_baseline_preserved": true,
-    "full_regression_passing": true,
-    "tests_passing": true
+    "attack_simulation_completed": false,
+    "stress_tests_completed": false,
+    "operational_readiness_available": false,
+    "overall_operational_score_available": false,
+    "security_dashboard_available": false,
+    "audit_endpoint_available": false,
+    "enterprise_security_preserved": false,
+    "enterprise_baseline_preserved": false,
+    "full_regression_passing": false,
+    "tests_passing": false
   },
-  "passed": 25,
-  "failed": 0,
-  "regressionPassing": true
+  "passed": 43,
+  "failed": 2,
+  "regressionPassing": false
 }

@@ -21,6 +21,15 @@ const { deduplicationKey, shouldMerge, mergeNotifications } = require('../engine
 const { buildNotificationTimeline } = require('../engine/notificationTimelineBuilder');
 const { resolveRecipientsForNotification, suggestOwner } = require('../recipients/recipientProfiles');
 const { deliverNotification } = require('../channels/channelRouter');
+const bootstrapObservability = require('../observability/bootstrapObservability');
+
+function isSyntheticSimulationIncident(incident) {
+  const id = String(incident?.incidentId || '');
+  const tags = incident?.tags || [];
+  if (id.startsWith('sec19-sim-')) return true;
+  if (tags.includes('sec19_simulation') || tags.includes('simulated_attack')) return true;
+  return false;
+}
 
 function buildCommandCenter(incident, threatProfile, integrityReport) {
   const classification = incident?.classification || threatProfile?.primaryAssessment || null;
@@ -59,6 +68,17 @@ function buildCommandCenter(incident, threatProfile, integrityReport) {
       classification
     )
   };
+}
+
+function recordSourceFailure(source, error) {
+  bootstrapObservability.recordSourceFailure(source, error);
+  const snapshot = bootstrapObservability.getSnapshot();
+  console.error('[SEC-05_SOURCE_FAILURE]', JSON.stringify({
+    phase: 'SEC-05',
+    source,
+    status: snapshot.status,
+    error: snapshot.last_error
+  }));
 }
 
 function buildFromIncident(incident, threatProfile, integrityReport) {
@@ -150,22 +170,29 @@ async function processAllSources() {
   try {
     const sec02 = require('../../securityCorrelation');
     incidents = sec02.store.getAllIncidents();
-  } catch (_e) {}
+  } catch (error) {
+    recordSourceFailure('SEC-02', error);
+  }
 
   try {
     const sec03 = require('../../securityThreatIntelligence');
     threatProfiles = sec03.store.getAllProfiles();
-  } catch (_e) {}
+  } catch (error) {
+    recordSourceFailure('SEC-03', error);
+  }
 
   try {
     const sec04 = require('../../securityRuntimeIntegrity');
     integrityReport = sec04.store.getLastReport();
-  } catch (_e) {}
+  } catch (error) {
+    recordSourceFailure('SEC-04', error);
+  }
 
   const threatByIncident = new Map(threatProfiles.map((p) => [p.incidentId, p]));
 
   for (const incident of incidents) {
     if (incident.severity === 'INFO' && incident.classification === 'HEALTH_CHECK') continue;
+    if (isSyntheticSimulationIncident(incident)) continue;
 
     const threat = threatByIncident.get(incident.incidentId) || null;
     const notification = buildFromIncident(incident, threat, null);

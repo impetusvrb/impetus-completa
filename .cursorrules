@@ -1,5 +1,7 @@
 # IMPETUS — Design System Industrial 4.0
 
+**Protocolo de segurança do produto (obrigatório, vigente desde 19/07/2026, todos os agentes Cursor):** `.cursor/rules/architectural-security-protocol.mdc` — evolução incremental only; proibido alterar fora do escopo do prompt; certificados (BASELINE, ARC, GF, WMS, NAV, UX, …) intocáveis salvo escopo explícito; conflito → componente novo, não refactor certificado.
+
 Toda UI nova ou alterada deve seguir o DS Industrial 4.0. Regra detalhada: `.cursor/rules/design-system-industrial-4.mdc` (always apply).
 
 Resumo: fundos `--bg-primary` … `--bg-tertiary`; acentos `--cyan`, `--green`, `--amber`, `--red`; texto `--text-primary`…; sem branco/cinza claro de fundo; fontes **Rajdhani** + **Share Tech Mono** apenas; `border-radius` ≤ 8px; botão primário translúcido cyan; grade técnica no root.

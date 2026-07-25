@@ -4,6 +4,7 @@
  * Mapeamento opcional de campos via mapping_config
  */
 const axios = require('axios');
+const { safeAxiosRequest } = require('../../securityApplication/ssrfProtectionEngine');
 
 /**
  * @param {Object} cfg - data_source_config
@@ -21,13 +22,13 @@ async function read(cfg, equipmentId, equipmentName) {
   if (cfg.api_key) headers['X-API-Key'] = cfg.api_key;
   if (cfg.authorization) headers['Authorization'] = cfg.authorization;
 
-  const res = await axios.request({
+  const res = await safeAxiosRequest(axios, {
     url: fullUrl,
     method,
     headers: Object.keys(headers).length ? headers : undefined,
     timeout: cfg.timeout || 5000,
     params: method === 'GET' && cfg.params ? cfg.params : undefined
-  });
+  }, { integration: 'plc_rest_adapter', equipmentId });
 
   const raw = res?.data;
   if (!raw || typeof raw !== 'object') {

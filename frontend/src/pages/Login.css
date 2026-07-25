@@ -412,3 +412,38 @@
   background: rgba(8, 18, 40, 0.70) !important;
   width: 100% !important;
 }
+
+.mfa-login-step__header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  color: var(--cyan, #00d4ff);
+}
+
+.mfa-login-step__title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.mfa-login-step__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.mfa-login-step__trust {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+  margin: 0.75rem 0 1rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.mfa-login-step__back {
+  width: 100%;
+  margin-top: 0.5rem;
+}

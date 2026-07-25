@@ -1,0 +1,128 @@
+{
+  "manifest_id": "IMPETUS-INTEGRITY-MANIFEST-v3",
+  "generated_at": "2026-07-23T21:11:26.298197+00:00",
+  "generated_by": "SEC-BASELINE-003",
+  "baseline_version": "3.0",
+  "baseline_id": "IMPETUS-INTEGRITY-BASELINE-v3",
+  "certification_status": "CERTIFIED",
+  "forensic_anchors": {
+    "baseline_v1_sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+    "baseline_v2_sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+    "baseline_v3_sha256": "b7e6edb61d7cd1d2f48dd9d471a5df12b155a49431f005d4c6f93297f9174dcc",
+    "asset_inventory_sha256": "4face35e25d50ba9e74f737cf8a5c586d0c78ed720f0d470836b4a26a6626dd7",
+    "previous_manifest_ref": "docs/evidence/sec-baseline-002/INTEGRITY_BASELINE_MANIFEST.json"
+  },
+  "chain": [
+    {
+      "version": "1.0",
+      "file": "baseline-int-01a.json",
+      "sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+      "status": "ARCHIVED"
+    },
+    {
+      "version": "2.0",
+      "file": "baseline-v2.json",
+      "sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+      "status": "ARCHIVED"
+    },
+    {
+      "version": "3.0",
+      "file": "baseline.json",
+      "sha256": "b7e6edb61d7cd1d2f48dd9d471a5df12b155a49431f005d4c6f93297f9174dcc",
+      "status": "ACTIVE"
+    }
+  ],
+  "files": [
+    {
+      "path": "security/integrity/baseline.json",
+      "sha256": "b7e6edb61d7cd1d2f48dd9d471a5df12b155a49431f005d4c6f93297f9174dcc",
+      "size_bytes": 18641,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/baseline-v2.json",
+      "sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+      "size_bytes": 17592,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/baseline-int-01a.json",
+      "sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+      "size_bytes": 15796,
+      "exists": true
+    },
+    {
+      "path": "security/integrity/asset_inventory.json",
+      "sha256": "4face35e25d50ba9e74f737cf8a5c586d0c78ed720f0d470836b4a26a6626dd7",
+      "size_bytes": 28362,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-cert-003/INTEGRITY_FINAL_CERTIFICATION.md",
+      "sha256": "69f04352dc6227a06036fe03350ccc22db43321e7ad03a30d074fc0dbc0cc8e2",
+      "size_bytes": 2047,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-cert-003/SEC_CERT_003_COMPLETION_REPORT.md",
+      "sha256": "fcd77a6d59d30cbe9af075e0d98015242051a20d42eb693dbea0da0cab9de74a",
+      "size_bytes": 2504,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-coverage-003/SEC_COVERAGE_003_COMPLETION_REPORT.md",
+      "sha256": "c98ac8d8845b212f368f5ccf4e6113472217f7953d9e699d70c942e2386f65b9",
+      "size_bytes": 2453,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-obs-003r/SEC_OBS_003R_COMPLETION_REPORT.md",
+      "sha256": "bce168c0f717ccdb0e7f9d3a86de20fde2c4dd08eea0471598d4120d5a854f9e",
+      "size_bytes": 1878,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-dedup-001/INT_DEDUP_001_COMPLETION_REPORT.md",
+      "sha256": "c3bd405c2590d41b6a3a91dcd3eff647340637837a9e56e65425eb386a699893",
+      "size_bytes": 2572,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-lim-001/LIM_001_CLOSURE_REPORT.md",
+      "sha256": "aa656ba952a8ee2fcaff347ffb53433a88ea90bcb7016e2240935d111ac95e3e",
+      "size_bytes": 4470,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-lim-002/LIM_002_CLOSURE_REPORT.md",
+      "sha256": "37ccc82c26c1b6aa19a38a8b4bd6bb051d86621ecf286df77b954806cfc15b0f",
+      "size_bytes": 4072,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/int-lim-003/LIM_003_CLOSURE_REPORT.md",
+      "sha256": "a8ff27bbf58cedf7c48e36a7805beb5eae0fc643503e3819b37895ea3e5252aa",
+      "size_bytes": 4591,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-002/SEC_BASELINE_002_COMPLETION_REPORT.md",
+      "sha256": "5b91a78d5a9eb2db9c4986b45fdc6bef36865636814ed91ac16ede77617b8502",
+      "size_bytes": 7495,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-003/drift-comparison-v2-to-v3.json",
+      "sha256": "9078e70c3d44dcbec782169573e1401de7597377e68ea073a3d33b17c94f8474",
+      "size_bytes": 1709,
+      "exists": true
+    },
+    {
+      "path": "docs/evidence/sec-baseline-003/baseline-v3-generation.json",
+      "sha256": "5e17f83a6675ba819037ae5d5bf3952f8a50fa0a0784e7ca54dfa4cc8b3f8654",
+      "size_bytes": 554,
+      "exists": true
+    }
+  ],
+  "total_files": 15
+}

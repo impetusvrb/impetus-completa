@@ -1,0 +1,52 @@
+{
+  "generated_at_utc": "2026-07-13T15:45:00.000Z",
+  "policy": "P0_STORAGE_CAPACITY_FORENSIC_REMEDIATION",
+  "approved_by_policy": "FASE_7_EMERGENCY_SAFE_ONLY",
+  "items": [
+    {
+      "path": "/root/.cache",
+      "classification": "CACHE",
+      "reason_for_deletion": "Regenerable application cache (pip, apt, misc). Not forensic evidence.",
+      "regenerable": true,
+      "estimated_size": "2.0G"
+    },
+    {
+      "path": "/root/.npm",
+      "classification": "DEPENDENCY_ARTIFACT",
+      "reason_for_deletion": "npm global cache. Regenerable via npm install.",
+      "regenerable": true,
+      "estimated_size": "265M"
+    },
+    {
+      "path": "/var/www/impetus-completa/impetus_complete",
+      "classification": "DUPLICATE",
+      "reason_for_deletion": "Legacy mirror copy. Canonical production code is backend/ and frontend/ at repo root per workspace policy.",
+      "regenerable": false,
+      "estimated_size": "433M"
+    },
+    {
+      "path": "/var/www/_bk_untracked_2026-03-03-0321",
+      "classification": "DUPLICATE",
+      "reason_for_deletion": "Untracked backup snapshot from 2026-03-03. Not referenced by runtime.",
+      "regenerable": false,
+      "estimated_size": "433M"
+    },
+    {
+      "path": "/var/www/RESTORE_TEST",
+      "classification": "TEMPORARY",
+      "reason_for_deletion": "Restore test sandbox from 2026-03-03. Not production runtime.",
+      "regenerable": false,
+      "estimated_size": "809M"
+    }
+  ],
+  "explicitly_not_deleted": [
+    "/var/lib/postgresql",
+    "/var/lib/apport/coredump",
+    "/var/www/impetus-completa/backend/backups",
+    "/var/log/journal",
+    "/var/www/impetus-completa/backend/docs/evidence",
+    "/var/www/impetus-completa/backend/.env",
+    "/root/.pm2/logs"
+  ],
+  "awaiting_external_archive_validation": true
+}

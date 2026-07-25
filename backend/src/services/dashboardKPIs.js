@@ -9,6 +9,13 @@ const hierarchicalFilter = require('./hierarchicalFilter');
 const dashboardProfileResolver = require('./dashboardProfileResolver');
 const dashboardAccessService = require('./dashboardAccessService');
 const productionRealtime = require('./productionRealtimeService');
+const { countNonConformingInspections } = require('./qualityIntelligenceService');
+
+function isQualityDomainProfile(profileCode = '', functionalArea = '') {
+  const p = String(profileCode || '').toLowerCase();
+  const a = String(functionalArea || '').toLowerCase();
+  return /quality|qualidade/.test(p) || /quality|qualidade/.test(a);
+}
 
 const ICON_MAP = {
   trending: 'TrendingUp',
@@ -111,13 +118,13 @@ async function getProductionKpis(companyId) {
     const kpis = await productionRealtime.getShiftKPIs(companyId);
     const result = [];
     if (kpis.total_produced != null) {
-      result.push({ id: 'production_shift', key: 'production_shift', title: 'Produção do turno', value: Math.round(kpis.total_produced), color: 'blue', route: '/app/industrial', icon: 'trending' });
+      result.push({ id: 'production_shift', key: 'production_shift', title: 'Produção do turno', value: Math.round(kpis.total_produced), color: 'blue', route: '/app/centro-operacoes-industrial', icon: 'trending' });
     }
     if (kpis.total_target != null && kpis.total_target > 0) {
-      result.push({ id: 'meta_realizado', key: 'meta_realizado', title: 'Meta realizado', value: `${kpis.efficiency ?? 0}%`, color: 'green', route: '/app/industrial', icon: 'target' });
+      result.push({ id: 'meta_realizado', key: 'meta_realizado', title: 'Meta realizado', value: `${kpis.efficiency ?? 0}%`, color: 'green', route: '/app/centro-operacoes-industrial', icon: 'target' });
     }
     if (kpis.lines?.length) {
-      result.push({ id: 'line_efficiency', key: 'line_efficiency', title: 'Eficiência (linhas)', value: kpis.lines.length, color: 'teal', route: '/app/industrial', icon: 'activity' });
+      result.push({ id: 'line_efficiency', key: 'line_efficiency', title: 'Eficiência (linhas)', value: kpis.lines.length, color: 'teal', route: '/app/centro-operacoes-industrial', icon: 'activity' });
     }
     return result;
   } catch (e) {
@@ -130,13 +137,32 @@ async function getProductionKpis(companyId) {
  * KPIs específicos de qualidade (propostas/NC, auditorias)
  */
 async function getQualityKpis(scope, companyId) {
-  const [proposals, insights] = await Promise.all([
-    queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
+  const [inspectionsNc, insights] = await Promise.all([
+    countNonConformingInspections(companyId),
     queryCommunications(scope, companyId, "c.ai_priority <= 2")
   ]);
+  const ncValue = inspectionsNc != null ? inspectionsNc : '—';
   return [
-    { id: 'open_nc', key: 'open_nc', title: 'Não conformidades abertas', value: proposals, color: 'red', route: '/app/proacao', icon: 'alert' },
-    { id: 'operational_insights', key: 'operational_insights', title: 'Insights prioritários', value: insights, color: 'teal', route: '/app/chatbot', icon: 'brain' }
+    {
+      id: 'open_nc',
+      key: 'open_nc',
+      title: 'Não conformidades abertas',
+      value: ncValue,
+      color: 'red',
+      route: '/app/quality/operational',
+      icon: 'alert',
+      source: 'quality_inspections',
+      data_available: inspectionsNc != null
+    },
+    {
+      id: 'operational_insights',
+      key: 'operational_insights',
+      title: 'Insights prioritários',
+      value: insights,
+      color: 'teal',
+      route: '/app/chatbot',
+      icon: 'brain'
+    }
   ];
 }
 
@@ -342,6 +368,18 @@ async function getDashboardKPIs(user, hierarchyScope) {
         const prodKpis = await getProductionKpis(companyId);
         if (prodKpis.length) kpis.push(...prodKpis);
       }
+      if (isQualityDomainProfile(profileCode, functionalArea)) {
+        const qualityKpis = await getQualityKpis(scope, companyId);
+        const [insights, comms] = await Promise.all([
+          queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '7 days'"),
+          queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'")
+        ]);
+        kpis.push(...qualityKpis);
+        kpis.push(
+          { id: 'k3', title: 'Interações (setor)', value: comms, color: 'blue', route: '/app/operacional', icon: 'message' },
+          { id: 'k1', title: 'Insights prioritários', value: insights, color: 'teal', route: '/app/chatbot', icon: 'brain' }
+        );
+      } else {
       const [insights, proposalsAbertas, comms] = await Promise.all([
         queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '7 days'"),
         queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
@@ -354,6 +392,7 @@ async function getDashboardKPIs(user, hierarchyScope) {
       );
       if (jobFocus.some(f => ['nao_conformidades', 'indicadores_qualidade', 'auditorias'].includes(f))) {
         kpis.push({ id: 'k4', title: 'Não conformidades', value: proposalsAbertas, color: 'orange', route: '/app/proacao', icon: 'alert' });
+      }
       }
     } else if (level === 3) {
       // COORDENADOR - KPIs base + área quando aplicável
@@ -474,20 +513,42 @@ async function getDashboardSummary(user) {
   const companyId = user.company_id;
   try {
     const scope = await hierarchicalFilter.resolveHierarchyScope(user);
-    const [commsWeek, criticalAlerts, growth, proposals, insights] = await Promise.all([
+    const config = dashboardProfileResolver.getDashboardConfigForUser(user);
+    const profileCode = config.profile_code;
+    const functionalArea = config.functional_area || '';
+    const qualityProfile = isQualityDomainProfile(profileCode, functionalArea);
+
+    const [commsWeek, criticalAlerts, growth, proposals, insights, inspectionsNc] = await Promise.all([
       queryCommunications(scope, companyId, "c.created_at >= now() - INTERVAL '1 week'"),
       queryCommunications(scope, companyId, "c.ai_priority = 1"),
       getCommsGrowth(scope, companyId),
       queryProposals(scope, companyId, "p.status NOT IN ('done','rejected')"),
-      queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '1 week'")
+      queryCommunications(scope, companyId, "c.ai_priority <= 2 AND c.created_at >= now() - INTERVAL '1 week'"),
+      qualityProfile ? countNonConformingInspections(companyId) : Promise.resolve(null)
     ]);
-    return {
+
+    const summary = {
       alerts: { critical: criticalAlerts },
       operational_interactions: { total: commsWeek, growth_percentage: growth },
-      proposals: { total: proposals },
+      proposals: { total: proposals, source: 'proposals' },
       monitored_points: { total: 0 },
       ai_insights: { total: insights }
     };
+
+    if (qualityProfile) {
+      summary.quality_inspections = {
+        non_conforming: inspectionsNc,
+        source: 'quality_inspections',
+        data_available: inspectionsNc != null
+      };
+      summary.quality_nc = {
+        total: inspectionsNc,
+        source: 'quality_inspections',
+        data_available: inspectionsNc != null
+      };
+    }
+
+    return summary;
   } catch (err) {
     console.error('[DASHBOARD_SUMMARY_ERROR]', err);
     return { ...EMPTY_SUMMARY };

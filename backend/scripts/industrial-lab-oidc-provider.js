@@ -9,8 +9,12 @@
  */
 
 const PORT = parseInt(process.env.IMPETUS_LAB_OIDC_PORT || '8080', 10);
-const OIDC_SECRET = process.env.IMPETUS_LAB_OIDC_SECRET || 'b744fc21b67eae282e04e9cc4d05d88044c5ef6910e51f6efd512cb11258d363';
+const OIDC_SECRET = String(process.env.IMPETUS_LAB_OIDC_SECRET || '').trim();
 const REDIRECT_URI = process.env.IMPETUS_FEDERATION_REDIRECT_URI || 'http://127.0.0.1:4000/api/federation/oidc/callback';
+
+if (!OIDC_SECRET) {
+  throw new Error('IMPETUS_LAB_OIDC_SECRET_NOT_CONFIGURED');
+}
 
 const LAB_USER = {
   sub: '21dd3cee-2efa-4936-908f-9ff1ba04e2a3',

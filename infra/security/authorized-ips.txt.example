@@ -1,0 +1,8 @@
+# IMPETUS — IPs autorizados a aceder plataformaimpetus.com
+# Copiar para /etc/impetus/authorized-ips.txt no primeiro deploy.
+# Ver infra/scripts/impetus-authorized-ip.sh
+
+170.246.0.0/16          # Gustavo — Vero Internet IPv4
+186.225.0.0/16          # Welligton — Next Fibra IPv4
+2804:2484::/32          # Gustavo — Vero IPv6
+2804:2980::/32          # Welligton — Next IPv6

@@ -1,0 +1,15 @@
+{
+  "baseline_v1_sha256": "6cb5ac487158cdb462a4b01b2b7f25290eaa05a4b9b4425619619e4301760bf6",
+  "baseline_v2_sha256": "f9ca52c1c1461b5be4f748f8bee444906d826c73332891b77976736ac1495818",
+  "baseline_v3_sha256": "b7e6edb61d7cd1d2f48dd9d471a5df12b155a49431f005d4c6f93297f9174dcc",
+  "inventory_sha256": "4face35e25d50ba9e74f737cf8a5c586d0c78ed720f0d470836b4a26a6626dd7",
+  "drift_incorporated": [
+    "INT-C-010",
+    "INT-M-003"
+  ],
+  "inventory_hygiene_INT_M_004": [
+    "expected_owner",
+    "expected_group"
+  ],
+  "certification_status": "CERTIFIED"
+}

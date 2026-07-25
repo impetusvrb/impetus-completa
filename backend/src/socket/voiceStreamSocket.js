@@ -5,7 +5,7 @@
  */
 'use strict';
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/auth');
+const { JWT_SECRET, JWT_ALGORITHMS } = require('../middleware/auth');
 const voiceTts = require('../services/voiceTtsService');
 
 function voiceFirstName(payloadName, socketName) {
@@ -26,7 +26,7 @@ function initVoiceStreamSocket(io) {
       (socket.handshake.query && socket.handshake.query.token);
     if (!token) return next(new Error('Token não fornecido'));
     try {
-      socket.user = jwt.verify(token, JWT_SECRET);
+      socket.user = jwt.verify(token, JWT_SECRET, { algorithms: JWT_ALGORITHMS });
       next();
     } catch {
       next(new Error('Token inválido'));

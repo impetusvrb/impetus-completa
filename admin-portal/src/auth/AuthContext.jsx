@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { api, clearToken, setToken } from '../api/http';
+import { getAdminDeviceId, getDeviceLabel } from '../utils/deviceId';
 
 const AuthContext = createContext(null);
 
@@ -22,10 +23,34 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email, senha) => {
+  const login = async (email, senha, botPayload = {}) => {
     const r = await api('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, senha })
+      body: JSON.stringify({
+        email,
+        senha,
+        device_id: getAdminDeviceId(),
+        device_label: getDeviceLabel(),
+        ...botPayload
+      })
+    });
+    if (r.mfa_required && r.mfa_challenge_token) {
+      return r;
+    }
+    setToken(r.token);
+    setUser(r.user);
+    return r;
+  };
+
+  const verifyMfa = async (mfa_challenge_token, code) => {
+    const r = await api('/auth/login/mfa-verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        mfa_challenge_token,
+        code,
+        device_id: getAdminDeviceId(),
+        device_label: getDeviceLabel()
+      })
     });
     setToken(r.token);
     setUser(r.user);
@@ -45,6 +70,7 @@ export function AuthProvider({ children }) {
       user,
       loading,
       login,
+      verifyMfa,
       logout,
       isAuthenticated: !!user
     }),

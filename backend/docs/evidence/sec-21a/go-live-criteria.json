@@ -1,0 +1,18 @@
+{
+  "integrity_above_threshold": false,
+  "baseline_synchronized": false,
+  "all_modules_online": true,
+  "all_endpoints_healthy": true,
+  "runtime_stable": true,
+  "pm2_healthy": true,
+  "nginx_healthy": true,
+  "database_healthy": true,
+  "tls_valid": true,
+  "rollback_available": true,
+  "security_ready": false,
+  "operational_ready": true,
+  "documentation_present": true,
+  "evidence_present": true,
+  "no_critical_nc": false,
+  "no_pending_rollback": true
+}

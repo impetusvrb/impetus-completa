@@ -13,12 +13,29 @@ export default function CognitiveCoreSummaryCard({
 }) {
   if (!core) return null;
 
-  const statusLabel = consciousness?.awareness_state || 'ATIVO';
-  const confidence = core.confidence_level ?? core.awareness_level_pct ?? '—';
+  const coreState = core.status?.cognitive_core;
+  const statusLabel =
+    consciousness?.awareness_state ||
+    (coreState === 'PRESENCE'
+      ? 'PRESENÇA ATIVA'
+      : coreState === 'ACTIVE'
+        ? 'ATIVO'
+        : coreState === 'STANDBY'
+          ? 'AGUARDANDO DADOS'
+          : '—');
+  const confidenceRaw = core.confidence_level ?? core.awareness_level_pct;
+  const confidenceDisplay = typeof confidenceRaw === 'number' ? `${confidenceRaw}%` : '—';
+  const syncRaw = core.status?.operational_sync;
   const syncLabel =
-    core.status?.operational_sync === 'SYNCING' || core.status?.operational_sync === 'RUNNING'
-      ? 'Estável'
-      : core.status?.operational_sync || 'Estável';
+    syncRaw === 'SYNCING' || syncRaw === 'RUNNING' || syncRaw === 'STABLE' || syncRaw === 'Estável'
+      ? syncRaw === 'STABLE'
+        ? 'Estável'
+        : syncRaw
+      : syncRaw && syncRaw !== '—'
+        ? syncRaw
+        : '—';
+  const awareRaw = core.awareness_level_pct;
+  const awareDisplay = typeof awareRaw === 'number' ? `${awareRaw}%` : '—';
 
   return (
     <div
@@ -39,7 +56,7 @@ export default function CognitiveCoreSummaryCard({
       <div className="cog-mobile-summary__metrics">
         <span className="cog-mobile-summary__metric">
           <span className="cog-mobile-summary__metric-label">CONF</span>
-          <span className="cog-mobile-summary__metric-val">{confidence}%</span>
+          <span className="cog-mobile-summary__metric-val">{confidenceDisplay}</span>
         </span>
         <span className="cog-mobile-summary__metric">
           <span className="cog-mobile-summary__metric-label">SYNC</span>
@@ -47,7 +64,7 @@ export default function CognitiveCoreSummaryCard({
         </span>
         <span className="cog-mobile-summary__metric">
           <span className="cog-mobile-summary__metric-label">AWARE</span>
-          <span className="cog-mobile-summary__metric-val">{core.awareness_level_pct ?? '—'}%</span>
+          <span className="cog-mobile-summary__metric-val">{awareDisplay}</span>
         </span>
       </div>
       <div className="cog-mobile-summary__actions">

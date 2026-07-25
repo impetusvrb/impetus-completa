@@ -1,0 +1,6 @@
+  status   |  count   
+-----------+----------
+ delivered | 10690957
+ dlq       |     3842
+(2 rows)
+

@@ -1,0 +1,30 @@
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root     1571021 11.8  6.8 12286668 558452 ?     Ssl  12:22   4:11 node /var/www/impetus-completa/backend/src/server.js
+root     1571641  8.4  4.6 75951208 378624 ?     Sl   12:25   2:42 /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node --dns-result-order=ipv4first --inspect-port=0 --experimental-network-inspection /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+root         733  0.6  0.3 2725248 29212 ?       Ssl  Jul05  88:52 /usr/bin/python3 /usr/bin/fail2ban-server -xf start
+postgres 1574917  0.6  0.6 221124 52992 ?        Ss   12:57   0:00 postgres: 14/main: postgres impetus_db 127.0.0.1(36158) idle
+root     1426473  0.5  1.1 1343656 91008 ?       Ssl  Jul13   7:26 node /var/www/impetus-completa/backend/scripts/industrial-
+postgres 1574866  0.5  1.3 221068 111888 ?       Ss   12:56   0:00 postgres: 14/main: postgres impetus_db 127.0.0.1(58486) idle
+root          92  0.4  0.0      0     0 ?        S    Jul05  52:25 [kswapd0]
+root     1426434  0.4  0.6 1300044 49188 ?       Ssl  Jul13   6:58 PM2 v6.0.14: God Daemon (/root/.pm2)
+root     1571577  0.4  1.0 11839448 84744 ?      Sl   12:25   0:08 /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/server-main.js --start-server --host 127.0.0.1 --port 0 --connection-token-file /run/user/0/cursor-remote-code.token.6ca0869f6193ac0d40fa6ae74ed01260 --telemetry-level off --enable-remote-auto-shutdown --accept-server-license-terms
+postgres 1574836  0.4  1.1 221268 91260 ?        Ss   12:56   0:00 postgres: 14/main: postgres impetus_db 127.0.0.1(54418) idle
+postgres 1574915  0.4  0.5 220900 43296 ?        Ss   12:57   0:00 postgres: 14/main: postgres impetus_db 127.0.0.1(36148) idle
+root          31  0.3  0.0      0     0 ?        S    Jul05  50:13 [kcompactd0]
+root     1426585  0.3  0.7 11539264 58200 ?      Ssl  Jul13   4:30 node /var/www/impetus-completa/backend/scripts/edge-agent-
+root     1571648  0.3  1.2 1395292 103536 ?      Sl   12:25   0:05 /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=fileWatcher
+postgres 1574862  0.3  0.9 221336 75684 ?        Ss   12:56   0:00 postgres: 14/main: postgres impetus_db 127.0.0.1(58462) idle
+root     1426448  0.2  0.4 1299420 40040 ?       Ssl  Jul13   3:22 node /root/.pm2/modules/pm2-logrotate/node_modules/pm2-log
+root     1426476  0.2  0.6 1050532 49444 ?       Ssl  Jul13   2:58 node /var/www/impetus-completa/backend/scripts/industrial-
+root          14  0.1  0.0      0     0 ?        I    Jul05  13:14 [rcu_sched]
+root         394  0.1  0.2  57736 18940 ?        S<s  Jul05  16:25 /lib/systemd/systemd-journald
+root         742  0.1  0.0 154164  3852 ?        Ssl  Jul05  13:37 /usr/sbin/qemu-ga
+postgres 1410031  0.1  1.7 219092 143296 ?       Ss   Jul13   1:55 postgres: 14/main: checkpointer 
+root     1426475  0.1  0.4 1040620 38040 ?       Ssl  Jul13   2:52 node /var/www/impetus-completa/backend/scripts/industrial-
+root     1458915  0.1  0.3 1096440 28776 ?       Ssl  Jul13   2:06 npm run preview:prod
+root     1480889  0.1  0.3 1100044 31376 ?       Ssl  Jul13   1:42 npm run preview:prod
+root     1571309  0.1  0.1  17812 11092 ?        Ss   12:25   0:02 sshd: root@notty
+root     1571618  0.1  0.6 1137016 54200 ?       Sl   12:25   0:03 /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/node /root/.cursor-server/bin/linux-x64/bf249e6efb5b097f23d7e21d7283429f0760b740/out/bootstrap-fork --type=ptyHost --logsPath /root/.cursor-server/data/logs/20260714T122545
+root           1  0.0  0.1 167884 10788 ?        Ss   Jul05   0:28 /sbin/init
+root           2  0.0  0.0      0     0 ?        S    Jul05   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        I<   Jul05   0:00 [rcu_gp]

@@ -4,14 +4,24 @@
  */
 const db = require('../db');
 const crypto = require('crypto');
+const { safeFetch } = require('../securityApplication/ssrfProtectionEngine');
 
-const ENC_KEY = process.env.TIME_CLOCK_ENC_KEY || process.env.ENCRYPTION_KEY || 'impetus-default-key-32b';
+const ENC_KEY = process.env.TIME_CLOCK_ENC_KEY || process.env.ENCRYPTION_KEY || '';
 const ALG = 'aes-256-cbc';
+
+function getEncryptionKey() {
+  if (ENC_KEY.length < 16) {
+    const error = new Error('TIME_CLOCK_ENC_KEY_NOT_CONFIGURED');
+    error.code = 'TIME_CLOCK_ENC_KEY_NOT_CONFIGURED';
+    throw error;
+  }
+  return Buffer.from(ENC_KEY.slice(0, 32).padEnd(32, '0'));
+}
 
 function encrypt(text) {
   if (!text) return null;
   try {
-    const key = Buffer.from(ENC_KEY.slice(0, 32).padEnd(32, '0'));
+    const key = getEncryptionKey();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(ALG, key, iv);
     let enc = cipher.update(String(text), 'utf8', 'base64');
@@ -25,7 +35,7 @@ function decrypt(encrypted) {
   try {
     const [ivB64, enc] = encrypted.split(':');
     if (!ivB64 || !enc) return null;
-    const key = Buffer.from(ENC_KEY.slice(0, 32).padEnd(32, '0'));
+    const key = getEncryptionKey();
     const iv = Buffer.from(ivB64, 'base64');
     const decipher = crypto.createDecipheriv(ALG, key, iv);
     return decipher.update(enc, 'base64', 'utf8') + decipher.final('utf8');
@@ -102,10 +112,11 @@ async function validateConnection(companyId) {
 
   try {
     const apiKey = int.api_key_encrypted ? decrypt(int.api_key_encrypted) : null;
-    const res = await fetch(int.api_url || 'https://httpbin.org/get', {
+    const targetUrl = int.api_url || 'https://httpbin.org/get';
+    const res = await safeFetch(targetUrl, {
       method: 'GET',
       headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}
-    });
+    }, { integration: 'time_clock', companyId });
     return { ok: res.ok, status: res.status };
   } catch (e) {
     return { ok: false, error: e?.message || 'Falha na conexão' };
@@ -167,7 +178,9 @@ async function runSync(companyId, systemCode) {
   try {
     const apiKey = int.api_key_encrypted ? decrypt(int.api_key_encrypted) : null;
     const url = (int.api_url || '').replace(/\/$/, '') + '/records?since=' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const res = await fetch(url, { headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {} });
+    const res = await safeFetch(url, {
+      headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}
+    }, { integration: 'time_clock_sync', companyId });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();

@@ -10,6 +10,7 @@ import {
   isQualityRiskIntelligenceEnabled
 } from './qualityGovernanceFeatureFlags.js';
 import { isQualityGovernanceEffectiveEnabled } from '../navigation/qualityRuntimeModuleBridge.js';
+import { loadAndScreenQualitySpc, SPC_EMPTY_MESSAGE } from './qualitySpcSeriesAdapter.js';
 
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' };
 const labelH = { ...mono, color: 'var(--text-tertiary)', marginBottom: 6 };
@@ -39,19 +40,18 @@ function SpcPanel({ companyId }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  const [emptyMsg, setEmptyMsg] = useState('');
 
   const runSpc = useCallback(async () => {
-    setLoading(true); setErr(''); setResult(null);
+    setLoading(true); setErr(''); setResult(null); setEmptyMsg('');
     try {
-      const { data } = await qgApi.screenSpc({
-        subgroups: [
-          [10.1, 10.2, 10.0, 10.3, 10.1],
-          [10.2, 10.0, 10.1, 10.2, 10.0],
-          [10.4, 10.9, 11.0, 10.8, 11.2]
-        ],
-        correlation_id: safeUUID()
-      });
-      setResult(data);
+      const bundle = await loadAndScreenQualitySpc();
+      if (!bundle.data_available || !bundle.screen) {
+        setEmptyMsg(bundle.empty_message || SPC_EMPTY_MESSAGE);
+        setResult(null);
+        return;
+      }
+      setResult(bundle.screen);
     } catch (e) {
       setErr(e?.response?.data?.error || e.message || 'SPC indisponível');
     } finally { setLoading(false); }
@@ -87,7 +87,7 @@ function SpcPanel({ companyId }) {
         </div>
       ) : (
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>
-          {loading ? 'Analisando subgrupos…' : 'Inicie análise SPC para visualizar resultado.'}
+          {loading ? 'Analisando subgrupos…' : emptyMsg || 'Inicie análise SPC para visualizar resultado.'}
         </p>
       )}
     </div>

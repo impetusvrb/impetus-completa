@@ -48,6 +48,7 @@ export function sidebarNavItemKey(item, index) {
   if (item._safety_manifest_id) return `snav-${item._safety_manifest_id}`;
   if (item._logistics_manifest_id) return `lnav-${item._logistics_manifest_id}`;
   if (item._environment_manifest_id) return `envnav-${item._environment_manifest_id}`;
+  if (item._presentation_id) return `pnav-${item._presentation_id}`;
   if (item._module_id) return `ctx-${item._module_id}`;
   if (item.path) return `p-${item.path}`;
   return `idx-${index}`;
@@ -67,6 +68,17 @@ export function dedupeSidebarMenuItems(items) {
     const item = items[i];
     if (!item) continue;
     if (item.settingsBack || item.settingsAnchor) {
+      out.push(item);
+      continue;
+    }
+    if (item.presentationType === 'divider' || item.presentationType === 'section-header') {
+      out.push(item);
+      continue;
+    }
+    if (item._presentation_id) {
+      const pKey = `pnav:${item._presentation_id}`;
+      if (seen.has(pKey)) continue;
+      seen.add(pKey);
       out.push(item);
       continue;
     }

@@ -11,7 +11,32 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-function buildCognitiveCore(seed, mode, livingOn = false) {
+function buildPresenceConsciousness(orgCtx, audience) {
+  const structuralComplete = audience?.structural_complete === true;
+  const orgValid = orgCtx?.valid !== false;
+  if (structuralComplete) {
+    return {
+      active_phrase: 'Onipresença cognitiva ativa — correlacionando sinais organizacionais disponíveis',
+      level_pct: null,
+      awareness_state: 'PRESENÇA_ATIVA'
+    };
+  }
+  if (orgValid) {
+    return {
+      active_phrase: 'Presença cognitiva online — aguardando densidade operacional e cadastro estrutural completo',
+      level_pct: null,
+      awareness_state: 'PRESENÇA_ATIVA'
+    };
+  }
+  return {
+    active_phrase: 'Aguardando cadastro estrutural e dados operacionais',
+    level_pct: null,
+    awareness_state: 'AGUARDANDO_CADASTRO'
+  };
+}
+
+function buildCognitiveCore(seed, mode, livingOn = false, opts = {}) {
+  const presenceOnly = opts.presenceOnly === true;
   if (!livingOn) {
     return {
       name: 'IMPETUS Cognitive Core',
@@ -19,17 +44,19 @@ function buildCognitiveCore(seed, mode, livingOn = false) {
       version: '2.0',
       operational_mode: mode,
       status: {
-        cognitive_core: 'STANDBY',
+        cognitive_core: presenceOnly ? 'PRESENCE' : 'STANDBY',
         behavior_mapping: 'AWAITING_DATA',
         cross_analysis: 'DISABLED',
         operational_sync: '—',
-        organizational_awareness: 'AWAITING_CADASTRO',
+        organizational_awareness: presenceOnly ? 'ONLINE' : 'AWAITING_CADASTRO',
         digital_twin_sync: '—',
         predictive_engine: 'STANDBY',
         predictive_layer: 'STANDBY'
       },
       throughput_events_per_min: 0,
-      awareness_level_pct: null
+      awareness_level_pct: null,
+      confidence_level: null,
+      presence_online: presenceOnly
     };
   }
   const running = seededFloat(seed, 300, 0, 1) > 0.2;
@@ -518,50 +545,80 @@ function composeOrganizationalIntelligence(ctx) {
   const seed = livingSeed(companyId);
 
   if (!livingOn) {
-    const cognitive_core = buildCognitiveCore(seed, mode, false);
+    const orgValid = orgCtx?.valid !== false;
+    const presenceOnly = orgValid;
+    const cognitive_core = buildCognitiveCore(seed, mode, false, { presenceOnly });
     let digital_twin = buildDigitalTwin(orgCtx, heatmap, global, tension, seed, profileCode, false);
     if (audience) {
       const { filterDigitalTwin } = require('./cognitiveAudienceResolver');
       digital_twin = filterDigitalTwin(digital_twin, audience);
     }
+    const consciousness = buildPresenceConsciousness(orgCtx, audience);
+    const multi_agents = { agents: [], status: presenceOnly ? 'PRESENCE_ONLY' : 'AWAITING_DATA' };
+    const organizational_memory = { patterns: (feed || []).slice(0, 5) };
+    const cause_effect = { chains: [] };
+    const autonomous_focus = { focus_areas: [] };
+    const blackbox = {
+      engines: Object.entries(cognitive_core.status).map(([id, status]) => ({
+        id,
+        label: id,
+        status
+      })),
+      background_log: presenceOnly ? [consciousness.active_phrase] : [],
+      hidden_processes: presenceOnly ? ['Organizational presence layer — no synthetic enrichment'] : []
+    };
+    const live = presenceOnly
+      ? presence.composeOrganizationalPresence({
+          companyId,
+          orgCtx,
+          global,
+          tension,
+          mode,
+          consciousness,
+          timeline,
+          feed,
+          cause_effect,
+          organizational_memory,
+          multi_agents,
+          digital_twin,
+          neural_graph: neural_graph || { nodes: [], links: [] },
+          org_map: org_map || { nodes: [], flows: [] },
+          heatmap,
+          blackbox,
+          cognitive_core,
+          autonomous_focus
+        })
+      : null;
+
     return {
       cognitive_core,
       digital_twin,
-      multi_agents: { agents: [], status: 'AWAITING_DATA' },
-      consciousness: {
-        active_phrase: 'Aguardando cadastro estrutural e dados operacionais',
-        level_pct: null
-      },
+      multi_agents,
+      consciousness,
       operational_narrative: {
-        headline: 'Cadastre departamentos, setores e equipamentos na Base Estrutural',
+        headline: presenceOnly
+          ? 'Presença cognitiva ativa — dados operacionais ainda esparsos'
+          : 'Cadastre departamentos, setores e equipamentos na Base Estrutural',
         events: []
       },
-      cause_effect: { chains: [] },
+      cause_effect,
       advanced_predictions: { items: [] },
-      organizational_memory: { patterns: (feed || []).slice(0, 5) },
+      organizational_memory,
       strategic_intelligence: { items: [] },
-      autonomous_focus: { focus_areas: [] },
+      autonomous_focus,
       org_map: org_map || { nodes: [], flows: [] },
-      blackbox: {
-        engines: Object.entries(cognitive_core.status).map(([id, status]) => ({
-          id,
-          label: id,
-          status
-        })),
-        background_log: [],
-        hidden_processes: []
-      },
+      blackbox,
       timeline,
       feed,
       neural_graph: neural_graph || { nodes: [], links: [] },
-      ambient: { mood: 'idle', scanner_speed: 0, glow_intensity: 0, pulse_rate: 0 },
-      global_whispers: [],
-      global_presence: { level: null },
-      organizational_energy: null,
-      emergent_insights: [],
-      decision_engine: { queue: [] },
-      cognitive_timeline: timeline,
-      awareness_mode: 'awaiting_data'
+      ambient: live?.ambient || { mood: 'idle', scanner_speed: 0, glow_intensity: 0, pulse_rate: 0 },
+      global_whispers: live?.global_whispers || [],
+      global_presence: live?.global_presence || { level: null, alive: false },
+      organizational_energy: live?.organizational_energy || null,
+      emergent_insights: live?.emergent_insights || [],
+      decision_engine: live?.decision_engine || { queue: [] },
+      cognitive_timeline: live?.cognitive_timeline || timeline,
+      awareness_mode: presenceOnly ? 'presence_only' : 'awaiting_data'
     };
   }
 

@@ -8,6 +8,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { auth } from '../services/api';
 import { markVoiceResetOnNextEntry, resolveDefaultAppPath } from '../utils/defaultAppEntry';
+import { clearMenuStabilityCache } from '../hooks/useVisibleModules';
+import { invalidateDashboardMeCache } from '../runtimeBoot/dashboardMeSharedStore';
+import MfaLoginStep from '../components/security/MfaLoginStep';
 import loginBg from '../assets/login-bg.png';
 import logoImpetus from '../assets/logo-impetus-login.png';
 import './Login.css';
@@ -19,6 +22,25 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mfaPending, setMfaPending] = useState(null);
+
+  const finishLogin = (data) => {
+    if (!data?.token || !data?.user) {
+      setError('Resposta inválida do servidor. Tente novamente.');
+      return;
+    }
+    localStorage.setItem('impetus_token', data.token);
+    localStorage.setItem('impetus_user', JSON.stringify(data.user));
+    clearMenuStabilityCache();
+    invalidateDashboardMeCache();
+    markVoiceResetOnNextEntry();
+    const redirect = data.redirect || null;
+    if (redirect) {
+      navigate(redirect);
+      return;
+    }
+    navigate(resolveDefaultAppPath(data.user));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,24 +51,45 @@ export default function Login() {
       const response = await auth.login(email, password);
       const data = response?.data;
 
-      if (!data?.token || !data?.user) {
-        setError('Resposta inválida do servidor. Tente novamente.');
+      if (data?.mfa_required && data?.mfa_challenge_token) {
+        setMfaPending({
+          token: data.mfa_challenge_token,
+          methods: data.methods || ['totp'],
+          traceId: data.trace_id,
+          expiresAt: data.expires_at
+        });
         return;
       }
 
-      localStorage.setItem('impetus_token', data.token);
-      localStorage.setItem('impetus_user', JSON.stringify(data.user));
-      markVoiceResetOnNextEntry();
-
-      const redirect = data.redirect || null;
-      if (redirect) {
-        navigate(redirect);
-        return;
-      }
-      navigate(resolveDefaultAppPath(data.user));
+      finishLogin(data);
     } catch (err) {
       console.error('Erro no login:', err);
       setError(err.apiMessage || err.response?.data?.error || 'Erro ao fazer login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaVerify = async ({ method, code, trust_device }) => {
+    if (!mfaPending?.token) return;
+    setError('');
+    setLoading(true);
+    try {
+      const response = await auth.mfaVerify({
+        mfa_challenge_token: mfaPending.token,
+        method,
+        code,
+        trust_device,
+        trace_id: mfaPending.traceId
+      });
+      const data = response?.data;
+      if (!data?.ok) {
+        setError(data?.error || 'Código inválido');
+        return;
+      }
+      finishLogin(data);
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.code || 'Código inválido');
     } finally {
       setLoading(false);
     }
@@ -79,9 +122,24 @@ export default function Login() {
                 className="login-logo-img"
               />
             </div>
-            <p className="login-subtitle">Faça login para acessar a plataforma</p>
+            <p className="login-subtitle">
+              {mfaPending ? 'Confirme o segundo factor de autenticação' : 'Faça login para acessar a plataforma'}
+            </p>
           </div>
 
+          {mfaPending ? (
+            <MfaLoginStep
+              methods={mfaPending.methods}
+              loading={loading}
+              error={error}
+              userHint={`Conta: ${email}`}
+              onVerify={handleMfaVerify}
+              onCancel={() => {
+                setMfaPending(null);
+                setError('');
+              }}
+            />
+          ) : (
           <form className="login-form" onSubmit={handleSubmit}>
             {error && (
               <div className="error-message">
@@ -149,6 +207,7 @@ export default function Login() {
               <Link to="/forgot-password" className="forgot-password">Esqueceu sua senha?</Link>
             </div>
           </form>
+          )}
 
           <div className="login-info">
             <p className="copyright">

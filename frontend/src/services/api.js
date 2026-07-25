@@ -270,6 +270,9 @@ export const auth = {
   resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
   login: (email, password) => 
     api.post('/auth/login', { email, password }),
+
+  mfaVerify: (payload) =>
+    api.post('/auth/mfa/verify', payload),
   
   logout: () => 
     api.post('/auth/logout'),
@@ -282,6 +285,14 @@ export const auth = {
   
   getSessions: () => 
     api.get('/auth/sessions')
+};
+
+export const authMfa = {
+  getStatus: () => api.get('/auth/mfa/status'),
+  getPolicy: () => api.get('/auth/mfa/policy'),
+  enrollTotpBegin: () => api.post('/auth/mfa/enroll/totp/begin'),
+  enrollTotpConfirm: (code) => api.post('/auth/mfa/enroll/totp/confirm', { code }),
+  verify: (payload) => api.post('/auth/mfa/verify', payload),
 };
 
 // ============================================================================
@@ -1184,6 +1195,7 @@ export const environmentGovernance = {
 /** Quality — governance & intelligence (Etapa 3). */
 export const qualityGovernance = {
   health: () => api.get('/quality-governance/health'),
+  getSpcSeries: () => api.get('/quality-governance/intelligence/spc/series'),
   screenSpc: (body) => api.post('/quality-governance/intelligence/spc/screen', body),
   screenDrift: (body) => api.post('/quality-governance/intelligence/drift/screen', body),
   rankFmea: (body) => api.post('/quality-governance/intelligence/fmea/rank', body),
@@ -1946,6 +1958,15 @@ export const adminWarehouse = {
   },
   movements: {
     list:   (params)  => api.get('/admin/warehouse/movements', { params }),
+    create: (data)    => api.post('/admin/warehouse/movements', data),
+  },
+  balances: {
+    list:   ()        => api.get('/admin/warehouse/balances'),
+  },
+  links: {
+    list:   ()        => api.get('/admin/warehouse/links'),
+    create: (data)    => api.post('/admin/warehouse/links', data),
+    delete: (id)      => api.delete(`/admin/warehouse/links/${id}`),
   },
 };
 

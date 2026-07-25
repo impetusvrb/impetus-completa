@@ -1,6 +1,7 @@
 'use strict';
 
 const catalog = require('../catalog/capabilityCatalog');
+const { isSensitiveDiagnosticKey } = require('../../securityApplication/diagnosticRedaction');
 
 function resolveCapabilityFlags() {
   return catalog.listCapabilities().map((cap) => {
@@ -43,7 +44,7 @@ function resolveGlobalEffectiveFlags(limit = 80) {
     effective = {};
   }
   const impetus = Object.entries(process.env)
-    .filter(([k]) => k.startsWith('IMPETUS_'))
+    .filter(([key]) => key.startsWith('IMPETUS_') && !isSensitiveDiagnosticKey(key))
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(0, limit)
     .map(([key, value]) => ({ key, value: String(value) }));

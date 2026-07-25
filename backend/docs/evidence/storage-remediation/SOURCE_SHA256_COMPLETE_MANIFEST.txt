@@ -1,0 +1,17 @@
+# SOURCE SHA256 COMPLETE MANIFEST — VPS Origin
+# Generated: 2026-07-13T16:09:36Z
+# Use for comparison after external copy
+
+1c98ebbb7fa1be5bc29f94b8be00c1a14f5004cd8a0abb9dfe6553e0e3e17b36  export-staging/IMPETUS_FORENSIC_EVIDENCE_2026_07.tar.gz
+e0f4e2080fc5ee8f4a6acc02c7684a09102de29a61906513b1c1078992bf7fd6  export-staging/IMPETUS_FORENSIC_PM2_LOGS_2026_07.tar.gz
+5a2e372f99966fe54f6b4e59cd0b1631b96f6f01b5db5fe63dbfa515d211b848  export-staging/IMPETUS_SECURITY_CERTIFICATIONS_2026.tar.gz
+
+# Apport core dumps (INCIDENT_EVIDENCE — OOM Jul 11-13)
+fe8f81cae4ba02c2aa2207847f8ac652a8e994f15abf11baaeeb45a0a44f4e2e  /var/lib/apport/coredump/core._usr_bin_node.0.c2c91690-dade-4dba-ad0e-c9d72f5fa11a.1117038.50429709
+0974572fcbc9be309df5f5882f49c5f0a2c195d458635d73a04486510ec0d1c7  /var/lib/apport/coredump/core._usr_bin_node.0.c2c91690-dade-4dba-ad0e-c9d72f5fa11a.1264763.57180497
+49848113785be1337d01757b4ba6fe79277b4b6ac6b7a9c30f418c12c7fb42e0  /var/lib/apport/coredump/core._usr_bin_node.0.c2c91690-dade-4dba-ad0e-c9d72f5fa11a.1294484.59135010
+4da331b53a02df706e2afd8c5041014a703a98107d23337b3cee28fcbdf8c3ef  /var/lib/apport/coredump/core._usr_bin_node.0.c2c91690-dade-4dba-ad0e-c9d72f5fa11a.1364633.62894624
+261bc1d00b0bf75259177b8e3eb66467fc3fbc36f1614c43a260bed77cd318cb  /var/lib/apport/coredump/core._usr_bin_node.0.c2c91690-dade-4dba-ad0e-c9d72f5fa11a.1389545.64866468
+
+# Checkpoint PostgreSQL (DATABASE_BACKUP — 19G)
+0880756b31aa8387f0f59fe9abb3722a1181b59377caeceb2a981ebd5b0cdf9d  /var/www/impetus-completa/backend/backups/checkpoint_2026-06-26T1622.sql

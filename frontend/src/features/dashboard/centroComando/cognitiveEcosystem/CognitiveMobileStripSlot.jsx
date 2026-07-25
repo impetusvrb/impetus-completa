@@ -4,7 +4,7 @@ import useViewportTier from './useViewportTier';
 import CognitiveGlobalStrip from './CognitiveGlobalStrip';
 
 /**
- * Mobile: faixa compacta após conteúdo operacional principal (CERT-01.1).
+ * Mobile: faixa compacta no topo do dashboard (INC-012 / CERT-01.1).
  * Deve renderizar dentro de CognitivePresenceShell (contexto UI).
  */
 export default function CognitiveMobileStripSlot() {

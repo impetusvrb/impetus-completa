@@ -134,6 +134,171 @@ const COGNITIVE_DOMAINS = Object.freeze({
     semantic_constraints: { keywords: ['diretor', 'ceo', 'cfo', 'executivo', 'estrategico', 'boardroom'], axis: 'executive' },
     pilot_profiles: ['executive_director', 'ceo', 'cfo', 'director_industrial', 'director_general'],
     cockpit_ready: true
+  },
+
+  logistics: {
+    domain: 'logistics',
+    label: 'Logística / Almoxarifado',
+    maturity: 'foundation',
+    cognitive_block_prefix: 'logistics.',
+    weighting: { operational: 0.75, governance: 0.2, strategic: 0.05 },
+    operational_focus: {
+      inventory: 0.22,
+      fleet: 0.2,
+      shipment: 0.18,
+      receiving: 0.15,
+      dock: 0.1,
+      supplier: 0.1,
+      narrative: 0.05
+    },
+    governance_rules: {
+      isolated_from: ['executive', 'hr'],
+      cross_correlation_allowed: ['quality', 'environment'],
+      denied_pipelines: ['quality_capa', 'people_analytics', 'esg_boardroom'],
+      governance_tags: ['domain:logistics', 'governance:isolated', 'wms_tms_centric']
+    },
+    cockpit_density: { max_centers: 8, max_widgets: 8, max_metrics_per_center: 8 },
+    semantic_constraints: {
+      keywords: ['logistica', 'logística', 'almox', 'estoque', 'expedicao', 'frota', 'wms', 'tms'],
+      axis: 'logistics'
+    },
+    pilot_profiles: ['coordinator_logistics', 'manager_logistics', 'supervisor_logistics'],
+    cockpit_ready: false,
+    runtime_id: 'logistics_native',
+    foundation_inc: 'INC-038'
+  },
+
+  ppap: {
+    domain: 'ppap',
+    label: 'PPAP / Aprovação de Peça de Produção',
+    maturity: 'foundation',
+    parent_domain: 'quality',
+    cognitive_block_prefix: 'ppap.',
+    weighting: { operational: 0.55, governance: 0.35, strategic: 0.1 },
+    operational_focus: {
+      submission: 0.2,
+      dimensional: 0.18,
+      supplier: 0.15,
+      documents: 0.15,
+      capability: 0.12,
+      psw: 0.1,
+      narrative: 0.1
+    },
+    governance_rules: {
+      isolated_from: ['executive', 'hr', 'safety'],
+      cross_correlation_allowed: ['quality', 'logistics'],
+      denied_pipelines: ['people_analytics', 'esg_boardroom'],
+      governance_tags: ['domain:ppap', 'domain:quality', 'governance:isolated', 'aiag_ppap']
+    },
+    cockpit_density: { max_centers: 7, max_widgets: 7, max_metrics_per_center: 8 },
+    semantic_constraints: {
+      keywords: ['ppap', 'psw', 'apqp', 'submission', 'part approval', 'fornecedor'],
+      axis: 'quality'
+    },
+    pilot_profiles: ['coordinator_quality', 'manager_quality', 'supervisor_quality', 'inspector_quality'],
+    cockpit_ready: false,
+    runtime_id: 'ppap_native',
+    foundation_inc: 'GF-001'
+  },
+
+  msa: {
+    domain: 'msa',
+    label: 'MSA / Análise de Sistema de Medição',
+    maturity: 'foundation',
+    parent_domain: 'quality',
+    cognitive_block_prefix: 'msa.',
+    weighting: { operational: 0.6, governance: 0.3, strategic: 0.1 },
+    operational_focus: {
+      grr: 0.22,
+      gauge: 0.18,
+      calibration: 0.15,
+      bias: 0.12,
+      linearity: 0.1,
+      stability: 0.1,
+      attribute: 0.08,
+      narrative: 0.05
+    },
+    governance_rules: {
+      isolated_from: ['executive', 'hr', 'safety'],
+      cross_correlation_allowed: ['quality', 'ppap'],
+      denied_pipelines: ['people_analytics', 'esg_boardroom'],
+      governance_tags: ['domain:msa', 'domain:quality', 'governance:isolated', 'aiag_msa']
+    },
+    cockpit_density: { max_centers: 7, max_widgets: 7, max_metrics_per_center: 8 },
+    semantic_constraints: {
+      keywords: ['msa', 'grr', 'gage', 'medicao', 'metrologia', 'calibracao'],
+      axis: 'quality'
+    },
+    pilot_profiles: ['coordinator_quality', 'manager_quality', 'supervisor_quality', 'inspector_quality'],
+    cockpit_ready: false,
+    runtime_id: 'msa_native',
+    foundation_inc: 'GF-008'
+  },
+
+  ishikawa: {
+    domain: 'ishikawa',
+    label: 'Ishikawa / Análise de Causa (Fishbone)',
+    maturity: 'foundation',
+    parent_domain: 'quality',
+    cognitive_block_prefix: 'ishikawa.',
+    weighting: { operational: 0.55, governance: 0.35, strategic: 0.1 },
+    operational_focus: {
+      fishbone: 0.22,
+      investigation: 0.18,
+      five_whys: 0.15,
+      evidence: 0.12,
+      capa_handoff: 0.12,
+      recurrence: 0.1,
+      narrative: 0.11
+    },
+    governance_rules: {
+      isolated_from: ['executive', 'hr', 'safety'],
+      cross_correlation_allowed: ['quality', 'ppap', 'msa'],
+      denied_pipelines: ['people_analytics', 'esg_boardroom'],
+      governance_tags: ['domain:ishikawa', 'domain:quality', 'governance:isolated', 'cause_analysis']
+    },
+    cockpit_density: { max_centers: 7, max_widgets: 7, max_metrics_per_center: 8 },
+    semantic_constraints: {
+      keywords: ['ishikawa', 'fishbone', 'rca', 'root cause', 'capa', '5 porqu'],
+      axis: 'quality'
+    },
+    pilot_profiles: ['coordinator_quality', 'manager_quality', 'supervisor_quality', 'inspector_quality'],
+    cockpit_ready: false,
+    runtime_id: 'ishikawa_native',
+    foundation_inc: 'GF-015'
+  },
+
+  supply: {
+    domain: 'supply',
+    label: 'Supply / Suprimentos e Procurement',
+    maturity: 'foundation',
+    parent_domain: 'logistics',
+    cognitive_block_prefix: 'supply.',
+    weighting: { operational: 0.55, governance: 0.3, strategic: 0.15 },
+    operational_focus: {
+      procurement: 0.22,
+      supplier: 0.2,
+      inbound: 0.18,
+      commitments: 0.15,
+      exceptions: 0.12,
+      spend: 0.08,
+      narrative: 0.05
+    },
+    governance_rules: {
+      isolated_from: ['executive', 'hr', 'safety'],
+      cross_correlation_allowed: ['logistics', 'quality', 'ppap', 'msa', 'ishikawa'],
+      denied_pipelines: ['people_analytics'],
+      governance_tags: ['domain:supply', 'domain:logistics', 'governance:isolated', 'procurement']
+    },
+    cockpit_density: { max_centers: 8, max_widgets: 8, max_metrics_per_center: 8 },
+    semantic_constraints: {
+      keywords: ['supply', 'suprimentos', 'compras', 'procurement', 'fornecedor', 'po', 'requisicao'],
+      axis: 'logistics'
+    },
+    pilot_profiles: ['manager_procurement', 'manager_supply', 'coordinator_logistics', 'manager_logistics'],
+    cockpit_ready: false,
+    runtime_id: 'supply_native',
+    foundation_inc: 'GF-022'
   }
 });
 

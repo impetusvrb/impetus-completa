@@ -1,0 +1,11 @@
+{
+  "phase": "OPERATIONAL-GO-LIVE-01",
+  "step": "baseline_sync",
+  "timestamp": "2026-07-04T19:09:56Z",
+  "git_head": "c3c20f7e7ea6dc1421c014a81e3ebc28f5a09cd7",
+  "enterprise_version": "v2",
+  "security_version": "SEC-21C",
+  "manifest": "backend/docs/evidence/security-baseline-01/critical-files.sha256.manifest",
+  "hardening_baseline": "backend/docs/integrity/HARDENING-01-baseline.sha256",
+  "status": "SYNCHRONIZED"
+}

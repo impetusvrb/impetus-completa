@@ -4,10 +4,10 @@
  *            Parâmetros, Movimentações, Saldos, Vínculos
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Package, Tags, Truck, MapPin, Settings, ArrowLeftRight,
-  BarChart3, Link2, Plus, Edit, Trash2, ChevronRight
+  BarChart3, Link2, Plus, Edit, Trash2, ChevronRight, AlertCircle, RefreshCw
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import Table from '../components/Table';
@@ -56,22 +56,49 @@ const FREQUENCY_OPTIONS = [
   { value: 'monthly', label: 'Mensal' }
 ];
 
+function resolveAdminApiError(e, fallback) {
+  return e?.apiMessage || e?.response?.data?.error || e?.message || fallback;
+}
+
 export default function AdminWarehouse() {
+  const notify = useNotification();
   const [activeModule, setActiveModule] = useState('categories');
   const [references, setReferences] = useState(null);
+  const [refsError, setRefsError] = useState(null);
+  const [refsStaleError, setRefsStaleError] = useState(null);
+  const [refsLoading, setRefsLoading] = useState(true);
+  const referencesRef = useRef(null);
+
+  useEffect(() => {
+    referencesRef.current = references;
+  }, [references]);
+
+  const loadReferences = useCallback(async () => {
+    setRefsError(null);
+    setRefsStaleError(null);
+    setRefsLoading(true);
+    const hadValidRefs = referencesRef.current != null;
+    try {
+      const r = await adminWarehouse.getReferences();
+      setReferences(r.data?.data ?? null);
+    } catch (e) {
+      const msg = resolveAdminApiError(e, 'Metadados de referência indisponíveis (REFERENCE_DATA_LOAD_FAILED).');
+      if (hadValidRefs) {
+        setRefsStaleError(msg);
+      } else {
+        setRefsError(msg);
+        notify.error(msg);
+      }
+    } finally {
+      setRefsLoading(false);
+    }
+  }, [notify]);
 
   useEffect(() => {
     loadReferences();
-  }, []);
+  }, [loadReferences]);
 
-  const loadReferences = async () => {
-    try {
-      const r = await adminWarehouse.getReferences();
-      setReferences(r.data?.data || null);
-    } catch (e) {
-      console.error('Erro ao carregar referências:', e);
-    }
-  };
+  const refsLoadFailed = Boolean(refsError && references == null && !refsLoading);
 
   return (
     <Layout>
@@ -87,6 +114,31 @@ export default function AdminWarehouse() {
             </div>
           </div>
         </div>
+
+        {refsLoadFailed && (
+          <div className="admin-ref-banner admin-ref-banner--error" role="alert">
+            <AlertCircle size={18} aria-hidden />
+            <div className="admin-ref-banner__body">
+              <span className="admin-ref-banner__code">REFERENCE_DATA_LOAD_FAILED</span>
+              <p className="admin-ref-banner__detail">{refsError}</p>
+              <p className="admin-ref-banner__hint">
+                Dropdowns dependentes podem parecer vazios. Isto não significa ausência de dados — a consulta falhou.
+              </p>
+            </div>
+            <button type="button" className="btn btn-ghost admin-ref-banner__retry" onClick={loadReferences}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
+        {refsStaleError && (
+          <div className="admin-ref-banner admin-ref-banner--warn" role="status">
+            <AlertCircle size={18} aria-hidden />
+            <span>{refsStaleError} — exibindo último conjunto válido de referências.</span>
+            <button type="button" className="btn btn-ghost admin-ref-banner__retry" onClick={loadReferences}>
+              <RefreshCw size={14} /> Tentar novamente
+            </button>
+          </div>
+        )}
 
         <div className="warehouse-layout">
           <aside className="warehouse-sidebar">
@@ -105,13 +157,13 @@ export default function AdminWarehouse() {
 
           <main className="warehouse-content">
             {activeModule === 'categories' && <CategoriesModule loadRefs={loadReferences} />}
-            {activeModule === 'materials' && <MaterialsModule refs={references} loadRefs={loadReferences} />}
+            {activeModule === 'materials' && <MaterialsModule refs={references} loadRefs={loadReferences} refsLoadFailed={refsLoadFailed} />}
             {activeModule === 'suppliers' && <SuppliersModule loadRefs={loadReferences} />}
             {activeModule === 'locations' && <LocationsModule loadRefs={loadReferences} />}
             {activeModule === 'params' && <ParamsModule loadRefs={loadReferences} />}
-            {activeModule === 'movements' && <MovementsModule refs={references} loadRefs={loadReferences} />}
+            {activeModule === 'movements' && <MovementsModule refs={references} loadRefs={loadReferences} refsLoadFailed={refsLoadFailed} />}
             {activeModule === 'balances' && <BalancesModule refs={references} />}
-            {activeModule === 'links' && <LinksModule refs={references} loadRefs={loadReferences} />}
+            {activeModule === 'links' && <LinksModule refs={references} loadRefs={loadReferences} refsLoadFailed={refsLoadFailed} />}
           </main>
         </div>
       </div>
@@ -230,7 +282,7 @@ function CategoriesModule({ loadRefs }) {
 // ============================================================================
 // MÓDULO: MATERIAIS
 // ============================================================================
-function MaterialsModule({ refs, loadRefs }) {
+function MaterialsModule({ refs, loadRefs, refsLoadFailed = false }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -265,6 +317,10 @@ function MaterialsModule({ refs, loadRefs }) {
   }));
 
   const openCreate = () => {
+    if (refsLoadFailed) {
+      notify.error('Referências indisponíveis (REFERENCE_DATA_LOAD_FAILED). Use "Tentar novamente" no banner.');
+      return;
+    }
     setEditing(null);
     setForm({
       name: '', code: '', category_id: '', default_supplier_id: '', unit: 'UN',
@@ -351,7 +407,9 @@ function MaterialsModule({ refs, loadRefs }) {
     <div className="crud-module">
       <div className="module-header">
         <p className="module-desc">Registre todos os itens do estoque com nome, código, categoria, unidade, estoques mín e ideal.</p>
-        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Novo Material</button>
+        <button className="btn btn-primary" onClick={openCreate} disabled={refsLoadFailed} title={refsLoadFailed ? 'Referências indisponíveis' : undefined}>
+          <Plus size={16} /> Novo Material
+        </button>
       </div>
       <Table columns={columns} data={items} loading={loading} emptyMessage="Nenhum material cadastrado" />
 
@@ -758,7 +816,7 @@ function ParamsModule({ loadRefs }) {
 // ============================================================================
 // MÓDULO: MOVIMENTAÇÕES
 // ============================================================================
-function MovementsModule({ refs, loadRefs }) {
+function MovementsModule({ refs, loadRefs, refsLoadFailed = false }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -795,6 +853,10 @@ function MovementsModule({ refs, loadRefs }) {
   }));
 
   const openCreate = () => {
+    if (refsLoadFailed) {
+      notify.error('Referências indisponíveis (REFERENCE_DATA_LOAD_FAILED). Use "Tentar novamente" no banner.');
+      return;
+    }
     setForm({
       material_id: '', movement_type: 'entrada', quantity: '',
       location_id: '', notes: '', document_ref: ''
@@ -811,6 +873,10 @@ function MovementsModule({ refs, loadRefs }) {
   const handleSubmit = async () => {
     try {
       setSaving(true);
+      if (refsLoadFailed) {
+        notify.error('Referências indisponíveis. Recarregue metadados antes de registrar movimentação.');
+        return;
+      }
       if (!form.material_id || !form.quantity || form.quantity <= 0) {
         notify.error('Material e quantidade são obrigatórios.');
         return;
@@ -850,15 +916,19 @@ function MovementsModule({ refs, loadRefs }) {
     <div className="crud-module">
       <div className="module-header">
         <p className="module-desc">Registre entradas, saídas, consumos e ajustes de inventário.</p>
-        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Nova Movimentação</button>
+        <button className="btn btn-primary" onClick={openCreate} disabled={refsLoadFailed} title={refsLoadFailed ? 'Referências indisponíveis' : undefined}>
+          <Plus size={16} /> Nova Movimentação
+        </button>
       </div>
       <div className="filters-row">
         <select
           value={filterMaterial}
           onChange={(e) => setFilterMaterial(e.target.value)}
           className="form-select filter-select"
+          disabled={refsLoadFailed}
+          title={refsLoadFailed ? 'Filtro indisponível — falha ao carregar referências' : undefined}
         >
-          <option value="">Todos os materiais</option>
+          <option value="">{refsLoadFailed ? 'Filtro indisponível (falha refs)' : 'Todos os materiais'}</option>
           {materialOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select
@@ -940,7 +1010,7 @@ function BalancesModule({ refs }) {
 // ============================================================================
 // MÓDULO: VÍNCULOS
 // ============================================================================
-function LinksModule({ refs, loadRefs }) {
+function LinksModule({ refs, loadRefs, refsLoadFailed = false }) {
   const notify = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -974,6 +1044,10 @@ function LinksModule({ refs, loadRefs }) {
   const deptOpts = (refs?.departments || []).map((d) => ({ value: d.id, label: d.name }));
 
   const openCreate = () => {
+    if (refsLoadFailed) {
+      notify.error('Referências indisponíveis (REFERENCE_DATA_LOAD_FAILED). Use "Tentar novamente" no banner.');
+      return;
+    }
     setEditing(null);
     setForm({
       material_id: '', link_type: 'production',
@@ -988,6 +1062,10 @@ function LinksModule({ refs, loadRefs }) {
   const handleSubmit = async () => {
     try {
       setSaving(true);
+      if (refsLoadFailed) {
+        notify.error('Referências indisponíveis. Recarregue metadados antes de criar vínculo.');
+        return;
+      }
       await adminWarehouse.links.create({
         ...form,
         process_id: form.process_id || null,
@@ -1050,7 +1128,9 @@ function LinksModule({ refs, loadRefs }) {
     <div className="crud-module">
       <div className="module-header">
         <p className="module-desc">Vincule materiais aos processos da empresa (produção, manutenção, ordens de serviço) para rastreabilidade.</p>
-        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> Novo Vínculo</button>
+        <button className="btn btn-primary" onClick={openCreate} disabled={refsLoadFailed} title={refsLoadFailed ? 'Referências indisponíveis' : undefined}>
+          <Plus size={16} /> Novo Vínculo
+        </button>
       </div>
       <Table columns={columns} data={items} loading={loading} emptyMessage="Nenhum vínculo cadastrado" />
 

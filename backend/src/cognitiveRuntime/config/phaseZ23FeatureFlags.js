@@ -14,7 +14,12 @@ function _mode(name, defaultMode = 'off') {
   return 'off';
 }
 
-const PILOT_PROFILES = Object.freeze(['coordinator_quality']);
+/** INC-024 — consolidação cockpit quality_native para liderança de qualidade. */
+const PILOT_PROFILES = Object.freeze([
+  'manager_quality',
+  'coordinator_quality',
+  'supervisor_quality'
+]);
 
 module.exports = {
   specializedCockpitMode: () => _mode('IMPETUS_SPECIALIZED_COCKPIT_RUNTIME', 'off'),

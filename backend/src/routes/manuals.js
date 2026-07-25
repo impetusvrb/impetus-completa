@@ -1,40 +1,33 @@
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs').promises;
 const router = express.Router();
 const db = require('../db');
 const manualsService = require('../services/manuals');
 const { requireAuth, requireCompanyId } = require('../middleware/auth');
+const { createUploadMiddleware, handleUploadError } = require('../middleware/impetusUploadMiddleware');
+const { postUploadMagicValidator } = require('../securityApplication/uploadSecurity');
 
 const uploadPaths = require('../config/uploadPaths');
 
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = uploadPaths.root();
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'manuals-legacy-' + uniqueSuffix + path.extname(file.originalname || '.pdf'));
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }
+const manualsUpload = createUploadMiddleware({
+  module: 'manuals_legacy',
+  destination: uploadPaths.root(),
+  allowedGroups: ['document'],
+  fieldName: 'file'
 });
 
 /**
  * POST /api/manuals/upload — alinhado ao modelo multi-tenant (company_id + uploaded_by).
  * Requer o mesmo esquema que /api/admin/settings/manuals.
  */
-router.post('/upload', requireAuth, requireCompanyId, upload.single('file'), async (req, res) => {
+router.post(
+  '/upload',
+  requireAuth,
+  requireCompanyId,
+  manualsUpload.single,
+  postUploadMagicValidator(),
+  handleUploadError('manuals_legacy'),
+  async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ ok: false, error: 'Arquivo não enviado' });
@@ -65,7 +58,7 @@ router.post('/upload', requireAuth, requireCompanyId, upload.single('file'), asy
     const manualId = result.rows[0].id;
     if (text && text.length >= 20) {
     await manualsService.chunkAndEmbedManual(manualId, text);
-      await db.query('UPDATE manuals SET embedding_processed = true WHERE id = $1', [manualId]);
+      await db.query('UPDATE manuals SET embedding_processed = true WHERE id = $1 AND company_id = $2', [manualId, req.user.company_id]);
     }
 
     res.json({ ok: true, manualId });
@@ -79,7 +72,7 @@ router.post('/upload', requireAuth, requireCompanyId, upload.single('file'), asy
         code: 'MANUALS_SCHEMA'
       });
     }
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: err.message || 'Erro ao enviar manual' });
   }
 });
 

@@ -308,6 +308,10 @@ const { PRODUCTION_PILOT_BLOCKS, PRODUCTION_BLOCK_ALIASES } = require('./product
 const { ENVIRONMENTAL_PILOT_BLOCKS, ENVIRONMENTAL_BLOCK_ALIASES } = require('./environmentalCognitiveBlockPack');
 const { MAINTENANCE_PILOT_BLOCKS, MAINTENANCE_BLOCK_ALIASES } = require('./maintenanceCognitiveBlockPack');
 const { EXECUTIVE_PILOT_BLOCKS, EXECUTIVE_BLOCK_ALIASES } = require('./executiveCognitiveBlockPack');
+const { LOGISTICS_PILOT_BLOCKS, LOGISTICS_BLOCK_ALIASES } = require('./logisticsCognitiveBlockPack');
+const { PPAP_PILOT_BLOCKS, PPAP_BLOCK_ALIASES } = require('./ppapCognitiveBlockPack');
+const { MSA_PILOT_BLOCKS, MSA_BLOCK_ALIASES } = require('./msaCognitiveBlockPack');
+const { ISHIKAWA_PILOT_BLOCKS, ISHIKAWA_BLOCK_ALIASES } = require('./ishikawaCognitiveBlockPack');
 
 function mergeRegistryDefinitions() {
   const byId = new Map(COGNITIVE_BLOCK_DEFINITIONS.map((b) => [b.id, b]));
@@ -318,6 +322,10 @@ function mergeRegistryDefinitions() {
   for (const b of ENVIRONMENTAL_PILOT_BLOCKS) byId.set(b.id, b);
   for (const b of MAINTENANCE_PILOT_BLOCKS) byId.set(b.id, b);
   for (const b of EXECUTIVE_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of LOGISTICS_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of PPAP_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of MSA_PILOT_BLOCKS) byId.set(b.id, b);
+  for (const b of ISHIKAWA_PILOT_BLOCKS) byId.set(b.id, b);
   return [...byId.values()];
 }
 
@@ -344,6 +352,10 @@ function getBlockById(id) {
     ENVIRONMENTAL_BLOCK_ALIASES[id] ||
     MAINTENANCE_BLOCK_ALIASES[id] ||
     EXECUTIVE_BLOCK_ALIASES[id] ||
+    LOGISTICS_BLOCK_ALIASES[id] ||
+    PPAP_BLOCK_ALIASES[id] ||
+    MSA_BLOCK_ALIASES[id] ||
+    ISHIKAWA_BLOCK_ALIASES[id] ||
     id;
   return _byId.get(canonical) || _byId.get(id) || null;
 }
@@ -369,6 +381,10 @@ function getRegistryStats() {
     environmental_pilot_blocks: ENVIRONMENTAL_PILOT_BLOCKS.length,
     maintenance_pilot_blocks: MAINTENANCE_PILOT_BLOCKS.length,
     executive_pilot_blocks: EXECUTIVE_PILOT_BLOCKS.length,
+    logistics_pilot_blocks: LOGISTICS_PILOT_BLOCKS.length,
+    ppap_pilot_blocks: PPAP_PILOT_BLOCKS.length,
+    msa_pilot_blocks: MSA_PILOT_BLOCKS.length,
+    ishikawa_pilot_blocks: ISHIKAWA_PILOT_BLOCKS.length,
     domains: Object.keys(_byDomain),
     definition_only: true,
     delivery_active: false,

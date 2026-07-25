@@ -1,0 +1,31 @@
+{
+  "started_at": "2026-07-23T14:29:57Z",
+  "finished_at": "2026-07-23T14:31:44Z",
+  "asset": "/var/www/impetus-completa/infra/security/audit/impetus-audit.rules",
+  "asset_id": "INT-M-003",
+  "before_events_lines": 4,
+  "after_events_lines": 6,
+  "before_violations": 4,
+  "after_violations": 6,
+  "hash_change": {
+    "detected": true,
+    "injected_at": "2026-07-23T14:29:57Z",
+    "detected_at": "2026-07-23T14:30:12Z"
+  },
+  "perm_change": {
+    "detected": true,
+    "asset_id": "INT-C-003",
+    "asset": "/var/www/impetus-completa/ecosystem.runtime.config.cjs",
+    "note": "Activo com monitor_perm=true; INT-M-003 e INT-H-015 n\u00e3o monitoram permiss\u00e3o",
+    "injected_at": "2026-07-23T14:36:44Z",
+    "detected_at": "2026-07-23T14:36:56Z"
+  },
+  "delete": {
+    "detected": true,
+    "injected_at": "2026-07-23T14:31:23Z",
+    "detected_at": "2026-07-23T14:31:44Z"
+  },
+  "restore_at": "2026-07-23T14:30:48Z",
+  "create_note": "N/A_as_create_new_asset \u2014 engine monitora invent\u00e1rio; recria\u00e7\u00e3o = restore do activo INT-M-003",
+  "hash_matches_baseline_after_restore": true
+}

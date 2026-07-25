@@ -1,0 +1,104 @@
+{
+  "schema_version": "dependency_upgrade_plan_v1",
+  "generated_at": "2026-07-10T20:51:21.736Z",
+  "backend": {
+    "plans": [
+      {
+        "package": "axios",
+        "status": "clean",
+        "priority": "P0",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "package-lock.json + npm ci",
+        "action": "none"
+      },
+      {
+        "package": "ws",
+        "status": "clean",
+        "priority": "P0",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "package-lock.json + npm ci",
+        "action": "none"
+      },
+      {
+        "package": "xlsx",
+        "status": "clean",
+        "priority": "P1",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "pin previous version in package.json",
+        "action": "none"
+      },
+      {
+        "package": "form-data",
+        "status": "clean",
+        "priority": "P1",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "nodemailer",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "protobufjs",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "fast-uri",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      },
+      {
+        "package": "@grpc/grpc-js",
+        "status": "clean",
+        "priority": "P2",
+        "current_version": null,
+        "risk": "none",
+        "compatibility": "ok",
+        "breaking_changes": "none",
+        "rollback": "npm ci",
+        "action": "none"
+      }
+    ],
+    "audit_summary": {}
+  },
+  "frontend": null,
+  "vulnerable_count": 0,
+  "upgrade_priority_order": [],
+  "regression_command": "node backend/src/tests/securityApplication/APPSEC_01.test.js && node backend/src/tests/securityApplicationValidation/APPSEC_02.test.js",
+  "plan_complete": true,
+  "auto_upgrade": false,
+  "recommendation": "Dependências prioritárias sem vulnerabilidades conhecidas"
+}

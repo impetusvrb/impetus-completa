@@ -341,6 +341,24 @@ async function recordReceipt(companyId, data) {
 }
 
 /**
+ * Contagem oficial de inspeções não conformes (fonte primária KPIs quality).
+ * @returns {Promise<number|null>} null se tabela indisponível
+ */
+async function countNonConformingInspections(companyId) {
+  if (!companyId) return null;
+  try {
+    const insp = await db.query(
+      `SELECT COUNT(*)::int AS n FROM quality_inspections
+       WHERE company_id = $1 AND result = 'non_conforming'`,
+      [companyId]
+    );
+    return insp.rows[0]?.n ?? 0;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
  * Resumo NCR/CAPA para painel de governança (tenant-scoped, dados reais).
  */
 async function getNcrCapaSummary(companyId) {
@@ -353,14 +371,10 @@ async function getNcrCapaSummary(companyId) {
   };
   if (!companyId) return summary;
 
-  try {
-    const insp = await db.query(
-      `SELECT COUNT(*)::int AS n FROM quality_inspections
-       WHERE company_id = $1 AND result = 'non_conforming'`,
-      [companyId]
-    );
-    summary.inspections_non_conforming = insp.rows[0]?.n || 0;
-  } catch (_) {}
+  const ncCount = await countNonConformingInspections(companyId);
+  if (ncCount != null) {
+    summary.inspections_non_conforming = ncCount;
+  }
 
   try {
     const wf = await db.query(
@@ -404,5 +418,6 @@ module.exports = {
   getQualityImpactForForecasting,
   recordInspection,
   recordReceipt,
-  getNcrCapaSummary
+  getNcrCapaSummary,
+  countNonConformingInspections
 };

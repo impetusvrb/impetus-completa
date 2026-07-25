@@ -1,0 +1,2 @@
+health: HTTP 200 time=0.003538s
+bot-config: HTTP 200 time=0.001999s

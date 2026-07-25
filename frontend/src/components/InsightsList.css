@@ -18,6 +18,38 @@
   gap: 12px;
 }
 
+.insights-empty-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-default);
+  border-radius: 4px;
+}
+
+.insights-empty-state svg {
+  flex-shrink: 0;
+  color: var(--amber);
+}
+
+.insights-empty-state strong {
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insights-empty-state p {
+  margin: 6px 0 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .insight-item {
   display: flex;
   gap: 12px;

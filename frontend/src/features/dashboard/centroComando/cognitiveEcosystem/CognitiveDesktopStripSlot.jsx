@@ -4,8 +4,7 @@ import useViewportTier from './useViewportTier';
 import CognitiveGlobalStrip from './CognitiveGlobalStrip';
 
 /**
- * Desktop (≥1024px): card compacto após painel operacional — UI-DESKTOP-004.
- * Mobile usa CognitiveMobileStripSlot (inalterado).
+ * Desktop (≥1024px): topo always-exposed — INC-013R (motores visíveis, sem toggle).
  */
 export default function CognitiveDesktopStripSlot() {
   const tier = useViewportTier();
@@ -18,7 +17,7 @@ export default function CognitiveDesktopStripSlot() {
       core={pulse.cognitive_core}
       consciousness={pulse.consciousness}
       presence={pulse.global_presence}
-      variant="desktop-summary"
+      variant="desktop-top-exposed"
     />
   );
 }

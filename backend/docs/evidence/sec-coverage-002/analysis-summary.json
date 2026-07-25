@@ -1,0 +1,254 @@
+{
+  "dashboard_consistency": {
+    "consistent": true,
+    "state_mode": "WATCH",
+    "dash_mode": "WATCH",
+    "state_violations": 4,
+    "dash_violations": 4,
+    "layer_status": "ATUOU",
+    "available": true
+  },
+  "fp_fn": {
+    "events_total": 11,
+    "duplicate_event_ids": 0,
+    "event_types": {
+      "INTEGRITY_HASH_CHANGED": 9,
+      "INTEGRITY_FILE_DELETED": 1,
+      "INTEGRITY_PERM_CHANGED": 1
+    },
+    "severity_counts": {
+      "CRITICAL": 4,
+      "HIGH": 7
+    },
+    "severity_inconsistencies": [],
+    "controlled_tests": 7,
+    "controlled_detected": 7,
+    "false_negatives": [],
+    "false_negative_rate_pct": 0.0,
+    "false_positive_rate_pct": 0.0,
+    "legitimate_drift_assets": [
+      "INT-C-001",
+      "INT-C-002",
+      "INT-H-001",
+      "INT-H-002"
+    ],
+    "note": "FP rate relativo a injectos controlados + aus\u00eancia de eventos indevidos em activos restaurados na janela; drift INT-01* classificado como verdadeiro positivo operacional.",
+    "owner_uid_validated": true,
+    "group_change_coverage": "NOT_IMPLEMENTED_DOCUMENTED_P2",
+    "FALSE_NEGATIVE_RATE_ACCEPTABLE": true,
+    "FALSE_POSITIVE_RATE_ACCEPTABLE": true
+  },
+  "blind_spots": [
+    {
+      "id": "INT-C-004",
+      "path": "/etc/nginx/sites-enabled/impetus",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-005",
+      "path": "/etc/nginx/snippets/impetus-cloudflare-proxy-guard.conf",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-006",
+      "path": "/etc/nginx/snippets/impetus-hardening-locations.conf",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-007",
+      "path": "/etc/letsencrypt/live/plataformaimpetus.com/cert.pem",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-008",
+      "path": "/etc/letsencrypt/live/plataformaimpetus.com/privkey.pem",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-009",
+      "path": "/etc/fail2ban/jail.d/impetus.conf",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-C-010",
+      "path": "/etc/audit/rules.d/impetus.rules",
+      "priority": "P1",
+      "class": "auditd_gap",
+      "mitigation": "Adicionar regras -w auditd (impetus_nginx_config / tls / fail2ban / audit) \u2014 bridge j\u00e1 preparado; HashChecker mitiga via polling"
+    },
+    {
+      "id": "INT-H-006",
+      "path": "/usr/local/bin/impetus-threat-watch.sh",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-007",
+      "path": "/usr/local/bin/impetus-breach-lockdown-engine.sh",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-008",
+      "path": "/usr/local/bin/impetus-emergency-lockdown.sh",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-009",
+      "path": "/usr/local/bin/impetus-audit-watch.sh",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-016",
+      "path": "/etc/nginx/snippets/impetus-ip-allowlist.conf",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-017",
+      "path": "/etc/nginx/snippets/impetus-ip-allowlist-wrapper.conf",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-018",
+      "path": "/etc/nginx/snippets/impetus-proxy.conf",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-019",
+      "path": "/etc/nginx/snippets/impetus-proxy-ws.conf",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-020",
+      "path": "/etc/cron.d/impetus-security-auto-audit",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-021",
+      "path": "/etc/cron.d/impetus-security-baseline",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-022",
+      "path": "/etc/cron.d/impetus-security-observatory",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-H-023",
+      "path": "/etc/cron.d/impetus-security-weekly-sim",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Regras auditd para /usr/local/bin, cron, nginx snippets; Hash/PermChecker mitiga"
+    },
+    {
+      "id": "INT-M-004",
+      "path": "/etc/letsencrypt/archive/plataformaimpetus.com/fullchain2.pem",
+      "priority": "P2",
+      "class": "auditd_gap",
+      "mitigation": "Cobertura hash peri\u00f3dica suficiente para MEDIUM"
+    },
+    {
+      "id": "INT-M-001",
+      "path": "/var/www/impetus-completa/backend/src/routes/",
+      "priority": "P1",
+      "class": "directory_no_file_baseline",
+      "mitigation": "Cobertura parcial via auditd impetus_repo_write; considerar file-level baseline ou directory watcher em fase futura \u2014 N\u00c3O alterar baseline nesta fase"
+    },
+    {
+      "id": "INT-M-002",
+      "path": "/var/www/impetus-completa/backend/src/middleware/",
+      "priority": "P2",
+      "class": "directory_no_file_baseline",
+      "mitigation": "Cobertura parcial via auditd impetus_repo_write; considerar file-level baseline ou directory watcher em fase futura \u2014 N\u00c3O alterar baseline nesta fase"
+    },
+    {
+      "id": "INT-M-005",
+      "path": "/var/www/impetus-completa/backend/src/security/config/",
+      "priority": "P2",
+      "class": "directory_no_file_baseline",
+      "mitigation": "Cobertura parcial via auditd impetus_repo_write; considerar file-level baseline ou directory watcher em fase futura \u2014 N\u00c3O alterar baseline nesta fase"
+    },
+    {
+      "id": "*",
+      "path": "(all monitor_owner assets)",
+      "priority": "P2",
+      "class": "group_not_monitored",
+      "mitigation": "PermChecker valida UID apenas; extens\u00e3o a GID pode ser proposta p\u00f3s-CERT sem alterar baseline"
+    }
+  ],
+  "blind_summary": {
+    "P0": 0,
+    "P1": 8,
+    "P2": 16
+  },
+  "high_perm_monitoring": {
+    "monitored": 4,
+    "total_high": 23,
+    "gap": 19,
+    "justification": "Pol\u00edtica do invent\u00e1rio: apenas bin\u00e1rios /usr/local/bin com monitor_perm; restantes HIGH cobertos por hash"
+  },
+  "residual_out_of_scope": [
+    {
+      "item": "Rootkits / malwarea\u00e7\u00f5es em mem\u00f3ria",
+      "scope": "OUT"
+    },
+    {
+      "item": "Firmware / bootloaders",
+      "scope": "OUT"
+    },
+    {
+      "item": "Hardware / TPM f\u00edsico",
+      "scope": "OUT"
+    },
+    {
+      "item": "Cria\u00e7\u00e3o ad-hoc de ficheiros fora do invent\u00e1rio",
+      "scope": "OUT_BY_DESIGN"
+    },
+    {
+      "item": "Containers / imagens Docker runtime",
+      "scope": "OUT"
+    },
+    {
+      "item": "Tr\u00e1fego de rede em tempo real",
+      "scope": "OUT_OTHER_LAYERS"
+    }
+  ],
+  "acceptance_flags": {
+    "FULL_CRITICAL_COVERAGE": true,
+    "FULL_HIGH_COVERAGE": true,
+    "MEDIUM_COVERAGE_VALIDATED": true,
+    "NO_CRITICAL_BLIND_SPOTS": true
+  }
+}

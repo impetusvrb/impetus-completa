@@ -9,6 +9,7 @@ const flags = require('../config/securityReconFlags');
 const store = require('../store/reconStateStore');
 const { BEHAVIOR_STATES } = require('../dto/securitySignalDto');
 const { isTrustedLocalPeer } = require('../engine/signalNormalizer');
+const { shouldSkipReconScoreForSignal } = require('../engine/adminOperationalRoutePolicy');
 const decisionLimiter = require('../engine/decisionEventLimiter');
 
 const RULE_VERSION = 'security_recon_v3';
@@ -39,6 +40,10 @@ function emitDecision(decision, previousBehaviorState) {
 function computeScoreDelta(signal, state) {
   if (isTrustedLocalPeer(signal)) {
     return -999;
+  }
+
+  if (shouldSkipReconScoreForSignal(signal)) {
+    return 0;
   }
 
   let delta = 0;

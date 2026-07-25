@@ -30,7 +30,20 @@ async function apiFetch(baseUrl, path, options = {}) {
     ...options,
     headers
   });
-  const data = await res.json().catch(() => ({}));
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) {
+      const err = new Error(
+        res.status === 504 || res.status === 502
+          ? 'Servidor indisponível. Tente novamente em instantes.'
+          : 'Resposta inválida do servidor'
+      );
+      err.status = res.status;
+      throw err;
+    }
+  }
   if (!res.ok) {
     const err = new Error(data.error || res.statusText || 'Erro');
     err.status = res.status;
