@@ -1,7 +1,7 @@
 {
-  "certification": "SECURITY-BASELINE-01",
-  "frozen_at": "2026-07-03T21:30:00Z",
-  "git_head": "daf338657ac3a90fe777dad78c5936d75b89b090",
+  "certification": "SECURITY-BASELINE-02",
+  "frozen_at": "2026-07-29T22:31:50Z",
+  "git_head": "0745040cb97fcd468f3bd32389870e9507877f1b",
   "predecessor": "HARDENING-01",
   "successor_phases": ["SEC-01", "SEC-02", "SEC-03", "SEC-04", "SEC-05", "SEC-06", "SEC-07", "SEC-08"],
   "criteria": {
